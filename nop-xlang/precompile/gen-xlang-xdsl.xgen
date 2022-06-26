@@ -1,0 +1,7 @@
+<c:script>
+codeGenerator.renderModel('/nop/schema/xdef.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/xlib.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/schema/obj-schema.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/xmeta.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/xt.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>

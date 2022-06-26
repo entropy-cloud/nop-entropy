@@ -1,0 +1,10 @@
+{
+  "antlrLibDirPath": "antlr",
+  "antlrModelPath": "antlr/Eql.g4",
+  "antlrGenCode": true,
+  "astModelPath": "ast/io/nop/orm/eql/ast/EqlAST.xjava",
+  "antlrPackage": "io.nop.orm.eql.parse.antlr",
+  "mainRule": "sqlProgram",
+  "packageName": "io.nop.orm.eql.parse",
+  "primaryExpectedTokens": []
+}

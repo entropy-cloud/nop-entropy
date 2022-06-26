@@ -1,0 +1,3 @@
+<c:script>
+codeGenerator.renderModel('@model/ast/io/nop/orm/eql/ast/EqlAST.xjava','/nop/templates/ast', '/',$scope);
+</c:script>
