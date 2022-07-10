@@ -1,0 +1,261 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${ast.packageName}._gen;
+
+import ${astNode.className};
+import ${ast.packageName}.${ast.name}Node;
+<c:if test="${!astNode.abstract}">
+import ${ast.packageName}.${ast.name}Kind;
+import io.nop.core.lang.json.IJsonHandler;
+import io.nop.api.core.util.ProcessResult;
+import java.util.function.Function;
+import java.util.function.Consumer;
+</c:if>
+
+public abstract class _${astNode.simpleClassName} extends ${astNode.extendsType ?? ast.name + 'Node'} ${astNode.implementsTypes.join(',').$wrap('implements ','')}{
+    <c:for var="_f" items="${astNode.localProps}">
+    protected ${_f.type} ${_f.name};
+    </c:for>
+
+    public _${astNode.simpleClassName}(){
+    }
+
+    <c:for var="_f" items="${astNode.localProps}">
+    public ${_f.type} ${_f.name.$methodGet()}(){
+        return ${_f.name};
+    }
+
+    public void ${_f.name.$methodSet()}(${_f.type} value){
+        checkAllowChange();
+        <c:choose>
+        <when test="${ast.getDefine(_f.simpleClassName)}">if(value != null) value.setASTParent(this);
+        </when>
+            <when test="${ast.getDefine(_f.itemSimpleClassName)}">
+                if(value != null){
+                  value.forEach(node->node.setASTParent((${ast.name}Node)this));
+                }
+            </when>
+        </c:choose>
+        this.${_f.name} = value;
+    }
+    <c:if test="${ast.getDefine(_f.itemSimpleClassName)}">
+    public ${_f.type} ${_f.name.$methodMake()}(){
+        ${_f.type} list = ${_f.name.$methodGet()}();
+        if(list == null){
+            list = new java.util.ArrayList&lt;>();
+            ${_f.name.$methodSet()}(list);
+        }
+        return list;
+    }
+    </c:if>
+    </c:for>
+
+    public void validate(){
+       super.validate();
+     <c:for var="_f" items="${astNode.localProps}">
+       <c:if test="${_f.mandatory and !_f.type.primitive}">
+          checkMandatory("${_f.name}",${_f.name.$methodGet()}());
+       </c:if>
+
+      <c:if test="${_f.schema.minItems > 0}">
+         checkMinItems("${_f.name}",${_f.name.$methodGet()}(),${_f.schema.minItems});
+      </c:if>
+
+        <c:if test="${_f.schema.maxItems > 0}">
+           checkMaxItems("${_f.name}",${_f.name.$methodGet()}(),${_f.schema.maxItems});
+        </c:if>
+     </c:for>
+    }
+
+<c:if test="${astNode.abstract}">
+    @Override
+    public abstract ${astNode.simpleClassName} deepClone();
+</c:if>
+
+
+<c:if test="${!astNode.abstract}">
+    public ${astNode.simpleClassName} newInstance(){
+      return new ${astNode.simpleClassName}();
+    }
+
+    @Override
+    public ${astNode.simpleClassName} deepClone(){
+       ${astNode.simpleClassName} ret = newInstance();
+    ret.setLocation(getLocation());
+    ret.setLeadingComment(getLeadingComment());
+    ret.setTrailingComment(getTrailingComment());
+    <c:for var="_f" items="${astNode.props}">
+        <c:choose>
+            <when test="${!_f.type.primitive}">
+                if(${_f.name} != null){
+                  <c:choose>
+                      <when test="${ast.getDefine(_f.itemSimpleClassName)}">
+                          ${_f.type} copy_${_f.name} = new java.util.ArrayList&lt;>(${_f.name}.size());
+                          for(${_f.componentType} item: ${_f.name}){
+                              copy_${_f.name}.add(item.deepClone());
+                          }
+                          ret.${_f.name.$methodSet()}(copy_${_f.name});
+                      </when>
+                      <when test="${ast.getDefine(_f.simpleClassName)}">
+                          ret.${_f.name.$methodSet()}(${_f.name}.deepClone());
+                      </when>
+                      <otherwise>
+                          ret.${_f.name.$methodSet()}(${_f.name});
+                      </otherwise>
+                  </c:choose>
+                }
+            </when>
+            <otherwise>
+                ret.${_f.name.$methodSet()}(${_f.name});
+            </otherwise>
+        </c:choose>
+
+    </c:for>
+       return ret;
+    }
+
+    @Override
+    public void forEachChild(Consumer&lt;${ast.name}Node> processor){
+    <c:for var="_f" items="${astNode.props}">
+        <c:if test="${ast.getDefine(_f.simpleClassName)}">
+            if(${_f.name} != null)
+                processor.accept(${_f.name});
+        </c:if>
+        <c:if test="${ast.getDefine(_f.itemSimpleClassName)}">
+            if(${_f.name} != null){
+               for(${_f.componentType} child: ${_f.name}){
+                    processor.accept(child);
+                }
+            }</c:if>
+    </c:for>
+    }
+
+    @Override
+    public ProcessResult processChild(Function&lt;${ast.name}Node,ProcessResult> processor){
+    <c:for var="_f" items="${astNode.props}">
+        <c:if test="${ast.getDefine(_f.simpleClassName)}">
+            if(${_f.name} != null &amp;&amp; processor.apply(${_f.name}) == ProcessResult.STOP)
+               return ProcessResult.STOP;
+        </c:if>
+        <c:if test="${ast.getDefine(_f.itemSimpleClassName)}">
+            if(${_f.name} != null){
+               for(${_f.componentType} child: ${_f.name}){
+                    if(processor.apply(child) == ProcessResult.STOP)
+                        return ProcessResult.STOP;
+               }
+            }</c:if>
+    </c:for>
+       return ProcessResult.CONTINUE;
+    }
+
+    @Override
+    public boolean replaceChild(${ast.name}Node oldChild, ${ast.name}Node newChild){
+    <c:for var="_f" items="${astNode.props}">
+        <c:if test="${ast.getDefine(_f.simpleClassName)}">
+            if(this.${_f.name} == oldChild){
+               this.${_f.name.$methodSet()}((${_f.type})newChild);
+               return true;
+            }
+        </c:if>
+        <c:if test="${ast.getDefine(_f.itemSimpleClassName)}">
+            if(this.${_f.name} != null){
+               int index = this.${_f.name}.indexOf(oldChild);
+               if(index >= 0){
+                   java.util.List&lt;${_f.componentType}> list = this.replaceInList(this.${_f.name},index,newChild);
+                   this.${_f.name.$methodSet()}(list);
+                   return true;
+               }
+            }</c:if>
+    </c:for>
+        return false;
+    }
+
+    @Override
+    public boolean removeChild(${ast.name}Node child){
+    <c:for var="_f" items="${astNode.props}">
+        <c:if test="${ast.getDefine(_f.simpleClassName)}">
+            if(this.${_f.name} == child){
+                this.${_f.name.$methodSet()}(null);
+                return true;
+            }
+        </c:if>
+        <c:if test="${ast.getDefine(_f.itemSimpleClassName)}">
+            if(this.${_f.name} != null){
+               int index = this.${_f.name}.indexOf(child);
+               if(index >= 0){
+                   java.util.List&lt;${_f.componentType}> list = this.removeInList(this.${_f.name},index);
+                   this.${_f.name.$methodSet()}(list);
+                   return true;
+               }
+            }</c:if>
+    </c:for>
+    return false;
+    }
+
+    @Override
+    public boolean isEquivalentTo(${ast.name}Node node){
+       if(this.getASTKind() != node.getASTKind())
+          return false;
+    ${astNode.simpleClassName} other = (${astNode.simpleClassName})node;
+    <c:for var="_f" items="${astNode.props}">
+        <c:choose>
+        <when test="${ast.getDefine(_f.simpleClassName)}">
+            if(!isNodeEquivalent(this.${_f.name},other.${_f.name.$methodGet()}())){
+               return false;
+            }
+        </when>
+        <when test="${ast.getDefine(_f.itemSimpleClassName)}">
+            if(isListEquivalent(this.${_f.name},other.${_f.name.$methodGet()}())){
+               return false;
+            }</when>
+            <otherwise>
+                if(!isValueEquivalent(this.${_f.name},other.${_f.name.$methodGet()}())){
+                   return false;
+                }
+            </otherwise>
+        </c:choose>
+    </c:for>
+        return true;
+    }
+
+    @Override
+    public ${ast.name}Kind getASTKind(){
+       return ${ast.name}Kind.${astNode.simpleClassName};
+    }
+
+    protected void serializeFields(IJsonHandler json) {
+        <c:for var="_f" items="${astNode.props}">
+            <c:choose>
+                <when test="${!_f.type.primitive}">
+                    if(${_f.name} != null){
+                      <c:choose>
+                          <when test="${ast.getDefine(_f.itemSimpleClassName)}">
+                              if(!${_f.name}.isEmpty())
+                                json.put("${_f.name}", ${_f.name});
+                          </when>
+                          <otherwise>
+                              json.put("${_f.name}", ${_f.name});
+                          </otherwise>
+                      </c:choose>
+                    }
+                </when>
+                <otherwise>
+                   json.put("${_f.name}", ${_f.name});
+                </otherwise>
+            </c:choose>
+        </c:for>
+    }
+
+    @Override
+    public void freeze(boolean cascade){
+      super.freeze(cascade);
+        <c:for var="_f" items="${astNode.props}">
+            <c:if test="${ast.getDefine(_f.simpleClassName)}">
+                if(${_f.name} != null)
+                    ${_f.name}.freeze(cascade);</c:if>
+            <c:if test="${ast.getDefine(_f.itemSimpleClassName)}">
+                ${_f.name} = io.nop.api.core.util.FreezeHelper.freezeList(${_f.name},cascade);         </c:if>
+        </c:for>
+    }
+</c:if>
+}
+</c:unit>

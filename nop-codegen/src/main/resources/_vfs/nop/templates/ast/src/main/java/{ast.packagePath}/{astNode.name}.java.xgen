@@ -1,0 +1,9 @@
+<c:unit xpl:outputMode="text">
+package ${ast.packageName};
+
+import ${ast.packageName}._gen._${astNode.simpleClassName};
+
+public ${astNode.abstract ? 'abstract': ''} class ${astNode.simpleClassName} extends _${astNode.simpleClassName}{
+
+}
+</c:unit>

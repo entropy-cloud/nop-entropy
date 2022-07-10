@@ -1,0 +1,14 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${ast.packageName};
+
+public enum ${ast.name}Kind{
+<c:script>
+  let n=0;
+</c:script>
+    <c:for var="_classModel" items="${ast.defines}" index="index">
+        <c:if test="${!_classModel.abstract}">
+            ${_classModel.simpleClassName}, // ordinal: ${n++}
+        </c:if>
+    </c:for>
+}
+</c:unit>

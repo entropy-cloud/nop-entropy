@@ -1,0 +1,10 @@
+<c:unit xpl:outputMode="text">package ${objMeta.packageName};
+
+import ${objMeta.packageName}._gen._${objSchema.simpleClassName};
+
+public class ${objSchema.simpleClassName} extends _${objSchema.simpleClassName}{
+    public ${objSchema.simpleClassName}(){
+
+    }
+}
+</c:unit>

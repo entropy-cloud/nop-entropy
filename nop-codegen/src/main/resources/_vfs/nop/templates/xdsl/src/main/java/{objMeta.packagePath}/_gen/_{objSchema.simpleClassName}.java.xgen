@@ -1,0 +1,139 @@
+<c:unit xpl:outputMode="text">package ${objMeta.packageName}._gen;
+
+import io.nop.commons.collections.KeyedList;
+import io.nop.core.lang.json.IJsonHandler;
+
+<c:script>
+let baseClass = objSchema.extendsType || 'io.nop.core.resource.component.AbstractComponentModel';
+if(objSchema.refSchema)
+    baseClass = objSchema.refSchema.className;
+
+let implIfs = null;
+if(objSchema.implementsTypes.size() > 0)
+   implIfs = 'implements ' + objSchema.implementsTypes.join(',');
+
+function build_defaults(prop){
+   if(prop.schema.isKeyedListType()){
+      return "= KeyedList.emptyList()"
+   } else if(prop.schema.isListSchema()){
+      return "= java.util.Collections.emptyList()"
+   } else if(prop.schema.isMapType()){
+      return "= java.util.Collections.emptyMap()"
+   }
+   return null;
+}
+</c:script>
+
+/**
+ * generate from ${objSchema.location} &lt;p>
+ * ${objSchema.description.$replace('*/','* /').$replace("\n","\n * ")}
+ */
+public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implIfs}{
+    <c:for var="prop" items="${objSchema.localProps}">
+        <c:continue xpl:if="prop.name.indexOf(':')>0" />
+    /**
+     *  ${prop.displayName}
+     * xml name: ${prop.xmlName}
+     * ${prop.description.$replace('*/','* /').$replace("\n","\n     * ")}
+     */
+    private ${prop.schema.isKeyedListType()? 'KeyedList&lt;' + prop.componentType+'>': prop.type} _${prop.name} ${build_defaults(prop)};
+    </c:for>
+
+
+    <c:for var="prop" items="${objSchema.localProps}">
+        <c:continue xpl:if="prop.name.indexOf(':')>0" />
+    /**
+     * ${prop.displayName}
+     * xml name: ${prop.xmlName}
+     *  ${prop.description.$replace('*/','* /').$replace("\n","\n     * ")}
+     */
+    ${prop.deprecated ? '@Deprecated': ''}
+    public ${prop.schema.type} ${prop.methodGetName}(){
+      return _${prop.name};
+    }
+
+    ${prop.deprecated ? '@Deprecated': ''}
+    public void ${prop.methodSetName}(${prop.schema.type} value){
+        checkAllowChange();
+        <c:if test="${prop.schema.isMapType()}">
+        if(value == null) value ${build_defaults(prop)};
+        </c:if>
+        <c:choose>
+           <when test="${prop.schema.isKeyedListType()}">
+        this._${prop.name} = KeyedList.fromList(value, ${prop.componentType}::${prop.schema.keyProp.$methodGet()});
+           </when>
+           <otherwise>
+        this._${prop.name} = value;
+           </otherwise>
+        </c:choose>
+    }
+
+    <c:if test="${prop.schema.isKeyedListType() and prop.childName}">
+    public ${prop.componentType} get${prop.childName.$capitalize()}(String name){
+        return this._${prop.name}.getByKey(name);
+    }
+
+    public boolean has${prop.childName.$capitalize()}(String name){
+        return this._${prop.name}.containsKey(name);
+    }
+
+    public void add${prop.childName.$capitalize()}(${prop.componentType} item) {
+        checkAllowChange();
+        java.util.List&lt;${prop.componentType}> list = this.${prop.name.$methodGet()}();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList&lt;>(${prop.componentType}::${prop.schema.keyProp.$methodGet()});
+            ${prop.name.$methodSet()}(list);
+        }
+        list.add(item);
+    }
+    </c:if>
+
+    <c:if test="${prop.schema.isKeyedListType()}">
+    public java.util.Set&lt;String> ${prop.name.$methodGet()}KeySet(){
+        return this._${prop.name}.keySet();
+    }
+
+    public boolean has${prop.name.$capitalize()}(){
+        return !this._${prop.name}.isEmpty();
+    }
+    </c:if>
+
+    <c:if test="${prop.schema.isMapType() and prop.childName}">
+    public ${prop.schema.type.mapValueType} get${prop.childName.$capitalize()}(String name){
+        return this._${prop.name}.get(name);
+    }
+
+    public boolean has${prop.childName.$capitalize()}(String name){
+        return this._${prop.name}.containsKey(name);
+    }
+    </c:if>
+
+    <c:if test="${prop.schema.isMapType()}">
+    public boolean has${prop.name.$capitalize()}(){
+        return !this._${prop.name}.isEmpty();
+    }
+    </c:if>
+    </c:for>
+
+    public void freeze(boolean cascade){
+        if(frozen()) return;
+        super.freeze(cascade);
+
+        if(cascade){
+        <c:for var="prop" items="${objSchema.localProps}">
+         <c:continue xpl:if="prop.name.indexOf(':')>0" />
+            <c:if test="${!prop.schema.isSimpleSchema()}">
+           this._${prop.name} = io.nop.api.core.util.FreezeHelper.deepFreeze(this._${prop.name});
+            </c:if>
+        </c:for>
+        }
+    }
+
+    protected void outputJson(IJsonHandler out){
+        super.outputJson(out);
+        <c:for var="prop" items="${objSchema.localProps}">
+            <c:continue xpl:if="prop.name.indexOf(':')>0" />
+        out.put("${prop.name}",this.${prop.methodGetName}());</c:for>
+    }
+}
+</c:unit>

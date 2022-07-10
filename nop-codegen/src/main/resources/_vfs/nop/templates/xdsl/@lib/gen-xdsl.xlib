@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib>
+    <tags>
+        <GenSchemaClass>
+            <attr name="schema"/>
+            <attr name="objMeta" implicit="true"/>
+        </GenSchemaClass>
+    </tags>
+</lib>

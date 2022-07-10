@@ -1,0 +1,36 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${ast.packageName};
+
+import io.nop.commons.functional.visit.AbstractVisitor;
+
+public class ${ast.name}Visitor extends AbstractVisitor&lt;${ast.name}Node>{
+
+    @Override
+    public void visit(${ast.name}Node node){
+        switch(node.getASTKind()){
+        <c:for var="_classModel" items="${ast.defines}">
+            <c:if test="${!_classModel.isAbstract()}">
+                case ${_classModel.simpleClassName}:
+                    visit${_classModel.simpleClassName}((${_classModel.simpleClassName})node);
+                    return;
+            </c:if>
+        </c:for>
+        default:
+        throw new IllegalArgumentException("invalid ast kind");
+        }
+    }
+
+    <c:for var="_classModel" items="${ast.defines}">
+        <c:if test="${!_classModel.isAbstract()}">
+            public void visit${_classModel.simpleClassName}(${_classModel.simpleClassName} node){
+            <c:for var="_f" items="${_classModel.props}">
+                <c:if test="${ast.getDefine(_f.simpleClassName)}">
+                    this.visitChild(node.${_f.name.$methodGet()}());</c:if>
+                <c:if test="${ast.getDefine(_f.itemSimpleClassName)}">
+                    this.visitChildren(node.${_f.name.$methodGet()}());         </c:if>
+            </c:for>
+            }
+        </c:if>
+    </c:for>
+}
+</c:unit>

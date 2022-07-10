@@ -1,0 +1,16 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${ast.packageName};
+import io.nop.core.lang.ast.ASTNode;
+import io.nop.api.core.ApiConstants;
+
+public abstract class ${ast.name}Node extends ASTNode&lt;${ast.name}Node> {
+
+	public abstract ${ast.name}Kind getASTKind();
+
+	public String getASTType() {
+		return getASTKind().toString();
+	}
+
+	public abstract ${ast.name}Node deepClone();
+}
+</c:unit>

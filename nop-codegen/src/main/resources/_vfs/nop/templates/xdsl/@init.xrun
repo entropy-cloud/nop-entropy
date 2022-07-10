@@ -1,0 +1,17 @@
+<!--
+根据xdef文件定义生成dsl模型对象类
+-->
+<c:script>
+    import io.nop.xlang.xmeta.SchemaLoader;
+    import io.nop.core.model.loop.impl.NestedLoopBuilder;
+
+    // codeGenModelPath为传入的模型文件路径，例如xlib.xdef
+    let objMeta = SchemaLoader.loadXMeta(codeGenModelPath);
+
+    let builder = new NestedLoopBuilder();
+    builder.defineGlobalVar("objMeta",objMeta);
+    builder.defineLoopVar("objSchema","objMeta", objMeta=> objMeta.definedObjSchemas);
+
+    // 导出codeGenLoop变量到scope中
+    assign("codeGenLoop", builder.build());
+</c:script>

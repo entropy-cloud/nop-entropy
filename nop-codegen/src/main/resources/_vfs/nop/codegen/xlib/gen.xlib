@@ -1,0 +1,25 @@
+<lib x:schema="/nop/schema/xlib.xdef">
+    <tags>
+        <DefineLoop>
+
+            <slot name="default" >
+                <arg name="builder" implicit="true" />
+            </slot>
+
+            <source>
+                <c:script>
+                    import io.nop.core.model.loop.impl.NestedLoopBuilder;
+
+                    let builder = new NestedLoopBuilder();
+                </c:script>
+
+                <c:unit xpl:slot="default" xpl:slotArgs="{builder}"/>
+
+                <c:script>
+                    // 导出codeGenLoop变量到scope中
+                    assign("codeGenLoop", builder.build());
+                </c:script>
+            </source>
+        </DefineLoop>
+    </tags>
+</lib>

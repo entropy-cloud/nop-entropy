@@ -1,0 +1,56 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${ast.packageName};
+
+import io.nop.core.lang.ast.optimize.AbstractOptimizer;
+
+public class ${ast.name}Optimizer&lt;C> extends AbstractOptimizer&lt;${ast.name}Node,C>{
+
+    public ${ast.name}Node optimize(${ast.name}Node node,C context){
+        switch(node.getASTKind()){
+        <c:for var="_classModel" items="${ast.defines}">
+            <c:if test="${!_classModel.isAbstract()}">
+                case ${_classModel.simpleClassName}:
+                return optimize${_classModel.simpleClassName}((${_classModel.simpleClassName})node,context);
+            </c:if>
+        </c:for>
+        default:
+        throw new IllegalArgumentException("invalid ast kind");
+        }
+    }
+
+    <c:for var="_classModel" items="${ast.defines}">
+    <c:if test="${!_classModel.isAbstract()}">
+	public ${ast.name}Node optimize${_classModel.simpleClassName}(${_classModel.simpleClassName} node, C context){
+        ${_classModel.simpleClassName} ret = node;
+
+        <c:for var="_f" items="${_classModel.props}">
+
+                <c:if test="${ast.getDefine(_f.itemSimpleClassName) or ast.getDefine(_f.simpleClassName)}">
+                    if(node.${_f.name.$methodGet()}() != null){
+                    <c:choose>
+                        <when test="${ast.getDefine(_f.itemSimpleClassName)}">
+                            ${_f.type} ${_f.name}Opt = optimizeList(node.${_f.name.$methodGet()}(),true, context);
+                            if(${_f.name}Opt != node.${_f.name.$methodGet()}()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                ret.${_f.name.$methodSet()}(${_f.name}Opt);
+                            }
+                        </when>
+                        <when test="${ast.getDefine(_f.simpleClassName)}">
+                            ${_f.type} ${_f.name}Opt = (${_f.type})optimize(node.${_f.name.$methodGet()}(),context);
+                            if(${_f.name}Opt != node.${_f.name.$methodGet()}()){
+                               incChangeCount();
+                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               ret.${_f.name.$methodSet()}(${_f.name}Opt);
+                            }
+                        </when>
+                    </c:choose>
+                    }
+                </c:if>
+
+        </c:for>
+		return ret;
+	}
+    </c:if></c:for>
+}
+</c:unit>

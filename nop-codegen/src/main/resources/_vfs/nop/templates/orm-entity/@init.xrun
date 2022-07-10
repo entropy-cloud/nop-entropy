@@ -1,0 +1,9 @@
+<!--
+生成ORM实体类
+-->
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib" xpl:slotScope="builder">
+  <c:script>
+    builder.defineGlobalVar("ormModel",ormModel);
+    builder.defineLoopVar("entityModel","ormModel", model => model.entityModelsInTopoOrder);
+  </c:script>
+</gen:DefineLoop>

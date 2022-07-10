@@ -1,0 +1,32 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${ast.packageName};
+
+public class ${ast.name}Processor&lt;T,C>{
+
+    public T processAST(${ast.name}Node node, C context){
+        if(node == null)
+            return null;
+       switch(node.getASTKind()){
+    <c:for var="_classModel" items="${ast.defines}">
+        <c:if test="${!_classModel.isAbstract()}">
+            case ${_classModel.simpleClassName}:
+                return process${_classModel.simpleClassName}((${_classModel.simpleClassName})node,context);
+        </c:if>
+    </c:for>
+          default:
+             throw new IllegalArgumentException("invalid ast kind");
+       }
+    }
+
+    <c:for var="_classModel" items="${ast.defines}">
+    <c:if test="${!_classModel.isAbstract()}">
+	public T process${_classModel.simpleClassName}(${_classModel.simpleClassName} node, C context){
+        return defaultProcess(node, context);
+	}
+    </c:if></c:for>
+
+    public T defaultProcess(${ast.name}Node node, C context){
+        return null;
+    }
+}
+</c:unit>
