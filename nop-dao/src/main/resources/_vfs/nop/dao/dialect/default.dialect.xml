@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+缺省情况下总是强制让表名小写，字段名大写。这样与mysql数据库的缺省情况一致。
+-->
+<dialect x:schema="/nop/schema/orm/dialect.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         class="io.nop.dao.dialect.impl.DialectImpl" tableNameCase="lower" columnNameCase="upper">
+
+    <sqlExceptionTranslator>io.nop.dao.dialect.impl.DialectSQLExceptionTranslator</sqlExceptionTranslator>
+
+    <paginationHandler>io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler</paginationHandler>
+
+    <features
+            supportExecuteLargeUpdate="true" supportLargeMaxRows="true"
+            supportTransaction="true" supportSavePoint="true"
+            supportBatchUpdate="true" supportSequence="false" supportTruncateTable="true"
+            supportUpdateTableAlias="false" supportDeleteTableAlias="false"
+            supportRowValueConstructor="true" supportUpdateFromJoin="false"
+            supportQueryTimeout="true" supportWithAsClause="true"
+            supportDeleteFromJoin="false"/>
+
+    <sqls insertKeyword="insert" updateKeyword="update" trueString="1" falseString="0" escapeSlash="true">
+        <dateLiteral>DATE '{value:yyyy-MM-dd}'</dateLiteral>
+        <timeLiteral>TIME '{value:HH:mm:ss}'</timeLiteral>
+        <dateTimeLiteral>TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss}'</dateTimeLiteral>
+        <timestampLiteral>TIMESTAMP '{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}'</timestampLiteral>
+
+        <dropTable>drop table {ifExists} {tableName}</dropTable>
+
+        <selectFromDual>select {fields}</selectFromDual>
+
+        <forUpdate>for update</forUpdate>
+    </sqls>
+
+    <!--
+    SQL函数定义。缺省dialect中的函数定义来自于H2数据库文档，优先选择ANSI数据库标准中的函数，一般不选择功能与标准函数重复的数据库特有的函数。
+    -->
+    <functions>
+        <native name="avg" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="abs" argTypes="NUMERIC"/>
+        <native name="coalesce" minArgCount="2" maxArgCount="100" argTypes="ANY,ANY">
+            <description>
+                Returns the first value that is not null
+            </description>
+        </native>
+        <native name="lower" returnType="VARCHAR" argTypes="VARCHAR"/>
+        <native name="max" argTypes="ANY"/>
+        <native name="min" argTypes="ANY"/>
+        <native name="mod" returnType="INTEGER" argTypes="NUMERIC,NUMERIC"/>
+        <native name="nullif" argTypes="ANY,ANY">
+            <description>
+                Returns NULL if 'a' is equal to 'b', otherwise 'a'.
+            </description>
+        </native>
+        <native name="sqrt" returnType="DOUBLE" argTypes="NUMERIC">
+        </native>
+        <native name="sum" argTypes="NUMERIC"/>
+        <native name="upper" returnType="VARCHAR" argTypes="VARCHAR"/>
+
+        <native name="uuid" returnType="VARCHAR"/>
+
+        <native name="trim" returnType="VARCHAR" argTypes="VARCHAR"/>
+        <native name="ltrim" returnType="VARCHAR" argTypes="VARCHAR"/>
+        <native name="rtrim" returnType="VARCHAR" argTypes="VARCHAR"/>
+        <native name="ceil" returnType="INTEGER" argTypes="NUMERIC"/>
+        <native name="floor" returnType="INTEGER" argTypes="NUMERIC"/>
+        <native name="round" returnType="INTEGER" argTypes="NUMERIC"/>
+        <native name="sign" returnType="INTEGER" argTypes="NUMERIC"/>
+        <native name="acos" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="asin" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="cos" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <!-- mysql不支持cosh -->
+        <native name="cosh" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="cot" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="exp" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="ln" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="power" returnType="DOUBLE" argTypes="NUMERIC,NUMERIC"/>
+        <native name="rand" returnType="DOUBLE"/>
+        <native name="sin" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <native name="tan" returnType="DOUBLE" argTypes="NUMERIC"/>
+        <!--
+        mysql 不支持sinh -->
+        <native name="sinh" returnType="DOUBLE" argTypes="NUMERIC"/>
+
+        <native name="concat" returnType="VARCHAR" argTypes="VARCHAR,VARCHAR" minArgCount="2" maxArgCount="100">
+            <description>
+                Combines strings. Unlike with the operator ||, NULL parameters are
+                ignored, and do not cause the result to become NULL. If all parameters are
+                NULL the result is an empty string.
+            </description>
+        </native>
+
+        <!--
+        mysql不支持decode函数
+        <native name="decode" minArgCount="3" maxArgCount="100" argTypes="ANY,ANY,ANY">
+            <description>
+                DECODE(value, whenValue, thenValue [,...])
+                Returns the first matching value. NULL is considered to match NULL. If no
+                match was found, then NULL or the last parameter (if the parameter count
+                is even) is returned.
+            </description>
+        </native>
+        -->
+
+
+        <native name="instr" returnType="INTEGER" argTypes="VARCHAR,VARCHAR">
+            <description>
+                INSTR函数接受两个参数：
+                str是要搜索的字符串。
+                substr是要搜索的子字符串。
+                MySQL中INSTR()函数不区分大小写。这意味着如果通过小写，大写，标题大小写等，结果总是一样的。
+                H2的INSTR支持3个参数，允许从后向前查找
+            </description>
+        </native>
+
+        <native name="bit_length" returnType="BIGINT" argTypes="VARBINARY"/>
+        <native name="length" returnType="BIGINT" argTypes="VARCHAR">
+            <description>
+                Returns the number of characters in a character string.
+            </description>
+        </native>
+
+        <native name="octet_length" returnType="BIGINT" argTypes="VARBINARY">
+            <description>
+                OCTET_LENGTH(bytes)
+                Returns the number of bytes in a binary string.
+            </description>
+        </native>
+
+        <native name="lpad" returnType="VARCHAR" argTypes="VARCHAR,INTEGER,VARCHAR" minArgCount="2" maxArgCount="3"/>
+        <native name="rpad" returnType="VARCHAR" argTypes="VARCHAR,INTEGER,VARCHAR" minArgCount="2" maxArgCount="3"/>
+        <native name="repeat" returnType="VARCHAR" argTypes="VARCHAR,INTEGER">
+            <description>
+                REPEAT(string, int)
+                Returns a string repeated some number of times.
+            </description>
+        </native>
+
+        <native name="replace" returnType="VARCHAR" argTypes="VARCHAR,VARCHAR,VARCHAR" minArgCount="2" maxArgCount="3">
+            <description>
+                REPLACE(string, searchString [, replacementString])
+                Replaces all occurrences of a search string in a text with another string. If
+                no replacement is specified, the search string is removed from the original
+                string. If any parameter is null, the result is null
+            </description>
+        </native>
+
+        <native name="substr" returnType="VARCHAR" argTypes="VARCHAR,INTEGER,INTEGER"
+                minArgCount="2" maxArgCount="3">
+            <description>
+                SUBSTR( string, startInt [, lengthInt ])
+                Returns a substring of a string starting at a position. If the start index is
+                negative, then the start index is relative to the end of the string. The
+                length is optional.
+            </description>
+        </native>
+
+        <!--
+        mysql不支持to_char函数
+        <native name="to_char" returnType="VARCHAR" argTypes="ANY,VARCHAR,VARCHAR" minArgCount="1" maxArgCount="3">
+            <description>
+                TO_CHAR(value [, formatString[, nlsParamString]])
+                Oracle-compatible TO_CHAR function that can format a timestamp, a
+                number, or text.
+            </description>
+
+            <testSql>
+                TO_CHAR(TIMESTAMP '2010-01-01 00:00:00', 'DD MON, YYYY')
+            </testSql>
+        </native>
+        -->
+
+        <native name="current_date" returnType="DATE">
+            <description>
+                Returns the current date.
+                These functions return the same value within a transaction (default) or
+                within a command depending on database mode.
+
+                current_date返回的是当前会话时间,而sysdate返回的是服务器时间.
+            </description>
+        </native>
+
+        <native name="current_timestamp" returnType="TIMESTAMP">
+            <description>
+                Returns the current timestamp with time zone. Time zone offset is set to a
+                current time zone offset.
+            </description>
+        </native>
+
+        <native name="now" returnType="TIMESTAMP">
+        </native>
+
+        <native name="extract" returnType="INTEGER" argTypes="TIMESTAMP" special="true">
+            <description>
+                EXTRACT ( datetimeField FROM { dateAndTime | interval })
+                Returns a value of the specific time unit from a date/time value. This
+                method returns a numeric value with EPOCH field and an int for all other
+                fields.
+            </description>
+            <testSql>
+                EXTRACT(SECOND FROM CURRENT_TIMESTAMP)
+            </testSql>
+        </native>
+
+        <native name="date" returnType="DATE" argTypes="TIMESTAMP">
+            <description>取得时间戳的日期部分</description>
+        </native>
+
+        <native name="year" returnType="INTEGER" argTypes="TIMESTAMP">
+            <description>取得时间戳的年份部分</description>
+        </native>
+
+    </functions>
+
+    <discoverySqls>
+
+    </discoverySqls>
+
+</dialect>

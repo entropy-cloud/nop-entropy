@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+         maxStringSize="1048576" maxBytesSize="1048576"
+>
+    <driverClassName>org.h2.Driver</driverClassName>
+    <dbProductNames>H2</dbProductNames>
+    <jdbcUrlPattern>jdbc:h2:{filePath}</jdbcUrlPattern>
+
+    <!--    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>-->
+
+    <features supportSequence="true" supportNullsFirst="true"/>
+
+    <reservedKeywords>
+        ALL , AND , ANY , ARRAY , AS ,
+        ASYMMETRIC , AUTHORIZATION ,
+
+        BETWEEN , BOTH ,
+
+        CASE , CAST , CHECK , CONSTRAINT , CROSS ,
+        CURRENT_CATALOG , CURRENT_DATE , CURRENT_PATH , CURRENT_ROLE , CURRENT_SCHEMA ,
+        CURRENT_TIME , CURRENT_TIMESTAMP , CURRENT_USER ,
+
+        DAY , DEFAULT , DISTINCT ,
+
+        ELSE , END , EXCEPT , EXISTS ,
+
+        FALSE , FETCH , FILTER , FOR , FOREIGN ,
+        FROM , FULL ,
+
+        GROUP , GROUPS ,
+
+        HAVING , HOUR ,
+
+        IF ,ILIKE,IN , INNER , INTERSECT ,
+        INTERVAL , IS ,
+
+        JOIN ,
+
+        KEY ,
+
+        LEADING ,LEFT , LIKE , LIMIT,LOCALTIME ,
+        LOCALTIMESTAMP ,
+
+        MINUS,MINUTE , MONTH ,
+
+        NATURAL , NOT , NULL ,
+
+        OFFSET , ON , OR , ORDER , OVER ,
+
+        PARTITION , PRIMARY ,
+
+        QUALIFY ,
+
+        RANGE , REGEXP ,RIGHT , ROW , ROWNUM,
+        ROWS ,
+
+        SECOND , SELECT , SESSION_USER , SET , SOME ,
+        SYMMETRIC , SYSTEM_USER ,
+
+        TABLE , TO , TOP ,TRAILING , TRUE ,
+
+        UESCAPE ,UNION , UNIQUE , UNKNOWN , USER ,
+        USING ,
+
+        VALUE , VALUES ,
+
+        WHEN , WHERE , WINDOW , WITH ,
+
+        YEAR ,
+
+        _ROWID_
+    </reservedKeywords>
+
+    <sqls trueString="true" falseString="false" escapeSlash="false">
+        <!-- 通过 {sequenceName}来表示参数 -->
+        <sequenceNextVal>select next value for {sequenceName}</sequenceNextVal>
+
+        <createSequence>
+            create sequence {sequenceName} start with {initialValue} increment by {incrementSize}
+        </createSequence>
+
+        <dropSequence>drop sequence {sequenceName}</dropSequence>
+
+    </sqls>
+
+    <!--
+    具体错误码的定义参见 org.h2.api.ErrorCode常量类
+    -->
+    <errorCodes>
+        <errorCode name="nop.err.dao.sql.bad-sql-grammar">
+            42000,42001,42101,42102,42111,42112,42121,42122,42132
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.duplicate-key">
+            23001,23505
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.data-integrity-violation">
+            22001,22003,22012,22025,23000,23002,23003,23502,23503,23506,23507,23513
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.data-type-conversion-fail">
+            22018,22007
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.data-access">
+            90046,90100,90117,90121,90126
+        </errorCode>
+        <errorCode name="nop.err.dao.sql.dead-lock">
+            40001, 50200
+        </errorCode>
+    </errorCodes>
+
+    <functions>
+        <native name="decode" minArgCount="3" maxArgCount="100" argTypes="ANY,ANY,ANY">
+            <description>
+                DECODE(value, whenValue, thenValue [,...])
+                Returns the first matching value. NULL is considered to match NULL. If no
+                match was found, then NULL or the last parameter (if the parameter count
+                is even) is returned.
+            </description>
+        </native>
+
+        <native name="to_char" returnType="VARCHAR" argTypes="ANY,VARCHAR,VARCHAR" minArgCount="1" maxArgCount="3">
+            <description>
+                TO_CHAR(value [, formatString[, nlsParamString]])
+                Oracle-compatible TO_CHAR function that can format a timestamp, a
+                number, or text.
+            </description>
+
+            <testSql>
+                TO_CHAR(TIMESTAMP '2010-01-01 00:00:00', 'DD MON, YYYY')
+            </testSql>
+        </native>
+
+        <native name="dateadd" argTypes="ANY,INTEGER,TIMESTAMP">
+            <description>
+                DATEADD (datetimeField, addIntLong, dateAndTime)
+                Adds units to a date-time value. The datetimeField indicates the unit. Use
+                negative values to subtract units. addIntLong may be a long value when
+                manipulating milliseconds, microseconds, or nanoseconds otherwise its
+                range is restricted to int. This method returns a value with the same type
+                as specified value if unit is compatible with this value. If specified field is a
+                HOUR, MINUTE, SECOND, MILLISECOND, etc and value is a DATE value
+                DATEADD returns combined TIMESTAMP. Fields DAY, MONTH, YEAR,
+                WEEK, etc are not allowed for TIME values. Fields TIMEZONE_HOUR,
+                TIMEZONE_MINUTE, and TIMEZONE_SECOND are only allowed for
+                TIMESTAMP WITH TIME ZONE values.
+            </description>
+            <testSql>
+                DATEADD('MONTH', -1, DATE '2001-01-31')
+            </testSql>
+        </native>
+
+        <native name="datediff" returnType="BIGINT" argTypes="ANY,TIMESTAMP,TIMESTAMP">
+            <description>
+                DATEDIFF(datetimeField, aDateAndTime, bDateAndTime)
+                Returns the number of crossed unit boundaries between two date/time
+                values. This method returns a long. The datetimeField indicates the unit.
+                Only TIMEZONE_HOUR, TIMEZONE_MINUTE, and TIMEZONE_SECOND fields
+                use the time zone offset component. With all other fields if date/time
+                values have time zone offset component it is ignored.
+            </description>
+
+            <testSql>
+                DATEDIFF('MONTH', DATE '2001-01-31', DATE '2001-02-02')
+            </testSql>
+        </native>
+
+        <template name="date" x:override="merge">
+            <source>date_trunc(DAY,{0})</source>
+        </template>
+    </functions>
+
+    <sqlDataTypes>
+        <sqlDataType name="CHAR" precision="1048576" stdSqlType="CHAR"/>
+        <sqlDataType name="VARCHAR" precision="1048576" stdSqlType="VARCHAR"/>
+        <sqlDataType name="CLOB" stdSqlType="VARCHAR" allowPrecision="false"/>
+        <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT"/>
+        <sqlDataType name="TINYINT" stdSqlType="TINYINT"/>
+        <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
+        <sqlDataType name="BIGINT" stdSqlType="BIGINT"/>
+        <sqlDataType name="DATE" stdSqlType="DATE"/>
+        <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
+        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="REAL" stdSqlType="REAL"/>
+        <sqlDataType name="DOUBLE PRECISION" stdSqlType="DOUBLE"/>
+        <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
+        <sqlDataType name="VARBINARY" precision="1048576" stdSqlType="VARBINARY"/>
+        <sqlDataType name="BLOB" stdSqlType="VARBINARY" allowPrecision="false"/>
+        <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
+        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+    </sqlDataTypes>
+
+</dialect>

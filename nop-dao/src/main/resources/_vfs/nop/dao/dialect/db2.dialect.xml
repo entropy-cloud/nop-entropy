@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <dbProductNames>DB2</dbProductNames>
+
+    <errorCodes>
+        <errorCode name="nop.err.dao.sql.bad-sql-grammar">
+            -007,-029,-097,-104,-109,-115,-128,-199,-204,-206,-301,-408,-441,-491
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.duplicate-key">
+            -803
+        </errorCode>
+        <errorCode name="nop.err.dao.sql.data-integrity-violation">
+            -407,-530,-531,-532,-543,-544,-545,-603,-667
+        </errorCode>
+        <errorCode name="nop.err.dao.sql.data-access">
+            -904,-971
+        </errorCode>
+        <errorCode name="nop.err.dao.sql.transient-data-access">
+            -1035,-1218,-30080,-30081
+        </errorCode>
+        <errorCode name="nop.err.dao.sql.dead-lock">
+            -911,-913
+        </errorCode>
+    </errorCodes>
+</dialect>

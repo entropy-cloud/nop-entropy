@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect x:extends="mysql.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <driverClassName>org.mariadb.jdbc.Driver</driverClassName>
+    <dbProductNames>MariaDB</dbProductNames>
+
+    <reservedKeywords>
+        ACCESSIBLE, ADD, ALL, ALTER, ANALYZE,
+        AND, AS, ASC, ASENSITIVE,
+
+        BEFORE, BETWEEN ,BIGINT ,BINARY , BLOB ,
+        BOTH ,BY ,
+
+        CALL ,CASCADE ,CASE ,CHANGE ,CHAR ,
+        CHARACTER ,CHECK ,COLLATE ,COLUMN ,CONDITION ,
+        CONSTRAINT ,CONTINUE ,CONVERT ,CREATE ,CROSS ,
+        CUBE ,CUME_DIST ,CURRENT_DATE ,CURRENT_TIME , CURRENT_TIMESTAMP ,
+        CURRENT_USER ,CURSOR ,CURRENT_ROLE,
+
+        DATABASE ,DATABASES ,DAY_HOUR ,DAY_MICROSECOND ,DAY_MINUTE ,
+        DAY_SECOND ,DEC ,DECIMAL ,DECLARE ,
+        DEFAULT ,DELAYED ,DELETE , DELETE_DOMAIN_ID,
+        DESC ,  DESCRIBE , DETERMINISTIC , DISTINCT ,DISTINCTROW ,
+        DIV ,DO_DOMAIN_IDS, DOUBLE ,DROP , DUAL ,
+
+        EACH ,ELSE ,ELSEIF , ENCLOSED ,
+        ESCAPED ,EXCEPT ,EXISTS ,EXIT ,EXPLAIN ,
+
+        FALSE ,FETCH ,FLOAT ,FLOAT4 ,
+        FLOAT8 ,FOR , FORCE , FOREIGN , FROM ,
+        FULLTEXT ,
+
+        GENERAL , GRANT , GROUP,
+
+        HAVING ,HIGH_PRIORITY , HOUR_MICROSECOND ,HOUR_MINUTE ,HOUR_SECOND ,
+
+        IF ,IGNORE , IGNORE_DOMAIN_IDS, IGNORE_SERVER_IDS, IN ,INDEX ,INFILE ,
+        INNER ,INOUT ,INSENSITIVE ,INSERT ,INT ,
+        INT1 , INT2 ,INT3 ,INT4 ,INT8 ,
+        INTEGER , INTERSECT, INTERVAL ,INTO ,
+        IS ,ITERATE ,
+
+        JOIN ,
+
+        KEY ,KEYS , KILL ,
+
+        LEADING ,
+        LEAVE ,LEFT ,LIKE ,LIMIT ,LINEAR ,
+        LINES ,LOAD , LOCALTIME ,LOCALTIMESTAMP ,LOCK ,
+        LONG ,LONGBLOB , LONGTEXT ,LOOP ,LOW_PRIORITY ,
+
+        MASTER_HEARTBEAT_PERIOD,
+        MASTER_BIND ,MASTER_SSL_VERIFY_SERVER_CERT ,MATCH ,MAXVALUE ,MEDIUMBLOB ,
+        MEDIUMINT ,MEDIUMTEXT , MEMBER,, MIDDLEINT,MINUTE_MICROSECOND ,
+        MINUTE_SECOND ,MOD , MODIFIES ,
+
+        NATURAL , NOT ,NO_WRITE_TO_BINLOG ,
+        NULL , NUMERIC ,
+
+        OFFSET ,ON , OPTIMIZE ,OPTION ,
+        OPTIONALLY ,OR ,ORDER ,OUT ,OUTER ,
+        OUTFILE ,OVER ,
+
+        PAGE_CHECKSUM, PARSE_VCOL_EXPR,
+        PARTITION ,POSITION,PRECISION ,PRIMARY ,
+        PROCEDURE ,PURGE ,
+
+        RANGE ,RANK ,READ ,READS ,READ_WRITE ,
+        REAL ,RECURSIVE ,REFERENCES , REF_SYSTEM_ID, REGEXP ,RELEASE ,
+        RENAME ,REPEAT , REPLACE ,REQUIRE ,RESIGNAL ,
+        RESTRICT ,RETURN ,RETURNING, REVOKE , RIGHT ,RLIKE ,
+        ROWS,
+
+        SCHEMA ,SCHEMAS , SECOND_MICROSECOND ,SELECT ,SENSITIVE ,
+        SEPARATOR ,SET ,SHOW , SIGNAL ,SLOW, SMALLINT ,SPATIAL ,
+        SPECIFIC ,SQL ,SQLEXCEPTION , SQLSTATE , SQLWARNING ,
+
+        SQL_BIG_RESULT , SQL_CALC_FOUND_ROWS ,SQL_SMALL_RESULT ,SSL , STARTING ,
+        STATS_AUTO_RECALC, STATS_PERSISTENT, STATS_SAMPLE_PAGES,
+        STRAIGHT_JOIN ,
+
+        TABLE ,TERMINATED ,THEN ,TINYBLOB ,TINYINT ,
+
+        TINYTEXT ,TO ,TRAILING ,TRIGGER ,
+        TRUE ,
+
+        UNDO ,UNION ,UNIQUE ,UNLOCK ,UNSIGNED ,
+        UPDATE ,USAGE ,USE , USING ,UTC_DATE ,
+        UTC_TIME , UTC_TIMESTAMP ,
+
+        VALUES ,VARBINARY ,VARCHAR ,VARCHARACTER ,VARYING ,
+
+
+        WHEN ,WHERE ,WHILE ,WINDOW ,WITH ,
+        WRITE ,
+
+        XOR ,
+
+        YEAR_MONTH ,
+
+        ZEROFILL
+    </reservedKeywords>
+
+    <features supportSequence="true" />
+
+    <sqls>
+        <!--
+        CREATE [OR REPLACE] [TEMPORARY] SEQUENCE [IF NOT EXISTS] sequence_name
+        [ INCREMENT [ BY | = ] increment ]
+        [ MINVALUE [=] minvalue | NO MINVALUE | NOMINVALUE ]
+        [ MAXVALUE [=] maxvalue | NO MAXVALUE | NOMAXVALUE ]
+        [ START [ WITH | = ] start ]
+        [ CACHE [=] cache | NOCACHE ] [ CYCLE | NOCYCLE]
+        [table_options]
+        -->
+        <createSequence>
+            create sequence {sequenceName} start with {initialValue} increment by {incrementSize}
+        </createSequence>
+
+        <sequenceNextVal>select next value for {sequenceName}</sequenceNextVal>
+
+        <dropSequence>drop sequence {sequenceName}</dropSequence>
+    </sqls>
+
+    <sqlDataTypes>
+        <!--
+        Difference Between VARCHAR and TEXT
+    VARCHAR columns can be fully indexed. TEXT columns can only be indexed over a specified length.
+    Using TEXT or BLOB in a SELECT query that uses temporary tables for storing intermediate
+    results will force the temporary table to be disk based (using the Aria storage engine
+     instead of the memory storage engine, which is a bit slower. This is not that bad as
+     the Aria storage engine caches the rows in memory. To get the benefit of this,
+     one should ensure that the aria_pagecache_buffer_size variable is big enough to hold
+      most of the row and index data for temporary tables.
+        -->
+        <sqlDataType name="VARCHAR" precision="65532" x:override="merge"/>
+
+        <sqlDataType name="TEXT" x:override="merge" />
+
+    </sqlDataTypes>
+</dialect>

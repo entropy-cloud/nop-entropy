@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+         keywordQuote="&quot;" defaultNullsFirst="true"
+>
+    <driverClassName>com.microsoft.sqlserver.jdbc.SQLServerDriver</driverClassName>
+    <jdbcUrlPattern>jdbc:sqlserver://192.168.1.130:1433;database=ahos;</jdbcUrlPattern>
+    <dbProductNames>Microsoft SQL Server</dbProductNames>
+
+    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>
+
+    <reservedKeywords>
+        ADD, ALL,ALTER, AND,ANY,
+        AS, ASC, AUTHORIZATION,
+
+        BACKUP,BEGIN,BETWEEN,BREAK,
+        BROWSE,BULK,BY,
+
+        CASCADE,CASE,CHECK,CHECKPOINT,CLOSE,
+        CLUSTERED,COALESCE,COLLATE,COLUMN,COMMIT,
+        COMPUTE,CONSTRAINT,CONTAINS,CONTAINSTABLE,
+        CONTINUE,CONVERT,CREATE,CROSS,CURRENT,
+        CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR,
+
+        DATABASE,DBCC,DEALLOCATE,DECLARE,DEFAULT,
+        DELETE,DENY,DESC,DISK,DISTINCT,
+        DISTRIBUTED,DOUBLE,DROP,DUMMY,DUMP,
+
+        ELSE,END,ERRLVL,ESCAPE,EXCEPT,
+        EXEC,EXECUTE,EXISTS,EXIT,
+
+        FETCH,FILE,FILLFACTOR,FOR,FOREIGN,
+        FREETEXT,FREETEXTTABLE,FROM,FULL,FUNCTION,
+
+        GOTO,GRANT,GROUP,
+
+        HAVING,HOLDLOCK,
+
+        IDENTITY,IDENTITY_INSERT,IDENTITYCOL,IF,IN,
+        INDEX,INNER,INSERT,INTERSECT,INTO,
+        IS,
+
+        JOIN,
+
+        KEY,KILL,
+
+        LEFT,LIKE,LINENO,LOAD,
+
+        MERGE,
+
+        NATIONAL,NOCHECK,NONCLUSTERED,NOT,NULL,
+        NULLIF,
+
+        OF,OFF,OFFSETS,ON,OPEN,
+        OPENDATASOURCE,OPENQUERY,OPENROWSET,OPENXML,OPTION,
+        OR,ORDER,OUTER,OVER,
+
+        PERCENT,PLAN,PRECISION,PRIMARY,PRINT,
+        PROC,PROCEDURE,PUBLIC,RAISERROR,READ,
+        READTEXT,RECONFIGURE,REFERENCES,REPLICATION,RESTORE,
+        RESTRICT,RETURN,REVOKE,RIGHT,ROLLBACK,
+        ROWCOUNT,ROWGUIDCOL,RULE,
+
+        SAVE,SCHEMA,SELECT,SESSION_USER,SET,
+        SETUSER,SHUTDOWN,SOME,STATISTICS,SYSTEM_USER,
+
+        TABLE,TEXTSIZE,THEN,TO,TOP,
+        TRAN,TRANSACTION,TRIGGER,TRUNCATE,TSEQUAL,
+        TABLESAMPLE,
+
+        UNION,UNIQUE,UPDATE,UPDATETEXT,USE,
+        USER,
+
+        VALUES,VARYING,VIEW,
+
+        WAITFOR,WHEN,WHERE,WHILE,WITH,WRITETEXT
+
+    </reservedKeywords>
+
+    <errorCodes>
+        <errorCode name="nop.err.dao.sql.bad-sql-grammar">
+            156,170,207,208,209
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.duplicate-key">
+            2601,2627
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.data-integrity-violation">
+            544,8114,8115
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.data-access">
+            4060
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.dead-lock">
+            1222,1205
+        </errorCode>
+
+    </errorCodes>
+
+    <features supportSequence="true"/>
+
+    <sqls escapeSlash="false">
+        <createSequence>
+            create sequence {sequenceName} start with {initialValue} increment by {incrementSize}
+        </createSequence>
+
+        <sequenceNextVal>select next value for {sequenceName}</sequenceNextVal>
+
+        <dropSequence>drop sequence {sequenceName}</dropSequence>
+
+        <dateLiteral>cast('{value:yyyy-MM-dd}' as date)</dateLiteral>
+        <timeLiteral>cast('{value:HH:mm:ss}' as time)</timeLiteral>
+        <dateTimeLiteral>cast('{value:yyyy-MM-dd HH:mm:ss}' as datetime)</dateTimeLiteral>
+        <timestampLiteral>cast('{value:yyyy-MM-dd HH:mm:ss.nnnnnnnnn}' as timestamp)</timestampLiteral>
+
+    </sqls>
+
+    <functions>
+        <native name="uuid" realName="newid" x:override="merge"/>
+
+        <native name="sinh" x:override="remove"/>
+        <native name="cosh" x:override="remove" />
+
+        <!--
+        内置的rand()函数在一次statement执行过程中只会返回固定的一个值
+        -->
+        <template name="rand" x:override="merge">
+            <source>rand(checksum(newid()))</source>
+        </template>
+
+        <template name="octet_length" x:override="merge">
+            <source>datalength({0})</source>
+        </template>
+
+        <template name="bit_length" x:override="merge">
+            <source>datalength({0})*8</source>
+        </template>
+
+        <template name="mod" x:override="merge">
+            <source>({0} % {1})</source>
+        </template>
+
+        <template name="instr" x:override="merge">
+            <source>charindex({1},{0})</source>
+        </template>
+
+        <native name="ceil" realName="ceiling" x:override="merge" />
+
+        <native name="lpad" x:override="remove" />
+        <native name="rpad" x:override="remove" />
+
+        <native name="current_timestamp" hasParenthesis="false" x:override="merge" />
+        <native name="current_date" realName="getdate" x:override="merge" />
+
+        <native name="length" realName="len" x:override="merge" />
+
+        <template name="round" x:override="merge">
+            <source>round({0},0)</source>
+        </template>
+
+        <native name="repeat" x:override="remove" />
+
+        <native name="extract" x:override="remove" />
+
+        <native name="ln" x:override="remove" />
+
+        <native name="substr" realName="substring" x:override="merge" />
+
+        <template name="date" x:override="merge">
+            <source>cast({0} as date)</source>
+        </template>
+
+        <template name="year" x:override="merge">
+            <source>datepart(year,{0})</source>
+        </template>
+
+    </functions>
+
+    <sqlDataTypes>
+        <sqlDataType name="CHAR" precision="8000" stdSqlType="CHAR"/>
+        <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT"/>
+        <sqlDataType name="TINYINT" stdSqlType="TINYINT"/>
+        <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
+        <sqlDataType name="BIGINT" stdSqlType="BIGINT"/>
+        <sqlDataType name="VARCHAR" precision="8000" stdSqlType="VARCHAR"/>
+        <sqlDataType name="DATE" stdSqlType="DATE"/>
+        <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
+        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="BIT" stdSqlType="BOOLEAN"/>
+        <sqlDataType name="FLOAT" stdSqlType="FLOAT"/>
+        <sqlDataType name="DOUBLE PRECISION" stdSqlType="DOUBLE"/>
+        <sqlDataType name="DECIMAL" stdSqlType="DECIMAL"/>
+        <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
+        <sqlDataType name="IMAGE" stdSqlType="VARBINARY" allowPrecision="false"/>
+    </sqlDataTypes>
+
+</dialect>

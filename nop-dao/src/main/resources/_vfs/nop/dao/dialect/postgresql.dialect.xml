@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+         keywordQuote="&quot;" defaultNullsFirst="false"
+>
+
+    <driverClassName>org.postgresql.Driver</driverClassName>
+    <dbProductNames>PostgreSQL</dbProductNames>
+    <jdbcUrlPattern>jdbc:postgresql://localhost/bookstore</jdbcUrlPattern>
+
+    <reservedKeywords>
+        ALL, ANALYSE, ANALYZE, AND, ANY,
+        ARRAY, AS, ASC, ASYMMETRIC,AUTHORIZATION,
+
+        BINARY, BOTH,
+
+        CASE, CAST, CHECK,COLLATE, COLLATION,
+        COLUMN,CONCURRENTLY,CONSTRAINT,CREATE,CROSS,
+        CURRENT_CATALOG,CURRENT_DATE,CURRENT_ROLE,CURRENT_SCHEMA,CURRENT_TIME,
+        CURRENT_TIMESTAMP,CURRENT_USER,
+
+        DEFAULT,DEFERRABLE,DESC,DISTINCT,DO,
+
+        ELSE,END,EXCEPT,
+
+        FALSE,FETCH,FOR,FOREIGN,FROM,
+        FULL, FREEZE,
+
+        GRANT, GROUP,
+
+        HAVING,
+
+        ILIKE,IN,INITIALLY,INTERSECT,
+        INNER,
+        INTO, IS, ISNULL,
+
+        JOIN,
+
+        LATERAL, LEADING, LEFT,LIKE, LIMIT,
+
+        LOCALTIME, LOCALTIMESTAMP,
+
+        NATURAL,NOT,NOTNULL,NULL,
+
+        OFFSET, ON,ONLY,OR,ORDER,
+        OVERLAPS, OUTER,
+
+        PLACING,PRIMARY,
+
+        REFERENCES,RETURNING,RIGHT,
+
+        SELECT, SESSION_USER,SIMILAR,SOME,SYMMETRIC,
+
+        TABLE,TABLESAMPLE,THEN,TO,TRAILING,
+        TRUE,
+
+        UNION,UNIQUE,USER,USING,
+
+        VARIADIC,VERBOSE,
+
+        WHEN,WHERE,WINDOW,WITH
+
+    </reservedKeywords>
+
+    <errorCodes>
+        <errorCode name="nop.err.dao.sql.bad-sql-grammar">
+            03000,42000,42601,42602,42622,42804,42P01
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.duplicate-key">
+            23505
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.data-integrity-violation">
+            23000,23502,23503,23514
+        </errorCode>
+        <errorCode name="nop.err.dao.sql.data-access">
+            53000,53100,53200,53300
+        </errorCode>
+
+        <errorCode name="nop.err.dao.sql.cannot-serialize-transaction">
+            40001
+        </errorCode>
+        <errorCode name="nop.err.dao.sql.dead-lock">
+            55P03,40P01
+        </errorCode>
+    </errorCodes>
+
+    <features supportSequence="true" supportNullsFirst="true" />
+
+    <sqls escapeSlash="false">
+        <createSequence>
+            create sequence {sequenceName} start with {initialValue} increment by {incrementSize}
+        </createSequence>
+
+        <sequenceNextVal>select nextval('{sequenceName}')</sequenceNextVal>
+
+        <dropSequence>drop sequence {sequenceName}</dropSequence>
+    </sqls>
+
+    <sqlDataTypes>
+        <sqlDataType name="CHAR" stdSqlType="CHAR"/>
+        <sqlDataType name="INTEGER" code="INT4" stdSqlType="INTEGER" alias="INT"/>
+        <sqlDataType name="TINYINT" code="INT4" stdSqlType="TINYINT"/>
+        <sqlDataType name="SMALLINT" code="INT4" stdSqlType="SMALLINT"/>
+        <sqlDataType name="INT8" stdSqlType="BIGINT"/>
+        <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
+        <sqlDataType name="DATE" stdSqlType="DATE"/>
+        <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME"/>
+        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="FLOAT4" stdSqlType="REAL"/>
+        <sqlDataType name="FLOAT8" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
+        <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
+        <sqlDataType name="BYTEA" allowPrecision="false" stdSqlType="VARBINARY"/>
+        <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
+<!--        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>-->
+    </sqlDataTypes>
+
+    <functions>
+        <native name="cosh" x:override="remove" />
+        <native name="sinh" x:override="remove" />
+
+        <!--
+        安装扩展pgcrypto之后可以有函数gen_random_uuid()。
+        或者安装扩展 uuid-ossp
+        -->
+        <native name="uuid" x:override="remove"/>
+        <native name="rand" realName="random"  x:override="merge"/>
+        <native name="instr" realName="strpos" x:override="merge"/>
+
+        <native name="current_date" hasParenthesis="false" x:override="merge"/>
+        <native name="current_timestamp" hasParenthesis="false" x:override="merge" />
+
+        <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
+            <source>extract(YEAR from {0})</source>
+        </template>
+    </functions>
+
+</dialect>

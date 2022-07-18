@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+elastic search support
+-->
+<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+         maxStringSize="1048576" maxBytesSize="1048576"
+>
+    <driverClassName>xx</driverClassName>
+    <dbProductNames>xx</dbProductNames>
+    <jdbcUrlPattern>xx</jdbcUrlPattern>
+
+    <paginationHandler>io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler</paginationHandler>
+
+    <features />
+
+    <reservedKeywords>
+        xx
+    </reservedKeywords>
+
+    <sqls trueString="true" falseString="false" escapeSlash="false">
+        <!-- 通过 {sequenceName}来表示参数 -->
+        <sequenceNextVal>select next value for {sequenceName}</sequenceNextVal>
+
+        <createSequence>
+            create sequence {sequenceName} start with {initialValue} increment by {incrementSize}
+        </createSequence>
+
+        <dropSequence>drop sequence {sequenceName}</dropSequence>
+
+    </sqls>
+
+    <functions>
+
+    </functions>
+
+</dialect>

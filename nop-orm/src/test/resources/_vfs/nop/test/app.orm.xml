@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     x:extends="base.orm.xml"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="/nop/schema/xpl.xdef">
+    <x:gen-extends>
+        <pdman:GenOrm src="test.pdma.json" xpl:lib="/nop/orm/xlib/pdman.xlib"
+                      versionCol="REVISION"
+                      createrCol="CREATED_BY" createTimeCol="CREATED_TIME"
+                      updaterCol="UPDATED_BY" updateTimeCol="UPDATED_TIME"
+                      tenantCol="TENANT_ID"
+        />
+    </x:gen-extends>
+
+    <x:post-extends>
+        <orm-gen:JsonComponentSupport xpl:lib="/nop/orm/xlib/orm-gen.xlib" />
+    </x:post-extends>
+
+    <entities>
+        <entity name="io.nop.app.SimsClassFee" x:override="remove"/>
+
+        <entity name="io.nop.app.SimsClass">
+            <columns>
+                <column name="collegeId" propId="100" lazy="true"/>
+                <column name="jsonExt"  code="JSON_EXT" propId="101" tagSet="json" stdSqlType="VARCHAR" precision="4000" />
+            </columns>
+            <aliases>
+                <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>
+            </aliases>
+            <relations>
+                <to-one name="simsCollege" refEntityName="io.nop.app.SimsCollege" refPropName="simsClasses">
+                    <join>
+                        <on leftProp="collegeId" rightProp="collegeId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+        <entity name="io.nop.app.SimsCollege">
+            <relations>
+                <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName" notGenCode="true">
+                    <join>
+                        <on leftProp="_id" rightProp="entityId"/>
+                        <on leftValue="io.nop.app.SimsCollege" rightProp="entityName"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+
+        <!-- 为SimsLesson增加全局缓存 -->
+        <entity name="io.nop.app.SimsLesson" useGlobalCache="true"/>
+
+        <entity name="io.nop.app.SimsExam">
+            <columns>
+                <!--
+                   增加额外的字段记录Decimal字段的动态可变小数位数。用于测试FloatingScaleDecimal组件对象
+                -->
+                <column name="examScoreScale" propId="20" code="EXAM_SCORE_SCALE" stdSqlType="TINYINT"/>
+
+                <!-- 标记字段需要加密存储 -->
+                <column name="examName" tagSet="enc"/>
+
+                <!-- 不生成java实体代码 -->
+                <column name="extField" propId="21" code="EXT_FIELD" stdSqlType="INTEGER" notGenCode="true"/>
+            </columns>
+
+            <components>
+                <component name="examScoreDecimal" className="io.nop.orm.support.FloatingScaleDecimal">
+                    <prop name="value" column="examScore"/>
+                    <prop name="scale" column="examScoreScale"/>
+                </component>
+            </components>
+
+            <aliases>
+                <alias name="examScoreNormalized" propPath="examScoreDecimal.normalizedValue" type="BigDecimal"/>
+                <alias name="extFldA" propPath="ext.fldA.string" type="String"/>
+                <alias name="extFldB" propPath="ext.fldB.boolean" type="Boolean" notGenCode="true"/>
+            </aliases>
+
+            <relations>
+                <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName">
+                    <join>
+                        <on leftProp="_id" rightProp="entityId"/>
+                        <on leftValue="io.nop.app.SimsExam" rightProp="entityName"/>
+                    </join>
+                </to-many>
+
+                <to-many name="examExt" refEntityName="io.nop.app.SimsExamExtField" keyProp="fieldName">
+                    <join>
+                        <on leftProp="examId" rightProp="examId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+
+        <!--
+        针对所有实体的扩展字段表
+        -->
+        <entity name="io.nop.app.SimsExtField" tableName="SIMS_EXT_FIELD" kvTable="true" useTenant="true">
+            <columns>
+                <column name="entityName" code="ENTITY_NAME" stdSqlType="VARCHAR" precision="100"
+                        primary="true" mandatory="true" propId="1"/>
+                <column name="entityId" code="ENTITY_ID" stdSqlType="VARCHAR" precision="32"
+                        primary="true" mandatory="true" propId="2"/>
+                <column name="fieldName" code="FIELD_NAME" stdSqlType="VARCHAR" precision="100"
+                        primary="true" mandatory="true" propId="3"/>
+                <column name="fieldType" code="FIELD_TYPE" stdSqlType="INTEGER" propId="4"/>
+                <column name="decimalScale" code="DECIMAL_SCALE" stdSqlType="TINYINT" propId="5"/>
+                <column name="decimalValue" code="DECIMAL_VALUE" stdSqlType="DECIMAL" propId="6"
+                        precision="24" scale="8"/>
+                <column name="dateValue" code="DATE_VALUE" stdSqlType="DATE" propId="7"/>
+                <column name="timestampValue" code="TIMESTAMP_VALUE" stdSqlType="TIMESTAMP" propId="8"/>
+                <column name="stringValue" code="STRING_VALUE" stdSqlType="VARCHAR" precision="4000" propId="9"/>
+            </columns>
+        </entity>
+
+        <!--
+       只针对SimsExam表的扩展字段表
+       -->
+        <entity name="io.nop.app.SimsExamExtField" tableName="SIMS_EXAM_EXT_FIELD" kvTable="true" useTenant="true">
+            <columns>
+                <column name="examId" code="EXAM_ID" stdSqlType="VARCHAR" precision="32"
+                        primary="true" mandatory="true" propId="2"/>
+                <column name="fieldName" code="FIELD_NAME" stdSqlType="VARCHAR" precision="100"
+                        primary="true" mandatory="true" propId="3"/>
+                <column name="fieldType" code="FIELD_TYPE" stdSqlType="INTEGER" propId="4"/>
+                <column name="decimalScale" code="DECIMAL_SCALE" stdSqlType="TINYINT" propId="5"/>
+                <column name="decimalValue" code="DECIMAL_VALUE" stdSqlType="DECIMAL" propId="6"
+                        precision="24" scale="8"/>
+                <column name="dateValue" code="DATE_VALUE" stdSqlType="DATE" propId="7"/>
+                <column name="timestampValue" code="TIMESTAMP_VALUE" stdSqlType="TIMESTAMP" propId="8"/>
+                <column name="stringValue" code="STRING_VALUE" stdSqlType="VARCHAR" precision="4000" propId="9"/>
+            </columns>
+        </entity>
+
+        <entity name="io.nop.app.SimsMajor" useLogicalDelete="true" deleteFlagProp="delFlag">
+            <columns>
+                <column name="majorId" useSeq="true" mandatory="true"/>
+                <column name="delFlag" code="DEL_FLAG" stdSqlType="TINYINT" propId="20" mandatory="true"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
