@@ -3,6 +3,15 @@
 #### 介绍
 Entropy Platform 2.0是基于可逆计算理论实现的低代码开发平台。nop-entropy是它的后端部分，采用java语言实现，不依赖spring框架。
 
+#### 设计原理
+[可逆计算：下一代软件构造理论](https://zhuanlan.zhihu.com/p/64004026)
+
+[可逆计算的技术实现](https://zhuanlan.zhihu.com/p/163852896)
+
+[从张量积看低代码平台的设计](https://zhuanlan.zhihu.com/p/531474176)
+
+[低代码平台需要什么样的ORM引擎？](https://zhuanlan.zhihu.com/p/543252423)
+
 #### 软件架构
 包含如下模块:
 1. nop-api-support: API接口的支持类
