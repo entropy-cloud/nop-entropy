@@ -1,0 +1,56 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sqls>
+        <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity">
+            <fields>
+                <field index="0" stdSqlType="DATE"/>
+            </fields>
+            <source>
+                select d as my_date, a,b,c
+                from my_entity
+                where id = ${id}
+            </source>
+        </sql>
+
+        <sql name="selectPage" sqlMethod="findPage">
+            <source>
+                select 'x' as `a'b`, 'y' as ` u``v`, a,b
+                from my_entity
+            </source>
+        </sql>
+
+        <sql name="insert">
+            <source>
+                insert into my_entity(a,b,c,d)
+                values (${a},${b},'a',${d})
+            </source>
+        </sql>
+
+        <sql name="update">
+            <source>
+                update my_entity
+                set a = ${a},
+                b = ${b}
+                where id = ${id}
+            </source>
+        </sql>
+
+        <sql name="delete">
+            <source>
+                delete my_entity
+                where id = ${id}
+            </source>
+        </sql>
+
+        <eql name="findBySqlFilter">
+            <source>
+                <c:import from="/nop/orm/xlib/sql.xlib"/>
+                select o
+                from io.nop.app.SimsClass o
+                where 1=1
+                <sql:filter>and o.classId in (:ids)</sql:filter>
+                <sql:filter>and o.classId = :unknownParam</sql:filter>
+            </source>
+        </eql>
+
+    </sqls>
+</sql-lib>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <filter macro="true" outputMode="node">
+            <description><![CDATA[
+             将 <sql:filter> and o.fld = :param </sql:filter>变换为
+                <c:if test="${!_.isEmpty(param)}">
+                   and o.fld = ${param}
+                </c:if>
+            ]]></description>
+
+            <slot name="default" slotType="node"/>
+
+            <source>
+                <c:script>
+                    import io.nop.core.lang.sql.SqlHelper;
+                    import io.nop.core.lang.sql.SQL;
+
+                    const sb = SqlHelper.markNamedParam(slot_default.value);
+                    const cond = sb.markers.map(marker=> "!_.isEmpty("+marker.name+")").join(" and ");
+                    const sqlText = sb.renderText(marker =>{
+                    return "${" + marker.name + "}";
+                    });
+                </c:script>
+
+                <c:if xpl:ignoreTag="true" test="${'$'}{${cond}}">
+                    ${sqlText}
+                </c:if>
+            </source>
+        </filter>
+    </tags>
+</lib>

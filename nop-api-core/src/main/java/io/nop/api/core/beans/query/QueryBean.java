@@ -8,6 +8,7 @@ import io.nop.api.core.beans.TreeBean;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 @DataBean
 public class QueryBean implements Serializable {
@@ -84,6 +85,21 @@ public class QueryBean implements Serializable {
         } else {
             this.filter = FilterBeans.and(this.filter, filter);
         }
+    }
+
+    public boolean transformFilter(Function<TreeBean, ?> fn) {
+        if (filter == null)
+            return false;
+
+        TreeBean node = new TreeBean();
+        node.addChild(filter);
+        boolean b = node.transformNode(null, fn, true);
+        if (node.getChildCount() == 1) {
+            filter = node.getChildren().get(0);
+        } else {
+            filter = node;
+        }
+        return b;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
