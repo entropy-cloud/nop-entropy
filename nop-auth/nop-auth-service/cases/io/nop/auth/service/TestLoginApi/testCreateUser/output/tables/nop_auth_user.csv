@@ -1,0 +1,2 @@
+_chgType,SID,USER_NAME,PASSWORD,SALT,USER_NICK,DEPT_ID,OPEN_ID,GENDER,AVATAR,EMAIL,PHONE,USER_TYPE,ID_TYPE,ID_NUMBER,EXPIRE_AT,PWD_UPDATE_TIME,CHANGE_PASSWORD,STATUS,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopAuthUser@sid,auto_test1,@var:NopAuthUser@password,@var:NopAuthUser@salt,autoTestNick,,@var:NopAuthUser@openId,1,,,,1,,,,,,1,false,0,autotest-ref,*,autotest-ref,*,

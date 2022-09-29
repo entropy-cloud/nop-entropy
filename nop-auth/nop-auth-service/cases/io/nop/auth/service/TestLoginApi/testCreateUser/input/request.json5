@@ -1,0 +1,11 @@
+{
+  data: {
+    data: {
+      userName: "auto_test1",
+      password: "auto_test1",
+      userNick: "autoTestNick",
+      gender: "1",
+      userType: "1"
+    }
+  }
+}

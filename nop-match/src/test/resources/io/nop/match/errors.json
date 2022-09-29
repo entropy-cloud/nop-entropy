@@ -1,0 +1,34 @@
+[
+  {
+    "bizFatal": false,
+    "description": "匹配[{jsonPath}]处的值[{value}]不满足匹配条件:filterOp={filterOp},pattern={pattern}",
+    "errorCode": "nop.err.match.compare-op-match-fail",
+    "forPublic": false,
+    "params": {
+      "jsonPath": "a",
+      "jsonField": "a",
+      "value": "1",
+      "parentClass": null,
+      "filterOp": "ge",
+      "pattern": 3
+    },
+    "severity": 0,
+    "status": -1
+  },
+  {
+    "bizFatal": false,
+    "description": "匹配[{jsonPath}]处的值[{value}]不满足匹配条件:filterOp={filterOp},pattern={pattern}",
+    "errorCode": "nop.err.match.compare-op-match-fail",
+    "forPublic": false,
+    "params": {
+      "jsonPath": "b",
+      "jsonField": "b",
+      "value": "abc",
+      "parentClass": null,
+      "filterOp": "endsWith",
+      "pattern": "d"
+    },
+    "severity": 0,
+    "status": -1
+  }
+]

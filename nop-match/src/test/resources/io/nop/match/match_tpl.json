@@ -1,0 +1,23 @@
+{
+  "a": "@ge:3",
+  "b": {
+    "@pattern": "and",
+    "patterns": [
+      "@startsWith:a",
+      "@endsWith:d"
+    ]
+  },
+  "c": {
+    "@pattern": "or",
+    "patterns": [
+      {
+        "a": 1
+      },
+      [
+        "@var:x",
+        "s"
+      ]
+    ]
+  },
+  "d": "@between:1,5"
+}

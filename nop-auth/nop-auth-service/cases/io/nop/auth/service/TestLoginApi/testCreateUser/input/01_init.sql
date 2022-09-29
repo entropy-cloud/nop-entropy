@@ -1,0 +1,1 @@
+delete from nop_auth_user where user_name = 'test'

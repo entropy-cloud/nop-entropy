@@ -1,0 +1,32 @@
+{
+  "data": {
+    "sid": "@var:NopAuthUser@sid",
+    "userName": "auto_test1",
+    "userNick": "autoTestNick",
+    "openId": "@var:NopAuthUser@openId",
+    "gender": 1,
+    "userType": 1,
+    "status": 1,
+    "delFlag": false,
+    "version": 0,
+    "createdBy": "autotest-ref",
+    "createTime": "@var:NopAuthUser@createTime",
+    "updatedBy": "autotest-ref",
+    "updateTime": "@var:NopAuthUser@createTime",
+    "gender_label": "男",
+    "userType_label": "普通用户",
+    "status_label": "正常",
+    "deptId": null,
+    "avatar": null,
+    "email": null,
+    "phone": null,
+    "idType": null,
+    "idNumber": null,
+    "expireAt": null,
+    "pwdUpdateTime": null,
+    "changePassword": null,
+    "remark": null
+  },
+  "httpStatus": 0,
+  "status": 0
+}

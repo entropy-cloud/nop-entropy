@@ -1,0 +1,5 @@
+{
+  data: {
+    refreshToken: "@var:refreshToken"
+  }
+}
