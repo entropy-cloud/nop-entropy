@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc" xmlns:ext="ext"
+       x:validated="true">
+
+    <bean class="io.nop.auth.core.jwt.JwtAuthTokenProvider" id="$DEFAULT$nopAuthTokenProvider" ioc:aop="false"
+          name="nopAuthTokenProvider">
+        <property name="encKey" value="@cfg:nop.auth.jwt.enc-key|"/>
+    </bean>
+
+<!--LOC:[33:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.orm.factory.DefaultOrmColumnBinderEnhancer" id="$DEFAULT$nopOrmColumnBinderEnhancer"
+          ioc:aop="false" name="nopOrmColumnBinderEnhancer"/>
+
+    <bean class="io.nop.commons.cache.CacheConfig" id="$DEFAULT$nopOrmGlobalCacheConfig" ioc:aop="false"
+          ioc:config-prefix="nop.orm.global-cache" name="nopOrmGlobalCacheConfig"/>
+
+    <bean class="io.nop.dao.seq.UuidSequenceGenerator" id="$DEFAULT$nopSequenceGenerator" ioc:aop="false"
+          name="nopSequenceGenerator"/>
+
+<!--LOC:[26:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml-->
+    <bean class="io.nop.auth.core.login.RandomSessionIdGenerator" id="$DEFAULT$nopSessionIdGenerator" ioc:aop="false"
+          name="nopSessionIdGenerator"/>
+
+<!--LOC:[28:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.ioc.support.UtilFactoryBean" id="$DEFAULT$nopShardSelector" ioc:aop="false"
+          ioc:bean-method="getValue" ioc:type="io.nop.dao.shard.EmptyShardSelector" name="nopShardSelector">
+        <property name="value">
+            <util:constant static-field="io.nop.dao.shard.EmptyShardSelector.INSTANCE"/>
+        </property>
+    </bean>
+
+<!--LOC:[19:6:0:0]/nop/auth/beans/auth-service.beans.xml-->
+    <bean class="io.nop.auth.dao.generator.DefaultUserIdGenerator" id="$DEFAULT$nopUserIdGenerator" ioc:aop="false"
+          name="nopUserIdGenerator"/>
+
+<!--LOC:[36:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml-->
+    <bean class="io.nop.auth.core.verifycode.DefaultVerifyCodeGenerator" id="$DEFAULT$nopVerifyCodeGenerator"
+          ioc:aop="false" name="nopVerifyCodeGenerator"/>
+
+<!--LOC:[15:14:0:0]/nop/quarkus/beans/quarkus-defaults.beans.xml-->
+    <bean class="io.nop.quarkus.core.dao.DataSourceConfig" ioc:aop="false"
+          id="$GEN$io.nop.quarkus.core.dao.DataSourceConfig$3">
+        <property name="maxSize" value="5"/>
+        <property name="driverClassName" value="${nop.datasource.driver-class-name}"/>
+        <property name="jdbcUrl" value="${nop.datasource.jdbc-url}"/>
+        <property name="username" value="${nop.datasource.username}"/>
+        <property name="password" value="${nop.datasource.password:}"/>
+        <property name="driverClassName" value="@cfg:nop.datasource.driver-class-name"/>
+        <property name="jdbcUrl" value="@cfg:nop.datasource.jdbc-url"/>
+        <property name="maxSize" value="5"/>
+        <property name="password" value="@cfg:nop.datasource.password|"/>
+        <property name="username" value="@cfg:nop.datasource.username"/>
+    </bean>
+
+<!--LOC:[33:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml-->
+    <bean class="io.nop.auth.core.login.UserContextConfig" id="io.nop.auth.core.login.UserContextConfig" ioc:aop="false"
+          ioc:config-prefix="nop.login" ioc:type="io.nop.auth.core.login.UserContextConfig"/>
+
+    <bean autowire-candidate="false" class="io.nop.auth.core.password.BCryptPasswordEncoder"
+          id="nopBCryptPasswordEncoder" ioc:aop="false"/>
+
+<!--LOC:[23:6:0:0]/nop/biz/beans/biz-defaults.beans.xml-->
+    <bean class="io.nop.biz.impl.DefaultBizNamingStrategy" id="nopBizNamingStrategy" ioc:aop="false"/>
+
+    <bean class="io.nop.biz.dev.DevDocBizModel" id="nopDevDocBizModel" ioc:aop="false"/>
+
+    <bean class="io.nop.biz.dict.DictProviderBizModel" id="nopDictProviderBizModel" ioc:aop="false"/>
+
+<!--LOC:[18:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml-->
+    <bean autowire-candidate="false" class="io.nop.auth.core.password.SHA256PasswordEncoder"
+          id="nopSHA256PasswordEncoder" ioc:aop="false"/>
+
+<!--LOC:[42:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.orm.factory.XplOrmInterceptorFactoryBean" id="nopXplOrmInterceptor" ioc:aop="false"
+          ioc:bean-method="getObject" init-method="init"/>
+
+    <bean class="io.nop.commons.cache.LocalCacheProvider" id="$DEFAULT$nopOrmGlobalCacheProvider" ioc:aop="false"
+          name="nopOrmGlobalCacheProvider">
+        <constructor-arg index="0" value="orm-global-cache"/>
+        <constructor-arg index="1">
+            <ref bean="nopOrmGlobalCacheConfig" ext:resolved-loc="[19:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </constructor-arg>
+    </bean>
+
+<!--LOC:[9:6:0:0]/nop/quarkus/beans/quarkus-defaults.beans.xml-->
+    <bean class="io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean"
+          id="io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean" ioc:aop="false"
+          ioc:type="io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean" name="nopDataSource" ioc:bean-method="get"
+          init-method="init" destroy-method="destroy">
+        <property name="config">
+            <ref bean="$GEN$io.nop.quarkus.core.dao.DataSourceConfig$3"
+                 ext:resolved-loc="[15:14:0:0]/nop/quarkus/beans/quarkus-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[29:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml-->
+    <bean class="io.nop.auth.core.login.LocalUserContextCache" id="$DEFAULT$nopUserContextCache" ioc:aop="false"
+          name="nopUserContextCache" init-method="init">
+        <property name="userContextConfig" ext:autowired="true">
+            <ref bean="io.nop.auth.core.login.UserContextConfig"
+                 ext:resolved-loc="[33:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.core.password.CompositePasswordEncoder" id="$DEFAULT$nopPasswordEncoder" ioc:aop="false"
+          name="nopPasswordEncoder">
+        <property name="firstEncoder">
+            <ref bean="nopSHA256PasswordEncoder"
+                 ext:resolved-loc="[18:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+        <property name="secondEncoder">
+            <ref bean="nopBCryptPasswordEncoder"
+                 ext:resolved-loc="[15:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[18:6:0:0]/nop/dao/beans/dao-defaults.beans.xml-->
+    <bean class="io.nop.dao.jdbc.txn.JdbcTransactionFactory" id="$DEFAULT$nopTransactionFactory" ioc:aop="false"
+          name="nopTransactionFactory">
+        <constructor-arg index="0">
+            <ref bean="nopDataSource" ext:resolved-loc="[9:6:0:0]/nop/quarkus/beans/quarkus-defaults.beans.xml"/>
+        </constructor-arg>
+    </bean>
+
+<!--LOC:[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.orm.dao.OrmDaoProvider" id="$DEFAULT$nopDaoProvider" ioc:aop="false" name="nopDaoProvider">
+        <constructor-arg index="0">
+            <ref bean="nopOrmTemplate" ext:resolved-loc="[45:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </constructor-arg>
+    </bean>
+
+<!--LOC:[17:6:0:0]/nop/auth/beans/auth-service.beans.xml-->
+    <bean class="io.nop.auth.service.audit.AuditServiceImpl" id="nopAuditService" init-method="start"
+          destroy-method="destroy">
+        <ioc:interceptor bean="$DEFAULT$nopSingleSessionMethodInterceptor" order="8500"/>
+        <ioc:interceptor bean="$DEFAULT$nopTransactionalMethodInterceptor" order="8600"/>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.sitemap.SiteMapProviderImpl" id="nopSiteMapProvider" ioc:aop="false">
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.login.UserContextManagerImpl" id="nopUserContextManager" ioc:aop="false"
+          ioc:delay-method="lazyInit">
+        <property name="auditService" ext:autowired="true">
+            <ref bean="nopAuditService" ext:resolved-loc="[17:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                 ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+        <property name="passwordEncoder" ext:autowired="true">
+            <ref bean="$DEFAULT$nopPasswordEncoder"
+                 ext:resolved-loc="[21:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+        <property name="sessionIdGenerator" ext:autowired="true">
+            <ref bean="$DEFAULT$nopSessionIdGenerator"
+                 ext:resolved-loc="[26:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+        <property name="userContextCache" ext:autowired="true">
+            <ref bean="$DEFAULT$nopUserContextCache"
+                 ext:resolved-loc="[29:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+        <property name="verifyCodeGenerator" ext:autowired="true">
+            <ref bean="$DEFAULT$nopVerifyCodeGenerator"
+                 ext:resolved-loc="[36:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.biz.SiteMapApiBizModel" id="io.nop.auth.service.biz.SiteMapApiBizModel"
+          ioc:aop="false" ioc:type="io.nop.auth.service.biz.SiteMapApiBizModel">
+        <property name="siteMapProvider" ext:autowired="true">
+            <ref bean="nopSiteMapProvider" ext:resolved-loc="[13:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                 ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[11:6:0:0]/nop/web/beans/web-defaults.beans.xml-->
+    <bean class="io.nop.web.page.PageProvider" id="io.nop.web.page.PageProvider" ioc:aop="false"
+          ioc:type="io.nop.web.page.PageProvider" init-method="init" destroy-method="destroy">
+        <property name="rolePermissionMapping" ext:autowired="true">
+            <ref bean="nopSiteMapProvider" ioc:optional="true"
+                 ext:resolved-loc="[13:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                 ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[9:6:0:0]/nop/auth/beans/auth-service.beans.xml-->
+    <bean class="io.nop.auth.service.biz.LoginApiBizModel" id="io.nop.auth.service.biz.LoginApiBizModel" ioc:aop="false"
+          ioc:type="io.nop.auth.service.biz.LoginApiBizModel">
+        <property name="authTokenProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopAuthTokenProvider"
+                 ext:resolved-loc="[9:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+        <property name="userContextManager" ext:autowired="true">
+            <ref bean="nopUserContextManager" ext:resolved-loc="[15:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                 ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[9:6:0:0]/nop/web/beans/web-defaults.beans.xml-->
+    <bean class="io.nop.web.biz.PageProviderBizModel" id="io.nop.web.biz.PageProviderBizModel" ioc:aop="false"
+          ioc:type="io.nop.web.biz.PageProviderBizModel">
+        <property name="pageProvider" ext:autowired="true">
+            <ref bean="io.nop.web.page.PageProvider" ext:resolved-loc="[11:6:0:0]/nop/web/beans/web-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[16:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.orm.txn.OrmTransactionListener" id="$DEFAULT$nopDefaultTransactionListener" ioc:aop="false"
+          name="nopDefaultTransactionListener">
+        <property name="ormTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopOrmTemplate" ext:resolved-loc="[45:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[13:6:0:0]/nop/dao/beans/dao-defaults.beans.xml-->
+    <bean class="io.nop.dao.txn.impl.DefaultTransactionManager" id="$DEFAULT$nopTransactionManager" ioc:aop="false"
+          name="nopTransactionManager">
+        <property name="defaultFactory">
+            <ref bean="nopTransactionFactory" ext:resolved-loc="[18:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </property>
+        <property name="defaultListener" ext:autowired="true">
+            <ref bean="nopDefaultTransactionListener" ioc:optional="true"
+                 ext:resolved-loc="[16:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.dao.txn.impl.TransactionTemplateImpl" id="$DEFAULT$nopTransactionTemplate" ioc:aop="false"
+          name="nopTransactionTemplate">
+        <property name="transactionManager" ext:autowired="true">
+            <ref bean="$DEFAULT$nopTransactionManager"
+                 ext:resolved-loc="[13:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.dao.jdbc.impl.JdbcTemplateImpl" id="$DEFAULT$nopJdbcTemplate" ioc:aop="false"
+          name="nopJdbcTemplate">
+        <property name="transactionTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopTransactionTemplate"
+                 ext:resolved-loc="[49:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor"
+          id="$DEFAULT$nopTransactionalMethodInterceptor" ioc:aop="false" name="nopTransactionalMethodInterceptor">
+        <ioc:pointcut annotations="io.nop.api.core.annotations.txn.Transactional" order="8600"/>
+        <constructor-arg index="0">
+            <ref bean="nopTransactionTemplate" ext:resolved-loc="[49:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </constructor-arg>
+    </bean>
+
+<!--LOC:[61:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.dao.utils.TransactionalFunctionInvoker" id="nopTransactionalFunctionInvoker" ioc:aop="false">
+        <property name="transactionTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopTransactionTemplate"
+                 ext:resolved-loc="[49:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.orm.factory.OrmSessionFactoryBean" id="$DEFAULT$nopOrmSessionFactory" ioc:aop="false"
+          ioc:bean-method="getObject" name="nopOrmSessionFactory" init-method="init" destroy-method="destroy">
+        <property name="beanProvider" value="@bean:container" ext:autowired="true"/>
+        <property name="columnBinderEnhancer" ext:autowired="true">
+            <ref bean="$DEFAULT$nopOrmColumnBinderEnhancer"
+                 ext:resolved-loc="[33:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+        <property name="globalCache" ext:autowired="true">
+            <ref bean="nopOrmGlobalCacheProvider" ext:resolved-loc="[23:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+        <property name="interceptors">
+            <list>
+                <ref bean="nopXplOrmInterceptor" ext:resolved-loc="[42:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+            </list>
+        </property>
+        <property name="jdbcTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopJdbcTemplate" ext:resolved-loc="[52:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </property>
+        <property name="shardSelector" ext:autowired="true">
+            <ref bean="$DEFAULT$nopShardSelector" ext:resolved-loc="[28:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[12:14:0:0]/nop/biz/beans/biz-defaults.beans.xml-->
+    <bean class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker" ioc:aop="false"
+          id="$GEN$io.nop.graphql.core.engine.DefaultOperationFunctionInvoker$2">
+        <property name="transactionalInvoker" ext:autowired="true">
+            <ref bean="nopTransactionalFunctionInvoker"
+                 ext:resolved-loc="[61:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[45:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.orm.impl.OrmTemplateImpl" id="$DEFAULT$nopOrmTemplate" ioc:aop="false" name="nopOrmTemplate">
+        <property name="sessionFactory" ext:autowired="true">
+            <ref bean="$DEFAULT$nopOrmSessionFactory" ext:resolved-loc="[35:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.orm.initialize.DataBaseSchemaInitializer" id="io.nop.orm.initialize.DataBaseSchemaInitializer"
+          ioc:aop="false" ioc:type="io.nop.orm.initialize.DataBaseSchemaInitializer" init-method="init">
+        <property name="jdbcTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopJdbcTemplate" ext:resolved-loc="[52:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </property>
+        <property name="ormSessionFactory" ext:autowired="true">
+            <ref bean="$DEFAULT$nopOrmSessionFactory" ext:resolved-loc="[35:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.orm.interceptor.SingleSessionMethodInterceptor" id="$DEFAULT$nopSingleSessionMethodInterceptor"
+          ioc:aop="false" name="nopSingleSessionMethodInterceptor">
+        <ioc:pointcut annotations="io.nop.api.core.annotations.orm.SingleSession" order="8500"/>
+        <constructor-arg index="0">
+            <ref bean="nopOrmTemplate" ext:resolved-loc="[45:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </constructor-arg>
+    </bean>
+
+    <bean class="io.nop.orm.sql_lib.SqlLibManager" id="$DEFAULT$nopSqlLibManager" ioc:aop="false"
+          name="nopSqlLibManager" init-method="init" destroy-method="destroy">
+        <property name="jdbcTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopJdbcTemplate" ext:resolved-loc="[52:6:0:0]/nop/dao/beans/dao-defaults.beans.xml"/>
+        </property>
+        <property name="ormTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopOrmTemplate" ext:resolved-loc="[45:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.orm.utils.SingleSessionFunctionInvoker" id="nopSingleSessionFunctionInvoker" ioc:aop="false">
+        <property name="ormTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopOrmTemplate" ext:resolved-loc="[45:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[7:6:0:0]/nop/auth/beans/_dao.beans.xml-->
+    <bean class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean" id="io.nop.auth.dao.mapper.NopAuthRoleMapper"
+          ioc:aop="false" ioc:bean-method="build" ioc:type="io.nop.auth.dao.mapper.NopAuthRoleMapper">
+        <property name="mapperClass" value="io.nop.auth.dao.mapper.NopAuthRoleMapper"/>
+        <property name="sqlLibManager" ext:autowired="true">
+            <ref bean="$DEFAULT$nopSqlLibManager" ext:resolved-loc="[13:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.orm.sql_lib.proxy.SqlLibProxyFactoryBean" id="io.nop.auth.dao.mapper.NopAuthUserMapper"
+          ioc:aop="false" ioc:bean-method="build" ioc:type="io.nop.auth.dao.mapper.NopAuthUserMapper">
+        <property name="mapperClass" value="io.nop.auth.dao.mapper.NopAuthUserMapper"/>
+        <property name="sqlLibManager" ext:autowired="true">
+            <ref bean="$DEFAULT$nopSqlLibManager" ext:resolved-loc="[13:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[69:6:0:0]/nop/orm/beans/orm-defaults.beans.xml-->
+    <bean class="io.nop.orm.sql_lib.dict.SqlLibDictLoader" id="io.nop.orm.sql_lib.dict.SqlLibDictLoader" ioc:aop="false"
+          ioc:type="io.nop.orm.sql_lib.dict.SqlLibDictLoader" init-method="init" destroy-method="destroy">
+        <property name="sqlLibManager" ext:autowired="true">
+            <ref bean="$DEFAULT$nopSqlLibManager" ext:resolved-loc="[13:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[7:6:0:0]/nop/auth/beans/_service.beans.xml-->
+    <bean class="io.nop.auth.service.entity.NopAuthDeptBizModel" id="io.nop.auth.service.entity.NopAuthDeptBizModel"
+          ioc:aop="false" ioc:tags="impl" ioc:type="io.nop.auth.service.entity.NopAuthDeptBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthOpLogBizModel" id="io.nop.auth.service.entity.NopAuthOpLogBizModel"
+          ioc:aop="false" ioc:tags="impl" ioc:type="io.nop.auth.service.entity.NopAuthOpLogBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthResourceBizModel"
+          id="io.nop.auth.service.entity.NopAuthResourceBizModel" ioc:aop="false" ioc:tags="impl"
+          ioc:type="io.nop.auth.service.entity.NopAuthResourceBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthRoleBizModel" id="io.nop.auth.service.entity.NopAuthRoleBizModel"
+          ioc:aop="false" ioc:tags="impl" ioc:type="io.nop.auth.service.entity.NopAuthRoleBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthRoleResourceBizModel"
+          id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:aop="false" ioc:tags="impl"
+          ioc:type="io.nop.auth.service.entity.NopAuthRoleResourceBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthSessionBizModel"
+          id="io.nop.auth.service.entity.NopAuthSessionBizModel" ioc:aop="false" ioc:tags="impl"
+          ioc:type="io.nop.auth.service.entity.NopAuthSessionBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthSiteBizModel" id="io.nop.auth.service.entity.NopAuthSiteBizModel"
+          ioc:aop="false" ioc:tags="impl" ioc:type="io.nop.auth.service.entity.NopAuthSiteBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthTenantBizModel" id="io.nop.auth.service.entity.NopAuthTenantBizModel"
+          ioc:aop="false" ioc:tags="impl" ioc:type="io.nop.auth.service.entity.NopAuthTenantBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthUserBizModel" id="io.nop.auth.service.entity.NopAuthUserBizModel"
+          ioc:aop="false" ioc:tags="impl" ioc:type="io.nop.auth.service.entity.NopAuthUserBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+        <property name="passwordEncoder" ext:autowired="true">
+            <ref bean="$DEFAULT$nopPasswordEncoder"
+                 ext:resolved-loc="[21:5:0:0]/nop/auth/beans/auth-core-defaults.beans.xml"/>
+        </property>
+        <property name="userIdGenerator" ext:autowired="true">
+            <ref bean="$DEFAULT$nopUserIdGenerator" ext:resolved-loc="[19:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                 ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthUserRoleBizModel"
+          id="io.nop.auth.service.entity.NopAuthUserRoleBizModel" ioc:aop="false" ioc:tags="impl"
+          ioc:type="io.nop.auth.service.entity.NopAuthUserRoleBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel"
+          id="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel" ioc:aop="false" ioc:tags="impl"
+          ioc:type="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel">
+        <property name="bizObjectManager" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+<!--LOC:[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml-->
+    <bean class="io.nop.biz.impl.BizObjectManager" id="nopBizObjectManager" ioc:aop="false" ioc:delay-method="delayInit"
+          init-method="init" destroy-method="destroy">
+        <property name="bizModelBeans">
+            <list>
+                <ref bean="io.nop.auth.service.entity.NopAuthSessionBizModel"
+                     ext:resolved-loc="[17:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthOpLogBizModel"
+                     ext:resolved-loc="[9:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.biz.LoginApiBizModel"
+                     ext:resolved-loc="[9:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthDeptBizModel"
+                     ext:resolved-loc="[7:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.web.biz.PageProviderBizModel"
+                     ext:resolved-loc="[9:6:0:0]/nop/web/beans/web-defaults.beans.xml"/>
+                <ref bean="nopDictProviderBizModel" ext:resolved-loc="[25:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel"
+                     ext:resolved-loc="[27:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthTenantBizModel"
+                     ext:resolved-loc="[21:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthRoleResourceBizModel"
+                     ext:resolved-loc="[15:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthUserRoleBizModel"
+                     ext:resolved-loc="[25:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthResourceBizModel"
+                     ext:resolved-loc="[11:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.biz.SiteMapApiBizModel"
+                     ext:resolved-loc="[11:6:0:0]/nop/auth/beans/auth-service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthRoleBizModel"
+                     ext:resolved-loc="[13:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="nopDevDocBizModel" ext:resolved-loc="[27:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthUserBizModel"
+                     ext:resolved-loc="[23:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+                <ref bean="io.nop.auth.service.entity.NopAuthSiteBizModel"
+                     ext:resolved-loc="[19:6:0:0]/nop/auth/beans/_service.beans.xml"
+                     ext:resolved-trace="/nop/auth/beans/app-service.beans.xml"/>
+            </list>
+        </property>
+        <property name="bizNamingStrategy" ext:autowired="true">
+            <ref bean="nopBizNamingStrategy" ext:resolved-loc="[23:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="daoProvider" ext:autowired="true">
+            <ref bean="$DEFAULT$nopDaoProvider" ext:resolved-loc="[48:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+        <property name="ormTemplate" ext:autowired="true">
+            <ref bean="$DEFAULT$nopOrmTemplate" ext:resolved-loc="[45:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+    </bean>
+
+    <bean class="io.nop.graphql.core.engine.GraphQLEngine" id="nopGraphQLEngine" ioc:aop="false" init-method="init">
+        <property name="executionInvoker">
+            <ref bean="nopSingleSessionFunctionInvoker"
+                 ext:resolved-loc="[59:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
+        </property>
+        <property name="operationInvoker">
+            <ref bean="$GEN$io.nop.graphql.core.engine.DefaultOperationFunctionInvoker$2"
+                 ext:resolved-loc="[12:14:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+        <property name="schemaLoader" ext:autowired="true">
+            <ref bean="nopBizObjectManager" ext:resolved-loc="[16:6:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
+        </property>
+    </bean>
+</beans>

@@ -1,0 +1,6 @@
+io.nop.api.core.annotations.cache.Cache
+io.nop.api.core.annotations.cache.CacheEvicts
+io.nop.api.core.annotations.orm.SingleSession
+io.nop.api.core.annotations.txn.TccMethod
+io.nop.api.core.annotations.txn.TccTransactional
+io.nop.api.core.annotations.txn.Transactional

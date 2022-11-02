@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+带ioc前缀的属性和子节点是相对于spring配置格式增加的扩展
+
+@ioc:default-security-domain 缺省bean的安全域
+ -->
+<beans xdef:name="BeansModel" xdef:check-ns="ioc" xmlns:ioc="ioc" xmlns:util="util" xmlns:xdef="/nop/schema/xdef.xdef"
+       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
+       xsi:schemaLocation="string"
+       xdef:bean-package="io.nop.ioc.model" xdef:prop-ns="ioc"
+       xdef:bean-extends-type="io.nop.xlang.xdsl.AbstractDslModel"
+       default-lazy-init="!boolean=false" ioc:security-domain="word-set">
+
+    <xdef:define xdef:name="BeanPropValue" xdef:body-type="union" xdef:bean-body-prop="body"
+                 xdef:bean-sub-type-prop="beanValueType"
+                 xdef:bean-body-type="io.nop.ioc.model.IBeanPropValue">
+        <bean xdef:ref="BeanValue"/>
+
+        <!--
+        ref local机制在spring4.0被废除
+        -->
+        <ref bean="!bean-name" ioc:ignore-depends="!boolean=false" ioc:optional="!boolean=false"
+             xdef:name="BeanRefValue"/>
+
+        <!--
+         idref会验证值为container中存在的bean名称。它的功能与value类似，但是增加了校验功能。
+         -->
+        <idref bean="!bean-name" ioc:ignore-depends="!boolean=false" ioc:optional="!boolean=false"
+               xdef:name="BeanIdRefValue"/>
+        <set xdef:name="BeanSetValue" xdef:ref="BeanCollectionValue" set-class="class-name"/>
+        <list xdef:name="BeanListValue" xdef:ref="BeanCollectionValue" list-class="class-name"/>
+        <map xdef:ref="BeanMapValue"/>
+        <props xdef:ref="BeanPropsValue"/>
+        <value xdef:name="BeanSimpleValue" xdef:value="string" type="class-name"/>
+
+        <null xdef:name="BeanNullValue"/>
+
+        <ioc:inject type="!generic-type" ioc:optional="!boolean=false" ioc:ignore-depends="!boolean=false"
+                    xdef:name="BeanIocInjectValue"/>
+
+        <util:constant xdef:name="BeanConstantValue" static-field="string"/>
+        <ioc:xpl xdef:name="BeanXplValue" outputMode="enum:io.nop.xlang.ast.XLangOutputMode"
+                 xdef:value="eval-code" xdef:bean-body-prop="source"/>
+
+        <!--
+        按照类型或者注解收集所有符合条件的bean，返回bean的集合
+        @only-concrete-classes 只收集具体的实现类，忽略抽象类和AOP代理接口对象
+        -->
+        <ioc:collect-beans xdef:name="BeanCollectBeansValue" include-tag="word-set" exclude-tag="word-set"
+                           ioc:ignore-depends="!boolean=false" ioc:optional="!boolean=false"
+                           by-type="class-name" by-annotation="class-name" only-concrete-classes="!boolean=false"/>
+    </xdef:define>
+
+    <xdef:define xdef:name="BeanCollectionValue" xdef:body-type="list"
+                 xdef:bean-body-prop="body" xdef:bean-sub-type-prop="beanValueType"
+                 merge="!boolean=false" xdef:bean-body-type="List&lt;io.nop.ioc.model.IBeanPropValue>">
+        <bean xdef:ref="BeanValue"/>
+
+        <!--
+        ref local机制在spring4.0被废除
+        -->
+        <ref xdef:ref="BeanRefValue"/>
+
+        <!--
+         idref会验证值为bean container中存在的bean名称。它的功能与value类似，但是增加了校验功能。
+         -->
+        <idref xdef:ref="BeanIdRefValue"/>
+        <set xdef:ref="BeanSetValue"/>
+        <list xdef:ref="BeanListValue"/>
+        <map xdef:ref="BeanMapValue"/>
+        <props xdef:ref="BeanPropsValue"/>
+        <value xdef:ref="BeanSimpleValue"/>
+
+        <null xdef:ref="BeanNullValue"/>
+
+        <util:constant xdef:ref="BeanConstantValue"/>
+        <ioc:xpl xdef:ref="BeanXplValue"/>
+
+        <!--
+        按照类型或者注解收集所有符合条件的bean，返回bean的集合
+        -->
+        <ioc:collect-beans xdef:ref="BeanCollectBeansValue"/>
+    </xdef:define>
+
+    <xdef:define xdef:name="BeanMapValue" key-type="class-name" value-type="class-name"
+                 merge="!boolean=false" map-class="class-name"
+                 xdef:body-type="list" xdef:key-attr="key">
+        <entry key="!string" xdef:name="BeanEntryValue" value="string"
+               value-ref="bean-name" xdef:ref="BeanPropValue"/>
+    </xdef:define>
+
+    <xdef:define xdef:name="BeanPropsValue" merge="!boolean=false" xdef:body-type="list"
+                 xdef:key-attr="key" ioc:location="v-path">
+        <prop key="!string" xdef:value="string" xdef:name="BeanPropEntryValue"/>
+    </xdef:define>
+
+    <!--
+      指定parent属性时，从parent对应的bean继承配置。但是class/primary/abstract/autowire-candidate/lazy-init/depends-on等属性不会被继承
+
+      @autowire-candidate 设置为false时，这个bean不被纳入按照类型进行自动编配的候选集合。
+      @factory-method 在spring中factory-method为class上的静态方法，取代普通的构造函数。如果定义了factory-method,
+                             则constructor-arg就是factory-method的参数.
+      @ioc:security-domain 格式为逗号分隔的字符串，设置bean的安全域。如果xlib具有安全域设置，则安全域必须匹配才能调用bean。
+      @ioc:init-order 指定初始化顺序。容器初始化时对于bean按照order顺序初始化，销毁的时候按照反向顺序进行销毁。同样order的bean按照依赖顺序进行初始化
+      @ioc:proxy 如果为true，则要求ioc:type不为空。会利用Java的DynamicProxy机制将当前beanInstance包装成指定接口类型。
+           当前的beanInstance要求是InvocationHandler类型。
+      @ioc:type 指定返回bean的类型，按类型autowire时将使用这里的类型设置。如果不指定，则根据factory-method和class等属性推导
+      @ioc:aop 指定了ioc:aop=true的bean才会成为AOP pointcut的目标。
+     -->
+    <xdef:define class="class-name" xdef:name="BeanValue" parent="bean-name"
+                 autowire="enum:io.nop.ioc.model.AutowireType" autowire-candidate="!boolean=true"
+                 init-method="var-name" destroy-method="var-name" scope="var-name" ioc:security-domain="word-set"
+                 ioc:bean-method="var-name" ioc:refresh-config-method="var-name"
+                 ioc:type="word-set" ioc:proxy="!boolean=false"
+                 factory-bean="var-name" factory-method="var-name"
+                 ioc:config-prefix="string" ioc:auto-refresh="!boolean=false"
+                 ioc:delay-method="var-name" lazy-init="boolean" ioc:aop="!boolean=true"
+                 depends-on="word-set" xdef:key-attr="name" ioc:restart-method="var-name"
+                 ioc:init-order="!#int=100">
+
+        <constructor-arg index="!int" xdef:name="BeanConstructorArgModel"
+                         ref="string" value="string"
+                         xdef:ref="BeanPropValue"
+                         xdef:allow-multiple="true" xdef:unique-attr="index"/>
+
+        <property name="!string" xdef:name="BeanPropertyModel" xdef:allow-multiple="true" xdef:unique-attr="name"
+                  ref="bean-name" value="string" xdef:ref="BeanPropValue" xdef:bean-prop="properties"/>
+
+        <ioc:interceptor bean="!bean-name" order="!#int=100" xdef:name="BeanInterceptorModel" xdef:unique-attr="bean"/>
+
+        <ioc:init xdef:value="eval-code"/>
+        <ioc:destroy xdef:value="eval-code"/>
+        <ioc:delay-start xdef:value="eval-code"/>
+        <ioc:restart xdef:value="eval-code"/>
+        <ioc:refresh-config xdef:value="eval-code"/>
+
+        <ioc:on-config-refresh invoke="string" observe="!word-set"
+                               xdef:name="BeanOnConfigRefresh" xdef:value="eval-code" xdef:bean-body-prop="source">
+        </ioc:on-config-refresh>
+
+        <!--
+        满足条件时bean才允许实例化
+        -->
+        <ioc:condition xdef:name="BeanConditionModel">
+
+            <!--
+            配置变量的值为true或者指定值的时候返回true
+            @name 配置变量名
+            @value 如果不指定，则缺省为true
+            @enableIfMissing 当配置变量的值为空时，是否认为条件为true
+            -->
+            <if-property xdef:name="BeanIfPropertyCondition"
+                         name="!string" value="string" enableIfMissing="!boolean=false"/>
+
+            <unless-property xdef:name="BeanUnlessPropertyCondition"
+                             name="!string" value="string" enableIfMissing="!boolean=false"/>
+
+            <!--
+              是否存在class
+            -->
+            <on-class xdef:value="!class-name-set"/>
+
+            <!--
+            当不存在指定class时返回true
+            -->
+            <missing-class xdef:value="!class-name-set"/>
+
+            <!--
+              检查指定名称的bean是否存在
+            -->
+            <on-bean xdef:value="!word-set"/>
+
+            <missing-bean xdef:value="!word-set"/>
+
+            <on-bean-type xdef:value="!class-name-set" />
+
+            <on-missing-bean-type xdef:value="!class-name-set" />
+
+            <!--
+                是否存在资源文件
+            -->
+            <on-resource xdef:value="csv-set"/>
+
+            <missing-resource xdef:value="csv-set"/>
+
+            <on-expr xdef:value="xpl"/>
+
+        </ioc:condition>
+
+        <!--
+          将xml属性直接映射到bean属性，支持嵌套结构
+        -->
+        <ioc:build xdef:unknown-attr="any" xdef:value="xjson" xdef:name="BeanBuildModel"/>
+    </xdef:define>
+
+    <!--
+    @ref 引用bean的定义
+    -->
+    <ioc:listener xdef:name="BeanListenerModel" id="!bean-name" events="csv-set" ref="bean-name"
+                  xdef:unique-attr="id" ioc:allow-override="!boolean=false">
+        <ioc:condition xdef:ref="BeanConditionModel"/>
+        <source xdef:value="eval-code"/>
+    </ioc:listener>
+
+    <!--
+    @name 类似于alias,可以为bean起多个名称
+    @ioc:default 是否缺省bean。如果设置为true，则相当于自动为bean增加condition-on-missing-bean的条件。
+    仅当容器中不存在对应名称的bean的定义的时候，此定义才生效。
+    -->
+    <bean xdef:name="BeanModel" id="!bean-name" name="word-set" ioc:tags="word-set" ioc:priority="#int"
+          xdef:unique-attr="id" xdef:ref="BeanValue" ioc:allow-override="!boolean=false" ioc:default="!boolean=false"
+          abstract="!boolean=false" primary="!boolean=false">
+        <!--
+        如果bean是interceptor，会检查容器中所有ioc:aop=true的bean，作用于具有指定注解的方法上
+        @annotations 本interceptor识别的注解类列表
+        -->
+        <ioc:pointcut annotations="!class-name-set" order="!#int=100" xdef:name="BeanPointcutModel"/>
+    </bean>
+
+    <!--
+     @config-prefix configPrefix + '.' + propName 作为配置变量名
+     @ioc:auto-refresh 当配置发生变化的时候，是否自动更新本对象上的属性
+    -->
+    <ioc:config xdef:name="BeanConfigModel" xdef:unique-attr="id" ioc:allow-override="!boolean=false"
+                id="!bean-name" ioc:config-prefix="!string" name="word-set" parent="bean-name" ioc:default="!boolean=false"
+                xdef:ref="BeanValue" scope="var-name" ioc:init-order="!#int=100">
+    </ioc:config>
+
+    <!--
+    @name 已定义的bean的name或者id
+    @alias 逗号分隔的新的bean的别名
+    -->
+    <alias xdef:name="BeanAliasModel" name="!bean-name" alias="!word-set"
+           xdef:unique-attr="name" xdef:bean-prop="aliases"/>
+
+    <!--
+    多次import同一资源只会实际执行一次。所有的bean不允许重名，从而避免出现import顺序不同导致结果不同。
+    -->
+    <import xdef:name="BeanImportModel" resource="!v-path" xdef:allow-multiple="true" xdef:unique-attr="resource"/>
+
+    <util:list xdef:name="BeanListModel" xdef:ref="BeanListValue" ioc:allow-override="!boolean=false"
+               ioc:init-order="!#int=100" ioc:default="!boolean=false"
+               scope="var-name" id="!bean-name" name="word-set" xdef:unique-attr="id" lazy-init="boolean=false"/>
+
+    <util:set xdef:name="BeanSetModel" xdef:ref="BeanSetValue" ioc:allow-override="!boolean=false"
+              ioc:init-order="!#int=100" ioc:default="!boolean=false"
+              scope="var-name" id="!bean-name" name="word-set" xdef:unique-attr="id" lazy-init="boolean=false"/>
+
+    <util:map xdef:name="BeanMapModel" xdef:ref="BeanMapValue" scope="var-name" id="!bean-name"
+              lazy-init="boolean=false" ioc:init-order="!#int=100" ioc:default="!boolean=false"
+              name="word-set" xdef:unique-attr="id" ioc:allow-override="!boolean=false"/>
+
+    <util:constant xdef:name="BeanConstantModel" id="!bean-name" static-field="!string" name="word-set"
+                   ioc:default="!boolean=false"
+                   scope="var-name" xdef:unique-attr="id" ioc:allow-override="!boolean=false"/>
+</beans>
