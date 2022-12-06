@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="_NopAuthUser.xmeta">
+
+    <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
+</meta>

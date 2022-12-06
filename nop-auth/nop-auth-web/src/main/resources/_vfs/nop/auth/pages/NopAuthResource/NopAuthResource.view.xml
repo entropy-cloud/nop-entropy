@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopAuthResource.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <grids>
+        <grid id="list">
+            <cols>
+                <col id="siteId" hidden="true"/>
+
+                <!--
+                可以为字段指定宽度
+                -->
+                <col id="resourceType" width="100px"/>
+                <col id="icon" align="center">
+                    <gen-control>
+                        <vue-renderer vueComponent="icon">
+                            <props icon="$icon"/>
+                        </vue-renderer>
+                    </gen-control>
+                </col>
+
+                <col id="status" width="50px"/>
+            </cols>
+            <!--
+            在列表字段基础上额外返回children字段，在前台成为Tree表格显示
+            Nop平台的GraphQL引擎对GraphQL进行了扩展，@TreeChildren表示嵌套返回子节点对象，子节点的属性列表与当前节点相同
+            -->
+            <selection>children @TreeChildren(max:5)</selection>
+        </grid>
+
+        <grid id="pick-list"/>
+    </grids>
+
+    <forms>
+        <form id="query" submitOnInit="true" wrapWithPanel="false">
+            <className>bg-gray-100 wrapper rounded</className>
+            <layout>
+                siteId
+            </layout>
+
+            <cells>
+                <cell id="siteId">
+                    <!--
+                    如果根据数据类型和domain推定的控件不满足要求，可以通过gen-control动态生成控件。
+                    gen-control函数是在后台执行的动态代码生成函数。它会取代control.xlib中定义的缺省控件生成器。
+                    它的执行上下文环境中具有propMeta, dispMeta等变量的定义.
+                    -->
+                    <gen-control>
+                        <button-group-select source="@dict:${propMeta.schema.dict}" value="main" placeholder=""
+                                             submitOnChange="@:true"/>
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
+
+        <form id="default" x:abstract="true">
+            <layout>
+                sid[资源ID] siteId[站点ID]
+                displayName[显示名称] orderNo[排序]
+                resourceType[资源类型] parentId[父资源ID]
+                =====menuProps=============
+                icon[图标] routePath[前端路由]
+                url[链接] component[组件名]
+                target[链接目标] hidden[是否隐藏]
+                keepAlive[隐藏时保持状态] noAuth[不检查权限]
+                depends[依赖资源]
+                =====authProps============
+                permissions[权限标识]
+                =====otherProps===========
+                status[状态] remark[备注]
+            </layout>
+
+            <cells>
+                <cell id="parentId">
+                    <requiredOn>${resourceType != 'TOPM'}</requiredOn>
+                </cell>
+                <cell id="menuProps">
+                    <visibleOn>${resourceType != 'FNPT'}</visibleOn>
+                </cell>
+                <!--
+                字段分组如果没有label，则仅起分组作用，不会显示为FieldSet
+                -->
+                <cell id="authProps">
+                    <visibleOn>${resourceType == 'FNPT'}</visibleOn>
+                </cell>
+            </cells>
+        </form>
+
+        <form id="view" x:prototype="default">
+            <layout x:override="remove"/>
+        </form>
+
+        <form id="edit" x:prototype="default">
+            <layout x:override="remove"/>
+
+            <cells>
+                <cell id="siteId" defaultValue="main"/>
+                <!--                <cell id="resourceType" component="list-select" />-->
+
+                <cell id="parentId">
+                    <visibleOn>${resourceType != "TOPM"}</visibleOn>
+                    <gen-control>
+                        <!--
+                        支持五级菜单
+                        -->
+                        <tree-select clearable="@:true">
+                            <source>
+                                <!--
+                                Amis并不允许url中包含空格和回车。Nop平台为了简化代码编写，在后台通过WebPageHelper.fixPage函数进行了规范化处理
+                                -->
+                                <url>@query:NopAuthResource__findList/value:sid,label:displayName,
+                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&amp;filter_siteId=$siteId
+                                </url>
+                            </source>
+                        </tree-select>
+                    </gen-control>
+                </cell>
+
+                <cell id="icon">
+                    <gen-control>
+                        <vue-form-item vueComponent="icon-picker"/>
+                    </gen-control>
+                </cell>
+            </cells>
+
+        </form>
+
+        <form id="add">
+            <data>
+                <siteId>$siteId</siteId>
+            </data>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main">
+
+            <table loadDataOnce="true" sortable="false" initFetch="false">
+                <!--
+                在url中可以通过{@listSelection}来引用后台根据grid配置生成的字段选择列表
+                -->
+                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_resourceType=TOPM"/>
+            </table>
+
+            <listActions>
+                <action id="refreshSiteMapCache" label="@i18n:common.refreshCache">
+                    <api url="@query:NopAuthResource__refreshSiteMapCache"/>
+                    <messages>
+                        <success>@i18n:common.executeSucceed</success>
+                    </messages>
+                </action>
+            </listActions>
+
+            <rowActions>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+
+                    <action id="row-add-child-button">
+                        <visibleOn>${resourceType != 'FNPT'}</visibleOn>
+                    </action>
+
+                </actionGroup>
+            </rowActions>
+        </crud>
+
+        <simple name="add-child">
+            <data>
+                <parentId>$id</parentId>
+                <siteId>$siteId</siteId>
+                <resourceType>SUBM</resourceType>
+            </data>
+        </simple>
+
+        <crud name="picker">
+            <table loadDataOnce="true" sortable="false">
+                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_siteId=$siteId&amp;filter_resourceType=TOPM"/>
+            </table>
+        </crud>
+    </pages>
+</view>

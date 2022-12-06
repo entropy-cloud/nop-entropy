@@ -1,0 +1,13 @@
+x:gen-extends: |
+  <web:GenPage view="NopAuthUser.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+
+body:
+  name: crud-grid
+  filter:
+    id: crud-filter
+    actions:
+      - id: submit-button
+        icon: fa fa-snapchat
+        x:virtual: true
+    x:virtual: true
+  x:virtual: true
