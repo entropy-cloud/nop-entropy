@@ -1,0 +1,22 @@
+import { ajaxFetch} from '@nop/utils'
+
+import {myAction} from './sub.lib.js'
+
+import {myAction2} from './parts/sub2.lib.js'
+
+import {ajaxRequest} from '@nop/utils'
+
+export function testAction(options, page){
+    page.env.alert("xx");
+    ajaxFetch(options)
+    ajaxRequest(options)
+    myAction(options,page)
+    myAction2(options,page)
+
+    return Promise.resolve({
+        status: 200 ,
+        data: {
+            status: 0
+        }
+    })
+}
