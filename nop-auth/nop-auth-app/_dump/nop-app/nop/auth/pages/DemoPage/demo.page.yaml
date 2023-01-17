@@ -1,0 +1,19 @@
+type: page
+xui:import: /nop/auth/pages/DemoPage/demo.lib.js
+xui:js: '@include:action.js'
+body:
+  type: form
+  api:
+    url: '@action:demo.testAction'
+    data:
+      a: 1
+  body:
+  - type: action
+    label: TestActionInLib
+    actionType: submit
+  - type: action
+    label: TestInlineAction
+    level: primary
+    actionType: ajax
+    api:
+      url: '@action:test'
