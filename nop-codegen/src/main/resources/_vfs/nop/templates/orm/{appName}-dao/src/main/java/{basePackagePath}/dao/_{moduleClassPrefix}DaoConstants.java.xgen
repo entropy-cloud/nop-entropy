@@ -1,0 +1,29 @@
+<c:unit xpl:outputMode="text">package ${basePackageName}.dao;
+
+public interface _${moduleClassPrefix}DaoConstants {
+    <c:for var="dict" items="${ormModel.dicts}">
+        <c:script>
+            const intValue = dict.valueType == 'int';
+            const dictPrefix = dict.name.$lastPart('/').replace('-','_').toUpperCase();
+        </c:script>
+        <c:for var="option" items="${dict.options}">
+            <c:if test="${option.code?.$strip() != null}">
+                <c:choose>
+                    <when test="${intValue}"><![CDATA[
+    /**
+     * ${dict.label}: ${option.label} ${option.description}
+     */
+    int ${dictPrefix}_${option.code} = ${option.value};
+                    ]]></when>
+                    <otherwise><![CDATA[
+    /**
+     * ${dict.label}: ${option.label} ${option.description}
+     */
+    String ${dictPrefix}_${option.code} = ${option.value.toString().$quote()};
+                    ]]></otherwise>
+                </c:choose>
+            </c:if>
+        </c:for>
+    </c:for>
+}
+</c:unit>

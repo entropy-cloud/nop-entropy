@@ -3,5 +3,12 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:extends="_NopAuthUser.xmeta">
 
-    <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
+    <props>
+        <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
+
+        <prop name="password" displayName="密码" readable="false" insertable="true" updatable="false">
+            <schema type="String" domain="password" maxLength="20" />
+        </prop>
+    </props>
+
 </meta>

@@ -1,16 +1,26 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.api.core.beans.query;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 
 @DataBean
+@GraphQLObject
 public class QueryBean implements Serializable {
     private static final long serialVersionUID = 6756041836462853393L;
 
@@ -36,6 +46,8 @@ public class QueryBean implements Serializable {
 
     private Integer timeout;
 
+    private boolean disableLogicalDelete;
+
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getName() {
         return name;
@@ -43,6 +55,15 @@ public class QueryBean implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    public boolean isDisableLogicalDelete() {
+        return disableLogicalDelete;
+    }
+
+    public void setDisableLogicalDelete(boolean disableLogicalDelete) {
+        this.disableLogicalDelete = disableLogicalDelete;
     }
 
     public List<QueryFieldBean> getFields() {
@@ -87,13 +108,23 @@ public class QueryBean implements Serializable {
         }
     }
 
+    public TreeBean getPropFilter(String propName) {
+        if (filter == null)
+            return null;
+
+        if (Objects.equals(propName, filter.getAttr("name")))
+            return filter;
+
+        return filter.childWithAttr("name", propName);
+    }
+
     public boolean transformFilter(Function<TreeBean, ?> fn) {
         if (filter == null)
             return false;
 
         TreeBean node = new TreeBean();
         node.addChild(filter);
-        boolean b = node.transformNode(null, fn, true);
+        boolean b = node.transformChild(null, fn, true);
         if (node.getChildCount() == 1) {
             filter = node.getChildren().get(0);
         } else {
@@ -210,6 +241,18 @@ public class QueryBean implements Serializable {
             if (orderBy == null)
                 orderBy = new ArrayList<>();
             orderBy.add(OrderFieldBean.forField(name, desc));
+        }
+    }
+
+    public void addOrderBy(List<OrderFieldBean> orderBy) {
+        if (orderBy == null)
+            return;
+        for (OrderFieldBean orderField : orderBy) {
+            if (!hasOrderField(orderField.getName())) {
+                if (this.orderBy == null)
+                    this.orderBy = new ArrayList<>();
+                this.orderBy.add(orderField);
+            }
         }
     }
 }

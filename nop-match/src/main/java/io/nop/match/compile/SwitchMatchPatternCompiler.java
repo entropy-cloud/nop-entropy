@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.compile;
 
 import io.nop.api.core.util.SourceLocation;
@@ -27,15 +34,14 @@ public class SwitchMatchPatternCompiler implements IMatchPatternCompiler {
 
         Object defaultOption = options.get("default");
 
-        IMatchPattern defaultPattern = defaultOption == null ? null :
-                config.getCompileHelper().parseFromValue(getPropLocation(options, "default"),
-                        defaultOption, config);
+        IMatchPattern defaultPattern = defaultOption == null ? null
+                : config.getCompileHelper().parseFromValue(getPropLocation(options, "default"), defaultOption, config);
 
         Map<String, IMatchPattern> cases = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : casesConfig.entrySet()) {
             String caseName = entry.getKey();
-            IMatchPattern casePattern = config.getCompileHelper().parseFromValue(
-                    getPropLocation(casesConfig, caseName), entry.getValue(), config);
+            IMatchPattern casePattern = config.getCompileHelper().parseFromValue(getPropLocation(casesConfig, caseName),
+                    entry.getValue(), config);
             cases.put(caseName, casePattern);
         }
 

@@ -1,0 +1,4 @@
+<c:unit xpl:outputMode="text">
+__XGEN_FORCE_OVERRIDE__
+enabled:${child}
+</c:unit>

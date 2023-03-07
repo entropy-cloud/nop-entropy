@@ -1,0 +1,121 @@
+<idea-plugin>
+    <id>io.entropy.idea.plugin</id>
+    <name>Nop Entropy</name>
+    <version>2.0</version>
+    <vendor email="canonical_entropy@163.com" url="https://gitee.com/canonical-entropy/nop-entropy">Canonical</vendor>
+
+    <description><![CDATA[
+      1. 根据xdef元模型定义来校验dsl文件格式
+      2. 为XPL模板语言提供调试功能
+    ]]></description>
+
+    <change-notes><![CDATA[
+
+    ]]>
+    </change-notes>
+
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.java</depends>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <actions>
+        <!--    <group id="entropy.ProjectFileActionGroup" text="Tasks For File"-->
+        <!--           class="io.entropy.ide.plugin.actions.ProjectFileActionGroup" popup="true">-->
+        <!--      <add-to-group group-id="ProjectViewPopupMenu" anchor="before" relative-to-action="FindUsages" />-->
+        <!--    </group>-->
+
+        <!--    <group id="entropy.EntropyPlatform" text="EntropyCloud" popup="true">-->
+        <!--      <reference ref="entropy.ProjectFileActionGroup" />-->
+
+        <!--      <separator />-->
+
+        <!--      <group id="entropy.MainActionGroup" text="Entropy Tasks"-->
+        <!--             class="io.entropy.ide.plugin.actions.MainActionGroup" >-->
+        <!--      </group>-->
+
+        <!--      <action id="entropy.RefreshConfig" text="RefreshConfig" class="io.entropy.ide.plugin.actions.RefreshConfigAction" />-->
+
+        <!--      <add-to-group group-id="MainMenu" anchor="after" relative-to-action="ToolsMenu" />-->
+        <!--    </group>-->
+    </actions>
+
+    <!--    <extensions defaultExtensionNs="com.intellij">-->
+    <!--    <xml.elementDescriptorProvider implementation="io.entropy.ide.plugin.validate.XplElementDescriptorProvider" />-->
+    <!--    <xml.tagNameProvider implementation="io.entropy.ide.plugin.completion.XplTagNameProvider"/> &lt;!&ndash;解决根节点的tagName提示的问题 &ndash;&gt;-->
+    <!--    <xml.xmlExtension implementation="io.entropy.ide.plugin.validate.XplXmlExtension" />&lt;!&ndash; 结合XplElementDescriptorProvider使用，该参数用来做元素校验，可校验某节点下是否可存在某元素 &ndash;&gt;-->
+
+    <!-- 根据xdef定义进行语法提示 -->
+    <!--        <completion.contributor language="XLang"-->
+    <!--                                implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>-->
+
+    <!--        <lang.documentationProvider language="XLang"-->
+    <!--                                    implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>-->
+
+    <!--    &lt;!&ndash; Add your extensions here &ndash;&gt;-->
+    <!--    <gotoDeclarationHandler implementation="io.entropy.ide.plugin.link.XLibDeclationHandler" />&lt;!&ndash; 点击ctrl能够链接到lib文件 &ndash;&gt;-->
+    <!--    <gotoDeclarationHandler implementation="io.entropy.ide.plugin.link.VueDeclarationHandler" />&lt;!&ndash; 点击ctrl能够链接到lib文件 &ndash;&gt;-->
+
+    <!--    <lang.syntaxHighlighterFactory language="Xpl" implementationClass="io.entropy.ide.plugin.language.XplSyntaxHighlighterFactory"/>-->
+    <!--    <multiHostInjector implementation="io.entropy.ide.plugin.language.XplLanguageInjector" />-->
+    <!--    </extensions>-->
+
+    <applicationListeners>
+        <listener class="io.nop.idea.plugin.services.NopAppListener"
+                  topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+
+    <extensions defaultExtensionNs="com.intellij">
+
+        <projectService serviceImplementation="io.nop.idea.plugin.services.NopProjectService"/>
+
+        <!-- 根据xdef定义进行语法提示 -->
+        <completion.contributor language="XLang"
+                                implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>
+
+        <!-- 鼠标Hover到XLang语法元素上显示相关文档信息 -->
+        <lang.documentationProvider language="XLang" order="first"
+                                    implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>
+
+        <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->
+        <annotator language="XLang" implementationClass="io.nop.idea.plugin.annotation.XLangAnnotator"/>
+
+        <!-- 点击ctrl跳转到对应文件 -->
+        <gotoDeclarationHandler implementation="io.nop.idea.plugin.link.XLangFileDeclarationHandler"/>
+
+
+        <fileTypeDetector implementation="io.nop.idea.plugin.lang.XLangFileTypeDetector" order="first" />
+
+        <!--
+         2019.2版本之后通过此扩展点注册文件类型
+        -->
+        <fileType name="XLang" language="XLang" implementationClass="io.nop.idea.plugin.lang.XLangFileType"
+                  fieldName="INSTANCE" extensions="xpl;xgen;xui;xlib;xrun;xwf;xmeta"
+                  patterns="*.xpl;*.xgen;*.xui;*.xlib;*.xrun;*.xwf;*.orm.xml;*.xmeta;*.xpage;*.beans.xml;*.xrule;*.action-auth.xml;*.view.xml;*.sql-lib.xml"/>
+
+        <lang.parserDefinition language="XLang" implementationClass="io.nop.idea.plugin.lang.XLangParserDefinition"/>
+
+        <configurationType
+                implementation="io.nop.idea.plugin.debugger.config.XLangRunnerConfigurationType"/>
+        <!--    &lt;!&ndash; Run - It reads the values written by the UI and spawns a new process that runs Tomcat &ndash;&gt;-->
+        <!--    <programRunner id="Run"-->
+        <!--                   implementation="io.entropy.ide.plugin.tomcat.TomcatProgramRunner"-->
+        <!--                   order="first"/>-->
+        <!--    &lt;!&ndash; Debug - same as run but stops on breakpoints, you get the idea &ndash;&gt;-->
+        <!--    <programRunner id="Debug"-->
+        <!--                   implementation="io.entropy.ide.plugin.tomcat.TomcatProgramDebugger"-->
+        <!--                   order="last"/>-->
+        <xdebugger.breakpointType implementation="io.nop.idea.plugin.debugger.XLangBreakpointType"/>
+        <programRunner id="XLangDebugger" implementation="io.nop.idea.plugin.debugger.XLangDebuggerRunner"
+                       order="before defaultDebugRunner"/>
+
+        <executor implementation="io.nop.idea.plugin.execution.XLangDebugExecutor" order="first,after run" id="xlangDebug"/>
+
+        <runConfigurationProducer implementation="io.nop.idea.plugin.execution.XLangRunnerConfigurationProducer"/>
+        <!--    <fileDocumentManagerListener id="XLangFile" implementation="io.nop.idea.plugin.file.XLangFileDocumentManagerListener" />-->
+    </extensions>
+</idea-plugin>

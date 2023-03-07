@@ -1,0 +1,214 @@
+<meta name="XplTagLib" type="io.nop.xlang.xpl.xlib.model.XplTagLib" x:schema="/nop/schema/xmeta.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" defaultExtends="/nop/core/defaults/default.xlib" xmlName="lib">
+    <description>一个标签库可以看作一个服务实例。一个java服务接口可以自动转换为标签库，而标签库也可以自动生成java接口。
+可以通过x:post-extends段实现对标签（函数）的aop加工。</description>
+    <props>
+        <prop name="interfaces" displayName="接口列表">
+            <description>标签库提供了一组函数，它们满足哪些接口要求</description>
+            <schema stdDomain="generic-type-list"/>
+        </prop>
+        <prop name="displayName" displayName="显示名称">
+            <schema stdDomain="string"/>
+        </prop>
+        <prop name="defaultOutputMode" displayName="缺省输出模式" defaultValue="none">
+            <description>设置xpl标签的缺省输出模式</description>
+            <schema stdDomain="enum" type="io.nop.xlang.xpl.XplOutputMode"/>
+        </prop>
+        <prop name="namespace">
+            <schema stdDomain="ns-name"/>
+        </prop>
+        <prop name="description" displayName="描述信息" xmlPos="child">
+            <schema stdDomain="string"/>
+        </prop>
+        <prop name="tags" xmlPos="child">
+            <schema type="java.util.Map&lt;java.lang.String,io.nop.xlang.xpl.xlib.model.XplTag&gt;">
+                <unknownTag name="XplTag" type="io.nop.xlang.xpl.xlib.model.XplTag">
+                    <description><![CDATA[自定义标签具有返回值和输出文本。所有解析器未识别的没有名字空间的标签都会被直接输出。标签的返回值可以通过xpl:return参数获取，例如
+<my:MyTag c:return="x" />]]></description>
+                    <props>
+                        <prop name="schema" displayName="结构定义">
+                            <description>在实际编译之前，经过schema验证</description>
+                            <schema stdDomain="v-path"/>
+                        </prop>
+                        <prop name="bodyType">
+                            <schema stdDomain="enum" type="io.nop.xlang.xpl.XplSlotType"/>
+                        </prop>
+                        <prop name="unknownAttrsVar" displayName="未知属性变量名">
+                            <description>所有未知属性构成一个Map类型的变量。只有此参数非空时，才允许调用时传入未定义的属性。</description>
+                            <schema stdDomain="var-name"/>
+                        </prop>
+                        <prop name="macro" displayName="是否宏标签">
+                            <description>宏标签在编译期会自动执行，然后再对它的输出结果进行编译。</description>
+                            <schema stdDomain="boolean"/>
+                        </prop>
+                        <prop name="displayName" displayName="显示名称">
+                            <schema stdDomain="string"/>
+                        </prop>
+                        <prop name="attrsVar" displayName="已知属性变量名">
+                            <description>所有属性构成一个Map类型的变量。如果此参数非空，则所有属性作为一个整体参数传递，而不是每个属性对应一个变量。</description>
+                            <schema stdDomain="var-name"/>
+                        </prop>
+                        <prop name="deprecated" displayName="是否废弃">
+                            <description>是否标签已经被废弃。如果已经被废弃，则调用时会打印出调试信息</description>
+                            <schema stdDomain="boolean"/>
+                        </prop>
+                        <prop name="transformer" displayName="转换器">
+                            <description>在实际进行编译之前先经过transformer转换</description>
+                            <schema stdDomain="v-path"/>
+                        </prop>
+                        <prop name="alias">
+                            <schema stdDomain="csv-set"/>
+                        </prop>
+                        <prop name="outputMode" displayName="输出模式">
+                            <description>设置xpl标签的输出模式</description>
+                            <schema stdDomain="enum" type="io.nop.xlang.xpl.XplOutputMode"/>
+                        </prop>
+                        <prop name="tagName" xmlPos="tag">
+                            <schema stdDomain="string"/>
+                        </prop>
+                        <prop name="validator" xmlPos="child">
+                            <description>对标签的参数进行校验</description>
+                            <schema ref="/test/test-filter.xdef">
+                                <description>对标签的参数进行校验</description>
+                            </schema>
+                        </prop>
+                        <prop name="description" xmlPos="child">
+                            <schema stdDomain="string"/>
+                        </prop>
+                        <prop name="slots" xmlName="slot" childXmlName="slot" xmlPos="child">
+                            <description>在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render</description>
+                            <schema type="java.util.List&lt;io.nop.xlang.xpl.xlib.model.XplTagSlot&gt;" keyProp="name">
+                                <item name="XplTagSlot" type="io.nop.xlang.xpl.xlib.model.XplTagSlot">
+                                    <description>在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render</description>
+                                    <props>
+                                        <prop name="schema">
+                                            <schema stdDomain="v-path"/>
+                                        </prop>
+                                        <prop name="displayName">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="domain">
+                                            <schema stdDomain="var-name"/>
+                                        </prop>
+                                        <prop name="deprecated">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="var-name"/>
+                                        </prop>
+                                        <prop name="multiple">
+                                            <description>是否允许存在多个指定名称的slot。如果multiple为true，则实际传入的是列表对象</description>
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="type">
+                                            <schema stdDomain="generic-type"/>
+                                        </prop>
+                                        <prop name="mandatory">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="args" xmlName="arg" childXmlName="arg" xmlPos="child">
+                                            <schema
+                                                    type="java.util.List&lt;io.nop.xlang.xpl.xlib.model.XplTagSlotArg&gt;"
+                                                    keyProp="name">
+                                                <item name="XplTagSlotArg"
+                                                      type="io.nop.xlang.xpl.xlib.model.XplTagSlotArg">
+                                                    <props>
+                                                        <prop name="displayName">
+                                                            <schema stdDomain="string"/>
+                                                        </prop>
+                                                        <prop name="deprecated">
+                                                            <schema stdDomain="boolean"/>
+                                                        </prop>
+                                                        <prop name="name" mandatory="true">
+                                                            <schema stdDomain="string"/>
+                                                        </prop>
+                                                        <prop name="type">
+                                                            <schema stdDomain="generic-type"/>
+                                                        </prop>
+                                                    </props>
+                                                </item>
+                                            </schema>
+                                        </prop>
+                                        <prop name="description" xmlPos="child">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="attr" xmlPos="child">
+                                            <schema ref="/test/test.xdef#XplTagAttribute"/>
+                                        </prop>
+                                    </props>
+                                </item>
+                            </schema>
+                        </prop>
+                        <prop name="source" xmlPos="child">
+                            <schema stdDomain="xml" type="io.nop.core.lang.xml.XNode"/>
+                        </prop>
+                        <prop name="attrs" xmlName="attr" childXmlName="attr" xmlPos="child">
+                            <schema type="java.util.List&lt;io.nop.xlang.xpl.xlib.model.XplTagAttribute&gt;"
+                                    keyProp="name">
+                                <item name="XplTagAttribute" type="io.nop.xlang.xpl.xlib.model.XplTagAttribute">
+                                    <props>
+                                        <prop name="implicit">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="var">
+                                            <description>对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
+则将会转换为大小写混排的变量名，例如onClick和vModel。</description>
+                                            <schema stdDomain="var-name"/>
+                                        </prop>
+                                        <prop name="displayName">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="defaultValue">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="domain">
+                                            <schema stdDomain="var-name"/>
+                                        </prop>
+                                        <prop name="deprecated">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="xml-name"/>
+                                        </prop>
+                                        <prop name="optional" displayName="是否可选" defaultValue="true">
+                                            <description>如果不是可选属性，则调用时必须传入该属性，但是属性值允许为空</description>
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="type">
+                                            <schema stdDomain="generic-type"/>
+                                        </prop>
+                                        <prop name="mandatory" displayName="是否非空">
+                                            <description>是否必须设置该属性，且属性值不能是空值或者空字符串</description>
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="description" xmlPos="child">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                    </props>
+                                </item>
+                            </schema>
+                        </prop>
+                        <prop name="return" xmlPos="child">
+                            <schema name="XplTagReturn" type="io.nop.xlang.xpl.xlib.model.XplTagReturn">
+                                <props>
+                                    <prop name="domain">
+                                        <schema stdDomain="var-name"/>
+                                    </prop>
+                                    <prop name="type">
+                                        <schema stdDomain="generic-type"/>
+                                    </prop>
+                                    <prop name="description" xmlPos="child">
+                                        <schema stdDomain="string"/>
+                                    </prop>
+                                </props>
+                            </schema>
+                        </prop>
+                        <prop name="example" xmlPos="child">
+                            <schema stdDomain="xml" type="io.nop.core.lang.xml.XNode"/>
+                        </prop>
+                    </props>
+                </unknownTag>
+            </schema>
+        </prop>
+    </props>
+</meta>

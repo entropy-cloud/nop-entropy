@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<?instruction?>
+<!--
+    aaa
+    bbb
+-->
+<root b="1" a="2">
+
+    <div></div>
+
+    <!--vvv-->
+    <child><![CDATA[
+        a
+         b 
+
+        
+    c <![CDATA[]>
+     vv
+
+    ]]></child>
+</root>

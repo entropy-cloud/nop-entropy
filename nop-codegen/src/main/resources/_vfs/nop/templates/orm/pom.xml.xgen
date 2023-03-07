@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- __XGEN_TPL_FORCE_OVERRIDE__ 如果文件已存在，则强制合并更新 -->
+<gen:MergeXml resource="${targetResource}" xpl:lib="/nop/codegen/xlib/gen.xlib" xmlns:gen="gen">
+<update>
+   <!-- 如果pom文件已经存在，则只是追加module定义 -->
+    <project>
+          <modules>
+                <module xml:multiple="true">${appName}-codegen</module>
+                <module xml:multiple="true">${appName}-api</module>
+                <module xml:multiple="true">${appName}-dao</module>
+                <module xml:multiple="true">${appName}-service</module>
+                <module xml:multiple="true">${appName}-web</module>
+                <module xml:multiple="true">${appName}-app</module>
+            </modules>
+    </project>
+</update>
+<create>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.nop</groupId>
+        <version>${ormModel['ext:platformVersion'] || '2.0.0-SNAPSHOT'}</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>${ormModel['ext:mavenGroupId']}</groupId>
+    <artifactId>${ormModel['ext:mavenArtifactId']}</artifactId>
+    <version>${ormModel['ext:mavenVersion'] || '1.0.0-SNAPSHOT'}</version>
+
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>${appName}-codegen</module>
+        <module>${appName}-api</module>
+        <module>${appName}-dao</module>
+        <module>${appName}-service</module>
+        <module>${appName}-web</module>
+        <module>${appName}-app</module>
+    </modules>
+
+</project>
+</create>
+</gen:MergeXml>

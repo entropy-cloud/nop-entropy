@@ -1,0 +1,7 @@
+label: 登录类型
+locale: zh-CN
+options:
+  - label: 密码登录
+    value: 1
+  - label: 单点登录
+    value: 10

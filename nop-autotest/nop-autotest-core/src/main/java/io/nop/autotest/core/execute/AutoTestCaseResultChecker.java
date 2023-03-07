@@ -1,5 +1,13 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core.execute;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.core.data.AutoTestCaseData;
 import io.nop.autotest.core.data.AutoTestVars;
@@ -49,10 +57,8 @@ public class AutoTestCaseResultChecker {
 
     private IEvalScope scope;
 
-    public AutoTestCaseResultChecker(String variant, AutoTestCaseData caseData,
-                                     IDaoProvider daoProvider,
-                                     IJdbcTemplate jdbcTemplate,
-                                     MatchPatternCompileConfig matchConfig) {
+    public AutoTestCaseResultChecker(String variant, AutoTestCaseData caseData, IDaoProvider daoProvider,
+                                     IJdbcTemplate jdbcTemplate, MatchPatternCompileConfig matchConfig) {
         this.variant = variant;
         this.caseData = caseData;
         this.daoProvider = daoProvider;
@@ -80,9 +86,8 @@ public class AutoTestCaseResultChecker {
     private IEntityDao requireDaoForTable(String tableName, File file) {
         IEntityDao dao = daoProvider.daoForTable(tableName);
         if (dao == null)
-            throw new AutoTestException(ERR_AUTOTEST_NO_DAO_FOR_TABLE)
-                    .param(ARG_TABLE_NAME, tableName)
-                    .param(ARG_FILE, file);
+            throw new AutoTestException(ERR_AUTOTEST_NO_DAO_FOR_TABLE).param(ARG_TABLE_NAME, tableName).param(ARG_FILE,
+                    file);
         return dao;
     }
 
@@ -94,32 +99,25 @@ public class AutoTestCaseResultChecker {
             if (changeType == null)
                 changeType = DaoConstants.CHANGE_TYPE_ADD;
 
-            Map<String,Object> tpl = row;
+            Map<String, Object> tpl = row;
 
             row = (Map<String, Object>) AutoTestVars.resolveVarName(row);
 
             Object id = getEntityId(row, dao);
             if (id == null)
-                throw new AutoTestException(ERR_AUTOTEST_ROW_NO_ID)
-                        .param(ARG_ROW, row)
-                        .param(ARG_ROW_NUMBER, rowNumber)
-                        .param(ARG_TABLE_NAME, dao.getTableName())
-                        .param(ARG_FILE, file);
+                throw new AutoTestException(ERR_AUTOTEST_ROW_NO_ID).param(ARG_ROW, row).param(ARG_ROW_NUMBER, rowNumber)
+                        .param(ARG_TABLE_NAME, dao.getTableName()).param(ARG_FILE, file);
 
             IOrmEntity entity = dao.getEntityById(id);
             if (changeType.equals(DaoConstants.CHANGE_TYPE_DELETE)) {
                 if (entity != null)
-                    throw new AutoTestException(ERR_AUTOTEST_CHECK_DELETED_ROW_FAIL)
-                            .param(ARG_ID, id)
-                            .param(ARG_ROW_NUMBER, rowNumber)
-                            .param(ARG_TABLE_NAME, dao.getTableName())
+                    throw new AutoTestException(ERR_AUTOTEST_CHECK_DELETED_ROW_FAIL).param(ARG_ID, id)
+                            .param(ARG_ROW_NUMBER, rowNumber).param(ARG_TABLE_NAME, dao.getTableName())
                             .param(ARG_FILE, file);
             } else {
                 if (entity == null)
-                    throw new AutoTestException(ERR_AUTOTEST_OUTPUT_ROW_NOT_EXISTS)
-                            .param(ARG_ID, id)
-                            .param(ARG_ROW_NUMBER, rowNumber)
-                            .param(ARG_TABLE_NAME, dao.getTableName())
+                    throw new AutoTestException(ERR_AUTOTEST_OUTPUT_ROW_NOT_EXISTS).param(ARG_ID, id)
+                            .param(ARG_ROW_NUMBER, rowNumber).param(ARG_TABLE_NAME, dao.getTableName())
                             .param(ARG_FILE, file);
 
                 checkRowMatch(tpl, entity, dao);
@@ -141,16 +139,23 @@ public class AutoTestCaseResultChecker {
     private void checkRowMatch(Map<String, Object> row, IOrmEntity entity, IOrmEntityDao<IOrmEntity> dao) {
         IEntityModel entityModel = dao.getEntityModel();
         Map<String, Object> entityData = new HashMap<>();
-        for (String colName : row.keySet()) {
+        for (Map.Entry<String, Object> entry : row.entrySet()) {
+            String colName = entry.getKey();
             IColumnModel col = entityModel.getColumnByCode(colName, false);
             entityData.put(colName, entity.orm_propValue(col.getPropId()));
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                String str = value.toString();
+                if (!str.startsWith("@") && !str.startsWith("*")) {
+                    entry.setValue(ConvertHelper.convertTo(col.getJavaClass(), entry.getValue(), NopException::new));
+                }
+            }
         }
 
         try {
             AutoTestMatchChecker.checkMatch(matchConfig, row, entityData, scope);
         } catch (NopException e) {
-            e.param(ARG_TABLE_NAME, entityModel.getTableName())
-                    .param(ARG_ID, entity.orm_idString());
+            e.param(ARG_TABLE_NAME, entityModel.getTableName()).param(ARG_ID, entity.orm_idString());
             throw e;
         }
     }
@@ -170,9 +175,8 @@ public class AutoTestCaseResultChecker {
             try {
                 AutoTestMatchChecker.checkMatch(matchConfig, check.getResult(), result, scope);
             } catch (Exception e) {
-                throw new NopException(ERR_AUTOTEST_CHECK_SQL_RESULT_FAIL, e)
-                        .param(ARG_SQL, sql)
-                        .param(ARG_SQL_RESULT, result);
+                throw new NopException(ERR_AUTOTEST_CHECK_SQL_RESULT_FAIL, e).param(ARG_SQL, sql).param(ARG_SQL_RESULT,
+                        result);
             }
         }
     }

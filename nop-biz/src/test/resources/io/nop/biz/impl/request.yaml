@@ -1,0 +1,10 @@
+query: >
+  query($id:String){
+     entity: MyObject__get(id:$id){
+        name
+        extValue
+     }
+  }
+
+variables:
+  id: aaa

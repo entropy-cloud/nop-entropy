@@ -1,0 +1,4 @@
+
+xui:js: '@include:NopReportDatasetAuth.action.js'
+x:gen-extends: |
+    <web:GenPage view="NopReportDatasetAuth.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

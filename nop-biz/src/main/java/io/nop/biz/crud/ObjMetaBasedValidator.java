@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.biz.crud;
 
 import io.nop.api.core.beans.DictBean;
@@ -7,48 +14,54 @@ import io.nop.api.core.beans.FilterBeanConstants;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.graphql.core.GraphQLConstants;
+import io.nop.orm.OrmConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import io.nop.xlang.xmeta.impl.ObjConditionExpr;
 import io.nop.xlang.xmeta.impl.ObjSelectionMeta;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 
+import static io.nop.biz.BizConstants.METHOD_GET;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_DICT;
 import static io.nop.biz.BizErrors.ARG_FILTER_VALUE;
-import static io.nop.biz.BizErrors.ARG_MAX_LENGTH;
 import static io.nop.biz.BizErrors.ARG_OPTION_VALUE;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_VALUE;
 import static io.nop.biz.BizErrors.ARG_SELECTION_ID;
 import static io.nop.biz.BizErrors.ERR_BIZ_INVALID_DICT_OPTION;
 import static io.nop.biz.BizErrors.ERR_BIZ_MANDATORY_PROP_IS_EMPTY;
-import static io.nop.biz.BizErrors.ERR_BIZ_PROP_EXCEED_MAX_LENGTH;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_TYPE_CONVERT_FAIL;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_VALUE_NOT_MATCH_FILTER_CONDITION;
 import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_PROP;
 import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_SELECTION;
 import static io.nop.biz.crud.BizSchemaHelper.getPropSchema;
 import static io.nop.biz.crud.BizSchemaHelper.newError;
+import static io.nop.orm.OrmConstants.PROP_ID;
 
 public class ObjMetaBasedValidator {
     private final IBizObjectManager bizObjectManager;
@@ -73,7 +86,7 @@ public class ObjMetaBasedValidator {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue(null, BizConstants.VAR_ROOT, data);
 
-        Map<String, Object> map = _validate(objMeta.getRootSchema(), data, selection, filter, scope);
+        Map<String, Object> map = _validate(bizObjName, objMeta.getRootSchema(), null, data, selection, filter, scope);
         appendEqCondition(map);
         return map;
     }
@@ -98,7 +111,7 @@ public class ObjMetaBasedValidator {
         }
     }
 
-    private Map<String, Object> _validate(ISchema schema, Map<String, Object> data, FieldSelectionBean selection,
+    private Map<String, Object> _validate(String bizObjName, ISchema schema, String propName, Map<String, Object> data, FieldSelectionBean selection,
                                           BiPredicate<IObjPropMeta, FieldSelectionBean> filter, IEvalScope scope) {
         scope.setLocalValue(null, BizConstants.VAR_DATA, data);
 
@@ -114,6 +127,9 @@ public class ObjMetaBasedValidator {
                 ret.put(name, value);
                 continue;
             }
+
+            if (OrmConstants.FOR_ADD.endsWith(name))
+                continue;
 
             IObjPropMeta propMeta = schema.getProp(name);
             if (propMeta == null)
@@ -131,7 +147,7 @@ public class ObjMetaBasedValidator {
             }
 
             if (StringHelper.isEmptyObject(value)) {
-                ret.put(name, null);
+                setIn(ret, schema, propMeta, null);
                 continue;
             }
 
@@ -146,13 +162,15 @@ public class ObjMetaBasedValidator {
                 value = transformIn(value, propMeta, data, ret);
             }
 
+            String subPropName = propName == null ? propMeta.getName() : propName + '.' + propMeta.getName();
+
             if (value instanceof Collection) {
                 ISchema propSchema = getPropSchema(propMeta, true, bizObjectManager, bizObjName);
                 if (propSchema != null) {
                     List<Object> list = CollectionHelper.toList(value);
                     List<Object> converted = new ArrayList<>(list.size());
                     for (Object item : list) {
-                        item = _validate(propSchema, (Map<String, Object>) item, propSelection, filter, scope);
+                        item = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) item, propSelection, filter, scope);
                         converted.add(item);
                     }
                     value = converted;
@@ -160,15 +178,35 @@ public class ObjMetaBasedValidator {
             } else if (value instanceof Map) {
                 ISchema propSchema = getPropSchema(propMeta, false, bizObjectManager, bizObjName);
                 if (propSchema != null) {
-                    value = _validate(propSchema, (Map<String, Object>) value, propSelection, filter, scope);
+
+                    value = _validate(propSchema.getBizObjName(), propSchema, subPropName, (Map<String, Object>) value, propSelection, filter, scope);
                 }
             } else {
-                validateValue(propMeta.getSchema(), value, propMeta);
+                validateValue(propMeta.getSchema(), subPropName, value, propMeta);
                 value = convertValue(propMeta, value, data, ret);
             }
-            ret.put(name, value);
+            setIn(ret, schema, propMeta, value);
         }
         return ret;
+    }
+
+    private void setIn(Map<String, Object> ret, ISchema schema, IObjPropMeta propMeta, Object value) {
+        // json component 转换为对jsonText的赋值
+        String propName = propMeta.getName();
+        if (propName.endsWith("Component") && TagsHelper.contains(propMeta.getTagSet(), OrmConstants.TAG_JSON)) {
+            String textPropName = propName.substring(0, propName.length() - "Component".length());
+            IObjPropMeta textProp = schema.getProp(textPropName);
+            if (textProp != null) {
+                if (StringHelper.isEmptyObject(value)) {
+                    value = null;
+                } else {
+                    value = JsonTool.stringify(value);
+                }
+                ret.put(textPropName, value);
+                return;
+            }
+        }
+        ret.put(propMeta.getName(), value);
     }
 
     private Object transformIn(Object value, IObjPropMeta propMeta, Map<String, Object> data, Map<String, Object> ret) {
@@ -183,11 +221,15 @@ public class ObjMetaBasedValidator {
         return value;
     }
 
-    private void validateValue(ISchema schema, Object value, IObjPropMeta propMeta) {
+    private void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta) {
         if (schema != null) {
+            if (schema.isSimpleSchema()) {
+                SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, IValidationErrorCollector.THROW_ERROR);
+            }
+
             String dictName = schema.getDict();
             if (dictName != null) {
-                DictBean dictBean = DictProvider.instance().getDict(ContextProvider.currentLocale(), dictName,
+                DictBean dictBean = DictProvider.instance().requireDict(ContextProvider.currentLocale(), dictName,
                         context.getCache());
                 DictOptionBean option = dictBean.getOptionByValue(value);
                 if (option == null) {
@@ -198,14 +240,23 @@ public class ObjMetaBasedValidator {
                     throw newError(ERR_BIZ_INVALID_DICT_OPTION, propMeta).param(ARG_DICT, dict).param(ARG_OPTION_VALUE,
                             value);
                 }
-            }
-
-            if (schema.isSimpleSchema()) {
-                Integer len = schema.getMaxLength();
-                if (len != null) {
-                    String str = value.toString();
-                    if (str.length() > len)
-                        throw newError(ERR_BIZ_PROP_EXCEED_MAX_LENGTH, propMeta).param(ARG_MAX_LENGTH, len);
+            } else {
+                String relation = (String) propMeta.prop_get(BizConstants.EXT_RELATION);
+                if (relation != null) {
+                    IObjPropMeta relProp = objMeta.getProp(relation);
+                    if (relProp == null)
+                        throw newError(ERR_BIZ_UNKNOWN_PROP, propMeta)
+                                .param(ARG_PROP_NAME, relation);
+                    ISchema relSchema = relProp.getSchema();
+                    if (relSchema != null) {
+                        String bizObjName = relSchema.getBizObjName();
+                        if (bizObjName != null) {
+                            Map<String, Object> request = new HashMap<>();
+                            request.put(PROP_ID, value);
+                            // 确保对象可见
+                            bizObjectManager.getBizObject(bizObjName).invoke(METHOD_GET, request, null, context);
+                        }
+                    }
                 }
             }
         }

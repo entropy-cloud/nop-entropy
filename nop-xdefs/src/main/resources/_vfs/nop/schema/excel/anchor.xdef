@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<anchor xdef:bean-class="io.nop.core.model.table.CellAnchor"
+        row1="!int=0" col1="!int=0" rowDelta="!int=1" colDelta="!int=1"
+        dx1="!double=0" dx2="!double=0" dy1="!double=0" dy2="!double=0"
+        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+/>

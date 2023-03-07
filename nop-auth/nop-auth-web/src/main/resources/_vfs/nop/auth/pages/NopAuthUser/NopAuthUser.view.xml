@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopAuthUser.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <grids>
+        <grid id="list"/>
+        <grid id="pick-list" affixHeader="false"/>
+
+        <grid id="simple-list" affixHeader="false">
+            <cols>
+                <col id="userName"/>
+                <col id="nickName"/>
+                <col id="status"/>
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="view">
+            <layout>
+                ===========>baseInfo[基本信息]======
+                userName status[用户状态]
+                nickName[昵称] deptId[部门]
+                userType[用户类型] gender[性别]
+                email[邮件] phone[电话]
+                openId[用户外部标识]
+                expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]
+
+                ===========>extInfo[扩展信息]=========
+                idType[证件类型] idNbr[证件号]
+                birthday[生日] workNo[工号]
+                positionId[职务] telephone[座机]
+                remark[备注]
+                createdBy[创建人] createTime[创建时间]
+                updatedBy[修改人] updateTime[修改时间]
+            </layout>
+        </form>
+
+        <form id="add" x:inherit="true">
+            <layout>
+                ============>baseInfo[基本信息]======
+                userName status[用户状态]
+                nickName[昵称] deptId[部门]
+                userType[用户类型] gender[性别]
+                password[密码] *__password2[重复密码]
+                email[邮件] phone[电话]
+                expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]
+
+                ===========^extInfo[扩展信息]=========
+                idType[证件类型] idNbr[证件号]
+                birthday[生日] workNo[工号]
+                positionId[职务] telephone[座机]
+                remark[备注]
+            </layout>
+
+            <cells>
+                <cell id="__password2" custom="true" label="重复密码">
+                    <gen-control>
+                        <input-password>
+                            <validations equalsField="password" />
+                        </input-password>
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
+
+        <form id="edit">
+            <layout>
+                ============>baseInfo[基本信息]======
+                userName status[用户状态]
+                nickName[昵称] deptId[部门]
+                userType[用户类型] gender[性别]
+                email[邮件] phone[电话]
+                expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]
+
+                ===========^extInfo[扩展信息]=========
+                idType[证件类型] idNbr[证件号]
+                birthday[生日] workNo[工号]
+                positionId[职务] telephone[座机]
+                remark[备注]
+            </layout>
+        </form>
+
+        <form id="query">
+            <layout>
+                userName gender nickName phone status
+            </layout>
+        </form>
+
+        <form id="asideFilter" submitOnChange="true">
+            <layout>
+                ==dept[部门]==
+                !deptId
+            </layout>
+            <cells>
+                <cell id="deptId">
+                    <gen-control>
+                        <input-tree
+                                source="@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildren(max:5)?filter_parentId="/>
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
+
+        <form id="changeSelfPassword">
+            <layout>
+                @userName
+                oldPassword
+                newPassword
+            </layout>
+
+            <cells>
+                <cell id="oldPassword" component="password" custom="true"/>
+                <cell id="newPassword" component="password" custom="true"/>
+            </cells>
+        </form>
+
+        <form id="resetUserPassword" title="@i18n:common.resetUserPassword" size="md" editMode="edit">
+            <layout>
+                @userName
+                password
+            </layout>
+            <cells>
+                <cell id="password" component="password" custom="true"/>
+            </cells>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" asideFilterForm="asideFilter" x:inherit="true">
+            <rowActions>
+                <actionGroup id="row-more-button">
+                    <action id="reset-password-button" label="@i18n:common.resetUserPassword" level="primary">
+                        <dialog page="resetUserPassword"/>
+                    </action>
+                    <action id="disable-user-button" label="@i18n:common.disableUser" level="primary">
+                        <confirmText>@i18n:common.confirmDisableUser</confirmText>
+                        <api url="@mutation:NopAuthUser__disableUser">
+                            <data>
+                                <userId>$id</userId>
+                            </data>
+                        </api>
+                        <visibleOn>${status == 1}</visibleOn>
+                    </action>
+                    <action id="enable-user-button" label="@i18n:common.enableUser" level="primary">
+                        <confirmText>@i18n:common.confirmEnableUser</confirmText>
+                        <api url="@mutation:NopAuthUser__enableUser">
+                            <data>
+                                <userId>$id</userId>
+                            </data>
+                        </api>
+                        <visibleOn>${status == 0}</visibleOn>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+
+        <picker name="picker" x:inherit="true"/>
+
+        <crud name="deleted" grid="list">
+            <table>
+                <api url="@query:NopAuthUser__deleted_findPage/{@pageSelection}"/>
+            </table>
+
+            <rowActions>
+                <action id="recover-deleted-button" label="@i18n:common.recoverDeleted" level="primary">
+                    <api url="@mutation:NopAuthUser__recoverDeleted/id?id=$id"/>
+                    <confirmText>@i18n:common.confirmRecoverDeleted</confirmText>
+                </action>
+            </rowActions>
+        </crud>
+
+        <simple name="resetUserPassword" form="resetUserPassword">
+            <api url="@mutation:NopAuthUser__resetUserPassword?userId=$id">
+                <data>
+                    <password>$password</password>
+                </data>
+            </api>
+        </simple>
+
+        <crud name="role-users" grid="simple-list">
+            <table loadDataOnce="true" name="role-users-grid">
+                <api url="@query:NopAuthRole__get/items:roleUsers{{@listSelection!}}?id=$roleId">
+                </api>
+            </table>
+
+            <listActions>
+                <action id="select-user-button" label="@i18n:common.selectUser">
+                    <dialog page="select-role-users" size="md" noActions="true">
+                    </dialog>
+                </action>
+
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopAuthRole__removeRoleUsers">
+                        <data>
+                            <roleId>$roleId</roleId>
+                            <userIds>$ids</userIds>
+                        </data>
+                    </api>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+            </listActions>
+        </crud>
+
+        <crud name="select-role-users" grid="pick-list" title="@i18n:common.selectUser">
+            <table pickerMode="true" multiple="true" noOperations="true">
+                <api url="@query:NopAuthUser__findPage/{@pageSelection}"/>
+            </table>
+
+            <listActions>
+                <action id="batch-add-user-button" label="@i18n:common.submit" level="primary"
+                        batch="true" close="select-role-users" reload="role-users-grid">
+                    <api url="@mutation:NopAuthRole__addRoleUsers">
+                        <data>
+                            <roleId>$roleId</roleId>
+                            <userIds>$ids</userIds>
+                        </data>
+                    </api>
+                </action>
+            </listActions>
+        </crud>
+    </pages>
+</view>

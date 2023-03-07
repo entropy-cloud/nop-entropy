@@ -1,0 +1,74 @@
+{
+  "NO": "KB.6890451",
+  "id": "ZHANG_SAN_091",
+  "taitou": "深圳XX家装有限公司",
+  "consignee": "丙丁",
+  "subtotal": 8000,
+  "tax": 600,
+  "transform": 120,
+  "other": 250,
+  "unpay": 6600,
+  "totalCost": 7200,
+  "orders": [
+    {
+      "saleDate": "2018-06-12",
+      "orderNo": "SN18090",
+      "salesman": "李四",
+      "price": 5000,
+      "delivery": "快递",
+      "terms": "附录A",
+      "taxNumber": "T11090"
+    }
+  ],
+  "goodsList": [
+    {
+      "amount": 4,
+      "name": "墙纸1",
+      "desc": "书房+卧室",
+      "price": 1500,
+      "discount": null,
+      "tax": 400,
+      "total": 1600
+    },
+    {
+      "amount": 4,
+      "name": "墙纸2",
+      "desc": "书房+卧室",
+      "price": 1500,
+      "discount": null,
+      "tax": 400,
+      "total": 1600
+    },
+    {
+      "amount": 4,
+      "name": "墙纸3",
+      "desc": "书房+卧室",
+      "price": 1500,
+      "discount": null,
+      "tax": 400,
+      "total": 1600
+    }
+  ],
+  "laborCosts": [
+    {
+      "type": "油漆工1",
+      "num": 2,
+      "price": 201
+    },
+    {
+      "type": "油漆工2",
+      "num": 2,
+      "price": 202
+    },
+    {
+      "type": "油漆工3",
+      "num": 2,
+      "price": 203
+    },
+    {
+      "type": "油漆工4",
+      "num": 2,
+      "price": 204
+    }
+  ]
+}

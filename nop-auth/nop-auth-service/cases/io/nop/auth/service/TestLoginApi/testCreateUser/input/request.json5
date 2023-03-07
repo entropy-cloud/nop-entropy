@@ -3,7 +3,7 @@
     data: {
       userName: "auto_test1",
       password: "auto_test1",
-      userNick: "autoTestNick",
+      nickName: "autoTestNick",
       gender: "1",
       userType: "1"
     }

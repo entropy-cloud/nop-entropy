@@ -1,0 +1,3 @@
+io.nop.core.initialize.impl.ReflectionHelperMethodInitializer
+io.nop.core.initialize.impl.VirtualFileSystemInitializer
+io.nop.core.initialize.impl.CoreInitializer

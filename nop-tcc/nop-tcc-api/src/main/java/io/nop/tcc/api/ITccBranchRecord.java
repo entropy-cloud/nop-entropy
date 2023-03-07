@@ -1,0 +1,44 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.tcc.api;
+
+import io.nop.api.core.beans.ApiRequest;
+
+import java.sql.Timestamp;
+
+public interface ITccBranchRecord {
+    String getTxnGroup();
+
+    String getTxnId();
+
+    String getBranchId();
+
+    int getBranchNo();
+
+    String getParentBranchId();
+
+    String getServiceName();
+
+    String getServiceMethod();
+
+    ApiRequest<?> getRequest();
+
+    String getConfirmMethod();
+
+    String getCancelMethod();
+
+    TccStatus getBranchStatus();
+
+    int getMaxRetry();
+
+    int getRetry();
+
+    Timestamp getCreateTime();
+
+    Timestamp getUpdateTime();
+}

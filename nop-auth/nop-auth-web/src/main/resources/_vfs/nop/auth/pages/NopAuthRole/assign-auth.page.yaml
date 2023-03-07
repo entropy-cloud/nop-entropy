@@ -1,0 +1,43 @@
+type: page
+title: "@i18n:common.authorization"
+body:
+  - type: form
+    body:
+      - label: '@i18n:prop.label.NopAuthResource.siteId|站点ID'
+        required: true
+        type: button-group-select
+        multiple: false
+        source: '@dict:obj/NopAuthSite'
+        value: main
+        name: siteId
+
+      - type: service
+        api:
+          url: "@query:NopAuthRole__get/resourceIds:roleResourceIds"
+          data:
+            id: $roleId
+        body:
+          type: input-tree
+          name: resourceIds
+          multiple: true
+          cascade: true
+          label: false
+          source:
+            url: "@query:NopAuthResource__findList/value:id,label:displayName,children @TreeChildren(max:5)"
+            data:
+              filter_resourceType: TOPM
+              filter_siteId: $siteId
+
+      - type: wrapper
+        body:
+          type: button
+          label: "@i18n:common.submit"
+          level: primary
+          actionType: ajax
+          api:
+            url: "@mutation:NopAuthRole__updateRoleResources"
+            data:
+              siteId: $siteId
+              resourceIds: $resourceIds
+              roleId: $roleId
+

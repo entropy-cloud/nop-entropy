@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.dao.api;
 
 import io.nop.api.core.beans.LongRangeBean;
@@ -8,6 +15,7 @@ import io.nop.core.lang.sql.binder.DataParameterBinders;
 import io.nop.dao.dataset.IComplexDataSet;
 import io.nop.dao.dataset.IDataSet;
 import io.nop.dao.dataset.IRowMapper;
+import io.nop.dao.dataset.rowmapper.IgnoreAllExtractor;
 import io.nop.dao.dataset.rowmapper.RowMapperAllExtractor;
 import io.nop.dao.dataset.rowmapper.SingleBinderRowMapper;
 import io.nop.dao.dialect.IDialect;
@@ -89,7 +97,6 @@ public interface ISqlExecutor extends IDialectProvider {
         return value;
     }
 
-
     /**
      * 将findFirst的返回结果转型为int类型
      *
@@ -115,7 +122,6 @@ public interface ISqlExecutor extends IDialectProvider {
             return defaultValue;
         return value;
     }
-
 
     /**
      * 将findFirst的返回结果转型为LocalDate类型
@@ -176,6 +182,13 @@ public interface ISqlExecutor extends IDialectProvider {
 
     default <T> T executeQuery(@Nonnull final SQL sql, @Nonnull final Function<? super IDataSet, T> callback) {
         return executeQuery(sql, null, callback);
+    }
+
+    /**
+     * 执行SQL语句并忽略它的返回结果。相当于是执行预加载操作，将数据预取到缓存中
+     */
+    default void prefetch(@Nonnull final SQL sql) {
+        executeQuery(sql, IgnoreAllExtractor.INSTANCE);
     }
 
     /**

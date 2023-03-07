@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans default-lazy-init="false"
+       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+>
+    <bean id="myLazyInitBean2" class="test.io.entropy.beans.MyLazyInitBean2"></bean>
+
+    <import resource="nested.beans.xml"/>
+</beans>

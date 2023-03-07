@@ -26,5 +26,6 @@
             <groupId>io.nop</groupId>
             <artifactId>nop-orm</artifactId>
         </dependency>
+
     </dependencies>
 </project>

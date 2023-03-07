@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm.sql_lib.proxy;
 
 import io.nop.api.core.beans.LongRangeBean;
@@ -62,6 +69,11 @@ public class SqlLibInvoker implements InvocationHandler {
         }
 
         Object ret = sqlLibManager.invoke(sqlLibPath, method.getName(), range, context);
+
+        // 忽略返回值
+        if (method.getReturnType() == Void.TYPE || method.getReturnType() == Void.class)
+            return null;
+
         return ConvertHelper.convertTo(method.getReturnType(), ret, err -> {
             return new NopException(ERR_SQL_LIB_CONVERT_RETURN_TYPE_FAIL).param(ARG_METHOD, method);
         });

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+
+    <bean id="io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean" ioc:type="@bean:id" name="nopDataSource">
+        <ioc:condition>
+            <if-property name="nop.datasource.enabled" enableIfMissing="true"/>
+        </ioc:condition>
+
+        <property name="config">
+            <bean class="io.nop.quarkus.core.dao.DataSourceConfig">
+                <property name="maxSize" value="5"/>
+                <property name="driverClassName" value="${nop.datasource.driver-class-name}"/>
+                <property name="jdbcUrl" value="${nop.datasource.jdbc-url}"/>
+                <property name="username" value="${nop.datasource.username}"/>
+                <property name="password" value="${nop.datasource.password:}"/>
+            </bean>
+        </property>
+    </bean>
+</beans>

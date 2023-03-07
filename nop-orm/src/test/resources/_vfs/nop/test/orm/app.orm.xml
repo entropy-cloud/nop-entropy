@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <orm x:schema="/nop/schema/orm/orm.xdef"
-     x:extends="base.orm.xml"
+     x:extends="base.orm.xml" x:dump="true"
      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="/nop/schema/xpl.xdef">
     <x:gen-extends>
         <pdman:GenOrm src="test.pdma.json" xpl:lib="/nop/orm/xlib/pdman.xlib"
@@ -13,7 +13,7 @@
     </x:gen-extends>
 
     <x:post-extends>
-        <orm-gen:JsonComponentSupport xpl:lib="/nop/orm/xlib/orm-gen.xlib" />
+        <orm-gen:JsonComponentSupport xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
     <entities>
@@ -22,7 +22,8 @@
         <entity name="io.nop.app.SimsClass">
             <columns>
                 <column name="collegeId" propId="100" lazy="true"/>
-                <column name="jsonExt"  code="JSON_EXT" propId="101" tagSet="json" stdSqlType="VARCHAR" precision="4000" />
+                <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json" stdSqlType="VARCHAR"
+                        precision="4000"/>
             </columns>
             <aliases>
                 <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>
@@ -40,7 +41,7 @@
             <relations>
                 <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName" notGenCode="true">
                     <join>
-                        <on leftProp="_id" rightProp="entityId"/>
+                        <on leftProp="id" rightProp="entityId"/>
                         <on leftValue="io.nop.app.SimsCollege" rightProp="entityName"/>
                     </join>
                 </to-many>
@@ -80,7 +81,7 @@
             <relations>
                 <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName">
                     <join>
-                        <on leftProp="_id" rightProp="entityId"/>
+                        <on leftProp="id" rightProp="entityId"/>
                         <on leftValue="io.nop.app.SimsExam" rightProp="entityName"/>
                     </join>
                 </to-many>
@@ -135,7 +136,7 @@
 
         <entity name="io.nop.app.SimsMajor" useLogicalDelete="true" deleteFlagProp="delFlag">
             <columns>
-                <column name="majorId" useSeq="true" mandatory="true"/>
+                <column name="majorId" tagSet="seq" mandatory="true"/>
                 <column name="delFlag" code="DEL_FLAG" stdSqlType="TINYINT" propId="20" mandatory="true"/>
             </columns>
         </entity>

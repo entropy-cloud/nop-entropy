@@ -1,0 +1,717 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.nop</groupId>
+    <artifactId>nop-dependencies</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+    <description>include all third party dependencies for Nop Platform</description>
+
+    <packaging>pom</packaging>
+
+    <properties>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+
+        <!-- 文件拷贝时的编码 -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- 编译时的编码 -->
+        <maven.compiler.encoding>UTF-8</maven.compiler.encoding>
+
+        <spring-boot.version>2.7.0</spring-boot.version>
+        <spring-cloud.version>2021.0.3</spring-cloud.version>
+        <spring-cloud-alibaba.version>2021.0.1.0</spring-cloud-alibaba.version>
+
+        <quarkus.platform.version>2.12.1.Final</quarkus.platform.version>
+
+        <!--        <vertx.version>4.3.1</vertx.version>-->
+
+        <!--        <netty.version>4.1.77.Final</netty.version>-->
+
+        <!--        <tcnative.version>2.0.52.Final</tcnative.version>-->
+
+        <antlr.version>4.10.1</antlr.version>
+
+        <graalvm.version>22.0.0.2</graalvm.version>
+        <!--        <jackson.version>2.10.2</jackson.version>-->
+        <janino.version>3.1.9</janino.version>
+        <junit-jupiter.version>5.7.0</junit-jupiter.version>
+
+        <javax.inject.version>1.0</javax.inject.version>
+        <pulsar.version>2.8.0</pulsar.version>
+
+        <lettuce.version>6.1.4.RELEASE</lettuce.version>
+
+        <h2.version>2.1.210</h2.version>
+        <nacos.version>1.4.4</nacos.version>
+        <testcontainers.version>1.16.3</testcontainers.version>
+
+        <poi.version>5.2.2</poi.version>
+    </properties>
+
+    <dependencyManagement>
+
+        <dependencies>
+            <!-- quarkus涉及到native编译，它内置的版本基本难以切换，所以尽量以quarkus的版本为准 -->
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--
+           依赖冲突: 短路径优先；先声明优先
+            -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.7.29</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.vdurmont</groupId>
+                <artifactId>semver4j</artifactId>
+                <version>3.1.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.8.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>4.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>1.8</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>1.9</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.20</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-vfs2</artifactId>
+                <version>2.6.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.7</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.14</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>25.1-jre</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.lettuce</groupId>
+                <artifactId>lettuce-core</artifactId>
+                <version>${lettuce.version}</version>
+            </dependency>
+
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-buffer</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-dns</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-haproxy</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-http2</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-http</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-memcache</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-mqtt</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-redis</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-smtp</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-socks</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-stomp</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec-xml</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-codec</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-common</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-dev-tools</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-example</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-handler-proxy</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-handler</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-resolver-dns-native-macos</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-resolver-dns-native-macos</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>osx-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-resolver-dns-native-macos</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>osx-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-resolver-dns</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-resolver</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative-boringssl-static</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative-boringssl-static</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>linux-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative-boringssl-static</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>linux-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative-boringssl-static</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>osx-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative-boringssl-static</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>osx-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative-boringssl-static</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>windows-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>linux-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>linux-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-tcnative</artifactId>-->
+            <!--                <version>${tcnative.version}</version>-->
+            <!--                <classifier>osx-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-epoll</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-epoll</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>linux-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-epoll</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>linux-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-kqueue</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-kqueue</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>osx-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-kqueue</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>osx-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-unix-common</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-unix-common</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>linux-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-unix-common</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>linux-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-unix-common</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>osx-aarch_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-native-unix-common</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--                <classifier>osx-x86_64</classifier>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-rxtx</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-sctp</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport-udt</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.netty</groupId>-->
+            <!--                <artifactId>netty-transport</artifactId>-->
+            <!--                <version>${netty.version}</version>-->
+            <!--            </dependency>-->
+
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>0.11.5</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4</artifactId>
+                <version>${antlr.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>${antlr.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.geolatte</groupId>
+                <artifactId>geolatte-geom</artifactId>
+                <version>1.8.2</version>
+            </dependency>
+
+            <!--            <dependency>-->
+            <!--                <groupId>com.opencsv</groupId>-->
+            <!--                <artifactId>opencsv</artifactId>-->
+            <!--                <version>4.6</version>-->
+            <!--            </dependency>-->
+
+            <!-- https://mvnrepository.com/artifact/org.yaml/snakeyaml -->
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.28</version>
+            </dependency>
+
+            <!-- https://mvnrepository.com/artifact/org.codehaus.janino/janino -->
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>janino</artifactId>
+                <version>${janino.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.graalvm.regex</groupId>
+                <artifactId>regex</artifactId>
+                <version>${graalvm.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.graalvm.sdk</groupId>
+                <artifactId>graal-sdk</artifactId>
+                <version>${graalvm.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.graalvm.js</groupId>
+                <artifactId>js</artifactId>
+                <version>${graalvm.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.pulsar</groupId>
+                <artifactId>pulsar-client-api</artifactId>
+                <version>${pulsar.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.inject</groupId>
+                <artifactId>jakarta.inject-api</artifactId>
+                <version>${javax.inject.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>${h2.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.oracle.ojdbc</groupId>
+                <artifactId>ojdbc8</artifactId>
+                <version>19.3.0.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>jdbc</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mysql</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>oracle-xe</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mariadb</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mssqlserver</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>db2</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>pulsar</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>elasticsearch</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark</artifactId>
+                <version>0.18.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>tech.allegro.schema.json2avro</groupId>
+                <artifactId>converter</artifactId>
+                <version>0.2.13</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.jayway.jsonpath</groupId>
+                <artifactId>json-path</artifactId>
+                <version>2.7.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.graphql-java</groupId>
+                <artifactId>java-dataloader</artifactId>
+                <version>3.1.4</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.nacos</groupId>
+                <artifactId>nacos-client</artifactId>
+                <version>${nacos.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.nacos</groupId>
+                <artifactId>nacos-api</artifactId>
+                <version>${nacos.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.nacos</groupId>
+                <artifactId>nacos-config</artifactId>
+                <version>${nacos.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>SparseBitSet</artifactId>
+                <version>1.2</version>
+            </dependency>
+
+            <!--            <dependency>-->
+            <!--                <groupId>com.alibaba.cloud</groupId>-->
+            <!--                <artifactId>spring-cloud-alibaba-dependencies</artifactId>-->
+            <!--                <version>${spring-cloud-alibaba.version}</version>-->
+            <!--                <type>pom</type>-->
+            <!--                <scope>import</scope>-->
+            <!--            </dependency>-->
+
+            <!--            <dependency>-->
+            <!--                <groupId>io.vertx</groupId>-->
+            <!--                <artifactId>vertx-stack-depchain</artifactId>-->
+            <!--                <version>${vertx.version}</version>-->
+            <!--                <type>pom</type>-->
+            <!--                <scope>import</scope>-->
+            <!--            </dependency>-->
+
+            <dependency>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>svm</artifactId>
+                <version>22.1.0</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-common</artifactId>
+                <version>20.0.1</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-maven-plugin</artifactId>
+                    <version>${quarkus.platform.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-site-plugin</artifactId>
+                    <version>4.0.0-M2</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-project-info-reports-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>

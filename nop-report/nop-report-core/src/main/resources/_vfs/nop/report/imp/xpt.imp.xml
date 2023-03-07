@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" defaultStripText="true">
+    <sheets>
+        <sheet name="XptWorkbookModel">
+            <fields>
+                <field name="x:gen-extends" displayName="动态生成继承内容">
+                    <schema stdDomain="xpl-node"/>
+                </field>
+
+                <field name="x:extends" displayName="继承文件">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="beginLoop" displayName="初始化脚本">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="endLoop" displayName="后处理脚本">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="beforeExpand" displayName="展开前">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="afterExpand" displayName="展开后">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="ext:namedStyles" list="true" keyProp="id" displayName="命名样式">
+                    <fields>
+                        <field name="id" displayName="样式ID">
+                            <schema stdDomain="string" mandatory="true"/>
+                        </field>
+
+                        <field name="style" displayName="样式">
+                            <valueExpr>
+                                return workbook.getStyle(cell.getStyleId());
+                            </valueExpr>
+                        </field>
+                    </fields>
+                </field>
+
+                <field name="editors" list="true" keyProp="id" displayName="编辑控件">
+                    <fields>
+                        <field name="id" displayName="控件ID">
+                            <schema stdDomain="string" mandatory="true"/>
+                        </field>
+                        <field name="source" displayName="控件内容">
+                            <schema stdDomain="xpl-xjson"/>
+                        </field>
+                    </fields>
+                </field>
+
+                <field name="viewers" list="true" keyProp="id" x:prototype="editors"/>
+            </fields>
+        </sheet>
+
+        <sheet name="XptSheetModel">
+            <fields>
+                <field name="testExpr" displayName="条件表达式">
+                    <schema stdDomain="xpl-predicate"/>
+                </field>
+
+                <field name="beginLoop" displayName="初始化脚本">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="endLoop" displayName="后处理脚本">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="sheetNameExpr" displayName="表单名称表达式">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="beforeExpand" displayName="展开前">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="afterExpand" displayName="展开后">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="conditionalStyles" list="true" keyProp="id" displayName="条件样式">
+                    <fields>
+                        <field name="range" displayName="单元格区间">
+                            <schema stdDomain="string" mandatory="true"/>
+                        </field>
+
+                        <field name="when" displayName="匹配条件">
+                            <schema stdDomain="filter" mandatory="true"/>
+                        </field>
+
+                        <field name="style" displayName="样式">
+                            <valueExpr>
+                                return workbook.getStyle(cell.getStyleId());
+                            </valueExpr>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+
+    </sheets>
+</imp>

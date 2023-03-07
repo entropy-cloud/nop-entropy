@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+
+<entity name="test.entity.Department" tableName="TEST_DEPARTMENT_INFO">
+    <columns>
+        <column name="sid" code="ID" stdSqlType="VARCHAR" precision="100" primary="true" propId="1"/>
+        <column name="name" code="DEPT_NAME" precision="100" stdSqlType="VARCHAR" propId="2"/>
+        <column name="layerCode" code="LAYER_CODE" stdSqlType="VARCHAR" precision="100" mandatory="true" propId="3"/>
+        <column name="layerLevel" code="layer_level" stdSqlType="INTEGER" precision="100" propId="4"/>
+        <column name="parentId" code="PARENT_ID" stdSqlType="VARCHAR" precision="100" propId="5"/>
+    </columns>
+
+    <relations>
+        <to-one name="parent" refEntityName="test.entity.Department">
+            <join>
+                <on leftProp="parentId" rightProp="sid"/>
+            </join>
+        </to-one>
+
+        <to-many name="children" refEntityName="test.entity.Department" refPropName="parent">
+            <join>
+                <on leftProp="sid" rightProp="parentId"/>
+            </join>
+        </to-many>
+    </relations>
+
+    <unique-keys>
+        <unique-key name="layerCode" columns="layerCode"/>
+    </unique-keys>
+
+</entity>

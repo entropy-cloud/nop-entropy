@@ -1,0 +1,8 @@
+<message x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <field name="!string" displayName="string"
+           offset="int" absOffset="int" xdef:unique-attr="name">
+        <description xdef:value="string"/>
+        <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
+    </field>
+</message>

@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.junit;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
@@ -18,6 +25,7 @@ import static io.nop.ioc.IocConfigs.CFG_IOC_AUTO_CONFIG_ENABLED;
 import static io.nop.ioc.IocConfigs.CFG_IOC_AUTO_CONFIG_PATTERN;
 import static io.nop.ioc.IocConfigs.CFG_IOC_AUTO_CONFIG_SKIP_PATTERN;
 import static io.nop.ioc.IocConfigs.CFG_IOC_MERGED_BEANS_FILE_ENABLED;
+import static io.nop.orm.OrmConfigs.CFG_INIT_DATABASE_SCHEMA;
 
 public class NopTestConfigProcessor {
 
@@ -47,7 +55,7 @@ public class NopTestConfigProcessor {
             setTestConfig(CFG_IOC_AUTO_CONFIG_SKIP_PATTERN, config.autoConfigSkipPattern());
         }
 
-        setTestConfig(CFG_IOC_MERGED_BEANS_FILE_ENABLED,config.enableMergedBeansFile());
+        setTestConfig(CFG_IOC_MERGED_BEANS_FILE_ENABLED, config.enableMergedBeansFile());
 
         setTestConfig(CFG_IOC_APP_BEANS_FILE_ENABLED, config.enableAppBeansFile());
         if (!config.appBeansFilePattern().isEmpty()) {
@@ -60,5 +68,7 @@ public class NopTestConfigProcessor {
         if (!config.testBeansFile().isEmpty()) {
             setTestConfig(CFG_IOC_APP_BEANS_FILES, config.testBeansFile());
         }
+
+        setTestConfig(CFG_INIT_DATABASE_SCHEMA, config.initDatabaseSchema());
     }
 }

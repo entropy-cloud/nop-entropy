@@ -1,0 +1,38 @@
+{
+  "type": "page",
+  "title": "x",
+  "body": [
+    {
+      "name": "frm",
+      "actions": [
+        "button",
+        {
+          "type": "static",
+          "api": "test"
+        }
+      ],
+      "type": "form",
+      "api": {
+        "url": "@mutation:test/id?id=$id",
+        "data": {
+          "a": "$a",
+          "b": "$b"
+        }
+      },
+      "body": {
+        "type": "button",
+        "label": "B2",
+        "id": "other"
+      }
+    },
+    {
+      "type": "div",
+      "body": [
+        "zzz",
+        {
+          "type": "button"
+        }
+      ]
+    }
+  ]
+}

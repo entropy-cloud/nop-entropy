@@ -1,0 +1,6 @@
+<c:unit xpl:outputMode="text"><![CDATA[package ${basePackageName}.dao;
+
+public interface ${moduleClassPrefix}DaoConstants extends _${moduleClassPrefix}DaoConstants{
+
+}
+]]></c:unit>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+-->
+<interceptor x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+             xmlns:xdef="/nop/schema/xdef.xdef"
+             xdef:name="OrmInterceptorModel" xdef:bean-package="io.nop.orm.model.interceptor">
+
+    <entity name="!class-name" xdef:name="OrmInterceptorEntityModel" xdef:key-attr="id"
+            xdef:unique-attr="name" xdef:bean-prop="entities" xdef:bean-body-prop="actions"
+            xdef:body-type="list" xdef:bean-body-type="List&lt;io.nop.orm.model.interceptor.OrmInterceptorActionModel>">
+        <!--
+        @order 当存在多个同名的action时，由order决定执行顺序
+        -->
+        <pre-save id="!string" xdef:bean-tag-prop="event" xdef:name="OrmInterceptorActionModel" order="!int=100">
+            <source xdef:value="xpl"/>
+        </pre-save>
+
+        <pre-update id="!string" xdef:ref="OrmInterceptorActionModel"/>
+
+        <pre-delete id="!string" xdef:ref="OrmInterceptorActionModel"/>
+
+        <post-reset id="!string" xdef:ref="OrmInterceptorActionModel"/>
+
+        <post-update id="!string" xdef:ref="OrmInterceptorActionModel"/>
+
+        <post-delete id="!string" xdef:ref="OrmInterceptorActionModel"/>
+
+        <post-load id="!string" xdef:ref="OrmInterceptorActionModel"/>
+    </entity>
+</interceptor>

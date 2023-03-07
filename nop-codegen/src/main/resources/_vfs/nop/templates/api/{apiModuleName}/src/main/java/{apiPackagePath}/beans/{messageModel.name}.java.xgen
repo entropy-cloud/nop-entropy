@@ -1,0 +1,10 @@
+<c:unit xpl:outputMode="text">
+    package ${apiPackageName}.beans;
+
+    import ${apiPackageName}.beans._gen._${messageModel.name};
+
+    public class ${messageModel.name} extends _${messageModel.name}{
+        public ${messageModel.name}(){
+        }
+    }
+</c:unit>

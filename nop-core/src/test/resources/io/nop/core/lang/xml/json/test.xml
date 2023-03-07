@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+  一个标签库可以看作一个服务实例。一个java服务接口可以自动转换为标签库，而标签库也可以自动生成java接口。
+  可以通过x:post-extends段实现对标签（函数）的aop加工。
+
+  @param defaultOutputMode 设置xpl标签的缺省输出模式
+  @param 标签库提供了一组函数，它们满足哪些接口要求
+-->
+<lib displayName="string" defaultOutputMode="enum:io.nop.xlang.xpl.XplOutputMode=none"
+     interfaces="generic-type-list" namespace="ns-name"
+     xdef:default-extends="/nop/core/defaults/default.xlib"
+     xdef:parse-for-html="true">
+
+    <description xdef:value="string">sss</description>
+
+    <body>data
+    </body>
+
+    <tags xdef:body-type="map">
+        <!--
+          自定义标签具有返回值和输出文本。所有解析器未识别的没有名字空间的标签都会被直接输出。标签的返回值可以通过xpl:return参数获取，例如
+          <my:MyTag c:return="x" />
+
+          @param displayName 显示名称
+          @param deprecated 是否标签已经被废弃。如果已经被废弃，则调用时会打印出调试信息
+          @param outputMode 设置xpl标签的输出模式
+          @param macro 宏标签在编译期会自动执行，然后再对它的输出结果进行编译。
+          @param transformer 在实际进行编译之前先经过transformer转换
+          @param schema 在实际编译之前，经过schema验证
+          @param unknownAttrsVar 所有未知属性构成一个Map类型的变量。只有此参数非空时，才允许调用时传入未定义的属性。
+          @param attrsVar 所有属性构成一个Map类型的变量。如果此参数非空，则所有属性作为一个整体参数传递，而不是每个属性对应一个变量。
+        -->
+        <xdef:any-tag displayName="string" alias="csv-set" schema="v-path"
+                      deprecated="boolean" macro="boolean"
+                      transformer="v-path" bodyType="enum:io.nop.xlang.xpl.XplSlotType"
+                      outputMode="enum:io.nop.xlang.xpl.XplOutputMode"
+                      unknownAttrsVar="var-name" attrsVar="var-name" xdef:bean-tag-prop="tagName"
+        >
+            <description xdef:value="string"/>
+
+            <example xdef:value="xml"/>
+
+            <!--
+            @param var 对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
+                则将会转换为大小写混排的变量名，例如onClick和vModel。
+            -->
+            <attr name="!xml-name" var="var-name" displayName="string" type="generic-type" domain="var-name"
+                  mandatory="boolean" implicit="boolean" optional="boolean" defaultValue="string"
+                  deprecated="boolean" xdef:unique-attr="name">
+                <description xdef:value="string"/>
+            </attr>
+
+            <!--
+            标签内部通过 <c:render xpl:slot="xx" />来插入slot内容
+            如果不是<c:render>调用，而是在普通标签上标记xpl:slot，则表示将slot和该节点合并，然后再调用<c:render>
+
+            @param multiple 是否允许存在多个指定名称的slot。如果multiple为true，则实际传入的是列表对象
+            -->
+            <slot name="!var-name" var="var-name" displayName="string" type="generic-type" domain="var-name"
+                  mandatory="boolean" multiple="boolean" schema="v-path"
+                  deprecated="boolean" xdef:unique-attr="name">
+                <arg name="!string" xdef:unique-attr="name" displayName="string" type="generic-type"
+                     deprecated="boolean"/>
+                <attr name="!string" xdef:unique-attr="name" displayName="string" type="generic-type"/>
+                <description xdef:value="string"/>
+            </slot>
+
+            <!-- 对标签的参数进行校验 -->
+            <validation xdef:ref="query/filter.xdef"/>
+
+            <return type="generic-type" domain="var-name">
+                <description xdef:value="string"/>
+            </return>
+
+            <source xdef:value="xpl"/>
+
+        </xdef:any-tag>
+    </tags>
+</lib>

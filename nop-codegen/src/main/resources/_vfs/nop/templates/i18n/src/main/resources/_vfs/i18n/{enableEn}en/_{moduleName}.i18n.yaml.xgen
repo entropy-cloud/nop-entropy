@@ -1,0 +1,25 @@
+<c:unit xpl:outputMode="text">
+<c:script>
+    import io.nop.xlang.xmeta.SchemaLoader;
+    import io.nop.core.lang.json.JsonTool;
+
+    const root = { entity: {label: {} }, prop: {label: {}}};
+    const entityLabel = root.entity.label;
+    const propLabel = root.prop.label;
+
+    for(let resource of metaResources){
+        let meta = SchemaLoader.loadXMeta(resource.path);
+        let entityName = meta.bizObjName || resource.path.$fileNameNoExt();
+
+        entityLabel[entityName] = meta['i18n-en:displayName'];
+        let propsMap = {};
+        propLabel[entityName] = propsMap;
+        for(let prop of meta.props){
+            propsMap[prop.name] = prop['i18n-en:displayName'];
+        }
+    }
+</c:script>
+
+<c:unit>${JsonTool.toYaml(root)}</c:unit>
+
+</c:unit>

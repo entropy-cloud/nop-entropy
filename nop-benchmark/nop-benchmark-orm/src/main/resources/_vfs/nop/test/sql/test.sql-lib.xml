@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:c="c">
+    <sqls>
+        <sql name="selectById" sqlMethod="findFirst" rowType="org.beetl.sql.jmh.xorm.vo.SysUser">
+            <arg name="id"/>
+            <source>
+                select * from sys_user where id=${id}
+            </source>
+        </sql>
+
+        <sql name="selectTemplateById" sqlMethod="findFirst" rowType="org.beetl.sql.jmh.xorm.vo.SysUser">
+            <arg name="id"/>
+            <source>
+                select * from sys_user a where a.id=${id}
+            </source>
+        </sql>
+
+        <sql name="userSelect" sqlMethod="findFirst" rowType="org.beetl.sql.jmh.xorm.vo.SysUser">
+            <arg name="id"/>
+
+            <source>
+                select * from sys_user where 1=1
+                <c:if test="${id}">
+                    and id=${id}
+                </c:if>
+            </source>
+        </sql>
+    </sqls>
+</sql-lib>

@@ -1,0 +1,41 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${parser.packageName};
+
+import io.nop.antlr4.common.AbstractParseTreeParser;
+import io.nop.antlr4.common.ParseTreeResult;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.TokenStream;
+import ${parser.antlrPackage}.${parser.name}Parser;
+import ${parser.antlrPackage}.${parser.name}Lexer;
+
+public class ${parser.name}ParseTreeParser extends AbstractParseTreeParser {
+    static final ${parser.name}ParseTreeParser _instance = new ${parser.name}ParseTreeParser();
+
+    public static final ${parser.name}ParseTreeParser instance() {
+        return _instance;
+    }
+
+    @Override
+    protected ParseTreeResult doParse(CharStream stream) {
+        ${parser.name}Lexer lexer = new ${parser.name}Lexer(stream);
+        config(lexer);
+        TokenStream ts = new CommonTokenStream(lexer);
+
+        ${parser.name}Parser parser = new ${parser.name}Parser(ts);
+
+        return twoPhaseParse(parser, p -> p.${parser.mainRule}());
+    }
+
+    static final int[] PRIMARY_EXPECTED_TOKENS = new int[]{
+       <c:for var="token" items="${parser.primaryExpectedTokens}">
+            ${parser.name}Lexer.${token},
+       </c:for>
+    };
+
+    @Override
+    protected int[] getPrimaryExpectedTokens() {
+        return PRIMARY_EXPECTED_TOKENS;
+    }
+}
+</c:unit>

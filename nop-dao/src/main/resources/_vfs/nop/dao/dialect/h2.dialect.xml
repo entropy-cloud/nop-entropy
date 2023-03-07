@@ -10,7 +10,8 @@
 
     <!--    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>-->
 
-    <features supportSequence="true" supportNullsFirst="true"/>
+    <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
+              supportILike="true" />
 
     <reservedKeywords>
         ALL , AND , ANY , ARRAY , AS ,

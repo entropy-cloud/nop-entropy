@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-orm-nop-report" displayName="测试nop-report" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-report" component="layouts/default/index">
+            <children>
+                <resource id="NopReportDataset-main" displayName="数据集定义" orderNo="10001" i18n-en:displayName="Dataset"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/report/pages/NopReportDataset/main.page.yaml"/>
+                <resource id="NopReportDatasetAuth-main" displayName="数据集权限" orderNo="10002"
+                          i18n-en:displayName="Dataset Auth" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasetAuth/main.page.yaml"/>
+                <resource id="NopReportDefinition-main" displayName="报表定义" orderNo="10003"
+                          i18n-en:displayName="Report Definition" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportDefinition/main.page.yaml"/>
+                <resource id="NopReportResultFile-main" displayName="报表结果文件" orderNo="10004"
+                          i18n-en:displayName="Report Result File" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportResultFile/main.page.yaml"/>
+            </children>
+        </resource>
+    </site>
+</auth>

@@ -1,0 +1,20 @@
+{
+  "workId": "",
+  "workType": "",
+  "title": "",
+  "linkUrl": "",
+  "status": 0,
+  "status_label": "",
+  "ownerId": "",
+  "ownerName": "",
+  "callerId": "",
+  "callerName": "",
+  "readTime": "2000-01-01 14:00:00",
+  "finishTime": "2000-01-01 14:00:00",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": ""
+}

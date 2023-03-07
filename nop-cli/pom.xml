@@ -1,0 +1,259 @@
+<?xml version="1.0"?>
+
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.nop</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-cli</artifactId>
+
+    <properties>
+        <compiler-plugin.version>3.8.1</compiler-plugin.version>
+        <maven.compiler.release>11</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <skipITs>true</skipITs>
+        <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-quarkus-core-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>nop-ioc</artifactId>
+                    <groupId>io.nop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>quarkus-agroal</artifactId>
+                    <groupId>io.quarkus</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli-codegen</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-orm</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-config</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-ooxml-xlsx</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-dbtool-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-report-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-graphql-core</artifactId>
+        </dependency>
+
+        <!--    <dependency>-->
+        <!--      <groupId>io.quarkus</groupId>-->
+        <!--      <artifactId>quarkus-resteasy-reactive</artifactId>-->
+        <!--    </dependency>-->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-picocli</artifactId>
+        </dependency>
+
+
+        <!--        <dependency>-->
+        <!--            <groupId>org.mariadb.jdbc</groupId>-->
+        <!--            <artifactId>mariadb-java-client</artifactId>-->
+        <!--        </dependency>-->
+
+        <!--        <dependency>-->
+        <!--            <groupId>com.microsoft.sqlserver</groupId>-->
+        <!--            <artifactId>mssql-jdbc</artifactId>-->
+        <!--        </dependency>-->
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--        <dependency>-->
+        <!--            <groupId>com.oracle.ojdbc</groupId>-->
+        <!--            <artifactId>ojdbc8</artifactId>-->
+        <!--        </dependency>-->
+
+        <!--        <dependency>-->
+        <!--            <groupId>org.postgresql</groupId>-->
+        <!--            <artifactId>postgresql</artifactId>-->
+        <!--        </dependency>-->
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--    <dependency>-->
+        <!--      <groupId>io.rest-assured</groupId>-->
+        <!--      <artifactId>rest-assured</artifactId>-->
+        <!--      <scope>test</scope>-->
+        <!--    </dependency>-->
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.quarkus.platform</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>generate-code</goal>
+                            <goal>generate-code-tests</goal>
+                        </goals>
+
+                        <configuration>
+                            <properties>
+                                <quarkus.package.type>uber-jar</quarkus.package.type>
+                                <quarkus.package.main-class>io.nop.cli.NopCliApplication</quarkus.package.main-class>
+                            </properties>
+                        </configuration>
+                    </execution>
+
+                    <!--                    <execution>-->
+                    <!--                        <id>prod</id>-->
+                    <!--                        <goals>-->
+                    <!--                            <goal>build</goal>-->
+                    <!--                        </goals>-->
+                    <!--                        <configuration>-->
+                    <!--                            <properties>-->
+                    <!--                                <quarkus.profile>prod</quarkus.profile>-->
+                    <!--                                <quarkus.package.output-directory>nop-cli-prod</quarkus.package.output-directory>-->
+                    <!--                                <quarkus.package.filter-optional-dependencies>true-->
+                    <!--                                </quarkus.package.filter-optional-dependencies>-->
+                    <!--                                <quarkus.package.included-optional-dependencies>org.postgresql:postgresql::jar-->
+                    <!--                                </quarkus.package.included-optional-dependencies>-->
+                    <!--                            </properties>-->
+                    <!--                        </configuration>-->
+                    <!--                    </execution>-->
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${compiler-plugin.version}</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <native.image.path>${project.build.directory}/${project.build.finalName}-runner
+                                </native.image.path>
+                                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                                <maven.home>${maven.home}</maven.home>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>4.0.0-M2</version>
+            </plugin>
+
+<!--            <plugin>-->
+<!--                <groupId>com.github.wvengen</groupId>-->
+<!--                <artifactId>proguard-maven-plugin</artifactId>-->
+<!--                <version>2.6.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>proguard</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--                <configuration>-->
+<!--                    <proguardVersion>6.2.2</proguardVersion>-->
+<!--                    <injar>${project.build.finalName}-runner.jar</injar>-->
+<!--                    <outjar>nop-cli.jar</outjar>-->
+<!--                    <obfuscate>false</obfuscate>-->
+<!--                    <proguardInclude>${project.basedir}/proguard.conf</proguardInclude>-->
+<!--                    <libs>-->
+<!--                        &lt;!&ndash; Include main JAVA library required.&ndash;&gt;-->
+<!--                        <lib>${java.home}/lib/rt.jar</lib>-->
+<!--                        &lt;!&ndash; Include crypto JAVA library if necessary.&ndash;&gt;-->
+<!--                        <lib>${java.home}/lib/jce.jar</lib>-->
+<!--                    </libs>-->
+<!--                </configuration>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>net.sf.proguard</groupId>-->
+<!--                        <artifactId>proguard-base</artifactId>-->
+<!--                        <version>6.2.2</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--            </plugin>-->
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.package.type>native</quarkus.package.type>
+            </properties>
+        </profile>
+    </profiles>
+</project>

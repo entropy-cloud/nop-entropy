@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+导入不涉及到展现控制，仅仅需要考虑后台处理逻辑，因此比导出设计要简单的多。导入策略与导出策略可以共享objMeta上的信息。
+@templatePath 空的导入模板文件。导出数据时也会使用这个模板
+ -->
+<imp defaultStripText="!boolean=true" xdef:name="ImportModel"
+     xdef:bean-package="io.nop.excel.imp.model" ignoreUnknownSheet="!boolean=false"
+     templatePath="v-path" resultType="generic-type" dump="!boolean=false"
+     x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+>
+    <validator xdef:ref="/nop/schema/validator.xdef"/>
+
+    <sheets xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @name 匹配的sheet的名称
+        @namePattern 正则表达式模式。用于匹配需要解析的对应sheet。如果无法通过name匹配，则会尝试按照namePattern来匹配
+        @mandatory 当导入数据文件中不存在满足条件的sheet时，是否抛出异常
+        @multiple 如果设置为true, 则有可能匹配到多个sheet, 否则只应该匹配到一个sheet。multiple和list不能同时为true
+        @field 整个sheet的数据解析为一个字段。如果multiple=true，则field对应List类型，而sheet的数据解析为List中的一个条目。
+        @list sheet中的数据是否为列表数据
+        -->
+        <sheet name="!string" namePattern="regex"  sheetNameProp="string"
+               xdef:name="ImportSheetModel" resultType="generic-type" ignore="!boolean=false"
+               multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false"
+               field="string" sheetVarName="string" keyProp="string">
+
+            <description xdef:value="string"/>
+
+            <!--
+            如果非空，则满足此条件时本sheet对应的导入操作才执行
+            -->
+            <when xdef:value="xpl-predicate"/>
+
+            <fields xdef:body-type="list" xdef:key-attr="name">
+                <!--
+                @list 是否列表定义，解析得到List类型，内部fields定义的是列表条目对象的属性。
+                @computed 是否计算字段。计算字段不需要从文件读取，而是通过valueExpr计算
+                @virtual 虚拟字段不会设置到实体上。只是会运行valueExpr表达式
+                -->
+                <field name="!xml-name" xdef:name="ImportFieldModel" parentProp="string" typeProp="prop-name"
+                       displayName="string" stripText="boolean" mandatory="!boolean=false"
+                       list="!boolean=false" computed="!boolean=false" virtual="!boolean=false"
+                       keyProp="string" alias="csv-set"
+                >
+                    <when xdef:value="xpl-predicate"/>
+
+                    <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
+
+                    <fields xdef:body-type="list" xdef:name="name">
+                        <field xdef:ref="ImportFieldModel"/>
+                    </fields>
+
+                    <normalizeFieldsExpr xdef:value="xpl"/>
+
+                    <unknownField xdef:ref="ImportFieldModel"/>
+
+                    <valueExpr xdef:value="xpl"/>
+
+                    <exportExpr xdef:value="xpl"/>
+                </field>
+            </fields>
+
+            <unknownField xdef:ref="ImportFieldModel"/>
+
+            <normalizeFieldsExpr xdef:value="xpl"/>
+
+            <beforeParse xdef:value="xpl"/>
+            <afterParse xdef:value="xpl"/>
+        </sheet>
+    </sheets>
+
+    <beforeParse xdef:value="xpl"/>
+    <afterParse xdef:value="xpl"/>
+</imp>

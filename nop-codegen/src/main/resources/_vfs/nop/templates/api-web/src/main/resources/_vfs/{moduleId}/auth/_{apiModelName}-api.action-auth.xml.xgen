@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+    <site id="main">
+        <resource id="test-api-${apiModelName}" displayName="测试${apiModelName}" icon="ion:grid-outline" resourceType="TOPM"
+                  routePath="/test-api-${apiModelName}" component="layouts/default/index">
+            <children>
+                <c:for var="serviceModel" items="${apiModel.services}">
+                    <resource id="${serviceModel.name}-main" displayName="${serviceModel.displayName}"
+                              i18n-en:displayName="${serviceModel['i18n-en:displayName']}"
+                              icon="ant-design:appstore-twotone"
+                              component="AMIS" resourceType="SUBM"
+                              url="/${moduleId}/pages/${serviceModel.name}/main.page.yaml"/>
+                </c:for>
+
+            </children>
+        </resource>
+    </site>
+</auth>

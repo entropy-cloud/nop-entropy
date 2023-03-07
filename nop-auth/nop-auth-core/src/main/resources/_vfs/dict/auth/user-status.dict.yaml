@@ -1,0 +1,9 @@
+label: 用户状态
+locale: zh-CN
+options:
+  - label: 停用
+    value: 0
+  - label: 正常
+    value: 1
+  - label: 废弃
+    value: 2

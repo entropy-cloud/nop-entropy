@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="GBK"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+
+    <util:constant id="cc" static-field="test.io.entropy.beans.MyConstants.STATE_DRAFT"/>
+
+    <!-- 测试集合属性以及属性依赖 、别名-->
+    <bean id="a" name="a1,a2" class="test.io.entropy.beans.MyBeanA" init-method="init" destroy-method="destroy">
+        <property name="b" ref="b"></property>
+        <property name="strList">
+            <list>
+                <util:constant static-field="test.io.entropy.beans.MyConstants.STATE_DRAFT"/>
+                <value>2</value>
+                <value>3</value>
+                <value>4</value>
+            </list>
+        </property>
+        <property name="strMap">
+            <map>
+                <entry key="name" value="TerrorM"/>
+                <entry key="age" value="23"/>
+            </map>
+        </property>
+        <property name="props">
+            <props>
+                <prop key="height">175cm</prop>
+                <prop key="gender">male</prop>
+            </props>
+        </property>
+        <property name="objList">
+            <list>
+                <bean class="test.io.entropy.beans.MyBeanB"/>
+                <ref bean="c"/>
+            </list>
+        </property>
+    </bean>
+    <alias name="a" alias="_a"/>
+    <bean id="b" class="test.io.entropy.beans.MyBeanB">
+        <property name="a" ref="a"/>
+        <property name="c" ref="c"/>
+    </bean>
+    <bean id="c" class="test.io.entropy.beans.MyBeanC">
+        <property name="a" ref="a"/>
+        <property name="path" value="${test.path}"/>
+    </bean>
+
+
+    <!-- 测试parent属性 -->
+    <bean id="myGrandparent" class="test.io.entropy.beans.MyGrandparent">
+        <property name="name" value="grandparent"/>
+    </bean>
+    <bean id="myParent" class="test.io.entropy.beans.MyParent" parent="myGrandparent">
+        <property name="name" value="parent"/>
+    </bean>
+    <bean id="myChild" class="test.io.entropy.beans.MyChild" parent="myParent">
+        <property name="myGrandparent" ref="myGrandparent"/>
+        <property name="myParent" ref="myParent"/>
+    </bean>
+
+    <!-- 测试工厂方法、延迟加载、prototype -->
+    <bean id="myFactoryBean" class="test.io.entropy.beans.MyFactoryBean" ioc:bean-method="getObject"/>
+    <bean id="myLazyInitBean" class="test.io.entropy.beans.MyLazyInitBean" lazy-init="true"/>
+    <bean id="myPrototypeBean" class="test.io.entropy.beans.MyPrototypeBean" scope="prototype"/>
+
+    <!-- 引入外部xml文件  -->
+    <import resource="test_init_destroy.beans.xml"/>
+
+    <import resource="test_lazy_init.beans.xml"/>
+
+    <bean id="myInjectBean" class="test.io.entropy.beans.MyInjectBean"/>
+
+    <import resource="test_event.beans.xml"/>
+
+</beans>

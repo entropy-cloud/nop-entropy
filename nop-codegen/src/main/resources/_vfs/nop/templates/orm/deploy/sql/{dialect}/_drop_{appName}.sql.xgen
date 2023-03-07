@@ -1,0 +1,8 @@
+<c:unit xpl:outputMode="text">
+<c:script>
+import io.nop.orm.ddl.DdlSqlCreator;
+let tables = ormModel.entityModelsInTopoOrder;
+let sqlText = DdlSqlCreator.forDialect(dialect).dropTables(tables,true);
+</c:script>
+${sqlText}
+</c:unit>

@@ -1,0 +1,17 @@
+{
+  "type": "page",
+  "name": "edit",
+  "size": "sm",
+  "body": {
+    "type": "form",
+    "name": "edit",
+    "mode": "horizontal",
+    "body": [
+      {
+        "name": "a",
+        "label": "ABC",
+        "type": "static"
+      }
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<designer x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+    xmlns:xdef="/nop/schema/xdef.xdef">
+    <actions xdef:ref="../xui/actions.xdef"/>
+
+    <nodes xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @shape 矩形、圆形等基础形状
+        @propsForm 属性表单
+        @allowParents 允许嵌入在哪些容器类型中。如果不配置，则允许嵌入到任意容器中
+        -->
+        <node name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
+              shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
+              width="int" height="int" fixedAspectRatio="boolean"
+              draggable="boolean" resizable="boolean"
+              deletable="boolean" addable="boolean=true"
+              textPosition="string" textDraggable="boolean"
+              minOccurs="int" maxOccurs="int"
+              allowParents="csv-set" xdef:name="DesignerNodeModel"
+        >
+            <style xdef:value="xjson" />
+            <template xdef:value="xml"/>
+            <anchors xdef:body-type="list" xdef:key-attr="name">
+                <anchor name="!string" positon="string" tagSet="csv-set"/>
+            </anchors>
+        </node>
+
+        <container name="!string" xdef:ref="DesignerNodeModel" layout="string" allowChildren="csv-set">
+
+        </container>
+    </nodes>
+
+    <edges xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @propsForm 属性表单
+        -->
+        <edge name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
+              width="int"
+              deletable="boolean" addable="boolean=true" minOccurs="int" maxOccurs="int"
+              allowSources="csv-set" allowTargets="csv-set" type="string">
+            <style xdef:value="xjson" />
+            <template xdef:value="xml"/>
+        </edge>
+    </edges>
+
+    <forms xdef:body-type="list" xdef:key-attr="id">
+        <form id="!xml-name" xdef:ref="../xui/form.xdef"/>
+    </forms>
+
+    <script xdef:value="string"/>
+</designer>

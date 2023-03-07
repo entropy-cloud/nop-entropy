@@ -1,0 +1,55 @@
+<rule displayName="string" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <description xdef:value="string"/>
+
+    <!--
+    在规则匹配前执行，可以用于初始化上下文对象
+    -->
+    <beforeExecute xdef:value="xpl"/>
+
+    <!--
+    无论规则是否成功匹配，都会执行到这里
+    -->
+    <afterExecute xdef:value="xpl"/>
+
+    <xdef:define xdef:name="TreeRuleBean" name="string"
+                 displayName="string" multiMatch="boolean=false">
+
+        <message xdef:value="string"/>
+
+        <filter xdef:ref="query/filter.xdef"/>
+
+        <outputs xdef:body-type="list" xdef:key-attr="name">
+            <output name="!string" value="string" op="string"/>
+        </outputs>
+
+        <children xdef:body-type="list">
+            <child xdef:ref="TreeRuleBean"/>
+        </children>
+
+    </xdef:define>
+
+    <!--
+    用于初始化用途的规则。按顺序执行规则，将它们的匹配结果收集起来，作为initRuleResults对象。
+    后续规则匹配时可以判断initRuleResults的结果，从而减少重复匹配。
+    -->
+    <initRules xdef:body-type="list" xdef:key-attr="name">
+        <initRule name="!string" xdef:ref="TreeRuleBean"/>
+    </initRules>
+
+    <decisionTable xdef:bean-class="io.nop.rule.api.beans.DecisionTableBean">
+        <rowDecider xdef:ref="TreeRuleBean"/>
+        <colDecider xdef:ref="TreeRuleBean"/>
+
+        <cells xdef:body-type="list" xdef:key-attr="index">
+            <cell index="!string">
+                <outputs xdef:body-type="list" xdef:key-attr="name">
+                    <output name="!string" value="string" op="string"/>
+                </outputs>
+            </cell>
+        </cells>
+    </decisionTable>
+
+    <decisionTree xdef:ref="TreeRuleBean"/>
+
+</rule>

@@ -1,0 +1,20 @@
+<page xmlns:x="x" x:schema="/nop/schema/xjson.xdef">
+    <title>浏览器内核对 CSS 的支持情况</title>
+    <remark>嘿，不保证数据准确性</remark>
+
+    <body>
+        <crud x:extends="page2-crud.xpage" x:dump="true">
+            <bulkActions j:list="true">
+                <button actionType="alert"/>
+                <button x:override="remove" x:id="batchDelete"/>
+            </bulkActions>
+            <columns j:list="true">
+                <operation x:id="operation">
+                    <buttons j:list="true">
+                        <button x:id="newButton" actionType="ajax"/>
+                    </buttons>
+                </operation>
+            </columns>
+        </crud>
+    </body>
+</page>

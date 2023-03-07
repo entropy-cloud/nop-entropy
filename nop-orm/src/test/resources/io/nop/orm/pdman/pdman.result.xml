@@ -1,0 +1,377 @@
+<orm xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="/nop/schema/xpl.xdef">
+    <domains>
+        <domain name="DefaultString" displayName="默认字串" stdSqlType="VARCHAR" precision="255"/>
+        <domain name="IdOrKey" displayName="主键标识" stdSqlType="VARCHAR" precision="32"/>
+        <domain name="Name" displayName="名称" stdSqlType="VARCHAR" precision="90"/>
+        <domain name="Int" displayName="整数" stdSqlType="INTEGER"/>
+        <domain name="Double" displayName="小数" stdSqlType="DECIMAL" precision="24" scale="6"/>
+        <domain name="Money" displayName="金额" stdSqlType="DECIMAL" precision="24" scale="6"/>
+        <domain name="DateTime" displayName="日期时间" stdSqlType="DATETIME"/>
+        <domain name="YesNo" displayName="是否" stdSqlType="VARCHAR" precision="1"/>
+        <domain name="Dict" displayName="数据字典" stdSqlType="VARCHAR" precision="32"/>
+        <domain name="DescText" displayName="描述文本" stdSqlType="VARCHAR" precision="900"/>
+        <domain name="blob" displayName="blob" stdSqlType="VARBINARY"/>
+    </domains>
+    <entities>
+        <entity name="io.nop.app.SimsCollege" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_college" displayName="学院">
+            <comment></comment>
+            <columns>
+                <column name="collegeName" displayName="学院名称" code="COLLEGE_NAME" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="collegeId" displayName="学院ID" code="COLLEGE_ID" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="shortName" displayName="学院简称" code="SHORT_NAME" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="intro" displayName="学院介绍" code="INTRO" propId="4" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="900"/>
+                <column name="professionNumber" displayName="专业个数" code="PROFESSION_NUMBER" propId="5"
+                        stdSqlType="INTEGER" stdDataType="int"/>
+                <column name="studentNumber" displayName="学生人数" code="STUDENT_NUMBER" propId="6" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="president" displayName="院长" code="PRESIDENT" propId="7" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="8" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="9" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="10" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="11" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="12" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="13" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <relations/>
+            <indexes/>
+        </entity>
+        <entity name="io.nop.app.SimsMajor" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_major" displayName="专业">
+            <comment></comment>
+            <columns>
+                <column name="majorId" displayName="专业ID" code="MAJOR_ID" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="majorName" displayName="专业名称" code="MAJOR_NAME" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="shortName" displayName="专业简称" code="SHORT_NAME" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="estabDate" displayName="开设日期" code="ESTAB_DATE" propId="4" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="intro" displayName="专业介绍" code="INTRO" propId="5" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="900"/>
+                <column name="tuitionFee" displayName="学费" code="TUITION_FEE" propId="6" stdSqlType="DECIMAL"
+                        stdDataType="decimal" precision="24" scale="8"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="7" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="8" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="9" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="10" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="11" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="12" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <relations/>
+            <indexes/>
+        </entity>
+        <entity name="io.nop.app.VClassStudent" readonly="true" tableView="true" tableName="v_class_student"
+                displayName="班级学生">
+            <columns>
+                <column name="className" displayName="班级名称" code="CLASS_NAME" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90" comment="班级的名称"/>
+                <column name="engName" displayName="英文名" code="ENG_NAME" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="studentName" displayName="学生姓名" code="STUDENT_NAME" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="studentId" displayName="学生ID" code="STUDENT_ID" propId="4" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="classId" displayName="所在班级ID" code="CLASS_ID" propId="5" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="collegeId" displayName="所在学院ID" code="COLLEGE_ID" propId="6" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" mandatory="true"/>
+                <column name="adviser" displayName="辅导员" code="ADVISER" propId="7" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="idCardNo" displayName="身份证号" code="ID_CARD_NO" propId="8" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="60"/>
+                <column name="mobilePhone" displayName="手机号" code="MOBILE_PHONE" propId="9" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="60"/>
+                <column name="gender" displayName="性别" code="GENDER" propId="10" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'M'"/>
+                <column name="marital" displayName="婚姻状况" code="MARITAL" propId="11" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'UNMARRIED'"/>
+                <column name="political" displayName="政治面貌" code="POLITICAL" propId="12" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="birth" displayName="出生日期" code="BIRTH" propId="13" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+        </entity>
+        <entity name="io.nop.app.SimsClass" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_class" displayName="班级">
+            <comment></comment>
+            <columns>
+                <column name="collegeId" displayName="所在学院" code="COLLEGE_ID" propId="100" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" lazy="true"/>
+                <column name="majorId" displayName="所属专业ID" code="MAJOR_ID" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="classId" displayName="班级ID" code="CLASS_ID" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="className" displayName="班级名称" code="CLASS_NAME" propId="4" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="studentNumber" displayName="班级人数" code="STUDENT_NUMBER" propId="5" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="adviser" displayName="辅导员" code="ADVISER" propId="6" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="estabDate" displayName="成立时间" code="ESTAB_DATE" propId="7" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="yearNumber" displayName="学习年数" code="YEAR_NUMBER" propId="8" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="9" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="10" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="11" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="12" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="13" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="14" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <aliases>
+                <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>
+            </aliases>
+            <relations>
+
+                <!--增加多对一以及一对多关联对象-->
+                <to-one name="simsCollege" refEntityName="io.nop.app.SimsCollege" refPropName="simsClasses">
+                    <join>
+                        <on leftProp="collegeId" rightProp="collegeId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes/>
+        </entity>
+        <entity name="io.nop.app.SimsStudent" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_student" displayName="学生">
+            <comment></comment>
+            <columns>
+                <column name="collegeId" displayName="所在学院ID" code="COLLEGE_ID" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" mandatory="true"/>
+                <column name="classId" displayName="所在班级ID" code="CLASS_ID" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" mandatory="true"/>
+                <column name="studentId" displayName="学生ID" code="STUDENT_ID" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="studentName" displayName="学生姓名" code="STUDENT_NAME" propId="4" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="engName" displayName="英文名" code="ENG_NAME" propId="5" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="idCardNo" displayName="身份证号" code="ID_CARD_NO" propId="6" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="60"/>
+                <column name="mobilePhone" displayName="手机号" code="MOBILE_PHONE" propId="7" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="60"/>
+                <column name="gender" displayName="性别" code="GENDER" propId="8" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'M'"/>
+                <column name="monthlySalary" displayName="月薪" code="MONTHLY_SALARY" propId="9" stdSqlType="DECIMAL"
+                        stdDataType="decimal" precision="24" scale="6"/>
+                <column name="birth" displayName="出生日期" code="BIRTH" propId="10" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="avatar" displayName="头像" code="AVATAR" propId="11" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="height" displayName="身高" code="HEIGHT" propId="12" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="weight" displayName="体重" code="WEIGHT" propId="13" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="nation" displayName="名族" code="NATION" propId="14" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'01'"/>
+                <column name="political" displayName="政治面貌" code="POLITICAL" propId="15" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="marital" displayName="婚姻状况" code="MARITAL" propId="16" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'UNMARRIED'"/>
+                <column name="domicilePlaceProvince" displayName="籍贯（省）" code="DOMICILE_PLACE_PROVINCE" propId="17"
+                        stdSqlType="VARCHAR" stdDataType="string" precision="60"/>
+                <column name="domicilePlaceCity" displayName="籍贯（市）" code="DOMICILE_PLACE_CITY" propId="18"
+                        stdSqlType="VARCHAR" stdDataType="string" precision="60"/>
+                <column name="domicilePlaceAddress" displayName="户籍地址" code="DOMICILE_PLACE_ADDRESS" propId="19"
+                        stdSqlType="VARCHAR" stdDataType="string" precision="60"/>
+                <column name="hobby" displayName="爱好" code="HOBBY" propId="20" stdSqlType="VARCHAR" stdDataType="string"
+                        precision="60"/>
+                <column name="intro" displayName="简要介绍" code="INTRO" propId="21" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="900"/>
+                <column name="presentAddress" displayName="居住地址" code="PRESENT_ADDRESS" propId="22" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="60"/>
+                <column name="email" displayName="电子邮件" code="EMAIL" propId="23" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="60"/>
+                <column name="entryDate" displayName="入学日期" code="ENTRY_DATE" propId="24" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="status" displayName="状态" code="STATUS" propId="25" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'Normal'"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="26" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="27" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="28" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="29" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="30" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="31" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <relations/>
+            <indexes>
+                <index name="idx_smis_student_01" unique="false">
+                    <column name="studentName" desc="false"/>
+                    <column name="engName" desc="false"/>
+                </index>
+                <index name="idx_smis_student_cert" unique="false">
+                    <column name="idCardNo" desc="false"/>
+                </index>
+            </indexes>
+        </entity>
+        <entity name="io.nop.app.SimsTeacher" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_teacher" displayName="教师">
+            <comment></comment>
+            <columns>
+                <column name="collegeId" displayName="所在学院ID" code="COLLEGE_ID" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" mandatory="true"/>
+                <column name="teacherId" displayName="教师ID" code="TEACHER_ID" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="teacherName" displayName="姓名" code="TEACHER_NAME" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="gender" displayName="性别" code="GENDER" propId="4" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'M'"/>
+                <column name="birth" displayName="出生日期" code="BIRTH" propId="5" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="graduateInstitution" displayName="毕业院校" code="GRADUATE_INSTITUTION" propId="6"
+                        stdSqlType="VARCHAR" stdDataType="string" precision="90"/>
+                <column name="practiceYears" displayName="从业年限" code="PRACTICE_YEARS" propId="7" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="political" displayName="政治面貌" code="POLITICAL" propId="8" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="marital" displayName="婚姻状况" code="MARITAL" propId="9" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" defaultValue="'UNMARRIED'"/>
+                <column name="avatar" displayName="头像" code="AVATAR" propId="10" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="60"/>
+                <column name="intro" displayName="介绍" code="INTRO" propId="11" stdSqlType="VARCHAR" stdDataType="string"
+                        precision="900"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="12" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="13" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="14" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="15" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="16" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="17" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <relations/>
+            <indexes/>
+        </entity>
+        <entity name="io.nop.app.SimsLesson" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_lesson" displayName="课程">
+            <comment></comment>
+            <columns>
+                <column name="lessonId" displayName="课程ID" code="LESSON_ID" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="lessonName" displayName="课程名" code="LESSON_NAME" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="intro" displayName="课程说明" code="INTRO" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="900"/>
+                <column name="hours" displayName="学时" code="HOURS" propId="4" stdSqlType="INTEGER" stdDataType="int"/>
+                <column name="score" displayName="学分" code="SCORE" propId="5" stdSqlType="INTEGER" stdDataType="int"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="6" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="7" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="8" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="9" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="10" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="11" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <relations/>
+            <indexes/>
+        </entity>
+        <entity name="io.nop.app.SimsInstruct" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_instruct" displayName="授课">
+            <comment></comment>
+            <columns>
+                <column name="instructId" displayName="授课号" code="INSTRUCT_ID" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true"/>
+                <column name="classId" displayName="班级ID" code="CLASS_ID" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="lessonId" displayName="课程号" code="LESSON_ID" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="teacherId" displayName="教师ID" code="TEACHER_ID" propId="4" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="5" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="6" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="7" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="8" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="9" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="10" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <relations/>
+            <indexes/>
+        </entity>
+        <entity name="io.nop.app.SimsExam" versionProp="revision" useTenant="true" tenantProp="tenantId"
+                createrProp="createdBy" createTimeProp="createdTime" updaterProp="updatedBy"
+                updateTimeProp="updatedTime" tableName="sims_exam" displayName="考试">
+            <comment>考试表</comment>
+            <columns>
+                <column name="examId" displayName="考试记录ID" code="EXAM_ID" propId="1" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32" primary="true" mandatory="true" comment="考试记录的ID"/>
+                <column name="studentId" displayName="学生ID" code="STUDENT_ID" propId="2" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="lessonId" displayName="课程ID" code="LESSON_ID" propId="3" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="examDate" displayName="考试日期" code="EXAM_DATE" propId="4" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="examName" displayName="考试名" code="EXAM_NAME" propId="5" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="90"/>
+                <column name="examScore" displayName="考试分数" code="EXAM_SCORE" propId="6" stdSqlType="DECIMAL"
+                        stdDataType="decimal" precision="24" scale="8"/>
+                <column name="tenantId" displayName="租户号" code="TENANT_ID" propId="7" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="revision" displayName="乐观锁" code="REVISION" propId="8" stdSqlType="INTEGER"
+                        stdDataType="int"/>
+                <column name="createdBy" displayName="创建人" code="CREATED_BY" propId="9" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="createdTime" displayName="创建时间" code="CREATED_TIME" propId="10" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+                <column name="updatedBy" displayName="更新人" code="UPDATED_BY" propId="11" stdSqlType="VARCHAR"
+                        stdDataType="string" precision="32"/>
+                <column name="updatedTime" displayName="更新时间" code="UPDATED_TIME" propId="12" stdSqlType="DATETIME"
+                        stdDataType="datetime"/>
+            </columns>
+            <relations/>
+            <indexes/>
+        </entity>
+    </entities>
+</orm>

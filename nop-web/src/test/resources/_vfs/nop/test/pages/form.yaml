@@ -1,0 +1,5 @@
+name: frm
+actions:
+  - button
+  - type: static
+    api: test

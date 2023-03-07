@@ -1,0 +1,7 @@
+<c:script>
+    import io.nop.xlang.xdsl.DslModelHelper;
+
+    let modelResource = codeGenerator.getTplResource('/src/test/resources/_vfs/nop/test/orm/app.orm.xml');
+    let codeGenModel = DslModelHelper.parseDslModel(modelResource);
+    codeGenerator.withTplDir('/nop/templates/orm-entity').execute("",{codeGenModel},$scope);
+</c:script>

@@ -1,7 +1,18 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.core.reflect.aop;
 
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.impl.FunctionModel;
+import io.nop.core.reflect.impl.MethodModelBuilder;
 import io.nop.core.type.utils.JavaGenericTypeHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +42,7 @@ public class AopCodeGenerator {
 
     private Class<?> baseClass;
     private final StringBuilder buf = new StringBuilder();
+    private MethodModelBuilder methodBuilder = new MethodModelBuilder();
 
     public String build(Class<?> clazz, Class<?>[] annClasses) {
         Set<Class<?>> usedAnnotations = new HashSet<>();
@@ -59,45 +71,48 @@ public class AopCodeGenerator {
         }
         buf.append("})\n");
         buf.append("public class ").append(className).append(" extends ");
-        buf.append(clazz.getName()).append(" implements io.nop.core.reflect.aop.IAopProxy{\n");
-        buf.append("    private io.nop.core.reflect.aop.IMethodInterceptor[] $$interceptors;\n" +
-                "\n" +
-                "    @Override\n" +
-                "    public void $$aop_interceptors(io.nop.core.reflect.aop.IMethodInterceptor[] interceptors) {\n" +
-                "        this.$$interceptors = interceptors;\n" +
-                "    }\n\n");
+        buf.append(normalizeClassName(clazz)).append(" implements io.nop.core.reflect.aop.IAopProxy {\n");
+        buf.append("    private io.nop.core.reflect.aop.IMethodInterceptor[] $$interceptors;\n" + "\n"
+                + "    @Override\n"
+                + "    public void $$aop_interceptors(io.nop.core.reflect.aop.IMethodInterceptor[] interceptors) {\n"
+                + "        this.$$interceptors = interceptors;\n" + "    }\n\n");
 
-        addMethodModels(methods);
+        addMethodModels(clazz, methods);
 
         addConstructors(className, clazz);
 
-        addInterceptedMethods(className, methods);
+        addInterceptedMethods(clazz, methods);
 
         buf.append("}");
         return buf.toString();
     }
 
-    void addMethodModels(List<Method> methods) {
+    String normalizeClassName(Class<?> clazz) {
+        return clazz.getCanonicalName().replace('$', '.');
+    }
+
+    void addMethodModels(Class<?> clazz, List<Method> methods) {
         for (int i = 0, n = methods.size(); i < n; i++) {
             Method method = methods.get(i);
-            buf.append("    private static io.nop.core.reflect.IFunctionModel $$").append(method.getName()).append("_").append(i).append(";\n");
+            buf.append("    private static io.nop.core.reflect.IFunctionModel $$").append(method.getName()).append("_")
+                    .append(i).append(";\n");
         }
 
-        buf.append("\n    static{\n");
+        buf.append("\n    static {\n");
         buf.append("        try {\n");
 
         for (int i = 0, n = methods.size(); i < n; i++) {
             Method method = methods.get(i);
-            buf.append("            $$" + method.getName() + "_" + i + " = io.nop.core.reflect.impl.MethodModelBuilder.from(");
-            buf.append(method.getDeclaringClass().getName()).append(".class.getDeclaredMethod(");
+            buf.append("            $$" + method.getName() + "_" + i
+                    + " = io.nop.core.reflect.impl.MethodModelBuilder.from(");
+            buf.append(normalizeClassName(clazz)).append(".class, ");
+            buf.append(normalizeClassName(method.getDeclaringClass())).append(".class.getDeclaredMethod(");
             buf.append("\"").append(method.getName()).append("\"");
             addParamClasses(method);
             buf.append("));\n");
         }
 
-        buf.append("        } catch (Exception e) {\n" +
-                "            e.printStackTrace();\n" +
-                "        }\n");
+        buf.append("        } catch (Exception e) {\n" + "            e.printStackTrace();\n" + "        }\n");
         buf.append("    }\n\n");
     }
 
@@ -115,59 +130,59 @@ public class AopCodeGenerator {
                 continue;
 
             buf.append("    public ").append(className).append("(");
-            addParamDecls(constructor);
+            IFunctionModel func = methodBuilder.buildMethodModel(clazz, constructor);
+            addParamDecls(func);
             buf.append(")");
             addThrows(constructor);
             buf.append(" {\n");
             buf.append("        super(");
-            addCallParams(constructor);
+            addCallParams(func);
             buf.append(");\n");
             buf.append("    }\n\n");
         }
     }
 
-    void addInterceptedMethods(String className, List<Method> methods) {
+    void addInterceptedMethods(Class<?> clazz, List<Method> methods) {
         for (int i = 0, n = methods.size(); i < n; i++) {
             Method method = methods.get(i);
-            Class<?> returnType = getReturnType(method);
-            addDefaultMethod(method, returnType);
+            IFunctionModel javaMethod = methodBuilder.buildMethodModel(clazz, method);
+            Class<?> returnType = javaMethod.getReturnClass();
+            // 改用JDK compiler之后不再需要default method
+            // addDefaultMethod(method, returnType);
 
-            buf.append("    @Override\n" +
-                            "    ").append(Modifier.isProtected(method.getModifiers()) ? "protected" : "public")
-                    .append(" ").append(returnType.getCanonicalName())
-                    .append(" ").append(method.getName()).append("(");
+            buf.append("    @Override\n" + "    ")
+                    .append(Modifier.isProtected(method.getModifiers()) ? "protected" : "public").append(" ")
+                    .append(returnType.getCanonicalName()).append(" ").append(method.getName()).append("(");
 
-            addParamDecls(method);
+            addParamDecls(javaMethod);
             buf.append(")");
             addThrows(method);
             buf.append("{\n");
 
-            buf.append("        if (this.$$interceptors == null || this.$$interceptors.length == 0) {\n" +
-                    "            ");
-            invokeSuper(method, returnType, false);
+            buf.append(
+                    "        if (this.$$interceptors == null || this.$$interceptors.length == 0) {\n" + "            ");
+            invokeSuper(javaMethod, method, returnType, false);
             buf.append("        }\n");
 
-            buf.append("\n" +
-                    "        io.nop.core.reflect.aop.CallableMethodInvocation $$methodInv = " +
-                    "new io.nop.core.reflect.aop.CallableMethodInvocation(this,\n" +
-                    "                new java.lang.Object[]{");
-            addCallParams(method);
-            buf.append("}, $$").append(method.getName()).append('_').append(i).append(", new java.util.concurrent.Callable(){\n" +
-                    "            @Override\n" +
-                    "            public Object call() throws Exception {\n" +
-                    "                ");
-            invokeDefault(method, returnType);
-            buf.append("            }\n");
-            buf.append("        });\n" +
-                    "\n" +
-                    "        io.nop.core.reflect.aop.AopMethodInvocation $$inv = new io.nop.core.reflect.aop.AopMethodInvocation($$methodInv, this.$$interceptors);\n" +
-                    "        try {\n" +
-                    "            ").append(returnType == void.class ? ""
-                    : "return (" + getCastType(returnType) + ")").append("$$inv.proceed();\n");
+            buf.append("\n" + "        io.nop.core.reflect.aop.CallableMethodInvocation $$methodInv = "
+                    + "new io.nop.core.reflect.aop.CallableMethodInvocation(this,\n"
+                    + "                new java.lang.Object[]{");
+            addCallParams(javaMethod);
+            buf.append("}, $$").append(method.getName()).append('_').append(i)
+//                    .append(", new java.util.concurrent.Callable(){\n" + "            @Override\n"
+//                            + "            public Object call() throws Exception {\n" + "                ");
+                    .append(",() -> {\n            ");
+            invokeSuper(javaMethod, method, returnType, true);
+            //invokeDefault(method, returnType);
+            // buf.append("            }\n");
+            buf.append("        });\n" + "\n"
+                            + "        io.nop.core.reflect.aop.AopMethodInvocation $$inv = new io.nop.core.reflect.aop.AopMethodInvocation($$methodInv, this.$$interceptors);\n"
+                            + "        try {\n" + "            ")
+                    .append(returnType == void.class ? "" : "return (" + getCastType(returnType) + ") ")
+                    .append("$$inv.proceed();\n");
             addCatch(method);
-            buf.append("        } catch (java.lang.Exception e) {\n" +
-                    "            throw io.nop.api.core.exceptions.NopException.adapt(e);\n" +
-                    "        }\n");
+            buf.append("        } catch (java.lang.Exception e) {\n"
+                    + "            throw io.nop.api.core.exceptions.NopException.adapt(e);\n" + "        }\n");
             buf.append("    }\n\n");
         }
     }
@@ -179,24 +194,24 @@ public class AopCodeGenerator {
         return returnType.getCanonicalName();
     }
 
-    void addDefaultMethod(Method method, Class<?> returnType) {
-        // Janino目前不支持MyClass.super.myMethod这种调用方式
-        buf.append("    private ").append(returnType.getCanonicalName());
-        buf.append(" __default_").append(method.getName()).append("(");
-        addParamDecls(method);
-        buf.append(")");
-        addThrows(method);
-        buf.append("{\n");
-        buf.append("        ");
-        invokeSuper(method, returnType, false);
-        buf.append("    }\n\n");
-    }
+//    void addDefaultMethod(Method method, Class<?> returnType) {
+//        // Janino目前不支持MyClass.super.myMethod这种调用方式, 所以需要生成一个辅助函数用于调用父类的原始实现方法
+//        buf.append("    private ").append(returnType.getCanonicalName());
+//        buf.append(" __default_").append(method.getName()).append("(");
+//        addParamDecls(method);
+//        buf.append(")");
+//        addThrows(method);
+//        buf.append("{\n");
+//        buf.append("        ");
+//        invokeSuper(method, returnType, false);
+//        buf.append("    }\n\n");
+//    }
 
-    void invokeSuper(Method method, Class<?> returnType, boolean inCallable) {
+    void invokeSuper(IFunctionModel method, Method mtd, Class<?> returnType, boolean inCallable) {
         boolean returnVoid = returnType == void.class;
         if (!returnVoid) {
             buf.append("return ");
-            if (isGenericVariable(method)) {
+            if (isGenericVariable(mtd)) {
                 buf.append("(" + returnType.getCanonicalName() + ")");
             }
         }
@@ -210,21 +225,21 @@ public class AopCodeGenerator {
         }
     }
 
-    void invokeDefault(Method method, Class<?> returnType) {
-        boolean returnVoid = returnType == void.class;
-        if (!returnVoid) {
-            buf.append("return ");
-            if (isGenericVariable(method)) {
-                buf.append("(" + returnType.getCanonicalName() + ")");
-            }
-        }
-        buf.append("__default_").append(method.getName()).append('(');
-        addCallParams(method);
-        buf.append(");");
-        if (returnVoid) {
-            buf.append(" return null;\n");
-        }
-    }
+//    void invokeDefault(Method method, Class<?> returnType) {
+//        boolean returnVoid = returnType == void.class;
+//        if (!returnVoid) {
+//            buf.append("return ");
+//            if (isGenericVariable(method)) {
+//                buf.append("(" + returnType.getCanonicalName() + ")");
+//            }
+//        }
+//        buf.append("__default_").append(method.getName()).append('(');
+//        addCallParams(method);
+//        buf.append(");");
+//        if (returnVoid) {
+//            buf.append(" return null;\n");
+//        }
+//    }
 
     private boolean isGenericVariable(Method method) {
         Type type = method.getGenericReturnType();
@@ -246,30 +261,29 @@ public class AopCodeGenerator {
     void addParamClasses(Method method) {
         Class<?>[] types = method.getParameterTypes();
         for (Class<?> type : types) {
-            buf.append(",").append(type.getCanonicalName()).append(".class");
+            buf.append(", ").append(type.getCanonicalName()).append(".class");
         }
     }
 
-    void addParamDecls(Executable method) {
-        Class<?>[] types = method.getParameterTypes();
-        Parameter[] params = method.getParameters();
-        for (int i = 0, n = types.length; i < n; i++) {
+    void addParamDecls(IFunctionModel method) {
+        List<? extends IFunctionArgument> args = method.getArgs();
+        for (int i = 0, n = args.size(); i < n; i++) {
             if (i != 0)
-                buf.append(',');
-            // Janino需要只允许明确标记为final的参数在匿名函数中使用
+                buf.append(',').append(' ');
+            // Janino只允许明确标记为final的参数在匿名函数中使用
             buf.append("final ");
-            Class<?> type = types[i];
-            String name = params[i].getName();
-            buf.append(type.getCanonicalName()).append(" ").append(name);
+            Class<?> type = args.get(i).getRawClass();
+            String name = args.get(i).getName();
+            buf.append(normalizeClassName(type)).append(" ").append(name);
         }
     }
 
-    void addCallParams(Executable method) {
-        Parameter[] params = method.getParameters();
-        for (int i = 0, n = params.length; i < n; i++) {
+    void addCallParams(IFunctionModel method) {
+        List<? extends IFunctionArgument> args = method.getArgs();
+        for (int i = 0, n = args.size(); i < n; i++) {
             if (i != 0)
-                buf.append(',');
-            String name = params[i].getName();
+                buf.append(',').append(' ');
+            String name = args.get(i).getName();
             buf.append(name);
         }
     }
@@ -286,19 +300,17 @@ public class AopCodeGenerator {
         }
     }
 
-    Class<?> getReturnType(Method method) {
-        Type type = method.getGenericReturnType();
+    Class<?> resolveType(Type type, Class<?> declClass) {
         if (type instanceof TypeVariable) {
             TypeVariable var = (TypeVariable) type;
-            Class<?> declClass = method.getDeclaringClass();
             if (declClass != baseClass) {
                 TypeVariable[] vars = declClass.getTypeParameters();
                 if (vars.length > 0) {
                     for (int i = 0; i < vars.length; i++) {
                         if (vars[i] == var) {
                             // 泛型
-                            ParameterizedType pt = (ParameterizedType) JavaGenericTypeHelper.getSupertype(
-                                    baseClass, baseClass, declClass);
+                            ParameterizedType pt = (ParameterizedType) JavaGenericTypeHelper.getSupertype(baseClass,
+                                    baseClass, declClass);
                             Type realType = pt.getActualTypeArguments()[i];
                             return JavaGenericTypeHelper.getRawType(realType);
                         }
@@ -306,14 +318,16 @@ public class AopCodeGenerator {
                 }
             }
         }
-        return method.getReturnType();
+        return JavaGenericTypeHelper.getRawType(type);
     }
 
-    public static List<Method> findAopMethods(Class<?> clazz, Class<?>[] annClasses,
-                                              Set<Class<?>> usedAnnotations) {
+    public static List<Method> findAopMethods(Class<?> clazz, Class<?>[] annClasses, Set<Class<?>> usedAnnotations) {
         Method[] methods = clazz.getMethods();
         List<Method> ret = new ArrayList<>();
         for (Method method : methods) {
+            if (method.isSynthetic())
+                continue;
+
             Class<?> annClass = findAnnotation(method, annClasses);
             if (annClass != null) {
                 if (Modifier.isFinal(method.getModifiers())) {
@@ -327,6 +341,8 @@ public class AopCodeGenerator {
 
         // 查找所有protected的method
         for (Method method : getProtectedMethods(clazz)) {
+            if (method.isSynthetic())
+                continue;
             Class<?> annClass = findAnnotation(method, annClasses);
             if (annClass != null) {
                 if (Modifier.isFinal(method.getModifiers())) {

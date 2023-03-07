@@ -1,0 +1,12 @@
+<c:script>
+    import io.nop.core.model.loop.impl.NestedLoopBuilder;
+
+    let builder = new NestedLoopBuilder();
+    builder.defineGlobalVar("root","root");
+    builder.defineLoopVar("child", "root", root=> ["child1","child2"]);
+    builder.defineGlobalVar("enabled",true);
+    builder.defineGlobalVar("disabled",false);
+
+    assign("codeGenLoop", builder.build());
+
+</c:script>

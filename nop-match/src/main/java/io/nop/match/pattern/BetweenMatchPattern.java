@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.pattern;
 
 import io.nop.core.model.query.IBetweenOperator;
@@ -23,9 +30,7 @@ public class BetweenMatchPattern implements IMatchPattern {
     private final boolean excludeMin;
     private final boolean excludeMax;
 
-    public BetweenMatchPattern(String filterOp,
-                               IBetweenOperator operator,
-                               Object minValue, Object maxValue,
+    public BetweenMatchPattern(String filterOp, IBetweenOperator operator, Object minValue, Object maxValue,
                                boolean excludeMin, boolean excludeMax) {
         this.filterOp = filterOp;
         this.operator = operator;
@@ -50,12 +55,8 @@ public class BetweenMatchPattern implements IMatchPattern {
     public boolean matchValue(MatchState state, boolean collectError) {
         if (!operator.test(state.getValue(), minValue, maxValue, excludeMin, excludeMax)) {
             if (collectError) {
-                state.buildError(ERR_MATCH_BETWEEN_CHECK_FAIL)
-                        .param(ARG_FILTER_OP, filterOp)
-                        .param(ARG_MIN, minValue)
-                        .param(ARG_MAX, maxValue)
-                        .param(ARG_EXCLUDE_MIN, excludeMin)
-                        .param(ARG_EXCLUDE_MAX, excludeMax);
+                state.buildError(ERR_MATCH_BETWEEN_CHECK_FAIL).param(ARG_FILTER_OP, filterOp).param(ARG_MIN, minValue)
+                        .param(ARG_MAX, maxValue).param(ARG_EXCLUDE_MIN, excludeMin).param(ARG_EXCLUDE_MAX, excludeMax);
             }
             return false;
         }

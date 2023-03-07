@@ -1,0 +1,16 @@
+{
+  "antlrLibDirPath": "antlr",
+  "antlrModelPath": "antlr/GraphQL.g4",
+  "antlrGenCode": true,
+  "astModelPath": "ast/io/nop/graphql/core/ast/GraphQLAST.xjava",
+  "antlrPackage": "io.nop.graphql.core.parse.antlr",
+  "mainRule": "program",
+  "packageName": "io.nop.xlang.parse",
+  "primaryExpectedTokens": [
+    "Comma",
+    "SemiColon",
+    "CloseParen",
+    "CloseBrace",
+    "CloseBracket"
+  ]
+}

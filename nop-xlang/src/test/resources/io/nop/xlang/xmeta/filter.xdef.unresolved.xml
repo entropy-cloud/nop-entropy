@@ -1,0 +1,25 @@
+<filter xdef:ref="/test/test-filter.xdef#FilterCondition" x:schema="/nop/schema/xdef.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <xdef:define xdef:name="FilterCondition" xdef:body-type="list" xdef:bean-class="io.nop.api.support.beans.TreeBean"
+                 xdef:bean-body-type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;"
+                 xdef:bean-tag-prop="$type"
+                 xdef:bean-body-prop="$body">
+        <and xdef:ref="/test/test-filter.xdef#FilterCondition" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!--小于-->
+        <lt xdef:ref="/test/test-filter.xdef#SimpleFilterNode" name="!string" value="number"
+            xdef:bean-tag-prop="$type"/>
+        <or xdef:ref="/test/test-filter.xdef#FilterCondition" xdef:allow-multiple="true" xdef:bean-tag-prop="$type"/>
+
+        <!--时间在指定范围之内-->
+        <timeBetween xdef:ref="/test/test-filter.xdef#SimpleFilterNode" excludeMax="boolean" excludeMin="boolean"
+                     max="time"
+                     min="time" name="!string" xdef:bean-tag-prop="$type"/>
+        <xdef:unknown-tag xdef:ref="/test/test-filter.xdef#SimpleFilterNode" xdef:unknown-attr="any"
+                          xdef:bean-tag-prop="$type"/>
+    </xdef:define>
+
+    <xdef:define xdef:name="SimpleFilterNode" xdef:allow-multiple="true"
+                 xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"/>
+</filter>

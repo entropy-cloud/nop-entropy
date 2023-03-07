@@ -1,0 +1,23 @@
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
+    <c:script>
+        import io.nop.core.resource.VirtualFileSystem;
+        import io.nop.xlang.xmeta.SchemaLoader;
+
+        let metaResources = VirtualFileSystem.instance().getAllResources("/"+moduleId+"/model",".xmeta");
+        $.notEmpty(metaResources,"metaResources");
+        metaResources = metaResources.filter(r=>!r.name.startsWith('_'));
+
+        assign("metaResources",metaResources);
+
+        builder.defineGlobalVar("metaResource",metaResources);
+        builder.defineLoopVar("metaInfo", "metaResource",
+        resource => {
+        objName: resource.path.$fileNameNoExt(),
+        objMeta: SchemaLoader.loadXMeta(resource.path)
+        });
+        builder.defineGlobalVar("moduleId",moduleId);
+        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
+        builder.defineGlobalVar("defaultLocale",g_default_locale());
+        builder.defineGlobalVar("enableEn", g_default_locale() != 'en');
+    </c:script>
+</gen:DefineLoop>

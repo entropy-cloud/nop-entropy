@@ -1,6 +1,7 @@
 <c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
 package ${ast.packageName};
 
+// tell cpd to start ignoring code - CPD-OFF
 public class ${ast.name}Processor&lt;T,C>{
 
     public T processAST(${ast.name}Node node, C context){
@@ -8,7 +9,7 @@ public class ${ast.name}Processor&lt;T,C>{
             return null;
        switch(node.getASTKind()){
     <c:for var="_classModel" items="${ast.defines}">
-        <c:if test="${!_classModel.isAbstract()}">
+        <c:if test="${!_classModel.abstract}">
             case ${_classModel.simpleClassName}:
                 return process${_classModel.simpleClassName}((${_classModel.simpleClassName})node,context);
         </c:if>
@@ -19,7 +20,7 @@ public class ${ast.name}Processor&lt;T,C>{
     }
 
     <c:for var="_classModel" items="${ast.defines}">
-    <c:if test="${!_classModel.isAbstract()}">
+    <c:if test="${!_classModel.abstract}">
 	public T process${_classModel.simpleClassName}(${_classModel.simpleClassName} node, C context){
         return defaultProcess(node, context);
 	}
@@ -29,4 +30,5 @@ public class ${ast.name}Processor&lt;T,C>{
         return null;
     }
 }
+// resume CPD analysis - CPD-ON
 </c:unit>

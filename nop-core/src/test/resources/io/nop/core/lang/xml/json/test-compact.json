@@ -1,0 +1,21 @@
+{
+  "type": "root",
+  "child1": {
+    "a": "1",
+    "body": [
+      {
+        "type": "button"
+      },
+      3
+    ]
+  },
+  "child2": [
+    {
+      "type": "static"
+    }
+  ],
+  "body": {
+    "type": "button",
+    "id": "a"
+  }
+}

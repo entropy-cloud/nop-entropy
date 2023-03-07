@@ -1,0 +1,44 @@
+<view x:schema="/nop/schema/xui/xview.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef">
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <c:import from="/nop/codegen/xlib/web-gen.xlib"/>
+
+    <forms>
+        <c:script><![CDATA[
+            let formNames = new Set();
+            service.methods.forEach(method=>{
+                formNames.add(method.requestMessage.$simpleClassName())
+            });
+        ]]></c:script>
+        <c:for var="formName" items="${formNames}">
+            <form name="${formName}" editMode="add">
+                <c:script>
+                    let message = apiModel.messages.getByKey(formName);
+                </c:script>
+
+                <c:for var="field" items="${message?.fields}">
+                    ${field.name}
+                </c:for>
+            </form>
+        </c:for>
+    </forms>
+
+    <pages>
+
+        <c:for var="method" items="${serviceModel.methods}">
+            <simple name="${method.name}" form="${method.requestMessage.$simpleClassName()}">
+                <api url="/r/${serviceModel.name}__${method.name}"/>
+            </simple>
+        </c:for>
+
+        <tabs name="main" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
+            <c:for var="method" items="${serviceModel.methods}">
+                <tab name="${method.name}" page="${method.name}"
+                     title="${method.displayName || method.name}"/>
+            </c:for>
+        </tabs>
+
+    </pages>
+</view>

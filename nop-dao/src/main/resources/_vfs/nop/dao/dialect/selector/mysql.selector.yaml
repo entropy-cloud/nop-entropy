@@ -1,0 +1,3 @@
+productName: MySQL
+pdmTargetType: MySQL
+dialectName: mysql

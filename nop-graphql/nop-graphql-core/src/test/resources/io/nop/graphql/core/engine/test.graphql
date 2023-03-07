@@ -1,0 +1,30 @@
+type MyEntity {
+    id: ID
+    name: String
+    desc: String
+    children: [MyChild]
+}
+
+type MyChild{
+    _id: ID
+    name: String
+    value: Int
+    desc: String
+    extField: String
+}
+
+type Query{
+
+}
+
+type PageBean_MyEntity{
+    totalCount: Int
+    offset:Int
+    limit: Int
+    items: [MyEntity!]!
+}
+
+extend type Query{
+    MyEntity__get(id:String): MyEntity
+    MyEntity__findPage(query:String): PageBean_MyEntity
+}

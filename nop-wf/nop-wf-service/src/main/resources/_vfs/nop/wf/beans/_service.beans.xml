@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="io.nop.wf.service.entity.NopWfActionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfDefinitionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfInstanceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfLogBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfOutputBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfStepInstanceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfStepInstanceLinkBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfVarBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.wf.service.entity.NopWfWorkBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+</beans>

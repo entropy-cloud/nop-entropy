@@ -11,9 +11,9 @@
             </source>
         </sql>
 
-        <sql name="selectPage" sqlMethod="findPage">
+        <sql name="selectPage" sqlMethod="findPage" colNameCamelCase="true">
             <source>
-                select 'x' as `a'b`, 'y' as ` u``v`, a,b
+                select 'x' as `a'b`, 'y' as ` u``v`, a,b as my_data
                 from my_entity
             </source>
         </sql>
@@ -42,6 +42,19 @@
         </sql>
 
         <eql name="findBySqlFilter">
+            <!--
+            validate-input用于引入自动验证所需的输入数据
+            -->
+            <validate-input>
+                let result = {
+                ids: [1,2,3]
+                }
+            </validate-input>
+
+            <batchLoadSelection>
+                simsCollege { simsClasses }
+            </batchLoadSelection>
+
             <source>
                 <c:import from="/nop/orm/xlib/sql.xlib"/>
                 select o
@@ -52,5 +65,19 @@
             </source>
         </eql>
 
+        <query name="testDql">
+            <source>
+                <!--
+                等价于 DQL语句, 统计每个学校的班级个数
+                select shortName, simsClasses.count(count) as classCount
+                from SimsCollege
+                -->
+                <fields>
+                    <field name="shortName"/>
+                    <field owner="simsClasses" name="id" aggFunc="count" alias="classCount"/>
+                </fields>
+                <sourceName>io.nop.app.SimsCollege</sourceName>
+            </source>
+        </query>
     </sqls>
 </sql-lib>

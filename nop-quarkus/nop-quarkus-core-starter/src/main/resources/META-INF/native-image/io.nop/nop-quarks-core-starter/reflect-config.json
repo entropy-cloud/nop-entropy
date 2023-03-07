@@ -1,0 +1,10 @@
+[
+  {
+    "name": "io.agroal.pool.ConnectionHandler[]",
+    "unsafeAllocated": true
+  },
+  {
+    "name": "io.agroal.pool.ConnectionHandler",
+    "unsafeAllocated": true
+  }
+]

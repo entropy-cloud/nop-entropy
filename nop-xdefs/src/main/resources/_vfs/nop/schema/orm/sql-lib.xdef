@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sql-lib xdef:default-extends="/nop/core/defaults/default.sql-lib.xml"
+         xdef:name="SqlLibModel" xdef:bean-package="io.nop.orm.sql_lib"
+         x:schema="/nop/schema/xdef.xdef"
+         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <!--
+          @querySpace 指定查询空间，一般一个querySpace对应一个数据库。
+          @cacheKeyExpr 生成缓存key的表达式, 运行时可以访问按名称访问args，例如cacheKeyExpr="concat(x,'-',y)"
+          @sqlMethod 应该使用ISqlExecutor接口上的什么方法去执行此sql，对应SqlMethod枚举，当使用类似MyBatis的Mapper映射时会用到这一配置。
+          @rowType 可以指定返回结果对应的包装类名称。会按照字段别名映射到对象的属性上，
+          @timeout sql执行的超时时间。单位为毫秒
+          @fetchSize 设置jdbc的fetchSize为指定值
+        -->
+    <xdef:define xdef:name="SqlItemModel" name="!var-name" displayName="string"
+                 rowType="generic-type" sqlMethod="enum:io.nop.orm.sql_lib.SqlMethod"
+                 cacheName="string" cacheKeyExpr="expr"
+                 querySpace="string=default" fetchSize="int" timeout="int" disableLogicalDelete="!boolean=false"
+                 xdef:bean-tag-prop="type"
+    >
+
+        <description xdef:value="string"/>
+
+        <!--
+        验证sql正确性时采用的输入数据。当AppConfig.isDebugMode()为true时（调试模式），sql-lib加载后会自动验证sql语句语法正确。
+        -->
+        <validate-input xdef:value="xpl"/>
+
+        <!--
+        为sql查询语句补充列的类型信息，便于从ResultSet中抽取指定类型的数据，避免返回数据库引擎内部的数据类型
+        -->
+        <fields xdef:body-type="list" xdef:key-attr="index">
+            <field index="!int" stdSqlType="!std-sql-type" xdef:name="SqlFieldModel"/>
+        </fields>
+
+        <!--
+        批量加载的属性
+        -->
+        <batchLoadSelection xdef:value="field-selection"/>
+
+        <arg xdef:name="SqlItemArgModel" xdef:unique-attr="name"
+             name="!var-name" displayName="string" mandatory="boolean" defaultValue="string">
+            <description xdef:value="string"/>
+            <schema xdef:ref="../schema/schema.xdef"/>
+        </arg>
+
+    </xdef:define>
+
+    <sqls xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="sql"
+          xdef:bean-body-type="List&lt;io.nop.orm.sql_lib.SqlItemModel>">
+
+        <!--
+        @colNameCamelCase sql语句返回的列名是否按照下划线分隔变换成camelCase形式作为返回字段名
+        -->
+        <sql xdef:name="NativeSqlItemModel" name="!var-name" xdef:ref="SqlItemModel" colNameCamelCase="!boolean=false">
+            <source xdef:value="xpl-sql" xdef:mandatory="true"/>
+        </sql>
+
+        <eql name="!var-name" xdef:ref="SqlItemModel" xdef:name="EqlSqlItemModel">
+            <source xdef:value="xpl-sql" xdef:mandatory="true"/>
+        </eql>
+
+        <!--
+        -->
+        <query name="!var-name" xdef:ref="SqlItemModel" xdef:name="QuerySqlItemModel">
+            <source xdef:value="xpl-node" xdef:mandatory="true"/>
+        </query>
+    </sqls>
+
+</sql-lib>

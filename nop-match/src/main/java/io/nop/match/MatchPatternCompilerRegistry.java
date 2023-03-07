@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match;
 
 import io.nop.core.model.query.FilterOp;
@@ -46,9 +53,11 @@ public class MatchPatternCompilerRegistry {
         }
 
         for (FilterOp filterOp : DEFAULT_COMPARE_OPS) {
-            DEFAULT.addCompiler(filterOp.name(), new CompareOpMatchPatternCompiler(filterOp.name(), filterOp.getBiPredicate()));
+            DEFAULT.addCompiler(filterOp.name(),
+                    new CompareOpMatchPatternCompiler(filterOp.name(), filterOp.getBiPredicate()));
         }
-        DEFAULT.addCompiler(BETWEEN.name(), new BetweenMatchPatternCompiler(BETWEEN.name(), BETWEEN.getBetweenOperator()));
+        DEFAULT.addCompiler(BETWEEN.name(),
+                new BetweenMatchPatternCompiler(BETWEEN.name(), BETWEEN.getBetweenOperator()));
 
         DEFAULT.addCompiler(IS_NULL.name(), new StaticPatternCompiler(IsNullMatchPattern.INSTANCE));
         DEFAULT.addCompiler(NAME_PATTERN, PatternMatchPatternCompiler.INSTANCE);

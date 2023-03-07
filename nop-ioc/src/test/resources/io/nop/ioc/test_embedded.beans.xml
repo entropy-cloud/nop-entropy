@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+>
+    <bean id="testMain" class="test.io.entropy.beans.MyBeanA">
+        <property name="b">
+            <bean class="test.io.entropy.beans.MyBeanB">
+                <property name="c">
+                    <bean class="test.io.entropy.beans.MyBeanC">
+                        <property name="a2" ref="testMain"/>
+                        <property name="a3" value=""/>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+</beans>

@@ -1,9 +1,11 @@
 <c:unit xpl:outputMode="text">package ${objMeta.packageName}._gen;
 
-import io.nop.commons.collections.KeyedList;
+import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 <c:script>
+import io.nop.commons.type.StdDataType;
+
 let baseClass = objSchema.extendsType || 'io.nop.core.resource.component.AbstractComponentModel';
 if(objSchema.refSchema)
     baseClass = objSchema.refSchema.className;
@@ -17,24 +19,27 @@ function build_defaults(prop){
       return "= KeyedList.emptyList()"
    } else if(prop.schema.isListSchema()){
       return "= java.util.Collections.emptyList()"
-   } else if(prop.schema.isMapType()){
+   } else if(prop.schema.isMapType() and prop.childName){
       return "= java.util.Collections.emptyMap()"
    }
-   return null;
+   return StdDataType.toInitializer(prop.defaultValue,prop.type);
 }
 </c:script>
 
+// tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from ${objSchema.location} &lt;p>
- * ${objSchema.description.$replace('*/','* /').$replace("\n","\n * ")}
+ * ${objSchema.description?.$replace('*/','* /')?.$replace("\n","\n * ")}
  */
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implIfs}{
     <c:for var="prop" items="${objSchema.localProps}">
         <c:continue xpl:if="prop.name.indexOf(':')>0" />
     /**
      *  ${prop.displayName}
      * xml name: ${prop.xmlName}
-     * ${prop.description.$replace('*/','* /').$replace("\n","\n     * ")}
+     * ${prop.description?.$replace('*/','* /')?.$replace("\n","\n     * ")}
      */
     private ${prop.schema.isKeyedListType()? 'KeyedList&lt;' + prop.componentType+'>': prop.type} _${prop.name} ${build_defaults(prop)};
     </c:for>
@@ -45,19 +50,16 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     /**
      * ${prop.displayName}
      * xml name: ${prop.xmlName}
-     *  ${prop.description.$replace('*/','* /').$replace("\n","\n     * ")}
+     *  ${prop.description?.$replace('*/','* /')?.$replace("\n","\n     * ")}
      */
     ${prop.deprecated ? '@Deprecated': ''}
-    public ${prop.schema.type} ${prop.methodGetName}(){
+    public ${prop.schema!.type!} ${prop.methodGetName}(){
       return _${prop.name};
     }
 
     ${prop.deprecated ? '@Deprecated': ''}
     public void ${prop.methodSetName}(${prop.schema.type} value){
         checkAllowChange();
-        <c:if test="${prop.schema.isMapType()}">
-        if(value == null) value ${build_defaults(prop)};
-        </c:if>
         <c:choose>
            <when test="${prop.schema.isKeyedListType()}">
         this._${prop.name} = KeyedList.fromList(value, ${prop.componentType}::${prop.schema.keyProp.$methodGet()});
@@ -69,7 +71,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     }
 
     <c:if test="${prop.schema.isKeyedListType() and prop.childName}">
-    public ${prop.componentType} get${prop.childName.$capitalize()}(String name){
+    public ${prop.componentType!} get${prop.childName.$capitalize()}(String name){
         return this._${prop.name}.getByKey(name);
     }
 
@@ -89,7 +91,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     </c:if>
 
     <c:if test="${prop.schema.isKeyedListType()}">
-    public java.util.Set&lt;String> ${prop.name.$methodGet()}KeySet(){
+    public java.util.Set&lt;String> keySet_${prop.name}(){
         return this._${prop.name}.keySet();
     }
 
@@ -99,7 +101,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     </c:if>
 
     <c:if test="${prop.schema.isMapType() and prop.childName}">
-    public ${prop.schema.type.mapValueType} get${prop.childName.$capitalize()}(String name){
+    public ${prop.schema.type.mapValueType!} get${prop.childName.$capitalize()}(String name){
         return this._${prop.name}.get(name);
     }
 
@@ -110,7 +112,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
 
     <c:if test="${prop.schema.isMapType()}">
     public boolean has${prop.name.$capitalize()}(){
-        return !this._${prop.name}.isEmpty();
+        return this._${prop.name} != null &amp;&amp; !this._${prop.name}.isEmpty();
     }
     </c:if>
     </c:for>
@@ -119,7 +121,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
         if(frozen()) return;
         super.freeze(cascade);
 
-        if(cascade){
+        if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         <c:for var="prop" items="${objSchema.localProps}">
          <c:continue xpl:if="prop.name.indexOf(':')>0" />
             <c:if test="${!prop.schema.isSimpleSchema()}">
@@ -136,4 +138,5 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
         out.put("${prop.name}",this.${prop.methodGetName}());</c:for>
     }
 }
+ // resume CPD analysis - CPD-ON
 </c:unit>

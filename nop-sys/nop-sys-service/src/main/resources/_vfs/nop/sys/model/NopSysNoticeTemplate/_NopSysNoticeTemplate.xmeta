@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="通知模板"
+      i18n-en:displayName="Notice Template">
+
+    <entityName>io.nop.sys.dao.entity.NopSysNoticeTemplate</entityName>
+
+    <primaryKey>sid</primaryKey>
+
+    <displayProp>name</displayProp>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="name" displayName="名称" i18n-en:displayName="Name" tagSet="disp" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="tplType" displayName="模板类型" i18n-en:displayName="Type" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
+        <prop name="content" displayName="模板内容" i18n-en:displayName="Content" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="true">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+    </props>
+</meta>

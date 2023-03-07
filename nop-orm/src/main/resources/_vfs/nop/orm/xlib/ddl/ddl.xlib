@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" defaultOutputMode="text"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib">
+
+    <tags>
+        <CreateTables>
+            <attr name="tables" type="Collection&lt;? extends io.nop.orm.model.IEntityModel>"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+            <attr name="allNullable" type="boolean" optional="true"/>
+            <attr name="includeComments" type="boolean" optional="true"/>
+            <source>
+                <c:for var="table" items="${tables}">
+                    <c:if test="${!table.tableView}">
+                        <thisLib:CreateTable table="${table}" dialect="${dialect}" allNullable="${allNullable}"/>
+                        <c:unit>;&#10;&#10;</c:unit>
+                    </c:if>
+                </c:for>
+
+                <c:if test="${includeComments}">
+                    <c:for var="table" items="${tables}">
+                        <c:if test="${!table.tableView}">
+                            <thisLib:AddComment table="${table}" dialect="${dialect}"/>
+                        </c:if>
+                    </c:for>
+                </c:if>
+            </source>
+        </CreateTables>
+
+        <DropTables>
+            <attr name="tables" type="Collection&lt;? extends io.nop.orm.model.IEntityModel>"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+            <attr name="ifExists" type="Boolean" optional="true"/>
+            <source>
+                <c:for var="table" items="${tables}">
+                    <thisLib:DropTable table="${table}" dialect="${dialect}" ifExists="${ifExists}"/>
+                    <c:unit>;&#10;</c:unit>
+                </c:for>
+            </source>
+        </DropTables>
+
+        <CreateTable>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+            <attr name="allNullable" type="boolean" optional="true">
+                <description>
+                    是否所有字段都允许为空。单元测试时自动建表语句可以选择允许所有字段为空，这样便于兼容不同版本的测试数据。
+                </description>
+            </attr>
+
+            <source>
+                <c:unit><![CDATA[CREATE TABLE ${dialect.escapeSQLName(table.tableName)}(
+ ]]></c:unit>
+                <c:for var="col" items="${table.columns}">
+                    <c:unit><![CDATA[ ${     dialect.escapeSQLName(col.code)} ]]></c:unit>
+                    <thisLib:ColSqlType/>
+                    <thisLib:DefaultValue/>
+                    <c:unit><![CDATA[ ${col.mandatory and !allNullable ? 'NOT NULL' : ''} ]]></c:unit>
+                    <thisLib:ColCommentDef/>
+                    <c:unit><![CDATA[,
+ ]]></c:unit>
+                </c:for>
+                <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${
+                table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})
+]]></c:unit><c:unit>)</c:unit>
+            </source>
+        </CreateTable>
+
+        <DropTable>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+            <attr name="ifExists" type="Boolean" optional="true"/>
+            <source>
+                <c:unit>${dialect.getDropTableSql(table.tableName, ifExists)}</c:unit>
+            </source>
+        </DropTable>
+
+        <ColSqlType>
+            <attr name="col" implicit="true"/>
+            <attr name="dialect" implicit="true"/>
+            <source>
+                <c:unit>${dialect.stdToNativeSqlType(col.stdSqlType,col.precision,col.scale)}</c:unit>
+            </source>
+        </ColSqlType>
+
+        <ColCommentDef outputMode="text">
+            <attr name="col" implicit="true"/>
+            <attr name="dialect" implicit="true"/>
+            <source>
+
+            </source>
+        </ColCommentDef>
+
+        <DefaultValue>
+            <source></source>
+        </DefaultValue>
+
+        <AddComment>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <thisLib:TableComment table="${table}" xpl:return="tableComment"/>
+                <c:if test="${tableComment}"><![CDATA[
+      COMMENT ON TABLE ${dialect.escapeSQLName(table.tableName)} IS ${dialect.getStringLiteral(tableComment)};
+                ]]></c:if>
+
+                <c:for var="col" items="${table.columns}">
+                    <thisLib:ColumnComment col="${col}" xpl:return="colComment"/>
+                    <c:if test="${colComment}"><![CDATA[
+      COMMENT ON COLUMN ${dialect.escapeSQLName(table.tableName)}.${dialect.escapeSQLName(col.code)} IS ${dialect.getStringLiteral(colComment)};
+                    ]]></c:if>
+                </c:for>
+            </source>
+        </AddComment>
+
+
+        <TableComment outputMode="none">
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <source>
+                <c:script>table.displayName || table.comment</c:script>
+            </source>
+        </TableComment>
+
+        <ColumnComment outputMode="none">
+            <attr name="col" type="io.nop.orm.model.IColumnModel"/>
+            <source>
+                <c:script>col.displayName || col.comment</c:script>
+            </source>
+        </ColumnComment>
+    </tags>
+</lib>

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthUser" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+
+    <objMeta>/nop/auth/model/NopAuthUser/NopAuthUser.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--用户名-->
+                <col id="userName" mandatory="true" sortable="true"/>
+
+                <!--昵称-->
+                <col id="nickName" mandatory="true" sortable="true"/>
+
+                <!--部门-->
+                <col id="deptId" sortable="true"/>
+
+                <!--用户外部标识-->
+                <col id="openId" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--性别-->
+                <col id="gender" mandatory="true" sortable="true"/>
+
+                <!--邮件-->
+                <col id="email" sortable="true" x:abstract="true"/>
+
+                <!--电话-->
+                <col id="phone" sortable="true"/>
+
+                <!--生日-->
+                <col id="birthday" sortable="true" x:abstract="true"/>
+
+                <!--用户类型-->
+                <col id="userType" mandatory="true" sortable="true"/>
+
+                <!--用户状态-->
+                <col id="status" mandatory="true" sortable="true"/>
+
+                <!--证件类型-->
+                <col id="idType" sortable="true" x:abstract="true"/>
+
+                <!--证件号-->
+                <col id="idNbr" sortable="true" x:abstract="true"/>
+
+                <!--用户过期时间-->
+                <col id="expireAt" sortable="true" x:abstract="true"/>
+
+                <!--上次密码更新时间-->
+                <col id="pwdUpdateTime" sortable="true" x:abstract="true"/>
+
+                <!--登陆后立刻修改密码-->
+                <col id="changePwdAtLogin" sortable="true" x:abstract="true"/>
+
+                <!--真实姓名-->
+                <col id="realName" sortable="true" x:abstract="true"/>
+
+                <!--工号-->
+                <col id="workNo" sortable="true" x:abstract="true"/>
+
+                <!--职务-->
+                <col id="positionId" sortable="true" x:abstract="true"/>
+
+                <!--座机-->
+                <col id="telephone" sortable="true" x:abstract="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true" x:abstract="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-用户" i18n-en:title="View User">
+            <layout>
+ userName[用户名] nickName[昵称]
+ deptId[部门] openId[用户外部标识]
+ gender[性别] email[邮件]
+ phone[电话] birthday[生日]
+ userType[用户类型] status[用户状态]
+ idType[证件类型] idNbr[证件号]
+ expireAt[用户过期时间] pwdUpdateTime[上次密码更新时间]
+ changePwdAtLogin[登陆后立刻修改密码] realName[真实姓名]
+ workNo[工号] positionId[职务]
+ telephone[座机] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-用户" i18n-en:title="Add User" x:prototype="edit"/>
+        <form id="edit" editMode="update" title="编辑-用户" i18n-en:title="Edit User">
+            <layout>
+ userName[用户名] nickName[昵称]
+ deptId[部门] openId[用户外部标识]
+ gender[性别] email[邮件]
+ phone[电话] birthday[生日]
+ userType[用户类型] status[用户状态]
+ idType[证件类型] idNbr[证件号]
+ expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]
+ realName[真实姓名] workNo[工号]
+ positionId[职务] telephone[座机]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-用户" i18n-en:title="Update User">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopAuthUser__findPage/{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopAuthUser__delete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopAuthUser__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopAuthUser__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopAuthUser__findPage/{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopAuthUser__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <api url="@query:NopAuthUser__get/{@formSelection}?id=$id"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopAuthUser__get/{@formSelection}?id=$id"/>
+            <api url="@mutation:NopAuthUser__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

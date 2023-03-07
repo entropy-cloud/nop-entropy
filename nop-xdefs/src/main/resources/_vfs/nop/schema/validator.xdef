@@ -1,0 +1,23 @@
+<validator xdef:bean-package="io.nop.core.model.validator" xdef:name="ValidatorModel"
+           xdef:bean-extends-type="io.nop.core.resource.component.AbstractSimpleComponentModel"
+           errorCode="string" errorParams="string-map" severity="!int=0"
+           x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+>
+
+    <!--
+    check检查不通过会抛出异常
+
+    @errorCode 检查不通过时抛出的异常码。
+    @errorParams 检查不通过时异常消息中的参数。格式为x=a.b.c, y, z=u这种形式，相当于执行代码{ x: a.b.c, y: y, z: u}。
+       它表示将a.b.c的值赋给变量x, 将当前环境中y的值赋给变量y，将u的值赋给变量z
+    @severity 严重程度。如果有多个检查失败，只返回最严重的错误信息（一个或者多个）
+    -->
+    <check id="!string" errorCode="!string" errorParams="string-map"
+           xdef:name="ValidatorCheckModel" severity="!int=0"
+           xdef:bean-extends-type="io.nop.core.resource.component.AbstractSimpleComponentModel"
+           xdef:unique-attr="id">
+        <condition xdef:ref="query/filter.xdef"/>
+    </check>
+
+    <condition xdef:ref="query/filter.xdef"/>
+</validator>

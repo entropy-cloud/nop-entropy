@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+// 根据xmeta生成页面文件view.xml/page.yaml
+codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/wf" },$scope);
+codeGenerator.renderModel('../../model/nop-api.orm.xlsx','/nop/templates/api-web', '/',$scope);
+
+</c:script>

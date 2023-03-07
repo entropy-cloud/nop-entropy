@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="用户代理"
+      i18n-en:displayName="User Substitution">
+
+    <entityName>io.nop.auth.dao.entity.NopAuthUserSubstitution</entityName>
+
+    <primaryKey>sid</primaryKey>
+
+    <displayProp/>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="userId" displayName="用户ID" i18n-en:displayName="User ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="user">
+            <schema domain="userId" type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="substitutedUserId" displayName="被代理的用户ID" i18n-en:displayName="Substituted User" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="substitutedUser">
+            <schema domain="userId" type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="startTime" displayName="开始时间" i18n-en:displayName="Start Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="endTime" displayName="结束时间" i18n-en:displayName="End Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="user" displayName="用户" i18n-en:displayName="User" tagSet="pub,ref-pub,ref-cascade-delete"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId"
+              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema type="io.nop.auth.dao.entity.NopAuthUser" bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="substitutedUser" displayName="角色" i18n-en:displayName="Substituted User" tagSet="pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="substitutedUserId"
+              ext:joinRightProp="userId" ext:joinRightDisplayProp="userName" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema type="io.nop.auth.dao.entity.NopAuthUser" bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="substitutedUser.userName" displayName="角色" i18n-en:displayName="Substituted User" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

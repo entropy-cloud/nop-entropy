@@ -2,7 +2,7 @@
 package ${ast.packageName}._gen;
 
 import ${astNode.className};
-import ${ast.packageName}.${ast.name}Node;
+import ${ast.packageName}.${ast.name}Node; //NOPMD - suppressed UnusedImports - Auto Gen Code
 <c:if test="${!astNode.abstract}">
 import ${ast.packageName}.${ast.name}Kind;
 import io.nop.core.lang.json.IJsonHandler;
@@ -11,7 +11,10 @@ import java.util.function.Function;
 import java.util.function.Consumer;
 </c:if>
 
-public abstract class _${astNode.simpleClassName} extends ${astNode.extendsType ?? ast.name + 'Node'} ${astNode.implementsTypes.join(',').$wrap('implements ','')}{
+// tell cpd to start ignoring code - CPD-OFF
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
+public abstract class _${astNode.simpleClassName} extends ${astNode.extendsType ?? ast.name + 'Node'} ${astNode.implementsTypes?.join(',')?.$wrap('implements ','')}{
     <c:for var="_f" items="${astNode.localProps}">
     protected ${_f.type} ${_f.name};
     </c:for>
@@ -83,6 +86,7 @@ public abstract class _${astNode.simpleClassName} extends ${astNode.extendsType 
     ret.setLocation(getLocation());
     ret.setLeadingComment(getLeadingComment());
     ret.setTrailingComment(getTrailingComment());
+    copyExtFieldsTo(ret);
     <c:for var="_f" items="${astNode.props}">
         <c:choose>
             <when test="${!_f.type.primitive}">
@@ -258,4 +262,5 @@ public abstract class _${astNode.simpleClassName} extends ${astNode.extendsType 
     }
 </c:if>
 }
+ // resume CPD analysis - CPD-ON
 </c:unit>

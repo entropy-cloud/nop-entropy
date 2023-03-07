@@ -1,0 +1,80 @@
+{
+  "xmlns:x": "/nop/schema/xdsl.xdef",
+  "defaultOutputMode": "none",
+  "tags": {
+    "Add": {
+      "tagName": "Add",
+      "macro": false,
+      "internal": false,
+      "deprecated": false,
+      "dump": false,
+      "ignoreUnknownAttrs": false,
+      "attrs": [
+        {
+          "name": "a",
+          "mandatory": true,
+          "implicit": false,
+          "internal": false,
+          "deprecated": false,
+          "optional": false
+        },
+        {
+          "name": "b",
+          "implicit": true,
+          "internal": false,
+          "deprecated": false,
+          "optional": false,
+          "mandatory": false
+        }
+      ],
+      "source": {
+        "$type": "source",
+        "$body": [
+          {
+            "$type": "c:script",
+            "$body": "\r\n                    a + b\r\n                "
+          }
+        ]
+      }
+    },
+    "Nested": {
+      "tagName": "Nested",
+      "outputMode": "text",
+      "macro": false,
+      "internal": false,
+      "deprecated": false,
+      "dump": false,
+      "ignoreUnknownAttrs": false,
+      "attrs": [
+        {
+          "name": "parent",
+          "implicit": false,
+          "internal": false,
+          "deprecated": false,
+          "optional": false,
+          "mandatory": false
+        }
+      ],
+      "source": {
+        "$type": "source",
+        "$body": [
+          {
+            "$type": "c:unit",
+            "$body": "${parent.name},"
+          },
+          {
+            "$type": "c:for",
+            "var": "child",
+            "items": "${parent.children}",
+            "$body": [
+              {
+                "$type": "thisLib:Nested",
+                "parent": "${child}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

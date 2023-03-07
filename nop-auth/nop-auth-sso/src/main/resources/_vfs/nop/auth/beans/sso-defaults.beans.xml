@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <bean id="io.nop.auth.sso.web.LoginWebService" ioc:type="@bean:id">
+        <ioc:condition>
+            <if-property name="nop.auth.sso.enabled"/>
+        </ioc:condition>
+    </bean>
+
+    <bean id="nopLoginService" class="io.nop.auth.sso.login.OAuthLoginServiceImpl">
+        <ioc:condition>
+            <if-property name="nop.auth.sso.enabled"/>
+        </ioc:condition>
+
+        <property name="config" ref="nopSsoConfig"/>
+    </bean>
+
+    <bean id="nopSsoConfig" class="io.nop.auth.sso.SsoConfig" ioc:default="true">
+        <ioc:condition>
+            <if-property name="nop.auth.sso.enabled"/>
+        </ioc:condition>
+
+        <property name="authServerUrl" value="@cfg:nop.auth.sso.server-url"/>
+        <property name="realm" value="@cfg:nop.auth.sso.realm"/>
+        <property name="clientId" value="@cfg:nop.auth.sso.client-id" />
+        <property name="clientSecret" value="@cfg:nop.auth.sso.client-secret|" />
+
+        <property name="tokenUrl"
+                  value="/realms/{realm}/protocol/openid-connect/token"/>
+        <property name="logoutUrl"
+                  value="/realms/{realm}/protocol/openid-connect/logout"/>
+        <property name="authUrl"
+                  value="/realms/{realm}/protocol/openid-connect/auth"/>
+        <property name="jwksUrl"
+                  value="/realms/{realm}/protocol/openid-connect/certs"/>
+    </bean>
+
+</beans>

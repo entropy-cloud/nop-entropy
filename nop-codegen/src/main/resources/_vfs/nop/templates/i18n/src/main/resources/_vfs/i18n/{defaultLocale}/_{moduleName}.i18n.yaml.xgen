@@ -1,0 +1,27 @@
+<c:unit xpl:outputMode="text">
+<c:script>
+    import io.nop.xlang.xmeta.SchemaLoader;
+    import io.nop.core.lang.json.JsonTool;
+    import java.util.TreeMap;
+
+    const root = { entity: {label: new TreeMap() }, prop: {label: new TreeMap() }};
+    const entityLabel = root.entity.label;
+    const propLabel = root.prop.label;
+
+    for(let resource of metaResources){
+        let meta = SchemaLoader.loadXMeta(resource.path);
+        let entityName = meta.bizObjName || resource.path.$fileNameNoExt();
+
+        entityLabel[entityName] = meta.displayName;
+        let propsMap = new TreeMap();
+        propLabel[entityName] = propsMap;
+
+        for(let prop of meta.props){
+            propsMap[prop.name] = prop.displayName;
+        }
+    }
+</c:script>
+
+<c:unit>${JsonTool.toYaml(root)}</c:unit>
+
+</c:unit>

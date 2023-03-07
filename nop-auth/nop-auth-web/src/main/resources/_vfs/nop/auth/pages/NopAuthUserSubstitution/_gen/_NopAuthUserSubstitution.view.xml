@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthUserSubstitution" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+
+    <objMeta>/nop/auth/model/NopAuthUserSubstitution/NopAuthUserSubstitution.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--用户ID-->
+                <col id="userId" mandatory="true" sortable="true"/>
+
+                <!--被代理的用户ID-->
+                <col id="substitutedUserId" mandatory="true" sortable="true"/>
+
+                <!--开始时间-->
+                <col id="startTime" sortable="true"/>
+
+                <!--结束时间-->
+                <col id="endTime" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-用户代理" i18n-en:title="View User Substitution">
+            <layout>
+ userId[用户ID]
+ substitutedUserId[被代理的用户ID]
+ startTime[开始时间]
+ endTime[结束时间]
+ createdBy[创建人]
+ createTime[创建时间]
+ updatedBy[修改人]
+ updateTime[修改时间]
+ remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-用户代理" i18n-en:title="Add User Substitution" x:prototype="edit"/>
+        <form id="edit" editMode="update" title="编辑-用户代理" i18n-en:title="Edit User Substitution">
+            <layout>
+ userId[用户ID]
+ substitutedUserId[被代理的用户ID]
+ startTime[开始时间]
+ endTime[结束时间]
+ remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-用户代理"
+              i18n-en:title="Update User Substitution">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopAuthUserSubstitution__findPage/{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopAuthUserSubstitution__delete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopAuthUserSubstitution__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopAuthUserSubstitution__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopAuthUserSubstitution__findPage/{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopAuthUserSubstitution__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <api url="@query:NopAuthUserSubstitution__get/{@formSelection}?id=$id"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopAuthUserSubstitution__get/{@formSelection}?id=$id"/>
+            <api url="@mutation:NopAuthUserSubstitution__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

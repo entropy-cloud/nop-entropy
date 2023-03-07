@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm;
 
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -47,6 +54,13 @@ public interface IOrmBatchLoadQueue {
      * @return this
      */
     IOrmBatchLoadQueue enqueueManyProps(Collection<?> ormObjects, @Nonnull Collection<String> propNames);
+
+    boolean isEmpty();
+
+    /**
+     * 注册回调函数，当flush被调用之后触发。如果当前没有待flush的对象，则立刻触发
+     */
+    IOrmBatchLoadQueue afterFlush(Runnable task);
 
     /**
      * 批量执行队列中所有的延迟加载任务

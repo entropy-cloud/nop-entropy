@@ -1,0 +1,8 @@
+query: >
+  query NopAuthUser__findPage($query:QueryBeanInput){
+  NopAuthUser__findPage(query:$query){
+  total,page,items{id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,birthday,userType,userType_label,status,status_label,expireAt,changePwdAtLogin,realName,workNo,position{name},positionId,telephone}
+  }
+  }
+variables:
+  query: null

@@ -1,0 +1,21 @@
+{
+  "sessionId": "",
+  "userId": "",
+  "userName": "",
+  "loginAddr": "",
+  "loginDevice": "",
+  "loginApp": "",
+  "loginOs": "",
+  "loginTime": "2000-01-01 14:00:00",
+  "loginType": 0,
+  "loginType_label": "",
+  "logoutTime": "2000-01-01 14:00:00",
+  "logoutType": 0,
+  "logoutType_label": "",
+  "logoutBy": "",
+  "lastAccessTime": "2000-01-01 14:00:00",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "remark": ""
+}

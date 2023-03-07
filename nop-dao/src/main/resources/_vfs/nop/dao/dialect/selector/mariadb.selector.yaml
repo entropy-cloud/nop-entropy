@@ -1,0 +1,3 @@
+productName: MariaDB
+pdmTargetType: MariaDB
+dialectName: mariadb

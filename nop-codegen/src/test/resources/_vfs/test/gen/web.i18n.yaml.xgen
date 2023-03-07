@@ -1,0 +1,5 @@
+<c:unit xpl:outputMode="text">
+"x:extends": _${moduleName}-web.i18n.yaml
+
+# key: "value"
+</c:unit>

@@ -1,0 +1,219 @@
+<c:unit xpl:outputMode="text">//__XGEN_TPL_FORCE_OVERRIDE__
+package io.nop.core.type;
+
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.type.StdDataType;
+
+import java.lang.reflect.Type;
+
+
+import io.nop.core.type.impl.PredefinedGenericType;
+import io.nop.core.type.impl.PredefinedRawType;
+import io.nop.core.type.impl.PredefinedVariableType;
+import io.nop.core.type.impl.PredefinedWildcardType;
+import io.nop.commons.util.objects.Pair;
+
+import java.util.Map;
+
+import static io.nop.core.type.impl.PredefinedGenericType.primitiveType;
+import static io.nop.core.type.impl.PredefinedGenericType.simpleType;
+import static io.nop.core.type.impl.PredefinedGenericType.javaType;
+import static io.nop.core.type.impl.PredefinedGenericType.arrayType;
+import static io.nop.core.type.impl.PredefinedGenericType.parameterizedType;
+import static io.nop.core.type.impl.PredefinedGenericType.variableType;
+
+import static io.nop.core.CoreErrors.ARG_TYPE_NAME;
+import static io.nop.core.CoreErrors.ERR_TYPE_NOT_PREDEFINED_TYPE;
+
+<c:script>
+  import io.nop.commons.type.StdDataType;
+
+  const predefinedTypes = [];
+
+  const varTypeNames = ["A","B","C","D","E","F","G",
+                      "H","I","J","K","L","M","N",
+                      "O","P","Q","R","S","T",
+                      "U","V","W","X","Y","Z",
+                      "T0","T1","T2"];
+
+  const classNames = ["java.lang.Cloneable","java.lang.Comparable", "java.lang.Runnable","java.lang.Number",
+                "java.io.Serializable",
+                "java.util.Collection","java.util.Set", "java.util.HashMap", "java.util.LinkedHashMap", "java.util.SortedMap",
+               "java.util.function.Function","java.util.function.Consumer", "java.util.function.Supplier",
+               "java.util.concurrent.Callable", "java.util.function.BiConsumer",
+               "java.util.function.BiFunction", "java.util.function.Predicate", "java.util.Comparator",
+               "java.util.concurrent.CompletionStage","java.util.concurrent.CompletableFuture","java.util.concurrent.Future",
+               "io.nop.core.lang.xml.XNode", "io.nop.commons.util.objects.Pair",
+               "io.nop.core.type.IGenericType","io.nop.core.lang.eval.IEvalAction","io.nop.core.lang.eval.IEvalPredicate",
+               "io.nop.core.lang.eval.IEvalFunction","io.nop.core.reflect.IPropertyGetter",
+               "io.nop.core.reflect.IPropertySetter","io.nop.core.lang.eval.IEvalScope",
+               "io.nop.core.resource.tpl.ITextTemplateOutput","io.nop.core.resource.tpl.ITemplateOutput",
+               "io.nop.core.lang.sql.ISqlGenerator","io.nop.core.lang.xml.IXNodeGenerator",
+               "io.nop.core.lang.json.JObject","io.nop.core.lang.json.JArray",
+               "io.nop.core.lang.json.IJsonContainer","io.nop.api.core.util.ISourceLocationGetter",
+               "io.nop.api.core.util.IDeepCloneable","io.nop.api.core.util.ICloneable",
+               "io.nop.api.core.util.IFreezable","io.nop.api.core.util.SourceLocation",
+               "io.nop.api.core.util.ICancellable","io.nop.api.core.util.ICancelToken",
+               "io.nop.api.core.beans.ApiRequest","io.nop.api.core.beans.ApiResponse",
+               "io.nop.api.core.rpc.IRpcService","io.nop.api.core.context.IContext",
+               "io.nop.commons.collections.IKeyedList","io.nop.commons.collections.IKeyedElement",
+               "io.nop.commons.type.StdDataType",
+               "io.nop.api.core.exceptions.NopException"
+               ];
+</c:script>
+
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
+public class PredefinedGenericTypes {
+
+    public static final PredefinedWildcardType NO_BOUND_WILDCARD_TYPE = PredefinedWildcardType.NO_BOUND_WILDCARD_TYPE;
+    public static final PredefinedGenericType PRIMITIVE_VOID_TYPE =
+        new PredefinedRawType("void", StdDataType.VOID, void.class, "PRIMITIVE_GENERIC_TYPE");
+
+
+    <c:for var="name" items="${varTypeNames}">
+    public static final PredefinedVariableType VARIABLE_${name}_TYPE = variableType("${name}");
+</c:for>
+
+    private static final Map&lt;String,PredefinedVariableType> predefinedVars = buildVarMap(
+       <c:for var="name" items="${varTypeNames}" index="index">
+           ${index == 0 ? '': ','}Pair.of("${name}", VARIABLE_${name}_TYPE)
+       </c:for>
+    );
+
+    // Java的类型推导存在问题，自动推导非常慢无法结束
+    private static Map&lt;String,PredefinedVariableType> buildVarMap(Pair&lt;String,PredefinedVariableType>... items){
+        return CollectionHelper.buildImmutableMap(items);
+    }
+
+    public static PredefinedVariableType getPredefinedVar(String varName){
+        return predefinedVars.get(varName);
+    }
+
+<c:for var="stdType" items="${StdDataType.values()}">
+   <c:if test="${stdType.primitiveType}">
+    <c:script>
+        predefinedTypes.push(concat('PRIMITIVE_',stdType.name(),'_TYPE'));
+        predefinedTypes.push(concat('ARRAY_PRIMITIVE_',stdType.name(),'_TYPE'));
+    </c:script>
+    public static final PredefinedGenericType PRIMITIVE_${stdType.name()}_TYPE =
+        primitiveType(StdDataType.${stdType.name()},"PRIMITIVE_${stdType.name()}_TYPE");
+
+    public static final PredefinedGenericType ARRAY_PRIMITIVE_${stdType.name()}_TYPE =
+        arrayType(PRIMITIVE_${stdType.name()}_TYPE,${stdType}[].class);
+  </c:if>
+
+  <c:script>
+          predefinedTypes.push(concat(stdType.name(),'_TYPE'));
+          if(!stdType.abstractType){
+              predefinedTypes.push(concat('ARRAY_',stdType.name(),'_TYPE'));
+              predefinedTypes.push(concat('LIST_',stdType.name(),'_TYPE'));
+              predefinedTypes.push(concat('SET_',stdType.name(),'_TYPE'));
+              predefinedTypes.push(concat('COLLECTION_',stdType.name(),'_TYPE'));
+              predefinedTypes.push(concat('MAP_STRING_',stdType.name(),'_TYPE'));
+          }
+      </c:script>
+      public static final PredefinedRawType ${stdType.name()}_TYPE =
+          simpleType(StdDataType.${stdType.name()},"${stdType.name()}_TYPE");
+
+</c:for>
+
+<c:for var="className" items="${classNames}">
+    <c:script>
+        let classType = concat(className.$simpleClassName().$camelCaseToUnderscore(false),'_TYPE');
+        predefinedTypes.push(classType);
+    </c:script>
+    public static final PredefinedRawType ${classType} = javaType(${className}.class,"${classType}");
+</c:for>
+
+<c:for var="stdType" items="${StdDataType.values()}">
+<c:if test="${!stdType.abstractType}">
+      public static final PredefinedGenericType ARRAY_${stdType.name()}_TYPE =
+          arrayType(${stdType.name()}_TYPE,${stdType.javaTypeName}[].class);
+
+      public static final PredefinedGenericType LIST_${stdType.name()}_TYPE =
+          parameterizedType("LIST_${stdType.name()}_TYPE",LIST_TYPE, ${stdType.name()}_TYPE);
+
+      public static final PredefinedGenericType SET_${stdType.name()}_TYPE =
+          parameterizedType("SET_${stdType.name()}_TYPE",SET_TYPE,${stdType.name()}_TYPE);
+
+      public static final PredefinedGenericType COLLECTION_${stdType.name()}_TYPE =
+          parameterizedType("COLLECTION_${stdType.name()}_TYPE",COLLECTION_TYPE,${stdType.name()}_TYPE);
+
+      public static final PredefinedGenericType MAP_STRING_${stdType.name()}_TYPE =
+          parameterizedType("MAP_STRING_${stdType.name()}_TYPE",MAP_TYPE, STRING_TYPE, ${stdType.name()}_TYPE);
+</c:if>
+</c:for>
+
+    private static final Map&lt;String, PredefinedGenericType> NAME_TO_PREDEFINED_TYPES =
+            buildMap(
+            <c:for var="predefinedType" items="${predefinedTypes}" >
+            Pair.of(${predefinedType}.getTypeName(), ${predefinedType}),
+            </c:for>
+            <c:for var="stdType" items="${StdDataType.values()}">
+               <c:if test="${stdType.primitiveType}">
+                  Pair.of("${stdType.name}", PRIMITIVE_${stdType.name.toUpperCase()}_TYPE),
+               </c:if>
+               <c:if test="${stdType.className.startsWith('java.lang.')}">
+                  Pair.of("${stdType.simpleClassName}",${stdType.name.toUpperCase()}_TYPE),
+               </c:if>
+            </c:for>
+            Pair.of("string",STRING_TYPE),
+            Pair.of("number",NUMBER_TYPE),
+            Pair.of("Number",NUMBER_TYPE),
+            Pair.of("BigDecimal",DECIMAL_TYPE),
+            Pair.of("never", NEVER_TYPE),
+            Pair.of("unknown",UNKNOWN_TYPE),
+            Pair.of("any", ANY_TYPE),
+            Pair.of("Map", MAP_TYPE),
+            Pair.of("void",PRIMITIVE_VOID_TYPE),
+            Pair.of("List", LIST_TYPE),
+            Pair.of("Set", SET_TYPE),
+            Pair.of("Collection", COLLECTION_TYPE)
+            );
+
+    // Java的类型推导存在问题，自动推导非常慢无法结束
+    private static Map&lt;String,PredefinedGenericType> buildMap(Pair&lt;String,PredefinedGenericType>... items){
+        return CollectionHelper.buildImmutableMap(items);
+    }
+
+    public static PredefinedGenericType getPredefinedTypeForJavaType(Type type){
+       return getPredefinedType(type.getTypeName());
+    }
+
+    public static PredefinedGenericType getPredefinedType(String typeName){
+        return NAME_TO_PREDEFINED_TYPES.get(typeName);
+    }
+
+    public static PredefinedGenericType requirePredefinedTypeForJavaType(Type type) {
+        return requirePredefinedType(type.getTypeName());
+    }
+
+    public static PredefinedGenericType requirePredefinedType(String typeName){
+        PredefinedGenericType type = getPredefinedType(typeName);
+        if(type == null)
+            throw new NopException(ERR_TYPE_NOT_PREDEFINED_TYPE).param(ARG_TYPE_NAME, typeName);
+        return type;
+    }
+
+    public static PredefinedGenericType getPredefinedArrayType(PredefinedGenericType type){
+        if(!type.isArray())
+            return getPredefinedType(type.getTypeName()+"[]");
+        return null;
+    }
+
+    public static String normalizeTypeName(Class&lt;?> clazz) {
+        String typeName = clazz.getCanonicalName();
+        if (typeName == null)
+            typeName = clazz.getName();
+        return typeName;
+    }
+
+    public static IGenericType normalizeType(IGenericType type) {
+        IGenericType predefined = getPredefinedType(type.getTypeName());
+        if (predefined != null)
+            return predefined;
+        return type;
+    }
+}
+</c:unit>

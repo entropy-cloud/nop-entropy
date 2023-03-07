@@ -1,0 +1,4 @@
+
+xui:js: '@include:NopSysUserVariable.action.js'
+x:gen-extends: |
+    <web:GenPage view="NopSysUserVariable.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

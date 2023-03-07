@@ -1,0 +1,54 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.ooxml.xlsx.imp;
+
+import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.unittest.BaseTestCase;
+import io.nop.excel.imp.model.ImportModel;
+import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
+import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.SchemaLoader;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class TestXlsxBeanParser extends BaseTestCase {
+    @BeforeAll
+    public static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    public static void destroy() {
+        CoreInitialization.destroy();
+    }
+
+    @Test
+    public void testParse() {
+        ImportModel importModel = (ImportModel) new DslModelParser()
+                .parseFromResource(attachmentResource("test.imp.xml"));
+
+        XlsxBeanParser parser = new XlsxBeanParser(importModel);
+        Object bean = parser.parseFromResource(new ClassPathResource("classpath:xlsx/test-imp.xlsx"));
+        System.out.println(JsonTool.stringify(bean, null, "  "));
+        IObjMeta meta = SchemaLoader.loadXMeta("/nop/schema/orm/orm.xdef");
+        XNode node = new DslModelToXNodeTransformer(meta).transformToXNode(bean);
+        node.dump();
+        assertEquals( attachmentXml("result.orm.xml").xml(), node.xml());
+
+        Object bean2 = new DslModelParser().dynamic(true).parseFromNode(node);
+        XNode node2 = new DslModelToXNodeTransformer(meta).transformToXNode(bean2);
+        assertEquals(node.xml(), node2.xml());
+    }
+}

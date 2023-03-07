@@ -1,0 +1,122 @@
+//__XGEN_FORCE_OVERRIDE__
+package io.nop.graphql.core.ast._gen;
+
+import io.nop.graphql.core.ast.GraphQLNamedType;
+import io.nop.graphql.core.ast.GraphQLASTNode; //NOPMD - suppressed UnusedImports - Auto Gen Code
+
+import io.nop.graphql.core.ast.GraphQLASTKind;
+import io.nop.core.lang.json.IJsonHandler;
+import io.nop.api.core.util.ProcessResult;
+import java.util.function.Function;
+import java.util.function.Consumer;
+
+
+// tell cpd to start ignoring code - CPD-OFF
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
+public abstract class _GraphQLNamedType extends io.nop.graphql.core.ast.GraphQLType {
+    
+    protected java.lang.String name;
+    
+
+    public _GraphQLNamedType(){
+    }
+
+    
+    public java.lang.String getName(){
+        return name;
+    }
+
+    public void setName(java.lang.String value){
+        checkAllowChange();
+        
+        this.name = value;
+    }
+    
+
+    public void validate(){
+       super.validate();
+     
+    }
+
+
+    public GraphQLNamedType newInstance(){
+      return new GraphQLNamedType();
+    }
+
+    @Override
+    public GraphQLNamedType deepClone(){
+       GraphQLNamedType ret = newInstance();
+    ret.setLocation(getLocation());
+    ret.setLeadingComment(getLeadingComment());
+    ret.setTrailingComment(getTrailingComment());
+    copyExtFieldsTo(ret);
+    
+                if(name != null){
+                  
+                          ret.setName(name);
+                      
+                }
+            
+       return ret;
+    }
+
+    @Override
+    public void forEachChild(Consumer<GraphQLASTNode> processor){
+    
+    }
+
+    @Override
+    public ProcessResult processChild(Function<GraphQLASTNode,ProcessResult> processor){
+    
+       return ProcessResult.CONTINUE;
+    }
+
+    @Override
+    public boolean replaceChild(GraphQLASTNode oldChild, GraphQLASTNode newChild){
+    
+        return false;
+    }
+
+    @Override
+    public boolean removeChild(GraphQLASTNode child){
+    
+    return false;
+    }
+
+    @Override
+    public boolean isEquivalentTo(GraphQLASTNode node){
+       if(this.getASTKind() != node.getASTKind())
+          return false;
+    GraphQLNamedType other = (GraphQLNamedType)node;
+    
+                if(!isValueEquivalent(this.name,other.getName())){
+                   return false;
+                }
+            
+        return true;
+    }
+
+    @Override
+    public GraphQLASTKind getASTKind(){
+       return GraphQLASTKind.GraphQLNamedType;
+    }
+
+    protected void serializeFields(IJsonHandler json) {
+        
+                    if(name != null){
+                      
+                              json.put("name", name);
+                          
+                    }
+                
+    }
+
+    @Override
+    public void freeze(boolean cascade){
+      super.freeze(cascade);
+        
+    }
+
+}
+ // resume CPD analysis - CPD-ON

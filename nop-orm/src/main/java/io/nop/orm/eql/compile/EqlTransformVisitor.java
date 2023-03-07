@@ -67,6 +67,7 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.IOrmDataType;
+import io.nop.orm.sql.GenSqlHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -297,7 +298,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 SqlBinaryExpr expr = new SqlBinaryExpr();
                 expr.setLeft(EqlASTBuilder.colName(alias, entityModel.getDeleteFlagProp()));
                 expr.setOperator(SqlOperator.EQ);
-                expr.setRight(EqlASTBuilder.literal(0));
+
+                IColumnModel delFlagCol = entityModel.getColumnByPropId(entityModel.getDeleteFlagPropId(), false);
+                expr.setRight(EqlASTBuilder.literal(GenSqlHelper.getBooleanValue(delFlagCol.getStdSqlType(), dialect, false)));
                 where.appendFilter(expr);
             }
         }
@@ -910,26 +913,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     public void visitSqlColumnName(SqlColumnName node) {
         SqlTableSource source;
         if (node.getOwner() == null) {
-            // 没有使用表的别名，例如 select name from UserInfo
-            SqlQuerySelect select = getQuerySelect(node);
-            if (select.getFrom() == null) {
-                throw new OrmException(ERR_EQL_QUERY_NO_FROM_CLAUSE).source(select).param(ARG_COL_NAME, node.getName());
-            }
-
-            source = currentScope.getTableByAlias(node.getName());
-            if (source != null) {
-                node.setTableSource(source);
-                EntityTableMeta tableMeta = getTableMeta(source);
-                node.setResolvedExprMeta(tableMeta.getEntityExprMeta());
-                return;
-            }
-
-            // 只考虑from语句的第一个表，而且只考虑单表选择的情况
-            source = select.getFrom().getFirstTableSource();
-            if (!(source instanceof SqlSingleTableSource)) {
-                throw new OrmException(ERR_EQL_UNKNOWN_COLUMN_NAME).source(node).param(ARG_COL_NAME, node.getName());
-            }
-
+            resolveDefaultTableSource(node);
+            return;
         } else if (node.getOwner().getNext() == null) {
             source = currentScope.getTableByAlias(node.getOwner().getName());
             if (source == null) {
@@ -938,6 +923,38 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         } else {
             SqlPropJoin join = resolvePropPath(currentScope, node.getLocation(), node.getOwner().toPropPath());
             source = join.getRight();
+        }
+        resolveColName(source, node);
+    }
+
+    private void resolveDefaultTableSource(SqlColumnName node) {
+        // 没有使用表的别名，例如 select name from UserInfo
+        SqlQuerySelect select = getQuerySelect(node);
+        if (select == null) {
+            ISqlTableSourceSupport tableSupport = resolveTableSource(node);
+            if (tableSupport != null) {
+                resolveColName(tableSupport.getResolvedTableSource(), node);
+                return;
+            }
+        }
+
+        if (select == null || select.getFrom() == null) {
+            throw new OrmException(ERR_EQL_QUERY_NO_FROM_CLAUSE)
+                    .source(node).param(ARG_COL_NAME, node.getName());
+        }
+
+        SqlTableSource source = currentScope.getTableByAlias(node.getName());
+        if (source != null) {
+            node.setTableSource(source);
+            EntityTableMeta tableMeta = getTableMeta(source);
+            node.setResolvedExprMeta(tableMeta.getEntityExprMeta());
+            return;
+        }
+
+        // 只考虑from语句的第一个表，而且只考虑单表选择的情况
+        source = select.getFrom().getFirstTableSource();
+        if (!(source instanceof SqlSingleTableSource)) {
+            throw new OrmException(ERR_EQL_UNKNOWN_COLUMN_NAME).source(node).param(ARG_COL_NAME, node.getName());
         }
         resolveColName(source, node);
     }
@@ -1042,7 +1059,12 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     public void visitSqlInsert(SqlInsert node) {
         SqlTableName table = node.getTableName();
 
+        currentScope = new SqlTableScope(node, currentScope);
         EntityTableMeta tableMeta = resolveEntity(table);
+
+        SqlSingleTableSource source = newSingleTableSource(table, null);
+        node.setResolvedTableSource(source);
+
         writeEntityModel = tableMeta.getEntityModel();
 
         visitChildren(node.getColumns());
@@ -1054,6 +1076,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (node.getValues() != null) {
             visit(node.getValues());
         }
+
+        currentScope = currentScope.getParent();
     }
 
     EntityTableMeta resolveEntity(SqlTableName table) {
@@ -1076,11 +1100,27 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlTableName table = node.getTableName();
         node.setAlias(makeTableAlias(node.getAlias()));
 
+        currentScope = new SqlTableScope(node, currentScope);
         EntityTableMeta tableMeta = resolveEntity(table);
+
+        SqlSingleTableSource source = newSingleTableSource(table, node.getAlias().getAlias());
+        node.setResolvedTableSource(source);
+
         writeEntityModel = tableMeta.getEntityModel();
 
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
+        currentScope = currentScope.getParent();
+    }
+
+    private SqlSingleTableSource newSingleTableSource(SqlTableName table, String alias) {
+        SqlSingleTableSource source = new SqlSingleTableSource();
+        source.setLocation(table.getLocation());
+        source.setTableName(table.deepClone());
+        source.getTableName().setResolvedTableMeta(table.getResolvedTableMeta());
+        if (alias != null)
+            currentScope.addTable(alias, source);
+        return source;
     }
 
     @Override
@@ -1088,10 +1128,17 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlTableName table = node.getTableName();
         node.setAlias(makeTableAlias(node.getAlias()));
 
+        currentScope = new SqlTableScope(node, currentScope);
+
         EntityTableMeta tableMeta = resolveEntity(table);
         writeEntityModel = tableMeta.getEntityModel();
 
+        SqlSingleTableSource source = newSingleTableSource(table, node.getAlias().getAlias());
+        node.setResolvedTableSource(source);
+
         this.visitChild(node.getWhere());
+
+        currentScope = currentScope.getParent();
     }
 
     @Override
@@ -1105,6 +1152,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         do {
             if (node instanceof SqlQuerySelect)
                 return (SqlQuerySelect) node;
+            node = node.getASTParent();
+        } while (node != null);
+        return null;
+    }
+
+    private ISqlTableSourceSupport resolveTableSource(EqlASTNode node) {
+        do {
+            if (node instanceof ISqlTableSourceSupport)
+                return (ISqlTableSourceSupport) node;
             node = node.getASTParent();
         } while (node != null);
         return null;

@@ -1,0 +1,4 @@
+
+xui:js: '@include:NopSysI18n.action.js'
+x:gen-extends: |
+    <web:GenPage view="NopSysI18n.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

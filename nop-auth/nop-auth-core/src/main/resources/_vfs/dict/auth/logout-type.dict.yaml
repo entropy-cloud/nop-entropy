@@ -1,0 +1,16 @@
+label: 登录类型
+locale: zh-CN
+options:
+  - label: 登录中
+    value: 0
+  - label: 正常退出
+    value: 1
+  - label: 超时退出
+    value: 2
+  - label: 强制退出
+    value: 3
+  - label: 重新登录
+    value: 4
+  - label: 单点回调
+    value: 5
+

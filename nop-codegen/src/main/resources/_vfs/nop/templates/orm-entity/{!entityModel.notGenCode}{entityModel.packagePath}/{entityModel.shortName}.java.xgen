@@ -1,10 +1,12 @@
 <c:unit xpl:outputMode="text">package ${entityModel.packageName};
 
+import io.nop.api.core.annotations.biz.BizObjName;
 import ${entityModel.packageName}._gen._${entityModel.shortName};
 <c:if test="${entityModel.compositePk}">
 import ${entityModel.packageName}._gen.${entityModel.shortName}PkBuilder;
 </c:if>
 
+@BizObjName("${entityModel.shortName}")
 public class ${entityModel.shortName} extends _${entityModel.shortName}{
     public ${entityModel.shortName}(){
     }

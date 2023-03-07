@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <objMeta>test-actions.xmeta</objMeta>
+    <forms>
+        <form id="edit">
+            <layout>
+                a
+            </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="edit" form="edit"/>
+    </pages>
+
+</view>

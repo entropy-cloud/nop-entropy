@@ -1,0 +1,1 @@
+mvn package -DskipTests -Dquarkus.package.type=uber-jar

@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.pattern;
 
 import io.nop.match.IMatchPattern;
@@ -16,9 +23,7 @@ public class IfMatchPattern implements IMatchPattern {
     private final IMatchPattern truePattern;
     private final IMatchPattern falsePattern;
 
-    public IfMatchPattern(String testExpr,
-                          Predicate<MatchState> test,
-                          IMatchPattern truePattern,
+    public IfMatchPattern(String testExpr, Predicate<MatchState> test, IMatchPattern truePattern,
                           IMatchPattern falsePattern) {
         this.testExpr = testExpr;
         this.test = test;

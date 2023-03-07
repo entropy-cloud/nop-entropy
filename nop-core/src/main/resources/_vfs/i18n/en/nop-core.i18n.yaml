@@ -1,0 +1,18 @@
+dict:
+  label:
+    core/active-status: Active Status
+    core/bool-flag: Bool Flag
+    core/entity-relation-type: Entity Relation Type
+
+dict.option.label:
+  core/active-status:
+    1: Active
+    0: Disabled
+
+  core/bool-flag:
+    0: "No"
+    1: "Yes"
+
+  core/entity-relation-type:
+    to-many: To Many
+    to-one: To One

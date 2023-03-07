@@ -1,0 +1,336 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.orm.model;
+
+import io.nop.api.core.util.INeedInit;
+import io.nop.commons.collections.ImmutableIntArray;
+import io.nop.commons.collections.IntArray;
+import io.nop.commons.type.StdDataType;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.objects.PropPath;
+import io.nop.orm.exceptions.OrmException;
+import io.nop.orm.model._gen._OrmEntityModel;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static io.nop.orm.OrmErrors.ARG_COL_CODE;
+import static io.nop.orm.OrmErrors.ARG_COL_NAME;
+import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ARG_PROP_ID;
+import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLUMN;
+import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLUMN_CODE;
+import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLUMN_PROP_ID;
+import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_PROP;
+
+public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INeedInit {
+    private ImmutableIntArray eagerLoadProps;
+    private ImmutableIntArray allPropIds;
+    private ImmutableIntArray minLazyLoadProps;
+    private IEntityPropModel idProp;
+    private List<String> pkColumnNames;
+    private List<OrmColumnModel> pkColumns;
+    private List<OrmColumnModel> revLatestKeyColumns;
+
+    private OrmColumnModel[] colsByPropId;
+
+    private int shardPropId;
+    private int versionPropId;
+    private int tenantPropId;
+
+    private int deleteFlagPropId;
+    private int createrPropId;
+    private int createTimePropId;
+    private int updaterPropId;
+    private int updateTimePropId;
+
+    private int nopRevTypePropId;
+    private int nopRevBeginVerPropId;
+    private int nopRevEndVerPropId;
+    private int nopRevExtChangePropId;
+
+    private boolean containsTenantIdInPk;
+
+    private Map<String, IEntityPropModel> props;
+    private Map<String, OrmColumnModel> colsByCode;
+
+    private boolean inited;
+
+    public OrmEntityModel() {
+        setCheckVersionWhenLazyLoad(true);
+    }
+
+    public String toString() {
+        return getClass().getSimpleName() + "[name=" + StringHelper.simpleClassName(getName()) + ",table="
+                + getTableName() + "]@" + getLocation();
+    }
+
+    @Override
+    public OrmDataTypeKind getKind() {
+        return OrmDataTypeKind.ENTITY;
+    }
+
+    @Override
+    public StdDataType getStdDataType() {
+        return StdDataType.ANY;
+    }
+
+    @Override
+    public IntArray getEagerLoadProps() {
+        return eagerLoadProps;
+    }
+
+    @Override
+    public IntArray getMinimumLazyLoadProps() {
+        return minLazyLoadProps;
+    }
+
+    @Override
+    public IntArray getAllPropIds() {
+        return allPropIds;
+    }
+
+    @Override
+    public boolean hasLazyColumn() {
+        return allPropIds != eagerLoadProps;
+    }
+
+    @Override
+    public IEntityPropModel getIdProp() {
+        return idProp;
+    }
+
+    @Override
+    public List<OrmColumnModel> getPkColumns() {
+        return pkColumns;
+    }
+
+    public void setPkColumns(List<OrmColumnModel> cols){
+        checkAllowChange();
+        this.pkColumns = cols;
+    }
+
+    @Override
+    public boolean containsTenantIdInPk() {
+        return containsTenantIdInPk;
+    }
+
+    @Override
+    public List<String> getPkColumnNames() {
+        return pkColumnNames;
+    }
+
+    @Override
+    public OrmColumnModel getColumnByPropId(int propId, boolean ignoreUnknown) {
+        OrmColumnModel col = this.colsByPropId[propId];
+        if (ignoreUnknown)
+            return col;
+
+        if (col == null)
+            throw new OrmException(ERR_ORM_UNKNOWN_COLUMN_PROP_ID).param(ARG_ENTITY_NAME, getName()).param(ARG_PROP_ID,
+                    propId);
+        return col;
+    }
+
+    @Override
+    public IColumnModel getColumn(String name, boolean ignoreUnknown) {
+        IColumnModel col = getColumn(name);
+        if (ignoreUnknown)
+            return col;
+        if (col == null)
+            throw new OrmException(ERR_ORM_UNKNOWN_COLUMN).param(ARG_ENTITY_NAME, getName()).param(ARG_COL_NAME, name);
+        return col;
+    }
+
+    @Override
+    public IColumnModel getColumnByCode(String code, boolean ignoreUnknown) {
+        OrmColumnModel col = colsByCode.get(code);
+        if (ignoreUnknown)
+            return col;
+        if (col == null)
+            throw new OrmException(ERR_ORM_UNKNOWN_COLUMN_CODE).param(ARG_ENTITY_NAME, getName()).param(ARG_COL_CODE,
+                    code);
+        return col;
+    }
+
+    @Override
+    public PropPath getAliasPropPath(String alias) {
+        IEntityPropModel propModel = getProp(alias, true);
+        if (propModel instanceof IEntityAliasModel) {
+            return PropPath.parse(propModel.getAliasPropPath());
+        }
+        return null;
+    }
+
+    @Override
+    public IEntityRelationModel getRelation(String name, boolean ignoreUnknown) {
+        IEntityRelationModel rel = this.getRelation(name);
+        if (ignoreUnknown)
+            return rel;
+        if (rel == null)
+            throw new OrmException(ERR_ORM_UNKNOWN_PROP).param(ARG_ENTITY_NAME, getName()).param(ARG_PROP_NAME, name);
+        return rel;
+    }
+
+    @Override
+    public List<OrmColumnModel> getRevLatestKeyColumns() {
+        return revLatestKeyColumns;
+    }
+
+    public void setRevLatestKeyColumns(List<OrmColumnModel> revLatestKeyColumns) {
+        this.revLatestKeyColumns = revLatestKeyColumns;
+    }
+
+    @Override
+    public Map<String, IEntityPropModel> getAllProps() {
+        return props;
+    }
+
+    @Override
+    public IEntityPropModel getProp(String name, boolean ignoreUnknown) {
+        IEntityPropModel prop = props.get(name);
+        if (ignoreUnknown)
+            return prop;
+
+        if (prop == null)
+            throw new OrmException(ERR_ORM_UNKNOWN_PROP).param(ARG_ENTITY_NAME, getName()).param(ARG_PROP_NAME, name);
+        return prop;
+    }
+
+    @Override
+    public int getVersionPropId() {
+        return versionPropId;
+    }
+
+    @Override
+    public int getTenantPropId() {
+        return tenantPropId;
+    }
+
+    @Override
+    public int getShardPropId() {
+        return shardPropId;
+    }
+
+    @Override
+    public int getPropIdBound() {
+        return colsByPropId.length;
+    }
+
+    @Override
+    public IColumnModel getShardColumn() {
+        return colsByPropId[shardPropId];
+    }
+
+    @Override
+    public List<? extends IEntityRelationModel> getColumnsRefs(int propId) {
+        return getColumnByPropId(propId, false).getColumnRefs();
+    }
+
+    @Override
+    public int getNopRevTypePropId() {
+        return nopRevTypePropId;
+    }
+
+    @Override
+    public int getNopRevBeginVerPropId() {
+        return nopRevBeginVerPropId;
+    }
+
+    @Override
+    public int getNopRevEndVarPropId() {
+        return nopRevEndVerPropId;
+    }
+
+    @Override
+    public int getNopRevExtChangePropId() {
+        return nopRevExtChangePropId;
+    }
+
+    @Override
+    public int getDeleteFlagPropId() {
+        return deleteFlagPropId;
+    }
+
+    @Override
+    public int getCreaterPropId() {
+        return createrPropId;
+    }
+
+    @Override
+    public int getCreateTimePropId() {
+        return createTimePropId;
+    }
+
+    @Override
+    public int getUpdaterPropId() {
+        return updaterPropId;
+    }
+
+    @Override
+    public int getUpdateTimePropId() {
+        return updateTimePropId;
+    }
+
+    @Override
+    public void init() {
+        if (inited)
+            return;
+
+        OrmEntityModelInitializer initializer = new OrmEntityModelInitializer(this);
+        this.allPropIds = initializer.allPropIds.toImmutable();
+        this.eagerLoadProps = initializer.eagerLoadProps.toImmutable();
+        this.versionPropId = initializer.versionPropId;
+        this.tenantPropId = initializer.tenantPropId;
+        this.nopRevTypePropId = initializer.nopRevTypePropId;
+        this.nopRevBeginVerPropId = initializer.nopRevBeginVerPropId;
+        this.nopRevEndVerPropId = initializer.nopRevEndVerPropId;
+        this.nopRevExtChangePropId = initializer.nopRevExtChangePropId;
+        this.shardPropId = initializer.shardPropId;
+
+        this.createrPropId = initializer.createrPropId;
+        this.createTimePropId = initializer.createTimePropId;
+        this.updaterPropId = initializer.updaterPropId;
+        this.updateTimePropId = initializer.updateTimePropId;
+        this.deleteFlagPropId = initializer.deleteFlagPropId;
+
+        this.colsByCode = initializer.colsByCode;
+        this.colsByPropId = initializer.colsByPropId;
+        this.minLazyLoadProps = initializer.minLazyLoadProps.toImmutable();
+        this.pkColumnNames = CollectionHelper.buildImmutableList(initializer.pkColumnNames);
+        this.pkColumns = initializer.pkColumns;
+        this.idProp = initializer.idProp;
+        this.props = initializer.props;
+        this.containsTenantIdInPk = initializer.containsTenantIdInPk;
+
+        inited = true;
+    }
+
+    public void addProp(IEntityPropModel prop) {
+        if (props == null || props.isEmpty()) {
+            props = new HashMap<>();
+        }
+        props.put(prop.getName(), prop);
+
+        if (prop.isRelationModel()) {
+            addRelation((OrmReferenceModel) prop);
+        } else if (prop.isComponentModel()) {
+            addComponent((OrmComponentModel) prop);
+        } else if (prop.isComputeModel()) {
+            addCompute((OrmComputePropModel) prop);
+        } else if (prop.isAliasModel()) {
+            addAlias((OrmAliasModel) prop);
+        } else if (prop.isColumnModel()) {
+            addColumn((OrmColumnModel) prop);
+        }
+    }
+
+}

@@ -1,0 +1,33 @@
+type: page
+body:
+  type: form
+  title: "@i18n:common.changePassword"
+
+  messages:
+    saveSuccess: "@i18n:common.executeSucceed"
+    saveFailed: "@i18n:common.executeFailed"
+
+  resetAfterSubmit: true
+
+  api:
+    url: "@mutation:NopAuthUser__changeSelfPassword"
+    data:
+      oldPassword: $oldPassword
+      newPassword: $newPassword
+
+  body:
+    - type: input-password
+      name: oldPassword
+      required: true
+      label: "@i18n:common.oldPassword"
+
+    - type: input-password
+      name: newPassword
+      required: true
+      label: "@i18n:common.newPassword"
+
+    - type: input-password
+      name: __password2
+      label: "@i18n:common.repeatPassword"
+      validations:
+        equalsField: newPassword

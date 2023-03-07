@@ -1,0 +1,25 @@
+{
+  "resources": [
+    {
+      "pattern": ".*\\.xml$"
+    },
+    {
+      "pattern": ".*\\.json$"
+    },
+    {
+      "pattern": ".*\\.xdef$"
+    },
+    {
+      "pattern": ".*\\.txt$"
+    },
+    {
+      "pattern": "META-INF/services/*.*"
+    },
+    {
+      "pattern": "_vfs/*.*"
+    },
+    {
+      "pattern": "_conf/*.*"
+    }
+  ]
+}

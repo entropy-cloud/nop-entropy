@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>nop-auth</artifactId>
+        <groupId>io.nop</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>nop-auth-sso</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-api-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-auth-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-http-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-common</artifactId>
+            <version>20.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

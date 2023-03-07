@@ -1,0 +1,223 @@
+## Maven集成代码生成器
+
+Nop平台提供了与Maven相集成的代码生成能力，但是并没有做成maven插件，而是利用exec-maven-plugin插件来执行CodeGenTask类的main函数来实现。
+
+只需要在pom文件中增加以下配置，在执行maven package的时候，就会自动执行工程的precompile和postcompile目录下的xgen代码，其中precompile在compile阶段之前执行，执行环境可以访问所有依赖库，但是不能访问当前工程的类目录，而postcompile在compile阶段之后执行，可以访问已编译的类和资源文件。
+
+```xml
+<pom>
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.nop</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</pom>
+```
+
+如果不使用pom的parent继承机制，则需要为exec-maven-plugin插件提供更多的参数配置，具体可以参见[nop-entropy/pom.xml](../../pom.xml)中的配置
+
+### 在Maven之外调用代码生成器
+
+CodeGenTask是一个普通的java类，可以在Maven外直接调用。例如
+
+```java
+public class NopOrmCodeGen {
+    public static void main(String[] args) {
+
+        CoreInitialization.initialize();
+        try {
+            File projectDir = MavenDirHelper.projectDir(NopOrmCodeGen.class);
+            String targetRootPath = FileHelper.getFileUrl(new File(projectDir, "src/main/java"));
+            XCodeGenerator generator = new XCodeGenerator("/nop/templates/orm-entity", targetRootPath);
+            IResource resource = VirtualFileSystem.instance().getResource("/nop/test/orm/app.orm.xml");
+            OrmModel ormModel = (OrmModel) DslModelHelper.parseDslModel(resource);
+            generator.execute("", Collections.singletonMap("ormModel", ormModel), XLang.newEvalScope());
+        } finally {
+            CoreInitialization.destroy();
+        }
+    }
+}
+```
+
+Nop平台提供了XLang语言的Idea调试插件，可以在xgen文件中增加断点进行调试。参见[idea-plugin.md](../user-guide/idea/idea-plugin.md)
+
+### 通过nop-cli命令行工具执行代码生成
+
+nop-cli工具的gen指令封装了CodeGenTask工具类的功能，将它包装为一个命令行调用。
+
+```shell
+nop-cli gen model/app-mall.orm.xlsx -t=/nop/templates/orm
+```
+
+上面的例子表示读取app-mall.orm.xlsx模型，应用虚拟文件系统中的/nop/templates/orm目录下的模板文件，生成代码到当前工程目录下。
+
+## 数据驱动的代码生成器
+
+CodeGenTask实际调用的是nop-codegen模块中的数据驱动的代码生成器XCodeGenerator。所谓的数据驱动，指的是**生成过程的所有逻辑控制由输入的模板文件来指定**，即由外部提供的模板数据来驱动代码生成的过程。
+
+### 一. 1.2 通过模板路径编码判断和循环
+
+XCodeGenerator的做法与传统的代码生成器不同，它**将模板路径看作是一种微格式的DSL，把判断和循环逻辑编码在路径格式中**，从而由模板自身的组织结构来控制代码生成过程。具体规则如下：
+
+1. 所有以xgen为后缀的文件作为模板文件，而没有xgen后缀的文件为静态文件
+
+```
+xxx.java.xgen --> xxx.java  生成到去除xgen后缀的文件中
+xxx.xrun      --> ignore    如果是xrun后缀，则直接作为xpl模板代码运行
+xxx.java      --> xxx.java  没有xgen后缀的直接拷贝
+```
+
+2. 所有以@为前缀的文件为内部使用，不作为模板解析，也不拷贝到目标目录。其中@init.xrun文件为初始化文件，当运行该目录下的模板之前需要先执行@init.xrun完成初始化。例如在@init.xrun中可以定义哪些变量是循环变量，同时规定这些循环变量之间的关系
+
+```xml
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib" xpl:slotScope="builder">
+<c:script>
+builder.defineGlobalVar("ormModel",ormModel);
+builder.defineLoopVar("entityModel","ormModel", model => model.entityModelsInTopoOrder);
+</c:script>
+</gen:DefineLoop>
+```
+
+3. 目录和文件名中通过`{a.b.c}`形式的变量表达式来指定循环变量，从而以一种自然的方式表达多重嵌套循环，例如
+
+```java
+/nop/base/generator/test/{globalVar}/{var1}/sub/{var2.packagePath}/{var3}.java.xgen
+
+相当于三重循环
+if(globalVar){
+for(let var1 of ...){
+ for(let var2 of ...){
+    for(let var3 of ...){
+        if(var1 && var2 && var2.packagePath && var3){
+            let path = '/nop/base/generator/test/'
+            +globalVar+'/'+var1+'/sub/'+var2.packagePath
+            +'/'+var3+'.java';
+            ...
+        }
+    }
+ }
+}
+}
+```
+
+- {var2.packagePath}表示按照循环变量var2进行循环，每次循环时取var2.packagePath属性
+
+- 嵌套循环引用父循环变量的值为固定值。例如对于`{var1}/{var2}/{var1}_{var2}.java.xgen`, 在`{var2}`的子目录中再引用var1和var2时，它们都是固定值。
+4. 目录和文件名中通过`{a.b.c}`形式的变量表达式来指定开关变量。当变量值返回false或者null的时候表示跳过该目录或者文件，而返回true的时候则自动忽略该内容。例如
+
+```
+控制是否生成某个目录下的文件
+/src/{package.name}/{webEnabled}/{model.name}Controller.java.xgen
+                                /{model.name}Service.java.xgen
+
+也可以控制单个文件是否生成
+/src/{package.name}/{webEnabled}{model.name}Controller.java.xgen
+```
+
+## 二. 差量化的代码生成器
+
+如果我们不把代码生成器看作是某种一次性的、临时使用的外围工具，而是把它作为元编程的一个有机组成部分，则代码生成器必然是支持增量生成的。所谓增量生成，是指代码生成器允许反复执行，且同时允许手工修改输出产物，自动生成和手工修改的部分都可以看作是对初次生成结果的增量化修改，并且它们会自动合并在一起。
+
+```
+Result = FirstGeneration + AutoGenDelta + ManualDelta
+```
+
+可逆计算理论明确提出了可逆的差量合并这一概念，指出全量是差量的一种特例，为一系列差量相关的程序实践提供了统一的理论解释，并指明了未来的发展方向。
+
+> 全量= 单位元 + 差量，例如1 = 0 + 1，1既是0+1合并得到的全量结果，又是0和1之间的差量
+
+依据可逆计算理论的思想，XCodeGenerator将手工修改部分看作是对自动生成部分的定制化差量，综合利用各种技术手段来实现它们之间的差量合并。
+
+### 2.1. 利用面向对象语言的类继承机制
+
+对于常见的面向对象语言，我们可以利用类继承机制来实现手工修改代码与自动生成代码的隔离。XCodeGenerator规定了如下覆盖规则：
+
+1. 以_为前缀的文件总是被覆盖
+2. _gen目录下的文件总是被覆盖
+3. 如果文件的前250个字符中包含了__XGEN_FORCE_OVERRIDE__这个字符串，则该文件自动被覆盖
+
+实际使用的一般是所谓的**三明治架构**: 定制类继承自动生成的类，而自动生成的类继承平台所提供的某种基础类，这种结构下自动生成的代码可以从平台基类中获取辅助函数和通用变量环境，而定制类可以使用自动生成的变量与函数，并在必要的时候定制自动生成的函数。
+
+```
+CustomClass extends _AutoGenClass extends BaseClass
+```
+
+```java
+public class SqlSubqueryTableSource extends _SqlSubqueryTableSource {
+    public boolean isGeneratedAlias() {
+        return alias != null && alias.isGenerated();
+    }
+
+    public ISqlTableMeta getResolvedTableMeta() {
+        return getQuery().getResolvedTableMeta();
+    }
+
+    @Override
+    public void normalize(){
+
+    }
+}
+class _SqlSubqueryTableSource extends SqlTableSource{...}
+class SqlTableSource extends _SqlTableSource {...}
+class _SqlTableSource extends EqlASTNode {...}
+```
+
+### 2.2. 针对通用Tree结构的x:extends算子
+
+对于一般性的XML和JSON格式，因为它们都对应于通用的Tree结构，可以使用可逆计算理论中所定义的通用的x:extends算子来实现差量化合并。比如百度AMIS框架是一个json格式的前台低代码框架，对它进行差量化改造，可以采用如下形式
+
+```json
+{
+  "x:extends":"_page_crud.json5",
+  "body":{
+    "columns":[
+      {
+        "x:id":"operation",
+        "buttons":[
+          {
+            "x:id":"row-update-button",
+            "visibleOn": "chgSts == '1'"
+          },
+          {
+            "x:id":"row-delete-button",
+            "visibleOn": "chgSts == '1'"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+上面的示例演示了如何为自动生成的标准增删改查列表中的行按钮增加显示状态控制。
+
+### 2.3. 通用的Delta定制
+
+整个Nop平台都是基于可逆计算理论来实现的，因此它在各个层面都支持差量定制。特别是XCodeGenerator本身可以通过Nop平台内置的delta customization机制来实现定制。
+
+1. 所有的模板文件都支持delta定制，即如果存在`/_delta/xxx/yyy.xgen`文件，则它将自动取代内置的/xxx/yyy.xgen文件
+
+2. 模板文件使用xpl模板语言来实现，因此可以通过xpl标签库来实现函数级别的定制。即通过在`/_delta`目录下增加定制标签库，可以修改系统中被使用的标签定义。
+
+```xml
+<lib x:extends="super">
+<!-- 通过x:extends表示继承此前的标签库实现，在本文件中可以
+对继承的标签定义进行增加/修改/删除操作 -->
+<tags>
+<CustomTag>
+   <source>
+       这里的实现将取代标签库缺省的实现。所有对CustomTag标签的调用都会使用这里的实现
+   </source>
+</CustomTag>
+</tags>
+</lib>
+```

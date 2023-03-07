@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm.persister;
 
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -18,8 +25,7 @@ import java.util.concurrent.CompletionStage;
 public interface IEntityPersister extends AutoCloseable {
     <T> T getExtension(Class<T> clazz);
 
-    void init(IEntityModel entityModel, IEntityIdGenerator idGenerator,
-              IPersistEnv env);
+    void init(IEntityModel entityModel, IEntityIdGenerator idGenerator, IPersistEnv env);
 
     IEntityModel getEntityModel();
 
@@ -34,14 +40,15 @@ public interface IEntityPersister extends AutoCloseable {
     IOrmEntity newEntity(IOrmSessionImplementor session);
 
     /**
-     * 支持GraphQL，采用按需加载模式
+     * 支持GraphQL，采用按需加载模式。如果加载失败，则entity的状态被标记为missing
      *
      * @param entity  实体对象
      * @param propIds 需要加载的实体属性列表
      * @param session 当前session
-     * @return 加载成功返回true
+     * @return
      */
-    CompletionStage<Boolean> loadAsync(IOrmEntity entity, IntArray propIds, IOrmSessionImplementor session);
+    CompletionStage<Void> loadAsync(IOrmEntity entity, IntArray propIds, FieldSelectionBean subSelection,
+                                    IOrmSessionImplementor session);
 
     boolean lock(IOrmEntity entity, IntArray propIds, IOrmSessionImplementor session, Runnable unlockCallback);
 
@@ -54,8 +61,8 @@ public interface IEntityPersister extends AutoCloseable {
 
     void delete(IOrmEntity entity, IOrmSessionImplementor session);
 
-    CompletionStage<Void> batchExecuteAsync(boolean topoAsc, String querySpace, List<IBatchAction.EntitySaveAction> saveActions,
-                                            List<IBatchAction.EntityUpdateAction> updateActions,
+    CompletionStage<Void> batchExecuteAsync(boolean topoAsc, String querySpace,
+                                            List<IBatchAction.EntitySaveAction> saveActions, List<IBatchAction.EntityUpdateAction> updateActions,
                                             List<IBatchAction.EntityDeleteAction> deleteActions, IOrmSessionImplementor session);
 
     <T extends IOrmEntity> List<T> findPageByExample(T example, List<OrderFieldBean> orderBy, long offset, int limit,

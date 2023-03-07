@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
+<!--
+ooxml的文档参考 http://officeopenxml.com/SSstyles.php
+
+-->
 <workbook x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
           xdef:bean-package="io.nop.excel.model"
           xdef:name="ExcelWorkbook">
@@ -12,17 +16,19 @@
         <!--
         @rotate 旋转角度，从1到360
         -->
-        <style id="!string" name="string" xdef:name="ExcelStyle"
-               wrapText="!boolean=false" shinkToFit="!boolean=false" rotate="int"
+        <style id="!string" name="string" xdef:name="ExcelStyle" indent="int"
+               wrapText="!boolean=false" shrinkToFit="!boolean=false" rotate="int"
                verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment"
                horizontalAlign="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"
-               interiorColor="string" interiorPattern="string"
+               fillBgColor="string" fillPattern="string" fillFgColor="string"
         >
             <numberFormat xdef:value="string"/>
             <!--
-            @fontSize 单位为pt, 1pt = 20 twips, 1twips=1/1440英寸
+            @fontSize 用来表示字体大小的半点，一个点等于两个半点，如表示 12pt 可以这样写
+                    24 = 12pt
+                    1pt = 20 twips, 1twips=1/1440英寸
             -->
-            <font xdef:name="ExcelFont" fontSize="float" charSet="int"
+            <font xdef:name="ExcelFont" fontSize="short" charSet="int"
                   fontName="string" fontFamily="string" fontColor="string"
                   italic="!boolean=false" bold="!boolean=false" strikeout="!boolean=false"
                   underlineStyle="enum:io.nop.excel.model.constants.ExcelFontUnderline"
@@ -33,64 +39,73 @@
 
             <bottomBorder xdef:ref="ExcelBorderStyle"/>
             <leftBorder xdef:ref="ExcelBorderStyle"/>
-            <rightBordr xdef:ref="ExcelBorderStyle"/>
+            <rightBorder xdef:ref="ExcelBorderStyle"/>
             <diagonalLeftBorder xdef:ref="ExcelBorderStyle"/>
             <diagonalRightBorder xdef:ref="ExcelBorderStyle"/>
         </style>
     </styles>
 
+    <defaultFont xdef:ref="ExcelFont" />
+
     <sheets xdef:body-type="list" xdef:key-attr="name">
-        <sheet name="!string" xdef:name="ExcelSheet"
+        <sheet name="!string" xdef:name="ExcelSheet" defaultColumnWidth="double" defaultRowHeight="double"
         >
-            <table xdef:name="ExcelTable" defaultColumnWidth="double" defaultRowHeight="double"
+            <table xdef:name="ExcelTable"
                    xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractTable&lt;io.nop.excel.model.ExcelRow>"
             >
 
                 <cols xdef:body-type="list">
-                    <col width="double" xdef:name="ExcelColumnConfig" styleId="string" hidden="!boolean=false"/>
+                    <col width="double" xdef:name="ExcelColumnConfig" styleId="string" hidden="!boolean=false">
+                        <styleIdExpr xdef:value="xpl"/>
+                    </col>
                 </cols>
 
                 <rows xdef:body-type="list">
-                    <!--
-                    @param index 行的下标，从0开始
-                    -->
-                    <row index="!int=0" xdef:name="ExcelRow" styleId="string" height="double"
-                         autoFitHeight="!boolean=false"
+                    <row xdef:name="ExcelRow" styleId="string" height="double"
+                         autoFitHeight="!boolean=false" name="string"
                          xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractRow"
                     >
                         <cells xdef:body-type="list">
                             <!--
-                               @index 列的下标，从0开始
                                @mergeAcross 向右合并的列数。mergeAcross + 1 == colSpan
                                -->
-                            <cell index="!int=0" mergeAcross="!int=0" mergeDown="!int=0" xdef:name="ExcelCell"
+                            <cell name="string" mergeAcross="!int=0" mergeDown="!int=0" xdef:name="ExcelCell"
                                   xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractCell"
                                   styleId="string" type="enum:io.nop.excel.model.constants.ExcelCellType">
+
                                 <value xdef:value="any"/>
                                 <formula xdef:value="string"/>
+
                                 <richText xdef:name="ExcelRichText" xdef:body-type="list" xdef:bean-body-prop="parts">
                                     <part xdef:name="ExcelRichTextPart">
                                         <font xdef:ref="ExcelFont"/>
                                         <text xdef:value="string"/>
                                     </part>
                                 </richText>
+
                                 <comment xdef:value="string"/>
 
+                                <!--
+                                @expandInplaceCount 单元格展开时
+                                -->
                                 <model xdef:name="XptCellModel" domain="string" editorId="var-name" viewerId="var-name"
-                                       field="prop-name" ds="var-name"
+                                       field="prop-name" ds="var-name" expandInplaceCount="int"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
-                                >
-                                    <testExpr xdef:value="xpl"/>
-                                    <formatExpr xdef:value="xpl"/>
-                                    <valueExpr xdef:value="xpl"/>
-                                    <linkExpr xdef:value="xpl"/>
-                                    <styleIdExpr xdef:value="xpl"/>
+                                       rowParent="cell-pos" colParent="cell-pos">
+                                    <rowTestExpr xdef:value="xpl-predicate"/>
+                                    <colTestExpr xdef:value="xpl-predicate"/>
+                                    <formatExpr xdef:value="report-expr"/>
+                                    <valueExpr xdef:value="report-expr"/>
+                                    <linkExpr xdef:value="report-expr"/>
+                                    <styleIdExpr xdef:value="report-expr"/>
+                                    <expandExpr xdef:value="xpl"/>
+                                    <expandOrderBy xdef:value="sql-order-by"/>
                                 </model>
                             </cell>
                         </cells>
 
-                        <model xdef:name="XplRowModel">
-                            <testExpr xdef:value="xpl"/>
+                        <model xdef:name="XptRowModel">
+                            <testExpr xdef:value="xpl-predicate"/>
                             <visibleExpr xdef:value="xpl"/>
                             <styleIdExpr xdef:value="xpl"/>
                         </model>
@@ -130,61 +145,77 @@
             </annotations>
 
             <sheetOptions xdef:name="ExcelSheetOptions" splitHorizontal="int" splitVertical="int"
-                          fitToPage="!boolean=false">
-                <pageSetup xdef:name="ExcelPageSetup" orientationHorizontal="boolean"
-                           centerHorizontal="boolean" centerVertical="boolean"
-                           startPageNumber="int" headerMargin="double" footerMargin="double"
-                           pageMarginsBottom="double" pageMarginsLeft="double"
-                           pageMarginsRight="double" pageMarginsTop="double">
-                    <header xdef:name="ExcelHeaderFooter">
-                        <left xdef:value="string"/>
-                        <center xdef:value="string"/>
-                        <right xdef:value="string"/>
-                        <leftExpr xdef:value="xpl"/>
-                        <centerExpr xdef:value="xpl"/>
-                        <rightExpr xdef:value="xpl"/>
-                        <style xdef:ref="ExcelStyle"/>
-                    </header>
+                          fitToPage="!boolean=false"/>
 
-                    <footer xdef:ref="ExcelHeaderFooter"/>
-                </pageSetup>
+            <!--
+            @scale 放大百分比
+            -->
+            <pageSetup xdef:name="ExcelPageSetup" orientationHorizontal="boolean"
+                       horizontalCentered="boolean" verticalCentered="boolean"
+                       paperSize="int" scale="int" fitToHeight="boolean" fitToWidth="boolean"
+                       firstPageNumber="int" blackAndWhite="boolean">
+                <header xdef:name="ExcelHeaderFooter">
+                    <left xdef:value="string"/>
+                    <center xdef:value="string"/>
+                    <right xdef:value="string"/>
+                    <leftExpr xdef:value="xpl"/>
+                    <centerExpr xdef:value="xpl"/>
+                    <rightExpr xdef:value="xpl"/>
+                    <style xdef:ref="ExcelStyle"/>
+                </header>
 
-                <print xdef:name="ExcelPrint" pageSizeIndex="int" horizontalResolution="int"
-                       verticalResolution="int" scale="double" gridlines="boolean"
-                       rowColHeadings="boolean" fitWidth="!boolean=false" fitHeight="!boolean=false"/>
+                <footer xdef:ref="ExcelHeaderFooter"/>
+            </pageSetup>
 
-            </sheetOptions>
+            <pageMargins xdef:name="ExcelPageMargins"
+                         top="double" bottom="double" left="double" right="double" header="double" footer="double"/>
+
+            <print xdef:name="ExcelPrint" pageSizeIndex="int" horizontalResolution="int"
+                   verticalResolution="int" scale="double" gridlines="boolean"
+                   rowColHeadings="boolean" fitWidth="!boolean=false" fitHeight="!boolean=false"/>
 
             <pageBreaks xdef:name="ExcelPageBreaks">
                 <cols xdef:value="int-list"/>
                 <rows xdef:value="int-list"/>
             </pageBreaks>
 
-            <model xdef:name="XptSheetModel" loopVarName="var-name" loopIndexName="var-name">
+            <!--
+            @sheetVarName 如果非空，则所有顶层的非展开单元格中的field实际都对应于此对象中的field。
+                    例如 sheetVarName=entity, 则field=x 实际对应 entity.x
+                    如果没有指定sheetVarName, 则field=x，实际对应scope.getValue('x')
+            -->
+            <model xdef:name="XptSheetModel" sheetVarName="string"
+                   loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
+                <testExpr xdef:value="xpl-predicate"/>
+
+                <!--
+                可以根据模板生成多个sheet。 beginLoop如果返回数组，则针对数组中的每一项都生成一个Sheet
+                -->
                 <beginLoop xdef:value="xpl"/>
                 <endLoop xdef:value="xpl"/>
-                <sheetNameExpr xdef:value="xpl"/>
-                <beforeBuild xdef:value="xpl"/>
-                <afterBuild xdef:value="xpl"/>
 
-                <beforeImport xdef:value="xpl"/>
-                <afterImport xdef:value="xpl"/>
+                <sheetNameExpr xdef:value="xpl"/>
+
+                <beforeExpand xdef:value="xpl"/>
+                <afterExpand xdef:value="xpl"/>
+
             </model>
         </sheet>
     </sheets>
 
-    <model xdef:name="XptWorkbookModel" loopVarName="var-name" loopIndexName="var-name">
+    <model xdef:name="XptWorkbookModel" loopVarName="var-name" loopIndexName="var-name" loopItemsName="var-name">
         <beginLoop xdef:value="xpl"/>
         <endLoop xdef:value="xpl"/>
-        <beforeBuild xdef:value="xpl"/>
-        <afterBuild xdef:value="xpl"/>
 
-        <beforeImport xdef:value="xpl"/>
-        <afterImport xdef:value="xpl"/>
+        <beforeExpand xdef:value="xpl"/>
+        <afterExpand xdef:value="xpl"/>
 
-        <beforeSheetLoop xdef:value="xpl"/>
-        <afterSheetLoop xdef:value="xpl"/>
-        <beforeSheetBuild xdef:value="xpl"/>
-        <afterSheetBuild xdef:value="xpl"/>
+        <editors xdef:body-type="list" xdef:key-attr="id">
+            <editr id="!string" xdef:value="xpl-xjson" xdef:name="XptXplModel"/>
+        </editors>
+
+        <viewers xdef:body-type="list" xdef:key-attr="id">
+            <viewer id="!string" xdef:ref="XptXplModel"/>
+        </viewers>
     </model>
 </workbook>

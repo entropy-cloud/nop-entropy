@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="a" displayName="ABC">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

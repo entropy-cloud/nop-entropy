@@ -1,0 +1,6 @@
+{
+  data: {
+    oldPassword: "123",
+    newPassword: "test$12345678"
+  }
+}

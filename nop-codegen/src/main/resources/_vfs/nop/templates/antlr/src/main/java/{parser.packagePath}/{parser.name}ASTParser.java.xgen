@@ -1,0 +1,40 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+package ${parser.packageName};
+
+import io.nop.antlr4.common.ParseTreeResult;
+import ${parser.antlrPackage}.${parser.name}Parser;
+import io.nop.api.core.util.SourceLocation;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.component.parse.ITextResourceParser;
+import ${ast.packageName}.${parser.mainRule.$capitalize()};
+
+public class ${parser.name}ASTParser implements ITextResourceParser&lt;${parser.mainRule.$capitalize()}> {
+    @Override
+    public ${parser.mainRule.$capitalize()} parseFromResource(IResource resource, boolean ignoreUnknown) {
+        ${parser.name}ParseTreeParser parser = newParser();
+        ParseTreeResult parseTree = parser.parseFromResource(resource, ignoreUnknown);
+        if (parseTree == null)
+            return null;
+        return transform(parseTree);
+    }
+
+    @Override
+    public ${parser.mainRule.$capitalize()} parseFromText(SourceLocation loc, String text) {
+        ${parser.name}ParseTreeParser parser = newParser();
+        ParseTreeResult parseTree = parser.parseFromText(loc, text);
+        if (parseTree == null)
+            return null;
+        return transform(parseTree);
+    }
+
+    protected ${parser.name}ParseTreeParser newParser() {
+        return new ${parser.name}ParseTreeParser();
+    }
+
+    protected ${parser.mainRule.$capitalize()} transform(ParseTreeResult parseTree) {
+        ${parser.mainRule.$capitalize()} program = new ${parser.name}ASTBuildVisitor()
+            .visit${parser.mainRule.$capitalize()}((${parser.name}Parser.${parser.mainRule.$capitalize()}Context) parseTree.getParseTree());
+        return program;
+    }
+}
+</c:unit>

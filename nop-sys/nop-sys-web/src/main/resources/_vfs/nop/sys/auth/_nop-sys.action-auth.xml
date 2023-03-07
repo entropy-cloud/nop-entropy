@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-orm-nop-sys" displayName="测试nop-sys" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-sys" component="layouts/default/index">
+            <children>
+                <resource id="NopSysCodeRule-main" displayName="编码规则" orderNo="10001" i18n-en:displayName="Code Rule"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysCodeRule/main.page.yaml"/>
+                <resource id="NopSysDict-main" displayName="字典表" orderNo="10002" i18n-en:displayName="Dictionary"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysDict/main.page.yaml"/>
+                <resource id="NopSysDictOption-main" displayName="字典明细" orderNo="10003"
+                          i18n-en:displayName="Dictionay Item" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/sys/pages/NopSysDictOption/main.page.yaml"/>
+                <resource id="NopSysI18n-main" displayName="多语言消息" orderNo="10004" i18n-en:displayName="I18n Message"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysI18n/main.page.yaml"/>
+                <resource id="NopSysMakerCheckerRecord-main" displayName="MakerChecker审批记录" orderNo="10005"
+                          i18n-en:displayName="Maker Checker Record" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/sys/pages/NopSysMakerCheckerRecord/main.page.yaml"/>
+                <resource id="NopSysNoticeTemplate-main" displayName="通知模板" orderNo="10006"
+                          i18n-en:displayName="Notice Template" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/sys/pages/NopSysNoticeTemplate/main.page.yaml"/>
+                <resource id="NopSysSequence-main" displayName="序列号" orderNo="10007" i18n-en:displayName="Sequence"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/sys/pages/NopSysSequence/main.page.yaml"/>
+                <resource id="NopSysUserVariable-main" displayName="用户变量" orderNo="10008"
+                          i18n-en:displayName="User Variable" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/sys/pages/NopSysUserVariable/main.page.yaml"/>
+                <resource id="NopSysVariable-main" displayName="系统变量" orderNo="10009"
+                          i18n-en:displayName="System Variable" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/sys/pages/NopSysVariable/main.page.yaml"/>
+            </children>
+        </resource>
+    </site>
+</auth>

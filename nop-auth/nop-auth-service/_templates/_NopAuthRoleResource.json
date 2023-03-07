@@ -1,0 +1,16 @@
+{
+  "sid": "",
+  "roleId": "",
+  "resourceId": "",
+  "delFlag": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "role": null,
+  "role.roleName": "",
+  "resource": null,
+  "resource.displayName": ""
+}

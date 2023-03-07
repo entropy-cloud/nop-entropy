@@ -1,0 +1,2 @@
+<gen:Render template="/nop/templates/meta" targetDir="${targetResource.path.$filePath()}"
+            xpl:lib="/nop/codegen/xlib/gen.xlib"/>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc" xmlns:c="c">
+    <bean id="myXplBean" class="test.io.entropy.beans.MyXplBean">
+        <property name="xplA">
+            <ioc:xpl>
+                <c:collect outputMode="html">
+                    <div/>
+                </c:collect>
+            </ioc:xpl>
+        </property>
+
+        <property name="xplB">
+            <ioc:xpl>
+                this.test();
+            </ioc:xpl>
+        </property>
+
+        <property name="exprC">
+            <ioc:xpl>
+                this.other();
+            </ioc:xpl>
+        </property>
+    </bean>
+</beans>

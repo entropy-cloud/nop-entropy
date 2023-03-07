@@ -1,0 +1,41 @@
+<c:unit xpl:outputMode="text">package ${servicePackageName}.impl;
+
+    import java.util.concurrent.CompletionStage;
+    import io.nop.core.context.IServiceContext;
+    import io.nop.api.core.util.FutureHelper;
+    import io.nop.api.core.annotations.biz.BizModel;
+    import io.nop.api.core.annotations.biz.BizQuery;
+    import io.nop.api.core.annotations.biz.BizMutation;
+    import io.nop.api.core.annotations.biz.RequestBean;
+    import ${servicePackageName}.${serviceModel.name}Spi;
+
+    <gen:CollectApiMessageImports xpl:lib="/nop/codegen/xlib/gen.xlib"
+                                  serviceModel="${serviceModel}" xpl:return="types" />
+    <c:for var="type" items="${types}">
+        import ${type};
+    </c:for>
+
+    @BizModel("${serviceModel.name}")
+    public class ${serviceModel.name}Impl implements ${serviceModel.name}Spi{
+
+    <c:for var="method" items="${serviceModel.methods}">
+        <c:choose>
+            <when test="${method.tagSet?.contains('sync')}"><![CDATA[
+     @${method.mutation?'BizMutation':'BizQuery'}
+     @Override
+     public ${method.simpleResponseMessage} ${method.name}(@RequestBean ${method.simpleRequestMessage} request, IServiceContext ctx){
+        ${method.simpleResponseMessage != 'void' ? 'return null;': ''}
+     }
+            ]]></when>
+            <otherwise><![CDATA[
+     @${method.mutation?'BizMutation':'BizQuery'}
+     @Override
+     public CompletionStage<${method.simpleResponseMessage == 'void' ? 'Void' : method.simpleResponseMessage}> ${method.name}Async(
+         @RequestBean ${method.simpleRequestMessage} request, IServiceContext ctx){
+        return FutureHelper.success(null);
+     }
+            ]]></otherwise>
+        </c:choose>
+    </c:for>
+    }
+</c:unit>

@@ -1,0 +1,4 @@
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="_${messageModel.name}.xmeta">
+    <props/>
+</meta>

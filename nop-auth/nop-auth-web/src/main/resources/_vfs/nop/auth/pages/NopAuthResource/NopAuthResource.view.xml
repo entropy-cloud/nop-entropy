@@ -53,9 +53,12 @@
             </cells>
         </form>
 
+        <!--
+        x:abstract=true表示它仅仅作为模板来使用，执行完DeltaExtend操作后，此节点会被删除，不参与最终模型对象的解析。
+        -->
         <form id="default" x:abstract="true">
             <layout>
-                sid[资源ID] siteId[站点ID]
+                resourceId[资源ID] siteId[站点ID]
                 displayName[显示名称] orderNo[排序]
                 resourceType[资源类型] parentId[父资源ID]
                 =====menuProps=============
@@ -87,6 +90,10 @@
         </form>
 
         <form id="view" x:prototype="default">
+            <!--
+            x:override=remove表示删除从_NopAuthResource继承的layout，同时因为设置了x:prototype=default，
+            结果会继承<form id="default">中指定的layout
+            -->
             <layout x:override="remove"/>
         </form>
 
@@ -108,7 +115,7 @@
                                 <!--
                                 Amis并不允许url中包含空格和回车。Nop平台为了简化代码编写，在后台通过WebPageHelper.fixPage函数进行了规范化处理
                                 -->
-                                <url>@query:NopAuthResource__findList/value:sid,label:displayName,
+                                <url>@query:NopAuthResource__findList/value:id,label:displayName,
                                     children @TreeChildren(max:5)?filter_resourceType=TOPM&amp;filter_siteId=$siteId
                                 </url>
                             </source>
@@ -137,7 +144,7 @@
 
             <table loadDataOnce="true" sortable="false" initFetch="false">
                 <!--
-                在url中可以通过{@listSelection}来引用后台根据grid配置生成的字段选择列表
+                在url中可以通过{@gql:listSelection}来引用后台根据grid配置生成的字段选择列表
                 -->
                 <api url="@query:NopAuthResource__findList/{@listSelection}?filter_resourceType=TOPM"/>
             </table>
@@ -170,10 +177,10 @@
             </data>
         </simple>
 
-        <crud name="picker">
+        <picker name="picker">
             <table loadDataOnce="true" sortable="false">
                 <api url="@query:NopAuthResource__findList/{@listSelection}?filter_siteId=$siteId&amp;filter_resourceType=TOPM"/>
             </table>
-        </crud>
+        </picker>
     </pages>
 </view>

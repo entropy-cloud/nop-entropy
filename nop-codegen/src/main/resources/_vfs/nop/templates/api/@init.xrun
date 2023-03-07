@@ -1,0 +1,27 @@
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
+    <c:script><![CDATA[
+        let apiModel = codeGenModel;
+        let appName = apiModel['ext:appName'];
+        let apiModuleName = apiModel['ext:apiModuleName'];
+        let apiPackageName = apiModel['ext:apiPackageName'];
+        let serviceModuleName = apiModel['ext:serviceModuleName'];
+        let servicePackageName = apiModel['ext:servicePackageName'];
+
+        let moduleId = apiModel['ext:moduleId'] || appName.replace('-','/');
+
+        builder.defineGlobalVar("apiModel",apiModel);
+        builder.defineGlobalVar("apiModuleName", apiModuleName);
+        builder.defineGlobalVar("apiPackageName",apiPackageName);
+        builder.defineGlobalVar("serviceModuleName", serviceModuleName);
+        builder.defineGlobalVar("servicePackageName",servicePackageName);
+        builder.defineGlobalVar("appName",appName);
+        builder.defineGlobalVar("moduleId",moduleId);
+
+        builder.defineGlobalVar("servicePackagePath",servicePackageName.replace('.','/'));
+        builder.defineGlobalVar("apiPackagePath",apiPackageName.replace('.','/'));
+
+        builder.defineLoopVar("serviceModel","apiModel", model => model.services);
+        builder.defineLoopVar("messageModel","apiModel", model => model.messages);
+
+    ]]></c:script>
+</gen:DefineLoop>

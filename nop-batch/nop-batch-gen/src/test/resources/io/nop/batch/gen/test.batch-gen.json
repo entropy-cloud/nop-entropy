@@ -1,0 +1,22 @@
+{
+  "template": {
+    "a": 1,
+    "b": 2
+  },
+  "subCases": [
+    {
+      "inheritParent": true,
+      "weight": 50,
+      "template": {
+        "c": 3
+      }
+    },
+    {
+      "inheritParent": true,
+      "weight": 50,
+      "template": {
+        "c": 4
+      }
+    }
+  ]
+}

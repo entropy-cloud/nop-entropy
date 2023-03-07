@@ -1,0 +1,67 @@
+{
+  "edges": [
+    {
+      "source": "a",
+      "target": "b"
+    },
+    {
+      "source": "a",
+      "target": "c"
+    },
+    {
+      "source": "a",
+      "target": "$GEN$4"
+    },
+    {
+      "source": "b",
+      "target": "a"
+    },
+    {
+      "source": "b",
+      "target": "c"
+    },
+    {
+      "source": "c",
+      "target": "a"
+    },
+    {
+      "source": "myChild",
+      "target": "myParent"
+    },
+    {
+      "source": "myChild",
+      "target": "myGrandparent"
+    },
+    {
+      "source": "myInjectBean",
+      "target": "a"
+    },
+    {
+      "source": "myInjectBean",
+      "target": "b"
+    },
+    {
+      "source": "testInitProperty",
+      "target": "$GEN$5"
+    }
+  ],
+  "vertices": [
+    "a",
+    "myParentNested",
+    "b",
+    "myInitBean",
+    "c",
+    "myGrandparent",
+    "myDestroyBean",
+    "$GEN$5",
+    "$GEN$4",
+    "myLazyInitBean",
+    "myFactoryBean",
+    "myLazyInitBean2",
+    "myChild",
+    "myParent",
+    "myPrototypeBean",
+    "myInjectBean",
+    "testInitProperty"
+  ]
+}

@@ -1,0 +1,42 @@
+common:
+  view: View
+  copy: Copy
+  add: Save
+  update: Update
+  edit: Edit
+  delete: Delete
+  batchDelete: Delete
+  search: Search
+  query: Query
+  queryCondition: Query Condition
+  submit: Submit
+  reset: Reset
+  operation: Operation
+  cancel: Cancel
+  confirm: Confirm
+  confirmDelete: Confirm Deleted?
+  confirmBatchDelete: Confirm Delete Selected?
+  refreshCache: Refresh Cache
+  more: More
+  yes: "Yes"
+  no: "No"
+  executeSucceed: Execute Succeed
+  executeFailed: Execute Failed
+  addChild: Add Child
+  confirmCascadeDelete: Confirm Delete This Record And All Of Its Children?
+  treeView: Tree View
+  listView: List View
+  recoverDeleted: Recover Deleted
+  confirmRecoverDeleted: Confirm Recover Deleted Record?
+  resetUserPassword: Reset Password
+  enableUser: Enable User
+  disableUser: Disable User
+  confirmDisableUser: Confirm Disable User?
+  confirmEnableUser: Confirm Enable User?
+  user: User
+  authorization: Authorization
+  selectUser: Select User
+  oldPassword: Old Password
+  newPassword: New Password
+  repeatPassword: Repeat Password
+  changePassword: Change Password

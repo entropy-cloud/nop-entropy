@@ -1,0 +1,101 @@
+{
+  "groups": [
+    {
+      "id": "group-0",
+      "location": "[1:2:0:0]text",
+      "cols": [],
+      "rows": [
+        {
+          "cells": [
+            {
+              "location": "[1:2:0:0]text",
+              "id": "a",
+              "hideLabel": true
+            },
+            {
+              "location": "[1:5:0:0]text",
+              "id": "b",
+              "readonly": true
+            }
+          ]
+        }
+      ],
+      "level": 0
+    },
+    {
+      "id": "group-1",
+      "location": "[3:2:0:0]text",
+      "cols": [],
+      "rows": [
+        {
+          "cells": [
+            {
+              "location": "[3:2:0:0]text",
+              "id": "a",
+              "label": "xx"
+            }
+          ]
+        },
+        {
+          "cells": []
+        },
+        {
+          "cells": [
+            {
+              "location": "[5:2:0:0]text",
+              "id": "c",
+              "mandatory": true
+            }
+          ]
+        },
+        {
+          "cells": [
+            {
+              "location": "[6:2:0:0]text",
+              "id": "v"
+            }
+          ]
+        }
+      ],
+      "level": 0,
+      "label": "display name",
+      "foldable": true,
+      "folded": true
+    },
+    {
+      "id": "uu",
+      "location": "[8:2:0:0]text",
+      "cols": [],
+      "rows": [
+        {
+          "cells": [
+            {
+              "location": "[9:1:0:0]text",
+              "table": {
+                "id": "sub",
+                "location": "[9:1:0:0]text",
+                "cols": [],
+                "rows": [
+                  {
+                    "cells": [
+                      {
+                        "location": "[9:1:0:0]text",
+                        "id": "d",
+                        "mergeAcross": 1
+                      },
+                      {}
+                    ]
+                  }
+                ],
+                "level": 1,
+                "label": "User Info",
+                "foldable": true
+              }
+            }
+          ]
+        }
+      ],
+      "level": 0
+    }
+  ]
+}

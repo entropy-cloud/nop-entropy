@@ -1,5 +1,4 @@
 type: page
-xui:js: '@load:/nop/auth/pages/NopAuthResource/NopAuthResource.action.js'
 name: main
 body:
   type: crud
@@ -29,7 +28,7 @@ body:
       body:
         type: form
         name: add
-        rules: &id001 [
+        rules: [
           ]
         data:
           siteId: $siteId
@@ -37,70 +36,75 @@ body:
           url: '@mutation:NopAuthResource__save/id'
         body:
         - type: group
-          id: row-sid-siteId
+          id: group-0
+          direction: vertical
+          visibleOn: null
           body:
-          - name: sid
-            label: '@i18n:cells.NopAuthResource.sid,props.label.NopAuthResource.sid|资源ID'
-            required: true
-            type: input-text
-            clearable: true
-            validations:
-              maxLength: 100
-              minLength: null
-              matchRegexp: null
-            transform:
-              upperCase: null
-              lowerCase: null
-          - name: siteId
-            label: '@i18n:cells.NopAuthResource.siteId,props.label.NopAuthResource.siteId|站点ID'
-            required: true
-            type: select
-            searchable: true
-            clearable: true
-            multiple: false
-            source: '@dict:obj/NopAuthSite'
-            value: main
-        - type: group
-          id: row-displayName-orderNo
-          body:
-          - name: displayName
-            label: '@i18n:cells.NopAuthResource.displayName,props.label.NopAuthResource.displayName|显示名称'
-            required: true
-            type: input-text
-            clearable: true
-            validations:
-              maxLength: 100
-              minLength: null
-              matchRegexp: null
-            transform:
-              upperCase: null
-              lowerCase: null
-          - name: orderNo
-            label: '@i18n:cells.NopAuthResource.orderNo,props.label.NopAuthResource.orderNo|排序'
-            required: true
-            type: input-text
-            validations: isInt
-        - type: group
-          id: row-resourceType-parentId
-          body:
-          - name: resourceType
-            label: '@i18n:cells.NopAuthResource.resourceType,props.label.NopAuthResource.resourceType|资源类型'
-            required: true
-            type: select
-            searchable: true
-            clearable: true
-            multiple: false
-            source: '@dict:auth/resource-type'
-          - name: parentId
-            label: '@i18n:cells.NopAuthResource.parentId,props.label.NopAuthResource.parentId|父资源ID'
-            visibleOn: ${resourceType != "TOPM"}
-            requiredOn: ${resourceType != 'TOPM'}
-            type: tree-select
-            clearable: true
-            source:
-              url: "@query:NopAuthResource__findList/value:sid,label:displayName,\n\
-                \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
-                \                                "
+          - type: group
+            id: row-resourceId-siteId
+            body:
+            - name: resourceId
+              label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+              required: true
+              type: input-text
+              clearable: true
+              validations:
+                maxLength: 100
+                minLength: null
+                matchRegexp: null
+              transform:
+                upperCase: null
+                lowerCase: null
+            - name: siteId
+              label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+              required: true
+              type: select
+              searchable: true
+              clearable: true
+              multiple: false
+              source: '@dict:obj/NopAuthSite'
+              value: main
+          - type: group
+            id: row-displayName-orderNo
+            body:
+            - name: displayName
+              label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+              required: true
+              type: input-text
+              clearable: true
+              validations:
+                maxLength: 100
+                minLength: null
+                matchRegexp: null
+              transform:
+                upperCase: null
+                lowerCase: null
+            - name: orderNo
+              label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+              required: true
+              type: input-text
+              validations: isInt
+          - type: group
+            id: row-resourceType-parentId
+            body:
+            - name: resourceType
+              label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+              required: true
+              type: select
+              searchable: true
+              clearable: true
+              multiple: false
+              source: '@dict:auth/resource-type'
+            - name: parentId
+              label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+              visibleOn: ${resourceType != "TOPM"}
+              requiredOn: ${resourceType != 'TOPM'}
+              type: tree-select
+              clearable: true
+              source:
+                url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
+                  \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
+                  \                                "
         - type: group
           id: menuProps
           direction: vertical
@@ -110,11 +114,11 @@ body:
             id: row-icon-routePath
             body:
             - name: icon
-              label: '@i18n:cells.NopAuthResource.icon,props.label.NopAuthResource.icon|图标'
+              label: '@i18n:cell.NopAuthResource.icon,prop.label.NopAuthResource.icon|图标'
               type: vue-form-item
               vueComponent: icon-picker
             - name: routePath
-              label: '@i18n:cells.NopAuthResource.routePath,props.label.NopAuthResource.routePath|前端路由'
+              label: '@i18n:cell.NopAuthResource.routePath,prop.label.NopAuthResource.routePath|前端路由'
               type: input-text
               clearable: true
               validations:
@@ -128,7 +132,7 @@ body:
             id: row-url-component
             body:
             - name: url
-              label: '@i18n:cells.NopAuthResource.url,props.label.NopAuthResource.url|链接'
+              label: '@i18n:cell.NopAuthResource.url,prop.label.NopAuthResource.url|链接'
               type: input-text
               clearable: true
               validations:
@@ -139,7 +143,7 @@ body:
                 upperCase: null
                 lowerCase: null
             - name: component
-              label: '@i18n:cells.NopAuthResource.component,props.label.NopAuthResource.component|组件名'
+              label: '@i18n:cell.NopAuthResource.component,prop.label.NopAuthResource.component|组件名'
               type: input-text
               clearable: true
               validations:
@@ -153,7 +157,7 @@ body:
             id: row-target-hidden
             body:
             - name: target
-              label: '@i18n:cells.NopAuthResource.target,props.label.NopAuthResource.target|链接目标'
+              label: '@i18n:cell.NopAuthResource.target,prop.label.NopAuthResource.target|链接目标'
               type: input-text
               clearable: true
               validations:
@@ -164,7 +168,7 @@ body:
                 upperCase: null
                 lowerCase: null
             - name: hidden
-              label: '@i18n:cells.NopAuthResource.hidden,props.label.NopAuthResource.hidden|是否隐藏'
+              label: '@i18n:cell.NopAuthResource.hidden,prop.label.NopAuthResource.hidden|是否隐藏'
               required: true
               type: switch
               trueValue: 1
@@ -174,21 +178,21 @@ body:
             id: row-keepAlive-noAuth
             body:
             - name: keepAlive
-              label: '@i18n:cells.NopAuthResource.keepAlive,props.label.NopAuthResource.keepAlive|隐藏时保持状态'
+              label: '@i18n:cell.NopAuthResource.keepAlive,prop.label.NopAuthResource.keepAlive|隐藏时保持状态'
               required: true
               type: switch
               trueValue: 1
               falseValue: 0
               value: '0'
             - name: noAuth
-              label: '@i18n:cells.NopAuthResource.noAuth,props.label.NopAuthResource.noAuth|不检查权限'
+              label: '@i18n:cell.NopAuthResource.noAuth,prop.label.NopAuthResource.noAuth|不检查权限'
               required: true
               type: switch
               trueValue: 1
               falseValue: 0
               value: '0'
           - name: depends
-            label: '@i18n:cells.NopAuthResource.depends,props.label.NopAuthResource.depends|依赖资源'
+            label: '@i18n:cell.NopAuthResource.depends,prop.label.NopAuthResource.depends|依赖资源'
             type: input-text
             clearable: true
             validations:
@@ -204,7 +208,7 @@ body:
           visibleOn: ${resourceType == 'FNPT'}
           body:
             name: permissions
-            label: '@i18n:cells.NopAuthResource.permissions,props.label.NopAuthResource.permissions|权限标识'
+            label: '@i18n:cell.NopAuthResource.permissions,prop.label.NopAuthResource.permissions|权限标识'
             type: input-text
             clearable: true
             validations:
@@ -223,7 +227,7 @@ body:
             id: row-status-remark
             body:
             - name: status
-              label: '@i18n:cells.NopAuthResource.status,props.label.NopAuthResource.status|状态'
+              label: '@i18n:cell.NopAuthResource.status,prop.label.NopAuthResource.status|状态'
               required: true
               type: select
               searchable: true
@@ -232,7 +236,7 @@ body:
               source: '@dict:core/active-status'
               value: '1'
             - name: remark
-              label: '@i18n:cells.NopAuthResource.remark,props.label.NopAuthResource.remark|备注'
+              label: '@i18n:cell.NopAuthResource.remark,prop.label.NopAuthResource.remark|备注'
               type: textarea
               minRows: 3
     actionType: dialog
@@ -250,7 +254,7 @@ body:
     align: right
     id: columns-toggler
   api:
-    url: '@query:NopAuthResource__findList/id,sid,site{displayName},siteId,siteId_label,displayName,resourceType,resourceType_label,icon,routePath,url,component,target,hidden,keepAlive,noAuth,status,status_label,remark,children
+    url: '@query:NopAuthResource__findList/id,resourceId,site{displayName},siteId,siteId_label,displayName,resourceType,resourceType_label,icon,routePath,url,component,target,hidden,keepAlive,noAuth,status,status_label,remark,children
       @TreeChildren(max:5)?filter_resourceType=TOPM'
   labelTpl: $displayName
   filter:
@@ -258,15 +262,21 @@ body:
     className: bg-gray-100 wrapper rounded
     submitOnInit: true
     wrapWithPanel: false
-    rules: *id001
+    rules: [
+      ]
     body:
-    - name: filter_siteId
-      placeholder: ''
-      label: '@i18n:cells.NopAuthResource.siteId,props.label.NopAuthResource.siteId|站点ID'
-      submitOnChange: true
-      type: button-group-select
-      source: '@dict:obj/NopAuthSite'
-      value: main
+    - type: group
+      id: group-0
+      direction: vertical
+      visibleOn: null
+      body:
+        name: filter_siteId
+        placeholder: ''
+        label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+        submitOnChange: true
+        type: button-group-select
+        source: '@dict:obj/NopAuthSite'
+        value: main
     actions:
     - type: reset
       label: '@i18n:common.reset'
@@ -276,25 +286,25 @@ body:
       level: primary
       id: submit-button
   columns:
-  - name: sid
-    label: '@i18n:cols.NopAuthResource.sid,props.label.NopAuthResource.sid|资源ID'
+  - name: resourceId
+    label: '@i18n:col.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
     sortable: true
     toggled: true
     fixed: left
     type: static
   - name: displayName
-    label: '@i18n:cols.NopAuthResource.displayName,props.label.NopAuthResource.displayName|显示名称'
+    label: '@i18n:col.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
     sortable: true
     toggled: true
     type: static
   - name: resourceType_label
-    label: '@i18n:cols.NopAuthResource.resourceType,props.label.NopAuthResource.resourceType|资源类型'
+    label: '@i18n:col.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
     sortable: true
     width: 100px
     toggled: true
     type: static
   - name: icon
-    label: '@i18n:cols.NopAuthResource.icon,props.label.NopAuthResource.icon|图标'
+    label: '@i18n:col.NopAuthResource.icon,prop.label.NopAuthResource.icon|图标'
     sortable: true
     toggled: true
     align: center
@@ -303,27 +313,27 @@ body:
     props:
       icon: $icon
   - name: routePath
-    label: '@i18n:cols.NopAuthResource.routePath,props.label.NopAuthResource.routePath|前端路由'
+    label: '@i18n:col.NopAuthResource.routePath,prop.label.NopAuthResource.routePath|前端路由'
     sortable: true
     toggled: true
     type: static
   - name: url
-    label: '@i18n:cols.NopAuthResource.url,props.label.NopAuthResource.url|链接'
+    label: '@i18n:col.NopAuthResource.url,prop.label.NopAuthResource.url|链接'
     sortable: true
     toggled: true
     type: static
   - name: component
-    label: '@i18n:cols.NopAuthResource.component,props.label.NopAuthResource.component|组件名'
+    label: '@i18n:col.NopAuthResource.component,prop.label.NopAuthResource.component|组件名'
     sortable: true
     toggled: true
     type: static
   - name: target
-    label: '@i18n:cols.NopAuthResource.target,props.label.NopAuthResource.target|链接目标'
+    label: '@i18n:col.NopAuthResource.target,prop.label.NopAuthResource.target|链接目标'
     sortable: true
     toggled: true
     type: static
   - name: hidden
-    label: '@i18n:cols.NopAuthResource.hidden,props.label.NopAuthResource.hidden|是否隐藏'
+    label: '@i18n:col.NopAuthResource.hidden,prop.label.NopAuthResource.hidden|是否隐藏'
     sortable: true
     toggled: true
     align: center
@@ -331,10 +341,12 @@ body:
     map:
       '1': <span class='label label-success'>{@i18n:common.yes}</span>
       '0': <span class='label label-warning'>{@i18n:common.no}</span>
+      'true': <span class='label label-success'>{@i18n:common.yes}</span>
+      'false': <span class='label label-warning'>{@i18n:common.no}</span>
       ? ''
       : ''
   - name: keepAlive
-    label: '@i18n:cols.NopAuthResource.keepAlive,props.label.NopAuthResource.keepAlive|隐藏时保持状态'
+    label: '@i18n:col.NopAuthResource.keepAlive,prop.label.NopAuthResource.keepAlive|隐藏时保持状态'
     sortable: true
     toggled: true
     align: center
@@ -342,10 +354,12 @@ body:
     map:
       '1': <span class='label label-success'>{@i18n:common.yes}</span>
       '0': <span class='label label-warning'>{@i18n:common.no}</span>
+      'true': <span class='label label-success'>{@i18n:common.yes}</span>
+      'false': <span class='label label-warning'>{@i18n:common.no}</span>
       ? ''
       : ''
   - name: noAuth
-    label: '@i18n:cols.NopAuthResource.noAuth,props.label.NopAuthResource.noAuth|不检查权限'
+    label: '@i18n:col.NopAuthResource.noAuth,prop.label.NopAuthResource.noAuth|不检查权限'
     sortable: true
     toggled: true
     align: center
@@ -353,16 +367,18 @@ body:
     map:
       '1': <span class='label label-success'>{@i18n:common.yes}</span>
       '0': <span class='label label-warning'>{@i18n:common.no}</span>
+      'true': <span class='label label-success'>{@i18n:common.yes}</span>
+      'false': <span class='label label-warning'>{@i18n:common.no}</span>
       ? ''
       : ''
   - name: status_label
-    label: '@i18n:cols.NopAuthResource.status,props.label.NopAuthResource.status|状态'
+    label: '@i18n:col.NopAuthResource.status,prop.label.NopAuthResource.status|状态'
     sortable: true
     width: 50px
     toggled: true
     type: static
   - name: remark
-    label: '@i18n:cols.NopAuthResource.remark,props.label.NopAuthResource.remark|备注'
+    label: '@i18n:col.NopAuthResource.remark,prop.label.NopAuthResource.remark|备注'
     sortable: true
     toggled: true
     type: static
@@ -386,43 +402,49 @@ body:
         body:
           type: form
           name: view
-          rules: *id001
+          rules: [
+            ]
           api:
-            url: '@query:NopAuthResource__get/id,sid,site{displayName},siteId,siteId_label,displayName,orderNo,resourceType,resourceType_label,parent{displayName},parentId,icon,routePath,url,component,target,hidden,keepAlive,noAuth,depends,permissions,status,status_label,remark?id=$id'
+            url: '@query:NopAuthResource__get/id,resourceId,site{displayName},siteId,siteId_label,displayName,orderNo,resourceType,resourceType_label,parent{displayName},parentId,icon,routePath,url,component,target,hidden,keepAlive,noAuth,depends,permissions,status,status_label,remark?id=$id'
           body:
           - type: group
-            id: row-sid-siteId
+            id: group-0
+            direction: vertical
+            visibleOn: null
             body:
-            - name: sid
-              label: '@i18n:cells.NopAuthResource.sid,props.label.NopAuthResource.sid|资源ID'
-              required: true
-              type: static
-            - name: siteId_label
-              label: '@i18n:cells.NopAuthResource.siteId,props.label.NopAuthResource.siteId|站点ID'
-              required: true
-              type: static
-          - type: group
-            id: row-displayName-orderNo
-            body:
-            - name: displayName
-              label: '@i18n:cells.NopAuthResource.displayName,props.label.NopAuthResource.displayName|显示名称'
-              required: true
-              type: static
-            - name: orderNo
-              label: '@i18n:cells.NopAuthResource.orderNo,props.label.NopAuthResource.orderNo|排序'
-              required: true
-              type: static
-          - type: group
-            id: row-resourceType-parentId
-            body:
-            - name: resourceType_label
-              label: '@i18n:cells.NopAuthResource.resourceType,props.label.NopAuthResource.resourceType|资源类型'
-              required: true
-              type: static
-            - name: parent.displayName
-              label: '@i18n:cells.NopAuthResource.parentId,props.label.NopAuthResource.parentId|父资源ID'
-              requiredOn: ${resourceType != 'TOPM'}
-              type: static
+            - type: group
+              id: row-resourceId-siteId
+              body:
+              - name: resourceId
+                label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+                required: true
+                type: static
+              - name: siteId_label
+                label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+                required: true
+                type: static
+            - type: group
+              id: row-displayName-orderNo
+              body:
+              - name: displayName
+                label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+                required: true
+                type: static
+              - name: orderNo
+                label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+                required: true
+                type: static
+            - type: group
+              id: row-resourceType-parentId
+              body:
+              - name: resourceType_label
+                label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+                required: true
+                type: static
+              - name: parent.displayName
+                label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+                requiredOn: ${resourceType != 'TOPM'}
+                type: static
           - type: group
             id: menuProps
             direction: vertical
@@ -432,58 +454,64 @@ body:
               id: row-icon-routePath
               body:
               - name: icon
-                label: '@i18n:cells.NopAuthResource.icon,props.label.NopAuthResource.icon|图标'
+                label: '@i18n:cell.NopAuthResource.icon,prop.label.NopAuthResource.icon|图标'
                 type: static
               - name: routePath
-                label: '@i18n:cells.NopAuthResource.routePath,props.label.NopAuthResource.routePath|前端路由'
+                label: '@i18n:cell.NopAuthResource.routePath,prop.label.NopAuthResource.routePath|前端路由'
                 type: static
             - type: group
               id: row-url-component
               body:
               - name: url
-                label: '@i18n:cells.NopAuthResource.url,props.label.NopAuthResource.url|链接'
+                label: '@i18n:cell.NopAuthResource.url,prop.label.NopAuthResource.url|链接'
                 type: static
               - name: component
-                label: '@i18n:cells.NopAuthResource.component,props.label.NopAuthResource.component|组件名'
+                label: '@i18n:cell.NopAuthResource.component,prop.label.NopAuthResource.component|组件名'
                 type: static
             - type: group
               id: row-target-hidden
               body:
               - name: target
-                label: '@i18n:cells.NopAuthResource.target,props.label.NopAuthResource.target|链接目标'
+                label: '@i18n:cell.NopAuthResource.target,prop.label.NopAuthResource.target|链接目标'
                 type: static
               - name: hidden
-                label: '@i18n:cells.NopAuthResource.hidden,props.label.NopAuthResource.hidden|是否隐藏'
+                label: '@i18n:cell.NopAuthResource.hidden,prop.label.NopAuthResource.hidden|是否隐藏'
                 required: true
                 type: static-mapping
                 map:
                   '1': <span class='label label-success'>{@i18n:common.yes}</span>
                   '0': <span class='label label-warning'>{@i18n:common.no}</span>
+                  'true': <span class='label label-success'>{@i18n:common.yes}</span>
+                  'false': <span class='label label-warning'>{@i18n:common.no}</span>
                   ? ''
                   : ''
             - type: group
               id: row-keepAlive-noAuth
               body:
               - name: keepAlive
-                label: '@i18n:cells.NopAuthResource.keepAlive,props.label.NopAuthResource.keepAlive|隐藏时保持状态'
+                label: '@i18n:cell.NopAuthResource.keepAlive,prop.label.NopAuthResource.keepAlive|隐藏时保持状态'
                 required: true
                 type: static-mapping
                 map:
                   '1': <span class='label label-success'>{@i18n:common.yes}</span>
                   '0': <span class='label label-warning'>{@i18n:common.no}</span>
+                  'true': <span class='label label-success'>{@i18n:common.yes}</span>
+                  'false': <span class='label label-warning'>{@i18n:common.no}</span>
                   ? ''
                   : ''
               - name: noAuth
-                label: '@i18n:cells.NopAuthResource.noAuth,props.label.NopAuthResource.noAuth|不检查权限'
+                label: '@i18n:cell.NopAuthResource.noAuth,prop.label.NopAuthResource.noAuth|不检查权限'
                 required: true
                 type: static-mapping
                 map:
                   '1': <span class='label label-success'>{@i18n:common.yes}</span>
                   '0': <span class='label label-warning'>{@i18n:common.no}</span>
+                  'true': <span class='label label-success'>{@i18n:common.yes}</span>
+                  'false': <span class='label label-warning'>{@i18n:common.no}</span>
                   ? ''
                   : ''
             - name: depends
-              label: '@i18n:cells.NopAuthResource.depends,props.label.NopAuthResource.depends|依赖资源'
+              label: '@i18n:cell.NopAuthResource.depends,prop.label.NopAuthResource.depends|依赖资源'
               type: static
           - type: group
             id: authProps
@@ -491,7 +519,7 @@ body:
             visibleOn: ${resourceType == 'FNPT'}
             body:
               name: permissions
-              label: '@i18n:cells.NopAuthResource.permissions,props.label.NopAuthResource.permissions|权限标识'
+              label: '@i18n:cell.NopAuthResource.permissions,prop.label.NopAuthResource.permissions|权限标识'
               type: static
           - type: group
             id: otherProps
@@ -502,11 +530,11 @@ body:
               id: row-status-remark
               body:
               - name: status_label
-                label: '@i18n:cells.NopAuthResource.status,props.label.NopAuthResource.status|状态'
+                label: '@i18n:cell.NopAuthResource.status,prop.label.NopAuthResource.status|状态'
                 required: true
                 type: static
               - name: remark
-                label: '@i18n:cells.NopAuthResource.remark,props.label.NopAuthResource.remark|备注'
+                label: '@i18n:cell.NopAuthResource.remark,prop.label.NopAuthResource.remark|备注'
                 type: static
       actionType: dialog
     - type: dropdown-button
@@ -526,14 +554,15 @@ body:
           body:
             type: form
             name: edit
-            rules: *id001
+            rules: [
+              ]
             initApi:
-              url: '@query:NopAuthResource__get/id,sid,site{displayName},siteId,siteId_label,displayName,orderNo,resourceType,resourceType_label,parent{displayName},parentId,icon,routePath,url,component,target,hidden,keepAlive,noAuth,depends,permissions,status,status_label,remark?id=$id'
+              url: '@query:NopAuthResource__get/id,resourceId,site{displayName},siteId,siteId_label,displayName,orderNo,resourceType,resourceType_label,parent{displayName},parentId,icon,routePath,url,component,target,hidden,keepAlive,noAuth,depends,permissions,status,status_label,remark?id=$id'
             api:
               url: '@mutation:NopAuthResource__update/id?id=$id'
               withFormData: true
               data:
-                sid: $sid
+                resourceId: $resourceId
                 siteId: $siteId
                 displayName: $displayName
                 orderNo: $orderNo
@@ -553,61 +582,66 @@ body:
                 remark: $remark
             body:
             - type: group
-              id: row-sid-siteId
+              id: group-0
+              direction: vertical
+              visibleOn: null
               body:
-              - name: sid
-                label: '@i18n:cells.NopAuthResource.sid,props.label.NopAuthResource.sid|资源ID'
-                required: true
-                type: static
-              - name: siteId
-                label: '@i18n:cells.NopAuthResource.siteId,props.label.NopAuthResource.siteId|站点ID'
-                required: true
-                type: select
-                searchable: true
-                clearable: true
-                multiple: false
-                source: '@dict:obj/NopAuthSite'
-            - type: group
-              id: row-displayName-orderNo
-              body:
-              - name: displayName
-                label: '@i18n:cells.NopAuthResource.displayName,props.label.NopAuthResource.displayName|显示名称'
-                required: true
-                type: input-text
-                clearable: true
-                validations:
-                  maxLength: 100
-                  minLength: null
-                  matchRegexp: null
-                transform:
-                  upperCase: null
-                  lowerCase: null
-              - name: orderNo
-                label: '@i18n:cells.NopAuthResource.orderNo,props.label.NopAuthResource.orderNo|排序'
-                required: true
-                type: input-text
-                validations: isInt
-            - type: group
-              id: row-resourceType-parentId
-              body:
-              - name: resourceType
-                label: '@i18n:cells.NopAuthResource.resourceType,props.label.NopAuthResource.resourceType|资源类型'
-                required: true
-                type: select
-                searchable: true
-                clearable: true
-                multiple: false
-                source: '@dict:auth/resource-type'
-              - name: parentId
-                label: '@i18n:cells.NopAuthResource.parentId,props.label.NopAuthResource.parentId|父资源ID'
-                visibleOn: ${resourceType != "TOPM"}
-                requiredOn: ${resourceType != 'TOPM'}
-                type: tree-select
-                clearable: true
-                source:
-                  url: "@query:NopAuthResource__findList/value:sid,label:displayName,\n\
-                    \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
-                    \                                "
+              - type: group
+                id: row-resourceId-siteId
+                body:
+                - name: resourceId
+                  label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+                  required: true
+                  type: static
+                - name: siteId
+                  label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+                  required: true
+                  type: select
+                  searchable: true
+                  clearable: true
+                  multiple: false
+                  source: '@dict:obj/NopAuthSite'
+              - type: group
+                id: row-displayName-orderNo
+                body:
+                - name: displayName
+                  label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+                  required: true
+                  type: input-text
+                  clearable: true
+                  validations:
+                    maxLength: 100
+                    minLength: null
+                    matchRegexp: null
+                  transform:
+                    upperCase: null
+                    lowerCase: null
+                - name: orderNo
+                  label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+                  required: true
+                  type: input-text
+                  validations: isInt
+              - type: group
+                id: row-resourceType-parentId
+                body:
+                - name: resourceType
+                  label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+                  required: true
+                  type: select
+                  searchable: true
+                  clearable: true
+                  multiple: false
+                  source: '@dict:auth/resource-type'
+                - name: parentId
+                  label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+                  visibleOn: ${resourceType != "TOPM"}
+                  requiredOn: ${resourceType != 'TOPM'}
+                  type: tree-select
+                  clearable: true
+                  source:
+                    url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
+                      \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
+                      \                                "
             - type: group
               id: menuProps
               direction: vertical
@@ -617,11 +651,11 @@ body:
                 id: row-icon-routePath
                 body:
                 - name: icon
-                  label: '@i18n:cells.NopAuthResource.icon,props.label.NopAuthResource.icon|图标'
+                  label: '@i18n:cell.NopAuthResource.icon,prop.label.NopAuthResource.icon|图标'
                   type: vue-form-item
                   vueComponent: icon-picker
                 - name: routePath
-                  label: '@i18n:cells.NopAuthResource.routePath,props.label.NopAuthResource.routePath|前端路由'
+                  label: '@i18n:cell.NopAuthResource.routePath,prop.label.NopAuthResource.routePath|前端路由'
                   type: input-text
                   clearable: true
                   validations:
@@ -635,7 +669,7 @@ body:
                 id: row-url-component
                 body:
                 - name: url
-                  label: '@i18n:cells.NopAuthResource.url,props.label.NopAuthResource.url|链接'
+                  label: '@i18n:cell.NopAuthResource.url,prop.label.NopAuthResource.url|链接'
                   type: input-text
                   clearable: true
                   validations:
@@ -646,7 +680,7 @@ body:
                     upperCase: null
                     lowerCase: null
                 - name: component
-                  label: '@i18n:cells.NopAuthResource.component,props.label.NopAuthResource.component|组件名'
+                  label: '@i18n:cell.NopAuthResource.component,prop.label.NopAuthResource.component|组件名'
                   type: input-text
                   clearable: true
                   validations:
@@ -660,7 +694,7 @@ body:
                 id: row-target-hidden
                 body:
                 - name: target
-                  label: '@i18n:cells.NopAuthResource.target,props.label.NopAuthResource.target|链接目标'
+                  label: '@i18n:cell.NopAuthResource.target,prop.label.NopAuthResource.target|链接目标'
                   type: input-text
                   clearable: true
                   validations:
@@ -671,7 +705,7 @@ body:
                     upperCase: null
                     lowerCase: null
                 - name: hidden
-                  label: '@i18n:cells.NopAuthResource.hidden,props.label.NopAuthResource.hidden|是否隐藏'
+                  label: '@i18n:cell.NopAuthResource.hidden,prop.label.NopAuthResource.hidden|是否隐藏'
                   required: true
                   type: switch
                   trueValue: 1
@@ -681,21 +715,21 @@ body:
                 id: row-keepAlive-noAuth
                 body:
                 - name: keepAlive
-                  label: '@i18n:cells.NopAuthResource.keepAlive,props.label.NopAuthResource.keepAlive|隐藏时保持状态'
+                  label: '@i18n:cell.NopAuthResource.keepAlive,prop.label.NopAuthResource.keepAlive|隐藏时保持状态'
                   required: true
                   type: switch
                   trueValue: 1
                   falseValue: 0
                   value: 0
                 - name: noAuth
-                  label: '@i18n:cells.NopAuthResource.noAuth,props.label.NopAuthResource.noAuth|不检查权限'
+                  label: '@i18n:cell.NopAuthResource.noAuth,prop.label.NopAuthResource.noAuth|不检查权限'
                   required: true
                   type: switch
                   trueValue: 1
                   falseValue: 0
                   value: 0
               - name: depends
-                label: '@i18n:cells.NopAuthResource.depends,props.label.NopAuthResource.depends|依赖资源'
+                label: '@i18n:cell.NopAuthResource.depends,prop.label.NopAuthResource.depends|依赖资源'
                 type: input-text
                 clearable: true
                 validations:
@@ -711,7 +745,7 @@ body:
               visibleOn: ${resourceType == 'FNPT'}
               body:
                 name: permissions
-                label: '@i18n:cells.NopAuthResource.permissions,props.label.NopAuthResource.permissions|权限标识'
+                label: '@i18n:cell.NopAuthResource.permissions,prop.label.NopAuthResource.permissions|权限标识'
                 type: input-text
                 clearable: true
                 validations:
@@ -730,7 +764,7 @@ body:
                 id: row-status-remark
                 body:
                 - name: status
-                  label: '@i18n:cells.NopAuthResource.status,props.label.NopAuthResource.status|状态'
+                  label: '@i18n:cell.NopAuthResource.status,prop.label.NopAuthResource.status|状态'
                   required: true
                   type: select
                   searchable: true
@@ -738,7 +772,7 @@ body:
                   multiple: false
                   source: '@dict:core/active-status'
                 - name: remark
-                  label: '@i18n:cells.NopAuthResource.remark,props.label.NopAuthResource.remark|备注'
+                  label: '@i18n:cell.NopAuthResource.remark,prop.label.NopAuthResource.remark|备注'
                   type: textarea
                   minRows: 3
         actionType: dialog
@@ -757,14 +791,15 @@ body:
           body:
             type: form
             name: add
-            rules: *id001
+            rules: [
+              ]
             data:
               siteId: $siteId
             api:
               url: '@mutation:NopAuthResource__save/id'
               withFormData: true
               data:
-                sid: $sid
+                resourceId: $resourceId
                 siteId: $siteId
                 displayName: $displayName
                 orderNo: $orderNo
@@ -784,70 +819,75 @@ body:
                 remark: $remark
             body:
             - type: group
-              id: row-sid-siteId
+              id: group-0
+              direction: vertical
+              visibleOn: null
               body:
-              - name: sid
-                label: '@i18n:cells.NopAuthResource.sid,props.label.NopAuthResource.sid|资源ID'
-                required: true
-                type: input-text
-                clearable: true
-                validations:
-                  maxLength: 100
-                  minLength: null
-                  matchRegexp: null
-                transform:
-                  upperCase: null
-                  lowerCase: null
-              - name: siteId
-                label: '@i18n:cells.NopAuthResource.siteId,props.label.NopAuthResource.siteId|站点ID'
-                required: true
-                type: select
-                searchable: true
-                clearable: true
-                multiple: false
-                source: '@dict:obj/NopAuthSite'
-                value: main
-            - type: group
-              id: row-displayName-orderNo
-              body:
-              - name: displayName
-                label: '@i18n:cells.NopAuthResource.displayName,props.label.NopAuthResource.displayName|显示名称'
-                required: true
-                type: input-text
-                clearable: true
-                validations:
-                  maxLength: 100
-                  minLength: null
-                  matchRegexp: null
-                transform:
-                  upperCase: null
-                  lowerCase: null
-              - name: orderNo
-                label: '@i18n:cells.NopAuthResource.orderNo,props.label.NopAuthResource.orderNo|排序'
-                required: true
-                type: input-text
-                validations: isInt
-            - type: group
-              id: row-resourceType-parentId
-              body:
-              - name: resourceType
-                label: '@i18n:cells.NopAuthResource.resourceType,props.label.NopAuthResource.resourceType|资源类型'
-                required: true
-                type: select
-                searchable: true
-                clearable: true
-                multiple: false
-                source: '@dict:auth/resource-type'
-              - name: parentId
-                label: '@i18n:cells.NopAuthResource.parentId,props.label.NopAuthResource.parentId|父资源ID'
-                visibleOn: ${resourceType != "TOPM"}
-                requiredOn: ${resourceType != 'TOPM'}
-                type: tree-select
-                clearable: true
-                source:
-                  url: "@query:NopAuthResource__findList/value:sid,label:displayName,\n\
-                    \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
-                    \                                "
+              - type: group
+                id: row-resourceId-siteId
+                body:
+                - name: resourceId
+                  label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+                  required: true
+                  type: input-text
+                  clearable: true
+                  validations:
+                    maxLength: 100
+                    minLength: null
+                    matchRegexp: null
+                  transform:
+                    upperCase: null
+                    lowerCase: null
+                - name: siteId
+                  label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+                  required: true
+                  type: select
+                  searchable: true
+                  clearable: true
+                  multiple: false
+                  source: '@dict:obj/NopAuthSite'
+                  value: main
+              - type: group
+                id: row-displayName-orderNo
+                body:
+                - name: displayName
+                  label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+                  required: true
+                  type: input-text
+                  clearable: true
+                  validations:
+                    maxLength: 100
+                    minLength: null
+                    matchRegexp: null
+                  transform:
+                    upperCase: null
+                    lowerCase: null
+                - name: orderNo
+                  label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+                  required: true
+                  type: input-text
+                  validations: isInt
+              - type: group
+                id: row-resourceType-parentId
+                body:
+                - name: resourceType
+                  label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+                  required: true
+                  type: select
+                  searchable: true
+                  clearable: true
+                  multiple: false
+                  source: '@dict:auth/resource-type'
+                - name: parentId
+                  label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+                  visibleOn: ${resourceType != "TOPM"}
+                  requiredOn: ${resourceType != 'TOPM'}
+                  type: tree-select
+                  clearable: true
+                  source:
+                    url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
+                      \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
+                      \                                "
             - type: group
               id: menuProps
               direction: vertical
@@ -857,11 +897,11 @@ body:
                 id: row-icon-routePath
                 body:
                 - name: icon
-                  label: '@i18n:cells.NopAuthResource.icon,props.label.NopAuthResource.icon|图标'
+                  label: '@i18n:cell.NopAuthResource.icon,prop.label.NopAuthResource.icon|图标'
                   type: vue-form-item
                   vueComponent: icon-picker
                 - name: routePath
-                  label: '@i18n:cells.NopAuthResource.routePath,props.label.NopAuthResource.routePath|前端路由'
+                  label: '@i18n:cell.NopAuthResource.routePath,prop.label.NopAuthResource.routePath|前端路由'
                   type: input-text
                   clearable: true
                   validations:
@@ -875,7 +915,7 @@ body:
                 id: row-url-component
                 body:
                 - name: url
-                  label: '@i18n:cells.NopAuthResource.url,props.label.NopAuthResource.url|链接'
+                  label: '@i18n:cell.NopAuthResource.url,prop.label.NopAuthResource.url|链接'
                   type: input-text
                   clearable: true
                   validations:
@@ -886,7 +926,7 @@ body:
                     upperCase: null
                     lowerCase: null
                 - name: component
-                  label: '@i18n:cells.NopAuthResource.component,props.label.NopAuthResource.component|组件名'
+                  label: '@i18n:cell.NopAuthResource.component,prop.label.NopAuthResource.component|组件名'
                   type: input-text
                   clearable: true
                   validations:
@@ -900,7 +940,7 @@ body:
                 id: row-target-hidden
                 body:
                 - name: target
-                  label: '@i18n:cells.NopAuthResource.target,props.label.NopAuthResource.target|链接目标'
+                  label: '@i18n:cell.NopAuthResource.target,prop.label.NopAuthResource.target|链接目标'
                   type: input-text
                   clearable: true
                   validations:
@@ -911,7 +951,7 @@ body:
                     upperCase: null
                     lowerCase: null
                 - name: hidden
-                  label: '@i18n:cells.NopAuthResource.hidden,props.label.NopAuthResource.hidden|是否隐藏'
+                  label: '@i18n:cell.NopAuthResource.hidden,prop.label.NopAuthResource.hidden|是否隐藏'
                   required: true
                   type: switch
                   trueValue: 1
@@ -921,21 +961,21 @@ body:
                 id: row-keepAlive-noAuth
                 body:
                 - name: keepAlive
-                  label: '@i18n:cells.NopAuthResource.keepAlive,props.label.NopAuthResource.keepAlive|隐藏时保持状态'
+                  label: '@i18n:cell.NopAuthResource.keepAlive,prop.label.NopAuthResource.keepAlive|隐藏时保持状态'
                   required: true
                   type: switch
                   trueValue: 1
                   falseValue: 0
                   value: '0'
                 - name: noAuth
-                  label: '@i18n:cells.NopAuthResource.noAuth,props.label.NopAuthResource.noAuth|不检查权限'
+                  label: '@i18n:cell.NopAuthResource.noAuth,prop.label.NopAuthResource.noAuth|不检查权限'
                   required: true
                   type: switch
                   trueValue: 1
                   falseValue: 0
                   value: '0'
               - name: depends
-                label: '@i18n:cells.NopAuthResource.depends,props.label.NopAuthResource.depends|依赖资源'
+                label: '@i18n:cell.NopAuthResource.depends,prop.label.NopAuthResource.depends|依赖资源'
                 type: input-text
                 clearable: true
                 validations:
@@ -951,7 +991,7 @@ body:
               visibleOn: ${resourceType == 'FNPT'}
               body:
                 name: permissions
-                label: '@i18n:cells.NopAuthResource.permissions,props.label.NopAuthResource.permissions|权限标识'
+                label: '@i18n:cell.NopAuthResource.permissions,prop.label.NopAuthResource.permissions|权限标识'
                 type: input-text
                 clearable: true
                 validations:
@@ -970,7 +1010,7 @@ body:
                 id: row-status-remark
                 body:
                 - name: status
-                  label: '@i18n:cells.NopAuthResource.status,props.label.NopAuthResource.status|状态'
+                  label: '@i18n:cell.NopAuthResource.status,prop.label.NopAuthResource.status|状态'
                   required: true
                   type: select
                   searchable: true
@@ -979,7 +1019,7 @@ body:
                   source: '@dict:core/active-status'
                   value: '1'
                 - name: remark
-                  label: '@i18n:cells.NopAuthResource.remark,props.label.NopAuthResource.remark|备注'
+                  label: '@i18n:cell.NopAuthResource.remark,prop.label.NopAuthResource.remark|备注'
                   type: textarea
                   minRows: 3
         visibleOn: ${resourceType != 'FNPT'}

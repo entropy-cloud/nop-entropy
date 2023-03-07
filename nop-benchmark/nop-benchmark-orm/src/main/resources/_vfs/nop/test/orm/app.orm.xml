@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <!--
+        CREATE TABLE sys_user (
+            ID int NOT NULL ,
+            CODE  varchar(16) DEFAULT NULL,
+            PRIMARY KEY ( ID )
+        ) ;
+        -->
+        <entity name="org.beetl.sql.jmh.xorm.vo.SysUser" tableName="sys_user">
+            <columns>
+                <column name="id" code="ID" propId="1" stdSqlType="INTEGER"
+                        primary="true" mandatory="true" tagSet="seq"/>
+                <column name="code" code="CODE" propId="2" stdSqlType="VARCHAR" precision="16"/>
+            </columns>
+        </entity>
+
+        <!--
+        CREATE TABLE sys_customer (
+            ID int NOT NULL ,
+            CODE  varchar(16) DEFAULT NULL,
+            NAME  varchar(16) DEFAULT NULL,
+            PRIMARY KEY ( ID )
+        ) ;
+        -->
+        <entity name="org.beetl.sql.jmh.xorm.vo.SysCustomer" tableName="sys_customer" registerShortName="true">
+            <columns>
+                <column name="id" code="ID" propId="1" stdSqlType="INTEGER"
+                        primary="true" mandatory="true" tagSet="seq"/>
+                <column name="code" code="CODE" propId="2" stdSqlType="VARCHAR" precision="16"/>
+                <column name="name" code="NAME" propId="3" stdSqlType="VARCHAR" precision="16"/>
+            </columns>
+        </entity>
+
+
+        <!--
+        CREATE TABLE sys_order (
+            ID int NOT NULL ,
+            NAME  varchar(16) DEFAULT NULL,
+            customer_id int ,
+            PRIMARY KEY ( ID )
+        ) ;
+        -->
+        <entity name="org.beetl.sql.jmh.xorm.vo.SysOrder" tableName="sys_order">
+            <columns>
+                <column name="id" code="ID" propId="1" stdSqlType="INTEGER"
+                        primary="true" mandatory="true" tagSet="seq"/>
+                <column name="name" code="NAME" propId="2" stdSqlType="VARCHAR" precision="16"/>
+                <column name="customerId" code="CUSTOMER_ID" propId="3" stdSqlType="INTEGER"/>
+            </columns>
+
+            <relations>
+                <to-one name="customer" refEntityName="org.beetl.sql.jmh.xorm.vo.SysCustomer" refPropName="orders">
+                    <join>
+                        <on leftProp="customerId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+    </entities>
+</orm>

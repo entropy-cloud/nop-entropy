@@ -87,7 +87,7 @@
         </errorCode>
     </errorCodes>
 
-    <features supportSequence="true" supportNullsFirst="true" />
+    <features supportSequence="true" supportNullsFirst="true"/>
 
     <sqls escapeSlash="false">
         <createSequence>
@@ -105,6 +105,7 @@
         <sqlDataType name="TINYINT" code="INT4" stdSqlType="TINYINT"/>
         <sqlDataType name="SMALLINT" code="INT4" stdSqlType="SMALLINT"/>
         <sqlDataType name="INT8" stdSqlType="BIGINT"/>
+        <sqlDataType name="VARCHAR" precision="4000" stdSqlType="VARCHAR"/>
         <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME"/>
@@ -114,23 +115,23 @@
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
         <sqlDataType name="BYTEA" allowPrecision="false" stdSqlType="VARBINARY"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
-<!--        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>-->
+        <!--        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>-->
     </sqlDataTypes>
 
     <functions>
-        <native name="cosh" x:override="remove" />
-        <native name="sinh" x:override="remove" />
+        <native name="cosh" x:override="remove"/>
+        <native name="sinh" x:override="remove"/>
 
         <!--
         安装扩展pgcrypto之后可以有函数gen_random_uuid()。
         或者安装扩展 uuid-ossp
         -->
         <native name="uuid" x:override="remove"/>
-        <native name="rand" realName="random"  x:override="merge"/>
+        <native name="rand" realName="random" x:override="merge"/>
         <native name="instr" realName="strpos" x:override="merge"/>
 
         <native name="current_date" hasParenthesis="false" x:override="merge"/>
-        <native name="current_timestamp" hasParenthesis="false" x:override="merge" />
+        <native name="current_timestamp" hasParenthesis="false" x:override="merge"/>
 
         <template name="year" returnType="INTEGER" argTypes="TIMESTAMP" x:override="merge">
             <source>extract(YEAR from {0})</source>

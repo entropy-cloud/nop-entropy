@@ -1,0 +1,23 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.report.core.engine.renderer;
+
+import io.nop.core.resource.tpl.IBinaryTemplateOutput;
+import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.xlsx.output.ExcelTemplate;
+import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
+import io.nop.report.core.engine.IReportRendererFactory;
+
+public class XlsxReportRendererFactory implements IReportRendererFactory {
+
+    @Override
+    public IBinaryTemplateOutput buildRenderer(ExcelWorkbook model, IExcelSheetGenerator sheetGenerator) {
+        ExcelTemplate template = new ExcelTemplate(model, sheetGenerator);
+        return template;
+    }
+}

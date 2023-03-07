@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" defaultOutputMode="text"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <diagrams>
+            <attr name="model" implicit="true"/>
+            <source>
+
+            </source>
+        </diagrams>
+
+        <for-each-table outputMode="xml">
+            <attr name="model" implicit="true"/>
+            <slot name="default">
+                <arg name="table"/>
+                <arg name="index"/>
+            </slot>
+
+            <source>
+                <c:for var="table" items="${model.entities}" index="index">
+                    <c:unit xpl:slot="default" xpl:slotArgs="{table,index}"/>
+                </c:for>
+            </source>
+        </for-each-table>
+    </tags>
+</lib>

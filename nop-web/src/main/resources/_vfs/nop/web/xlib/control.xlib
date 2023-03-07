@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+控件名格式为 {mode}-{type}
+-->
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+
+        <edit-tree-parent outputMode="xjson">
+            <description>选择树形结构的父节点。要求meta文件中配置tree相关的属性</description>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+            <attr name="objMeta" mandatory="true"/>
+            <attr name="bizObjName" mandatory="true"/>
+
+            <source>
+                <!--
+                支持五级菜单
+                -->
+                <tree-select clearable="@:true">
+                    <source>
+                        <!--
+                        Amis并不允许url中包含空格和回车。Nop平台为了简化代码编写，在后台通过WebPageHelper.fixPage函数进行了规范化处理
+                        -->
+                        <url>@query:${bizObjName}__findList/value:id,label:${objMeta.displayProp || 'id'},
+                            ${objMeta.tree.childrenProp} @TreeChildren(max:5)?filter_${objMeta.tree.parentProp}=
+                        </url>
+                    </source>
+                </tree-select>
+            </source>
+        </edit-tree-parent>
+
+        <edit-double>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'native-number',
+                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue) :null
+                }
+            ]]></source>
+        </edit-double>
+
+        <edit-decimal>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-number',
+                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue) :null,
+                    precision: propMeta?.schema.scale ?? 5
+                }
+            ]]></source>
+        </edit-decimal>
+
+        <edit-short>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    validations: "isInt",
+                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue):null
+                }
+            ]]></source>
+        </edit-short>
+
+        <edit-byte>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    validations: "isInt",
+                    value: editMode == 'add' ? (propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? propMeta?.defaultValue):null
+                }
+            ]]></source>
+        </edit-byte>
+
+        <edit-int>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    validations: "isInt",
+                    value: editMode == 'add' ? dispMeta?.defaultValue:null
+                }
+            ]]></source>
+        </edit-int>
+
+        <edit-long>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    validations: "isLong",
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue:null
+                }
+            ]]></source>
+        </edit-long>
+
+        <edit-email>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        isEmail:true,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta?.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null,
+                    transform: {
+                        upperCase: dispMeta?.charCase == 'upper'? true:null,
+                        lowerCase: dispMeta?.charCase == 'lower'? true:null
+                    }
+                }
+            ]]></source>
+        </edit-email>
+
+        <edit-url>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        isUrl: true,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta?.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    transform: {
+                        upperCase: dispMeta?.charCase == 'upper'? true:null,
+                        lowerCase: dispMeta?.charCase == 'lower'? true:null
+                    }
+                }
+            ]]></source>
+        </edit-url>
+
+        <edit-ascii>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        isAlpha: true,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null,
+                    transform: {
+                        upperCase: dispMeta?.charCase == 'upper'? true:null,
+                        lowerCase: dispMeta?.charCase == 'lower'? true:null
+                    }
+                }
+            ]]></source>
+        </edit-ascii>
+
+        <edit-asciiNum>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        isAlphanumeric:true,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta?.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null
+                }
+            ]]></source>
+        </edit-asciiNum>
+
+        <edit-path>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        isUrlPath:true,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta?.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null,
+                    transform: {
+                        upperCase: dispMeta?.charCase == 'upper'? true:null,
+                        lowerCase: dispMeta?.charCase == 'lower'? true:null
+                    }
+                }
+            ]]></source>
+        </edit-path>
+
+        <edit-phone>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        isPhoneNumber:true,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta?.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                }
+            ]]></source>
+        </edit-phone>
+
+        <edit-telephone>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        isTelPhoneNumber:true,
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta?.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                }
+            ]]></source>
+        </edit-telephone>
+
+        <edit-date>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-date',
+                    format:"YYYY-MM-DD",
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null
+                }
+            ]]></source>
+        </edit-date>
+
+        <edit-datetime>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-datetime',
+                    format:"YYYY-MM-DD HH:mm:ss",
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null
+                }
+            ]]></source>
+        </edit-datetime>
+
+        <edit-timestamp x:prototype="edit-datetime"/>
+
+        <!--
+        可以支持图片
+        -->
+        <edit-list-select>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="mandatory"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                 return {
+                    type: 'list-select',
+                    clearable: true,
+                    selectFirst: dispMeta?.selectFirst,
+                    source: '@dict:' + propMeta?.schema?.dict,
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                 }
+            ]]></source>
+        </edit-list-select>
+
+        <edit-radios>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="mandatory"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                 return {
+                    type: 'radios',
+                    clearable: true,
+                    source: '@dict:' + propMeta?.schema?.dict,
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                 }
+            ]]></source>
+        </edit-radios>
+
+        <edit-enum>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="mandatory"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                 return {
+                    type: 'select',
+                    searchable: true,
+                    clearable: true,
+                    multiple: false,
+                    selectFirst: dispMeta?.selectFirst,
+                    source: '@dict:' + propMeta?.schema.dict,
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                 }
+            ]]></source>
+        </edit-enum>
+
+
+        <view-enum>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="mandatory"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                const labelProp = propMeta?.['graphql:dictLabelProp']
+                if(labelProp){
+                    return {
+                        type:"static",
+                        name: labelProp
+                    }
+                }else{
+                    return {
+                        type:"static"
+                    }
+                }
+            ]]></source>
+        </view-enum>
+
+
+        <edit-textarea>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type: "textarea",
+                    minRows: dispMeta?.minRows || 3,
+                    maxLength: dispMeta?.maxLength
+                }
+            ]]></source>
+        </edit-textarea>
+
+        <edit-html>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type: "input-rich-text"
+                }
+            ]]></source>
+        </edit-html>
+
+        <view-html>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type: "tpl",
+                    tpl: "${" + (dispMeta?.id || propMeta.name) + "|raw}"
+                }
+            ]]></source>
+        </view-html>
+
+        <edit-longtext x:prototype="edit-textarea"/>
+
+        <edit-remark x:prototype="edit-textarea"/>
+
+        <view-image>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    "type": "image"
+                }
+            ]]></source>
+        </view-image>
+
+        <edit-image>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    "type": "input-image",
+                    "receiver": dispMeta?.uploadUrl || '/upload/image'
+                }
+            ]]></source>
+        </edit-image>
+
+        <edit-deptId outputMode="xjson">
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source>
+                <tree-select clearable="@:true">
+                    <source>
+                        <!--
+                        Amis并不允许url中包含空格和回车。Nop平台为了简化代码编写，在后台通过WebPageHelper.fixPage函数进行了规范化处理
+                        -->
+                        <url>@query:NopAuthDept__findList/value:id,label:deptName,
+                            children @TreeChildren(max:5)?filter_parentId=__null
+                        </url>
+                    </source>
+                </tree-select>
+            </source>
+        </edit-deptId>
+
+        <view-boolean x:prototype="view-boolFlag" />
+
+        <edit-boolean x:prototype="edit-boolFlag" />
+
+        <view-boolFlag>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <!--            <source><![CDATA[-->
+            <!--                return {-->
+            <!--                    "type": "switch",-->
+            <!--                    "trueValue": 1,-->
+            <!--                    "falseValue": 0,-->
+            <!--                    "disabled": true-->
+            <!--                }-->
+            <!--            ]]></source>-->
+            <source><![CDATA[
+                return {
+                        "type": "static-mapping",
+                        "map": {
+                            "1": "<span class='label label-success'>{@i18n:common.yes}</span>",
+                            "0": "<span class='label label-warning'>{@i18n:common.no}</span>",
+                            "true": "<span class='label label-success'>{@i18n:common.yes}</span>",
+                            "false": "<span class='label label-warning'>{@i18n:common.no}</span>",
+                            "" : "",
+                        }
+                    }
+            ]]></source>
+        </view-boolFlag>
+
+        <edit-boolFlag>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="mandatory"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                let defaultValue =  editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null;
+                if(mandatory && defaultValue == null)
+                   defaultValue = 0;
+
+                return {
+                    "type": "switch",
+                    "trueValue": 1,
+                    "falseValue": 0,
+                     value: defaultValue,
+                }
+            ]]></source>
+        </edit-boolFlag>
+
+        <view-pre>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type:'pre-static'
+                }
+            ]]></source>
+        </view-pre>
+
+        <edit-string>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true,
+                    validations: {
+                        maxLength: dispMeta?.maxLength ?? propMeta?.schema?.precision,
+                        minLength: dispMeta?.minLength,
+                        matchRegexp: dispMeta?.matchRegexp,
+                    },
+                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    transform: {
+                        upperCase: dispMeta?.charCase == 'upper'? true:null,
+                        lowerCase: dispMeta?.charCase == 'lower'? true:null
+                    }
+                }
+            ]]></source>
+        </edit-string>
+
+        <query-string>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type:'input-text',
+                    clearable:true
+                }
+            ]]></source>
+        </query-string>
+
+        <edit-to-one>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                import io.nop.xui.utils.XuiHelper;
+                const relProp = XuiHelper.getRelationProp(propMeta,objMeta);
+
+                return {
+                    type: 'picker',
+                    'x:extends': XuiHelper.getRelationPickerUrl(propMeta,objMeta),
+                    valueField: relProp['ext:joinRightProp'],
+                    labelField: relProp['ext:joinRightDisplayProp'],
+                    source: {
+                       valueField: relProp['ext:joinRightProp'],
+                       labelField: relProp['ext:joinRightDisplayProp']
+                    },
+                    multiple: false,
+                }
+            ]]></source>
+        </edit-to-one>
+
+        <view-to-one>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+            <source><![CDATA[
+                import io.nop.xui.utils.XuiHelper;
+                const relProp = XuiHelper.getRelationProp(propMeta,objMeta);
+
+                return {
+                   type: 'static',
+                   name: relProp.name+'.'+relProp['ext:joinRightDisplayProp']
+                }
+            ]]></source>
+        </view-to-one>
+
+        <edit-password>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+            <source>
+                return {
+                   type: 'input-password'
+                }
+            </source>
+        </edit-password>
+
+        <edit-any x:prototype="edit-string"/>
+
+        <view-any>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <source><![CDATA[
+                return {
+                    type:"static"
+                }
+            ]]></source>
+        </view-any>
+    </tags>
+</lib>

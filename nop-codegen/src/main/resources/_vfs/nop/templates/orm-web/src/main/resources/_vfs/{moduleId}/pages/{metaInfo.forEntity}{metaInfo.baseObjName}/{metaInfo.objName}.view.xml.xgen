@@ -1,0 +1,33 @@
+<view x:extends="_gen/_${metaInfo.objName}.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <c:script>
+        const objMeta = metaInfo.objMeta;
+        const supportAdd = !objMeta.containsTag('view') and !objMeta.containsTag('log');
+        const supportUpdate = !objMeta.containsTag('view') and !objMeta.containsTag('log');
+        const visibleProps = objMeta.props.filter(prop=> prop.published and !prop.internal)
+        const useEdit = visibleProps.every(prop=> prop.insertable == prop.updatable)
+    </c:script>
+
+    <grids>
+      <grid id="list">
+      </grid>
+
+      <grid id="pick-list" />
+    </grids>
+
+    <forms>
+
+       <form id="view" />
+
+       <form id="edit" xpl:if="supportUpdate" />
+
+       <form id="add" xpl:if="supportAdd and !useEdit" />
+
+    </forms>
+
+    <pages>
+        <crud name="main">
+        </crud>
+
+        <picker name="picker" />
+    </pages>
+</view>

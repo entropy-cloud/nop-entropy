@@ -1,0 +1,346 @@
+{
+  "tagName": "lib",
+  "xdefName": "XplTagLib",
+  "defaultOutputMode": "enum:io.nop.xlang.xpl.XplOutputMode=none",
+  "displayName": "string",
+  "interfaces": "generic-type-list",
+  "namespace": "ns-name",
+  "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagLib",
+  "xdefDefaultExtends": "/nop/core/defaults/default.xlib",
+  "xmlns:x": "/nop/schema/xdsl.xdef",
+  "xmlns:xdef": "/nop/schema/xdef.xdef",
+  "comment": {
+    "mainDescription": "一个标签库可以看作一个服务实例。一个java服务接口可以自动转换为标签库，而标签库也可以自动生成java接口。\n可以通过x:post-extends段实现对标签（函数）的aop加工。",
+    "subComments": {
+      "defaultOutputMode": {
+        "description": "设置xpl标签的缺省输出模式",
+        "displayName": "缺省输出模式"
+      },
+      "displayName": {
+        "displayName": "显示名称"
+      },
+      "interfaces": {
+        "description": "标签库提供了一组函数，它们满足哪些接口要求",
+        "displayName": "接口列表"
+      }
+    }
+  },
+  "description": {
+    "tagName": "description",
+    "xdefValue": "string",
+    "comment": {
+      "mainDisplayName": "描述信息"
+    }
+  },
+  "tags": {
+    "tagName": "tags",
+    "xdefBodyType": "map",
+    "xdefUnknownTag": {
+      "tagName": "xdef:unknown-tag",
+      "xdefName": "XplTag",
+      "alias": "csv-set",
+      "attrsVar": "var-name",
+      "bodyType": "enum:io.nop.xlang.xpl.XplSlotType",
+      "deprecated": "boolean",
+      "displayName": "string",
+      "macro": "boolean",
+      "outputMode": "enum:io.nop.xlang.xpl.XplOutputMode",
+      "schema": "v-path",
+      "transformer": "v-path",
+      "unknownAttrsVar": "var-name",
+      "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTag",
+      "xdefBeanTagProp": "tagName",
+      "comment": {
+        "mainDescription": "自定义标签具有返回值和输出文本。所有解析器未识别的没有名字空间的标签都会被直接输出。标签的返回值可以通过xpl:return参数获取，例如\n<my:MyTag c:return=\"x\" />",
+        "subComments": {
+          "attrsVar": {
+            "description": "所有属性构成一个Map类型的变量。如果此参数非空，则所有属性作为一个整体参数传递，而不是每个属性对应一个变量。",
+            "displayName": "已知属性变量名"
+          },
+          "deprecated": {
+            "description": "是否标签已经被废弃。如果已经被废弃，则调用时会打印出调试信息",
+            "displayName": "是否废弃"
+          },
+          "displayName": {
+            "displayName": "显示名称"
+          },
+          "macro": {
+            "description": "宏标签在编译期会自动执行，然后再对它的输出结果进行编译。",
+            "displayName": "是否宏标签"
+          },
+          "outputMode": {
+            "description": "设置xpl标签的输出模式",
+            "displayName": "输出模式"
+          },
+          "schema": {
+            "description": "在实际编译之前，经过schema验证",
+            "displayName": "结构定义"
+          },
+          "transformer": {
+            "description": "在实际进行编译之前先经过transformer转换",
+            "displayName": "转换器"
+          },
+          "unknownAttrsVar": {
+            "description": "所有未知属性构成一个Map类型的变量。只有此参数非空时，才允许调用时传入未定义的属性。",
+            "displayName": "未知属性变量名"
+          }
+        }
+      },
+      "attr": {
+        "tagName": "attr",
+        "xdefName": "XplTagAttribute",
+        "defaultValue": "string",
+        "deprecated": "boolean",
+        "displayName": "string",
+        "domain": "var-name",
+        "implicit": "boolean",
+        "mandatory": "boolean",
+        "name": "!xml-name",
+        "optional": "boolean=true",
+        "type": "generic-type",
+        "var": "var-name",
+        "xdefAllowMultiple": true,
+        "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagAttribute",
+        "xdefBeanProp": "attrs",
+        "comment": {
+          "subComments": {
+            "mandatory": {
+              "description": "是否必须设置该属性，且属性值不能是空值或者空字符串",
+              "displayName": "是否非空"
+            },
+            "optional": {
+              "description": "如果不是可选属性，则调用时必须传入该属性，但是属性值允许为空",
+              "displayName": "是否可选"
+            },
+            "var": {
+              "description": "对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，\n则将会转换为大小写混排的变量名，例如onClick和vModel。"
+            }
+          }
+        },
+        "description": {
+          "tagName": "description",
+          "xdefValue": "string",
+          "xdefId": "@7@/test/test.xdef"
+        }
+      },
+      "description": {
+        "tagName": "description",
+        "xdefValue": "string"
+      },
+      "example": {
+        "tagName": "example",
+        "xdefValue": "xml",
+        "xdefSupportExtends": true
+      },
+      "return": {
+        "tagName": "return",
+        "xdefName": "XplTagReturn",
+        "domain": "var-name",
+        "type": "generic-type",
+        "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagReturn",
+        "description": {
+          "tagName": "description",
+          "xdefValue": "string"
+        }
+      },
+      "slot": {
+        "tagName": "slot",
+        "xdefName": "XplTagSlot",
+        "deprecated": "boolean",
+        "displayName": "string",
+        "domain": "var-name",
+        "mandatory": "boolean",
+        "multiple": "boolean",
+        "name": "!var-name",
+        "schema": "v-path",
+        "type": "generic-type",
+        "xdefAllowMultiple": true,
+        "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagSlot",
+        "xdefBeanProp": "slots",
+        "comment": {
+          "mainDescription": "在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render",
+          "subComments": {
+            "multiple": {
+              "description": "是否允许存在多个指定名称的slot。如果multiple为true，则实际传入的是列表对象"
+            }
+          }
+        },
+        "arg": {
+          "tagName": "arg",
+          "xdefName": "XplTagSlotArg",
+          "deprecated": "boolean",
+          "displayName": "string",
+          "name": "!string",
+          "type": "generic-type",
+          "xdefAllowMultiple": true,
+          "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagSlotArg",
+          "xdefBeanProp": "args"
+        },
+        "attr": {
+          "tagName": "attr",
+          "xdefRef": "/test/test.xdef#XplTagAttribute",
+          "xdefRefResolved": true,
+          "defaultValue": "string",
+          "deprecated": "boolean",
+          "displayName": "string",
+          "domain": "var-name",
+          "implicit": "boolean",
+          "mandatory": "boolean",
+          "name": "!xml-name",
+          "optional": "boolean=true",
+          "type": "generic-type",
+          "var": "var-name",
+          "xdefAllowMultiple": true,
+          "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagAttribute",
+          "xdefBeanProp": "attrs",
+          "comment": {
+            "subComments": {
+              "mandatory": {
+                "description": "是否必须设置该属性，且属性值不能是空值或者空字符串",
+                "displayName": "是否非空"
+              },
+              "optional": {
+                "description": "如果不是可选属性，则调用时必须传入该属性，但是属性值允许为空",
+                "displayName": "是否可选"
+              },
+              "var": {
+                "description": "对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，\n则将会转换为大小写混排的变量名，例如onClick和vModel。"
+              }
+            }
+          },
+          "description": {
+            "tagName": "description",
+            "xdefRef": "@7@/test/test.xdef"
+          }
+        },
+        "description": {
+          "tagName": "description",
+          "xdefValue": "string"
+        }
+      },
+      "source": {
+        "tagName": "source",
+        "xdefValue": "xml",
+        "xdefSupportExtends": true
+      },
+      "validator": {
+        "tagName": "validator",
+        "xdefRef": "/test/test-filter.xdef",
+        "xdefRefResolved": true,
+        "xdefBodyType": "list",
+        "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
+        "xdefBeanBodyType": "java.util.List<io.nop.api.support.beans.TreeBean>",
+        "xdefBeanTagProp": "$type",
+        "xdefBeanBodyProp": "$body",
+        "comment": {
+          "mainDescription": "对标签的参数进行校验"
+        },
+        "and": {
+          "tagName": "and",
+          "xdefRef": "/test/test-filter.xdef#FilterCondition",
+          "xdefRefResolved": true,
+          "xdefId": "@2@/test/test-filter.xdef",
+          "xdefBodyType": "list",
+          "xdefAllowMultiple": true,
+          "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
+          "xdefBeanBodyType": "java.util.List<io.nop.api.support.beans.TreeBean>",
+          "xdefBeanTagProp": "$type",
+          "xdefBeanBodyProp": "$body",
+          "and": {
+            "tagName": "and",
+            "xdefRef": "@2@/test/test-filter.xdef"
+          },
+          "lt": {
+            "tagName": "lt",
+            "xdefRef": "/test/test-filter.xdef#SimpleFilterNode",
+            "xdefRefResolved": true,
+            "name": "!string",
+            "value": "number",
+            "xdefAllowMultiple": true,
+            "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
+            "xdefBeanTagProp": "$type",
+            "xdefId": "@4@/test/test-filter.xdef",
+            "comment": {
+              "mainDescription": "小于"
+            }
+          },
+          "or": {
+            "tagName": "or",
+            "xdefRef": "/test/test-filter.xdef#FilterCondition",
+            "xdefRefResolved": true,
+            "xdefId": "@3@/test/test-filter.xdef",
+            "xdefBodyType": "list",
+            "xdefAllowMultiple": true,
+            "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
+            "xdefBeanBodyType": "java.util.List<io.nop.api.support.beans.TreeBean>",
+            "xdefBeanTagProp": "$type",
+            "xdefBeanBodyProp": "$body",
+            "and": {
+              "tagName": "and",
+              "xdefRef": "@2@/test/test-filter.xdef"
+            },
+            "lt": {
+              "tagName": "lt",
+              "xdefRef": "@4@/test/test-filter.xdef"
+            },
+            "or": {
+              "tagName": "or",
+              "xdefRef": "@3@/test/test-filter.xdef"
+            },
+            "timeBetween": {
+              "tagName": "timeBetween",
+              "xdefRef": "/test/test-filter.xdef#SimpleFilterNode",
+              "xdefRefResolved": true,
+              "excludeMax": "boolean",
+              "excludeMin": "boolean",
+              "max": "time",
+              "min": "time",
+              "name": "!string",
+              "xdefAllowMultiple": true,
+              "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
+              "xdefBeanTagProp": "$type",
+              "xdefId": "@5@/test/test-filter.xdef",
+              "comment": {
+                "mainDescription": "时间在指定范围之内"
+              }
+            },
+            "xdefUnknownTag": {
+              "tagName": "xdef:unknown-tag",
+              "xdefRef": "/test/test-filter.xdef#SimpleFilterNode",
+              "xdefRefResolved": true,
+              "xdefUnknownAttr": "any",
+              "xdefAllowMultiple": true,
+              "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
+              "xdefBeanTagProp": "$type",
+              "xdefId": "@6@/test/test-filter.xdef"
+            }
+          },
+          "timeBetween": {
+            "tagName": "timeBetween",
+            "xdefRef": "@5@/test/test-filter.xdef"
+          },
+          "xdefUnknownTag": {
+            "tagName": "xdef:unknown-tag",
+            "xdefRef": "@6@/test/test-filter.xdef"
+          }
+        },
+        "lt": {
+          "tagName": "lt",
+          "xdefRef": "@4@/test/test-filter.xdef"
+        },
+        "or": {
+          "tagName": "or",
+          "xdefRef": "@3@/test/test-filter.xdef"
+        },
+        "timeBetween": {
+          "tagName": "timeBetween",
+          "xdefRef": "@5@/test/test-filter.xdef"
+        },
+        "xdefUnknownTag": {
+          "tagName": "xdef:unknown-tag",
+          "xdefRef": "@6@/test/test-filter.xdef"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+-->
+<orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xdef="/nop/schema/xdef.xdef"
+     xdef:name="OrmModel" xdef:bean-package="io.nop.orm.model"
+     xdef:bean-extends-type="io.nop.xlang.xdsl.AbstractDslModel"
+     displayName="string" version="string"
+     xdef:default-extends="/nop/core/defaults/default.orm.xml">
+
+    <description xdef:value="string"/>
+
+    <domains xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        数据域定义。orm模型解析完毕之后，domain的定义会合并到column上。如果设置了domain是以domain的设置为准
+        -->
+        <domain name="!string" xdef:name="OrmDomainModel" displayName="string"
+                stdDomain="std-domain" stdSqlType="!std-sql-type" stdDataType="std-data-type"
+                precision="int" scale="int"/>
+    </domains>
+
+    <dicts xdef:body-type="list" xdef:key-attr="name">
+        <dict name="!string" xdef:ref="dict.xdef" />
+    </dicts>
+
+    <packages xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        package仅仅作为界面组织手段
+        -->
+        <package xdef:name="OrmPackageModel" name="!string" displayName="string">
+            <comment xdef:value="string"/>
+            <diagram xdef:value="json"/>
+            <entities xdef:value="class-name-set"/>
+        </package>
+    </packages>
+
+    <entities xdef:body-type="list" xdef:key-attr="name">
+        <entity name="!class-name" xdef:ref="entity.xdef" xdef:support-extends="true"/>
+    </entities>
+</orm>

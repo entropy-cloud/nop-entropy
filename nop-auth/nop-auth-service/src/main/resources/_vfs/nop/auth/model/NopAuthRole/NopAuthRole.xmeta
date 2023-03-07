@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthRole.xmeta">
+    <props>
+        <prop name="roleUsers" displayName="具有此角色的用户" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthUser" />
+            </schema>
+        </prop>
+
+        <prop name="roleResourceIds" lazy="true">
+            <schema type="List&lt;String>" />
+        </prop>
+    </props>
+</meta>

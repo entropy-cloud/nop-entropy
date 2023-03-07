@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
+     templatePath="test-template.orm.xlsx"
+     resultType="io.nop.orm.model.OrmModel" defaultStripText="true">
+    <sheets>
+        <sheet name="域定义" field="domains" list="true">
+            <fields>
+                <field name="name" displayName="名称" mandatory="true">
+                    <schema stdDomain="xml-name"/>
+                </field>
+
+                <field name="stdDomain" displayName="标准域">
+                    <schema stdDomain="std-domain"/>
+                </field>
+
+                <field name="stdSqlType" displayName="数据类型" mandatory="true">
+                    <schema stdDomain="std-sql-type"/>
+                </field>
+
+                <field name="stdDataType" displayName="Java类型">
+                    <schema stdDomain="std-data-type"/>
+                </field>
+
+                <field name="precision" displayName="长度">
+                    <schema stdDomain="int"/>
+                </field>
+
+                <field name="scale" displayName="小数位数">
+                    <schema stdDomain="scale"/>
+                </field>
+            </fields>
+        </sheet>
+
+        <sheet name="entity" namePattern=".*" field="entities" multiple="true" 
+            keyProp="name" sheetNameProp="tableName">
+            <normalizeFieldsExpr>
+                <c:script><![CDATA[
+                    if(rootRecord['ext:registerShortName'])
+                        record.registerShortName = true;
+
+                    if(!record.name)
+                        record.name = record.tableName.$camelCase(true).$fullClassName(rootRecord['ext:entityPackageName']);
+
+                    if(record.tagSet.contains('cache'))
+                        record.useGlobalCache = true;
+
+                    record.columns.forEach(col=>{
+                        const domain = col.domain;
+                        if(!domain) return;
+                        if(domain == 'version'){
+                            record.versionProp = col.name;
+                        }else if(domain == 'createTime'){
+                            record.createTimeProp = col.name;
+                        }else if(domain == 'createdBy'){
+                            record.createrProp = col.name;
+                        }else if(domain == 'updateTime'){
+                            record.updateTimeProp = col.name;
+                        }else if(domain == 'updatedBy'){
+                            record.updaterProp = col.name;
+                        }else if(domain == 'delFlag'){
+                            record.deleteFlagProp = col.name;
+                            record.useLogicalDelete = true;
+                        }else if(domain == 'tenant'){
+                            record.tenantProp = col.name;
+                            record.useTenant = true;
+                        }else if(domain == 'shard'){
+                            record.shardProp = col.name;
+                            record.useShard = true;
+                        }
+                    });
+                ]]></c:script>
+            </normalizeFieldsExpr>
+
+            <fields>
+                <field name="tableName" displayName="表名" mandatory="true">
+                    <schema stdDomain="prop-name"/>
+                </field>
+
+                <field name="name" displayName="对象名">
+                    <schema stdDomain="class-name"/>
+                    <valueExpr>
+                        value.$fullClassName(rootRecord['ext:entityPackageName'])
+                    </valueExpr>
+                </field>
+
+                <field name="displayName" displayName="中文名" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="i18n-en:displayName" displayName="英文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="tagSet" displayName="标签">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="comment" displayName="备注">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="columns" displayName="字段列表" list="true" keyProp="name">
+                    <fields>
+                        <field name="propId" displayName="编号" mandatory="true">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="primary" displayName="主键" xpt:formatExpr="cell.value ? 'PK' : ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                <c:script>
+                                    value == 'PK' || value == 'Y'
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                <c:script>
+                                    value == 'M' || value == 'Y'
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="code" displayName="字段名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                            <valueExpr>
+                                // id被保留为系统自动生成的主键名，因此不会作为字段名
+                                record.name = value.$colCodeToPropName()
+                                return value
+                            </valueExpr>
+                        </field>
+
+                        <field name="ext:show" displayName="显示">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名" mandatory="true"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+
+                        <field name="domain" displayName="数据域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+                        <field name="stdSqlType" displayName="类型" mandatory="true">
+                            <schema stdDomain="std-sql-type"/>
+                        </field>
+                        <field name="precision" displayName="长度">
+                            <schema stdDomain="int"/>
+                        </field>
+                        <field name="scale" displayName="小数位数">
+                            <schema stdDomain="int"/>
+                        </field>
+                        <field name="ext:dict" displayName="字典">
+                            <schema stdDomain="string"/>
+                        </field>
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+                        <field name="comment" displayName="备注">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="extConfig" displayName="扩展配置" virtual="true">
+                            <schema stdDomain="json"/>
+                        </field>
+
+                        <field name="defaultValue" displayName="缺省值">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="ext:control" displayName="控件">
+                            <schema stdDomain="string"/>
+                        </field>
+                    </fields>
+                </field>
+
+                <field name="relations" displayName="关联列表" list="true">
+                    <fields>
+                        <field name="name" displayName="属性名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+
+                        <field name="refEntityName" displayName="关联对象" mandatory="true">
+                            <schema stdDomain="class-name"/>
+                            <valueExpr>
+                                value.$fullClassName(rootRecord['ext:entityPackageName'])
+                            </valueExpr>
+                        </field>
+
+                        <field name="refPropName" displayName="关联属性名">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="i18n-en:displayName" displayName="英文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="refDisplayName" displayName="关联中文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="ref-i18n-en:displayName" displayName="关联英文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="comment" displayName="备注">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="type" displayName="关联类型">
+                            <schema dict="core/entity-relation-type"/>
+                            <valueExpr>
+                                value || 'to-one'
+                            </valueExpr>
+                        </field>
+
+                        <field name="ext:control" displayName="控件">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="join" displayName="关联条件" list="true" mandatory="true">
+                            <fields>
+                                <field name="leftProp" displayName="左属性">
+                                    <schema stdDomain="var-name"/>
+                                </field>
+
+                                <field name="rightProp" displayName="右属性">
+                                    <schema stdDomain="var-name"/>
+                                </field>
+
+                                <field name="leftValue" displayName="左值">
+                                    <schema stdDomain="string"/>
+                                </field>
+
+                                <field name="rightValue" displayName="右值">
+                                    <schema stdDomain="string"/>
+                                </field>
+                            </fields>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+    </sheets>
+</imp>

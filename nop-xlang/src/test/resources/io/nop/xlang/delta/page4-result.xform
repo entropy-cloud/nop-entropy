@@ -1,0 +1,20 @@
+<forms>
+    <form id="default">
+        <layout>
+            a
+        </layout>
+    </form>
+    <form id="other">
+        <layout>
+            a
+        </layout>
+    </form>
+    <form id="add">
+        <layout>
+            a
+        </layout>
+        <cells>
+            <cell id="a" label="AA"/>
+        </cells>
+    </form>
+</forms>

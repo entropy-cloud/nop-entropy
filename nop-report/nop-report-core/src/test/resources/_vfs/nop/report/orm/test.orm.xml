@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm ext:mavenArtifactId="nop-auth" ext:entityPackageName="io.nop.auth.dao.entity" ext:registerShortName="true"
+     ext:mavenGroupId="io.nop" ext:basePackageName="io.nop.auth" ext:appName="nop-auth"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext">
+
+    <domains>
+        <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="email" precision="100" stdSqlType="VARCHAR"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.auth.dao.entity.NopAuthUser" createTimeProp="createTime" createrProp="createdBy"
+                deleteFlagProp="delFlag" displayName="用户" name="io.nop.auth.dao.entity.NopAuthUser"
+                registerShortName="true" tableName="nop_auth_user" tagSet="mapper" updateTimeProp="updateTime"
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="User">
+            <columns>
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId"
+                        precision="50"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="User ID" ext:show="X"/>
+                <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
+                        precision="50" propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="User Name" ext:show="C"/>
+                <column code="PASSWORD" displayName="密码" mandatory="true" name="password" precision="80" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub"
+                        i18n-en:displayName="Password" ext:show="X"/>
+                <column code="SALT" displayName="密码加盐" name="salt" precision="32" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="var,not-pub" i18n-en:displayName="Salt" ext:show="X"/>
+                <column code="NICK_NAME" displayName="昵称" mandatory="true" name="nickName" precision="50" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Nick Name"/>
+                <column code="DEPT_ID" displayName="部门" domain="deptId" name="deptId" precision="50" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Department"/>
+            </columns>
+            <relations>
+                <to-one displayName="部门" name="dept" refEntityName="io.nop.auth.dao.entity.NopAuthDept"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Department">
+                    <join>
+                        <on leftProp="deptId" rightProp="deptId"/>
+                    </join>
+                </to-one>
+                <to-one displayName="岗位" name="position" refEntityName="io.nop.auth.dao.entity.NopAuthPosition"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Position">
+                    <join>
+                        <on leftProp="positionId" rightProp="positionId"/>
+                    </join>
+                </to-one>
+                <to-many displayName="角色映射" name="roleMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthUserRole"
+                         refPropName="user" tagSet="pub,cascade-delete" i18n-en:displayName="RoleMappings">
+                    <join>
+                        <on leftProp="userId" rightProp="userId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="代理人映射" name="substitutionMappings"
+                         refEntityName="io.nop.auth.dao.entity.NopAuthUserSubstitution" refPropName="user"
+                         tagSet="pub,cascade-delete" i18n-en:displayName="Substitution Mappings">
+                    <join>
+                        <on leftProp="userId" rightProp="userId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+         <entity className="io.nop.auth.dao.entity.NopAuthSite" createTimeProp="createTime" createrProp="createdBy"
+                displayName="子站点" name="io.nop.auth.dao.entity.NopAuthSite" registerShortName="true"
+                tableName="nop_auth_site" tagSet="dict" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" i18n-en:displayName="Sub Site">
+            <columns>
+                <column code="SITE_ID" displayName="站点ID" mandatory="true" name="siteId" precision="100"
+                        primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Site ID"/>
+                <column code="DISPLAY_NAME" displayName="显示名称" mandatory="true" name="displayName" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="Display Name"/>
+                <column code="ORDER_NO" displayName="排序" mandatory="true" name="orderNo" propId="3" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Order NO"/>
+                <column code="URL" displayName="链接" name="url" precision="200" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="URL"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="5" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-1000" name="extConfig" precision="1000"
+                        propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="CONFIG_VERSION" displayName="配置版本" name="configVersion" precision="20" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Config Version"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="8"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+            </columns>
+            <comment>整个应用系统可以拆分为多个子站点</comment>
+        </entity>
+    </entities>
+</orm>

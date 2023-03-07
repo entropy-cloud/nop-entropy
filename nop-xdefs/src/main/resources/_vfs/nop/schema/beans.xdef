@@ -46,8 +46,10 @@
         <!--
         按照类型或者注解收集所有符合条件的bean，返回bean的集合
         @only-concrete-classes 只收集具体的实现类，忽略抽象类和AOP代理接口对象
+        @as-map 如果为true，则收集到的bean按照id组织成Map形式。如果为false，则作为List形式
         -->
-        <ioc:collect-beans xdef:name="BeanCollectBeansValue" include-tag="word-set" exclude-tag="word-set"
+        <ioc:collect-beans xdef:name="BeanCollectBeansValue" as-map="!boolean=false" name-prefix="string"
+                           include-tag="word-set" exclude-tag="word-set"
                            ioc:ignore-depends="!boolean=false" ioc:optional="!boolean=false"
                            by-type="class-name" by-annotation="class-name" only-concrete-classes="!boolean=false"/>
     </xdef:define>
@@ -107,12 +109,14 @@
            当前的beanInstance要求是InvocationHandler类型。
       @ioc:type 指定返回bean的类型，按类型autowire时将使用这里的类型设置。如果不指定，则根据factory-method和class等属性推导
       @ioc:aop 指定了ioc:aop=true的bean才会成为AOP pointcut的目标。
+      @ioc:before 在创建这些bean之前需要先创建当前的bean。类似于depends-on设置，只是它在被依赖方设置
+      @ioc:after 在这些bean创建之后立刻创建当前的bean
      -->
     <xdef:define class="class-name" xdef:name="BeanValue" parent="bean-name"
                  autowire="enum:io.nop.ioc.model.AutowireType" autowire-candidate="!boolean=true"
                  init-method="var-name" destroy-method="var-name" scope="var-name" ioc:security-domain="word-set"
                  ioc:bean-method="var-name" ioc:refresh-config-method="var-name"
-                 ioc:type="word-set" ioc:proxy="!boolean=false"
+                 ioc:type="word-set" ioc:proxy="!boolean=false" ioc:before="word-set" ioc:after="word-set"
                  factory-bean="var-name" factory-method="var-name"
                  ioc:config-prefix="string" ioc:auto-refresh="!boolean=false"
                  ioc:delay-method="var-name" lazy-init="boolean" ioc:aop="!boolean=true"
@@ -120,11 +124,15 @@
                  ioc:init-order="!#int=100">
 
         <constructor-arg index="!int" xdef:name="BeanConstructorArgModel"
-                         ref="string" value="string"
+                         ref="string" value="string"  ioc:skip-if-empty="!boolean=false"
                          xdef:ref="BeanPropValue"
                          xdef:allow-multiple="true" xdef:unique-attr="index"/>
 
-        <property name="!string" xdef:name="BeanPropertyModel" xdef:allow-multiple="true" xdef:unique-attr="name"
+        <!--
+        @ioc:skip-if-empty 当属性值为空时跳过本属性的设置
+        -->
+        <property name="!string" xdef:name="BeanPropertyModel" ioc:skip-if-empty="!boolean=false"
+                  xdef:allow-multiple="true" xdef:unique-attr="name"
                   ref="bean-name" value="string" xdef:ref="BeanPropValue" xdef:bean-prop="properties"/>
 
         <ioc:interceptor bean="!bean-name" order="!#int=100" xdef:name="BeanInterceptorModel" xdef:unique-attr="bean"/>
@@ -173,9 +181,9 @@
 
             <missing-bean xdef:value="!word-set"/>
 
-            <on-bean-type xdef:value="!class-name-set" />
+            <on-bean-type xdef:value="!class-name-set"/>
 
-            <on-missing-bean-type xdef:value="!class-name-set" />
+            <on-missing-bean-type xdef:value="!class-name-set"/>
 
             <!--
                 是否存在资源文件
@@ -184,7 +192,7 @@
 
             <missing-resource xdef:value="csv-set"/>
 
-            <on-expr xdef:value="xpl"/>
+            <on-expr xdef:value="xpl-predicate"/>
 
         </ioc:condition>
 
@@ -207,6 +215,7 @@
     @name 类似于alias,可以为bean起多个名称
     @ioc:default 是否缺省bean。如果设置为true，则相当于自动为bean增加condition-on-missing-bean的条件。
     仅当容器中不存在对应名称的bean的定义的时候，此定义才生效。
+    @ioc:allow-override 允许覆盖已有的bean的定义。一般情况下bean的id不允许重复。特殊情况下需要强制覆盖时使用这个属性。
     -->
     <bean xdef:name="BeanModel" id="!bean-name" name="word-set" ioc:tags="word-set" ioc:priority="#int"
           xdef:unique-attr="id" xdef:ref="BeanValue" ioc:allow-override="!boolean=false" ioc:default="!boolean=false"
@@ -219,11 +228,12 @@
     </bean>
 
     <!--
-     @config-prefix configPrefix + '.' + propName 作为配置变量名
+     @ioc:config-prefix configPrefix + '.' + propName 作为配置变量名
      @ioc:auto-refresh 当配置发生变化的时候，是否自动更新本对象上的属性
     -->
     <ioc:config xdef:name="BeanConfigModel" xdef:unique-attr="id" ioc:allow-override="!boolean=false"
-                id="!bean-name" ioc:config-prefix="!string" name="word-set" parent="bean-name" ioc:default="!boolean=false"
+                id="!bean-name" ioc:config-prefix="!string" name="word-set" parent="bean-name"
+                ioc:default="!boolean=false"
                 xdef:ref="BeanValue" scope="var-name" ioc:init-order="!#int=100">
     </ioc:config>
 

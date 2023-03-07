@@ -1,0 +1,5 @@
+<loop1 x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sub1 xdef:ref="loop2.xdef" b="string">
+        <sub1_1/>
+    </sub1>
+</loop1>

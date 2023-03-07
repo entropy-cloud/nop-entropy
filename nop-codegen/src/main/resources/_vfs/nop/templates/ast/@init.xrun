@@ -2,17 +2,17 @@
 根据AST模型定义生成AST节点类
 -->
 <c:script>
-import io.nop.xlang.xmeta.SchemaLoader;
-import io.nop.core.model.loop.impl.NestedLoopBuilder;
+    import io.nop.xlang.xmeta.SchemaLoader;
+    import io.nop.core.model.loop.impl.NestedLoopBuilder;
 
     // codeGenModelPath为传入的模型文件路径，例如XLangAST.xjava
-let ast = SchemaLoader.loadXMeta(codeGenModelPath);
+    let ast = SchemaLoader.loadXMeta(codeGenModelPath);
 
     let builder = new NestedLoopBuilder();
     builder.defineGlobalVar("ast",ast);
     // 去除XLangASTNode这种基类节点
     builder.defineLoopVar("astNode", "ast", ast=> ast.defines
-            .stream().filter(v=> v.name != ast.name + 'Node'));
+    .stream().filter(v=> v.name != ast.name + 'Node'));
 
     // 导出codeGenLoop变量到scope中
     assign("codeGenLoop", builder.build());

@@ -2,8 +2,8 @@
     <tags>
         <DefineLoop>
 
-            <slot name="default" >
-                <arg name="builder" implicit="true" />
+            <slot name="default">
+                <arg name="builder" implicit="true"/>
             </slot>
 
             <source>
@@ -21,5 +21,113 @@
                 </c:script>
             </source>
         </DefineLoop>
+
+        <Render>
+            <attr name="template"/>
+            <attr name="targetDir"/>
+            <attr name="codeGenerator" implicit="true"/>
+            <source>
+                <c:script>
+                    codeGenerator.withTplDir(template).withTargetDir(targetDir).execute("",null,$scope);
+                </c:script>
+            </source>
+        </Render>
+
+        <MergeXml outputMode="xml">
+            <attr name="resource" type="io.nop.core.resource.IResource"/>
+
+            <slot name="update" outputMode="node"/>
+            <slot name="create" outputMode="xml"/>
+
+            <source>
+                <c:choose>
+                    <when test="${resource.length() > 0}">
+                        <!-- 文件已存在，执行合并操作 -->
+
+                        <c:script>
+                            import io.nop.core.lang.utils.XNodeMergeHelper;
+                            import io.nop.core.resource.ResourceHelper;
+
+                            let updateNode = eval_node(slot_update).child(0);
+                            let node = ResourceHelper.readXml(resource);
+                            node = XNodeMergeHelper.mergeIfAbsent(node,updateNode);
+                            XNodeMergeHelper.normalizeMerged(node);
+                            node.output($out);
+                        </c:script>
+                    </when>
+
+                    <otherwise>
+                        <c:unit xpl:slot="create"/>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </MergeXml>
+
+        <DslModelToXNode outputMode="none">
+            <attr name="model"/>
+            <attr name="defaultXdefPath" type="String"/>
+
+            <source>
+                <c:script>
+                    import io.nop.xlang.xdsl.DslModelHelper;
+
+                    let xdefPath = DslModelHelper.getXdefPath(model,defaultXdefPath);
+                    DslModelHelper.dslModelToXNode(xdefPath,model);
+                </c:script>
+            </source>
+        </DslModelToXNode>
+
+        <DefineLoopForOrm>
+            <attr name="codeGenModel" implicit="true"/>
+
+            <source>
+                <thisLib:DefineLoop>
+                    <c:script><![CDATA[
+                        let ormModel = codeGenModel;
+                        let appName = ormModel['ext:appName'];
+                        let pkgName = ormModel['ext:basePackageName'];
+                        let entityPkgName = ormModel['ext:entityPackageName'];
+                        if(!pkgName){
+                            if(entityPkgName.endsWith('.dao.entity')){
+                                pkgName = entityPkgName.$removeTail('.dao.entity');
+                            }else if(entityPkgName.endsWith('.entity')){
+                                pkgName = entityPkgName.$removeTail('.entity');
+                            }
+                        }
+                        let pkgPath = pkgName.replace('.','/');
+
+                        let moduleId = ormModel['ext:moduleId'] || appName.replace('-','/');
+                        builder.defineGlobalVar("ormModel",ormModel);
+                        builder.defineGlobalVar("appName", appName);
+                        builder.defineGlobalVar("moduleId",moduleId);
+                        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
+                        builder.defineGlobalVar('mavenGroupId',ormModel['ext:mavenGroupId']);
+                        builder.defineGlobalVar('mavenArtifactId', ormModel['ext:mavenArtifactId']);
+                        builder.defineGlobalVar("moduleClassPrefix",moduleId.replace('/','_').$camelCase(true))
+                        builder.defineGlobalVar('basePackageName', pkgName);
+                        builder.defineGlobalVar('basePackagePath', pkgPath);
+
+                        builder.defineLoopVar("entityModel","ormModel", model => model.entityModels);
+
+                        builder.defineLoopVar("dialect","ormModel",model=> model["ext:dialect"].$toCsvSet());
+                        builder.defineLoopVar("dict","ormModel", model=> model.dicts);
+                    ]]></c:script>
+                </thisLib:DefineLoop>
+            </source>
+        </DefineLoopForOrm>
+
+        <CollectApiMessageImports>
+            <attr name="serviceModel" />
+            <source><![CDATA[
+                let types = new Set();
+                serviceModel.methods.forEach(method=>{
+                   if(method.requestMessage != method.simpleRequestMessage)
+                      types.add(method.requestMessage);
+                   if(method.responseMessage != method.simpleResponseMessage)
+                      types.add(method.responseMessage);
+                });
+                return types;
+            ]]></source>
+        </CollectApiMessageImports>
     </tags>
 </lib>

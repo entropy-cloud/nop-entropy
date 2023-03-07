@@ -1,0 +1,3 @@
+<c:script>
+codeGenerator.renderModel('../model/ast/io/nop/graphql/core/ast/GraphQLAST.xjava','/nop/templates/ast', '/',$scope);
+</c:script>

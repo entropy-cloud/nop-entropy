@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<uc xdef:name="UiComponentModel" xdef:bean-package="io.nop.xui.model"
+    x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!--
+    <x:gen-extends>
+       <xui:UsePage src="a.xpage" page="crud" />
+       editor生成XNode，然后编程处理
+    </x:gen-extends>
+    -->
+
+    <import id="!string" from="string" items="csv-set" xdef:name="UiImportModel"/>
+
+    <!--
+    全局样式
+    -->
+    <style xdef:value="xpl-text"/>
+
+    <!--
+    组件局部样式
+    -->
+    <scoped-style xdef:value="xpl-text"/>
+
+    <template xdef:value="xpl-html" xdef:support-extends="true"/>
+
+    <!--
+    模块script，只执行一次
+    -->
+    <script xdef:value="xpl-text"/>
+
+    <!--
+    组件的setup函数，每次创建组件实例时执行。对应于vue的<script setup>
+    -->
+    <setup xdef:value="xpl-text"/>
+
+</uc>

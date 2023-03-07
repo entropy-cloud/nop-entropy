@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <bean id="io.nop.auth.service.biz.LoginApiBizModel" ioc:type="@bean:id"/>
+
+    <bean id="io.nop.auth.service.biz.SiteMapApiBizModel" ioc:type="@bean:id"/>
+
+    <bean id="nopSiteMapProvider" class="io.nop.auth.service.sitemap.SiteMapProviderImpl"/>
+
+    <bean id="nopLoginService" class="io.nop.auth.service.login.LoginServiceImpl" ioc:default="true"
+          ioc:delay-method="lazyInit"/>
+
+    <bean id="nopLoginSessionStore" class="io.nop.auth.service.login.DaoLoginSessionStore" ioc:default="true">
+
+    </bean>
+
+    <bean id="nopAuditService" class="io.nop.auth.service.audit.AuditServiceImpl"/>
+
+    <bean id="nopUserIdGenerator" class="io.nop.auth.dao.generator.DefaultUserIdGenerator"
+          ioc:default="true"/>
+
+    <bean id="nopAuthHttpServerFilter" class="io.nop.auth.core.filter.AuthHttpServerFilter">
+        <ioc:condition>
+            <if-property name="nop.auth.http-server-filter.enabled" enableIfMissing="true"/>
+        </ioc:condition>
+        <property name="config" ref="nopAuthFilterConfig"/>
+    </bean>
+
+    <bean id="nopAuthFilterConfig" class="io.nop.auth.core.filter.AuthFilterConfig">
+        <!-- 未指定的情况下都是公开页面，主要是js/css/image等 -->
+        <property name="defaultPublic" value="true"/>
+
+        <property name="publicPaths">
+            <list>
+                <value>/r/LoginApi_*</value>
+                <value>/q/health*</value>
+                <value>/q/metrics*</value>
+            </list>
+        </property>
+
+        <property name="authPaths">
+            <list>
+                <value>/graphql*</value>
+                <!-- REST请求 -->
+                <value>/r/*</value>
+                <!-- quarkus内置管理页面 -->
+                <value>/q/*</value>
+                <!-- 返回具有指定contentType的内容 -->
+                <value>/p/*</value>
+            </list>
+        </property>
+
+        <!--
+        单页应用总是跳转回首页，由首页中的js负责显示登录页面
+        -->
+        <property name="loginUrl" value="@cfg:nop.auth.login-url|/index.html#/login"/>
+        <property name="logoutUrl" value="/r/LoginApi__logout" />
+    </bean>
+</beans>

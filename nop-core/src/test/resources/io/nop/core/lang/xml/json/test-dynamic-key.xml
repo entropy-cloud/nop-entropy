@@ -1,0 +1,7 @@
+<root>
+    <child1 a="1">
+        <_ j:key="&amp;">&amp;&amp;</_>
+        <_ j:key="a">$a</_>
+    </child1>
+
+</root>

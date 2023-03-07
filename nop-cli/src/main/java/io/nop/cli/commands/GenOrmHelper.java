@@ -1,0 +1,47 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.cli.commands;
+
+import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.resource.tpl.ITemplateOutput;
+import io.nop.excel.model.ExcelWorkbook;
+import io.nop.orm.model.OrmModel;
+import io.nop.report.core.XptConstants;
+import io.nop.report.core.engine.IReportEngine;
+import io.nop.report.core.engine.IReportRendererFactory;
+import io.nop.report.core.engine.ReportEngine;
+import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
+import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
+import io.nop.xlang.api.XLang;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
+public class GenOrmHelper {
+
+    public static void saveOrmToExcel(OrmModel ormModel, File outputFile) {
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(null, XptConstants.VAR_ENTITY, ormModel);
+
+        IReportEngine reportEngine = newReportEngine();
+        ExcelWorkbook workbook = reportEngine.buildXptModelFromImpModel("/nop/orm/imp/orm.imp.xml");
+
+        ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
+        output.generateToFile(outputFile, scope);
+    }
+
+    private static IReportEngine newReportEngine() {
+        ReportEngine reportEngine = new ReportEngine();
+        Map<String, IReportRendererFactory> renderers = new HashMap<>();
+        renderers.put(XptConstants.RENDER_TYPE_XLSX, new XlsxReportRendererFactory());
+        renderers.put(XptConstants.RENDER_TYPE_HTML, new HtmlReportRendererFactory());
+        reportEngine.setRenderers(renderers);
+        return reportEngine;
+    }
+}

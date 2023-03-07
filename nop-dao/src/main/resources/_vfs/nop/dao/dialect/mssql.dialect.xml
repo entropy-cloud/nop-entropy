@@ -123,7 +123,7 @@
         <native name="uuid" realName="newid" x:override="merge"/>
 
         <native name="sinh" x:override="remove"/>
-        <native name="cosh" x:override="remove" />
+        <native name="cosh" x:override="remove"/>
 
         <!--
         内置的rand()函数在一次statement执行过程中只会返回固定的一个值
@@ -148,27 +148,27 @@
             <source>charindex({1},{0})</source>
         </template>
 
-        <native name="ceil" realName="ceiling" x:override="merge" />
+        <native name="ceil" realName="ceiling" x:override="merge"/>
 
-        <native name="lpad" x:override="remove" />
-        <native name="rpad" x:override="remove" />
+        <native name="lpad" x:override="remove"/>
+        <native name="rpad" x:override="remove"/>
 
-        <native name="current_timestamp" hasParenthesis="false" x:override="merge" />
-        <native name="current_date" realName="getdate" x:override="merge" />
+        <native name="current_timestamp" hasParenthesis="false" x:override="merge"/>
+        <native name="current_date" realName="getdate" x:override="merge"/>
 
-        <native name="length" realName="len" x:override="merge" />
+        <native name="length" realName="len" x:override="merge"/>
 
         <template name="round" x:override="merge">
             <source>round({0},0)</source>
         </template>
 
-        <native name="repeat" x:override="remove" />
+        <native name="repeat" x:override="remove"/>
 
-        <native name="extract" x:override="remove" />
+        <native name="extract" x:override="remove"/>
 
-        <native name="ln" x:override="remove" />
+        <native name="ln" x:override="remove"/>
 
-        <native name="substr" realName="substring" x:override="merge" />
+        <native name="substr" realName="substring" x:override="merge"/>
 
         <template name="date" x:override="merge">
             <source>cast({0} as date)</source>

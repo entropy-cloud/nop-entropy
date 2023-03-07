@@ -1,13 +1,20 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm.sql_lib;
 
 import io.nop.api.core.annotations.orm.SqlLibMapper;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
-import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.ReflectionHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.dao.api.ISqlExecutor;
@@ -24,7 +31,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
 
 import static io.nop.orm.OrmErrors.ARG_PATH;
 import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
@@ -57,7 +63,8 @@ public class SqlLibManager implements ISqlLibManager {
         ComponentModelConfig config = new ComponentModelConfig();
         config.modelType(OrmConstants.MODEL_TYPE_SQL_LIB);
 
-        config.loader(OrmConstants.FILE_TYPE_SQL_LIB, path -> new DslModelParser(OrmConstants.XDSL_SCHEMA_SQL_LIB).parseFromVirtualPath(path));
+        config.loader(OrmConstants.FILE_TYPE_SQL_LIB,
+                path -> new DslModelParser(OrmConstants.XDSL_SCHEMA_SQL_LIB).parseFromVirtualPath(path));
         cancellable = ResourceComponentManager.instance().registerComponentModelConfig(config);
     }
 
@@ -87,11 +94,11 @@ public class SqlLibManager implements ISqlLibManager {
         return item.invoke(getExecutor(item.getType()), range, context);
     }
 
-    private SqlItemModel getSqlItemModel(String sqlName) {
+    @Override
+    public SqlItemModel getSqlItemModel(String sqlName) {
         int pos = sqlName.lastIndexOf('.');
         if (pos < 0)
-            throw new NopException(ERR_SQL_LIB_INVALID_SQL_NAME)
-                    .param(ARG_SQL_NAME, sqlName);
+            throw new NopException(ERR_SQL_LIB_INVALID_SQL_NAME).param(ARG_SQL_NAME, sqlName);
 
         String className = sqlName.substring(0, pos);
         String sqlItemName = sqlName.substring(pos + 1);
@@ -119,12 +126,11 @@ public class SqlLibManager implements ISqlLibManager {
     public SqlItemModel getSqlItemModel(String sqlLibPath, String sqlItemName) {
         SqlLibModel libModel = (SqlLibModel) ResourceComponentManager.instance().loadComponentModel(sqlLibPath);
         if (libModel == null)
-            throw new NopException(ERR_SQL_UNKNOWN_LIB_PATH)
-                    .param(ARG_PATH, sqlLibPath);
+            throw new NopException(ERR_SQL_UNKNOWN_LIB_PATH).param(ARG_PATH, sqlLibPath);
         SqlItemModel item = libModel.getSql(sqlItemName);
         if (item == null)
-            throw new NopException(ERR_SQL_LIB_UNKNOWN_SQL_ITEM)
-                    .param(ARG_PATH, sqlLibPath).param(ARG_SQL_NAME, sqlItemName);
+            throw new NopException(ERR_SQL_LIB_UNKNOWN_SQL_ITEM).param(ARG_PATH, sqlLibPath).param(ARG_SQL_NAME,
+                    sqlItemName);
         return item;
     }
 
@@ -140,7 +146,7 @@ public class SqlLibManager implements ISqlLibManager {
         String sqlLibPath = getSqlLibPath(proxyClass);
         checkProxyMethods(sqlLibPath, proxyClass);
         SqlLibInvoker invoker = new SqlLibInvoker(this, sqlLibPath);
-        return (T) Proxy.newProxyInstance(ClassHelper.getDefaultClassLoader(), new Class[]{proxyClass}, invoker);
+        return (T) ReflectionManager.instance().newProxyInstance(new Class[]{proxyClass}, invoker);
     }
 
     void checkProxyMethods(String sqlLibPath, Class<?> proxyClass) {

@@ -2,21 +2,20 @@
   "data": {
     "accessToken": "@var:accessToken",
     "attrs": null,
-    "expiresIn": 600,
+    "expiresIn": 1800,
     "refreshExpiresIn": 0,
     "refreshToken": "@var:refreshToken",
     "scope": null,
     "tokenType": "bearer",
     "userInfo": {
-      "attrs": null,
       "locale": "zh-CN",
       "roles": [],
       "tenantId": null,
       "timeZone": null,
+      "openId": "*",
       "userName": "auto_test1",
-      "userNick": "autoTestNick"
+      "nickName": "autoTestNick"
     }
   },
-  "httpStatus": 0,
   "status": 0
 }

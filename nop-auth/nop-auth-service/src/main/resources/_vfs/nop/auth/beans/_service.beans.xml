@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="io.nop.auth.service.entity.NopAuthDeptBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthExtLoginBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthOpLogBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthPositionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthResourceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthRoleBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthSessionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthSiteBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthTenantBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthUserBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthUserRoleBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+</beans>

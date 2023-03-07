@@ -1,0 +1,33 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+    package ${servicePackageName};
+
+    import java.util.concurrent.CompletionStage;
+    import io.nop.core.context.IServiceContext;
+
+    <gen:CollectApiMessageImports xpl:lib="/nop/codegen/xlib/gen.xlib"
+                                  serviceModel="${serviceModel}" xpl:return="types" />
+    <c:for var="type" items="${types}">
+        import ${type};
+    </c:for>
+
+    @SuppressWarnings({"PMD"})
+    public interface ${serviceModel.name}Spi{
+
+    <c:for var="method" items="${serviceModel.methods}">
+        <c:choose>
+            <when test="${method.tagSet?.contains('sync')}"><![CDATA[
+     /**
+      * ${method.displayName} ${method.description}
+      */
+     ${method.simpleResponseMessage} ${method.name}(${method.simpleRequestMessage} request, IServiceContext ctx);
+            ]]></when>
+            <otherwise><![CDATA[
+     /**
+      * ${method.displayName} ${method.description}
+      */
+     CompletionStage<${method.simpleResponseMessage}> ${method.name}Async(${method.simpleRequestMessage} request, IServiceContext ctx);
+            ]]></otherwise>
+        </c:choose>
+    </c:for>
+    }
+</c:unit>

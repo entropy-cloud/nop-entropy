@@ -1,0 +1,1739 @@
+<c:unit>
+    <c:import from="/nop/ooxml/xlib/docx-gen.xlib"/>
+    <c:out escape="none">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+</c:out>
+    <c:unit xpl:outputMode="none">
+        <c:script>
+logDebug("test")
+</c:script>
+    </c:unit>
+    <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+                xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex"
+                xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex"
+                xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex"
+                xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex"
+                xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex"
+                xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex"
+                xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex"
+                xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex"
+                xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink"
+                xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d"
+                xmlns:o="urn:schemas-microsoft-com:office:office"
+                xmlns:oel="http://schemas.microsoft.com/office/2019/extlst"
+                xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+                xmlns:v="urn:schemas-microsoft-com:vml"
+                xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+                xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+                xmlns:w10="urn:schemas-microsoft-com:office:word"
+                xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+                xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
+                xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
+                xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
+                xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml"
+                xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash"
+                xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex"
+                xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+                xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+                xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+                xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+                mc:Ignorable="w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14">
+        <w:body>
+            <w:p w14:paraId="60F48F74" w14:textId="77777777" w:rsidR="00A81D38" w:rsidRPr="004C00AA"
+                 w:rsidRDefault="00A81D38" w:rsidP="00A81D38">
+                <w:pPr>
+                    <w:pStyle w:val="a7"/>
+                    <w:rPr>
+                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                    </w:rPr>
+                </w:pPr>
+                <w:r w:rsidRPr="004C00AA">
+                    <w:rPr>
+                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                        <w:lang w:val="zh-CN"/>
+                    </w:rPr>
+                    <w:t>付款通知书</w:t>
+                </w:r>
+            </w:p>
+            <w:tbl>
+                <w:tblPr>
+                    <w:tblW w:w="5000" w:type="pct"/>
+                    <w:jc w:val="center"/>
+                    <w:tblLayout w:type="fixed"/>
+                    <w:tblCellMar>
+                        <w:left w:w="0" w:type="dxa"/>
+                        <w:right w:w="0" w:type="dxa"/>
+                    </w:tblCellMar>
+                    <w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0"
+                               w:noHBand="0" w:noVBand="1"/>
+                </w:tblPr>
+                <w:tblGrid>
+                    <w:gridCol w:w="3977"/>
+                    <w:gridCol w:w="894"/>
+                    <w:gridCol w:w="4869"/>
+                </w:tblGrid>
+                <w:tr w:rsidR="00A81D38" w:rsidRPr="004C00AA" w14:paraId="68302A81" w14:textId="77777777"
+                      w:rsidTr="008E21AF">
+                    <w:trPr>
+                        <w:jc w:val="center"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="4410" w:type="dxa"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="213043F6" w14:textId="65578B66" w:rsidR="00A81D38" w:rsidRPr="004C00AA"
+                             w:rsidRDefault="00A81D38" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="FormText"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="004C00AA">
+                                <w:rPr>
+                                    <w:rStyle w:val="FormHeadingChar"/>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>付款通知书编号:</w:t>
+                            </w:r>
+                            <w:r w:rsidR="00FF2F22" w:rsidRPr="00FF2F22">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>${entity.NO}</w:t>
+                            </w:r>
+                        </w:p>
+                        <w:p w14:paraId="53AC00A5" w14:textId="07BDB4F8" w:rsidR="00A81D38" w:rsidRPr="004C00AA"
+                             w:rsidRDefault="00A81D38" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="FormText"/>
+                                <w:spacing w:before="120"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="004C00AA">
+                                <w:rPr>
+                                    <w:rStyle w:val="FormHeadingChar"/>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>客户 ID:</w:t>
+                            </w:r>
+                            <w:r w:rsidRPr="004C00AA">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t xml:space="preserve"/>
+                            </w:r>
+                            <w:r w:rsidR="00FF2F22" w:rsidRPr="00FF2F22">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>${entity.id}</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="990" w:type="dxa"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="08A19056" w14:textId="77777777" w:rsidR="00A81D38" w:rsidRPr="004C00AA"
+                             w:rsidRDefault="00A81D38" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="FormText"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="5400" w:type="dxa"/>
+                        </w:tcPr>
+                        <w:tbl>
+                            <w:tblPr>
+                                <w:tblW w:w="5000" w:type="pct"/>
+                                <w:tblLayout w:type="fixed"/>
+                                <w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0"
+                                           w:noHBand="0" w:noVBand="1"/>
+                            </w:tblPr>
+                            <w:tblGrid>
+                                <w:gridCol w:w="2434"/>
+                                <w:gridCol w:w="2435"/>
+                            </w:tblGrid>
+                            <w:tr w:rsidR="00A81D38" w:rsidRPr="004C00AA" w14:paraId="52EAF52E" w14:textId="77777777"
+                                  w:rsidTr="00905903">
+                                <w:tc>
+                                    <w:tcPr>
+                                        <w:tcW w:w="2500" w:type="pct"/>
+                                    </w:tcPr>
+                                    <w:p w14:paraId="392AF747" w14:textId="77777777" w:rsidR="00A81D38"
+                                         w:rsidRPr="004C00AA" w:rsidRDefault="00A81D38" w:rsidP="00905903">
+                                        <w:pPr>
+                                            <w:pStyle w:val="FormHeading"/>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                            </w:rPr>
+                                        </w:pPr>
+                                        <w:r w:rsidRPr="004C00AA">
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                                <w:lang w:val="zh-CN"/>
+                                            </w:rPr>
+                                            <w:t>抬头:</w:t>
+                                        </w:r>
+                                    </w:p>
+                                </w:tc>
+                                <w:tc>
+                                    <w:tcPr>
+                                        <w:tcW w:w="2500" w:type="pct"/>
+                                    </w:tcPr>
+                                    <w:p w14:paraId="405D35EF" w14:textId="77777777" w:rsidR="00A81D38"
+                                         w:rsidRPr="004C00AA" w:rsidRDefault="00A81D38" w:rsidP="002753C3">
+                                        <w:pPr>
+                                            <w:pStyle w:val="FormHeading"/>
+                                            <w:jc w:val="right"/>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                            </w:rPr>
+                                        </w:pPr>
+                                        <w:r w:rsidRPr="004C00AA">
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                                <w:lang w:val="zh-CN"/>
+                                            </w:rPr>
+                                            <w:t>收货方:</w:t>
+                                        </w:r>
+                                    </w:p>
+                                </w:tc>
+                            </w:tr>
+                            <w:tr w:rsidR="00A81D38" w:rsidRPr="004C00AA" w14:paraId="54DA6FAC" w14:textId="77777777"
+                                  w:rsidTr="00905903">
+                                <w:trPr>
+                                    <w:trHeight w:val="1053"/>
+                                </w:trPr>
+                                <w:tc>
+                                    <w:tcPr>
+                                        <w:tcW w:w="2500" w:type="pct"/>
+                                    </w:tcPr>
+                                    <w:p w14:paraId="1ACCBA02" w14:textId="06D9359D" w:rsidR="00A81D38"
+                                         w:rsidRPr="004C00AA" w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                                        <w:pPr>
+                                            <w:pStyle w:val="FormText"/>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                            </w:rPr>
+                                        </w:pPr>
+                                        <w:r w:rsidR="00FF2F22" w:rsidRPr="00FF2F22">
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                            </w:rPr>
+                                            <w:t>${entity.taitou}</w:t>
+                                        </w:r>
+                                    </w:p>
+                                </w:tc>
+                                <w:tc>
+                                    <w:tcPr>
+                                        <w:tcW w:w="2500" w:type="pct"/>
+                                    </w:tcPr>
+                                    <w:p w14:paraId="3B089F77" w14:textId="4FFE4F79" w:rsidR="00A81D38"
+                                         w:rsidRPr="004C00AA" w:rsidRDefault="00FF0731" w:rsidP="002753C3">
+                                        <w:pPr>
+                                            <w:pStyle w:val="FormText"/>
+                                            <w:jc w:val="right"/>
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                            </w:rPr>
+                                        </w:pPr>
+                                        <w:r w:rsidR="00FF2F22" w:rsidRPr="00FF2F22">
+                                            <w:rPr>
+                                                <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                            </w:rPr>
+                                            <w:t>${entity.consignee}</w:t>
+                                        </w:r>
+                                    </w:p>
+                                </w:tc>
+                            </w:tr>
+                        </w:tbl>
+                        <w:p w14:paraId="5AFAF259" w14:textId="77777777" w:rsidR="00A81D38" w:rsidRPr="004C00AA"
+                             w:rsidRDefault="00A81D38" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="FormText"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+            </w:tbl>
+            <w:p w14:paraId="697B961C" w14:textId="77777777" w:rsidR="00A81D38" w:rsidRDefault="00A81D38"
+                 w:rsidP="00A81D38">
+                <w:pPr>
+                    <w:pStyle w:val="SpaceBetween"/>
+                    <w:rPr>
+                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <w:tbl>
+                <w:tblPr>
+                    <w:tblW w:w="9734" w:type="dxa"/>
+                    <w:jc w:val="center"/>
+                    <w:tblBorders>
+                        <w:top w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"/>
+                        <w:left w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"/>
+                        <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"/>
+                        <w:right w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"/>
+                        <w:insideH w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"/>
+                        <w:insideV w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"/>
+                    </w:tblBorders>
+                    <w:tblLayout w:type="fixed"/>
+                    <w:tblCellMar>
+                        <w:left w:w="107" w:type="dxa"/>
+                        <w:right w:w="107" w:type="dxa"/>
+                    </w:tblCellMar>
+                    <w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0"
+                               w:noHBand="0" w:noVBand="1"/>
+                </w:tblPr>
+                <w:tblGrid>
+                    <w:gridCol w:w="1390"/>
+                    <w:gridCol w:w="1390"/>
+                    <w:gridCol w:w="1390"/>
+                    <w:gridCol w:w="1391"/>
+                    <w:gridCol w:w="1391"/>
+                    <w:gridCol w:w="1391"/>
+                    <w:gridCol w:w="1391"/>
+                </w:tblGrid>
+                <w:tr w:rsidR="00AC64A8" w14:paraId="19863547" w14:textId="77777777" w:rsidTr="00F65D42">
+                    <w:trPr>
+                        <w:jc w:val="center"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1390" w:type="dxa"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                            <w:vAlign w:val="center"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="269006A8" w14:textId="77777777" w:rsidR="00AC64A8" w:rsidRDefault="00AC64A8"
+                             w:rsidP="00F65D42">
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    <w:color w:val="7F7F7F"/>
+                                    <w:sz w:val="18"/>
+                                </w:rPr>
+                                <w:t>日期</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1390" w:type="dxa"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                            <w:vAlign w:val="center"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="7E5C13D3" w14:textId="77777777" w:rsidR="00AC64A8" w:rsidRDefault="00AC64A8"
+                             w:rsidP="00F65D42">
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    <w:color w:val="7F7F7F"/>
+                                    <w:sz w:val="18"/>
+                                </w:rPr>
+                                <w:t>订单编号</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1390" w:type="dxa"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                            <w:vAlign w:val="center"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="2D7179B8" w14:textId="77777777" w:rsidR="00AC64A8" w:rsidRDefault="00AC64A8"
+                             w:rsidP="00F65D42">
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    <w:color w:val="7F7F7F"/>
+                                    <w:sz w:val="18"/>
+                                </w:rPr>
+                                <w:t>销售代表</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1390" w:type="dxa"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                            <w:vAlign w:val="center"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="75574941" w14:textId="77777777" w:rsidR="00AC64A8" w:rsidRDefault="00AC64A8"
+                             w:rsidP="00F65D42">
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    <w:color w:val="7F7F7F"/>
+                                    <w:sz w:val="18"/>
+                                </w:rPr>
+                                <w:t>离岸价</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1390" w:type="dxa"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                            <w:vAlign w:val="center"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="30A23268" w14:textId="77777777" w:rsidR="00AC64A8" w:rsidRDefault="00AC64A8"
+                             w:rsidP="00F65D42">
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    <w:color w:val="7F7F7F"/>
+                                    <w:sz w:val="18"/>
+                                </w:rPr>
+                                <w:t>发货方式</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1390" w:type="dxa"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                            <w:vAlign w:val="center"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="597499EB" w14:textId="77777777" w:rsidR="00AC64A8" w:rsidRDefault="00AC64A8"
+                             w:rsidP="00F65D42">
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    <w:color w:val="7F7F7F"/>
+                                    <w:sz w:val="18"/>
+                                </w:rPr>
+                                <w:t>条款</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1390" w:type="dxa"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                            <w:vAlign w:val="center"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="6941B9EA" w14:textId="77777777" w:rsidR="00AC64A8" w:rsidRDefault="00AC64A8"
+                             w:rsidP="00F65D42">
+                            <w:pPr>
+                                <w:jc w:val="center"/>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    <w:color w:val="7F7F7F"/>
+                                    <w:sz w:val="18"/>
+                                </w:rPr>
+                                <w:t>税号</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <c:for var="order" items="${entity.orders}">
+                    <w:tr w:rsidR="00AC64A8" w14:paraId="377D9E14" w14:textId="77777777" w:rsidTr="00F65D42">
+                        <w:trPr>
+                            <w:jc w:val="center"/>
+                        </w:trPr>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1390" w:type="dxa"/>
+                                <w:vAlign w:val="center"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="4CB6B484" w14:textId="1AADBFB6" w:rsidR="00AC64A8"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                <w:pPr>
+                                    <w:jc w:val="center"/>
+                                </w:pPr>
+                                <w:r w:rsidR="006F674D">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${order.saleDate}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1390" w:type="dxa"/>
+                                <w:vAlign w:val="center"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="18380FFC" w14:textId="11B25B7A" w:rsidR="00AC64A8"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                <w:pPr>
+                                    <w:jc w:val="center"/>
+                                </w:pPr>
+                                <w:r w:rsidR="00AC64A8" w:rsidRPr="006F674D">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${order.orderNo}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1390" w:type="dxa"/>
+                                <w:vAlign w:val="center"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="39C9FCD5" w14:textId="509BD0FF" w:rsidR="00AC64A8"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                <w:pPr>
+                                    <w:jc w:val="center"/>
+                                </w:pPr>
+                                <w:r w:rsidR="00AC64A8" w:rsidRPr="006F674D">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${order.salesman}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1390" w:type="dxa"/>
+                                <w:vAlign w:val="center"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="14F53965" w14:textId="7AC1DCCA" w:rsidR="00AC64A8"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                <w:pPr>
+                                    <w:jc w:val="center"/>
+                                </w:pPr>
+                                <w:r w:rsidR="00E57DD9">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${order.price}</w:t>
+                                </w:r>
+                                <w:r w:rsidR="00E57DD9">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"
+                                                  w:hint="eastAsia"/>
+                                    </w:rPr>
+                                    <w:t>元</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1390" w:type="dxa"/>
+                                <w:vAlign w:val="center"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="1EA78C25" w14:textId="2108F2FE" w:rsidR="00AC64A8"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                <w:pPr>
+                                    <w:jc w:val="center"/>
+                                </w:pPr>
+                                <w:r w:rsidR="00AC64A8" w:rsidRPr="003C5E6D">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${order.delivery}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1390" w:type="dxa"/>
+                                <w:vAlign w:val="center"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="1CB8209D" w14:textId="28705912" w:rsidR="00AC64A8"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                <w:pPr>
+                                    <w:jc w:val="center"/>
+                                </w:pPr>
+                                <w:r w:rsidR="00AC64A8" w:rsidRPr="003C5E6D">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${order.terms}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1390" w:type="dxa"/>
+                                <w:vAlign w:val="center"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="5EC7F136" w14:textId="3209FA3F" w:rsidR="00AC64A8"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00F65D42">
+                                <w:pPr>
+                                    <w:jc w:val="center"/>
+                                </w:pPr>
+                                <w:r w:rsidR="00AC64A8" w:rsidRPr="003C5E6D">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hAnsi="Hei" w:cs="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${order.taxNumber}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                    </w:tr>
+                </c:for>
+            </w:tbl>
+            <w:p w14:paraId="5769B095" w14:textId="6AF0C35A" w:rsidR="00370AF6" w:rsidRPr="004C00AA"
+                 w:rsidRDefault="00370AF6" w:rsidP="00A81D38">
+                <w:pPr>
+                    <w:pStyle w:val="SpaceBetween"/>
+                    <w:rPr>
+                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <w:tbl>
+                <w:tblPr>
+                    <w:tblStyle w:val="InvoiceTable"/>
+                    <w:tblW w:w="4965" w:type="pct"/>
+                    <w:jc w:val="center"/>
+                    <w:tblInd w:w="0" w:type="dxa"/>
+                    <w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0"
+                               w:noHBand="0" w:noVBand="1"/>
+                </w:tblPr>
+                <w:tblGrid>
+                    <w:gridCol w:w="1185"/>
+                    <w:gridCol w:w="1496"/>
+                    <w:gridCol w:w="2454"/>
+                    <w:gridCol w:w="1014"/>
+                    <w:gridCol w:w="926"/>
+                    <w:gridCol w:w="1156"/>
+                    <w:gridCol w:w="1431"/>
+                </w:tblGrid>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="75C6F8FA" w14:textId="77777777" w:rsidTr="008E21AF">
+                    <w:trPr>
+                        <w:cnfStyle w:val="100000000000" w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0"
+                                    w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0"
+                                    w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0"
+                                    w:lastRowLastColumn="0"/>
+                        <w:jc w:val="center"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="5000" w:type="pct"/>
+                            <w:gridSpan w:val="7"/>
+                            <w:tcBorders>
+                                <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                          w:themeColor="background1" w:themeShade="A6"/>
+                            </w:tcBorders>
+                        </w:tcPr>
+                        <w:p w14:paraId="453AA489" w14:textId="06649163" w:rsidR="00B45E7B" w:rsidRDefault="00B45E7B"
+                             w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>货物明细</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr w:rsidR="00E731FE" w:rsidRPr="00B45E7B" w14:paraId="3272437F" w14:textId="77777777"
+                      w:rsidTr="008E21AF">
+                    <w:trPr>
+                        <w:jc w:val="center"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="644" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="6D4A8D86" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>数量</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="804" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="60242D83" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>货物</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1300" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="66F2E0B7" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>说明</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="555" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="0EA3BC6D" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>折扣</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="509" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="3A80634F" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>应纳税</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="628" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="6A6EB300" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>单价</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="560" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="33D5F705" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>总计</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <c:for var="goods" items="${entity.goodsList}">
+                    <w:tr w:rsidR="00B45E7B" w14:paraId="1AAE3261" w14:textId="77777777" w:rsidTr="008E21AF">
+                        <w:trPr>
+                            <w:jc w:val="center"/>
+                        </w:trPr>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="644" w:type="pct"/>
+                                <w:tcBorders>
+                                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                              w:themeColor="background1" w:themeShade="A6"/>
+                                </w:tcBorders>
+                            </w:tcPr>
+                            <w:p w14:paraId="64944051" w14:textId="39E7CEC2" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="BodyTextCenter"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00D02CA8" w:rsidRPr="00D02CA8">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${goods.amount}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="804" w:type="pct"/>
+                                <w:tcBorders>
+                                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                              w:themeColor="background1" w:themeShade="A6"/>
+                                </w:tcBorders>
+                            </w:tcPr>
+                            <w:p w14:paraId="267453D2" w14:textId="49654B6D" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="aa"/>
+                                    <w:jc w:val="center"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00D02CA8" w:rsidRPr="00D02CA8">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${goods.name}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="1300" w:type="pct"/>
+                                <w:tcBorders>
+                                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                              w:themeColor="background1" w:themeShade="A6"/>
+                                </w:tcBorders>
+                            </w:tcPr>
+                            <w:p w14:paraId="57C06472" w14:textId="442A7BCF" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="aa"/>
+                                    <w:jc w:val="center"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00D02CA8" w:rsidRPr="00D02CA8">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${goods.desc}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="555" w:type="pct"/>
+                                <w:tcBorders>
+                                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                              w:themeColor="background1" w:themeShade="A6"/>
+                                </w:tcBorders>
+                            </w:tcPr>
+                            <w:p w14:paraId="0ADA5C5C" w14:textId="1BF84F84" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="BodyTextCenter"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00D02CA8" w:rsidRPr="00D02CA8">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${goods.discount??'/'}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="509" w:type="pct"/>
+                                <w:tcBorders>
+                                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                              w:themeColor="background1" w:themeShade="A6"/>
+                                </w:tcBorders>
+                            </w:tcPr>
+                            <w:p w14:paraId="7615DAF5" w14:textId="07561F4A" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="aa"/>
+                                    <w:jc w:val="center"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00D02CA8" w:rsidRPr="00D02CA8">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${goods.tax}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="628" w:type="pct"/>
+                                <w:tcBorders>
+                                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                              w:themeColor="background1" w:themeShade="A6"/>
+                                </w:tcBorders>
+                            </w:tcPr>
+                            <w:p w14:paraId="3F7DE948" w14:textId="770DCA88" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="BodyTextRight"/>
+                                    <w:jc w:val="center"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00D02CA8" w:rsidRPr="00D02CA8">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${goods.price}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="560" w:type="pct"/>
+                                <w:tcBorders>
+                                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                              w:themeColor="background1" w:themeShade="A6"/>
+                                </w:tcBorders>
+                            </w:tcPr>
+                            <w:p w14:paraId="5C6B47CC" w14:textId="5292FBC2" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                                <w:pPr>
+                                    <w:pStyle w:val="BodyTextRight"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00D02CA8" w:rsidRPr="00D02CA8">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${goods.total}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                    </w:tr>
+                </c:for>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="5EB4DD56" w14:textId="77777777" w:rsidTr="008E21AF">
+                    <w:trPr>
+                        <w:jc w:val="center"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="5000" w:type="pct"/>
+                            <w:gridSpan w:val="7"/>
+                            <w:tcBorders>
+                                <w:bottom w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"
+                                          w:themeColor="background1" w:themeShade="A6"/>
+                            </w:tcBorders>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="27CF81D7" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>人工费</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="4EF37808" w14:textId="77777777" w:rsidTr="008E21AF">
+                    <w:trPr>
+                        <w:jc w:val="center"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="3303" w:type="pct"/>
+                            <w:gridSpan w:val="4"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="5B9C09FA" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>种类</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="509" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="0C379E94" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>人数</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="628" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="4CCB56AD" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingCenter"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>单价</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="560" w:type="pct"/>
+                            <w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="2FC90C8E" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="BodyTextRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <c:for var="cost" items="${entity.laborCosts}">
+                    <w:tr w:rsidR="00B45E7B" w14:paraId="437CB78B" w14:textId="77777777" w:rsidTr="008E21AF">
+                        <w:trPr>
+                            <w:jc w:val="center"/>
+                        </w:trPr>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="3303" w:type="pct"/>
+                                <w:gridSpan w:val="4"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="6D509994" w14:textId="2A30F67B" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="BodyTextCenter"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00E17B60" w:rsidRPr="00E17B60">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${cost.type}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="509" w:type="pct"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="4820B854" w14:textId="09C8C65D" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="aa"/>
+                                    <w:jc w:val="center"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00E17B60" w:rsidRPr="00E17B60">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${cost.num}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="628" w:type="pct"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="2A4C4835" w14:textId="3DBDC2DF" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="00FF422B">
+                                <w:pPr>
+                                    <w:pStyle w:val="BodyTextRight"/>
+                                    <w:jc w:val="center"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="00E17B60" w:rsidRPr="00E17B60">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${cost.price}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                        <w:tc>
+                            <w:tcPr>
+                                <w:tcW w:w="560" w:type="pct"/>
+                            </w:tcPr>
+                            <w:p w14:paraId="4B7ADCFD" w14:textId="0F6A2EDF" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                                 w:rsidRDefault="00FF0731" w:rsidP="0050363D">
+                                <w:pPr>
+                                    <w:pStyle w:val="BodyTextRight"/>
+                                    <w:jc w:val="center"/>
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                </w:pPr>
+                                <w:r w:rsidR="0013531D" w:rsidRPr="0013531D">
+                                    <w:rPr>
+                                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    </w:rPr>
+                                    <w:t>${cost.price*cost.num}</w:t>
+                                </w:r>
+                            </w:p>
+                        </w:tc>
+                    </w:tr>
+                </c:for>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="0D564F42" w14:textId="77777777" w:rsidTr="008E21AF">
+                    <w:trPr>
+                        <w:jc w:val="center"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="5000" w:type="pct"/>
+                            <w:gridSpan w:val="7"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="229A1CF9" w14:textId="52D064E9" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B82545" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="BodyTextRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                </w:rPr>
+                                <w:t>总共：</w:t>
+                            </w:r>
+                            <w:r w:rsidR="00FF0731">
+                                <w:fldChar w:fldCharType="begin"/>
+                            </w:r>
+                            <w:r w:rsidR="00FF0731">
+                                <w:instrText>HYPERLINK "expr:entity.totalCost"</w:instrText>
+                            </w:r>
+                            <w:r w:rsidR="00FF0731">
+                                <w:fldChar w:fldCharType="separate"/>
+                            </w:r>
+                            <w:r w:rsidR="00B45E7B" w:rsidRPr="0013531D">
+                                <w:rPr>
+                                    <w:rStyle w:val="ac"/>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                </w:rPr>
+                                <w:t>{{total}}</w:t>
+                            </w:r>
+                            <w:r w:rsidR="00FF0731">
+                                <w:rPr>
+                                    <w:rStyle w:val="ac"/>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                                <w:fldChar w:fldCharType="end"/>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+            </w:tbl>
+            <w:p w14:paraId="432B3F70" w14:textId="7EF8D8D2" w:rsidR="00B45E7B" w:rsidRPr="004C00AA"
+                 w:rsidRDefault="00B45E7B" w:rsidP="00A81D38">
+                <w:pPr>
+                    <w:rPr>
+                        <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <w:tbl>
+                <w:tblPr>
+                    <w:tblStyle w:val="InvoiceTable"/>
+                    <w:tblW w:w="1719" w:type="pct"/>
+                    <w:jc w:val="right"/>
+                    <w:tblInd w:w="0" w:type="dxa"/>
+                    <w:tblLook w:val="04E0" w:firstRow="1" w:lastRow="1" w:firstColumn="1" w:lastColumn="0"
+                               w:noHBand="0" w:noVBand="1"/>
+                </w:tblPr>
+                <w:tblGrid>
+                    <w:gridCol w:w="1936"/>
+                    <w:gridCol w:w="1409"/>
+                </w:tblGrid>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="60FA4235" w14:textId="77777777" w:rsidTr="00905903">
+                    <w:trPr>
+                        <w:cnfStyle w:val="100000000000" w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0"
+                                    w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0"
+                                    w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0"
+                                    w:lastRowLastColumn="0"/>
+                        <w:jc w:val="right"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="3263" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="6D2D88D2" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingLeft"/>
+                                <w:jc w:val="right"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                                <w:t>小计:</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1737" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="06E6D807" w14:textId="4BE8E0E2" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="BodyTextRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidR="00B45E7B" w:rsidRPr="005A04DD">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                </w:rPr>
+                                <w:t>${entity.subtotal}</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="5F7DD759" w14:textId="77777777" w:rsidTr="00905903">
+                    <w:trPr>
+                        <w:jc w:val="right"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="3263" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="7BCAD7E6" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingLeft"/>
+                                <w:jc w:val="right"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                                <w:t>税额:</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1737" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="2FC97AEE" w14:textId="0DD5612A" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="BodyTextRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidR="005A04DD" w:rsidRPr="005A04DD">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                                <w:t>${entity.tax}</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="6EB1F604" w14:textId="77777777" w:rsidTr="00905903">
+                    <w:trPr>
+                        <w:jc w:val="right"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="3263" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="79BB57D5" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingLeft"/>
+                                <w:jc w:val="right"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                                <w:t>运输:</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1737" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="232572CD" w14:textId="284DB04E" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="BodyTextRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidR="00B45E7B" w:rsidRPr="005A04DD">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                </w:rPr>
+                                <w:t>${entity.transform}</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="2DB117E0" w14:textId="77777777" w:rsidTr="00905903">
+                    <w:trPr>
+                        <w:jc w:val="right"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="3263" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="3C37E599" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:lang w:val="zh-CN"/>
+                                </w:rPr>
+                                <w:t>其他:</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1737" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="476FF905" w14:textId="2603A68C" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="BodyTextRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidR="00B45E7B" w:rsidRPr="005A04DD">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                </w:rPr>
+                                <w:t>${entity.other}</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr w:rsidR="00B45E7B" w14:paraId="18384DD3" w14:textId="77777777" w:rsidTr="00905903">
+                    <w:trPr>
+                        <w:cnfStyle w:val="010000000000" w:firstRow="0" w:lastRow="1" w:firstColumn="0" w:lastColumn="0"
+                                    w:oddVBand="0" w:evenVBand="0" w:oddHBand="0" w:evenHBand="0"
+                                    w:firstRowFirstColumn="0" w:firstRowLastColumn="0" w:lastRowFirstColumn="0"
+                                    w:lastRowLastColumn="0"/>
+                        <w:jc w:val="right"/>
+                    </w:trPr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="3263" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="7DEDA4CB" w14:textId="77777777" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00B45E7B" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="TableHeadingLeft"/>
+                                <w:jc w:val="right"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidRPr="00B45E7B">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                    <w:color w:val="7F7F7F" w:themeColor="text1" w:themeTint="80"/>
+                                    <w:sz w:val="18"/>
+                                    <w:lang w:val="zh-CN" w:eastAsia="zh-CN"/>
+                                </w:rPr>
+                                <w:t>未付余额:</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:w="1737" w:type="pct"/>
+                        </w:tcPr>
+                        <w:p w14:paraId="20D7F755" w14:textId="71C9CDAC" w:rsidR="00B45E7B" w:rsidRPr="00B45E7B"
+                             w:rsidRDefault="00FF0731" w:rsidP="00905903">
+                            <w:pPr>
+                                <w:pStyle w:val="BodyTextRight"/>
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei"/>
+                                </w:rPr>
+                            </w:pPr>
+                            <w:r w:rsidR="00B45E7B" w:rsidRPr="005A04DD">
+                                <w:rPr>
+                                    <w:rFonts w:ascii="Hei" w:eastAsia="Hei" w:hint="eastAsia"/>
+                                </w:rPr>
+                                <w:t>${entity.unpay}</w:t>
+                            </w:r>
+                        </w:p>
+                    </w:tc>
+                </w:tr>
+            </w:tbl>
+            <w:p w14:paraId="399B35CA" w14:textId="2E61CA40" w:rsidR="00CF04C6" w:rsidRDefault="00CF04C6"
+                 w:rsidP="00FA2BB8">
+                <w:pPr>
+                    <w:jc w:val="right"/>
+                    <w:rPr>
+                        <w:noProof/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <c:for var="i" items="${[1,2]}">
+                <w:p w14:paraId="7898CBF8" w14:textId="409022DB" w:rsidR="00CF04C6" w:rsidRDefault="00FF0731"
+                     w:rsidP="003A4FCD">
+                    <w:pPr>
+                        <w:rPr>
+                            <w:noProof/>
+                        </w:rPr>
+                    </w:pPr>
+                </w:p>
+                <w:p w14:paraId="3E24B9AD" w14:textId="1EBB8F4F" w:rsidR="003A4FCD" w:rsidRDefault="003A4FCD"
+                     w:rsidP="003A4FCD">
+                    <w:pPr>
+                        <w:rPr>
+                            <w:noProof/>
+                        </w:rPr>
+                    </w:pPr>
+                    <w:r>
+                        <w:rPr>
+                            <w:rFonts w:hint="eastAsia"/>
+                            <w:noProof/>
+                        </w:rPr>
+                        <w:t>内容</w:t>
+                    </w:r>
+                </w:p>
+                <w:p w14:paraId="462AABC4" w14:textId="636C05E2" w:rsidR="003A4FCD" w:rsidRDefault="003A4FCD"
+                     w:rsidP="003A4FCD">
+                    <w:pPr>
+                        <w:jc w:val="center"/>
+                        <w:rPr>
+                            <w:noProof/>
+                        </w:rPr>
+                    </w:pPr>
+                    <w:r>
+                        <w:rPr>
+                            <w:noProof/>
+                        </w:rPr>
+                        <w:lastRenderedPageBreak/>
+                        <w:drawing xpl:is="docx-gen:Drawing" resource="${images[i]}">
+                            <wp:inline distT="0" distB="0" distL="0" distR="0" wp14:anchorId="782EDF39"
+                                       wp14:editId="538630D5">
+                                <wp:extent cx="1281430" cy="1165860"/>
+                                <wp:effectExtent l="0" t="0" r="0" b="0"/>
+                                <wp:docPr id="${rel.idNoPrefix}" name="图片 2" descr="AAABBBCCC">
+                                    <a:extLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                                        <a:ext uri="{C183D7F6-B498-43B3-948B-1728B52AA6E4}">
+                                            <adec:decorative
+                                                             xmlns:adec="http://schemas.microsoft.com/office/drawing/2017/decorative"
+                                                             val="0"/>
+                                        </a:ext>
+                                    </a:extLst>
+                                </wp:docPr>
+                                <wp:cNvGraphicFramePr>
+                                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                                                         noChangeAspect="1"/>
+                                </wp:cNvGraphicFramePr>
+                                <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                                        <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                                            <pic:nvPicPr>
+                                                <pic:cNvPr id="${rel.idNoPrefix}" name="图片 2" descr="AAABBBCCC">
+                                                    <a:extLst>
+                                                        <a:ext uri="{C183D7F6-B498-43B3-948B-1728B52AA6E4}">
+                                                            <adec:decorative
+                                                                             xmlns:adec="http://schemas.microsoft.com/office/drawing/2017/decorative"
+                                                                             val="0"/>
+                                                        </a:ext>
+                                                    </a:extLst>
+                                                </pic:cNvPr>
+                                                <pic:cNvPicPr/>
+                                            </pic:nvPicPr>
+                                            <pic:blipFill>
+                                                <a:blip r:embed="${rel.id}"/>
+                                                <a:stretch>
+                                                    <a:fillRect/>
+                                                </a:stretch>
+                                            </pic:blipFill>
+                                            <pic:spPr>
+                                                <a:xfrm>
+                                                    <a:off x="0" y="0"/>
+                                                    <a:ext cx="1281430" cy="1165860"/>
+                                                </a:xfrm>
+                                                <a:prstGeom prst="rect">
+                                                    <a:avLst/>
+                                                </a:prstGeom>
+                                            </pic:spPr>
+                                        </pic:pic>
+                                    </a:graphicData>
+                                </a:graphic>
+                            </wp:inline>
+                        </w:drawing>
+                    </w:r>
+                </w:p>
+                <w:p w14:paraId="412FDC9A" w14:textId="2FDA0553" w:rsidR="003A4FCD" w:rsidRDefault="003A4FCD"
+                     w:rsidP="003A4FCD">
+                    <w:pPr>
+                        <w:rPr>
+                            <w:noProof/>
+                        </w:rPr>
+                    </w:pPr>
+                    <w:r>
+                        <w:rPr>
+                            <w:rFonts w:hint="eastAsia"/>
+                            <w:noProof/>
+                        </w:rPr>
+                        <w:t>内容</w:t>
+                    </w:r>
+                    <w:r w:rsidRPr="003A4FCD">
+                        <w:rPr>
+                            <w:rFonts w:hint="eastAsia"/>
+                            <w:noProof/>
+                        </w:rPr>
+                        <w:t>${i}</w:t>
+                    </w:r>
+                </w:p>
+                <w:p w14:paraId="5BA4A35D" w14:textId="1980CFDB" w:rsidR="003A4FCD" w:rsidRDefault="00FF0731"
+                     w:rsidP="003A4FCD">
+                    <w:pPr>
+                        <w:rPr>
+                            <w:noProof/>
+                        </w:rPr>
+                    </w:pPr>
+                </w:p>
+            </c:for>
+            <w:p w14:paraId="101954B5" w14:textId="77777777" w:rsidR="003A4FCD" w:rsidRDefault="003A4FCD"
+                 w:rsidP="003A4FCD">
+                <w:pPr>
+                    <w:rPr>
+                        <w:noProof/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <w:p w14:paraId="38E609D8" w14:textId="34836C97" w:rsidR="00CF04C6" w:rsidRDefault="00CF04C6"
+                 w:rsidP="00FA2BB8">
+                <w:pPr>
+                    <w:jc w:val="right"/>
+                    <w:rPr>
+                        <w:noProof/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <w:p w14:paraId="62046F45" w14:textId="0E184EF4" w:rsidR="00CF04C6" w:rsidRDefault="00CF04C6"
+                 w:rsidP="00FA2BB8">
+                <w:pPr>
+                    <w:jc w:val="right"/>
+                    <w:rPr>
+                        <w:noProof/>
+                    </w:rPr>
+                </w:pPr>
+            </w:p>
+            <w:sectPr w:rsidR="009470CE" w:rsidSect="00556F9E">
+                <w:headerReference w:type="first" r:id="rId44"/>
+                <w:footerReference w:type="first" r:id="rId45"/>
+                <w:pgSz w:w="11900" w:h="16840" w:code="1"/>
+                <w:pgMar w:top="1440" w:right="1080" w:bottom="1440" w:left="1080" w:header="720" w:footer="720"
+                         w:gutter="0"/>
+                <w:cols w:space="720"/>
+                <w:titlePg/>
+                <w:docGrid w:linePitch="360"/>
+            </w:sectPr>
+        </w:body>
+    </w:document>
+</c:unit>

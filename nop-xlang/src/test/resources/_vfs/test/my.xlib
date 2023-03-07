@@ -1,0 +1,24 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <Add>
+            <attr name="a" mandatory="true"/>
+            <attr name="b" implicit="true"/>
+            <source>
+                <c:script>
+                    a + b
+                </c:script>
+            </source>
+        </Add>
+
+        <Nested outputMode="text">
+            <attr name="parent"/>
+
+            <source>
+                <c:unit>${parent.name},</c:unit>
+                <c:for var="child" items="${parent.children}">
+                    <thisLib:Nested parent="${child}"/>
+                </c:for>
+            </source>
+        </Nested>
+    </tags>
+</lib>

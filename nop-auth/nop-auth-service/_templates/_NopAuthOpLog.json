@@ -1,0 +1,16 @@
+{
+  "logId": "",
+  "userName": "",
+  "sessionId": "",
+  "title": "",
+  "bizObjName": "",
+  "bizActionName": "",
+  "opRequest": "",
+  "opResponse": "",
+  "resultStatus": 0,
+  "errorCode": "",
+  "usedTime": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "session": null
+}

@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.dao.api;
 
 import io.nop.api.core.beans.ITreeBean;
@@ -28,6 +35,17 @@ public interface IEntityDao<T extends IDaoEntity> {
     String getEntityName();
 
     String getTableName();
+
+    String getDeleteFlagProp();
+
+    boolean isUseLogicalDelete();
+
+    /**
+     * 将除了主键之外的所有属性值重置为缺省值
+     */
+    void resetToDefaultValues(T entity);
+
+    List<String> getPkColumnNames();
 
     String getEntityClassName();
 
@@ -87,7 +105,6 @@ public interface IEntityDao<T extends IDaoEntity> {
      */
     void lockEntity(T entity) throws UnknownEntityException;
 
-
     /**
      * 通过主键返回一个唯一的对象。如果数据库中不存在，则返回null。如果内存中存在proxy对象，则直接返回
      *
@@ -113,8 +130,17 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     List<T> batchRequireEntitiesByIds(Collection<?> ids);
 
+    /**
+     * 根据主键加载实体，返回主键到实体对象的映射集合。
+     *
+     * @param ids 主键列表。
+     * @return 如果主键对应的实体不存在，则集合中没有对应元素
+     */
     Map<Object, T> batchGetEntityMapByIds(Collection<?> ids);
 
+    /**
+     * 将detached的实体重新与session关联
+     */
     void attachEntity(T entity);
 
     void batchFlush(Collection<T> entities);
@@ -129,6 +155,11 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     long deleteByExample(T example);
 
+    /**
+     * 判断表中是否存在记录
+     */
+    boolean isEmpty();
+
     T findFirstByExample(T example);
 
     long countByExample(T example);
@@ -136,8 +167,7 @@ public interface IEntityDao<T extends IDaoEntity> {
     default T requireFirstByExample(T example) {
         T ret = findFirstByExample(example);
         if (ret == null) {
-            throw new DaoException(ERR_DAO_MISSING_ENTITY_WITH_PROPS)
-                    .param(ARG_ENTITY_NAME, getEntityName())
+            throw new DaoException(ERR_DAO_MISSING_ENTITY_WITH_PROPS).param(ARG_ENTITY_NAME, getEntityName())
                     .params(example.orm_initedValues());
         }
         return ret;
@@ -159,6 +189,8 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     List<T> findPageByQuery(QueryBean query);
 
+    List<T> findAllByQuery(QueryBean query);
+
     boolean existsByQuery(QueryBean query);
 
     long updateByQuery(QueryBean query, Map<String, Object> props);
@@ -166,8 +198,7 @@ public interface IEntityDao<T extends IDaoEntity> {
     List<T> findAll();
 
     /**
-     * 查找在lastEntity之后的n条记录，用于下一页这种形式的分页查询。
-     * 类似于  select o from entity o where o.id > lastEntity.id  limit 10
+     * 查找在lastEntity之后的n条记录，用于下一页这种形式的分页查询。 类似于 select o from entity o where o.id > lastEntity.id limit 10
      *
      * @param lastEntity 上一页的最后一条记录
      * @param filter     过滤条件
@@ -186,15 +217,13 @@ public interface IEntityDao<T extends IDaoEntity> {
     }
 
     default Iterator<T> iterator(QueryBean query) {
-        return new SelectNextIterator<>(lastEntity ->
-                findNext(lastEntity, query.getFilter(), query.getOrderBy(),
-                        query.getLimit()));
+        return new SelectNextIterator<>(
+                lastEntity -> findNext(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit()));
     }
 
     default Iterator<List<T>> pageIterator(QueryBean query) {
-        return new FindNextPageIterator<>(lastEntity ->
-                findNext(lastEntity, query.getFilter(),
-                        query.getOrderBy(), query.getLimit()));
+        return new FindNextPageIterator<>(
+                lastEntity -> findNext(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit()));
     }
 
     default void forEachEntity(QueryBean query, Consumer<T> consumer) {

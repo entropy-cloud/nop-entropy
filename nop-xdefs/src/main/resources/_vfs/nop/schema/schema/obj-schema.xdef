@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+@typeValue 作为union的选项时，用于区分具体的子类型
+@minProperties 最少有多少个属性。对应于json schema中的minProperties属性
+@maxProperties 最多有多少个属性
+@uniqueProp 可以用于区分同类型的不同对象的唯一标识属性
+-->
+<schema xdef:ref="schema-node.xdef" typeValue="string" abstract="boolean"
+        xdef:name="ObjSchemaImpl" xdef:bean-package="io.nop.xlang.xmeta.impl"
+        interface="boolean" extendsType="generic-type" implementsTypes="generic-type-list"
+        minProperties="int" maxProperties="int" supportExtends="boolean"
+        uniqueProp="string"
+
+        x:schema="/nop/schema/xdef.xdef"
+        xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <props xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @mandatory 属性值是否不允许为空值
+        @internal 是否内部属性。内部属性不出现在IDE的提示列表中，一般情况下在界面上也不可见。
+        @allowCpExpr 是否支持编译期表达式
+        @deprecated 是否已废弃。标记为废弃的属性不出现在IDE的提示信息里
+        @propId 属性的顺序标识，可以对应于protobuf标准中的propId属性
+        @xmlName 转换为xml属性或者节点时对应的标签名，一般情况下与属性名一致
+        @childXmlName 子节点的标签名。有时子节点的标签名没有对应于任何对象属性，因此需要单独记录。
+        @childName 集合属性中的单个对象的名称。例如children集合中每个对象称为child， attrs集合中每个对象称为attr。生成器会根据childName生成
+           get${prop.childName}(String name)等方法。
+        @defaultOverride 对应于xdef文件中的xdef:default-override设置
+        @depends 获取本字段的值的时候，需要依赖其他字段。例如在批量加载的时候，表示需要把相关字段也进行批量加载
+        @tagSet 逗号分隔的自定义附加标识
+        @defaultValue 缺省值
+        @readable 是否可以作为返回值返回。readable=false一般是作为输入数据使用，只允许提交，而不允许查看
+        -->
+        <prop xdef:name="ObjPropMetaImpl"
+              name="!prop-path" displayName="string"
+              mandatory="!boolean=false" internal="!boolean=false" allowCpExpr="boolean"
+              deprecated="!boolean=false" defaultValue="any"
+              mapTo="prop-path" propId="int" depends="csv-set"
+              xmlName="xml-name" childXmlName="xml-name" xmlPos="enum:io.nop.core.lang.xml.XNodeValuePosition"
+              childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
+              tagSet="tag-set" lazy="!boolean=false"
+              insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false" sortable="!boolean=false"
+              readable="!boolean=true"
+              published="!boolean=true" allowFilterOp="word-set"
+        >
+            <description xdef:value="string"/>
+
+            <objMeta xdef:value="v-path" />
+
+            <schema xdef:ref="schema.xdef"/>
+
+            <auth xdef:ref="auth.xdef"/>
+
+            <!--
+            对应graphql的argument
+            -->
+            <arg xdef:name="ObjPropArgModel" name="!var-name" mandatory="!boolean=false"
+                 displayName="string" xdef:unique-attr="name">
+                <description xdef:value="string"/>
+                <schema xdef:ref="schema.xdef"/>
+            </arg>
+
+            <!--
+             新增或者修改的时候如果前台没有发送本字段的值，则可以根据autoExpr来自动计算得到
+            -->
+            <autoExpr when="!csv-set" xdef:bean-body-prop="source"
+                      xdef:name="ObjConditionExpr" xdef:value="xpl"/>
+
+            <!--
+            对前台输入的值进行适配转换
+            -->
+            <transformIn xdef:value="xpl"/>
+
+            <!--
+            后台返回的值可能需要进行格式转换
+            -->
+            <transformOut xdef:value="xpl"/>
+
+            <!--
+            根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set
+            -->
+            <getter xdef:value="xpl"/>
+
+            <!--
+            对外部传入的值进行处理，可能会设置entity对象的属性
+            -->
+            <setter xdef:value="xpl"/>
+        </prop>
+    </props>
+
+    <unknownTag xdef:ref="schema.xdef" xdef:bean-prop="unknownTagSchema"/>
+
+    <unknownAttr xdef:ref="schema.xdef" xdef:bean-prop="unknownAttrSchema"/>
+</schema>

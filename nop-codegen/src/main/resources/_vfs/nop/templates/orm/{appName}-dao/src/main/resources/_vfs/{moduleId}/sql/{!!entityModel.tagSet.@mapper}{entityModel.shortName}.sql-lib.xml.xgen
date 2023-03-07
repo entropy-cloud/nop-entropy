@@ -1,0 +1,5 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sqls>
+
+    </sqls>
+</sql-lib>

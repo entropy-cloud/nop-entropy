@@ -1,0 +1,140 @@
+entity:
+  label:
+    NopSysCodeRule: Code Rule
+    NopSysDict: Dictionary
+    NopSysDictOption: Dictionay Item
+    NopSysI18n: I18n Message
+    NopSysMakerCheckerRecord: Maker Checker Record
+    NopSysNoticeTemplate: Notice Template
+    NopSysSequence: Sequence
+    NopSysUserVariable: User Variable
+    NopSysVariable: System Variable
+prop:
+  label:
+    NopSysCodeRule:
+      sid: SID
+      name: Name
+      displayName: Display Name
+      codePattern: Code Pattern
+      seqName: Seq Name
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysDict:
+      sid: SID
+      dictName: Name
+      displayName: Display Name
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dictOptions: null
+    NopSysDictOption:
+      sid: SID
+      dictId: Dictionary
+      label: Label
+      value: Value
+      codeValue: Code
+      groupName: Group
+      isInternal: Is Internal
+      isDeprecated: Is Parent
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dict: Dictionary
+    NopSysI18n:
+      i18nKey: I18n Key
+      i18nLocale: Locale
+      value: Value
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysMakerCheckerRecord:
+      sid: SID
+      bizObjName: Biz Object Name
+      bizObjId: Biz Object ID
+      makerId: Maker ID
+      makerName: Maker Name
+      requestAction: Request Action
+      requestData: Request Data
+      requestTime: Request Time
+      checkerId: Checker ID
+      checkerName: Checker Name
+      checkTime: Check Time
+      tryResult: Try Result
+      inputPage: Input Page
+      status: Status
+      cancelAction: Cancel Action
+      cbErrCode: Callback Error Code
+      ceErrMsg: Callback Error Message
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysNoticeTemplate:
+      sid: SID
+      name: Name
+      tplType: Type
+      content: Content
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysSequence:
+      seqName: Name
+      seqType: Type
+      isUuid: Is UUID
+      nextValue: Next Value
+      stepSize: Step Size
+      cacheSize: Cache Size
+      maxValue: Max Value
+      resetType: Reset Type
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysUserVariable:
+      userId: User ID
+      varName: Var Name
+      varValue: Var Value
+      stdDomain: Std Domain
+      varType: Var Type
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysVariable:
+      varName: Var Name
+      varValue: Var Value
+      stdDomain: Std Domain
+      varType: Var Type
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark

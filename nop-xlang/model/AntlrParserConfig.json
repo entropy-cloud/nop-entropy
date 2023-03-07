@@ -1,0 +1,16 @@
+{
+  "antlrLibDirPath": "antlr",
+  "antlrModelPath": "antlr/XLangParser.g4",
+  "antlrGenCode": true,
+  "astModelPath": "ast/io/nop/xlang/ast/XLangAST.xjava",
+  "antlrPackage": "io.nop.xlang.parse.antlr",
+  "mainRule": "program",
+  "packageName": "io.nop.xlang.parse",
+  "primaryExpectedTokens": [
+    "Comma",
+    "SemiColon",
+    "CloseParen",
+    "CloseBrace",
+    "CloseBracket"
+  ]
+}

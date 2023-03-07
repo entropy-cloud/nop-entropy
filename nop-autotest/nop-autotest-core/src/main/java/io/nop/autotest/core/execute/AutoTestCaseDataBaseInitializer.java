@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core.execute;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
@@ -43,9 +50,7 @@ public class AutoTestCaseDataBaseInitializer {
     private final String variant;
 
     public AutoTestCaseDataBaseInitializer(String variant, boolean localDb, boolean tableInit, boolean sqlInit,
-                                           AutoTestCaseData caseData,
-                                           IDaoProvider daoProvider,
-                                           IJdbcTemplate jdbcTemplate) {
+                                           AutoTestCaseData caseData, IDaoProvider daoProvider, IJdbcTemplate jdbcTemplate) {
         this.variant = variant;
         this.localDb = localDb;
         this.tableInit = tableInit;
@@ -124,7 +129,8 @@ public class AutoTestCaseDataBaseInitializer {
             for (File file : files) {
                 String tableName = StringHelper.fileNameNoExt(file.getName());
                 IEntityDao dao = requireDaoForTable(tableName, file);
-                List<Map<String, Object>> data = caseData.readInputTableData(dao.getPkColumnNames(),tableName, variant);
+                List<Map<String, Object>> data = caseData.readInputTableData(dao.getPkColumnNames(), tableName,
+                        variant);
 
                 insertInputData(dao, data);
             }
@@ -135,9 +141,8 @@ public class AutoTestCaseDataBaseInitializer {
     private IEntityDao requireDaoForTable(String tableName, File file) {
         IEntityDao dao = daoProvider.daoForTable(tableName);
         if (dao == null)
-            throw new AutoTestException(ERR_AUTOTEST_NO_DAO_FOR_TABLE)
-                    .param(ARG_TABLE_NAME, tableName)
-                    .param(ARG_FILE, file);
+            throw new AutoTestException(ERR_AUTOTEST_NO_DAO_FOR_TABLE).param(ARG_TABLE_NAME, tableName).param(ARG_FILE,
+                    file);
         return dao;
     }
 
@@ -149,7 +154,7 @@ public class AutoTestCaseDataBaseInitializer {
             orm.runInSession(session -> {
                 for (Map<String, Object> row : rows) {
                     IOrmEntity entity = newEntityFromRow(row, ormDao);
-                    entity.orm_skipAutoStamp(true);
+                    entity.orm_disableAutoStamp(true);
                     ormDao.saveEntity(entity);
                 }
                 session.flush();

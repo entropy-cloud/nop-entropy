@@ -1,0 +1,376 @@
+{
+  "type": "crud",
+  "name": "crud-grid",
+  "keepItemSelectionOnPageChange": true,
+  "syncLocation": false,
+  "autoFillHeight": true,
+  "bulkActions": [
+    {
+      "type": "button",
+      "label": "@i18n:common.batchDelete",
+      "actionType": "ajax",
+      "api": {
+        "url": "@mutation:NopAuthSession__batchDelete?ids=$ids"
+      },
+      "confirmText": "@i18n:common.confirmBatchDelete"
+    }
+  ],
+  "headerToolbar": [
+    {
+      "type": "filter-toggler"
+    },
+    {
+      "type": "bulkActions"
+    },
+    {
+      "type": "column-toggler",
+      "align": "right"
+    }
+  ],
+  "footerToolbar": [
+    {
+      "type": "statistics"
+    },
+    {
+      "type": "switch-per-page"
+    },
+    {
+      "type": "pagination"
+    }
+  ],
+  "api": {
+    "url": "@query:NopAuthSession__findPage/total,page,items{id,sid,userId,userName,loginAddr,loginDevice,loginApp,loginOs,loginTime,loginType,loginType_label,logoutTime,logoutType,logoutType_label,createdBy,createTime,remark}"
+  },
+  "columns": [
+    {
+      "name": "sid",
+      "label": "@i18n:cols.NopAuthSession.sid,props.label.NopAuthSession.sid|会话ID",
+      "sortable": true,
+      "width": "200px",
+      "toggled": true,
+      "fixed": "left",
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.sid$remark",
+      "hint": "@i18n:?cols.NopAuthSession.sid$hint"
+    },
+    {
+      "name": "userId",
+      "label": "@i18n:cols.NopAuthSession.userId,props.label.NopAuthSession.userId|用户ID",
+      "sortable": true,
+      "width": "200px",
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.userId$remark",
+      "hint": "@i18n:?cols.NopAuthSession.userId$hint"
+    },
+    {
+      "name": "userName",
+      "label": "@i18n:cols.NopAuthSession.userName,props.label.NopAuthSession.userName|用户名",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.userName$remark",
+      "hint": "@i18n:?cols.NopAuthSession.userName$hint"
+    },
+    {
+      "name": "loginAddr",
+      "label": "@i18n:cols.NopAuthSession.loginAddr,props.label.NopAuthSession.loginAddr|登录地址",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.loginAddr$remark",
+      "hint": "@i18n:?cols.NopAuthSession.loginAddr$hint"
+    },
+    {
+      "name": "loginDevice",
+      "label": "@i18n:cols.NopAuthSession.loginDevice,props.label.NopAuthSession.loginDevice|登录设备",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.loginDevice$remark",
+      "hint": "@i18n:?cols.NopAuthSession.loginDevice$hint"
+    },
+    {
+      "name": "loginApp",
+      "label": "@i18n:cols.NopAuthSession.loginApp,props.label.NopAuthSession.loginApp|应用程序",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.loginApp$remark",
+      "hint": "@i18n:?cols.NopAuthSession.loginApp$hint"
+    },
+    {
+      "name": "loginOs",
+      "label": "@i18n:cols.NopAuthSession.loginOs,props.label.NopAuthSession.loginOs|操作系统",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.loginOs$remark",
+      "hint": "@i18n:?cols.NopAuthSession.loginOs$hint"
+    },
+    {
+      "name": "loginTime",
+      "label": "@i18n:cols.NopAuthSession.loginTime,props.label.NopAuthSession.loginTime|登录时间",
+      "sortable": true,
+      "width": "160px",
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.loginTime$remark",
+      "hint": "@i18n:?cols.NopAuthSession.loginTime$hint"
+    },
+    {
+      "name": "loginType_label",
+      "label": "@i18n:cols.NopAuthSession.loginType,props.label.NopAuthSession.loginType|登录方式",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.loginType$remark",
+      "hint": "@i18n:?cols.NopAuthSession.loginType$hint"
+    },
+    {
+      "name": "logoutTime",
+      "label": "@i18n:cols.NopAuthSession.logoutTime,props.label.NopAuthSession.logoutTime|退出时间",
+      "sortable": true,
+      "width": "160px",
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.logoutTime$remark",
+      "hint": "@i18n:?cols.NopAuthSession.logoutTime$hint"
+    },
+    {
+      "name": "logoutType_label",
+      "label": "@i18n:cols.NopAuthSession.logoutType,props.label.NopAuthSession.logoutType|退出方式",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.logoutType$remark",
+      "hint": "@i18n:?cols.NopAuthSession.logoutType$hint"
+    },
+    {
+      "name": "createdBy",
+      "label": "@i18n:cols.NopAuthSession.createdBy,props.label.NopAuthSession.createdBy|创建人",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.createdBy$remark",
+      "hint": "@i18n:?cols.NopAuthSession.createdBy$hint"
+    },
+    {
+      "name": "createTime",
+      "label": "@i18n:cols.NopAuthSession.createTime,props.label.NopAuthSession.createTime|创建时间",
+      "sortable": true,
+      "width": "160px",
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.createTime$remark",
+      "hint": "@i18n:?cols.NopAuthSession.createTime$hint"
+    },
+    {
+      "name": "remark",
+      "label": "@i18n:cols.NopAuthSession.remark,props.label.NopAuthSession.remark|备注",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "remark": "@i18n:?cols.NopAuthSession.remark$remark",
+      "hint": "@i18n:?cols.NopAuthSession.remark$hint"
+    },
+    {
+      "type": "operation",
+      "label": "@i18n:common.operation",
+      "v:id": "operation",
+      "width": 100,
+      "toggled": true,
+      "fixed": "right",
+      "buttons": [
+        {
+          "type": "button",
+          "icon": "fa fa-eye",
+          "actionType": "dialog",
+          "tooltip": "@i18n:common.view",
+          "dialog": {
+            "position": "left",
+            "size": "lg",
+            "title": "@i18n:forms.NopAuthSession.view.$title,common.view",
+            "body": {
+              "type": "form",
+              "name": "view",
+              "xui:selection": "id,sid,userId,userName,loginAddr,loginDevice,loginApp,loginOs,loginTime,loginType,loginType_label,logoutTime,logoutType,logoutType_label,createdBy,createTime,remark",
+              "initApi": {
+                "url": "@query:NopAuthSession__get/id,sid,userId,userName,loginAddr,loginDevice,loginApp,loginOs,loginTime,loginType,loginType_label,logoutTime,logoutType,logoutType_label,createdBy,createTime,remark?id=$id"
+              },
+              "body": [
+                {
+                  "type": "group",
+                  "v:id": "row-sid-userId",
+                  "body": [
+                    {
+                      "name": "sid",
+                      "label": "@i18n:cells.NopAuthSession.sid,props.label.NopAuthSession.sid|会话ID",
+                      "required": true,
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.sid$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.sid$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.sid$desc"
+                    },
+                    {
+                      "name": "userId",
+                      "label": "@i18n:cells.NopAuthSession.userId,props.label.NopAuthSession.userId|用户ID",
+                      "required": true,
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.userId$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.userId$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.userId$desc"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "v:id": "row-userName-loginAddr",
+                  "body": [
+                    {
+                      "name": "userName",
+                      "label": "@i18n:cells.NopAuthSession.userName,props.label.NopAuthSession.userName|用户名",
+                      "required": true,
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.userName$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.userName$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.userName$desc"
+                    },
+                    {
+                      "name": "loginAddr",
+                      "label": "@i18n:cells.NopAuthSession.loginAddr,props.label.NopAuthSession.loginAddr|登录地址",
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.loginAddr$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.loginAddr$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.loginAddr$desc"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "v:id": "row-loginDevice-loginApp",
+                  "body": [
+                    {
+                      "name": "loginDevice",
+                      "label": "@i18n:cells.NopAuthSession.loginDevice,props.label.NopAuthSession.loginDevice|登录设备",
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.loginDevice$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.loginDevice$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.loginDevice$desc"
+                    },
+                    {
+                      "name": "loginApp",
+                      "label": "@i18n:cells.NopAuthSession.loginApp,props.label.NopAuthSession.loginApp|应用程序",
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.loginApp$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.loginApp$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.loginApp$desc"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "v:id": "row-loginOs-loginTime",
+                  "body": [
+                    {
+                      "name": "loginOs",
+                      "label": "@i18n:cells.NopAuthSession.loginOs,props.label.NopAuthSession.loginOs|操作系统",
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.loginOs$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.loginOs$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.loginOs$desc"
+                    },
+                    {
+                      "name": "loginTime",
+                      "label": "@i18n:cells.NopAuthSession.loginTime,props.label.NopAuthSession.loginTime|登录时间",
+                      "required": true,
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.loginTime$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.loginTime$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.loginTime$desc"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "v:id": "row-loginType-logoutTime",
+                  "body": [
+                    {
+                      "name": "loginType_label",
+                      "label": "@i18n:cells.NopAuthSession.loginType,props.label.NopAuthSession.loginType|登录方式",
+                      "required": true,
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.loginType$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.loginType$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.loginType$desc"
+                    },
+                    {
+                      "name": "logoutTime",
+                      "label": "@i18n:cells.NopAuthSession.logoutTime,props.label.NopAuthSession.logoutTime|退出时间",
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.logoutTime$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.logoutTime$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.logoutTime$desc"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "v:id": "row-logoutType-createdBy",
+                  "body": [
+                    {
+                      "name": "logoutType_label",
+                      "label": "@i18n:cells.NopAuthSession.logoutType,props.label.NopAuthSession.logoutType|退出方式",
+                      "required": true,
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.logoutType$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.logoutType$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.logoutType$desc"
+                    },
+                    {
+                      "name": "createdBy",
+                      "label": "@i18n:cells.NopAuthSession.createdBy,props.label.NopAuthSession.createdBy|创建人",
+                      "required": true,
+                      "type": "static",
+                      "placeholder": "@i18n:?cells.NopAuthSession.createdBy$placeholder",
+                      "hint": "@i18n:?cells.NopAuthSession.createdBy$hint",
+                      "desc": "@i18n:?cells.NopAuthSession.createdBy$desc"
+                    }
+                  ]
+                },
+                {
+                  "name": "createTime",
+                  "label": "@i18n:cells.NopAuthSession.createTime,props.label.NopAuthSession.createTime|创建时间",
+                  "required": true,
+                  "type": "static",
+                  "placeholder": "@i18n:?cells.NopAuthSession.createTime$placeholder",
+                  "hint": "@i18n:?cells.NopAuthSession.createTime$hint",
+                  "desc": "@i18n:?cells.NopAuthSession.createTime$desc"
+                },
+                {
+                  "name": "remark",
+                  "label": "@i18n:cells.NopAuthSession.remark,props.label.NopAuthSession.remark|备注",
+                  "type": "static",
+                  "placeholder": "@i18n:?cells.NopAuthSession.remark$placeholder",
+                  "hint": "@i18n:?cells.NopAuthSession.remark$hint",
+                  "desc": "@i18n:?cells.NopAuthSession.remark$desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "button",
+          "icon": "fa fa-times text-danger",
+          "actionType": "ajax",
+          "tooltip": "@i18n:common.delete",
+          "v:id": "row-delete-button",
+          "confirmText": "@i18n:common.confirmDelete",
+          "api": {
+            "url": "@mutation:NopAuthSession__delete?id=$id"
+          }
+        }
+      ]
+    }
+  ]
+}

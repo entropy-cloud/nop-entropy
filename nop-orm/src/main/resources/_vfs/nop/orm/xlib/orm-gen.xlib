@@ -1,0 +1,61 @@
+<lib x:schema="/nop/schema/xlib.xdef" defaultOutputMode="node"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <DefaultPostExtends outputMode="xml">
+            <attr name="_dsl_root" implicit="true"/>
+            <source>
+                <thisLib:JsonComponentSupport/>
+            </source>
+        </DefaultPostExtends>
+
+        <JsonComponentSupport>
+            <!--
+             _dsl_root为元编程阶段可访问的配置文件根节点
+            -->
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <orm>
+                    <entities>
+                        <c:for var="entityNode" items="${_dsl_root.childByTag('entities').children}">
+                            <c:script><![CDATA[
+                                if(entityNode.attrBoolean('x:abstract'))
+                                    continue;
+                                if(entityNode.attrText('x:override') == 'remove')
+                                    continue;
+                                let jsonCols = entityNode.childByTag('columns').children.filter(colNode=>{
+                                      return colNode.attrCsvSet('tagSet')?.contains('json') || colNode.getAttr('stdDomain') == 'json';
+                                   });
+                            ]]></c:script>
+                            <!--
+                            标记了是json字段，则追加component定义。
+                            -->
+                            <entity name="${entityNode.getAttr('name')}" xpl:if="!jsonCols.empty">
+                                <components>
+                                    <c:for var="colNode" items="${jsonCols}">
+                                        <c:script>
+                                            const pub = !colNode.attrCsvSet('tagSet')?.contains('no-pub').$('gen-component-for-json-col')
+                                        </c:script>
+                                        <component name="${colNode.getAttr('name')}Component" needFlush="true"
+                                                   notGenCode="${colNode.getAttr('notGenCode')}" tagSet="json${pub and ',pub'}"
+                                                   className="io.nop.orm.support.JsonOrmComponent">
+                                            <prop name="_jsonText" column="${colNode.getAttr('name')}"/>
+                                        </component>
+                                    </c:for>
+                                </components>
+                            </entity>
+                        </c:for>
+                    </entities>
+                </orm>
+            </source>
+        </JsonComponentSupport>
+
+        <GenFromExcel>
+            <attr name="path" type="string"/>
+            <source>
+
+            </source>
+        </GenFromExcel>
+    </tags>
+</lib>

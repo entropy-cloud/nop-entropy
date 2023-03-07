@@ -1,0 +1,11 @@
+<forms>
+  <form id="add">
+    <layout>
+          a b
+          c
+        </layout>
+    <cells>
+      <cell id="a" label="AA"/>
+    </cells>
+  </form>
+</forms>

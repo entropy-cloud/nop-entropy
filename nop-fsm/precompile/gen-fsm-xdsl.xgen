@@ -1,0 +1,3 @@
+<c:script>
+codeGenerator.renderModel('/nop/schema/biz/state-machine.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>

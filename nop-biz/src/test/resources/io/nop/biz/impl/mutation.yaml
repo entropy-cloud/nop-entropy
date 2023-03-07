@@ -1,0 +1,10 @@
+query: >
+  mutation($id:String){
+     entity: MyObject__approve(id:$id){
+        name
+        status
+     }
+  }
+
+variables:
+  id: aaa

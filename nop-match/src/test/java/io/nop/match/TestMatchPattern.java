@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match;
 
 import io.nop.api.core.validate.ListValidationErrorCollector;
@@ -18,9 +25,9 @@ public class TestMatchPattern extends BaseTestCase {
         Object data = attachmentBean("data.json", Object.class);
         IMatchPattern pattern = PatternMatchPatternCompiler.INSTANCE.parseFromValue(null, tpl, config);
 
-        System.out.println(JsonTool.serialize(pattern.toJson(),true));
+        System.out.println(JsonTool.serialize(pattern.toJson(), true));
 
-        pattern = PatternMatchPatternCompiler.INSTANCE.parseFromValue(null,pattern.toJson(),config);
+        pattern = PatternMatchPatternCompiler.INSTANCE.parseFromValue(null, pattern.toJson(), config);
 
         MatchState state = new MatchState(data);
         IEvalScope scope = EvalExprProvider.newEvalScope();
@@ -30,7 +37,7 @@ public class TestMatchPattern extends BaseTestCase {
         ListValidationErrorCollector collector = new ListValidationErrorCollector();
         state.setErrorCollector(collector);
         pattern.matchValue(state, true);
-        System.out.println(JsonTool.serialize(collector.getErrors(),true));
+        System.out.println(JsonTool.serialize(collector.getErrors(), true));
         assertEquals(attachmentJsonText("errors.json"), JsonTool.serialize(collector.getErrors(), true));
     }
 }

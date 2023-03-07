@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+与XState库的概念基本保持一致。为了简化设计，只支持单一状态表示，不支持并行状态和历史状态。这样状态信息可以作为一个字段存放到数据库中。
+@initial 初始状态的id
+@stateProp 实体上的状态属性名
+-->
+<state-machine initial="!var-name" stateProp="!string" ignoreUnknownTransition="!boolean=false"
+               xdef:name="StateMachineModel" xdef:bean-package="io.nop.fsm.model"
+               x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+>
+
+    <!--
+       @id 为了简化设计，状态的id在整个状态机内部唯一，即子状态的id也不能和父状态id重复。
+       @stateValue state的id为字符串形式，但是保存到数据库中的实体状态字段可能是整数值，通过stateValue可以指定对应的保存到数据库中的值。
+       @initial 当状态为复合状态，具有嵌套结构时，initial指定初始进入的子状态的id
+       @final 是否为结束状态。如果是，则进入此状态会导致子状态机退出。
+       @onDone 子状态机成功执行完毕后会触发跳转，这里指定跳转到的目标状态
+       @onError 子状态执过程中出现异常时，父状态机可以捕获异常，跳转到指定状态
+       -->
+    <xdef:define xdef:name="StateModel" id="!var-name" displayName="string" stateValue="#any"
+                 initial="var-name" final="!boolean=false"
+                 onDone="var-name" onError="var-name">
+        <description xdef:value="string"/>
+
+        <!--
+        进入本状态时执行的action的列表
+        -->
+        <entry xdef:value="csv-set"/>
+
+        <!--
+        退出本状态时执行的action的列表
+        -->
+        <exit xdef:value="csv-set"/>
+
+        <!--
+        进入state时启动activity，离开state时停止activity
+        -->
+        <activities xdef:value="csv-set"/>
+
+        <!--
+            @event 事件的名称。规定了如下特殊的名称：always表示自动触发，不需要收到事件。 *表示任意事件都导致触发。
+
+            @target 迁移到的目标状态。如果internal为true，则表示迁移到内部状态，不会触发entry/exit。如果target为空，则表示保持当前状态只触发监听器
+            @in 判断当前状态是否为指定状态。格式符合xstate的约定，例如 in="#closed"。 #表示从根路径开始
+            @actions 迁移到目标状态之后执行的action的列表
+        -->
+        <transition xdef:name="StateTransitionModel" id="!string" xdef:unique-attr="id" event="!string" in="string"
+                    target="var-name" internal="!boolean=false" actions="csv-set">
+            <when xdef:value="xpl-predicate"/>
+
+            <!--
+            在迁移到目标状态之前执行
+            -->
+            <invoke xdef:value="xpl"/>
+
+        </transition>
+
+        <!-- 子状态 -->
+        <state id="!var-name" xdef:unique-attr="id" xdef:ref="StateModel"/>
+
+        <meta xdef:value="xjson"/>
+
+        <!-- 进入状态时触发的监听函数 -->
+        <on-entry xdef:value="xpl"/>
+
+        <!-- 离开状态时触发的监听函数 -->
+        <on-exit xdef:value="xpl"/>
+
+        <!--
+        状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
+        -->
+        <handle-error xdef:value="xpl"/>
+
+    </xdef:define>
+
+    <state id="!var-name" xdef:unique-attr="id" xdef:ref="StateModel"/>
+
+    <!-- 进入状态时触发的监听函数 -->
+    <on-entry xdef:value="xpl"/>
+
+    <!-- 离开状态时触发的监听函数 -->
+    <on-exit xdef:value="xpl"/>
+
+    <!--
+    状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
+    -->
+    <handle-error xdef:value="xpl"/>
+
+    <meta xdef:value="xjson"/>
+
+</state-machine>

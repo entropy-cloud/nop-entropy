@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration>
+    <appenders>
+        <console name="Console" target="SYSTEM_OUT">
+            <PatternLayout
+                    pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5p %C{3}.%M (%F:%L) %X{correlation}  %X{dataSource} - %m%n"/>
+        </console>
+
+    </appenders>
+
+    <!-- <Logger name="com.example.log4j2demo" level="debug" additivity="false">
+        <AppenderRef ref="ConsoleAppender" /> </Logger> -->
+
+    <loggers>
+
+        <root level="DEBUG">
+            <appender-ref ref="Console"/>
+        </root>
+        <!-- <AsyncLogger level="all" includeLocation="true">
+            <appender-ref ref="Console"/>
+            <appender-ref ref="RollingFileInfo" />
+            <appender-ref ref="RollingFileWarn" />
+            <appender-ref ref="RollingFileError" />
+            <appender-ref ref="RollingFileDebug" />
+        </AsyncLogger> -->
+    </loggers>
+
+</configuration>

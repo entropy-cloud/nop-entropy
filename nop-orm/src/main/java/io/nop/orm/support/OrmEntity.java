@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm.support;
 
 import io.nop.api.core.exceptions.ErrorCode;
@@ -14,6 +21,7 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.OrmEntityState;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IEntityComponentModel;
@@ -55,6 +63,8 @@ public abstract class OrmEntity implements IOrmEntity {
     private boolean locked;
     private boolean fullyLoaded;
     private boolean flushVisiting;
+    private boolean disableAutoStamp;
+    private boolean disableLogicalDelete;
 
     /**
      * 记录哪些属性被读取过
@@ -136,7 +146,6 @@ public abstract class OrmEntity implements IOrmEntity {
             return false;
         return initedProps != null && !initedProps.isEmpty();
     }
-
 
     @Override
     public OrmEntityState orm_state() {
@@ -271,7 +280,6 @@ public abstract class OrmEntity implements IOrmEntity {
         this.flushVisiting = flushVisiting;
     }
 
-
     @Override
     public void orm_reset() {
         if (oldValues != null) {
@@ -396,6 +404,8 @@ public abstract class OrmEntity implements IOrmEntity {
 
     @Override
     public Object orm_propValueByName(String propName) {
+        if (OrmConstants.PROP_ID.equals(propName))
+            return orm_id();
         Object value = BeanTool.instance().getProperty(this, propName);
         return value;
     }
@@ -414,7 +424,7 @@ public abstract class OrmEntity implements IOrmEntity {
 
     protected void forcePropLoaded(int propId) {
         // 如果是新建对象，尚未保存到数据库中，则直接返回
-        if (state == OrmEntityState.TRANSIENT || state == OrmEntityState.SAVING)
+        if (state == OrmEntityState.TRANSIENT || state == OrmEntityState.SAVING || state == OrmEntityState.MISSING)
             return;
 
         if (orm_propLoaded(propId))
@@ -422,7 +432,6 @@ public abstract class OrmEntity implements IOrmEntity {
 
         requireEnhancer().internalLoadProperty(this, propId);
     }
-
 
     private boolean isNeedLoad() {
         return state == OrmEntityState.MANAGED || state == OrmEntityState.PROXY;
@@ -501,8 +510,8 @@ public abstract class OrmEntity implements IOrmEntity {
     }
 
     protected NopException newError(ErrorCode errorCode) {
-        NopException e = new OrmException(errorCode).param(ARG_ENTITY_NAME, orm_entityName())
-                .param(ARG_ENTITY_ID, orm_id());
+        NopException e = new OrmException(errorCode).param(ARG_ENTITY_NAME, orm_entityName()).param(ARG_ENTITY_ID,
+                orm_id());
         String tenantId = orm_tenantId();
         if (tenantId != null)
             e.param(ARG_TENANT_ID, orm_tenantId());
@@ -520,7 +529,8 @@ public abstract class OrmEntity implements IOrmEntity {
 
     protected void checkPropIdRange(int propId) {
         if (propId >= orm_propIdBound() || propId <= 0)
-            throw newError(ERR_ORM_INVALID_PROP_ID).param(ARG_PROP_ID_BOUND, orm_propIdBound()).param(ARG_PROP_ID, propId);
+            throw newError(ERR_ORM_INVALID_PROP_ID).param(ARG_PROP_ID_BOUND, orm_propIdBound()).param(ARG_PROP_ID,
+                    propId);
     }
 
     protected boolean onPropSet(int propId, Object value) {
@@ -575,7 +585,7 @@ public abstract class OrmEntity implements IOrmEntity {
         return value;
     }
 
-    protected Object buildCompositeId(String[] propNames, int[] propIds) {
+    protected Object buildCompositeId(List<String> propNames, int[] propIds) {
         if (id != null)
             return id;
 
@@ -612,8 +622,7 @@ public abstract class OrmEntity implements IOrmEntity {
         throw newError(ERR_ORM_ENTITY_PROP_NOT_ALLOW_SET).param(ARG_PROP_NAME, propName);
     }
 
-
-    //================ 以下方法在派生类中会被覆盖 ==================
+    // ================ 以下方法在派生类中会被覆盖 ==================
     protected void internalClearRefs(int propId) {
 
     }
@@ -623,7 +632,6 @@ public abstract class OrmEntity implements IOrmEntity {
         throw newError(ERR_ORM_UNKNOWN_COLUMN_PROP_ID).param(ARG_PROP_ID, propId);
     }
 
-
     @Override
     public void orm_propValue(int propId, Object value) {
         throw newError(ERR_ORM_UNKNOWN_COLUMN_PROP_ID).param(ARG_PROP_ID, propId);
@@ -631,7 +639,7 @@ public abstract class OrmEntity implements IOrmEntity {
 
     @Override
     public String orm_propName(int propId) {
-        //throw newError(ERR_ORM_UNKNOWN_COLUMN_PROP_ID).param(ARG_PROP_ID, propId);
+        // throw newError(ERR_ORM_UNKNOWN_COLUMN_PROP_ID).param(ARG_PROP_ID, propId);
         return null;
     }
 
@@ -655,5 +663,24 @@ public abstract class OrmEntity implements IOrmEntity {
                     ((IOrmComponent) comp).flushToEntity();
             }
         }
+    }
+
+    @Override
+    public boolean orm_disableAutoStamp() {
+        return disableAutoStamp;
+    }
+
+    public void orm_disableAutoStamp(boolean value) {
+        this.disableAutoStamp = value;
+    }
+
+    @Override
+    public boolean orm_disableLogicalDelete() {
+        return disableLogicalDelete;
+    }
+
+    @Override
+    public void orm_disableLogicalDelete(boolean value) {
+        this.disableLogicalDelete = value;
     }
 }

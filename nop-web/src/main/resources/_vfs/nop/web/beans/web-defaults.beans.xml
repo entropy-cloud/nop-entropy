@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <bean id="io.nop.web.biz.PageProviderBizModel" ioc:type="@bean:id"/>
+
+    <bean id="io.nop.web.page.PageProvider" ioc:type="@bean:id"/>
+
+    <bean id="io.nop.web.biz.SystemJsProviderBizModel" ioc:type="@bean:id"/>
+
+    <bean id="io.nop.web.page.SystemJsProvider" ioc:type="@bean:id">
+        <property name="jsFunctionService" ref="nopJsFunctionService"/>
+    </bean>
+
+    <bean id="nopJsFunctionService" class="io.nop.js.engine.JavaScriptService">
+        <property name="initScriptPath" value="/nop/js/libs/nop-server-tool.mjs"/>
+        <property name="workerCount" value="@r-cfg:nop.js.service.worker-count|5"/>
+        <property name="jsLibLoader">
+            <bean class="io.nop.web.page.ModuleJsLoader"/>
+        </property>
+    </bean>
+
+    <bean id="io.nop.web.page.PageModelValidator" ioc:type="@bean:id">
+        <ioc:condition>
+            <if-property name="nop.web.validate-page-model"/>
+        </ioc:condition>
+    </bean>
+
+</beans>

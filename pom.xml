@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.nop</groupId>
+    <artifactId>nop-entropy</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+
+    <packaging>pom</packaging>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.html</url>
+        </license>
+    </licenses>
+
+
+    <properties>
+        <revision>2.0.0-SNAPSHOT</revision>
+
+        <java.version>11</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+
+        <main.basedir>${basedir}</main.basedir>
+        <docs.main>${project.artifactId}</docs.main>
+
+        <!-- Sonar -->
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
+        <sonar.language>java</sonar.language>
+
+        <!-- Plugins -->
+        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
+        <maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
+        <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
+        <maven-jar-plugin.version>3.1.0</maven-jar-plugin.version>
+        <maven-antrun-plugin.version>1.8</maven-antrun-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M4</maven-surefire-plugin.version>
+        <exec-maven-plugin.version>1.6.0</exec-maven-plugin.version>
+        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
+        <git-commit-id-plugin.version>3.0.0</git-commit-id-plugin.version>
+        <maven-shade-plugin.version>3.1.1</maven-shade-plugin.version>
+        <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
+        <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
+        <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
+        <asciidoctor-maven-plugin.version>1.5.8</asciidoctor-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
+        <artifactory-maven-plugin.version>2.2.1</artifactory-maven-plugin.version>
+        <license-maven-plugin.version>1.16</license-maven-plugin.version>
+        <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
+        <disable.checks>false</disable.checks>
+        <maven-checkstyle-plugin.failsOnError>true</maven-checkstyle-plugin.failsOnError>
+        <maven-checkstyle-plugin.failOnViolation>true</maven-checkstyle-plugin.failOnViolation>
+        <maven-checkstyle-plugin.includeTestSourceDirectory>true</maven-checkstyle-plugin.includeTestSourceDirectory>
+        <spring-cloud-build-checkstyle.branch>master</spring-cloud-build-checkstyle.branch>
+
+        <antelopetasks.version>3.2.10</antelopetasks.version>
+        <ant-nodeps.version>1.8.1</ant-nodeps.version>
+
+        <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
+
+        <quarkus.platform.version>2.12.1.Final</quarkus.platform.version>
+
+        <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencyManagement>
+
+        <dependencies>
+            <dependency>
+                <groupId>io.nop</groupId>
+                <artifactId>nop-bom</artifactId>
+                <version>${nop-entropy.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source>${maven.compiler.release}</source>
+                    <source>${maven.compiler.release}</source>
+                </configuration>
+            </plugin>
+
+            <!-- mvn site指令生成报告 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>4.0.0-M2</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>3.3.0</version>
+            </plugin>
+
+            <!-- mvn surefire-report:report指令生成测试报告 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M5</version>
+
+                <configuration>
+                    <argLine>
+                        --illegal-access=permit
+                    </argLine>
+                    <testFailureIgnore>false</testFailureIgnore>
+                    <forkCount>4</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <argLine>${surefireArgLine}</argLine>
+                </configuration>
+
+                <dependencies>
+                    <dependency>
+                        <groupId>org.junit.jupiter</groupId>
+                        <artifactId>junit-jupiter-engine</artifactId>
+                        <version>5.3.2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.8</version>
+                <executions>
+                    <execution>
+                        <id>default-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <destFile>${project.build.directory}/coverage-reports/jacoco.exec</destFile>
+                            <propertyName>surefireArgLine</propertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/coverage-reports/jacoco.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>COMPLEXITY</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M2</version>
+                <executions>
+                    <execution>
+                        <id>enforce-no-duplicate-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!-- 检查pom中没有添加重复的依赖项 -->
+                                <banDuplicatePomDependencyVersions/>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- 处理 ${revision} -->
+            <!--            <plugin>-->
+            <!--                <groupId>org.codehaus.mojo</groupId>-->
+            <!--                <artifactId>flatten-maven-plugin</artifactId>-->
+            <!--                &lt;!&ndash;<version>1.2.7</version>&ndash;&gt;-->
+            <!--                <configuration>-->
+            <!--                </configuration>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>flatten</id>-->
+            <!--                        <phase>process-resources</phase>-->
+            <!--                        <goals>-->
+            <!--                            <goal>flatten</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
+
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+                <version>1.2.2</version>
+                <executions>
+                    <execution>
+                        <id>make-index</id>
+                        <goals>
+                            <goal>jandex</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-pmd-plugin</artifactId>-->
+<!--                <version>3.19.0</version>-->
+<!--                <configuration>-->
+<!--                    <analysisCache>true</analysisCache>-->
+<!--                    <rulesets>-->
+<!--                        <ruleset>nop/pmd-ruleset.xml</ruleset>-->
+<!--                    </rulesets>-->
+<!--                    <printFailingErrors>true</printFailingErrors>-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <goals>-->
+<!--                            <goal>check</goal>-->
+<!--                            <goal>cpd-check</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>io.nop</groupId>-->
+<!--                        <artifactId>build-tools</artifactId>-->
+<!--                        <version>2.0.0-SNAPSHOT</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--            </plugin>-->
+        </plugins>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>3.0.0</version>
+                    <executions>
+                        <execution>
+                            <id>precompile</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>java</goal>
+                            </goals>
+                            <configuration>
+                                <arguments>
+                                    <argument>${project.basedir}</argument>
+                                    <argument>precompile</argument>
+                                </arguments>
+
+                                <!--
+                                避免包含META-INF目录导致加载尚未编译的ICoreInitializer
+                                -->
+                                <addResourcesToClasspath>false</addResourcesToClasspath>
+                                <addOutputToClasspath>false</addOutputToClasspath>
+                            </configuration>
+                        </execution>
+
+                        <execution>
+                            <id>aop</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>java</goal>
+                            </goals>
+                            <configuration>
+                                <arguments>
+                                    <argument>${project.basedir}</argument>
+                                    <argument>aop</argument>
+                                </arguments>
+                            </configuration>
+                        </execution>
+
+                        <execution>
+                            <id>postcompile</id>
+                            <phase>package</phase>
+                            <configuration>
+                                <addResourcesToClasspath>true</addResourcesToClasspath>
+                                <addOutputToClasspath>true</addOutputToClasspath>
+                                <arguments>
+                                    <argument>${project.basedir}</argument>
+                                    <argument>postcompile</argument>
+                                </arguments>
+                            </configuration>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <classpathScope>compile</classpathScope>
+                        <includePluginDependencies>true</includePluginDependencies>
+                        <includeProjectDependencies>true</includeProjectDependencies>
+                        <addResourcesToClasspath>true</addResourcesToClasspath>
+                        <mainClass>io.nop.codegen.task.CodeGenTask</mainClass>
+                        <cleanupDaemonThreads>false</cleanupDaemonThreads>
+                    </configuration>
+
+                    <dependencies>
+                        <dependency>
+                            <groupId>io.nop</groupId>
+                            <artifactId>nop-codegen</artifactId>
+                            <version>${nop-entropy.version}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+
+    </build>
+
+    <reporting>
+        <plugins>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-pmd-plugin</artifactId>-->
+<!--                <version>3.19.0</version>-->
+<!--                <configuration>-->
+<!--                    <rulesets>-->
+<!--                        <ruleset>nop/pmd-ruleset.xml</ruleset>-->
+<!--                    </rulesets>-->
+<!--                </configuration>-->
+<!--                <reportSets>-->
+<!--                    <reportSet>-->
+<!--                        <reports>-->
+<!--                            <report>pmd</report>-->
+<!--                        </reports>-->
+<!--                    </reportSet>-->
+<!--                </reportSets>-->
+<!--            </plugin>-->
+
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-jxr-plugin</artifactId>-->
+            <!--                <version>3.3.0</version>-->
+            <!--            </plugin>-->
+        </plugins>
+    </reporting>
+
+    <modules>
+        <module>nop-dependencies</module>
+        <module>build-tools</module>
+        <module>nop-api-core</module>
+        <module>nop-commons</module>
+        <module>nop-core</module>
+        <!--        <module>nop-regex</module>-->
+        <module>nop-javac</module>
+        <module>nop-antlr4</module>
+        <module>nop-xdefs</module>
+        <module>nop-xlang</module>
+        <module>nop-log</module>
+        <module>nop-graphql</module>
+        <module>nop-socket</module>
+        <module>nop-web</module>
+        <!--        <module>nop-nosql</module>-->
+        <module>nop-tcc</module>
+        <module>nop-cluster</module>
+        <module>nop-wf</module>
+        <module>nop-auth</module>
+        <module>nop-config</module>
+        <!--        <module>nop-boot</module>-->
+        <module>nop-js</module>
+        <module>nop-pdf</module>
+        <module>nop-benchmark</module>
+        <module>nop-cli</module>
+        <module>nop-message</module>
+        <!--        <module>nop-native</module>-->
+        <!--        <module>nop-quarkus</module>-->
+        <module>nop-spring</module>
+        <module>nop-http</module>
+        <module>nop-codegen</module>
+        <!--<module>nop-txn-tcc</module>-->
+
+        <!--
+        <module>nop-app-auth</module>
+        <module>nop-app-com</module>
+        <module>nop-app-wf</module>
+        <module>nop-app-report</module>
+        <module>nop-app-etl</module>
+        <module>nop-biz</module>
+        <module>nop-poi</module>
+                -->
+        <!--        <module>nop-ioc</module>-->
+        <module>nop-dao</module>
+        <module>nop-orm</module>
+        <module>nop-biz</module>
+        <module>nop-api-debugger</module>
+        <module>nop-rpc</module>
+        <!--        <module>nop-web</module>-->
+        <module>nop-rule</module>
+        <!--        <module>nop-workflow</module>-->
+        <module>nop-job</module>
+        <!--        <module>nop-report</module>-->
+        <module>nop-batch</module>
+        <!--        <module>nop-message</module>-->
+        <!--        <module>nop-netty</module>-->
+        <module>nop-nosql</module>
+        <module>nop-shell</module>
+        <module>nop-fsm</module>
+        <module>nop-dbtool</module>
+        <!--        <module>nop-stream</module>-->
+        <module>nop-svg</module>
+        <!--        <module>nop-codec</module>-->
+        <!--        <module>nop-config</module>-->
+        <!--        <module>nop-autotest</module>-->
+        <module>nop-task</module>
+        <module>nop-excel</module>
+        <module>nop-ooxml</module>
+        <module>nop-boot</module>
+        <module>nop-ui</module>
+        <module>nop-autotest</module>
+        <module>nop-ioc</module>
+        <module>nop-demo</module>
+        <module>nop-quarkus</module>
+        <module>nop-sys</module>
+        <module>nop-match</module>
+        <module>nop-web-site</module>
+        <module>nop-web-amis-editor</module>
+        <module>nop-bom</module>
+        <module>nop-report</module>
+        <module>nop-integration</module>
+        <module>nop-record</module>
+        <module>nop-orm-graphql</module>
+        <module>nop-codec</module>
+    </modules>
+</project>

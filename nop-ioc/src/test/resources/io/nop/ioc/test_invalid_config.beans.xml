@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <bean id="a" class="test.io.entropy.beans.MyBeanA">
+        <property name="b" ref="b"></property>
+        <property name="strList">
+            <list>
+                <item>
+                    <value>2</value>
+                </item>
+                <item value="3"/>
+                <value>4</value>
+            </list>
+        </property>
+
+        <property name="objList">
+            <list>
+                <item>
+                    <bean class="test.io.entropy.beans.MyBeanB"/>
+                </item>
+            </list>
+        </property>
+    </bean>
+</beans>

@@ -540,7 +540,6 @@
         }
       ],
       "fields": [
-
         {
           "defKey": "COLLEGE_NAME",
           "defName": "学院名称",

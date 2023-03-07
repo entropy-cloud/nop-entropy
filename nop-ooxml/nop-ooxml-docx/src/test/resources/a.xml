@@ -1,0 +1,56 @@
+<w:p w14:paraId="0D781950" w14:textId="601E51A8" w:rsidR="00F64E3C" w:rsidRDefault="00FF7362">
+    <w:pPr>
+        <w:spacing w:line="360" w:lineRule="auto"/>
+        <w:jc w:val="center"/>
+        <w:rPr>
+            <w:rFonts w:ascii="Source Han Sans CN Regular" w:eastAsia="Source Han Sans CN Regular"
+                      w:hAnsi="Source Han Sans CN Regular" w:cs="Source Han Sans CN Regular"/>
+            <w:sz w:val="52"/>
+            <w:szCs w:val="44"/>
+        </w:rPr>
+    </w:pPr>
+    <w:hyperlink r:id="rId8" w:history="1">
+        <w:r w:rsidR="00102324">
+            <w:rPr>
+                <w:rStyle w:val="af3"/>
+                <w:rFonts w:ascii="Source Han Sans CN Regular" w:eastAsia="Source Han Sans CN Regular"
+                          w:hAnsi="Source Han Sans CN Regular" w:cs="Source Han Sans CN Regular" w:hint="eastAsia"/>
+                <w:sz w:val="52"/>
+                <w:szCs w:val="44"/>
+                <w:lang w:eastAsia="zh-Hans"/>
+            </w:rPr>
+            <w:t>${model.displayName}</w:t>
+        </w:r>
+    </w:hyperlink>
+</w:p>
+<w:p w14:paraId="536FD8F2" w14:textId="77777777" w:rsidR="00F64E3C" w:rsidRDefault="00BC3EB6">
+<w:pPr>
+    <w:spacing w:line="360" w:lineRule="auto"/>
+    <w:jc w:val="center"/>
+    <w:rPr>
+        <w:rFonts w:ascii="Source Han Sans CN Regular" w:eastAsia="Source Han Sans CN Regular"
+                  w:hAnsi="Source Han Sans CN Regular" w:cs="Source Han Sans CN Regular"/>
+        <w:sz w:val="44"/>
+        <w:szCs w:val="44"/>
+    </w:rPr>
+</w:pPr>
+<w:r>
+    <w:rPr>
+        <w:rFonts w:ascii="Source Han Sans CN Regular" w:eastAsia="Source Han Sans CN Regular"
+                  w:hAnsi="Source Han Sans CN Regular" w:cs="Source Han Sans CN Regular" w:hint="eastAsia"/>
+        <w:sz w:val="44"/>
+        <w:szCs w:val="44"/>
+        <w:lang w:eastAsia="zh-Hans"/>
+    </w:rPr>
+    <w:t>[元数据建模信息</w:t>
+</w:r>
+<w:r>
+    <w:rPr>
+        <w:rFonts w:ascii="Source Han Sans CN Regular" w:eastAsia="Source Han Sans CN Regular"
+                  w:hAnsi="Source Han Sans CN Regular" w:cs="Source Han Sans CN Regular" w:hint="eastAsia"/>
+        <w:sz w:val="44"/>
+        <w:szCs w:val="44"/>
+    </w:rPr>
+    <w:t>有限公司]</w:t>
+</w:r>
+</w:p>

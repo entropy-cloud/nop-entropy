@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core.data;
 
 import io.nop.autotest.core.diff.CsvDataDiffer;
@@ -7,7 +14,7 @@ import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.DeltaJsonOptions;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.core.lang.json.bind.ValueResolverRegistry;
+import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.record.csv.CsvHelper;
 import io.nop.xlang.api.XLang;
@@ -16,6 +23,7 @@ import org.apache.commons.csv.CSVFormat;
 import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,8 +37,10 @@ import static io.nop.autotest.core.data.AutoTestDataHelper.isDefaultVariant;
 import static io.nop.core.type.utils.JavaGenericTypeBuilder.buildListType;
 
 /**
- * 此类负责管理测试数据所在目录，并提供测试数据的读取和保存操作。<p>
+ * 此类负责管理测试数据所在目录，并提供测试数据的读取和保存操作。
+ * <p>
  * 测试数据的目录结构为：
+ *
  * <pre>
  * /data
  *      /input
@@ -52,22 +62,35 @@ import static io.nop.core.type.utils.JavaGenericTypeBuilder.buildListType;
  * 如果没有注解，则自动录制访问数据和执行结果，最后不执行比较步骤，直接抛出异常中断
  * <p>
  * input目录下包含如下文件：
- * <ul>1. init_vars.json5 初始化变量集合。用于初始化AutoTestVars。</ul>
- * <ul>2. xxx.sql 测试用例初始化时会按顺序执行这些sql语句，对数据库进行初始化</ul>
- * <ul>3. tables目录下，每个表对应一个csv文件。测试用例会在临时数据库中插入这些数据</ul>
- * <ul>4. 其他json文件。一般用input函数读取。支持后缀名为json/json5/yaml</ul>
+ * <ul>
+ * 1. init_vars.json5 初始化变量集合。用于初始化AutoTestVars。
+ * </ul>
+ * <ul>
+ * 2. xxx.sql 测试用例初始化时会按顺序执行这些sql语句，对数据库进行初始化
+ * </ul>
+ * <ul>
+ * 3. tables目录下，每个表对应一个csv文件。测试用例会在临时数据库中插入这些数据
+ * </ul>
+ * <ul>
+ * 4. 其他json文件。一般用input函数读取。支持后缀名为json/json5/yaml
+ * </ul>
  * <p>
  * output目录下包含如下文件
- * <ul>1. sql_check.yaml 它为列表结构，具有三列 desc, sql, result。 执行sql语句，将结果与result的值进行比较</ul>
- * <ul>2. tables目录下，每个表对应一个csv文件。数据行具有一个附加列_chg_type，A/U/D分别表示插入/修改/删除。
- * 测试用例会逐行比较结果文件中的内容是否与数据库中当前的情况相匹配。</ul>
- * <ul>3. 其他json文件，一般用output函数来比较。支持后缀名为json/json5/yaml</ul>
+ * <ul>
+ * 1. sql_check.yaml 它为列表结构，具有三列 desc, sql, result。 执行sql语句，将结果与result的值进行比较
+ * </ul>
+ * <ul>
+ * 2. tables目录下，每个表对应一个csv文件。数据行具有一个附加列_chg_type，A/U/D分别表示插入/修改/删除。 测试用例会逐行比较结果文件中的内容是否与数据库中当前的情况相匹配。
+ * </ul>
+ * <ul>
+ * 3. 其他json文件，一般用output函数来比较。支持后缀名为json/json5/yaml
+ * </ul>
  */
 public class AutoTestCaseData {
     private final File caseDataDir;
-    private final ValueResolverRegistry registry;
+    private final ValueResolverCompilerRegistry registry;
 
-    public AutoTestCaseData(File caseDataDir, ValueResolverRegistry registry) {
+    public AutoTestCaseData(File caseDataDir, ValueResolverCompilerRegistry registry) {
         this.caseDataDir = caseDataDir;
         this.registry = registry;
     }
@@ -87,9 +110,8 @@ public class AutoTestCaseData {
     public File requireFile(String fileName) {
         File file = getFile(fileName);
         if (!file.exists())
-            throw new AutoTestException(ERR_AUTOTEST_UNKNOWN_FILE)
-                    .param(ARG_FILE_NAME, fileName)
-                    .param(ARG_FILE_PATH, file.getAbsolutePath());
+            throw new AutoTestException(ERR_AUTOTEST_UNKNOWN_FILE).param(ARG_FILE_NAME, fileName).param(ARG_FILE_PATH,
+                    file.getAbsolutePath());
         return file;
     }
 
@@ -263,6 +285,22 @@ public class AutoTestCaseData {
             map.put(file.getName(), file);
         }
         return new ArrayList<>(map.values());
+    }
+
+    public List<String> getVariants(boolean includeDefault) {
+        List<String> ret = new ArrayList<>();
+        if (includeDefault)
+            ret.add("_default");
+
+        File variantsDir = new File(this.caseDataDir, "variants");
+        if (variantsDir.exists()) {
+            String[] names = variantsDir.list();
+            if (names != null) {
+                Arrays.sort(names);
+                ret.addAll(Arrays.asList(names));
+            }
+        }
+        return ret;
     }
 
     private List<Map<String, Object>> readTableData(String fileName) {

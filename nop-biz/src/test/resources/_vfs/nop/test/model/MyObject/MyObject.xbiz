@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
+
+    <actions>
+      <mutation name="approve">
+         <arg name="id">
+            <schema type="String" />
+         </arg>
+
+         <return>
+           <schema bizObjName="THIS_OBJ" />
+         </return>
+
+         <source>
+            let entity = thisObj.get({id});
+            entity.status = 'default';
+            thisObj.triggerStateChange(entity,'approve',svcCtx);
+            entity
+         </source>
+      </mutation>
+    </actions>
+
+    <state-machine initial="default" stateProp="status">
+       <state id="default">
+          <transition id="approve" event="approve" target="approved">
+            <invoke>
+               <c:log info="approve executed" />
+            </invoke>
+          </transition>
+       </state>
+
+       <state id="approved" final="true">
+       </state>
+    </state-machine>
+</biz>

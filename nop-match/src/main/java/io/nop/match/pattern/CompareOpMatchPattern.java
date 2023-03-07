@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.pattern;
 
 import io.nop.core.lang.json.JsonTool;
@@ -16,8 +23,7 @@ public class CompareOpMatchPattern implements IMatchPattern {
     private final BiPredicate<Object, Object> predicate;
     private final Object pattern;
 
-    public CompareOpMatchPattern(String filterOp,
-                                 BiPredicate<Object, Object> predicate, Object pattern) {
+    public CompareOpMatchPattern(String filterOp, BiPredicate<Object, Object> predicate, Object pattern) {
         this.filterOp = filterOp;
         this.predicate = predicate;
         this.pattern = pattern;
@@ -32,10 +38,8 @@ public class CompareOpMatchPattern implements IMatchPattern {
     public boolean matchValue(MatchState state, boolean collectError) {
         if (!predicate.test(state.getValue(), pattern)) {
             if (collectError) {
-                state.buildError(ERR_MATCH_COMPARE_OP_MATCH_FAIL)
-                        .param(ARG_FILTER_OP, filterOp)
-                        .param(ARG_PATTERN, pattern)
-                        .addToCollector(state.getErrorCollector());
+                state.buildError(ERR_MATCH_COMPARE_OP_MATCH_FAIL).param(ARG_FILTER_OP, filterOp)
+                        .param(ARG_PATTERN, pattern).addToCollector(state.getErrorCollector());
             }
             return false;
         }

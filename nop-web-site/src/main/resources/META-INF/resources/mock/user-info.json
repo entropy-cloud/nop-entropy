@@ -1,0 +1,29 @@
+{
+    "userInfo": {
+        "id": "e9ca23d68d884d4ebb19d07889727dae",
+        "username": "admin",
+        "realname": "管理员",
+        "avatar": "https://static.jeecg.com/temp/国炬软件logo_1606575029126.png",
+        "birthday": "2018-12-05",
+        "sex": 1,
+        "email": "jeecg@163.com",
+        "phone": "18611111111",
+        "orgCode": "A01",
+        "orgCodeTxt": null,
+        "status": 1,
+        "delFlag": 0,
+        "workNo": "00001",
+        "post": "总经理",
+        "telephone": null,
+        "createBy": null,
+        "createTime": "2019-06-21 17:54:10",
+        "updateBy": "admin",
+        "updateTime": "2022-03-09 22:50:20",
+        "activitiSync": 1,
+        "userIdentity": 2,
+        "departIds": "c6d7cb4deeac411cb3384b1b31278596",
+        "relTenantIds": "",
+        "clientId": null,
+        "homePath": null
+    }
+}

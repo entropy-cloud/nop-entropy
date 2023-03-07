@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="代办工作"
+      i18n-en:displayName="Work List">
+
+    <entityName>io.nop.wf.dao.entity.NopWfWork</entityName>
+
+    <primaryKey>workId</primaryKey>
+
+    <displayProp>title</displayProp>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="workId" displayName="工作ID" i18n-en:displayName="Work ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="workType" displayName="工作类型" i18n-en:displayName="Work Type" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
+        <prop name="title" displayName="工作标题" i18n-en:displayName="Title" tagSet="disp" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="linkUrl" displayName="工作链接" i18n-en:displayName="LINK_URL" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="wf/work-status"/>
+        </prop>
+        <prop name="ownerId" displayName="拥有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="ownerName" displayName="拥有者姓名" i18n-en:displayName="Owner Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="callerId" displayName="调用者ID" i18n-en:displayName="Caller ID" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="callerName" displayName="调用者姓名" i18n-en:displayName="Caller Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="readTime" displayName="读取时间" i18n-en:displayName="Read Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="finishTime" displayName="完成时间" i18n-en:displayName="Finish Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+    </props>
+</meta>

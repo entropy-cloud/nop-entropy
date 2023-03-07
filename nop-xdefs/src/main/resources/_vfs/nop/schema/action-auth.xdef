@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+用于描述用户对页面以及页面上的操作的权限范围。页面和按钮被统一抽象为Resource概念。用户具有角色，角色可以访问指定资源，
+具体的资源通过action与系统内部的程序逻辑关联起来。
+-->
+<auth xdef:bean-package="io.nop.auth.core.model" xdef:name="ActionAuthModel" x:schema="/nop/schema/xdef.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef">
+
+    <site id="!string" xdef:ref="site.xdef" xdef:unique-attr="id"/>
+
+    <role xdef:name="AuthRoleModel" name="!string" xdef:unique-attr="name"
+          displayName="!string" primary="!boolean=false">
+        <description xdef:value="string"/>
+        <resource id="!string" xdef:unique-attr="id" xdef:name="AuthRoleResourceModel"/>
+    </role>
+
+</auth>

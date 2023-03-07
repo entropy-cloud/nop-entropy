@@ -1,0 +1,60 @@
+{
+  "data": {
+    "entity1": {
+      "name": "my",
+      "children2": [
+        {
+          "desc2": "desc_0",
+          "extField": "ext_0"
+        },
+        {
+          "desc2": "desc_1",
+          "extField": "ext_1"
+        }
+      ]
+    },
+    "entity2": {
+      "id": "bbb",
+      "children": [
+        {
+          "name": "child_0_batch"
+        },
+        {
+          "name": "child_1_batch"
+        }
+      ]
+    },
+    "MyEntity__findPage": {
+      "items": [
+        {
+          "id": "entity_0",
+          "name": "entity_name_0_3",
+          "children": [
+            {
+              "value": 0,
+              "name": "child_0_batch"
+            },
+            {
+              "value": 1,
+              "name": "child_1_batch"
+            }
+          ]
+        },
+        {
+          "id": "entity_1",
+          "name": "entity_name_1_3",
+          "children": [
+            {
+              "value": 0,
+              "name": "child_0_batch"
+            },
+            {
+              "value": 1,
+              "name": "child_1_batch"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

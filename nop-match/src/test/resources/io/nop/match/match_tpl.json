@@ -1,14 +1,14 @@
 {
   "a": "@ge:3",
   "b": {
-    "@pattern": "and",
+    "@prefix": "and",
     "patterns": [
       "@startsWith:a",
       "@endsWith:d"
     ]
   },
   "c": {
-    "@pattern": "or",
+    "@prefix": "or",
     "patterns": [
       {
         "a": 1

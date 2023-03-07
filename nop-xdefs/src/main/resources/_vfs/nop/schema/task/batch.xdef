@@ -1,0 +1,23 @@
+<batch batchSize="int"
+       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <reader bean="bean-name" xdef:bean-body-prop="impl">
+        <file-reader path="expr">
+            <headers xdef:value="csv-set"/>
+        </file-reader>
+
+        <orm-reader>
+            <eql xdef:value="xpl-sql"/>
+            <query xdef:ref="../query/query.xdef"/>
+        </orm-reader>
+
+        <jdbc-reader querySpace="string">
+            <sql xdef:value="xpl-sql"/>
+            <query xdef:ref="../query/query.xdef"/>
+        </jdbc-reader>
+    </reader>
+
+    <processor bean="bean-name" xdef:value="xpl"/>
+
+</batch>

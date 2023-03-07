@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm.driver;
 
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -17,7 +24,7 @@ import java.util.concurrent.CompletionStage;
 /**
  * 具体负责与外部数据源交互的接口。不处理全局缓存和session缓存, 也不处理shard选择。
  */
-public interface IEntityPersistDriver extends AutoCloseable {
+public interface IEntityPersistDriver {
 
     void init(IEntityModel entityModel, IPersistEnv env);
 
@@ -25,7 +32,8 @@ public interface IEntityPersistDriver extends AutoCloseable {
 
     IOrmEntity findLatest(ShardSelection selection, IOrmEntity entity, IOrmSessionImplementor session);
 
-    CompletionStage<Boolean> loadAsync(ShardSelection shard, IOrmEntity entity, IntArray propIds, IOrmSessionImplementor session);
+    CompletionStage<Void> loadAsync(ShardSelection shard, IOrmEntity entity, IntArray propIds,
+                                    FieldSelectionBean subSelection, IOrmSessionImplementor session);
 
     boolean lock(ShardSelection shard, IOrmEntity entity, IntArray propIds, Runnable unlockCallback,
                  IOrmSessionImplementor session);
@@ -38,21 +46,18 @@ public interface IEntityPersistDriver extends AutoCloseable {
      * @param updateActions 可能为null
      * @param deleteActions 可能为null
      */
-    CompletionStage<Void> batchExecuteAsync(boolean topoAsc, String querySpace, List<IBatchAction.EntitySaveAction> saveActions,
-                                      List<IBatchAction.EntityUpdateAction> updateActions,
-                                      List<IBatchAction.EntityDeleteAction> deleteActions,
-                                      IOrmSessionImplementor session);
+    CompletionStage<Void> batchExecuteAsync(boolean topoAsc, String querySpace,
+                                            List<IBatchAction.EntitySaveAction> saveActions, List<IBatchAction.EntityUpdateAction> updateActions,
+                                            List<IBatchAction.EntityDeleteAction> deleteActions, IOrmSessionImplementor session);
 
     CompletionStage<Void> batchLoadAsync(ShardSelection shard, Collection<IOrmEntity> entities, IntArray propIds,
-                        FieldSelectionBean subSelection,
-                        IOrmSessionImplementor session);
+                                         FieldSelectionBean subSelection, IOrmSessionImplementor session);
 
-    <T extends IOrmEntity> List<T> findPageByExample(ShardSelection shard, T example,
-                                                     List<OrderFieldBean> orderBy, long offset, int limit,
-                                                     IOrmSessionImplementor session);
+    <T extends IOrmEntity> List<T> findPageByExample(ShardSelection shard, T example, List<OrderFieldBean> orderBy,
+                                                     long offset, int limit, IOrmSessionImplementor session);
 
-    <T extends IOrmEntity> List<T> findAllByExample(ShardSelection shard, T example,
-                                                    List<OrderFieldBean> orderBy, IOrmSessionImplementor session);
+    <T extends IOrmEntity> List<T> findAllByExample(ShardSelection shard, T example, List<OrderFieldBean> orderBy,
+                                                    IOrmSessionImplementor session);
 
     long deleteByExample(ShardSelection shard, IOrmEntity example, IOrmSessionImplementor session);
 

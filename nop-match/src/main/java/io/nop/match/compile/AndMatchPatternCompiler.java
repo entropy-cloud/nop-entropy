@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.compile;
 
 import io.nop.api.core.util.SourceLocation;
@@ -18,8 +25,8 @@ public class AndMatchPatternCompiler implements IMatchPatternCompiler {
     @Override
     public IMatchPattern parseFromValue(SourceLocation loc, Object value, MatchPatternCompileConfig config) {
         Map<String, Object> options = PatternCompileHelper.optionsToMap(value);
-        List<Object> children = (List<Object>)
-                PatternCompileHelper.requireOption(MatchConstants.NAME_OR, options, "patterns");
+        List<Object> children = (List<Object>) PatternCompileHelper.requireOption(MatchConstants.NAME_AND, options,
+                "patterns");
 
         List<IMatchPattern> patterns = new ArrayList<>(children.size());
         for (int i = 0, n = children.size(); i < n; i++) {

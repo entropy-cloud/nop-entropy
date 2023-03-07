@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect xdef:name="DialectModel" xdef:bean-package="io.nop.dao.dialect.model"
+         x:schema="/nop/schema/xdef.xdef"
+         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         class="class-name"
+         tableNameCase="enum:io.nop.commons.text.CharacterCase" columnNameCase="enum:io.nop.commons.text.CharacterCase"
+>
+    <functions xdef:body-type="list" xdef:key-attr="name"
+               xdef:bean-body-type="List&lt;io.nop.dao.dialect.model.ISqlFunctionModel>">
+        <!--
+        sql数据库内部支持的原生函数。
+        @hasParenthesis 数据库引擎是否要求函数调用要有括号。在eql语法中总是要求函数调用有括号，但是数据库引擎可能强制要求没有。
+            例如oracle中的sysdate
+        @argTypes 指定函数参数的类型
+        @realName 数据库中的函数名。在dialect中声明的函数名为标准函数名，它会尽量在多个数据库之间保持一致。realName为对应的数据库中的实现函数名
+        @special 需要特殊语法支持的函数
+        -->
+        <native name="!string"
+                xdef:name="SqlNativeFunctionModel"
+                xdef:bean-tag-prop="type">
+        </native>
+    </functions>
+
+</dialect>

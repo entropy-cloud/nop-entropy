@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+类似xslt的tree转换规则定义
+-->
+<transform x:schema="/nop/schema/xdef.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef" xdef:bean-package="io.nop.xlang.xt.model"
+           xdef:prop-ns="xt"
+           xdef:name="XtTransformModel" xmlns:xt="/nop/schema/xt.xdef"
+>
+    <!--
+    导入其他的xt转换规则定义
+    @prefix 为了避免和当前文件中定义的名称冲突，可以为导入的mapping和transform规则id增加前缀。
+    -->
+    <import xdef:unique-attr="from" from="!v-path" prefix="string" xdef:name="XtImportModel"/>
+
+    <!--
+    按标签名映射到不同的规则
+    @inherits 继承其它mapping规则，允许替换
+    -->
+    <mapping id="!var-name" inherits="csv-set" xdef:name="XtMappingModel"
+             xdef:allow-multiple="true" xdef:unique-attr="id">
+        <match tag="!xml-name" xdef:ref="XtRuleGroupModel" xdef:name="XtMappingMatchModel" xdef:unique-attr="tag"/>
+        <default xdef:ref="XtRuleGroupModel"/>
+    </mapping>
+
+    <template id="!var-name" xdef:allow-multiple="true" xdef:unique-attr="id"
+              xdef:ref="XtRuleGroupModel" xdef:name="XtTemplateModel"/>
+
+    <!--
+    缺省执行main规则进行转换。转换生成的根节点上可能标注了x:schema，用于标识输出节点的schema定义
+    -->
+    <main xdef:ref="XtRuleGroupModel"/>
+
+    <xdef:define xdef:name="XtRuleModel" xdef:bean-implements-types="io.nop.xlang.xt.model.IXtRuleModel"/>
+
+    <xdef:define xdef:name="XtRuleGroupModel" xdef:ref="XtRuleModel"
+                 xdef:body-type="list" xdef:bean-sub-type-prop="xtType"
+                 xdef:bean-body-prop="body" xdef:bean-body-type="List&lt;io.nop.xlang.xt.model.XtRuleModel>">
+        <!--
+        应用指定template
+        @xpath 选择目标节点，只会匹配第一个满足要求的节点。如果要对多个节点进行处理，需要使用xt:each。如果不指定,则标识应用于当前节点
+        -->
+        <xt:apply-template id="!string" xpath="xpath" mandatory="!boolean=false"
+                           xdef:name="XtApplyTemplateModel" xdef:ref="XtRuleGroupModel"/>
+
+        <!--
+        应用指定mapping
+        @xpath 选择目标节点，只会匹配第一个满足要求的节点。如果要对多个节点进行处理，需要使用xt:each
+        -->
+        <xt:apply-mapping id="!string" xpath="xpath" mandatory="!boolean=false"
+                          xdef:name="XtApplyMappingModel" xdef:ref="XtRuleGroupModel"/>
+
+        <xt:copy-node xpath="xpath" mandatory="!boolean=false"
+                      xdef:name="XtCopyNodeModel" xdef:ref="XtRuleModel"/>
+
+        <xt:copy-body xpath="xpath" mandatory="!boolean=false" xdef:name="XtCopyBodyModel" xdef:ref="XtRuleModel"/>
+
+        <!--
+        作为XNode的value输出
+        -->
+        <xt:value xdef:value="xt-value" mandatory="!boolean=false" xdef:name="XtValueModel" xdef:ref="XtRuleModel"/>
+
+        <!--
+        执行代码来输出转换结果
+        -->
+        <xt:gen xpath="xpath" xdef:value="xpl-node" xdef:name="XtGenModel" xdef:ref="XtRuleModel"/>
+
+        <xt:script xpath="xpath" xdef:value="xpl" xdef:name="XtScriptModel" xdef:ref="XtRuleModel"/>
+
+        <!--
+        对于xpath选中的一组节点，每一个都应用body段的规则
+        -->
+        <xt:each xpath="xpath" xdef:ref="XtRuleGroupModel" xdef:name="XtEachModel"/>
+
+        <xt:choose xdef:name="XtChooseModel" xdef:ref="XtRuleModel">
+            <when test="!xt-expr" xdef:name="XtChooseWhenModel" xdef:ref="XtRuleGroupModel" xdef:allow-multiple="true"/>
+            <otherwise xdef:ref="XtRuleGroupModel"/>
+        </xt:choose>
+
+        <xt:if test="!xt-expr" xdef:ref="XtRuleGroupModel" xdef:name="XtIfModel"/>
+
+        <xdef:unknown-tag xdef:bean-tag-prop="tagName" xt:xpath="xpath"
+                          xdef:ref="XtRuleGroupModel" xt:attrs="xt-expr" xdef:unknown-attr="xt-value"
+                          xdef:bean-unknown-attrs-prop="attrs"
+                          xdef:name="XtCustomTagModel"/>
+
+    </xdef:define>
+
+</transform>

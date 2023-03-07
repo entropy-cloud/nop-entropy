@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<config xdef:bean-package="io.nop.config.model" x:schema="/nop/schema/xdef.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef">
+    <vars xdef:body-type="map" xdef:key-attr="name">
+        <!--
+          @inheritFrom 如果变量未被明确设置，则依次检查这里的变量列表，试图从中获取一个缺省值。
+        -->
+        <var name="!conf-name" valueType="std-data-type" displayName="string"
+             since="string" internal="boolean" deprecated="boolean"
+             defaultValue="any" inheritFrom="csv-set"
+             xdef:name="ConfigVarModel"
+        >
+            <description xdef:value="string"/>
+
+            <!-- 嵌套定义 -->
+            <vars xdef:body-type="map" xdef:key-attr="name">
+                <var name="!conf-name" xdef:ref="ConfigVarModel"/>
+            </vars>
+        </var>
+    </vars>
+</config>

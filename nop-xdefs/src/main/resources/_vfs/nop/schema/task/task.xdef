@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+支持异步执行的轻量化任务引擎。持久化状态为可选特性，如果在步骤上配置了saveState，则可以从任意步骤中断并恢复执行。
+-->
+<task defaultSaveState="!boolean=false" version="!long=0"
+      restartable="!boolean=true"
+      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model"
+      xdef:ref="TaskExecutableModel"
+>
+
+    <xdef:define xdef:name="TaskExecutableModel" executor="bean-name"
+                 displayName="string" timeout="!long=0" shareScope="!boolean=false">
+
+        <description xdef:value="string"/>
+
+        <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
+               xdef:unique-attr="name" xdef:value="xpl" xdef:bean-body-prop="value"/>
+
+        <!--
+        @forAttr 如果为true，则输出变量到taskContext.attributes集合中，否则输出到parentScope中
+        -->
+        <output name="!var-name" displayName="string" persist="!boolean=false"
+                xdef:name="TaskOutputModel" forAttr="!boolean=false"
+                xdef:unique-attr="name" xdef:value="xpl" xdef:bean-body-prop="value"/>
+
+        <decorator index="!int" bean="bean-name" xdef:value="xpl"
+                   xdef:name="TaskDecoratorModel" xdef:unique-attr="index"/>
+
+        <when xdef:value="xpl-predicate"/>
+
+        <catch xdef:ref="TaskStepsModel"/>
+
+        <finally xdef:ref="TaskStepsModel"/>
+
+        <!--
+         限制对同一个key的调用并发数不能超过指定值
+      -->
+        <throttle maxConcurrent="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskThrottleModel"/>
+
+        <!--
+          限制对同一个key的调用速率不能超过指定值
+        -->
+        <rate-limit requestPerSecond="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskRateLimitModel"/>
+
+
+        <!--
+          如果发生异常，则重试整个task
+        -->
+        <retry maxRetryCount="!int=0" retryDelay="!int=0" maxRetryDelay="!int=0"
+               exponentialDelay="!boolean=true" xdef:name="TaskRetryModel">
+            <!--
+              上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
+            -->
+            <exception-filter xdef:value="xpl"/>
+        </retry>
+
+    </xdef:define>
+
+    <!--
+    @next 本步骤执行完毕后缺省跳转到的步骤
+    @saveState 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
+    @allowStartIfComplete 如果设置为false, 则重新执行时已经完成的步骤会被跳过
+    @noWait 缺省情况下，总是等待当前步骤执行完毕之后再执行下一个步骤。但是如果设置了noWait=true，则会立刻启动下一个任务
+    -->
+    <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" returnAs="var-name"
+                 extType="var-name" tagSet="csv-set"
+                 allowStartIfComplete="!boolean=false" noWait="!boolean=false" internal="!boolean=false"
+                 next="var-name" id="!var-name" saveState="!boolean=false">
+    </xdef:define>
+
+    <!--
+    @graphMode 图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
+    -->
+    <xdef:define xdef:name="TaskStepsModel" graphMode="!boolean=false" firstStep="var-name"
+                 xdef:ref="TaskStepModel">
+        <steps xdef:body-type="list" xdef:key-attr="id"
+               xdef:bean-body-type="List&lt;io.nop.task.model.TaskStepModel>" xdef:bean-sub-type-prop="type">
+
+            <simple id="!var-name" bean="!bean-name" xdef:ref="TaskStepModel" xdef:name="SimpleTaskStepModel"/>
+
+            <xpl id="!var-name" xdef:ref="TaskStepModel"
+                 xdef:name="XplTaskStepModel">
+                <source xdef:value="xpl"/>
+            </xpl>
+
+            <script id="!var-name" lang="!xml-name" xdef:ref="TaskStepModel"
+                    xdef:name="ScriptTaskStepModel">
+                <source xdef:value="string"/>
+            </script>
+
+            <flow id="!var-name" xdef:ref="TaskStepsModel" xdef:name="FlowTaskStepModel"/>
+
+            <parallel id="!var-name" xdef:ref="TaskStepsModel" xdef:name="ParallelTaskStepModel"
+                      joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
+                <aggregator xdef:ref="TaskBeanModel"/>
+            </parallel>
+
+            <exit id="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel"/>
+
+            <end id="!var-name" xdef:ref="TaskStepModel" xdef:name="EndTaskStepModel"/>
+
+            <!--
+              延迟执行后续step
+            -->
+            <delay id="!var-name" delay="!expr" xdef:ref="TaskStepModel" xdef:name="DelayTaskStepModel"/>
+
+            <sleep id="!var-name" sleepTime="!expr" xdef:ref="TaskStepModel" xdef:name="SleepTaskStepModel"/>
+
+            <fork id="!var-name" var="!var-name" xdef:ref="TaskStepsModel" xdef:name="ForkTaskStepModel"
+                  joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
+                <producer bean="bean-name" xdef:value="xpl" xdef:name="TaskBeanModel" xdef:bean-body-prop="source"/>
+                <aggregator xdef:ref="TaskBeanModel"/>
+            </fork>
+
+            <fork-n id="!var-name" var="!var-name" count="!expr" xdef:ref="TaskStepsModel"
+                    xdef:name="ForkNTaskStepModel"
+                    joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
+                <aggregator xdef:ref="TaskBeanModel"/>
+            </fork-n>
+
+            <invoke id="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel"
+                    xdef:name="InvokeTaskStepModel"
+                    ignoreReturn="!boolean=false">
+                <arg index="!int" value="expr" xdef:unique-attr="index" xdef:name="TaskInvokeArgModel"/>
+            </invoke>
+
+            <loop id="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
+                  index="var-name" var="var-name" items="!expr" maxCount="!int=0">
+                <until xdef:value="xpl-predicate"/>
+            </loop>
+
+            <loop-n id="!var-name" xdef:ref="TaskStepsModel" index="var-name" xdef:name="LoopNTaskStepModel"
+                    var="var-name" begin="!expr" end="!expr" step="!int=0">
+            </loop-n>
+
+            <choose id="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
+                <decider bean="bean-name" xdef:value="xpl" xdef:bean-body-prop="expr"
+                         xdef:name="TaskDeciderModel"/>
+
+                <!--
+                可能用于全局跳转，因此不使用嵌套步骤定义
+                -->
+                <case when="!string" to="var-name" xdef:unique-attr="when"
+                      xdef:name="TaskChooseCaseModel" xdef:ref="TaskStepsModel"/>
+
+                <otherwise to="var-name" xdef:ref="TaskStepsModel" xdef:name="TaskChooseOtherwiseModel"/>
+            </choose>
+
+            <sub-task id="!var-name" taskName="!string" xdef:ref="TaskStepModel" xdef:name="SubTaskStepModel"/>
+
+            <await id="!var-name" xdef:ref="TaskStepModel" depends="csv-set" xdef:name="AwaitTaskStepModel"/>
+
+            <!--
+              挂起当前任务，等待手工触发继续执行
+            -->
+            <suspend id="!var-name" xdef:ref="TaskStepModel" xdef:name="SuspendTaskStepModel">
+                <resume-when xdef:value="xpl-predicate"/>
+            </suspend>
+        </steps>
+    </xdef:define>
+</task>

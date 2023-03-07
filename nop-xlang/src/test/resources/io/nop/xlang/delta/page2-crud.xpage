@@ -1,0 +1,100 @@
+<crud xmlns:x="x" x:schema="/nop/schema/xjson.xdef"
+      draggable="true" syncLocation="false"
+      keepItemSelectionOnPageChange="true" autoGenerateFilter="true">
+
+    <api>/amis/api/mock2/sample</api>
+
+    <bulkActions j:list="true">
+        <button x:id="batchDelete" label="批量删除" actionType="ajax">
+            <confirmText>确定要批量删除？</confirmText>
+            <api>delete:/amis/api/mock2/sample/{{ids|raw}}</api>
+        </button>
+
+        <button x:id="batchUpdate" label="批量修改" actionType="dialog">
+            <dialog name="sample-bulk-edit">
+                <title>批量编辑</title>
+                <body>
+                    <form>
+                        <api>/amis/api/mock2/sample/bulkUpdate2</api>
+                        <body>
+                            <hidden name="ids"/>
+                            <input-text name="engine" label="Engine"/>
+                        </body>
+                    </form>
+                </body>
+            </dialog>
+        </button>
+    </bulkActions>
+
+    <quickSaveApi>/amis/api/mock2/sample/bulkUpdate</quickSaveApi>
+    <quickSaveItemApi>/amis/api/mock2/sample/$id</quickSaveItemApi>
+    <headerToolbar j:list="true">
+        <bulkActions/>
+        <button x:id="resetTestData" label="重置测试数据" actionType="ajax" size="sm">
+            <api>/amis/api/mock2/sample/reset</api>
+        </button>
+        <export-excel/>
+        <tpl x:id="count" className="v-middle">
+            <tpl>一共有 {{count}} 行数据。</tpl>
+        </tpl>
+        <column-toggler align="right" draggable="true"/>
+        <drag-toggler align="right"/>
+
+    </headerToolbar>
+
+    <footerToolbar j:list="true">
+        <_>statitics</_>
+        <_>switch-per-page</_>
+        <_>pagination</_>
+    </footerToolbar>
+
+
+    <columns j:list="true">
+        <text name="id" label="ID" width="20" sortable="true">
+            <searchable j:list="true">
+                <input-text name="id" label="主键" placeholder="输入id"/>
+            </searchable>
+        </text>
+
+        <text name="browser" label="Browser">
+            <searchable j:list="true">
+                <select name="browser" label="浏览器" placeholder="选择浏览器">
+                    <options x:key-attr="value" j:list="true">
+                        <_ label="Internet Explorer" value="ie"/>
+                        <_ label="AOL browser" value="aol"/>
+                        <_ label="Firefox" value="firefox"/>
+                    </options>
+                </select>
+            </searchable>
+        </text>
+
+        <text name="platform" label="平台" sortable="true">
+            <popOver trigger="hover">
+                <body>
+                    <tpl>
+                        <tpl>就是为了演示有个叫 popOver 的功能</tpl>
+                    </tpl>
+                </body>
+            </popOver>
+        </text>
+
+        <select name="grade" label="CSS 等级">
+            <options j:list="true">
+                <_>A</_>
+                <_>B</_>
+                <_>C</_>
+                <_>D</_>
+                <_>X</_>
+            </options>
+        </select>
+
+        <operation x:id="operation" label="操作" width="100">
+            <buttons j:list="true">
+                <button x:id="delete" actionType="ajax" label="删除">
+                    <confirmText>您确认要删除?</confirmText>
+                    <api>delete:/amis/api/mock2/sample/$id</api>
+                </button>
+            </buttons>
+        </operation>
+    </columns>
+</crud>

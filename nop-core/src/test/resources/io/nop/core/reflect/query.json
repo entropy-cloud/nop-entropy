@@ -1,0 +1,57 @@
+{
+  "dimFields": [
+    "a",
+    "b"
+  ],
+  "fields": [
+    {
+      "internal": true,
+      "name": "a",
+      "owner": "sub"
+    },
+    {
+      "aggFunc": "sum",
+      "internal": false,
+      "name": "b"
+    }
+  ],
+  "filter": {
+    "$body": [
+      {
+        "$type": "eq",
+        "name": "a",
+        "value": "1"
+      },
+      {
+        "$type": "gt",
+        "name": "v",
+        "value": "a"
+      }
+    ],
+    "$type": "filter"
+  },
+  "groupBy": [
+    {
+      "name": "b"
+    }
+  ],
+  "joins": [
+    {
+      "alias": null,
+      "dimFields": [
+        "a",
+        "b"
+      ],
+      "sourceName": "c"
+    }
+  ],
+  "limit": 0,
+  "offset": 0,
+  "orderBy": [
+    {
+      "desc": true,
+      "name": "a"
+    }
+  ],
+  "sourceName": "base"
+}

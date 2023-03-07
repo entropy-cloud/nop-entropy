@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core;
 
 import io.nop.api.core.beans.ApiRequest;
@@ -22,7 +29,7 @@ import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.core.lang.json.bind.ValueResolverRegistry;
+import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.utils.GenericTypeHelper;
@@ -61,7 +68,7 @@ public class AutoTestCase extends BaseTestCase {
     private String variant;
 
     private MatchPatternCompileConfig matchConfig = new MatchPatternCompileConfig();
-    private ValueResolverRegistry valueResolverRegistry = ValueResolverRegistry.DEFAULT;
+    private ValueResolverCompilerRegistry valueResolverRegistry = ValueResolverCompilerRegistry.DEFAULT;
 
     private AutoTestOrmHook ormHook;
     private IOrmSessionFactory sessionFactory;
@@ -90,20 +97,23 @@ public class AutoTestCase extends BaseTestCase {
         return matchConfig;
     }
 
-    public void setValueResolverRegistry(ValueResolverRegistry valueResolverRegistry) {
+    public void setValueResolverRegistry(ValueResolverCompilerRegistry valueResolverRegistry) {
         this.valueResolverRegistry = valueResolverRegistry;
     }
 
-    public File getCasesDir() {
-        File moduleDir = getModuleDir();
-        File casesDir = new File(moduleDir, "cases");
-        return casesDir;
+    public AutoTestCaseData getCaseData() {
+        return caseData;
     }
 
     public void initCaseDataDir(File caseDataDir) {
         caseData = new AutoTestCaseData(caseDataDir, valueResolverRegistry);
         caseData.getInputDir().mkdirs();
         caseData.getOutputDir().mkdirs();
+        try {
+            new File(caseDataDir, "autotest.yaml").createNewFile();
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
     }
 
     protected IDaoProvider daoProvider() {
@@ -118,7 +128,6 @@ public class AutoTestCase extends BaseTestCase {
         return sessionFactory;
     }
 
-
     public void initDao() {
         daoProvider = initDaoProvider();
         jdbcTemplate = initJdbcTemplate();
@@ -131,7 +140,8 @@ public class AutoTestCase extends BaseTestCase {
         if (localDb || tableInit || sqlInit) {
             LOG.info("\n========= autotest restore data from snapshot ============");
             if (daoProvider != null) {
-                new AutoTestCaseDataBaseInitializer(variant, localDb, tableInit, sqlInit, caseData, daoProvider, jdbcTemplate).initialize();
+                new AutoTestCaseDataBaseInitializer(variant, localDb, tableInit, sqlInit, caseData, daoProvider,
+                        jdbcTemplate).initialize();
             }
         }
 
@@ -166,11 +176,9 @@ public class AutoTestCase extends BaseTestCase {
         return (IOrmSessionFactory) BeanContainer.tryGetBean("nopOrmSessionFactory");
     }
 
-
     protected void initBeans() {
         if (!BeanContainer.isInitialized())
             return;
-
 
         IBeanContainer container = BeanContainer.instance();
         container.restart();
@@ -199,8 +207,7 @@ public class AutoTestCase extends BaseTestCase {
                 } else if (checkOutput) {
                     LOG.info("\n============ autotest run snapshot check =========================");
 
-                    new AutoTestCaseResultChecker(variant, caseData, daoProvider,
-                            jdbcTemplate, matchConfig).check();
+                    new AutoTestCaseResultChecker(variant, caseData, daoProvider, jdbcTemplate, matchConfig).check();
                 }
             }
         } finally {
@@ -275,9 +282,9 @@ public class AutoTestCase extends BaseTestCase {
                 value = AutoTestDataHelper.toJsonObject(result);
                 AutoTestMatchChecker.checkMatch(matchConfig, json, value, scope);
             } catch (Exception e) {
-                LOG.error("nop.autotest.output-check-fail:fileName={},result={}",fileName, JsonTool.serialize(value,true));
-                throw new AutoTestException(ERR_AUTOTEST_CHECK_OUTPUT_FAIL, e)
-                        .param(ARG_FILE_NAME, fileName);
+                LOG.error("nop.autotest.output-check-fail:fileName={},result={}", fileName,
+                        JsonTool.serialize(value, true));
+                throw new AutoTestException(ERR_AUTOTEST_CHECK_OUTPUT_FAIL, e).param(ARG_FILE_NAME, fileName);
             }
         }
     }
@@ -293,8 +300,7 @@ public class AutoTestCase extends BaseTestCase {
         } else {
             byte[] expected = caseData.readBytes(path);
             if (!Arrays.equals(expected, bytes)) {
-                throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR)
-                        .param(ARG_FILE_NAME, fileName)
+                throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR).param(ARG_FILE_NAME, fileName)
                         .param(ARG_EXPECTED, StringHelper.bytesToHex(expected))
                         .param(ARG_VALUE, StringHelper.bytesToHex(bytes));
             }
@@ -312,10 +318,8 @@ public class AutoTestCase extends BaseTestCase {
         } else {
             String expected = caseData.readText(path, null);
             if (!Objects.equals(expected, text))
-                throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR)
-                        .param(ARG_FILE_NAME, fileName)
-                        .param(ARG_EXPECTED, expected)
-                        .param(ARG_VALUE, text);
+                throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR).param(ARG_FILE_NAME, fileName)
+                        .param(ARG_EXPECTED, expected).param(ARG_VALUE, text);
         }
     }
 
@@ -336,8 +340,7 @@ public class AutoTestCase extends BaseTestCase {
     public void error(String errorName, Runnable task) {
         try {
             task.run();
-            throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR)
-                    .param(ARG_ERROR_NAME, errorName);
+            throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR).param(ARG_ERROR_NAME, errorName);
         } catch (AutoTestWrapException e) {
             throw NopException.adapt(e.getCause());
         } catch (AutoTestException e) {

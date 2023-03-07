@@ -13,7 +13,7 @@ elastic search support
 
     <paginationHandler>io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler</paginationHandler>
 
-    <features />
+    <features/>
 
     <reservedKeywords>
         xx

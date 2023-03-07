@@ -1,0 +1,175 @@
+package io.nop.graphql.core.ast;
+
+
+class GraphQLAST {
+    enum GraphQLOperationType {
+
+    }
+
+    enum GraphQLDirectiveLocation {
+
+    }
+
+    abstract class GraphQLASTNode {
+
+    }
+
+    class GraphQLDocument {
+        List<GraphQLDefinition> definitions;
+    }
+
+    abstract class GraphQLDefinition extends WithDirectives {
+        String description;
+        String name;
+    }
+
+    class GraphQLDirective {
+        String name;
+        List<GraphQLArgument> arguments;
+    }
+
+    class GraphQLArgument {
+        String name;
+        GraphQLValue value;
+    }
+
+    abstract class GraphQLValue {
+
+    }
+
+    class GraphQLLiteral extends GraphQLValue {
+        Object value;
+    }
+
+    class GraphQLArrayValue extends GraphQLValue {
+        List<GraphQLValue> items;
+    }
+
+    class GraphQLObjectValue extends GraphQLValue {
+        List<GraphQLPropertyValue> properties;
+    }
+
+    class GraphQLPropertyValue {
+        String name;
+        GraphQLValue value;
+    }
+
+    class GraphQLVariable extends GraphQLValue {
+        String name;
+    }
+
+    abstract class WithDirectives {
+        List<GraphQLDirective> directives;
+    }
+
+    class GraphQLOperation extends GraphQLDefinition {
+        GraphQLOperationType operationType;
+        List<GraphQLVariableDefinition> variableDefinitions;
+
+        GraphQLSelectionSet selectionSet;
+    }
+
+    class GraphQLVariableDefinition extends WithDirectives {
+        GraphQLType type;
+        String name;
+        GraphQLValue defaultValue;
+    }
+
+    abstract class GraphQLType {
+    }
+
+    class GraphQLNamedType extends GraphQLType {
+        String name;
+    }
+
+    class GraphQLNonNullType extends GraphQLType {
+        GraphQLType type;
+    }
+
+    class GraphQLListType extends GraphQLType {
+        GraphQLType type;
+    }
+
+    class GraphQLSelectionSet {
+        List<GraphQLSelection> selections;
+    }
+
+    abstract class GraphQLSelection extends WithDirectives {
+
+    }
+
+    class GraphQLFieldSelection extends GraphQLSelection {
+        String alias;
+        String name;
+        List<GraphQLArgument> arguments;
+
+        GraphQLSelectionSet selectionSet;
+    }
+
+    class GraphQLFragmentSelection extends GraphQLSelection {
+        String fragmentName;
+    }
+
+    class GraphQLFragment extends GraphQLDefinition {
+        String onType;
+        GraphQLSelectionSet selectionSet;
+    }
+
+    abstract class GraphQLTypeDefinition extends GraphQLDefinition {
+
+    }
+
+    class GraphQLObjectDefinition extends GraphQLTypeDefinition {
+        boolean extension;
+        List<GraphQLFieldDefinition> fields;
+    }
+
+    class GraphQLFieldDefinition extends WithDirectives {
+        String name;
+        String description;
+        GraphQLType type;
+        List<GraphQLArgumentDefinition> arguments;
+    }
+
+    class GraphQLInputDefinition extends GraphQLTypeDefinition {
+        boolean extension;
+        List<GraphQLInputFieldDefinition> fields;
+    }
+
+    class GraphQLInputFieldDefinition extends WithDirectives {
+        String name;
+        String description;
+        GraphQLType type;
+        GraphQLValue defaultValue;
+    }
+
+    class GraphQLArgumentDefinition extends WithDirectives {
+        String name;
+        String description;
+        GraphQLType type;
+        GraphQLValue defaultValue;
+    }
+
+    class GraphQLDirectiveDefinition extends GraphQLDefinition {
+        List<GraphQLArgumentDefinition> arguments;
+        boolean repeatable;
+        List<GraphQLDirectiveLocation> locations;
+    }
+
+    class GraphQLUnionTypeDefinition extends GraphQLTypeDefinition {
+        List<GraphQLNamedType> types;
+    }
+
+    class GraphQLScalarDefinition extends GraphQLTypeDefinition {
+
+    }
+
+    class GraphQLEnumDefinition extends GraphQLTypeDefinition {
+        List<GraphQLEnumValueDefinition> enumValues;
+    }
+
+    class GraphQLEnumValueDefinition extends WithDirectives {
+        String description;
+        String name;
+    }
+}

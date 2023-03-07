@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect x:extends="test_merge_base.xml" x:schema="/test/test_merge.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef">
+    <functions>
+        <native name="decode">
+        </native>
+
+    </functions>
+
+</dialect>

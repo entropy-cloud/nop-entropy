@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl" xmlns:biz-gen="biz-gen">
+
+    <x:post-extends>
+        <biz-gen:DefaultBizPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <actions/>
+</biz>

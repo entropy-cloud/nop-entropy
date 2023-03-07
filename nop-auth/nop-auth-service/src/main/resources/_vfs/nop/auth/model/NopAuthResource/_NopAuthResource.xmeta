@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="菜单资源"
+      i18n-en:displayName="Menu Resource">
+
+    <entityName>io.nop.auth.dao.entity.NopAuthResource</entityName>
+
+    <primaryKey>resourceId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <orderBy>
+        <field name="orderNo" desc="false"/>
+    </orderBy>
+
+    <tree isLeafProp="isLeaf" parentProp="parentId" childrenProp="children"/>
+
+    <props>
+        <prop name="resourceId" displayName="资源ID" i18n-en:displayName="Resource ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="siteId" displayName="站点ID" i18n-en:displayName="Site Id" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="site">
+            <schema type="java.lang.String" precision="100" dict="obj/NopAuthSite"/>
+        </prop>
+        <prop name="displayName" displayName="显示名称" i18n-en:displayName="Display Name" tagSet="disp" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="orderNo" displayName="排序" i18n-en:displayName="Order NO" tagSet="sort" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="resourceType" displayName="资源类型" i18n-en:displayName="Resource Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4" dict="auth/resource-type"/>
+        </prop>
+        <prop name="parentId" displayName="父资源ID" i18n-en:displayName="Parent Resource" tagSet="parent" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:show="L" ext:control="tree-parent"
+              ext:relation="parent">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="icon" displayName="图标" i18n-en:displayName="Icon" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="150"/>
+        </prop>
+        <prop name="routePath" displayName="前端路由" i18n-en:displayName="Route Path" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="url" displayName="链接" i18n-en:displayName="URL" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="component" displayName="组件名" i18n-en:displayName="Component" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="target" displayName="链接目标" i18n-en:displayName="Link Target" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="hidden" displayName="是否隐藏" i18n-en:displayName="Hidden" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="keepAlive" displayName="隐藏时保持状态" i18n-en:displayName="Keep Alive" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="permissions" displayName="权限标识" i18n-en:displayName="Permissions" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="noAuth" displayName="不检查权限" i18n-en:displayName="No Auth" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="depends" displayName="依赖资源" i18n-en:displayName="Depends" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="isLeaf" displayName="是否叶子节点" i18n-en:displayName="Is Leaf" tagSet="is-leaf" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ext:show="X"
+              defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="1">
+            <schema type="java.lang.Integer" dict="core/active-status"/>
+        </prop>
+        <prop name="metaConfig" displayName="扩展配置" i18n-en:displayName="Meta" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="propsConfig" displayName="组件属性" i18n-en:displayName="Props" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ext:show="X" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="parent" displayName="父资源" i18n-en:displayName="Parent" tagSet="pub,ref-pub,cascade-delete"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentId"
+              ext:joinRightProp="resourceId" ext:joinRightDisplayProp="displayName" insertable="false" updatable="false"
+              lazy="true">
+            <schema type="io.nop.auth.dao.entity.NopAuthResource" bizObjName="NopAuthResource"/>
+        </prop>
+        <prop name="parent.displayName" displayName="父资源" i18n-en:displayName="Parent" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="site" displayName="子系统" i18n-en:displayName="Site" tagSet="pub" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="siteId" ext:joinRightProp="siteId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema type="io.nop.auth.dao.entity.NopAuthSite" bizObjName="NopAuthSite"/>
+        </prop>
+        <prop name="site.displayName" displayName="子系统" i18n-en:displayName="Site" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="children" displayName="子资源" i18n-en:displayName="Children" tagSet="pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="resourceId" ext:joinRightProp="parentId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthResource&gt;"
+                    bizObjName="NopAuthResource"/>
+        </prop>
+        <prop name="roleMappings" displayName="角色映射" i18n-en:displayName="Roles" tagSet="pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="resourceId" ext:joinRightProp="resourceId" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
+            <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthRoleResource&gt;"
+                    bizObjName="NopAuthRoleResource"/>
+        </prop>
+    </props>
+</meta>

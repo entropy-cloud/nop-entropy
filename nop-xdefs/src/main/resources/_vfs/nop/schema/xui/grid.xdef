@@ -1,0 +1,69 @@
+<!--
+@affixHeader 固定表头
+@checkOnItemClick 点击数据行是否可以勾选当前行
+@selectable 是否支持选择
+@multiple 勾选 icon 是否为多选样式checkbox， 默认为radio
+@combineNum 表示从左到右多少列内启动自动合并单元格，只要多行的同一个属性值是一样的，就会自动合并。
+@combineFromIndex 如果你不想从第一列开始合并单元格，可以配置 combineFromIndex，如果配置为 1，则会跳过第一列的合并。
+    如果配置为 2，则会跳过第一列和第二列的合并，从第三行开始向右合并 combineNum 列。
+@sortable 如果设置了sortable为false，则忽略列上面的sortable配置，整个表格不支持sortable
+-->
+<grid id="!xml-name" displayName="string" editMode="xml-name" columnNum="int"
+      affixHeader="boolean" checkOnItemClick="boolean" sortable="boolean"
+      selectable="boolean" multiple="boolean"
+      combineNum="int" combineFromIndex="int-or-string"
+      xdef:name="UiGridModel" xdef:bean-package="io.nop.xui.model"
+      xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <objMeta xdef:value="v-path"/>
+
+    <placeholder xdef:value="string"/>
+
+    <className xdef:value="string"/>
+    <headerClassName xdef:value="string"/>
+    <footerClassName xdef:value="string"/>
+    <toolbarClassName xdef:value="string"/>
+
+    <rowClassName xdef:value="string"/>
+    <rowClassNameExpr xdef:value="string"/>
+
+    <stopAutoRefreshWhen xdef:value="string"/>
+
+    <initApi xdef:ref="api.xdef"/>
+
+    <api xdef:ref="api.xdef"/>
+
+    <saveOrderApi xdef:ref="api.xdef"/>
+
+    <cols xdef:body-type="list" xdef:key-attr="id">
+        <!--
+        @fixed 是否锁定列。left左侧锁定, right表示右侧锁定
+        @hidden 如果设置为hidden，则前端表格中不显示此列，也不生成控件
+        @breakpoint 列表的列数过多时，breakpoint可以从该列开始折叠到footer部分显示。
+        -->
+        <col id="!string" xdef:name="UiGridColModel" groupName="string" fixed="string"
+             readonly="!boolean=false" hidden="!boolean=false" mandatory="!boolean=false" breakpoint="string"
+             sortable="!boolean=false" align="string" xdef:ref="disp.xdef"
+        >
+            <labelClassName xdef:value="string"/>
+        </col>
+    </cols>
+
+    <itemCheckableOn xdef:value="string"/>
+
+    <prefixRow xdef:value="xjson-list"/>
+    <affixRow xdef:value="xjson-list"/>
+
+    <affixRowClassName xdef:value="string"/>
+    <affixRowClassNameExpr xdef:value="string"/>
+    <prefixRowClassName xdef:value="string"/>
+    <prefixRowClassNameExpr xdef:value="string"/>
+
+
+    <!--
+    GraphQL查询所需要额外增加的查询字段
+    -->
+    <selection xdef:value="field-selection"/>
+
+</grid>

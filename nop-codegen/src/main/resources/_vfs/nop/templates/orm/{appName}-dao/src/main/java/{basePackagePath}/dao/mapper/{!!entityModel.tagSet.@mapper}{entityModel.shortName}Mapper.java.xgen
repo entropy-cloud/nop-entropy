@@ -1,0 +1,9 @@
+<c:unit xpl:outputMode="text">package ${basePackageName}.dao.mapper;
+
+import io.nop.api.core.annotations.orm.SqlLibMapper;
+
+@SqlLibMapper("/${moduleId}/sql/${entityModel.shortName}.sql-lib.xml")
+public interface ${entityModel.shortName}Mapper{
+
+}
+</c:unit>

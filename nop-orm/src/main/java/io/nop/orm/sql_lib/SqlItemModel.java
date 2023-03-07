@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm.sql_lib;
 
 import io.nop.api.core.beans.LongRangeBean;
@@ -40,6 +47,10 @@ public class SqlItemModel extends _SqlItemModel {
 
     }
 
+    public boolean isColNameCamelCase() {
+        return false;
+    }
+
     public SQL buildSql(IEvalContext context) {
         checkArgs(context);
         IMarkedString sql = generateSql(context);
@@ -50,8 +61,8 @@ public class SqlItemModel extends _SqlItemModel {
             Object cacheKey = getCacheKeyExpr().invoke(context);
             cacheRef = new CacheRef(getCacheName(), (Serializable) cacheKey);
         }
-        return new SQL(getName(), sql.getText(), sql.getMarkers(), timeout, cacheRef,
-                fetchSize, getQuerySpace(), getLocation());
+        return new SQL(getName(), sql.getText(), sql.getMarkers(), timeout, cacheRef, fetchSize, getQuerySpace(),
+                isDisableLogicalDelete(), getLocation());
     }
 
     void checkArgs(IEvalContext context) {
@@ -94,7 +105,8 @@ public class SqlItemModel extends _SqlItemModel {
                 case findPage: {
                     long offset = range == null ? 0 : range.getOffset();
                     int limit = range == null ? 10 : (int) range.getLimit();
-                    List<Object> data = executor.findPage(sql, offset, limit, buildRowMapper(executor, sql.getQuerySpace()));
+                    List<Object> data = executor.findPage(sql, offset, limit,
+                            buildRowMapper(executor, sql.getQuerySpace()));
                     return processResult(data, executor);
                 }
                 case findFirst:
@@ -123,13 +135,14 @@ public class SqlItemModel extends _SqlItemModel {
     protected IRowMapper buildRowMapper(ISqlExecutor executor, String querySpace) {
         IRowMapper rowMapper;
         if (DaoConstants.SQL_TYPE_SQL.equals(getType())) {
-            // eql语法时列名就是指定的属性名，不需要作camelCase转换
+
             if (getRowType() == null) {
-                rowMapper = SmartRowMapper.CASE_SENSITIVE;
+                rowMapper = isColNameCamelCase() ? SmartRowMapper.CAMEL_CASE : SmartRowMapper.CASE_INSENSITIVE;
             } else {
                 rowMapper = buildBeanMapper(getRowType(), true);
             }
         } else {
+            // eql语法时列名就是指定的属性名，不需要作camelCase转换
             if (getRowType() == null) {
                 rowMapper = SmartRowMapper.INSTANCE;
             } else {
@@ -149,13 +162,11 @@ public class SqlItemModel extends _SqlItemModel {
         List<IDataParameterBinder> binders = new ArrayList<>();
         for (SqlFieldModel colModel : getFields()) {
             if (colModel.getIndex() < 0 || colModel.getIndex() > 1000)
-                throw new NopException(ERR_SQL_LIB_INVALID_COL_INDEX)
-                        .loc(getLocation())
-                        .param(ARG_INDEX, colModel.getIndex())
-                        .param(ARG_SQL_NAME, getName());
+                throw new NopException(ERR_SQL_LIB_INVALID_COL_INDEX).loc(getLocation())
+                        .param(ARG_INDEX, colModel.getIndex()).param(ARG_SQL_NAME, getName());
 
-            IDataParameterBinder binder = dialect.getDataParameterBinder(
-                    colModel.getStdSqlType().getStdDataType(), colModel.getStdSqlType());
+            IDataParameterBinder binder = dialect.getDataParameterBinder(colModel.getStdSqlType().getStdDataType(),
+                    colModel.getStdSqlType());
 
             if (binder != null)
                 CollectionHelper.set(binders, colModel.getIndex(), binder);

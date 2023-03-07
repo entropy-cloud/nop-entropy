@@ -1,0 +1,4 @@
+
+xui:js: '@include:NopSysNoticeTemplate.action.js'
+x:gen-extends: |
+    <web:GenPage view="NopSysNoticeTemplate.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

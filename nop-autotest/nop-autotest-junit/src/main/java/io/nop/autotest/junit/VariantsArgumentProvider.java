@@ -1,6 +1,14 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.junit;
 
 import io.nop.autotest.core.data.AutoTestDataHelper;
+import io.nop.commons.util.ArrayHelper;
 import io.nop.commons.util.MavenDirHelper;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,7 +31,7 @@ public class VariantsArgumentProvider implements ArgumentsProvider, AnnotationCo
     }
 
     @Override
-    public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
         Class<?> testClass = context.getTestClass().get();
         Method testMethod = context.getTestMethod().get();
 
@@ -43,6 +51,10 @@ public class VariantsArgumentProvider implements ArgumentsProvider, AnnotationCo
                 Arrays.sort(names);
                 ret.addAll(Arrays.asList(names));
             }
+        }
+
+        if(variants.length != 0){
+            return ret.stream().filter(a-> ArrayHelper.indexOf(variants,a)>=0).map(Arguments::of);
         }
 
         return ret.stream().map(Arguments::of);

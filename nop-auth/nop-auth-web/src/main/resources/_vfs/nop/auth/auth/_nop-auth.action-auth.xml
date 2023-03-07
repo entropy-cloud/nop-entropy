@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-orm-nop-auth" displayName="测试nop-auth" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-auth" component="layouts/default/index">
+            <children>
+                <resource id="NopAuthDept-main" displayName="部门" orderNo="10001" i18n-en:displayName="Department"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthDept/main.page.yaml"/>
+                <resource id="NopAuthExtLogin-main" displayName="扩展登录方式" orderNo="10002" i18n-en:displayName="Ext Login"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthExtLogin/main.page.yaml"/>
+                <resource id="NopAuthOpLog-main" displayName="操作日志" orderNo="10003" i18n-en:displayName="Operation Log"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthOpLog/main.page.yaml"/>
+                <resource id="NopAuthPosition-main" displayName="岗位" orderNo="10004" i18n-en:displayName="Position"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthPosition/main.page.yaml"/>
+                <resource id="NopAuthResource-main" displayName="菜单资源" orderNo="10005"
+                          i18n-en:displayName="Menu Resource" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/auth/pages/NopAuthResource/main.page.yaml"/>
+                <resource id="NopAuthRole-main" displayName="角色" orderNo="10006" i18n-en:displayName="Role"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthRole/main.page.yaml"/>
+                <resource id="NopAuthSession-main" displayName="会话日志" orderNo="10007" i18n-en:displayName="Session"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthSession/main.page.yaml"/>
+                <resource id="NopAuthSite-main" displayName="子站点" orderNo="10008" i18n-en:displayName="Sub Site"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthSite/main.page.yaml"/>
+                <resource id="NopAuthTenant-main" displayName="租户" orderNo="10009" i18n-en:displayName="Tenant"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthTenant/main.page.yaml"/>
+                <resource id="NopAuthUser-main" displayName="用户" orderNo="10010" i18n-en:displayName="User"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthUser/main.page.yaml"/>
+                <resource id="NopAuthUserSubstitution-main" displayName="用户代理" orderNo="10011"
+                          i18n-en:displayName="User Substitution" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/auth/pages/NopAuthUserSubstitution/main.page.yaml"/>
+            </children>
+        </resource>
+    </site>
+</auth>

@@ -1,0 +1,30 @@
+{
+  "title": "浏览器内核对 CSS 的支持情况",
+  "remark": "嘿，不保证数据准确性",
+  "type": "page",
+  "body": {
+    "x:extends": "page1-crud.json",
+    "bulkActions": [
+      {
+        "type": "button",
+        "actionType": "alert"
+      },
+      {
+        "x:id": "batchDelete",
+        "x:override": "remove"
+      }
+    ],
+    "columns": [
+      {
+        "x:id": "operation",
+        "buttons": [
+          {
+            "type": "button",
+            "x:id": "newButton",
+            "actionType": "ajax"
+          }
+        ]
+      }
+    ]
+  }
+}

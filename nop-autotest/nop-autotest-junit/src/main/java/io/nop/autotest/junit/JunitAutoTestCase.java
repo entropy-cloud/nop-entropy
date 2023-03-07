@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.junit;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
@@ -55,14 +62,14 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
 
             configLocalDb();
 
-//            if (enableSnapshot.localDb()) {
-//                NopTestConfig testConfig = testInfo.getTestClass().get().getAnnotation(NopTestConfig.class);
-//                if (testConfig == null || !testConfig.localDb()) {
-//                    throw new NopException(ERR_AUTOTEST_TEST_CLASS_NO_LOCAL_DB_ANNOTATION)
-//                            .param(ARG_TEST_CLASS, testInfo.getTestClass().get())
-//                            .param(ARG_TEST_METHOD, testInfo.getTestMethod().get().getName());
-//                }
-//            }
+            // if (enableSnapshot.localDb()) {
+            // NopTestConfig testConfig = testInfo.getTestClass().get().getAnnotation(NopTestConfig.class);
+            // if (testConfig == null || !testConfig.localDb()) {
+            // throw new NopException(ERR_AUTOTEST_TEST_CLASS_NO_LOCAL_DB_ANNOTATION)
+            // .param(ARG_TEST_CLASS, testInfo.getTestClass().get())
+            // .param(ARG_TEST_METHOD, testInfo.getTestMethod().get().getName());
+            // }
+            // }
 
             if (CFG_AUTOTEST_FORCE_SAVE_OUTPUT.get()) {
                 setSaveOutput(true);
@@ -78,7 +85,6 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
     }
 
     protected String getCaseDataPath(TestInfo testInfo) {
-        return AutoTestDataHelper.getTestDataPath(testInfo.getTestClass().get(),
-                testInfo.getTestMethod().get());
+        return AutoTestDataHelper.getTestDataPath(testInfo.getTestClass().get(), testInfo.getTestMethod().get());
     }
 }

@@ -1,0 +1,37 @@
+query: >
+  query($id:String,$id2:String,$query:String){
+     entity1: MyEntity__get(id:$id){
+        name
+        children2: children{
+           desc2: desc
+           extField
+        }
+     }
+  
+     entity2: MyEntity__get(id:$id2){
+        id
+        children{
+           name
+        }
+     }
+  
+     MyEntity__findPage(query:$query){
+        items{
+          id,name
+           children{
+              name
+              value
+           }
+        }
+     }
+  }
+
+variables:
+  id: aaa
+  id2: bbb
+  query: >
+    {
+       offset:10,
+       limit:100,
+       filter: { $type:'eq', name:'a', value:3}
+     }

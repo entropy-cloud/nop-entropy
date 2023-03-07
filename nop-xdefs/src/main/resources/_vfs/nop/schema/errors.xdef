@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+ 当public=false时，不会将errorCode和description直接返回给用户层，而是转换为returnAs对应的错误消息。缺省情况下returnAs为global.err_fail
+-->
+<errors defaultPublic="boolean" xdef:body-type="list" xdef:key-attr="code"
+        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <error code="!string" public="boolean" httpStatus="int" returnErrorNo="boolean=false"
+           constName="string"
+           returnRootCause="boolean" returnAs="string" returnParams="boolean">
+        <description xdef:value="string"/>
+
+        <!--
+        更详细的解释信息
+        -->
+        <doc xdef:value="string"/>
+    </error>
+</errors>

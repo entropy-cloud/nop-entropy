@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<query x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <fields xdef:body-type="list" xdef:key-attr="name">
+        <field name="!string"/>
+    </fields>
+
+    <filter xdef:ref="filter.xdef"/>
+
+    <orderBy xdef:ref="order-by.xdef"/>
+
+    <groupBy xdef:ref="group-by.xdef"/>
+</query>

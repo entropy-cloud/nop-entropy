@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthOpLog" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+
+    <objMeta>/nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--主键-->
+                <col id="logId" mandatory="true" sortable="true"/>
+
+                <!--用户名-->
+                <col id="userName" mandatory="true" sortable="true"/>
+
+                <!--会话ID-->
+                <col id="sessionId" sortable="true"/>
+
+                <!--标题-->
+                <col id="title" sortable="true"/>
+
+                <!--业务对象-->
+                <col id="bizObjName" sortable="true"/>
+
+                <!--业务操作-->
+                <col id="bizActionName" sortable="true"/>
+
+                <!--请求参数-->
+                <col id="opRequest" sortable="true"/>
+
+                <!--响应数据-->
+                <col id="opResponse" sortable="true"/>
+
+                <!--操作状态-->
+                <col id="resultStatus" sortable="true"/>
+
+                <!--错误码-->
+                <col id="errorCode" sortable="true"/>
+
+                <!--操作时长-->
+                <col id="usedTime" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-操作日志" i18n-en:title="View Operation Log">
+            <layout>
+ logId[主键] userName[用户名]
+ sessionId[会话ID] title[标题]
+ bizObjName[业务对象] bizActionName[业务操作]
+ opRequest[请求参数] opResponse[响应数据]
+ resultStatus[操作状态] errorCode[错误码]
+ usedTime[操作时长] createdBy[创建人]
+ createTime[创建时间] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopAuthOpLog__findPage/{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopAuthOpLog__delete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopAuthOpLog__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopAuthOpLog__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopAuthOpLog__findPage/{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="view" form="view">
+            <api url="@query:NopAuthOpLog__get/{@formSelection}?id=$id"/>
+        </simple>
+    </pages>
+</view>

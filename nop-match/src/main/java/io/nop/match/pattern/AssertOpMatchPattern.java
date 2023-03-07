@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.pattern;
 
 import io.nop.match.IMatchPattern;
@@ -13,8 +20,7 @@ public class AssertOpMatchPattern implements IMatchPattern {
     private final String filterOp;
     private final Predicate<Object> predicate;
 
-    public AssertOpMatchPattern(String filterOp,
-                                Predicate<Object> predicate) {
+    public AssertOpMatchPattern(String filterOp, Predicate<Object> predicate) {
         this.filterOp = filterOp;
         this.predicate = predicate;
     }
@@ -28,8 +34,7 @@ public class AssertOpMatchPattern implements IMatchPattern {
     public boolean matchValue(MatchState state, boolean collectError) {
         if (!predicate.test(state.getValue())) {
             if (collectError) {
-                state.buildError(ERR_MATCH_ASSERT_OP_MATCH_FAIL)
-                        .param(ARG_FILTER_OP, filterOp)
+                state.buildError(ERR_MATCH_ASSERT_OP_MATCH_FAIL).param(ARG_FILTER_OP, filterOp)
                         .addToCollector(state.getErrorCollector());
             }
             return false;

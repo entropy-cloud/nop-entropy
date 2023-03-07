@@ -1,0 +1,265 @@
+entity:
+  label:
+    NopAuthDept: Department
+    NopAuthExtLogin: Ext Login
+    NopAuthOpLog: Operation Log
+    NopAuthPosition: Position
+    NopAuthResource: Menu Resource
+    NopAuthRole: Role
+    NopAuthRoleResource: Role Resource
+    NopAuthSession: Session
+    NopAuthSite: Sub Site
+    NopAuthTenant: Tenant
+    NopAuthUser: User
+    NopAuthUserRole: User Role
+    NopAuthUserSubstitution: User Substitution
+prop:
+  label:
+    NopAuthDept:
+      deptId: Dept ID
+      deptName: Name
+      parentId: Parent ID
+      orderNum: Order Number
+      deptType: Type
+      email: Email
+      phone: Phone
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      parent: Parent
+      parent.deptName: Parent
+      children: Children
+    NopAuthExtLogin:
+      userId: User ID
+      loginType: Login Type
+      loginType_label: null
+      loginValue: Login Value
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+    NopAuthOpLog:
+      logId: LOG_ID
+      userName: USER_NAME
+      sessionId: Session ID
+      title: Title
+      bizObjName: Biz Object
+      bizActionName: Biz Action
+      opRequest: Request
+      opResponse: Response
+      resultStatus: Result Status
+      errorCode: ErrorCode
+      usedTime: Used Time
+      createdBy: Created By
+      createTime: Create Time
+      session: Session
+    NopAuthPosition:
+      positionId: Position ID
+      name: Name
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopAuthResource:
+      resourceId: Resource ID
+      siteId: Site Id
+      siteId_label: null
+      displayName: Display Name
+      orderNo: Order NO
+      resourceType: Resource Type
+      resourceType_label: null
+      parentId: Parent Resource
+      icon: Icon
+      routePath: Route Path
+      url: URL
+      component: Component
+      target: Link Target
+      hidden: Hidden
+      keepAlive: Keep Alive
+      permissions: Permissions
+      noAuth: No Auth
+      depends: Depends
+      isLeaf: Is Leaf
+      status: Status
+      status_label: null
+      metaConfig: Meta
+      propsConfig: Props
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      parent: Parent
+      parent.displayName: Parent
+      site: Site
+      site.displayName: Site
+      children: Children
+      roleMappings: Roles
+      metaConfigComponent: null
+      propsConfigComponent: null
+    NopAuthRole:
+      roleId: Role ID
+      roleName: Role Name
+      childRoleIds: Child Role IDs
+      isPrimary: Is Primary
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      userMappings: UserMappings
+      resourceMappings: Resources
+      roleUsers: null
+      roleResourceIds: null
+    NopAuthRoleResource:
+      sid: SID
+      roleId: ROLE_ID
+      resourceId: Resource ID
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      role: Role
+      role.roleName: Role
+      resource: Resource
+      resource.displayName: Resource
+    NopAuthSession:
+      sessionId: Session ID
+      userId: User ID
+      userName: User Name
+      loginAddr: Login Addr
+      loginDevice: Login Device
+      loginApp: Application
+      loginOs: OS
+      loginTime: Login Time
+      loginType: Login Type
+      loginType_label: null
+      logoutTime: Logout Time
+      logoutType: Logout Type
+      logoutType_label: null
+      logoutBy: Logout By
+      lastAccessTime: Last Access Time
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      remark: Remark
+    NopAuthSite:
+      siteId: Site ID
+      displayName: Display Name
+      orderNo: Order NO
+      url: URL
+      status: Status
+      status_label: null
+      extConfig: Ext Config
+      configVersion: Config Version
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      extConfigComponent: null
+    NopAuthTenant:
+      tenantId: Tenant ID
+      name: Name
+      beginTime: Begin Time
+      endTime: End Time
+      status: Status
+      status_label: null
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopAuthUser:
+      userId: User ID
+      userName: User Name
+      password: Password
+      salt: Salt
+      nickName: Nick Name
+      deptId: Department
+      openId: OpenId
+      gender: Gender
+      gender_label: null
+      avatar: Avatar
+      email: Email
+      emailVerified: Email Verified
+      phone: Phone
+      phoneVerified: Phone Verified
+      birthday: Birthday
+      userType: User Type
+      userType_label: null
+      status: Status
+      status_label: null
+      idType: ID Type
+      idNbr: ID Number
+      expireAt: Expire At
+      pwdUpdateTime: Password Update Time
+      changePwdAtLogin: Change Password At Logon
+      realName: Real Name
+      workNo: Work NO
+      positionId: Position
+      telephone: Telephone
+      clientId: Client Id
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dept: Department
+      dept.deptName: Department
+      position: Position
+      position.name: Position
+      roleMappings: RoleMappings
+      substitutionMappings: Substitution Mappings
+    NopAuthUserRole:
+      userId: User ID
+      roleId: Role ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+      user.userName: User
+      role: Role
+      role.roleName: Role
+    NopAuthUserSubstitution:
+      sid: SID
+      userId: User ID
+      substitutedUserId: Substituted User
+      startTime: Start Time
+      endTime: End Time
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+      user.userName: User
+      substitutedUser: Substituted User
+      substitutedUser.userName: Substituted User

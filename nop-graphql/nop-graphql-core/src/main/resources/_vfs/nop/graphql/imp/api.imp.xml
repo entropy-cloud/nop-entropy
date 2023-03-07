@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sheets>
+        <sheet name="目录" ignore="true"/>
+        <sheet name="配置">
+            <fields>
+                <field name="ext:appName" displayName="appName" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:serviceModuleName" displayName="serviceModuleName" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:servicePackageName" displayName="servicePackageName" mandatory="true">
+                    <schema stdDomain="class-name"/>
+                </field>
+
+                <field name="ext:apiPackageName" displayName="apiPackageName" mandatory="true">
+                    <schema stdDomain="class-name"/>
+                </field>
+
+                <field name="ext:apiModuleName" displayName="apiModuleName" mandatory="true">
+                    <schema stdDomain="xml-name"/>
+                </field>
+
+                <field name="ext:mavenGroupId" displayName="maven.groupId" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:mavenArtifactId" displayName="maven.artifactId" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:mavenVersion" displayName="maven.version" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:platformVersion" displayName="platformVersion" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:moduleId" displayName="moduleId">
+                    <schema stdDomain="string"/>
+                </field>
+            </fields>
+        </sheet>
+
+        <sheet name="服务定义" field="services" list="true">
+            <normalizeFieldsExpr>
+                <c:script><![CDATA[
+                    record.className = record.name.$normalizeClassName(
+                                           rootRecord['ext:apiPackageName'],false)
+                ]]></c:script>
+            </normalizeFieldsExpr>
+            <fields>
+                <field name="name" displayName="服务名">
+                    <schema stdDomain="var-name"/>
+                </field>
+
+                <field name="displayName" displayName="中文名" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="i18n-en:displayName" displayName="英文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="tagSet" displayName="标签">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="methods" displayName="方法列表" list="true">
+                    <normalizeFieldsExpr>
+                        <c:script><![CDATA[
+                    const beanPackage = rootRecord['ext:apiPackageName']+'.beans';
+                    record.requestMessage = record.requestMessage.$normalizeClassName(
+                                           beanPackage,false)
+                    record.responseMessage = record.responseMessage.$normalizeClassName(
+                                           beanPackage,true)
+                    record.simpleRequestMessage = record.requestMessage.$simplifyJavaType(beanPackage);
+                    record.simpleResponseMessage = record.responseMessage.$simplifyJavaType(beanPackage);
+
+                ]]></c:script>
+                    </normalizeFieldsExpr>
+
+                    <fields>
+                        <field name="name" displayName="方法名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="mutation" displayName="变更" xpt:formatExpr="cell.value ? 'Y': ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                <c:script>
+                                    value == 'Y'
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="displayName" displayName="中文名" mandatory="true"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+
+                        <field name="requestMessage" displayName="请求消息" mandatory="true">
+                            <schema stdDomain="class-name"/>
+                        </field>
+
+                        <field name="responseMessage" displayName="响应消息" mandatory="true">
+                            <schema stdDomain="class-name"/>
+                        </field>
+
+                        <field name="description" displayName="描述">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="extConfig" displayName="扩展配置" virtual="true">
+                            <schema stdDomain="json"/>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+
+        <sheet name="消息定义" namePattern=".*" field="messages" multiple="true"  keyProp="name" sheetNameProp="name">
+            <fields>
+                <field name="name" displayName="对象名">
+                    <schema stdDomain="class-name"/>
+                    <valueExpr>
+                        record.className = value.$fullClassName(rootRecord['ext:apiPackageName'] + '.beans');
+                        return value
+                    </valueExpr>
+                </field>
+
+                <field name="displayName" displayName="中文名" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="i18n-en:displayName" displayName="英文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="tagSet" displayName="标签">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="fields" displayName="字段列表" list="true" keyProp="name">
+                    <fields>
+                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                <c:script>
+                                    value == 'M' || value == 'Y'
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="name" displayName="字段名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="ext:show" displayName="显示">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名" mandatory="true"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+
+                        <field name="schema.domain" displayName="数据域" >
+                            <schema stdDomain="xml-name"/>
+                        </field>
+                        <field name="schema.type" displayName="类型" mandatory="true">
+                            <schema stdDomain="generic-type"/>
+                        </field>
+                        <field name="schema.precision" displayName="长度">
+                            <schema stdDomain="int"/>
+                        </field>
+                        <field name="schema.scale" displayName="小数位数">
+                            <schema stdDomain="int"/>
+                        </field>
+                        <field name="schema.dict" displayName="字典">
+                            <schema stdDomain="string"/>
+                        </field>
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+                        <field name="description" displayName="备注">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="extConfig" displayName="扩展配置" virtual="true">
+                            <schema stdDomain="json"/>
+                        </field>
+
+                        <field name="defaultValue" displayName="缺省值">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="ext:control" displayName="控件">
+                            <schema stdDomain="string"/>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+    </sheets>
+</imp>

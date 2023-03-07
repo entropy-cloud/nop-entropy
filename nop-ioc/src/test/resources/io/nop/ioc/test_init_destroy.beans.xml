@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="GBK"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+
+    <!-- 测试init、destroy -->
+    <bean id="myDestroyBean" class="test.io.entropy.beans.MyDestroyBean"
+          destroy-method="destroy">
+    </bean>
+    <bean id="myInitBean" class="test.io.entropy.beans.MyInitBean"
+          init-method="init">
+    </bean>
+
+    <bean id="testInitProperty" class="test.io.entropy.beans.MyBeanB">
+        <property name="a">
+            <bean class="test.io.entropy.beans.MyInitializingBean"/>
+        </property>
+    </bean>
+
+</beans>

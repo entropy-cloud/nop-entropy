@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.dao.api;
 
 import io.nop.api.core.beans.ITreeBean;
@@ -34,6 +41,8 @@ public interface IEntityDaoExtension<T extends IDaoEntity> {
      */
     <V> List<V> findPage(QueryBean query);
 
+    <V> List<V> findAll(QueryBean query);
+
     List<T> findNext(T lastEntity, ITreeBean filter, List<OrderFieldBean> orderBy, int limit);
 
     /**
@@ -59,7 +68,6 @@ public interface IEntityDaoExtension<T extends IDaoEntity> {
      * @return
      */
     long delete(QueryBean query);
-
 
     /**
      * 更新所有满足条件的记录

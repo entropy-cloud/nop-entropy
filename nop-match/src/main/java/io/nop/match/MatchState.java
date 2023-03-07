@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match;
 
 import io.nop.api.core.beans.ErrorBean;
@@ -40,12 +47,9 @@ public class MatchState extends JsonVisitState implements ISourceLocationGetter 
     }
 
     public ErrorBean buildError(ErrorCode errorCode) {
-        return errorCollector.buildError(errorCode.getErrorCode())
-                .description(errorCode.getDescription())
-                .param(ARG_JSON_PATH, getJsonPathString())
-                .param(ARG_JSON_FIELD, getJsonField())
-                .param(ARG_VALUE, safeToString(value))
-                .param(ARG_PARENT_CLASS, getParentClassName());
+        return errorCollector.buildError(errorCode.getErrorCode()).description(errorCode.getDescription())
+                .param(ARG_JSON_PATH, getJsonPathString()).param(ARG_JSON_FIELD, getJsonField())
+                .param(ARG_VALUE, safeToString(value)).param(ARG_PARENT_CLASS, getParentClassName());
     }
 
     String safeToString(Object v) {
@@ -106,7 +110,6 @@ public class MatchState extends JsonVisitState implements ISourceLocationGetter 
     public void setErrorCollector(IValidationErrorCollector errorCollector) {
         this.errorCollector = errorCollector;
     }
-
 
     public boolean isIgnoreUnknown() {
         return ignoreUnknown;

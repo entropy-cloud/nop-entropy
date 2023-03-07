@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:c="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <x:config>
+        <c:import class="io.nop.api.core.ApiConstants"/>
+    </x:config>
+
+    <bean id="nopSqlLibManager" ioc:default="true" class="io.nop.orm.sql_lib.SqlLibManager">
+    </bean>
+
+    <bean id="nopDefaultTransactionListener" ioc:default="true"
+          class="io.nop.orm.txn.OrmTransactionListener"/>
+
+    <bean id="nopOrmGlobalCacheConfig" class="io.nop.commons.cache.CacheConfig"
+          ioc:config-prefix="nop.orm.global-cache" ioc:default="true">
+    </bean>
+
+    <bean id="nopOrmGlobalCacheProvider" ioc:default="true" class="io.nop.commons.cache.LocalCacheProvider">
+        <constructor-arg index="0" value="orm-global-cache"/>
+        <constructor-arg index="1" ref="nopOrmGlobalCacheConfig"/>
+    </bean>
+
+    <util:constant id="nopShardSelector" static-field="io.nop.dao.shard.EmptyShardSelector.INSTANCE"
+                   ioc:default="true"/>
+
+    <bean id="nopSequenceGenerator" class="io.nop.dao.seq.UuidSequenceGenerator" ioc:default="true"/>
+
+    <bean id="nopOrmColumnBinderEnhancer" class="io.nop.orm.factory.DefaultOrmColumnBinderEnhancer" ioc:default="true"/>
+
+    <bean id="nopOrmSessionFactory" class="io.nop.orm.factory.OrmSessionFactoryBean"
+          ioc:bean-method="getObject" ioc:default="true">
+        <property name="name" value="app-orm" />
+        <property name="registerGlobalCache" value="true" />
+        <property name="sequenceGenerator" ref="nopSequenceGenerator" />
+
+        <property name="interceptors">
+            <ioc:collect-beans by-type="io.nop.orm.IOrmInterceptor"/>
+        </property>
+    </bean>
+
+    <bean id="nopXplOrmInterceptor" class="io.nop.orm.factory.XplOrmInterceptorFactoryBean"
+          ioc:bean-method="getObject"/>
+
+    <bean id="nopOrmTemplate" class="io.nop.orm.impl.OrmTemplateImpl" ioc:default="true">
+    </bean>
+
+    <bean id="nopDaoProvider" class="io.nop.orm.dao.OrmDaoProvider" ioc:default="true">
+        <constructor-arg index="0" ref="nopOrmTemplate"/>
+    </bean>
+
+    <bean id="nopSingleSessionMethodInterceptor" ioc:default="true"
+          class="io.nop.orm.interceptor.SingleSessionMethodInterceptor">
+        <constructor-arg index="0" ref="nopOrmTemplate"/>
+        <ioc:pointcut annotations="io.nop.api.core.annotations.orm.SingleSession"
+                      order="#{ApiConstants.INTERCEPTOR_PRIORITY_SINGLE_SESSION}"/>
+    </bean>
+
+    <bean id="nopSingleSessionFunctionInvoker" class="io.nop.orm.utils.SingleSessionFunctionInvoker"/>
+
+    <bean id="nopTransactionalFunctionInvoker" class="io.nop.dao.utils.TransactionalFunctionInvoker"/>
+
+    <bean id="io.nop.orm.initialize.DataBaseSchemaInitializer" ioc:type="@bean:id" ioc:after="nopOrmSessionFactory">
+        <ioc:condition>
+            <if-property name="nop.orm.init-database-schema"/>
+        </ioc:condition>
+    </bean>
+
+    <bean id="io.nop.orm.sql_lib.dict.SqlLibDictLoader" ioc:type="@bean:id"/>
+</beans>

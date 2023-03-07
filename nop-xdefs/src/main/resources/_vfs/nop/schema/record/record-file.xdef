@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+ 定长记录文件的描述
+
+ @binary 是否是二进制文件。如果否，则表示是文本文件
+ @defaultTextEncoding 如果是文本文件，则这里指定文件的缺省语言编码。
+-->
+<file x:schema="/nop/schema/xdef.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef"
+      xdef:name="RecordFileMeta" xdef:bean-package="io.nop.record.model"
+      binary="!boolean=false" defaultTextEncoding="string=UTF-8"
+      bitEndian="enum:io.nop.commons.bytes.EndianKind"
+      endian="enum:io.nop.commons.bytes.EndianKind"
+>
+    <doc xdef:value="string"/>
+
+    <!--
+    翻译为java doc的@see注释
+    -->
+    <docRef xdef:value="string"/>
+
+    <param name="!string" type="!string" xdef:unique-attr="name" xdef:name="RecordParamMeta"/>
+
+    <header xdef:name="RecordObjectMeta">
+        <param name="!string" xdef:ref="RecordParamMeta"/>
+
+        <!--
+        每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
+        -->
+        <recordClass xdef:value="class-name"/>
+
+        <field name="!prop-name" xdef:ref="record-field.xdef" xdef:unique-attr="name"/>
+
+        <computed-field name="!prop-name" type="!string" xdef:name="RecordComputedFieldMeta" xdef:unique-attr="name">
+            <compute-expr xdef:value="xpl"/>
+        </computed-field>
+    </header>
+
+    <body xdef:name="RecordFileBodyMeta" repeat="enum:io.nop.record.model.FieldRepeatKind" xdef:ref="RecordObjectMeta">
+
+        <repeatExpr xdef:value="xpl"/>
+
+        <repeatUntil xdef:value="xpl"/>
+    </body>
+
+    <trailer xdef:ref="RecordObjectMeta"/>
+
+    <types xdef:body-type="list" xdef:key-attr="name">
+        <type name="!prop-name" xdef:ref="RecordObjectMeta" xdef:name="RecordTypeMeta"/>
+    </types>
+
+    <enums xdef:body-type="list" xdef:key-attr="name">
+        <enum name="!var-name" valueType="string" xdef:name="RecordEnum">
+            <doc xdef:value="string"/>
+            <option value="!string" label="!string" xdef:unique-attr="value" xdef:name="RecordEnumOption">
+                <doc xdef:value="string"/>
+                <docRef xdef:value="string"/>
+            </option>
+        </enum>
+    </enums>
+</file>

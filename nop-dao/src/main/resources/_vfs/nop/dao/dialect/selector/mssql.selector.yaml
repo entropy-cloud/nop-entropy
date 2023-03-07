@@ -1,0 +1,3 @@
+productName: Microsoft SQL Server
+pdmTargetType: Microsoft SQL Server
+dialectName: mssql

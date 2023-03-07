@@ -17,7 +17,7 @@
             supportUpdateTableAlias="false" supportDeleteTableAlias="false"
             supportRowValueConstructor="true" supportUpdateFromJoin="false"
             supportQueryTimeout="true" supportWithAsClause="true"
-            supportDeleteFromJoin="false"/>
+            supportDeleteFromJoin="false" supportILike="false"/>
 
     <sqls insertKeyword="insert" updateKeyword="update" trueString="1" falseString="0" escapeSlash="true">
         <dateLiteral>DATE '{value:yyyy-MM-dd}'</dateLiteral>

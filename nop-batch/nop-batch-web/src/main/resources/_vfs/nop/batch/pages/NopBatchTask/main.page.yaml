@@ -1,0 +1,4 @@
+
+xui:js: '@include:NopBatchTask.action.js'
+x:gen-extends: |
+    <web:GenPage view="NopBatchTask.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

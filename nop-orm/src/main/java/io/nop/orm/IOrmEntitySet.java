@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm;
 
 import io.nop.api.core.annotations.core.Internal;
@@ -14,8 +21,8 @@ import java.util.Set;
  * 对于主外键关联，在主表一侧可以通过集合对象来访问从表。在从表一侧可以通过ownerProp对应的属性来访问主表
  */
 @NotThreadSafe
-public interface IOrmEntitySet<T extends IOrmEntity> extends Set<T>, IOrmObject,
-        IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook {
+public interface IOrmEntitySet<T extends IOrmEntity>
+        extends Set<T>, IOrmObject, IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook {
     /**
      * 每个集合必须具有一个owner，且不能改变owner。
      */

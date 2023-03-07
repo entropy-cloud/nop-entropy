@@ -1,0 +1,17 @@
+<root>
+    <child1 a="1">
+        <body>
+            <button/>
+            <_>@:3</_>
+        </body>
+    </child1>
+
+    <child2 j:list="true">
+        <static/>
+    </child2>
+
+    <body>
+        <button id="a"/>
+    </body>
+
+</root>

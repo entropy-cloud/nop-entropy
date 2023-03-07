@@ -2,20 +2,22 @@
 
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.${entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity'};
-<c:if test="${!entityModel.idProp.singleColumn}">
-import io.nop.orm.support.OrmCompositePk;
-</c:if>
-import io.nop.orm.support.OrmEntitySet;
-import io.nop.orm.IOrmEntitySet;
+import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.orm.IOrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import io.nop.api.core.convert.ConvertHelper;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Arrays;
+import java.util.List;
 
 import ${entityModel.packageName}.${entityModel.shortName};
 
+// tell cpd to start ignoring code - CPD-OFF
 /**
  *  ${entityModel.displayName}: ${entityModel.tableName}
  */
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public class _${entityModel.shortName} extends ${entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity'}{
     <c:for var="col" items="${entityModel.columns}">
         <c:script> if(col.notGenCode) continue</c:script>
@@ -50,7 +52,7 @@ public class _${entityModel.shortName} extends ${entityModel.kvTable ? 'Abstract
     public static final String PROP_NAME_${prop.name} = "${prop.name}";
     </c:for>
 
-    public static final String[] PK_PROP_NAMES = new String[]{${entityModel.pkColumns.map(col=>'PROP_NAME_'+col.name).join(',')}};
+    public static final List&lt;String> PK_PROP_NAMES = Arrays.asList(${entityModel.pkColumns.map(col=>'PROP_NAME_'+col.name).join(',')});
     public static final int[] PK_PROP_IDS = new int[]{${entityModel.pkColumns.map(col=>'PROP_ID_'+col.name).join(',')}};
 
     private static final String[] PROP_ID_TO_NAME = new String[${entityModel.propIdBound}];
@@ -308,4 +310,5 @@ public class _${entityModel.shortName} extends ${entityModel.kvTable ? 'Abstract
    }
 </c:for>
 }
+// resume CPD analysis - CPD-ON
 </c:unit>

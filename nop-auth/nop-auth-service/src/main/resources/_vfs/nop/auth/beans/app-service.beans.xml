@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <!--    <x:post-extends>-->
+    <!--        <ioc-gen:component-scan>-->
+    <!--            <basePackages></basePackages>-->
+    <!--            <baseClasses></baseClasses>-->
+    <!--        </ioc-gen:component-scan>-->
+    <!--    </x:post-extends>-->
+
+    <!--    <x:gen-extends>-->
+    <!--        <c:import from="/nop/biz/xlib/biz-gen.xlib"/>-->
+    <!--        <beans>-->
+    <!--            <biz-gen:BizService class="io.nop.auth.api.LoginApi" bizObjName="LoginApi"/>-->
+    <!--        </beans>-->
+    <!--    </x:gen-extends>-->
+
+    <import resource="_dao.beans.xml"/>
+    <import resource="_service.beans.xml"/>
+
+    <import resource="auth-service.beans.xml"/>
+</beans>

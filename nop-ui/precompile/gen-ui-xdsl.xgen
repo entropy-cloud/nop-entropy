@@ -1,0 +1,6 @@
+<c:script>
+codeGenerator.renderModel('/nop/schema/xui/disp.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/xui/form.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/xui/grid.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/xui/xuc.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>

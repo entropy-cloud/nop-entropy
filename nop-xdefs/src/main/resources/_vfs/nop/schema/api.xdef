@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    服务对象
+    -->
+    <service name="!var-name" className="!class-name" displayName="string" xdef:unique-attr="name"
+             tagSet="word-set">
+        <description xdef:value="string"/>
+
+        <!--
+        服务方法。接收ApiRequest<T>类型的请求，返回ApiResponse<R>类型的响应
+        -->
+        <method name="!var-name" displayName="string" tagSet="word-set" xdef:unique-attr="name">
+            <description xdef:value="string"/>
+            <requestMessage xdef:value="class-name"/>
+            <responseMessage xdef:value="class-name"/>
+        </method>
+
+    </service>
+
+    <!--
+    @name 服务消息的类名。在整个API定义范围内应该是唯一的。
+    -->
+    <message name="!class-name" displayName="string" tagSet="word-set"
+             xdef:name="ApiMessageModel" xdef:unique-attr="name">
+        <description xdef:value="string"/>
+
+        <field name="!string" mandatory="!boolean=false" tagSet="word-set"
+               displayName="string" xdef:unique-attr="name">
+            <description xdef:value="string"/>
+            <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
+        </field>
+    </message>
+</api>

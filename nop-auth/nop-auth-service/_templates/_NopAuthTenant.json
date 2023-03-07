@@ -1,0 +1,15 @@
+{
+  "tenantId": "",
+  "name": "",
+  "beginTime": "2000-01-01 14:00:00",
+  "endTime": "2000-01-01 14:00:00",
+  "status": 0,
+  "status_label": "",
+  "delFlag": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": ""
+}

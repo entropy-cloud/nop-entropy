@@ -1,0 +1,7 @@
+<c:unit xpl:outputMode="text">
+    <c:out escape="none"><![CDATA[
+x:gen-extends: |
+    <web:GenPage view="${serviceModel.name}.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+]]></c:out>
+
+</c:unit>

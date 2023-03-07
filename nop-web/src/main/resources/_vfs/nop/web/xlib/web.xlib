@@ -1,0 +1,691 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:thisLib="thisLib" xmlns:c="c" xmlns:j="j" xmlns:xpl="xpl">
+    <tags>
+        <GenPage outputMode="xjson">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="page" mandatory="true" type="String"/>
+            <attr name="forPicker" type="Boolean" optional="true"/>
+            <source>
+                <c:include src="web/impl_GenPage.xpl"/>
+            </source>
+        </GenPage>
+
+        <GenForm outputMode="xjson">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="form" mandatory="true" type="string"/>
+
+            <slot name="default" outputMode="xjson">
+                <arg name="objMeta"/>
+                <arg name="formModel"/>
+                <arg name="formSelection"/>
+            </slot>
+
+            <source>
+                <c:include src="web/impl_GenForm.xpl"/>
+            </source>
+        </GenForm>
+
+        <GenGrid outputMode="xjson">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="grid" mandatory="true" type="string"/>
+
+            <source>
+                <c:include src="web/impl_GenGrid.xpl"/>
+            </source>
+        </GenGrid>
+
+        <GenAction outputMode="xjson" ignoreUnknownAttrs="true">
+            <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
+            <attr name="genScope" optional="true"/>
+            <slot name="default" slotType="node"/>
+
+            <source>
+                <c:script>
+                    import io.nop.xlang.xmeta.SchemaLoader;
+
+                    const node = slot_default.cloneInstance();
+                    node.removeAttr('view');
+                    node.removeAttr('genScope');
+                    node.setTagName('action');
+
+                    const xdef = SchemaLoader.loadXDefinition('/nop/schema/xui/action.xdef');
+                    SchemaLoader.validateNode(node,xdef,true);
+                </c:script>
+                <action xpl:attrs="${xpl('thisLib:NormalizeAction',node.toXJson(),null)}" />
+            </source>
+        </GenAction>
+
+        <!--
+        根据layout配置生成form的body部分
+        -->
+        <GenFormBody outputMode="xjson">
+            <attr name="formModel"/>
+            <attr name="objMeta"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <source>
+                <body j:list="true">
+                    <c:choose>
+                        <when test="${formModel.layout.simpleTable}">
+                            <thisLib:GenFormTable formTable="${formModel.layout.firstTable}"/>
+                        </when>
+                        <otherwise>
+                            <thisLib:GenLayoutGroups layoutGroups="${formModel.layout.groups}"/>
+                        </otherwise>
+                    </c:choose>
+                </body>
+            </source>
+        </GenFormBody>
+
+        <GenAccordion outputMode="xjson">
+            <attr name="formModel"/>
+            <attr name="objMeta"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <collapse-group activeKey="${['1']}" id="${formModel.id}">
+                    <thisLib:GenAccordionBody layoutGroups="${formModel.layout.groups}"/>
+                </collapse-group>
+            </source>
+        </GenAccordion>
+
+        <GenAccordionBody outputMode="xjson">
+            <attr name="layoutGroups"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <body>
+                    <c:for var="formTable" items="${layoutGroups}" index="index">
+                        <collapse key="${index}" header="${formTable.label}" id="${formTable.id || 'collapse-'+index}">
+                            <body>
+                                <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                    <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                </c:for>
+                            </body>
+                        </collapse>
+                    </c:for>
+                </body>
+            </source>
+        </GenAccordionBody>
+
+        <GenLayoutGroups outputMode="xjson">
+            <attr name="layoutGroups"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:for var="group" items="${layoutGroups}">
+                    <thisLib:GenFormTable formTable="${group}"/>
+                </c:for>
+            </source>
+
+        </GenLayoutGroups>
+
+        <GenFormTable outputMode="xjson">
+            <attr name="formTable"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:choose>
+                    <when test="${formTable.label}">
+                        <c:script>
+                            const groupModel = formModel.getCell(formTable.id);
+                        </c:script>
+                        <fieldSet id="${formTable.id}" collapsable="${formTable.foldable}"
+                                  collapsed="${formTable.folded}">
+                            <title>@i18n:forms.${i18nRoot}.${formModel.id}.${formTable.id}|${formTable.label}</title>
+                            <visibleOn>${groupModel?.visibleOn}</visibleOn>
+                            <body>
+                                <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                    <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                </c:for>
+                            </body>
+                        </fieldSet>
+                    </when>
+                    <when test="${formTable.id and !formTable.autoId}">
+                        <c:script>
+                            const groupModel = formModel.getCell(formTable.id);
+                        </c:script>
+                        <group id="${formTable.id}" direction="vertical">
+                            <visibleOn>${groupModel?.visibleOn}</visibleOn>
+                            <body>
+                                <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                    <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                </c:for>
+                            </body>
+                        </group>
+                    </when>
+                    <otherwise>
+                        <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                            <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                        </c:for>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenFormTable>
+
+        <GenFormRow outputMode="xjson">
+            <attr name="formRow"/>
+            <attr name="rowIndex"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:choose>
+                    <when test="${formRow.colCount == 0}">
+                        <divider/>
+                    </when>
+                    <when test="${formRow.colCount == 1}">
+                        <thisLib:GenFormCell formCell="${formRow.getCell(0)}"/>
+                    </when>
+                    <otherwise>
+                        <group id="row-${_.pluck(formRow.cells,'id').join('-')}">
+                            <body>
+                                <c:for var="formCell" items="${formRow.cells}">
+                                    <thisLib:GenFormCell formCell="${formCell}"/>
+                                </c:for>
+                            </body>
+                        </group>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenFormRow>
+
+        <GenFormCell outputMode="xjson">
+            <attr name="formCell"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:choose>
+                    <when test="${formCell.type == 'group'}">
+                        <thisLib:GenFormTable formTable="${formCell.table}"/>
+                    </when>
+                    <otherwise>
+                        <thisLib:GenFormSimpleCell formCell="${formCell}"/>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenFormCell>
+
+        <GenFormSimpleCell outputMode="xjson">
+            <attr name="formCell"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    let cellModel = formModel.getCell(formCell.id);
+                    let propMeta = objMeta?.getProp(cellModel?.prop || formCell.id);
+                    const rd = formCell.readonly || (formModel.editMode == 'update' && !propMeta?.updatable)
+                                 || (formModel.editMode == 'add' && !propMeta?.insertable)
+
+                    let mode = cellModel?.editMode || (rd? 'view' : formModel.editMode) || 'view'
+                    const labelKey = '@i18n:cell.'+i18nRoot+"."+formCell.id+',prop.label.'
+                           +bizObjName+'.'+propMeta?.name;
+                    let label =  labelKey.$i18n(cellModel?.label || propMeta?.displayName);
+
+                    let mandatory = formCell?.mandatory || propMeta?.mandatory;
+                    if(mode.startsWith('query'))
+                        mandatory = formCell?.mandatory || propMeta?.['xui:queryMandatory']
+
+                    let filterOp = formCell?.['xui:defaultFilterOp'] || propMeta?.['xui:defaultFilterOp']
+
+                    const placeholderKey = '@i18n:cells.'+i18nRoot+'.'+formCell.id + ".$placeholder";
+                    let placeholder = cellModel?.placeholder
+                    let hint = cellModel?.hint
+
+                    let cell = {
+                        name: (mode?.startsWith('query') and !formCell.id.startsWith('v_')?
+                                    'filter_' + formCell.id + (filterOp ? '__'+filterOp:'')
+                                    : formCell.id),
+                        // 不显示label的时候，以label为placeholder
+                        placeholder: placeholder ? placeholderKey.$i18n(placeholder) :
+                            (formCell.hideLabel ? label : null) ,
+                        label: formCell.hideLabel? null : label,
+                        required: mandatory ?  true : null,
+                        hint: hint && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$hint").$i18n(hint),
+                        disabledOn: cellModel?.disabledOn,
+                        visibleOn: cellModel?.visibleOn,
+                        staticOn: cellModel?.readonlyOn,
+                        requiredOn: cellModel?.requiredOn,
+                        submitOnChange: cellModel?.submitOnChange ?? formModel?.submitOnChange,
+                        desc: cellModel?.desc && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$desc").$i18n(cellModel.desc)
+                    };
+
+                    let cellXpl = cellModel?.genControl;
+                    let control = null;
+
+                    if(cellXpl != null){
+                        control = eval(cellXpl,{dispMeta:cellModel,propMeta,bizObjName, objMeta,editMode:mode,mandatory});
+                    }else if(cellModel?.view){
+                        control = xpl `<thisLib:GenDispView dispMeta="${cellModel}" editMode="${mode}"
+                                           mandatory="${mandatory}" />`
+                    }else{
+                        control = xpl `<thisLib:DefaultControl dispMeta="${cellModel}" editMode="${mode}"
+                                            mandatory="${mandatory}" /> `;
+                    }
+                    if(control != null){
+                        cell.putAll(control);
+                    }
+                    $out.appendChild(location(),"_",cell)
+                ]]></c:script>
+            </source>
+        </GenFormSimpleCell>
+
+        <GenGridCols outputMode="xjson">
+            <attr name="gridModel" mandatory="true"/>
+            <attr name="objMeta" mandatory="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:for var="col" items="${gridModel.cols}" index="colIndex">
+                    <c:script>
+                        if(col.hidden) continue;
+                    </c:script>
+                    <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}"/>
+                </c:for>
+            </source>
+        </GenGridCols>
+
+        <GenGridCol outputMode="xjson">
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="colModel"/>
+            <attr name="colIndex"/>
+            <attr name="objMeta"/>
+            <attr name="gridModel" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    let propMeta = objMeta?.getProp(colModel.prop || colModel.id);
+
+                    let col = {
+                        name:colModel.id,
+                        label: '@i18n:col.'+i18nRoot+"."+colModel.id+",prop.label."+bizObjName+"."+propMeta?.name+"|"+propMeta?.displayName,
+                        sortable: gridModel.sortable != false and colModel.sortable,
+                        width: colModel.width || xpl('thisLib:GetColDefaultWidth',colModel,propMeta),
+                        toggled:true,
+                        align: colModel.align || xpl('thisLib:GetColDefaultAlign',colModel,propMeta),
+                        fixed: colModel.fixed || (colIndex == 0?'left':null),
+                        groupName: colModel.groupName,
+                        className: colModel.className,
+                        labelClassName: colModel.labelClassName,
+                        classNameExpr:colModel.classNameExpr,
+                        visibleOn: colModel.visibleOn,  // 这是整列是否显示
+                        disabledOn: colModel.disabledOn,
+                        breakpoint: colModel.breakpoint,
+                        backgroundScale: colModel['xui:backgroundScale'],
+                        remark: colModel.desc && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$desc").$i18n(colModel.desc),
+                        hint: colModel.hint && ('@i18n:col.'+i18nRoot+"."+colModel.id + ".$hint").$i18n(colModel.hint)
+                    };
+                    let colXpl = colModel.genControl;
+                    let control = null;
+                    let mode = colModel.editMode || gridModel.editMode || 'list-view'
+                    if(colXpl != null){
+                        control = eval(colXpl,{ dispMeta:colModel,objMeta, propMeta,
+                              mandatory: colModel.mandatory ?? propMeta?.mandatory,
+                            editMode:mode,bizObjName,objMeta});
+                    }else if(colModel.view){
+                        control = xpl `<thisLib:GenDispView dispMeta="${colModel}" editMode="${mode}"
+                                           mandatory="${colModel.mandatory ?? propMeta.mandatory}" />`
+                    }else{
+                        control = xpl `<thisLib:DefaultControl dispMeta="${colModel}" editMode="${mode}"
+                                           mandatory="${colModel.mandatory ?? propMeta.mandatory}" />`
+                    }
+                    if(control != null){
+                        col.putAll(control);
+                    }
+                    $out.appendChild(location(),"_",col)
+                ]]></c:script>
+            </source>
+        </GenGridCol>
+
+        <GenDispView outputMode="none">
+            <attr name="dispMeta"/>
+            <attr name="propMeta" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="editMode"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="mandatory"/>
+
+            <source>
+                <c:script>
+                    import io.nop.web.page.WebPageHelper;
+
+                    let refView = dispMeta.view;
+                    refView.validate();
+                </c:script>
+                <c:choose>
+                    <when test="${refView.path.endsWith('.view.xml')}">
+                        <c:choose>
+                            <when test="${refView.page}">
+                                <c:collect outputMode="xjson" xpl:return="genPage">
+                                    <thisLib:GenPage view="${refView.path}" page="${refView.page}"/>
+                                </c:collect>
+                                <c:script>
+                                    return genPage;
+                                </c:script>
+                            </when>
+                            <when test="${refView.grid}">
+                                <thisLib:GenInputTable view="${refView.path}" grid="${refView.grid}"
+                                                       xpl:return="genPage"/>
+                                <c:script>
+                                    return genPage;
+                                </c:script>
+                            </when>
+                            <when test="${refView.form}">
+                                <c:throw errorCode="nop.err.not-impl"/>
+                            </when>
+                            <otherwise>
+                                <c:throw errorCode="nop.err.invalid-ref-view-config"/>
+                            </otherwise>
+                        </c:choose>
+                    </when>
+                    <otherwise>
+                        <c:script>
+                            return WebPageHelper.internalLoadPage(refView.path);
+                        </c:script>
+                    </otherwise>
+                </c:choose>
+            </source>
+        </GenDispView>
+
+        <GenInputTable>
+            <attr name="view" mandatory="true"/>
+            <attr name="grid" mandatory="true"/>
+
+            <source>
+                <c:include src="/nop/web/xlib/web/init_grid_gen_scope.xpl"/>
+                <c:collect outputMode="xjson">
+                    <input-table removable="@:true" addable="@:true" editable="@:true" needConfirm="@:false">
+                        <columns j:list="true">
+                            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}"/>
+                        </columns>
+                    </input-table>
+                </c:collect>
+            </source>
+        </GenInputTable>
+
+        <GetColDefaultWidth>
+            <attr name="colModel"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                const dataType = propMeta?.stdDataType?.toString();
+                if(dataType == 'timestamp')
+                    return "160px"
+            ]]></source>
+        </GetColDefaultWidth>
+
+        <GetColDefaultAlign>
+            <attr name="colModel"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                if(propMeta?.schema?.domain == 'boolFlag')
+                    return "center"
+            ]]></source>
+        </GetColDefaultAlign>
+
+        <DefaultControl>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="dispMeta"/>
+            <attr name="propMeta" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="editMode"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="mandatory"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.xui.utils.XuiHelper;
+                    const tag = XuiHelper.getControlTag(controlLib, dispMeta, propMeta, objMeta,editMode);
+                    tag.generateXjson({bizObjName,dispMeta,objMeta,propMeta,editMode,controlLib,mandatory})
+                ]]></c:script>
+            </source>
+        </DefaultControl>
+
+        <GenActions outputMode="xjson">
+            <attr name="actions"/>
+            <attr name="genScope"/>
+            <attr name="viewModel" implicit="true"/>
+
+            <source>
+                <c:for var="action" items="${actions}">
+                    <c:choose>
+                        <when test="${action.type == 'actionGroup'}">
+                            <dropdown-button id="${action.id}"
+                                             xpl:attrs="_.delete({...action,
+                                             buttons:action.actions.map(a=>{...xpl('thisLib:NormalizeAction',a,genScope),type:'button'})},
+                                             ['type','actions'])"/>
+                        </when>
+                        <otherwise>
+                            <button id="${action.id}" xpl:attrs="xpl('thisLib:NormalizeAction',action,genScope)"/>
+                        </otherwise>
+                    </c:choose>
+                </c:for>
+            </source>
+        </GenActions>
+
+        <FormDefaultAttrs>
+            <attr name="formModel"/>
+            <source><![CDATA[
+                const attrs = _.pickNotNull(formModel, ["className","bodyClassName",
+                    "submitOnChange","submitOnInit",
+                    "resetAfterSubmit","reload","target","persistData",
+                    "persistDataKeys", "preventEnterSubmit",
+                    "labelWidth", "submitText", "wrapWithPanel",
+                    "inheritData", "promptPageLeave",
+                    "interval","checkInterval", "initCheckInterval",
+                    "initFetch", "silentPolling", "canAccessSuperData",
+                    "initFetchOn","stopAutoRefreshWhen",
+                     "rules"]);
+                return attrs;
+            ]]></source>
+        </FormDefaultAttrs>
+
+        <GetFormDefaultSize>
+            <attr name="formModel"/>
+            <source><![CDATA[
+                const cellCount = formModel.cellCount;
+                if(cellCount < 5)
+                   return 'sm';
+                return cellCount >= 20 ? 'lg' : 'md'
+            ]]></source>
+        </GetFormDefaultSize>
+
+        <PageDefaultAttrs>
+            <attr name="pageModel"/>
+            <attr name="i18nRoot" implicit="true"/>
+
+            <source><![CDATA[
+                const attrs = _.pickNotNull(pageModel,[
+                    "name","asideResizor","asideMinWidth",
+                    "asideMaxWidth","asideClassName",
+                    "asideSticky","className",
+                    "headerClassName","bodyClassName",
+                    "initFetch","interval","silentPolling",
+                    "stopAutoRefreshWhen","data"
+                ]);
+
+                function i18n_key(key){
+                   return ('@i18n:pages.'+i18nRoot+'.'+pageModel.name+'.'+key).$i18n(pageModel[key])
+                }
+                if(pageModel.title)
+                    attrs.put('title', i18n_key('title'));
+                if(pageModel.subTitle)
+                    attrs.put('subTitle', i18n_key('subTitle'));
+                if(pageModel.remark)
+                    attrs.put('remark',i18n_key('remark'));
+                return attrs;
+            ]]></source>
+        </PageDefaultAttrs>
+
+        <GridDefaultAttrs>
+            <attr name="gridModel"/>
+            <source><![CDATA[
+                const attrs = _.pickNotNull(gridModel, ["className",
+                     "columnNum", "affixHeader","checkOnItemClick",
+                     "selectable", "multiple", "combineNum",
+                     "combineFromIndex", "placeholder",
+                     "headerClassName", "footerClassName","toolbarClassName",
+                     "stopAutoRefreshWhen","itemCheckableOn",
+                     "prefixRow", "affixRow", "affixRowClassName",
+                     "affixRowClassNameExpr", "prefixRowClassName","prefixRowClassNameExpr",
+                    ]);
+                return attrs;
+            ]]></source>
+        </GridDefaultAttrs>
+
+        <NormalizeAction>
+            <attr name="action"/>
+            <attr name="genScope"/>
+            <attr name="viewModel" implicit="true"/>
+
+            <source><![CDATA[
+                import io.nop.core.resource.ResourceHelper
+
+                let actionType = action.actionType;
+                if(!actionType){
+                    if(action.dialog){
+                        actionType = 'dialog'
+                    }else if(action.drawer){
+                        actionType = 'drawer'
+                    }else{
+                        actionType = 'ajax'
+                    }
+                }
+
+                let api = null;
+                let dialog = null;
+                let drawer = null;
+                let feedback = null;
+
+                const iconOnly = action.iconOnly && action.icon;
+
+                if(action.api){
+                   api = {...action.api, url: action.api.url.$renderTemplateForScope('{@','}',genScope)}
+                }
+
+
+                if(actionType == 'dialog'){
+                    dialog = xpl('thisLib:LoadPage',action.dialog.page, action.dialog)
+                }else if(actionType == 'drawer'){
+                    dialog = null;
+                    drawer = xpl('thisLib:LoadPage',(action.drawer || action.dialog).page, action.drawer||action.dialog)
+                }
+
+                if(action.feedback?.page){
+                    feedback = xpl('thisLib:LoadPage',action.feedback.page,action.feedback)
+                }
+
+                return _.filterNull({
+                    ...action,
+                    actionType,
+                    icon: iconOnly ? action.icon: null,
+                    label: iconOnly? null : action.label,
+                    tooltip: iconOnly ? action.label: null,  // 如果只显示icon，则以label作为tooltip
+                    level: iconOnly? null : action.level,
+                    api,
+                    dialog,
+                    drawer,
+                    feedback
+                })
+            ]]></source>
+        </NormalizeAction>
+
+        <LoadPage>
+            <attr name="page" mandatory="true"/>
+            <attr name="dialog" optional="true"/>
+            <attr name="viewModel" implicit="true"/>
+
+            <source><![CDATA[
+               import io.nop.core.resource.ResourceHelper;
+
+               const dlgProps = _.pickNotNull(dialog,["closeOnEsc","closeOnOutside","size","height",
+                    "width","showCloseButton","actions"]) || {};
+               if(dlgProps.actions)
+                   dlgProps.actions = dlgProps.actions.map(a=>xpl('thisLib:NormalizeAction',a,{}));
+               if(dialog?.noActions)
+                   dlgProps.actions = []
+
+               // 完整页面路径
+               if(page.endsWith('.page.yaml')){
+                  return { 'x:extends': viewModel.resourcePath().$absolutePath(page),...dlgProps}
+               }
+
+               // 如果传入的是pageId, 先检查对应的页面是否存在
+
+               let path = viewModel.resourcePath().$filePath().$appendPath(page+'.page.yaml')
+               const resource = ResourceHelper.resolve(path);
+               if(resource.exists()){
+                  return  { 'x:extends': path, ...dlgProps}
+               }
+
+               const gen = xpl `<c:collect outputMode="xjson"><thisLib:GenPage view="${viewModel.resourcePath()}" page="${page}" /></c:collect>`
+               if(dlgProps != null)
+                   gen.putAll(dlgProps);
+               if(dialog?.data){
+                   gen.put('data',{...gen.data,...dialog.data})
+               }
+               return gen;
+            ]]></source>
+        </LoadPage>
+
+        <NormalizeApi>
+            <attr name="api"/>
+            <attr name="genScope"/>
+            <source><![CDATA[
+                return _.filterNull({...api,
+                    url:api.url.$renderTemplateForScope("{@","}",genScope),
+                    data: api.withFormData ? genScope.formData : api.data
+                })
+            ]]></source>
+        </NormalizeApi>
+
+        <TabsDefaultAttrs>
+            <attr name="pageModel"/>
+            <source><![CDATA[
+                return _.pickNotNull(pageModel,["tabsMode", "tabsClassName",
+                "closeable", "draggable", "mountOnEnter","unmountOnExit"])
+            ]]></source>
+        </TabsDefaultAttrs>
+
+        <TabDefaultAttrs>
+            <attr name="tabModel"/>
+            <source><![CDATA[
+                return _.pickNotNull(tabModel,["icon", "title","iconPosition","name",
+                    "unmountOnExit", "hash","reload", "className", "disabled"])
+            ]]></source>
+        </TabDefaultAttrs>
+    </tags>
+</lib>

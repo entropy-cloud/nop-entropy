@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.pattern;
 
 import io.nop.commons.functional.IEqualsChecker;
@@ -28,10 +35,8 @@ public class VarMatchPattern implements IMatchPattern {
         boolean b = equalsChecker.isEquals(value, state.getValue());
         if (!b) {
             if (collectError) {
-                state.buildError(ERR_MATCH_NOT_EQUALS_VAR_VALUE)
-                        .param(ARG_VAR_NAME, varName)
-                        .param(ARG_VAR_VALUE, value)
-                        .addToCollector(state.getErrorCollector());
+                state.buildError(ERR_MATCH_NOT_EQUALS_VAR_VALUE).param(ARG_VAR_NAME, varName)
+                        .param(ARG_VAR_VALUE, value).addToCollector(state.getErrorCollector());
             }
             return false;
         }

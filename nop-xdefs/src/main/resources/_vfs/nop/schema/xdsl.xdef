@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+x名字空间下的所有属性和子节点都只在合并过程中存在。合并过程完成之后，x名字空间下的所有内容将被删除。因此，xtend合并过程
+是一个可以适用于通用xml的一种预处理过程，它不需要任何特定领域的假设，即可为通用xml引入强大的分解、合并机制。
+
+@x:schema [元模型文件路径] xdef元模型定义文件所在的虚拟路径
+@x:extends [基类路径] 继承的模型定义文件的虚拟路径
+@x:dump [是否打印合并结果] 执行xtend合并过程的时候，是否打印中间合并结果
+@xmlns:x 因为本文件的作用是定义x名字空间的属性和节点，因此将xdsl前缀指向/nop/schema/xdsl.xdef定义，而x名字空间不具有特殊语义。
+@x:validated [是否是合并结果] 表示本文件已经经过合并处理并通过了校验，无需再此校验。在nop.debug=true模式下，dsl经过xtend处理后会输出到dump目录下，此目录下的
+   内容如果直接作为delta目录来使用，可以提高系统启动速度
+-->
+<xdef:unknown-tag xdsl:schema="/nop/schema/xdef.xdef"
+                  x:schema="v-path" x:extends="v-path-list"
+                  x:dump="boolean" xdef:check-ns="x"
+                  x:validated="boolean"
+                  xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="x"
+                  xmlns:xdsl="/nop/schema/xdsl.xdef">
+    <!--
+    除了使用x:extends来继承静态的模型文件之外，还可以通过x:gen-extends来动态生成父模型。
+    x:gen-extends段可以生成多个节点，按照从前到后的顺序依次构成继承管理。例如
+    <workflow x:extends="A,B">
+       <x:gen-extends>
+           <C/>
+           <D/>
+       </x:gen_extends>
+
+       <x:post-extends>
+          <E />
+          <F />
+       </x:extends>
+    </workflow>
+    对应的合并关系为  F extends E extends currentNode extends D extends C extends B extends A
+    -->
+    <x:gen-extends xdef:value="xpl-node"/>
+
+    <!--
+    当前节点和extends段以及gen-extends合并之后，可以再和post-extends段合并，执行后处理操作。
+    一般前端可视化设计器设计的是当前模型节点，而post-extends相当于是可以在设计器设计结果的基础上自动执行后处理操作，可以通过此机制
+    来实现对可视化设计器的自定义增强机制。
+    -->
+    <x:post-extends xdef:value="xpl-node" xdef:default-override="append"/>
+
+    <!--
+    根据xdef元模型定义将XML解析为具体的模型对象之后执行此回调函数，可以通过此机制实现一些领域特定的验证工作或者模型增强工作。
+    根据xdef文件解析的过程是完全自动化的，是领域无关的，因此可能对一些特殊的、领域特定的约束条件不容易描述，可以通过这里的机制来实现一定的补充。
+    -->
+    <x:post-parse xdef:value="xpl" xdef:default-override="append"/>
+
+    <!--
+    通过c:import引入常量定义和标签库等
+    -->
+    <x:config xdef:value="xpl" xdef:default-override="append"/>
+
+    <!--
+    @x:key-attr [子节点唯一属性] 对于无schema约束的节点，可以通过x:key-attr和x:name来补充唯一标识信息，从而辅助完成节点合并
+    @x:name 在节点合并阶段存在的辅助性标识。
+    @x:override [合并算子] 指定与继承的父结构进行合并时使用的合并算子
+    @x:abstract [是否抽象节点] 抽象节点只是作为模板在dsl文件中存在，其他节点从抽象节点继承，并追加新的内容。
+    没有被覆盖的抽象节点在合并整理阶段会自动被删除。这一用法类似于spring配置文件中的abstract的概念。
+    @x:virtual [是否虚拟节点] 虚拟节点如果没有被继承，则此节点也会被自动删除。
+    @x:inherit [是否必须继承] 是否必须继承基类中的节点，如果基类中没有对应节点，则抛出异常
+    @x:final [是否不允许继承] 标记为final的节点不允许被继承覆盖。这一概念类似于java中的final关键字。
+    @x:prototype [兄弟节点原型] 兄弟节点之间可以通过x:prototype属性来实现继承关系。x:extends是继承外部文件，而x:prototype是继承同级的兄弟节点。
+       它的值为对应节点的唯一id(由xdef:key-attr或者xdef:unique-attr指定的唯一属性)。
+    @x:prototype-override [原型合并算子] 当基于x:prototype配置进行节点合并时所对应的合并算子。
+    -->
+    <xdef:unknown-tag xdef:value="any" xdef:unknown-attr="any" xdef:allow-multiple="true" xdef:name="DslNode"
+                      x:extends="v-path-list" x:override="enum:io.nop.xlang.xdef.XDefOverride=merge"
+                      x:key-attr="xml-name" x:name="string"
+                      x:abstract="boolean" x:final="boolean" x:virtual="boolean"
+                      x:prototype="!string" x:prototype-override="enum:io.nop.xlang.xdef.XDefOverride=merge"
+    >
+        <x:gen-extends xdef:value="xpl-node"/>
+
+        <x:super xdef:internal="true"/>
+        <x:prototye-super xdef:internal="true"/>
+
+        <xdef:unknown-tag xdef:ref="DslNode"/>
+    </xdef:unknown-tag>
+</xdef:unknown-tag>

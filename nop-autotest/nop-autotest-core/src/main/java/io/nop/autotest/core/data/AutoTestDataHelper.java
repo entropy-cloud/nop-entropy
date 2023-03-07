@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core.data;
 
 import io.nop.autotest.core.AutoTestConstants;
@@ -14,19 +21,19 @@ public class AutoTestDataHelper {
         return bean;
     }
 
-//    public static String toJsonText(Object bean) {
-//        bean = normalizeBean(bean);
-//
-//        String json = JsonTool.serialize(bean, true);
-//        return json;
-//    }
+    // public static String toJsonText(Object bean) {
+    // bean = normalizeBean(bean);
+    //
+    // String json = JsonTool.serialize(bean, true);
+    // return json;
+    // }
 
     public static Object toJsonObject(Object bean) {
-        return JsonTool.serializeToObj(bean);
+        return JsonTool.serializeToJson(bean);
     }
 
     public static boolean valueEquals(Object v1, Object v2) {
-        return JsonMatchHelper.valueEquals(v1,v2);
+        return JsonMatchHelper.valueEquals(v1, v2);
     }
 
     public static String getTestDataPath(Class<?> testClass, Method testMethod) {

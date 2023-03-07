@@ -1,0 +1,9 @@
+label: 权限资源类型
+locale: zh-CN
+options:
+  - label: 一级菜单
+    value: TOPM
+  - label: 子菜单
+    value: SUBM
+  - label: 功能点
+    value: FNPT

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即使用xdef来定义xdef本身。
+本文件定义了一般的xdef元模型定义文件中允许使用的xdef属性和标签的具体位置和格式。
+
+@xmlns:meta 在本文件中，将内置的xdef名字空间重命名为meta，所以xdef:xxx不再表达xdef语言的语法。利用这种方式，我们可以用xdef元语言
+     来定义xdef语言自身。
+@xmlns:xdef 在本文件中，xdef不再代表xdef元模型定义的名字空间，而是普通的业务领域名字空间。xdef名字空间被重命名为meta
+@xdef:default-extends 规定缺省的extends模型文件。如果非空，则由此xdef文件描述的模型文件中，总是会缺省继承default-extends所指定的模型文件，
+  通过此机制可以引入全局模型假定，简化模型配置。特别是结合x:post-extends机制可以实现自定义的可视化设计器。
+@xdef:check-ns  指定一组必须要校验的名字空间。这些名字空间中定义的属性和子节点必须在xdef文件中明确声明，
+   xdef:unknown-attr和xdef:unknown-tag不会匹配这些名字空间。
+@xdef:prop-ns 对于没有名字空间的属性和标签名，它们会经过camelCase变换作为java对象的属性名。对于具有名字空间的属性名，则
+  缺省情况下是作为扩展属性存在，并不会生成对应的java属性。
+  如果名字空间在prop-ns范围之内，则会把字符:替换为-之后，再经过camelCase变换作为java对象的属性名。
+@xdef:transform 完成x:extends合并操作之后，如果配置了xdef:transform则按照xdef:transform指定的规则变换到新的schema格式下。
+-->
+<meta:unknown-tag x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                  xmlns:meta="/nop/schema/xdef.xdef" meta:check-ns="xdef"
+                  meta:parse-keep-comment="true"
+                  meta:bean-package="io.nop.xlang.xdef.impl" meta:name="XDefinition"
+                  meta:ref="XDefNode" meta:prop-ns="xdef"
+
+                  xdef:version="string" xdef:default-extends="v-path"
+                  xdef:transform="v-path"
+                  xdef:parse-for-html="boolean" xdef:parse-keep-comment="boolean"
+                  xdef:bean-package="string"
+                  xdef:parser-class="class-name"
+                  xdef:check-ns="csv-set" xdef:prop-ns="csv-set"
+                  xmlns:xdef="xdef">
+    <!--
+    @xdef:name 将本节点注册为xdef片段，其他节点可以通过xdef:ref来引用该片段。一般对应于Java类名，会根据它和根节点上的xdef:bean-package设置
+       自动生成xdef:bean-class属性。
+    @xdef:body-type 定义节点的结构类型。set表示子节点需要具有唯一标签名或者唯一key，而list表示可以出现重复的子节点
+    @xdef:value 定义节点body的数据类型。在xdef文件中，只有叶子节点可以声明xdef:value
+    @xdef:unique-attr 表示本节点允许多个实例，通过指定的属性来进行区分。所有具有指定节点名的子节点解析成一个KeyedList类型的java属性。
+    @xdef:key-attr 当body-type=list且key-attr不为空时，则子节点解析后对应KeyedList类型。
+    @xdef:allow-multiple 是否允许多个实例。声明了unique-attr，或者父节点声明了key-attr的情况下，
+           本节点的allow-multiple缺省为true
+    @xdef:unknown-attr 允许本节点具有未明确定义的属性。所有未定义的属性的类型都满足这里的设置。
+    @xdef:ref 引用本文件中定义的xdef片段或者外部xdef定义。 引用相当于是继承已有定义。如果再增加属性或者子节点则表示在已有定义基础上扩展。
+    @xdef:internal 内部属性，一般保留为系统内部使用，不作为api对外开放
+    @xdef:deprecated 已废弃，不应再使用
+    @xdef:mandatory 是否是必须存在的子节点
+    -->
+    <meta:define meta:name="XDefNode"
+                 meta:bean-tag-prop="tagName" meta:unknown-attr="!xdef-attr" meta:bean-comment-prop="comment"
+                 meta:bean-unknown-attrs-prop="attributes" meta:bean-unknown-children-prop="children"
+                 xdef:id="~string" xdef:name="var-name" xdef:ref="string"
+                 xdef:value="def-type" xdef:body-type="enum:io.nop.xlang.xdef.XDefBodyType"
+                 xdef:unique-attr="xml-name" xdef:key-attr="xml-name" xdef:order-attr="xml-name"
+                 xdef:mandatory="boolean" xdef:ref-resolved="~boolean"
+                 xdef:allow-multiple="boolean" xdef:support-extends="boolean"
+                 xdef:default-override="enum:io.nop.xlang.xdef.XDefOverride"
+                 xdef:internal="boolean" xdef:deprecated="boolean"
+                 xdef:unknown-attr="def-type"
+                 xdef:bean-class="class-name" xdef:bean-body-type="generic-type"
+                 xdef:bean-ref-prop="prop-name" xdef:bean-sub-type-prop="prop-name"
+                 xdef:bean-unknown-attrs-prop="prop-name" xdef:bean-unknown-children-prop="prop-name"
+                 xdef:bean-body-prop="prop-name" xdef:bean-child-name="var-name"
+                 xdef:bean-comment-prop="prop-name"
+                 xdef:bean-tag-prop="prop-name" xdef:bean-prop="prop-name"
+                 xdef:bean-extends-type="generic-type" xdef:bean-implements-types="generic-type-list"
+    >
+        <!--
+        这里的meta:unknown-tag表示节点下允许任意名称的子节点。但是xdef名字空间已经设置为check-ns，因此这里的meta:unknown-tag
+        不会匹配xdef:unknown-tag节点。
+        -->
+        <meta:unknown-tag meta:ref="XDefNode"/>
+
+        <!--
+       这里的xdef:unknown-tag表示在xdef文件的节点中可以存在xdef:unknown-tag定义。因为xdef名字空间设置为check-ns，因此上面的
+       meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
+        -->
+        <xdef:unknown-tag meta:ref="XDefNode"/>
+
+        <!--
+           定义xdef片段，可以通过xdef:ref来引用
+        -->
+        <xdef:define xdef:name="!var-name" meta:ref="XDefNode" meta:unique-attr="xdef:name"
+                     meta:bean-child-name="xdefDefine"/>
+
+    </meta:define>
+
+    <xdef:post-parse meta:value="xpl"/>
+
+</meta:unknown-tag>

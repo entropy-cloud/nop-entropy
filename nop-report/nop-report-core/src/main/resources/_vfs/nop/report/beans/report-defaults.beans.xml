@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <bean id="nopReportEngine"
+          class="io.nop.report.core.engine.ReportEngine">
+        <property name="renderers">
+            <ioc:collect-beans as-map="true" name-prefix="nopReportRenderer_"/>
+        </property>
+    </bean>
+
+    <bean id="nopReportRenderer_xlsx" class="io.nop.report.core.engine.renderer.XlsxReportRendererFactory"/>
+
+    <bean id="nopReportRenderer_html" class="io.nop.report.core.engine.renderer.HtmlReportRendererFactory"/>
+
+</beans>

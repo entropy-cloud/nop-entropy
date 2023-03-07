@@ -1,0 +1,37 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.xlang.xmeta;
+
+import io.nop.api.core.util.Guard;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.xlang.XLangConstants;
+import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xdsl.XDslValidator;
+
+public class SchemaLoader {
+
+    public static IObjMeta loadXMeta(String path) {
+        Guard.notEmpty(path, "metaPath");
+        IObjMeta meta = (IObjMeta) ResourceComponentManager.instance().loadComponentModel(path,
+                XLangConstants.MODEL_TYPE_XMETA);
+        return meta;
+    }
+
+    public static IXDefinition loadXDefinition(String path) {
+        IXDefinition xdef = (IXDefinition) ResourceComponentManager.instance().loadComponentModel(path,
+                XLangConstants.MODEL_TYPE_XDEF);
+        return xdef;
+    }
+
+    public static void validateNode(XNode node, IXDefNode defNode, boolean checkRootName) {
+        new XDslValidator(XDslKeys.of(node)).validate(node, defNode, checkRootName);
+    }
+}

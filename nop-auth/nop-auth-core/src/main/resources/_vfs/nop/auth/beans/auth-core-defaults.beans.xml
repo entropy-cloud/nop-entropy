@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+
+    <bean id="nopAuthTokenProvider" class="io.nop.auth.core.jwt.JwtAuthTokenProvider"
+          ioc:default="true">
+        <property name="encKey" value="@cfg:nop.auth.jwt.enc-key|"/>
+    </bean>
+
+    <bean id="nopPasswordPolicy" class="io.nop.auth.core.password.DefaultPasswordPolicy" ioc:default="true">
+        <property name="upperCaseCount" value="@cfg:nop.auth.password.need-upper-case|0"/>
+        <property name="lowerCaseCount" value="@cfg:nop.auth.password.need-lower-case|0"/>
+        <property name="digitCount" value="@cfg:nop.auth.password.need-digits|0"/>
+        <property name="specialCharCount" value="@cfg:nop.auth.password.need-special-char|1"/>
+        <property name="minLength" value="@cfg:nop.auth.password.min-length|8"/>
+    </bean>
+
+
+    <bean id="nopBCryptPasswordEncoder" class="io.nop.auth.core.password.BCryptPasswordEncoder"
+          autowire-candidate="false"/>
+
+    <bean id="nopSHA256PasswordEncoder" class="io.nop.auth.core.password.SHA256PasswordEncoder"
+          autowire-candidate="false"/>
+
+    <bean id="nopPasswordEncoder" class="io.nop.auth.core.password.CompositePasswordEncoder" ioc:default="true">
+        <property name="firstEncoder" ref="nopSHA256PasswordEncoder"/>
+        <property name="secondEncoder" ref="nopBCryptPasswordEncoder"/>
+    </bean>
+
+    <bean id="nopSessionIdGenerator"
+          class="io.nop.auth.core.login.RandomSessionIdGenerator" ioc:default="true"/>
+
+    <bean id="nopUserContextCache" ioc:default="true"
+          class="io.nop.auth.core.login.LocalUserContextCache">
+    </bean>
+
+    <bean id="io.nop.auth.core.login.UserContextConfig" ioc:type="@bean:id"
+          ioc:config-prefix="nop.login"/>
+
+    <bean id="nopVerifyCodeGenerator" ioc:default="true"
+          class="io.nop.auth.core.verifycode.DefaultVerifyCodeGenerator"/>
+
+</beans>

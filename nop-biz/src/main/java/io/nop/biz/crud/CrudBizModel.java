@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.biz.crud;
 
 import io.nop.api.core.annotations.biz.BizAction;
@@ -48,6 +55,7 @@ import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.orm.utils.OrmQueryHelper;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.impl.ObjKeyModel;
 import io.nop.xlang.xmeta.impl.ObjTreeModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
@@ -79,6 +88,7 @@ import static io.nop.biz.BizErrors.ARG_ACTION_NAME;
 import static io.nop.biz.BizErrors.ARG_CLASS_NAME;
 import static io.nop.biz.BizErrors.ARG_ENTITY_NAME;
 import static io.nop.biz.BizErrors.ARG_ID;
+import static io.nop.biz.BizErrors.ARG_KEY;
 import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
 import static io.nop.biz.BizErrors.ARG_PROP_NAME;
@@ -87,6 +97,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_MATCH_FILTER_CONDITION;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE;
+import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS;
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
@@ -155,6 +166,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     public IEntityDao<T> dao() {
         return daoProvider.dao(getEntityName());
+    }
+
+    public <R extends IOrmEntity> IEntityDao<R> daoFor(Class<R> clazz) {
+        return daoProvider.daoFor(clazz);
     }
 
     public IOrmTemplate orm() {
@@ -338,6 +353,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
+        checkUniqueForSave(entityData);
 
         new OrmEntityCopier(bizObjectManager, getBizObjName()).copyToEntity(entityData.getValidatedData(),
                 entityData.getEntity(), null, entityData.getObjMeta(), daoProvider);
@@ -350,6 +366,32 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         doSaveEntity(entityData, context);
 
         return entityData.getEntity();
+    }
+
+    protected void checkUniqueForSave(EntityData<T> entityData) {
+        IObjMeta objMeta = entityData.getObjMeta();
+        if (objMeta.getKeys() != null) {
+            Map<String, Object> data = entityData.getValidatedData();
+            IEntityDao<T> dao = dao();
+            for (ObjKeyModel keyModel : objMeta.getKeys()) {
+                Set<String> props = keyModel.getProps();
+                if (data.keySet().containsAll(props)) {
+                    T example = dao.newEntity();
+                    List<Object> keys = new ArrayList<>();
+                    for (String propName : props) {
+                        Object value = data.get(propName);
+                        example.orm_propValueByName(propName, value);
+                        keys.add(value);
+                    }
+                    T existing = dao.findFirstByExample(example);
+                    if (existing != null && existing != entityData.getEntity()) {
+                        throw new NopException(ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS)
+                                .param(ARG_KEY, StringHelper.join(keys, ",")).param(ARG_ENTITY_NAME, getEntityName())
+                                .param(ARG_BIZ_OBJ_NAME, getBizObjName());
+                    }
+                }
+            }
+        }
     }
 
     @BizAction
@@ -375,6 +417,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         IEntityDao<T> dao = dao();
         T entity = null;
+        boolean recover = false;
         if (dao.isUseLogicalDelete()) {
             // 如果是逻辑删除后再次添加同样主键的对象
             Object id = getId(data, dao);
@@ -390,13 +433,16 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
                     }
 
                     dao.resetToDefaultValues(entity);
+                    recover = true;
                 }
             }
         }
         if (entity == null) {
             entity = dao.newEntity();
         }
-        return new EntityData<>(validated, entity, objMeta);
+        EntityData entityData = new EntityData<>(validated, entity, objMeta);
+        entityData.setRecoverDeleted(recover);
+        return entityData;
     }
 
     Object getId(Map<String, Object> data, IEntityDao<T> dao) {
@@ -436,7 +482,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     @BizAction
     protected void doSaveEntity(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
-        dao().saveEntity(entityData.getEntity());
+        if (entityData.isRecoverDeleted()) {
+            dao().updateEntity(entityData.getEntity());
+        } else {
+            dao().saveEntity(entityData.getEntity());
+        }
         afterEntityChange(entityData.getEntity(), context);
     }
 
@@ -683,7 +733,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
                     IOrmEntity refEntity = (IOrmEntity) value;
                     // 已经标记为被删除或者不存在的记录不需要再进行进一步的处理
                     if (refEntity.orm_state().isGone()) {
-                        LOG.info("nop.orm.delete-skip-entity-already-gone:entity={}",refEntity);
+                        LOG.info("nop.orm.delete-skip-entity-already-gone:entity={}", refEntity);
                         continue;
                     }
 
@@ -783,9 +833,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
             for (Map<String, Object> item : data) {
                 Object id = item.get(OrmConstants.PROP_ID);
-                if (StringHelper.isEmptyObject(id)) {
+                if (StringHelper.isEmptyObject(id) || ConvertHelper.toBoolean(item.get(OrmConstants.FOR_ADD))) {
                     save(item, context);
                 } else {
+                    // 具有id属性，且没有标记为_forAdd，则是update
                     update(item, context);
                 }
             }
@@ -859,7 +910,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         return dict;
     }
 
-    @Description("根据查询条件返回列表数据。与findPage的不同在于,findPage返回PageBean类型，支持分页，而这个函数返回List类型，而且缺省不分页")
+    @Description("@i18n:biz.findList|根据查询条件返回列表数据。与findPage的不同在于,findPage返回PageBean类型，支持分页，而这个函数返回List类型，而且缺省不分页")
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public List<T> findList(@Name("query") QueryBean query, IServiceContext context) {
@@ -873,5 +924,116 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         List<T> ret = dao().findPageByQuery(query);
         return ret;
+    }
+
+    @Description("@i18n:biz.copyForNew|复制新建")
+    @BizMutation
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context) {
+        Object id = data.get(OrmConstants.PROP_ID);
+
+        IEntityDao<T> dao = dao();
+        T entity = dao.requireEntityById(id);
+        IObjMeta objMeta = getThisObj().requireObjMeta();
+        checkEntityFilter(entity, objMeta);
+
+        FieldSelectionBean inputSelection = objMeta.getFieldSelection(BizConstants.SELECTION_COPY_FOR_NEW);
+        EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
+        entityData.getValidatedData().remove(OrmConstants.PROP_ID);
+
+        T newEntity;
+        if (inputSelection != null) {
+            newEntity = dao.newEntity();
+            new OrmEntityCopier(bizObjectManager, getBizObjName()).copyToEntity(entity,
+                    newEntity, inputSelection, entityData.getObjMeta(), daoProvider);
+        } else {
+            newEntity = (T) entity.cloneInstance();
+            new OrmEntityCopier(bizObjectManager, getBizObjName()).copyToEntity(entityData.getValidatedData(),
+                    newEntity, null, entityData.getObjMeta(), daoProvider);
+        }
+
+        return newEntity;
+    }
+
+    protected <R extends IOrmEntity> void removeRelation(Class<R> relationClass,
+                                                         String leftProp, String rightProp,
+                                                         Object leftValue, Object rightValue) {
+        IEntityDao<R> dao = daoFor(relationClass);
+
+        R example = dao.newEntity();
+        example.orm_propValueByName(leftProp, leftValue);
+        example.orm_propValueByName(rightProp, rightValue);
+        R rel = dao.findFirstByExample(example);
+        if (rel != null) {
+            dao.deleteEntity(rel);
+        }
+    }
+
+    protected <R extends IOrmEntity> void removeRelations(Class<R> relationClass,
+                                                          String leftProp, String rightProp,
+                                                          Object leftValue, Collection<?> rightValues) {
+        IEntityDao<R> dao = daoFor(relationClass);
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(leftProp, leftValue));
+        query.addFilter(FilterBeans.in(rightProp, rightValues));
+        List<R> relations = dao.findAllByQuery(query);
+        dao.batchDeleteEntities(relations);
+    }
+
+    protected <R extends IOrmEntity> void addRelations(Class<R> relationClass,
+                                                       String leftProp, String rightProp,
+                                                       Object leftValue, Collection<?> rightValues) {
+        Map<String, Object> fixedProps = new HashMap<>();
+        fixedProps.put(leftProp, leftValue);
+        updateRelations(relationClass, fixedProps, null, false, rightProp, rightValues);
+    }
+
+    protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
+                                                          String leftProp, String rightProp,
+                                                          Object leftValue, Collection<?> rightValues) {
+        Map<String, Object> fixedProps = new HashMap<>();
+        fixedProps.put(leftProp, leftValue);
+        updateRelations(relationClass, fixedProps, null, true, rightProp, rightValues);
+    }
+
+    protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
+                                                          Map<String, Object> fixedProps,
+                                                          Predicate<R> filter,
+                                                          boolean deleteUnknown,
+                                                          String relProp, Collection<?> relValues) {
+        IEntityDao<R> dao = daoFor(relationClass);
+
+        if (relValues == null) {
+            relValues = Collections.emptyList();
+        }
+
+        R example = dao.newEntity();
+        for (Map.Entry<String, Object> entry : fixedProps.entrySet()) {
+            example.orm_propValueByName(entry.getKey(), entry.getValue());
+        }
+
+        List<R> relations = dao.findAllByExample(example);
+        relValues = CollectionHelper.toStringList(relValues);
+
+        for (R relation : relations) {
+            if (filter != null && !filter.test(relation))
+                continue;
+
+            String relValue = ConvertHelper.toString(relation.orm_propValueByName(relProp));
+            if (!relValues.remove(relValue)) {
+                if (deleteUnknown)
+                    dao.deleteEntity(relation);
+            }
+        }
+
+        for (Object relValue : relValues) {
+            R relation = dao.newEntity();
+            for (Map.Entry<String, Object> entry : fixedProps.entrySet()) {
+                relation.orm_propValueByName(entry.getKey(), entry.getValue());
+            }
+            relation.orm_propValueByName(relProp, relValue);
+            dao.saveEntity(relation);
+        }
     }
 }

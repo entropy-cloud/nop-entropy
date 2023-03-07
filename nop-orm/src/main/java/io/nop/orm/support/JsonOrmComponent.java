@@ -1,19 +1,39 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.orm.support;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.annotations.graphql.GraphQLScalar;
+import io.nop.core.lang.json.IJsonHandler;
+import io.nop.core.lang.json.IJsonSerializable;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
+@GraphQLScalar
 public class JsonOrmComponent extends AbstractOrmComponent
-        implements IPropGetMissingHook, IPropSetMissingHook {
+        implements IPropGetMissingHook, IPropSetMissingHook, IJsonSerializable {
     public static final String PROP_NAME__jsonText = "_jsonText";
 
     static final Object NOT_INITED = new Object();
 
     private Object jsonValue = NOT_INITED;
+
+    @Override
+    public void serializeToJson(IJsonHandler out) {
+        out.value(null, get_jsonValue());
+    }
 
     public String get_jsonText() {
         if (jsonValue != NOT_INITED)
@@ -37,6 +57,20 @@ public class JsonOrmComponent extends AbstractOrmComponent
 
     public void set_jsonValue(Object jsonValue) {
         this.jsonValue = jsonValue;
+    }
+
+    @JsonIgnore
+    public boolean isJsonList() {
+        return get_jsonValue() instanceof List;
+    }
+
+    @JsonIgnore
+    public List<String> getStringList() {
+        return (List<String>) get_jsonValue();
+    }
+
+    public void setStringList(List<String> list) {
+        set_jsonValue(list);
     }
 
     public Object getValue(String name) {
@@ -71,6 +105,14 @@ public class JsonOrmComponent extends AbstractOrmComponent
             String jsonText = JsonTool.stringify(jsonValue);
             internalSetPropValue(PROP_NAME__jsonText, jsonText);
         }
+    }
+
+    @Override
+    public Set<String> prop_names() {
+        Object jsonValue = get_jsonValue();
+        if (jsonValue instanceof Map)
+            return ((Map<String, ?>) jsonValue).keySet();
+        return Collections.emptySet();
     }
 
     @Override

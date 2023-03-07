@@ -1,0 +1,14 @@
+<forms x:schema="/nop/schema/xui/forms.xdef" >
+    <form id="default" x:abstract="true">
+        <layout>
+          a b
+          c
+        </layout>
+    </form>
+
+    <form id="add" x:prototype="default">
+        <cells>
+          <cell id="a" label="AA" />
+        </cells>
+    </form>
+</forms>

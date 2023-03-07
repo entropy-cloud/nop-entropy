@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<site id="!string" label="string" version="string"
+      xdef:name="SiteMapBean" xdef:bean-package="io.nop.auth.api.messages" x:schema="/nop/schema/xdef.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef">
+    <!--
+   每一个功能点是一个资源，一个资源包含一组后台操作。
+
+   @id 资源id是全局唯一的。后台通过指定资源id和角色之间的映射关系来实现权限分配
+   @depends  资源可能依赖其他的资源。例如[用户管理]资源会依赖于[选择角色]资源。
+       为用户赋权时，允许访问资源，则自动允许访问所有依赖的资源。
+   -->
+    <resource xdef:name="SiteResourceBean" xdef:unique-attr="id" resourceType="string"
+              id="!string" depends="csv-set" displayName="string" orderNo="!int=0"
+              routePath="string" url="string" target="string" icon="string" component="string"
+              hidden="!boolean=false" keepAlive="!boolean=false" noAuth="!boolean=false">
+
+        <description xdef:value="string"/>
+
+        <permissions xdef:value="word-set"/>
+
+        <meta xdef:value="json"/>
+
+        <props xdef:value="json"/>
+
+        <children xdef:body-type="list" xdef:key-attr="id">
+            <resource id="!string" xdef:ref="SiteResourceBean"/>
+        </children>
+    </resource>
+
+</site>

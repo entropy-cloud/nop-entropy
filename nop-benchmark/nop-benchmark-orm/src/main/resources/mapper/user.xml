@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.beetl.sql.jmh.mybatis.MyBatisUserRepository">
+
+    <select id="selectUser" resultType="org.beetl.sql.jmh.mybatis.vo.MyBatisSysUser">
+        select * from sys_user where 1=1
+        <if test="id!=null and id != ''">
+            and id = #{id}
+        </if>
+    </select>
+
+    <select id="selectView" resultMap="myBatisSysCustomerView">
+        select c.*,o.id o_id,o.name o_name from sys_customer c
+        left join sys_order o on c.id=o.customer_id
+        where c.id=#{id}
+    </select>
+
+
+    <resultMap id="myBatisSysCustomerView" type="org.beetl.sql.jmh.mybatis.vo.MyBatisSysCustomerView">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <collection property="order"
+                    ofType="org.beetl.sql.jmh.mybatis.vo.MyBatisSysOrder">
+            <id property="id" column="o_id"/>
+            <result property="name" column="o_name"/>
+        </collection>
+    </resultMap>
+
+</mapper>

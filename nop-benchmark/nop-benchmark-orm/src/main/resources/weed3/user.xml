@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<mapper namespace="org.beetl.sql.jmh.weed.mapper"
+        import="org.beetl.sql.jmh.weed.model.*">
+
+    <sql id="userSelect" return="WeedSQLSysUser">
+        select * from sys_user where 1=1
+        <if test="id??">
+            and id = @{id:Integer}
+        </if>
+    </sql>
+
+    <sql id="queryPage" return="List[WeedSQLSysUser]">
+        select * from sys_user where code=@{code:String} limit @{start:int},@{end:int}
+    </sql>
+
+</mapper>

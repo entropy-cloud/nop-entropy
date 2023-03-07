@@ -1,0 +1,6 @@
+<c:unit xpl:outputMode="text">package ${basePackageName}.service;
+
+public interface ${moduleClassPrefix}Errors{
+	
+}
+</c:unit>

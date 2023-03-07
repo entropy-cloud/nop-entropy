@@ -1,0 +1,187 @@
+<orm displayName="demo" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <domains>
+        <domain displayName="blob" name="blob" stdDataType="bytes" stdSqlType="VARBINARY"/>
+        <domain displayName="clob" name="clob" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="date" name="date" stdDataType="date" stdDomain="date" stdSqlType="DATE"/>
+        <domain displayName="datetime" name="datetime" stdDataType="datetime" stdDomain="datetime" stdSqlType="DATE"/>
+        <domain displayName="degree" name="degree" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="deptId" name="deptId" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="file" name="file" precision="500" stdDataType="string" stdDomain="file"
+                stdSqlType="VARCHAR"/>
+        <domain displayName="fileList" name="fileList" stdDataType="int" stdDomain="fileList" stdSqlType="INTEGER"/>
+        <domain displayName="html" name="html" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="long" name="long" stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
+        <domain displayName="roleId" name="roleId" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="string_int" name="string_int" stdDataType="string" stdDomain="string"
+                stdSqlType="INTEGER"/>
+        <domain displayName="string_long" name="string_long" stdDataType="string" stdDomain="string"
+                stdSqlType="INTEGER"/>
+        <domain displayName="userId" name="userId" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="userName" name="userName" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="userNick" name="userNick" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
+    </domains>
+    <entities>
+        <entity className="app.demo.DemoDict" displayName="DEMO_DICT" name="app.demo.DemoDict" tableName="demo_dict">
+            <columns>
+                <column code="SID" displayName="SID" domain="long" mandatory="true" name="sid" primary="true" propId="1"
+                        stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
+                <column code="NAME" displayName="NAME" mandatory="true" name="name" precision="100" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <relations>
+                <to-many displayName="DEMO_MAIN" name="demoMains" refEntityName="app.demo.DemoMain" refPropName="dict">
+                    <join>
+                        <on leftProp="sid" rightProp="dictId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="app.demo.DemoMain" displayName="DEMO_MAIN" name="app.demo.DemoMain" tableName="demo_main">
+            <columns>
+                <column code="SID" displayName="SID" domain="string_long" mandatory="true" name="sid" primary="true"
+                        propId="1" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
+                <column code="STR_VALUE" displayName="STR_VALUE" mandatory="true" name="strValue" precision="50"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="INT_VALUE" displayName="INT_VALUE" mandatory="true" name="intValue" propId="3"
+                        stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="INTEGER_VALUE" displayName="INTEGER_VALUE" name="integerValue" propId="4"
+                        stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="FILE_VALUE" displayName="FILE_VALUE" domain="file" name="fileValue" precision="500"
+                        propId="5" stdDataType="string" stdDomain="file" stdSqlType="VARCHAR"/>
+                <column code="FILE_LIST_VALUE" displayName="FILE_LIST_VALUE" domain="fileList" name="fileListValue"
+                        propId="6" stdDataType="int" stdDomain="fileList" stdSqlType="INTEGER"/>
+                <column code="USER_ID" displayName="USER_ID" domain="userId" name="userId" precision="50" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="DATE_VALUE" displayName="DATE_VALUE" domain="date" name="dateValue" propId="8"
+                        stdDataType="date" stdDomain="date" stdSqlType="DATE"/>
+                <column code="DATETIME_VALUE" displayName="DATETIME_VALUE" domain="datetime" name="datetimeValue"
+                        propId="9" stdDataType="datetime" stdDomain="datetime" stdSqlType="DATE"/>
+                <column code="DICT_ID" displayName="DICT_ID" domain="long" name="dictId" propId="10" stdDataType="long"
+                        stdDomain="long" stdSqlType="INTEGER"/>
+            </columns>
+            <relations>
+                <to-one displayName="dict" name="dict" refDisplayName="DEMO_MAIN" refEntityName="app.demo.DemoDict"
+                        refPropName="demoMains">
+                    <join>
+                        <on leftProp="dictId" rightProp="sid"/>
+                    </join>
+                </to-one>
+                <to-many displayName="DEMO_MID" name="demoMids" refEntityName="app.demo.DemoMid" refPropName="main">
+                    <join>
+                        <on leftProp="sid" rightProp="mainId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="DEMO_SUB_TABLE" name="demoSubTables" refEntityName="app.demo.DemoSubTable"
+                         refPropName="main">
+                    <join>
+                        <on leftProp="sid" rightProp="mainId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="子表" name="subList2" refEntityName="app.demo.DemoSubTable2" refPropName="main">
+                    <join>
+                        <on leftProp="sid" rightProp="mainId"/>
+                    </join>
+                    <sort>
+                        <field name="title"/>
+                    </sort>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="app.demo.DemoMid" displayName="DEMO_MID" name="app.demo.DemoMid" tableName="demo_mid">
+            <columns>
+                <column code="SID" displayName="SID" domain="long" mandatory="true" name="sid" primary="true" propId="1"
+                        stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
+                <column code="SEC_ID" displayName="SEC_ID" domain="string_long" name="secId" propId="2"
+                        stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
+                <column code="MAIN_ID" displayName="MAIN_ID" domain="string_long" mandatory="true" name="mainId"
+                        propId="3" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
+                <column code="TITLE" displayName="TITLE" name="title" precision="100" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+            </columns>
+            <relations>
+                <to-one displayName="sec" name="sec" refDisplayName="DEMO_MID" refEntityName="app.demo.DemoSecMain"
+                        refPropName="demoMids">
+                    <join>
+                        <on leftProp="secId" rightProp="sid"/>
+                    </join>
+                </to-one>
+                <to-one displayName="main" name="main" refDisplayName="DEMO_MID" refEntityName="app.demo.DemoMain"
+                        refPropName="demoMids">
+                    <join>
+                        <on leftProp="mainId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="app.demo.other.DemoOtherTable" displayName="DEMO_OTHER_TABLE"
+                name="app.demo.other.DemoOtherTable" tableName="demo_other_table">
+            <columns>
+                <column code="SID" displayName="SID" domain="long" mandatory="true" name="sid" primary="true" propId="1"
+                        stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
+                <column code="MAIN_ID" displayName="MAIN_ID" domain="string_int" mandatory="true" name="mainId"
+                        propId="2" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
+                <column code="TITLE" displayName="TITLE" name="title" precision="100" propId="3" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+        <entity className="app.demo.DemoSecMain" displayName="DEMO_SEC_MAIN" name="app.demo.DemoSecMain"
+                tableName="demo_sec_main">
+            <columns>
+                <column code="SID" displayName="SID" domain="string_long" mandatory="true" name="sid" primary="true"
+                        propId="1" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
+                <column code="TITLE" displayName="TITLE" name="title" precision="100" propId="2" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+            </columns>
+            <relations>
+                <to-many displayName="DEMO_MID" name="demoMids" refEntityName="app.demo.DemoMid" refPropName="sec">
+                    <join>
+                        <on leftProp="sid" rightProp="secId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="app.demo.DemoSubTable" displayName="DEMO_SUB_TABLE" name="app.demo.DemoSubTable"
+                tableName="demo_sub_table">
+            <columns>
+                <column code="SID" displayName="SID" domain="long" mandatory="true" name="sid" primary="true" propId="1"
+                        stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
+                <column code="MAIN_ID" displayName="MAIN_ID" domain="string_long" mandatory="true" name="mainId"
+                        propId="2" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
+                <column code="TITLE" displayName="TITLE" name="title" precision="100" propId="3" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+            </columns>
+            <relations>
+                <to-one displayName="main" name="main" refDisplayName="DEMO_SUB_TABLE" refEntityName="app.demo.DemoMain"
+                        refPropName="demoSubTables">
+                    <join>
+                        <on leftProp="mainId" rightProp="sid"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="app.demo.DemoSubTable2" displayName="DEMO_SUB_TABLE2" name="app.demo.DemoSubTable2"
+                tableName="demo_sub_table2">
+            <columns>
+                <column code="SID" displayName="SID" domain="long" mandatory="true" name="sid" primary="true" propId="1"
+                        stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
+                <column code="MAIN_ID" displayName="MAIN_ID" domain="string_int" mandatory="true" name="mainId"
+                        propId="2" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
+                <column code="TITLE" displayName="TITLE" name="title" precision="100" propId="3" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+            </columns>
+            <relations>
+                <to-one displayName="主表" name="main" refDisplayName="子表" refEntityName="app.demo.DemoMain"
+                        refPropName="subList2">
+                    <join>
+                        <on leftProp="mainId" rightProp="sid"/>
+                    </join>
+                    <ref-set>
+                        <sort>
+                            <field name="title"/>
+                        </sort>
+                    </ref-set>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

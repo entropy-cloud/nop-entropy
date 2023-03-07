@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.pattern;
 
 import io.nop.api.core.util.Guard;
@@ -47,17 +54,14 @@ public class MapMatchPattern implements IMatchPattern {
         Object value = state.getValue();
         if (value == null) {
             if (collectError) {
-                state.buildError(ERR_MATCH_OBJECT_IS_NULL)
-                        .addToCollector(state.getErrorCollector());
+                state.buildError(ERR_MATCH_OBJECT_IS_NULL).addToCollector(state.getErrorCollector());
             }
             return false;
         }
 
-        if (StdDataType.fromJavaClass(value.getClass()).isSimpleType()
-                || value instanceof Collection<?>) {
+        if (StdDataType.fromJavaClass(value.getClass()).isSimpleType() || value instanceof Collection<?>) {
             if (collectError) {
-                state.buildError(ERR_MATCH_FIELD_NOT_OBJECT)
-                        .addToCollector(state.getErrorCollector());
+                state.buildError(ERR_MATCH_FIELD_NOT_OBJECT).addToCollector(state.getErrorCollector());
             }
             return false;
         }
@@ -89,8 +93,7 @@ public class MapMatchPattern implements IMatchPattern {
 
             try {
                 if (!map.containsKey(name)) {
-                    state.buildError(ERR_MATCH_FIELD_NOT_EXISTS)
-                            .addToCollector(state.getErrorCollector());
+                    state.buildError(ERR_MATCH_FIELD_NOT_EXISTS).addToCollector(state.getErrorCollector());
                     continue;
                 }
 
@@ -125,8 +128,7 @@ public class MapMatchPattern implements IMatchPattern {
                         } else {
                             matched = false;
                             if (collectError) {
-                                state.buildError(ERR_MATCH_FIELD_NOT_EXISTS)
-                                        .param(ARG_ALLOWED_NAMES, map.keySet())
+                                state.buildError(ERR_MATCH_FIELD_NOT_EXISTS).param(ARG_ALLOWED_NAMES, map.keySet())
                                         .addToCollector(state.getErrorCollector());
                             }
                         }
@@ -142,7 +144,6 @@ public class MapMatchPattern implements IMatchPattern {
     SourceLocation getLocation(Map<String, Object> map, String name) {
         return SourceLocationHelper.getPropLocation(map, name);
     }
-
 
     boolean matchBean(Object bean, MatchState state, boolean collectError) {
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(bean.getClass());

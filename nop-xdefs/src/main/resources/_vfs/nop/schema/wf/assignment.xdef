@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+@selection 是否允许在actors范围内选择，是单选还是多选
+@selectInAssignment 是否要求actor必须在assignment范围内选择。如果选择false, 则引擎执行时以前台传入的selectedActors为准，不检查是否它们是否在assignment范围内。
+@ignoreNoAssign 是否允许不选择actor。如果不允许，则当selectedActors为空时会抛出异常
+ -->
+<assignment selection="enum:io.nop.wf.api.actor.WfAssignmentSelection" selectInAssignment="!boolean=true"
+            ignoreNoAssign="!boolean=false" useManagerWhenNoAssign="!boolean=true"
+            xdef:name="WfAssignmentModel" xdef:bean-package="io.nop.wf.core.model"
+            x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+>
+    <!--
+    从actors集合中过滤得到实际使用的actor列表。仅当selection=auto时才会被使用。
+    -->
+    <selectExpr xdef:value="xpl"/>
+
+    <!--
+    对于每一个actor，从actor对应的user中选择一个作为owner
+    -->
+    <defaultOwnerExpr xdef:value="xpl"/>
+
+    <actors xdef:body-type="list">
+        <!--
+          @type actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
+          @selectUser 选择actor本身还是actor对应的user
+          @assignForUser 是否为actor中的每个用户生成步骤实例
+        -->
+        <actor actorId="string" type="!string" deptId="string" selectUser="!boolean=true" assignForUser="!boolean=false"
+               xdef:allow-multiple="true" xdef:name="WfAssignmentActorModel"/>
+    </actors>
+
+</assignment>

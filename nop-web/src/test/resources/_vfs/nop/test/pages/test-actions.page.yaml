@@ -1,0 +1,3 @@
+x:gen-extends: >
+  <web:GenPage view="test-actions.view.xml" page="edit"
+                                               xpl:lib="/nop/web/xlib/web.xlib" />

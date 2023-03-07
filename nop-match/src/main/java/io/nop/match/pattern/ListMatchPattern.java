@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.pattern;
 
 import io.nop.api.core.util.SourceLocation;
@@ -33,16 +40,14 @@ public class ListMatchPattern implements IMatchPattern {
         Object value = state.getValue();
         if (value == null) {
             if (collectError) {
-                state.buildError(ERR_MATCH_OBJECT_IS_NULL)
-                        .addToCollector(state.getErrorCollector());
+                state.buildError(ERR_MATCH_OBJECT_IS_NULL).addToCollector(state.getErrorCollector());
             }
             return false;
         }
 
         if (!(value instanceof Collection<?>)) {
             if (collectError) {
-                state.buildError(ERR_MATCH_FIELD_NOT_LIST)
-                        .addToCollector(state.getErrorCollector());
+                state.buildError(ERR_MATCH_FIELD_NOT_LIST).addToCollector(state.getErrorCollector());
             }
             return false;
         }
@@ -58,9 +63,8 @@ public class ListMatchPattern implements IMatchPattern {
     private boolean matchList(Collection<?> list, MatchState state, boolean collectError) {
         if (patterns.size() != list.size()) {
             if (collectError) {
-                state.buildError(ERR_MATCH_LIST_SIZE_NOT_MATCH)
-                        .param(ARG_SIZE, list.size())
-                        .param(ARG_EXPECTED, patterns.size());
+                state.buildError(ERR_MATCH_LIST_SIZE_NOT_MATCH).param(ARG_SIZE, list.size()).param(ARG_EXPECTED,
+                        patterns.size());
             }
             return false;
         }

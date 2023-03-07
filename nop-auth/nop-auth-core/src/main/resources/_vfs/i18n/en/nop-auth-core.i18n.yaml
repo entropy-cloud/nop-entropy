@@ -1,0 +1,51 @@
+dict:
+  label:
+    auth/gender: Gender
+    auth/login-status: Login Status
+    auth/login-type: Login Type
+    auth/resource-type: Resource Type
+    auth/tenant-status: Tenant Status
+    auth/user-status: User Status
+    auth/user-type: User Type
+
+dict.option.label:
+  auth/gender:
+    1: Male
+    2: Female
+
+  auth/login-status:
+    1: Online
+    2: Offline
+
+  auth/login-type:
+    1: UserName-Password
+    2: Email-Password
+    3: Phone-Password
+    4: SSO
+
+  auth/logout-type:
+    0: None
+    1: Logout
+    2: Expired
+    3: Killed
+    4: Relogin
+    5: SSO callback
+
+  auth/resource-type:
+    TOPM: Top Menu
+    SUBM: Sub Menu
+    FNPT: FunctionPoint
+
+  auth/tenant-status:
+    1: Normal
+    0: Disabled
+    -1: Abandoned
+
+  auth/user-status:
+    0: Suspended
+    1: Active
+    2: Disabled
+
+  auth/user-type:
+    1: Normal
+    100: External

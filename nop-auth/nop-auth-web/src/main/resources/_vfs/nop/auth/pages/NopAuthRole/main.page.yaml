@@ -1,0 +1,3 @@
+xui:js: '@include:NopAuthRole.action.js'
+x:gen-extends: |
+  <web:GenPage view="NopAuthRole.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

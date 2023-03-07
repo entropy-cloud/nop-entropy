@@ -21,7 +21,7 @@
         DATABASE ,DATABASES ,DAY_HOUR ,DAY_MICROSECOND ,DAY_MINUTE ,
         DAY_SECOND ,DEC ,DECIMAL ,DECLARE ,
         DEFAULT ,DELAYED ,DELETE , DELETE_DOMAIN_ID,
-        DESC ,  DESCRIBE , DETERMINISTIC , DISTINCT ,DISTINCTROW ,
+        DESC , DESCRIBE , DETERMINISTIC , DISTINCT ,DISTINCTROW ,
         DIV ,DO_DOMAIN_IDS, DOUBLE ,DROP , DUAL ,
 
         EACH ,ELSE ,ELSEIF , ENCLOSED ,
@@ -102,7 +102,7 @@
         ZEROFILL
     </reservedKeywords>
 
-    <features supportSequence="true" />
+    <features supportSequence="true"/>
 
     <sqls>
         <!--
@@ -136,7 +136,7 @@
         -->
         <sqlDataType name="VARCHAR" precision="65532" x:override="merge"/>
 
-        <sqlDataType name="TEXT" x:override="merge" />
+        <sqlDataType name="TEXT" x:override="merge"/>
 
     </sqlDataTypes>
 </dialect>

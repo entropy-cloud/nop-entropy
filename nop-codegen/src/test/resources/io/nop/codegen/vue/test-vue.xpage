@@ -1,0 +1,49 @@
+<template>
+    <div class="AnimationListView">
+        <nop-action>
+            <attr:api url="ss" method="get">
+                <headers a="@:1" b="@:2"/>
+            </attr:api>
+
+            <slot:popup scope="{data}">
+                <el-dialog/>
+            </slot:popup>
+        </nop-action>
+        <!-- 查询条件 -->
+        <div class="AnimationListView-search">
+            <el-form class="AnimationListView-searchForm">
+                <el-form-item label="标题">
+                    <el-input value="@: title" on:input="handleTitleChange"/>
+                </el-form-item>
+            </el-form>
+            <div class="AnimationListView-searchOperations">
+                <el-button type="primary" on:click="handleSearch">查询</el-button>
+                <el-button on:click="handleReset">重置</el-button>
+            </div>
+        </div>
+        <!-- 表格行外操作 -->
+        <div class="AnimationListView-operations">
+            <el-button type="primary" on:click="handleCreate">新增</el-button>
+        </div>
+        <!-- 数据展示 -->
+        <div class="AnimationListView-data">
+            <el-table class="AnimationListView-table" data="@: tableData">
+                <el-table-column prop="title" label="标题"/>
+                <el-table-column prop="description" label="简介"/>
+                <el-table-column prop="episodes" label="集数"/>
+                <!-- 表格行内操作 -->
+                <el-table-column label="操作" v-slot="{row}">
+                    <el-button on:click="handleEdit(row)">编辑</el-button>
+                </el-table-column>
+            </el-table>
+            <el-pagination
+                    class="AnimationListView-pagination"
+                    page-size="@: pageSize"
+                    current-page="@: pageNumber"
+                    total="@:total"
+                    on:size-change="handlePageSizeChange"
+                    on:current-change="handlePageNumberChange"
+            />
+        </div>
+    </div>
+</template>

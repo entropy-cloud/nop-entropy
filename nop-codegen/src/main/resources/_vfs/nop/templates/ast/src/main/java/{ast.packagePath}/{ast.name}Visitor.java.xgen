@@ -3,13 +3,14 @@ package ${ast.packageName};
 
 import io.nop.commons.functional.visit.AbstractVisitor;
 
+// tell cpd to start ignoring code - CPD-OFF
 public class ${ast.name}Visitor extends AbstractVisitor&lt;${ast.name}Node>{
 
     @Override
     public void visit(${ast.name}Node node){
         switch(node.getASTKind()){
         <c:for var="_classModel" items="${ast.defines}">
-            <c:if test="${!_classModel.isAbstract()}">
+            <c:if test="${!_classModel.abstract}">
                 case ${_classModel.simpleClassName}:
                     visit${_classModel.simpleClassName}((${_classModel.simpleClassName})node);
                     return;
@@ -21,7 +22,7 @@ public class ${ast.name}Visitor extends AbstractVisitor&lt;${ast.name}Node>{
     }
 
     <c:for var="_classModel" items="${ast.defines}">
-        <c:if test="${!_classModel.isAbstract()}">
+        <c:if test="${!_classModel.abstract}">
             public void visit${_classModel.simpleClassName}(${_classModel.simpleClassName} node){
             <c:for var="_f" items="${_classModel.props}">
                 <c:if test="${ast.getDefine(_f.simpleClassName)}">
@@ -33,4 +34,5 @@ public class ${ast.name}Visitor extends AbstractVisitor&lt;${ast.name}Node>{
         </c:if>
     </c:for>
 }
+// resume CPD analysis - CPD-ON
 </c:unit>

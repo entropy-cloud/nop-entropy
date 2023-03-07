@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+>
+    <bean id="testMap" class="test.io.entropy.InvalidBean">
+        <property name="mapProp">
+            <map>
+                <entry key="xx" value="tt"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="testMap" class="test.io.entropy.InvalidBean2"/>
+</beans>

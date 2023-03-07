@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+ schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+      Map对应props配置,  List对应item配置, Union对应oneOf配置
+
+@typeValue 作为union的选项时，用于区分具体的子类型
+@minProperties 最少有多少个属性。对应于json schema中的minProperties属性
+@maxProperties 最多有多少个属性
+@uniqueProp 可以用于区分同类型的不同对象的唯一标识属性
+
+@subTypeProp 仅在UnionSchema情况下有效，用于区分具体是哪个子类型
+
+@keyProp 当为列表类型时，keyProp对应列表元素上的唯一标识属性
+@type 泛型类型声明
+@dict 对应数据字典的名称。可以是常量类的类名，或者dict定义文件的路径
+@precision 小数位数
+@pattern 正则字符串模式
+@minItems 对于集合类型，限制集合中的最少条目数
+@excludeMin 是否要求必须严格大于最小值。
+-->
+<schema xdef:ref="schema-node.xdef" typeValue="string" abstract="boolean"
+        xdef:name="ISchema" xdef:bean-package="io.nop.xlang.xmeta"
+        interface="boolean" extendsType="generic-type" implementsTypes="generic-type-list"
+        minProperties="int" supportExtends="boolean"
+
+        subTypeProp="prop-name"
+        minItems="int" maxItems="int" keyProp="prop-name" orderProp="prop-name"
+
+        type="generic-type" domain="xml-name" dict="string"
+        precision="int" scale="int" pattern="regex" min="double" max="double"
+        utf8Length="int"
+        excludeMin="boolean" excludeMax="boolean"
+        minLength="int" maxLength="int" multipleOf="int"
+
+        x:schema="/nop/schema/xdef.xdef"
+        xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <!--
+    如果是列表类型，则对应列表元素的schema
+    -->
+    <item xdef:ref="ISchema" xdef:bean-prop="itemSchema"/>
+
+    <props xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @mandatory 属性值是否不允许为空值
+        @internal 是否内部属性。内部属性不出现在IDE的提示列表中，一般情况下在界面上也不可见。
+        @allowCpExpr 是否支持编译期表达式
+        @deprecated 是否已废弃。标记为废弃的属性不出现在IDE的提示信息里
+        @propId 属性的顺序标识，可以对应于protobuf标准中的propId属性
+        @xmlName 转换为xml属性或者节点时对应的标签名，一般情况下与属性名一致
+        @childXmlName 子节点的标签名。有时子节点的标签名没有对应于任何对象属性，因此需要单独记录。
+        @childName 集合属性中的单个对象的名称。例如children集合中每个对象称为child， attrs集合中每个对象称为attr。生成器会根据childName生成
+           get${prop.childName}(String name)等方法。
+        @defaultOverride 对应于xdef文件中的xdef:default-override设置
+        @depends 获取本字段的值的时候，需要依赖其他字段。例如在批量加载的时候，表示需要把相关字段也进行批量加载
+        @tagSet 逗号分隔的自定义附加标识
+        @defaultValue 缺省值
+        -->
+        <prop xdef:name="ObjPropMetaImpl"
+              name="!prop-name" displayName="string"
+              mandatory="!boolean=false" internal="!boolean=false" allowCpExpr="boolean"
+              deprecated="!boolean=false" defaultValue="any"
+              mapTo="prop-path" propId="int" depends="csv-set"
+              xmlName="xml-name" childXmlName="xml-name" xmlPos="enum:io.nop.core.lang.xml.XNodeValuePosition"
+              childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
+              tagSet="tag-set" lazy="!boolean=false"
+              insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false"
+              published="!boolean=true" allowFilterOp="word-set"
+        >
+            <description xdef:value="string"/>
+
+            <schema xdef:ref="ISchema"/>
+
+            <auth xdef:ref="auth.xdef"/>
+
+            <!--
+            对应graphql的argument
+            -->
+            <arg xdef:name="ObjPropArgModel" name="!var-name" mandatory="!boolean=false"
+                 displayName="string" xdef:unique-attr="name">
+                <description xdef:value="string"/>
+                <schema xdef:ref="ISchema"/>
+            </arg>
+
+            <!--
+              新增或者修改的时候如果前台没有发送本字段的值，则可以根据autoExpr来自动计算得到
+             -->
+            <autoExpr when="!csv-set" xdef:bean-body-prop="source"
+                      xdef:name="ObjConditionExpr" xdef:value="xpl"/>
+
+            <!--
+            对前台输入的值进行适配转换
+            -->
+            <transformIn xdef:value="xpl"/>
+
+            <!--
+            后台返回的值可能需要进行格式转换
+            -->
+            <transformOut xdef:value="xpl"/>
+
+            <!--
+            根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set
+            -->
+            <getter xdef:value="xpl"/>
+
+            <!--
+            对外部传入的值进行处理，可能会设置entity对象的属性
+            -->
+            <setter xdef:value="xpl"/>
+        </prop>
+    </props>
+
+    <!--
+    符合且仅符合其中一项约束。类似union结构
+    -->
+    <oneOf xdef:body-type="list">
+        <schema xdef:ref="ISchema"/>
+    </oneOf>
+
+    <unknownTag xdef:ref="ISchema" xdef:bean-prop="unknownTagSchema"/>
+
+    <unknownAttr xdef:ref="ISchema" xdef:bean-prop="unknownAttrSchema"/>
+</schema>

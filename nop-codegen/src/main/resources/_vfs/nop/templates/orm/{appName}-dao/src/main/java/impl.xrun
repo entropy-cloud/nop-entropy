@@ -1,0 +1,2 @@
+<gen:Render template="/nop/templates/orm-entity" targetDir="${targetResource.path.$filePath()}"
+            xpl:lib="/nop/codegen/xlib/gen.xlib"/>

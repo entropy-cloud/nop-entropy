@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  每个业务模型(bizModel)必须关联一个对象模型(objMeta)。BizModel作为后端模型，只返回json, 不允许输出文本， 不包含具体界面实现
+  @wfName BizModel可以选择关联一个工作流定义(Workflow)
+  @metaDir 根据传入的bizType参数，可以在metaDir目录下动态查找关联的objMeta模型。
+-->
+<biz xdef:default-extends="/nop/core/defaults/default.xbiz" wfName="string" metaDir="v-path"
+     xdef:bean-package="io.nop.biz.model" xdef:name="BizModel"
+     x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+>
+
+    <actions xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="action"
+             xdef:bean-body-type="List&lt;io.nop.biz.model.BizActionModel>">
+        <!--
+          @executor executor + "Executor"为BeanLoader中的bean的id, 用于控制异步执行时的分组
+          @timeout 异步执行时的超时时间
+          @async 是否异步调用。如果是异步调用，则返回CompletionStage。return部分描述的是异步返回的数据的类型
+        -->
+        <query xdef:name="BizActionModel" name="!string" displayName="string"
+               executor="string" bizSequential="!boolean=false"
+               timeout="long" disabled="!boolean=false"
+               async="!boolean=false" xdef:bean-tag-prop="type">
+
+            <auth xdef:ref="../schema/auth.xdef"/>
+
+            <!--
+              @transactional 是否自动打开事务
+            -->
+            <txn transactional="boolean" txnGroup="string" xdef:name="BizTxnModel"
+                 propagation="enum:io.nop.api.core.annotations.txn.TransactionPropagation"/>
+
+            <tcc confirmMethod="var-name" cancelMethod="!var-name" xdef:name="BizTccModel"/>
+
+            <maker-checker tryMethod="var-name" cancelMethod="var-name" xdef:name="BizMakerCheckerModel"/>
+
+            <!--
+             是否缓存action调用结果
+            -->
+            <cache cacheName="string" cacheKeyExpr="expr" xdef:name="BizCacheModel"/>
+
+            <cache-evicts xdef:body-type="list">
+                <cache-evict cacheName="string" cacheKeyExpr="expr" xdef:name="BizCacheEvictModel"/>
+            </cache-evicts>
+
+            <arg xdef:name="BizActionArgModel" name="!var-name" mandatory="!boolean=false"
+                 displayName="string" xdef:unique-attr="name"
+                 kind="enum:io.nop.api.core.annotations.biz.BizActionArgKind">
+                <description xdef:value="string"/>
+                <schema xdef:ref="../schema/schema.xdef"/>
+            </arg>
+
+            <return xdef:name="BizReturnModel" name="string" mandatory="!boolean=false">
+                <schema xdef:ref="../schema/schema.xdef"/>
+            </return>
+
+            <source xdef:value="xpl"/>
+        </query>
+
+        <mutation name="!string" xdef:ref="BizActionModel"/>
+
+        <subscription name="!string" xdef:ref="BizActionModel" />
+
+        <!--
+        内部函数，不对外暴露为graphql操作
+        -->
+        <action name="!string" xdef:ref="BizActionModel"/>
+    </actions>
+
+    <loaders xdef:body-type="list" xdef:key-attr="name">
+        <loader name="!string" xdef:name="BizLoaderModel" disabled="!boolean=false">
+            <!--
+              是否缓存action调用结果
+             -->
+            <cache xdef:ref="BizCacheModel"/>
+
+            <arg xdef:ref="BizActionArgModel" name="!var-name" xdef:unique-attr="name"/>
+
+            <return xdef:ref="BizReturnModel"/>
+
+            <source xdef:value="xpl"/>
+        </loader>
+    </loaders>
+
+    <state-machine xdef:ref="state-machine.xdef"/>
+
+    <observes xdef:body-type="list" xdef:key-attr="id">
+        <!--
+          监听全局EventBus上的event。当执行BizModel的action时会触发event, 此时from=bizObjName,event=actionId
+        -->
+        <observe xdef:name="BizObserveModel" id="!string" from="!string" eventPattern="!string">
+            <source xdef:value="xpl"/>
+        </observe>
+    </observes>
+</biz>

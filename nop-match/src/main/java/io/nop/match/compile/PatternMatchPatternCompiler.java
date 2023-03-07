@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.compile;
 
 import io.nop.api.core.convert.ConvertHelper;
@@ -33,7 +40,6 @@ import static io.nop.match.MatchErrors.ERR_MATCH_UNKNOWN_PATTERN;
 public class PatternMatchPatternCompiler implements IMatchPatternCompiler {
     public static PatternMatchPatternCompiler INSTANCE = new PatternMatchPatternCompiler();
 
-
     @Override
     public IMatchPattern parseFromValue(SourceLocation loc, Object value, MatchPatternCompileConfig config) {
         return parseValuePattern(loc, value, config);
@@ -44,8 +50,7 @@ public class PatternMatchPatternCompiler implements IMatchPatternCompiler {
         options.setStrictMode(false);
         options.setTargetType(JObject.class);
 
-        Map<String, Object> json = (Map<String, Object>) JsonTool.instance()
-                .parseFromText(loc, text, options);
+        Map<String, Object> json = (Map<String, Object>) JsonTool.instance().parseFromText(loc, text, options);
 
         return parseFromJson(json, config);
     }
@@ -54,8 +59,7 @@ public class PatternMatchPatternCompiler implements IMatchPatternCompiler {
         String pattern = ConvertHelper.toString(json.get(MatchConstants.KEY_PREFIX));
         if (pattern != null && !pattern.equals(NAME_PATTERN)) {
             SourceLocation loc = SourceLocationHelper.getBeanLocation(json);
-            return requireCompiler(loc, pattern, config)
-                    .parseFromValue(loc, json, config);
+            return requireCompiler(loc, pattern, config).parseFromValue(loc, json, config);
         } else {
             return parseMapPattern(json, config);
         }
@@ -83,8 +87,7 @@ public class PatternMatchPatternCompiler implements IMatchPatternCompiler {
         return new MapMatchPattern(patterns, extPropsPattern);
     }
 
-    protected IMatchPattern parseValuePattern(SourceLocation loc, Object value,
-                                              MatchPatternCompileConfig config) {
+    protected IMatchPattern parseValuePattern(SourceLocation loc, Object value, MatchPatternCompileConfig config) {
         if (value == null) {
             return IsNullMatchPattern.INSTANCE;
         }
@@ -112,8 +115,7 @@ public class PatternMatchPatternCompiler implements IMatchPatternCompiler {
         return new ListMatchPattern(patterns);
     }
 
-    protected IMatchPattern parseFromStringValue(SourceLocation loc, String text,
-                                                 MatchPatternCompileConfig config) {
+    protected IMatchPattern parseFromStringValue(SourceLocation loc, String text, MatchPatternCompileConfig config) {
         if (MATCH_ALL_PATTERN.equals(text))
             return AlwaysTrueMatchPattern.INSTANCE;
 
@@ -134,8 +136,7 @@ public class PatternMatchPatternCompiler implements IMatchPatternCompiler {
                 if (patternName.equals(NAME_PATTERN)) {
                     return parseFromText(patternLoc, options, config);
                 }
-                return requireCompiler(patternLoc, patternName, config)
-                        .parseFromValue(patternLoc, options, config);
+                return requireCompiler(patternLoc, patternName, config).parseFromValue(patternLoc, options, config);
             }
         }
         return new EqMatchPattern(equalsChecker, text);
@@ -144,9 +145,7 @@ public class PatternMatchPatternCompiler implements IMatchPatternCompiler {
     IMatchPatternCompiler requireCompiler(SourceLocation loc, String pattern, MatchPatternCompileConfig config) {
         IMatchPatternCompiler compiler = config.getRegistry().getCompiler(pattern);
         if (compiler == null)
-            throw new NopException(ERR_MATCH_UNKNOWN_PATTERN)
-                    .loc(loc)
-                    .param(ARG_PATTERN, pattern);
+            throw new NopException(ERR_MATCH_UNKNOWN_PATTERN).loc(loc).param(ARG_PATTERN, pattern);
         return compiler;
     }
 }

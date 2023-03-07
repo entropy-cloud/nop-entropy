@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.compile;
 
 import io.nop.api.core.convert.ConvertHelper;
@@ -30,8 +37,7 @@ public class BetweenMatchPatternCompiler implements IMatchPatternCompiler {
             String str = value.toString();
             int pos = str.indexOf(',');
             if (pos < 0)
-                throw new NopException(ERR_MATCH_INVALID_RANGE_EXPR)
-                        .param(ARG_EXPR, str);
+                throw new NopException(ERR_MATCH_INVALID_RANGE_EXPR).param(ARG_EXPR, str);
 
             Object min = JsonTool.parseSimpleJsonValue(str.substring(0, pos).trim());
             Object max = JsonTool.parseSimpleJsonValue(str.substring(pos + 1).trim());

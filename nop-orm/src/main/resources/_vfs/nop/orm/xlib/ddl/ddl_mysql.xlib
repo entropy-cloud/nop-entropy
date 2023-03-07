@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" x:extends="ddl.xlib" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <AddComment>
+            <source>
+                <thisLib:TableComment table="${table}" xpl:return="tableComment"/>
+                <c:if test="${tableComment}"><![CDATA[
+   ALTER TABLE ${dialect.escapeSQLName(table.tableName)} COMMENT ${dialect.getStringLiteral(tableComment)};
+                ]]></c:if>
+
+                <!--                <c:for var="col" items="${table.columns}">-->
+                <!--                    <thisLib:ColumnComment col="${col}" xpl:return="colComment"/>-->
+                <!--                    <c:if test="${colComment}">-->
+                <!--                        ALTER TABLE ${dialect.escapeSQLName(table.tableName)} MODIFY ${dialect.escapeSQLName(col.code)}-->
+                <!--                        COMMENT ${dialect.getStringLiteral(colComment)};-->
+                <!--                    </c:if>-->
+                <!--                </c:for>-->
+            </source>
+        </AddComment>
+
+        <ColCommentDef>
+            <source>
+                <thisLib:ColumnComment col="${col}" xpl:return="colComment"/>
+                <c:unit>   COMMENT ${dialect.getStringLiteral(colComment)}</c:unit>
+            </source>
+        </ColCommentDef>
+    </tags>
+</lib>

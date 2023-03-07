@@ -1,0 +1,4 @@
+<c:script><![CDATA[
+codeGenerator.renderModel('/nop/schema/wf/assignment.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/wf/wf.xdef','/nop/templates/xdsl', '/',$scope);
+]]></c:script>

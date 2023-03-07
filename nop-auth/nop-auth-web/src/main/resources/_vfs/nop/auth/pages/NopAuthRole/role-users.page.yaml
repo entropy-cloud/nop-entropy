@@ -1,0 +1,2 @@
+x:gen-extends: | 
+  <web:GenPage view="/nop/auth/pages/NopAuthUser/NopAuthUser.view.xml" page="role-users" xpl:lib="/nop/web/xlib/web.xlib" />

@@ -1,0 +1,23 @@
+{
+  "x:gen-extends": "<c:include src=\"/nop/test/pages/gen-page.xpl\"/>",
+  "body": [
+    {
+      "name": "frm",
+      "body": {
+        "id": "other",
+        "x:virtual": true
+      },
+      "x:virtual": true
+    },
+    {
+      "type": "div",
+      "body": [
+        "zzz",
+        {
+          "type": "button"
+        }
+      ]
+    }
+  ],
+  "x:virtual": true
+}

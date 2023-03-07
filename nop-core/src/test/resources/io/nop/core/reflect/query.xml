@@ -1,0 +1,23 @@
+<query dimFields="a,b" sourceName="base">
+    <fields>
+        <field name="a" internal="true" owner="sub"/>
+        <field name="b" aggFunc="sum"/>
+    </fields>
+
+    <joins>
+        <join sourceName="c" dimFields="a,b"/>
+    </joins>
+
+    <filter>
+        <eq name="a" value="1"/>
+        <gt name="v" value="a"/>
+    </filter>
+
+    <orderBy>
+        <field name="a" desc="true"/>
+    </orderBy>
+
+    <groupBy>
+        <field name="b"/>
+    </groupBy>
+</query>

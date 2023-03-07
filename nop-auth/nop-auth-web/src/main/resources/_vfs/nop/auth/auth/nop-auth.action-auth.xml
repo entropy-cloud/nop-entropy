@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:extends="_nop-auth.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <site id="main">
+        <resource id="test-orm-nop-auth">
+            <children>
+                <resource id="NopAuthDept-tabsView" displayName="部门-标签页" i18n-en:displayName="Department"
+                          icon="ant-design:appstore-twotone" routePath="/pages/NopAuthDept/tabsView" component="AMIS"
+                          resourceType="SUBM" url="/nop/auth/pages/NopAuthDept/tabsView.page.yaml"/>
+
+                <resource id="NopAuthDept-deleted" displayName="用户-已删除" i18n-en:displayName="Deleted User"
+                          icon="ant-design:appstore-twotone" routePath="/pages/NopAuthUser/deleted" component="AMIS"
+                          resourceType="SUBM" url="/nop/auth/pages/NopAuthUser/deleted.page.yaml"/>
+
+                <resource id="NopAuthUser-changeSelfPass" displayName="修改密码" i18n-en:displayName="Change Password"
+                          icon="ant-design:appstore-twotone" routePath="/pages/NopAuthUser/change-self-pass" component="AMIS"
+                          resourceType="SUBM" url="/nop/auth/pages/NopAuthUser/change-self-pass.page.yaml"/>
+            </children>
+        </resource>
+    </site>
+
+</auth>

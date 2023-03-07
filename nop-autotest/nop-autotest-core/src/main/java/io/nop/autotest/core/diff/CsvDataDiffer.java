@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core.diff;
 
 import io.nop.api.core.convert.ConvertHelper;
@@ -16,8 +23,7 @@ public class CsvDataDiffer {
     public static CsvDataDiffer INSTANCE = new CsvDataDiffer();
 
     /**
-     * 返回 a- b
-     * 从a中删除所有与b中完全一致的条目
+     * 返回 a- b 从a中删除所有与b中完全一致的条目
      */
     public Map<String, Object> diffMap(Map<String, Object> a, Map<String, Object> b) {
         Map<String, Object> ret = new HashMap<>();
@@ -40,7 +46,6 @@ public class CsvDataDiffer {
         }
         return ret;
     }
-
 
     public List<Map<String, Object>> diffList(List<String> idCols, List<Map<String, Object>> listA,
                                               List<Map<String, Object>> listB) {
@@ -65,6 +70,7 @@ public class CsvDataDiffer {
         return ret;
     }
 
+    // tell cpd to start ignoring code - CPD-OFF
     public List<Map<String, Object>> mergeList(List<String> idCols, List<Map<String, Object>> listA,
                                                List<Map<String, Object>> listB) {
         Map<String, Map<String, Object>> merged = new LinkedHashMap<>();
@@ -92,6 +98,7 @@ public class CsvDataDiffer {
         }
         return new ArrayList<>(merged.values());
     }
+    // resume CPD analysis - CPD-ON
 
     void addIds(Map<String, Object> ret, List<String> ids, Map<String, Object> map) {
         for (String id : ids) {

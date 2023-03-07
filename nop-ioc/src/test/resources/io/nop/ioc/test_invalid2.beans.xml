@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+>
+    <bean id="aaa" class="AAA"
+          init-method="start" destroy-method="stop" lazy-init="false">
+
+        <property name="bb">
+            <list>
+                <bean class="edu.thu.message.server.netty.NettyMessageServerListener"/>
+            </list>
+        </property>
+
+    </bean>
+
+</beans>

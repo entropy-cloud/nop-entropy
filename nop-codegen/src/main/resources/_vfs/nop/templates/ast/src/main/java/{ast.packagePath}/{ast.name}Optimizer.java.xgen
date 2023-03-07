@@ -3,12 +3,14 @@ package ${ast.packageName};
 
 import io.nop.core.lang.ast.optimize.AbstractOptimizer;
 
+// tell cpd to start ignoring code - CPD-OFF
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
 public class ${ast.name}Optimizer&lt;C> extends AbstractOptimizer&lt;${ast.name}Node,C>{
 
     public ${ast.name}Node optimize(${ast.name}Node node,C context){
         switch(node.getASTKind()){
         <c:for var="_classModel" items="${ast.defines}">
-            <c:if test="${!_classModel.isAbstract()}">
+            <c:if test="${!_classModel.abstract}">
                 case ${_classModel.simpleClassName}:
                 return optimize${_classModel.simpleClassName}((${_classModel.simpleClassName})node,context);
             </c:if>
@@ -19,7 +21,7 @@ public class ${ast.name}Optimizer&lt;C> extends AbstractOptimizer&lt;${ast.name}
     }
 
     <c:for var="_classModel" items="${ast.defines}">
-    <c:if test="${!_classModel.isAbstract()}">
+    <c:if test="${!_classModel.abstract}">
 	public ${ast.name}Node optimize${_classModel.simpleClassName}(${_classModel.simpleClassName} node, C context){
         ${_classModel.simpleClassName} ret = node;
 
@@ -53,4 +55,5 @@ public class ${ast.name}Optimizer&lt;C> extends AbstractOptimizer&lt;${ast.name}
 	}
     </c:if></c:for>
 }
+// resume CPD analysis - CPD-ON
 </c:unit>

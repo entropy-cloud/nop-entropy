@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script><![CDATA[
+// 根据ORM模型生成dao/entity/xbiz
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.orm.xlsx','/nop/templates/orm', '/',$scope);
+
+// 根据API模型生成服务消息和接口类
+codeGenerator.withTargetDir("../").renderModel('../../model/nop-wf.api.xlsx','/nop/templates/api', '/',$scope);
+]]></c:script>

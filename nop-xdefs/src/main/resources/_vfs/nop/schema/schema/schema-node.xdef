@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+schema节点的基类
+
+@id 内部处理循环引用时所使用的属性，应用层不应使用。
+@name [名称] 对应于SimpleClassName
+@displayName [显示名称]
+@stdDomain [标准域] 对应于StdDomainRegistry中注册标准类型。参见std-domain.dict.yaml中的说明
+@ref
+@bizObjName 对应GraphQL中的对象名
+-->
+<schema xdef:name="SchemaNodeImpl" xdef:bean-package="io.nop.xlang.xmeta.impl"
+        id="~string" name="var-name" displayName="string" type="generic-type"
+        domain="xml-name" stdDomain="xml-name" ref="string" refResolved="~boolean"
+        bizObjName="string"
+        x:schema="/nop/schema/xdef.xdef"
+        xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <description xdef:value="string"/>
+
+    <validator xdef:ref="../validator.xdef"/>
+
+</schema>

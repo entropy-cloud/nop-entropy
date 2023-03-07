@@ -1,0 +1,4 @@
+<c:script xpl:ignoreTag="true">
+// 根据ORM模型生成dao/entity/xbiz
+codeGenerator.withTargetDir("../").renderModel('../../model/${moduleName}.orm.xlsx','/nop/templates/orm', '/',$scope);
+</c:script>

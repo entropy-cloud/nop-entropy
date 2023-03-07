@@ -94,7 +94,7 @@
         </errorCode>
     </errorCodes>
 
-    <features supportSequence="true" supportNullsFirst="true"/>
+    <features supportSequence="true" supportNullsFirst="true" />
 
     <sqls escapeSlash="false">
         <dropTable>drop table {tableName}</dropTable>
@@ -111,22 +111,29 @@
     </sqls>
 
     <functions>
-        <native name="uuid" realName="sys_guid" x:override="merge" />
-        <native name="cot" x:override="remove" />
+        <native name="uuid" realName="sys_guid" x:override="merge"/>
+        <native name="cot" x:override="remove"/>
+
+        <native name="now" realName="current_timestamp">
+        </native>
 
         <template name="rand" x:override="replace">
-            <source> DBMS_RANDOM.VALUE </source>
+            <source>DBMS_RANDOM.VALUE</source>
         </template>
 
         <template name="bit_length" argTypes="VARBINARY" returnType="BIGINT" x:override="merge">
             <source>lengthb({0})*8</source>
         </template>
 
-        <native name="octet_length" realName="LENGTHB" x:override="merge"/>
-        <native name="repeat" x:override="remove" />
+        <template name="ilike" argTypes="VARCHAR,VARCHAR" returnType="BOOLEAN">
+            <source>regexp_like({0},{1},'i')</source>
+        </template>
 
-        <native name="current_date" hasParenthesis="false" x:override="merge" />
-        <native name="current_timestamp" hasParenthesis="false" x:override="merge" />
+        <native name="octet_length" realName="LENGTHB" x:override="merge"/>
+        <native name="repeat" x:override="remove"/>
+
+        <native name="current_date" hasParenthesis="false" x:override="merge"/>
+        <native name="current_timestamp" hasParenthesis="false" x:override="merge"/>
 
         <template name="date" returnType="DATE" argTypes="TIMESTAMP" x:override="merge">
             <source>trunc({0})</source>
@@ -146,23 +153,23 @@
         <!--
         32767 bytes or characters if MAX_STRING_SIZE = EXTENDED
         -->
-        <sqlDataType name="VARCHAR2" precision="4000" stdSqlType="VARCHAR" />
+        <sqlDataType name="VARCHAR2" precision="4000" stdSqlType="VARCHAR"/>
         <sqlDataType name="CLOB" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="DATE" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
-        <sqlDataType name="BINARY_FLOAT" stdSqlType="FLOAT" />
+        <sqlDataType name="BINARY_FLOAT" stdSqlType="FLOAT"/>
         <sqlDataType name="BINARY_DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="NUMBER" stdSqlType="DECIMAL"/>
 
         <!--
          32767 bytes if MAX_STRING_SIZE = EXTENDED,  2000 bytes if MAX_STRING_SIZE = STANDARD
         -->
-        <sqlDataType name="RAW" precision="2000" stdSqlType="VARBINARY" />
+        <sqlDataType name="RAW" precision="2000" stdSqlType="VARBINARY"/>
         <sqlDataType name="BLOB" allowPrecision="false" stdSqlType="VARBINARY"/>
         <!--
         1表示true, 0表示false。jdbc驱动可以自动转换为boolean
         -->
-        <sqlDataType name="BOOLEAN" code="CHAR(1)" stdSqlType="BOOLEAN" />
+        <sqlDataType name="BOOLEAN" code="CHAR(1)" stdSqlType="BOOLEAN"/>
     </sqlDataTypes>
 </dialect>

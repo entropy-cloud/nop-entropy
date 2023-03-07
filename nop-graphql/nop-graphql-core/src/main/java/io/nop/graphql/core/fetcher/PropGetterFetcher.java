@@ -1,0 +1,30 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.graphql.core.fetcher;
+
+import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
+import io.nop.graphql.core.GraphQLConstants;
+import io.nop.graphql.core.IDataFetcher;
+import io.nop.graphql.core.IDataFetchingEnvironment;
+import io.nop.xlang.api.XLang;
+
+public class PropGetterFetcher implements IDataFetcher {
+    private final IEvalAction getter;
+
+    public PropGetterFetcher(IEvalAction getter) {
+        this.getter = getter;
+    }
+
+    @Override
+    public Object get(IDataFetchingEnvironment env) {
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(null, GraphQLConstants.VAR_ENTITY, env.getSource());
+        return getter.invoke(scope);
+    }
+}

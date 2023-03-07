@@ -1,13 +1,12 @@
 <c:unit xpl:outputMode="text">package ${entityModel.packageName}._gen;
 
-import io.nop.orm.model.IEntityModel;
-import io.nop.orm.support.DynamicOrmEntity;
 import io.nop.orm.support.OrmCompositePk;
 import ${entityModel.packageName}.${entityModel.shortName};
 
 /**
  * 用于生成复合主键的帮助类
  */
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
 public class ${entityModel.shortName}PkBuilder{
     private Object[] values = new Object[${entityModel.pkColumns.size()}];
 

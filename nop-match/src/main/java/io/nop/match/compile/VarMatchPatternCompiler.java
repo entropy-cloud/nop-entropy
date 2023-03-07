@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.match.compile;
 
 import io.nop.api.core.convert.ConvertHelper;
@@ -19,9 +26,7 @@ public class VarMatchPatternCompiler implements IMatchPatternCompiler {
     public IMatchPattern parseFromValue(SourceLocation loc, Object value, MatchPatternCompileConfig config) {
         String varName = ConvertHelper.toString(value);
         if (StringHelper.isEmpty(varName))
-            throw new NopException(ERR_MATCH_INVALID_VAR_NAME)
-                    .loc(loc)
-                    .param(ARG_VAR_NAME, varName);
+            throw new NopException(ERR_MATCH_INVALID_VAR_NAME).loc(loc).param(ARG_VAR_NAME, varName);
 
         return new VarMatchPattern(config.getEqualsChecker(), varName);
     }

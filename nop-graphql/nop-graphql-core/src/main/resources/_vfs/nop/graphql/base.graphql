@@ -1,0 +1,26 @@
+"扩展数据类型，用于传递Map形式的数据"
+scalar Map
+
+"表示Tree结构。max指定最多嵌套几层"
+directive @TreeChildren(max:Int) on FIELD
+
+"当字段field的值等于指定值时，条件返回true，表示跳过当前处理"
+directive @SkipOn(field:String!, value: String) on FIELD
+
+"只有当字段field的值等于指定值时，才继续处理本分支"
+directive @IncludeOn(field: String!,value:String) on FIELD
+
+"字段返回的值将根据掩码模板设置屏蔽其中的内容，例如账号信息等避免泄露完整账号信息"
+directive @Mask(pattern:String!) on FIELD_DEFINITION
+
+"返回字典项文本内容"
+directive @DictLabel(dictName:String!, valuePropName:String!) on FIELD_DEFINITION
+
+"本字段的值实际上是从指定属性获取"
+directive @MapToProp(propName: String!) on FIELD_DEFINITION
+
+"为了得到本字段内容，需要加载的相关属性"
+directive @DependsOn(propNames:[String!]) on FIELD_DEFINITION
+
+"权限控制"
+directive @Auth(roles:[String!],permissions:[String!]) on FIELD_DEFINITION

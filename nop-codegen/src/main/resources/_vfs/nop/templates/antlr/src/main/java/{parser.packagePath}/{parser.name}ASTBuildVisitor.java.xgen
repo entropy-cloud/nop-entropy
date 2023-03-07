@@ -1,0 +1,29 @@
+<c:unit xpl:outputMode="text">
+package ${parser.packageName};
+
+import org.antlr.v4.runtime.tree.ParseTree;
+import static io.nop.antlr4.common.ParseTreeHelper.text;
+
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
+public class ${parser.name}ASTBuildVisitor extends _${parser.name}ASTBuildVisitor{
+<c:for var="entry" items="${grammar.propParseFuncDecls.entrySet()}">
+  /**
+   * rules: ${entry.value.join(',')}
+   */
+  public ${entry.key}{
+      <c:script>
+        import io.nop.api.core.convert.ConvertHelper;
+        let type = entry.key.$firstPart(' ');
+      </c:script>
+      <c:choose>
+        <when test="${type == 'java.lang.String' || type == 'String'}">
+           return text(node);
+        </when>
+        <otherwise>
+           return ${ ConvertHelper.getDefaultValueForType(type).$toString()};
+        </otherwise>
+      </c:choose>
+  }
+</c:for>
+}
+</c:unit>

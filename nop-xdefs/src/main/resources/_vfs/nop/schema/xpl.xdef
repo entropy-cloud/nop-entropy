@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<xdef:unknown-tag x:schema="/nop/schema/xdef.xdef" xdef:ref="XplNode"
+                  xdef:unknown-attr="any" xdef:check-ns="xpl"
+                  xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+                  xmlns:xpl="xpl">
+
+    <!--
+    XPL标签。xpl内置属性的处理顺序与本节点上属性的声明顺序相同，即按照如下顺序
+      xpl:enableNs, xpl:disableNs, xpl:slot, xpl:slotArgs， ...
+
+    - xpl:slot和xpl:slotArgs仅在自定义标签的实现代码中使用，用于标记具名slot的位置和缺省内容。
+    - xpl:slotScope仅在调用自定义标签时使用，用于在具名slot上标明slot中可以使用的函数参数列表
+
+    @xpl:enableNs 启用指定名字空间
+    @xpl:disableNs 禁用指定名字空间，*表示禁用所有名字空间。被禁用的名字空间中的自定义标签会被作为文本标签处理。如果禁用了xpl名字空间，则
+        所有xpl特定的属性都会被作为普通文本属性被处理。
+
+    @xpl:slot 用于标记xpl标签的slot部分，它的值为slot名称，在标签声明中必须存在该slot的定义。
+    @xpl:slotArgs  声明xpl:slot时传入的参数，格式为Map，例如
+       <xui:Buttons xpl:slot="buttons" xpl:slotArgs="{a:1,b:x+y,c:'xxx'}">
+            <Button name="ss"/>
+        </xui:Buttons>
+
+    @xpl:attrs 表达式返回Map集合，它们将作为节点的属性被处理。如果xpl:attrs的值为编译期表达式，且在编译期返回Map，则它在编译期会实现属性展开。例如
+      <my:MyTag xpl:attrs="#{a:1,b:2}" /> 等价于 <my:MyTag a="${1}" b="${2}" />
+
+    @xpl:outputMode 指定本节点的输出模式，如果不指定，则继承上下文环境的输出模式。
+    @xpl:lib 引入标签库。等价于执行c:import指令。例如
+      <my:MyTag xpl:lib="/test/my.xlib" /> 等价于
+      <c:import lib="/test/my.xlib" /> <my:MyTag />。
+
+    @xpl:skipIf 如果返回false，则跳过本节点自身，相当于只编译节点的body部分。例如
+      <my:MyTag xpl:skipIf="true"><body/></my:MyTag> 等价于 <body/>
+    @xpl:if 当条件满足的时候才输出本标签及其body。类似于vue框架的v-if机制
+    @xpl:is 类似于vue框架的is属性，用于动态指定标签名。
+    @xpl:return 标签的返回值所对应的变量。例如 <my:MyTag xpl:return="x" /> 等价于 var x = xpl `<my:MyTag/>`
+    @xpl:invert 对标签的返回值取反。
+
+    @xpl:ignoreExpr 如果设置为true，则当前节点以及其子节点忽略${}包裹起来的EL表达式，而直接把它们作为文本输出
+
+    @xpl:ignoreTag 如果设置为true，则当前节点及其子节点忽略标签处理器，把所有标签都作为文本输出标签处理。
+
+    @xpl:allowUnknownTag 缺省情况下所有带有名字空间的标签都被看作是对标签库函数的调用，当发现对应的标签库函数定义不存在时会抛出异常。
+      如果设置了xpl:allowUnknownTag=true，则未识别的标签将作为普通文本输出标签被处理。
+
+    @xpl:slotScope 仅用于xpl自定义标签的具名slot节点。类似于vue组件上的#scope属性，用于声明slot中可用的参数列表，对应于xpl:slotArgs中传入的变量集合。
+    -->
+    <xdef:define xdef:name="XplNode" xdef:unknown-attr="any"  xdef:value="any"
+                 xpl:enableNs="csv-set" xpl:disableNs="csv-set"
+                 xpl:slot="var-name" xpl:slotArgs="expr" xpl:slotScope="slot-scope"
+                 xpl:attrs="expr" xpl:outputMode="enum:io.nop.xlang.ast.XLangOutputMode"
+                 xpl:lib="v-path"
+                 xpl:skipIf="expr" xpl:if="expr"
+                 xpl:is="#xml-name" xpl:return="var-name"
+                 xpl:invert="boolean"
+                 xpl:ignoreExpr="boolean" xpl:ignoreTag="boolean"
+                 xpl:allowUnknownTag="boolean"
+    >
+        <!--
+        decorator机制用于实现对容器结构的抽象，它可以将嵌套的包装节点转换为线性列表形式。例如
+        <div>
+           <xpl:decorator>
+              <windowing />
+              <dialog />
+           </xpl:decorator>
+           <child/>
+        </div>
+        等价于
+        <windowing>
+           <dialog>
+              <div>
+                <child />
+              </div>
+           </dialog>
+        </windowing>
+        -->
+        <xpl:decorator xdef:value="xpl"/>
+
+        <!--
+        用在xpl:decorator内部，用于在复杂的包装结构标识出嵌入位置。例如
+        <div>
+          <xpl:decorator>
+             <windowing>
+                <title/>
+                <xpl:decorated/>
+             </windowing>
+          </xpl:decorator>
+        </div>
+
+        等价于
+        <windowing>
+          <title/>
+          <div/>
+        </windowing>
+        -->
+        <xpl:decorated/>
+        <xdef:unknown-tag xpl:unknown-attr="any" xdef:ref="XplNode"/>
+    </xdef:define>
+</xdef:unknown-tag>

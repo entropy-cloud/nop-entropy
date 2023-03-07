@@ -1,0 +1,140 @@
+locale: zh-CN
+options:
+  - value: string
+    description: 字符串类型
+
+  - value: int
+    description: 整数类型
+
+  - value: double
+    description: 双精度浮点数类型
+
+  - value: long
+    description: 长整数类型
+
+  - value: float
+    description: 浮点数类型
+
+  - value: number
+    description: Number类型
+
+  - value: bytes
+    description: 二进制字节数组类型。作为字符串存储时使用base64编码
+
+  - value: decimal
+    description: BigDecimal类型
+
+  - value: any
+    description: 任意对象类型
+
+  - value: boolean
+    description: 布尔值类型，缺省为false
+
+  - value: char
+    description: 字符类型
+
+  - value: byte
+    description: 字节类型
+
+  - value: date
+    description: 日期类型，格式为yyyy-MM-dd
+
+  - value: datetime
+    description: 日期时间类型，格式为yyyy-MM-dd HH:mm:ss
+
+  - value: timestamp
+    description: 时间戳类型，格式为yyyy-MM-dd HH:mm:ss.zzz
+
+  - value: time
+    description: 时间类型，格式为HH:mm:ss
+
+  - value: duration
+    description: |
+      时间区间类型，格式为ISO-8601标准，例如PT8H6M12.345S。
+      "20.345 seconds"                 -- "PT20.345S
+      "15 minutes" (15 * 60 seconds)   -- "PT15M"
+      "10 hours" (10 * 3600 seconds)   -- "PT10H"
+      "2 days" (2 * 86400 seconds)     -- "PT48H"
+
+  - value: generic-type
+    description: Java泛型类型，解析得到IGenericType类型。例如List<String>, Map<String,io.nop.auth.entity.NopAuthUser>等。
+      除了Java内置的String/Object/List/Map等类型之外，其他类名都需要使用全类名引用。
+
+  - value: class-name
+    description: Java类名，由.号分隔，不包含除$之外的特殊字符
+
+  - value: java-name
+    description: Java Identifier类型，一般为中英文字母和数字、下划线组成，与var-name不同，java-name允许包含字符$。
+
+  - value: var-name
+    description: Java变量名，一般为中英文字母和数字、下划线组成，不包含字符.和$
+
+  - value: prop-name
+    description: Java属性名，一般为中英文字母和数字、下划线组成，不包含字符.和$
+
+  - value: prop-path
+    description: Java复合属性名，可以由一个或者多个prop-name构成，通过字符.来分隔
+
+  - value: package-name
+    description: Java包名，由.号分隔，不包含除$之外的特殊字符。按照Java规范一般应为全小写字符。
+
+  - value: conf-name
+    description: 配置变量名，由英文字母、数字、下划线、字符-和.构成，不包含下划线、$等特殊字符
+
+  - value: url
+    description: 网页链接格式，应该满足URI规范要求
+
+  - value: v-path
+    description: 虚拟文件路径。解析时会自动转换为绝对路径，可以由VirtualFileSystem识别。
+
+  - value: xpath
+    description: NOP平台内部自定义的XML路径定义
+
+  - value: csv-set
+    description: 逗号分隔的字符串集合，返回Set<String>类型
+
+  - value: csv-list
+    description: 逗号分隔的字符串列表，返回List<String>类型
+
+  - value: json
+    description: JSON格式，通过JSON.parse函数来解析得到相应数据
+
+  - value: xml
+    description: XML格式，通过XNodeParser解析得到XNode对象
+
+  - value: expr
+    description: EL表达式
+
+  - value: s-expr
+    description: 只允许形式为${expr}的表达式，不支持简单字符串形式，即允许x="${'a'}"这种形式，但是不允许x="a"这种形式
+
+  - value: tpl-expr
+    description: 字符串和${expr}形式混合的模板表达式
+
+  - value: xpl
+    description: XPL模板语言，outputMode为none，不允许副作用输出。编译成IEvalAction类型
+
+  - value: xpl-predicate
+    description: XPL模板语言，outputMode为none。返回值被转型为boolean。编译成IEvalPredicate类型
+
+  - value: xpl-text
+    description: XPL模板语言，outputMode为text，允许执行的过程中输出文本。编译成ITextTemplateOutput类型
+
+  - value: xpl-node
+    description: XPL模板语言，outputMode为node，执行的过程中会输出XNode节点。编译成IXNodeGenerator类型
+
+  - value: xpl-xml
+    description: XPL模板语言，outputMode为xml，执行的过程中会输出XML格式的文本。编译成ITextTemplateOutput类型
+
+  - value: xpl-html
+    description: XPL模板语言，outputMode为html，执行的过程中会输出HTML格式的文本。编译成ITextTemplateOutput类型
+
+  - value: xpl-sql
+    description: |
+      XPL模板语言，outputMode为sql，执行过程中的输出数据被收集为MutableString对象。编译成ISqlGenerator类型
+      通过${expr}形式输出的表达式将会被作为param参数保存，而不是作为文本拼接到MutableString中。
+      这种输出模式用于SQL动态生成，可以避免SQL注入攻击。如果确实希望拼接文本，可以使用${raw(text)}，
+      用raw函数包装的字符串将会被直接输出到文本流中。
+
+
+

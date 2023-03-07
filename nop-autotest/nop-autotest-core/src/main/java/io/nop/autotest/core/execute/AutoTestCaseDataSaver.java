@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core.execute;
 
 import io.nop.autotest.core.data.AutoTestCaseData;
@@ -23,8 +30,7 @@ public class AutoTestCaseDataSaver {
     private final AutoTestOrmHook ormHook;
     private final String variant;
 
-    public AutoTestCaseDataSaver(String variant, AutoTestCaseData caseData,
-                                 AutoTestOrmHook ormHook) {
+    public AutoTestCaseDataSaver(String variant, AutoTestCaseData caseData, AutoTestOrmHook ormHook) {
         this.variant = variant;
         this.caseData = caseData;
         this.ormHook = ormHook;
@@ -79,8 +85,7 @@ public class AutoTestCaseDataSaver {
         return ret;
     }
 
-    private void saveOutputTable(IEntityModel entityModel, List<EntityRow> rows,
-                                 TagVarCollector varCollector) {
+    private void saveOutputTable(IEntityModel entityModel, List<EntityRow> rows, TagVarCollector varCollector) {
         File file = caseData.getOutputTableFile(entityModel.getTableName(), variant);
 
         List<Map<String, Object>> data = rows.stream().map(r -> {

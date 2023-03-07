@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_gen/_NopAuthDept.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <grids>
+        <grid id="list"/>
+        <grid id="pick-list"/>
+
+    </grids>
+
+    <forms>
+        <form id="view"/>
+        <form id="edit"/>
+    </forms>
+
+    <pages>
+        <crud name="main">
+
+        </crud>
+
+        <crud name="list" grid="list" x:prototype="main">
+            <table x:prototype-override="replace">
+                <api url="@query:NopAuthDept__findPage/{@pageSelection}"/>
+            </table>
+        </crud>
+
+        <tabs name="tabsView" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
+            <tab name="main" page="main" title="@i18n:common.treeView"/>
+            <tab name="list" page="list" title="@i18n:common.listView"/>
+        </tabs>
+
+        <picker name="picker"/>
+    </pages>
+</view>

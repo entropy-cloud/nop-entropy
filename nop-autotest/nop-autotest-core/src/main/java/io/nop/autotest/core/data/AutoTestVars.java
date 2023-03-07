@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.autotest.core.data;
 
 import io.nop.commons.util.StringHelper;
@@ -7,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 import static io.nop.autotest.core.AutoTestConstants.PATTERN_PREFIX;
@@ -72,10 +80,17 @@ public class AutoTestVars {
                 if (entry.getKey().startsWith(V_VAR_PREFIX))
                     continue;
 
-                if (AutoTestDataHelper.valueEquals(entry.getValue(), value))
+                if (varValueEquals(entry.getValue(), value))
                     return entry.getKey();
             }
+
             return null;
+        }
+
+        static boolean varValueEquals(Object v1, Object v2) {
+            if (Objects.equals(v1, v2))
+                return true;
+            return false;
         }
 
         public synchronized String getNameByValue(String prefix, Object value) {
@@ -88,7 +103,7 @@ public class AutoTestVars {
                     continue;
 
                 if (entry.getKey().equals(prefix) || entry.getKey().startsWith(prefix + "_")) {
-                    if (AutoTestDataHelper.valueEquals(entry.getValue(), value))
+                    if (varValueEquals(entry.getValue(), value))
                         return entry.getKey();
                 }
             }
@@ -104,7 +119,7 @@ public class AutoTestVars {
         if (vars != null) {
             Map<String, Object> map = vars.getVars();
             for (Map.Entry<String, Object> entry : map.entrySet()) {
-                sb.append(leftPad(rightPad(entry.getKey(), 30,' '),40, ' ')).append(" = ");
+                sb.append(leftPad(rightPad(entry.getKey(), 30, ' '), 40, ' ')).append(" = ");
                 sb.append(entry.getValue()).append('\n');
             }
         }
@@ -178,8 +193,7 @@ public class AutoTestVars {
 
     /**
      * 输出的json数据在保存到文件中之前会先进行变量替换，将变量的值替换为对应的变量名。
-     * 例如，在程序中随机生成了一个订单号，并把它标记为变量orderNo，则最终所有输出的json数据文件中对应的订单号都会记录为@var:orderNo,
-     * 而不是一个随机值。
+     * 例如，在程序中随机生成了一个订单号，并把它标记为变量orderNo，则最终所有输出的json数据文件中对应的订单号都会记录为@var:orderNo, 而不是一个随机值。
      */
     public static Object replaceValueByVarName(Object o) {
         VarsMap varsMap = getVarsMap();
@@ -219,18 +233,18 @@ public class AutoTestVars {
             return value;
         });
     }
-
-    private static Object resolveVarForValue(VarsMap varsMap, Object value) {
-        if (value instanceof String) {
-            String s = value.toString();
-            if (s.isEmpty())
-                return s;
-
-            if (s.startsWith(BINDER_VAR_PREFIX)) {
-                String varName = s.substring(BINDER_VAR_PREFIX.length());
-                return varsMap.getVar(varName);
-            }
-        }
-        return value;
-    }
+//
+//    private static Object resolveVarForValue(VarsMap varsMap, Object value) {
+//        if (value instanceof String) {
+//            String s = value.toString();
+//            if (s.isEmpty())
+//                return s;
+//
+//            if (s.startsWith(BINDER_VAR_PREFIX)) {
+//                String varName = s.substring(BINDER_VAR_PREFIX.length());
+//                return varsMap.getVar(varName);
+//            }
+//        }
+//        return value;
+//    }
 }

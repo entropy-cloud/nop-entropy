@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+缺省情况下总是强制让表名小写，字段名大写。这样与mysql数据库的缺省情况一致。
+-->
+<dialect x:schema="/test/test_merge.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         class="io.nop.dao.dialect.impl.DialectImpl" tableNameCase="lower" columnNameCase="upper">
+
+    <!--
+    SQL函数定义。缺省dialect中的函数定义来自于H2数据库文档，优先选择ANSI数据库标准中的函数，一般不选择功能与标准函数重复的数据库特有的函数。
+    -->
+    <functions>
+        <native name="avg"/>
+
+    </functions>
+
+
+</dialect>

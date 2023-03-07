@@ -1,0 +1,13 @@
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <bean id="testXplService" class="test.io.entropy.ioc.TestXplService">
+        <property name="config" ref="xplConfig"/>
+
+        <ioc:refresh-config>
+            this.restart();
+        </ioc:refresh-config>
+    </bean>
+
+    <ioc:config class="test.io.entropy.ioc.TestXplConfig" config-prefix="test">
+    </ioc:config>
+</beans>

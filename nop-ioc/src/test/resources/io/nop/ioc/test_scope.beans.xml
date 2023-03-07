@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+>
+    <bean id="myBeanC" class="test.io.entropy.beans.MyBeanC" lazy-init="true">
+        <property name="a" ref="myBeanA"/>
+    </bean>
+
+    <bean id="myBeanA" class="test.io.entropy.beans.MyBeanA" name="a2">
+        <property name="x" value="11"/>
+    </bean>
+
+    <bean id="myBeanC2" class="test.io.entropy.beans.MyBeanC" scope="prototype">
+        <property name="a" ref="myBeanA"/>
+    </bean>
+
+</beans>

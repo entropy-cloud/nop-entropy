@@ -4,3 +4,7 @@ io.nop.api.core.annotations.orm.SingleSession
 io.nop.api.core.annotations.txn.TccMethod
 io.nop.api.core.annotations.txn.TccTransactional
 io.nop.api.core.annotations.txn.Transactional
+io.nop.api.core.annotations.biz.BizAction
+io.nop.api.core.annotations.biz.BizQuery
+io.nop.api.core.annotations.biz.BizMutation
+io.nop.api.core.annotations.biz.BizSubscription

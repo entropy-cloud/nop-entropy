@@ -1,0 +1,18 @@
+<c:unit xpl:outputMode="text"><![CDATA[# __XGEN_FORCE_OVERRIDE__
+label: ${dict.label}
+locale: ${dict.locale || 'zh-CN'}
+valueType: ${dict.valueType}
+description: ${dict.description}
+options:]]>
+<c:for var="option" items="${dict.options}">
+  - label: ${option.label.$escapeYaml()}
+    value: ${dict.valueType == 'int' ? option.value : option.value.toString().$escapeYaml()}
+    description: ${option.description?.$escapeYml()}
+  <c:if test="${option.internal}">
+    internal: true
+  </c:if>
+  <c:if test="${option.deprecated}">
+    deprecated: true
+  </c:if>
+</c:for>
+</c:unit>

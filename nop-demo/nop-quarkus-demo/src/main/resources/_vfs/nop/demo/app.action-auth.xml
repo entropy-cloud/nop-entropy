@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:extends="/nop/auth/auth/nop-auth.action-auth.xml,/nop/sys/auth/nop-sys.action-auth.xml"
+      x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+
+</auth>

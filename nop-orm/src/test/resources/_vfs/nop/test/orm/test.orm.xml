@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm x:schema="/nop/schema/orm/orm.xdef" x:dump="true"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="/nop/schema/xpl.xdef">
+    <x:gen-extends>
+        <pdman:GenOrm src="test.pdma.json" xpl:lib="/nop/orm/xlib/pdman.xlib"
+                      versionCol="REVISION"
+                      createrCol="CREATED_BY" createTimeCol="CREATED_TIME"
+                      updaterCol="UPDATED_BY" updateTimeCol="UPDATED_TIME"
+                      tenantCol="TENANT_ID"
+        />
+    </x:gen-extends>
+
+    <entities>
+        <entity name="io.nop.app.SimsClassFee" x:override="remove"/>
+
+        <entity name="io.nop.app.SimsClass">
+            <columns>
+                <column name="collegeId" propId="100" lazy="true"/>
+            </columns>
+
+            <aliases>
+                <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>
+            </aliases>
+
+            <relations>
+                <!-- 增加多对一以及一对多关联对象 -->
+                <to-one name="simsCollege" refEntityName="io.nop.app.SimsCollege" refPropName="simsClasses">
+                    <join>
+                        <on leftProp="collegeId" rightProp="collegeId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+
+    </entities>
+</orm>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+
+    <x:gen-extends>
+
+        <beans>
+            <bean id="my" class="io.nop.biz.service.BizServiceProxyHandler">
+                <property name="bizObjName" value="x"/>
+            </bean>
+        </beans>
+
+    </x:gen-extends>
+
+    <bean id="test" class="a.b.Test">
+
+    </bean>
+</beans>

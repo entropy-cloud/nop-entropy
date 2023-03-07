@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+@maxStringSize 字符串参数长度超过此长度值之后需要被当作clob看待，采用clob相关的方法去设置
+@keywordQuote 列名如果是数据库的关键字，则需要进行转义。这里指定转义时使用的quote字符
+@keywordUnderscore 关键字是否允许以下划线为第一个字符。oracle不允许。
+@defaultNullsFirst 缺省按照升序排序时，null被被认为是最小还是最大
+-->
+<dialect xdef:name="DialectModel" xdef:bean-package="io.nop.dao.dialect.model"
+         x:schema="/nop/schema/xdef.xdef"
+         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         class="class-name" maxStringSize="int" maxBytesSize="int"
+         keywordQuote="char" keywordUnderscore="boolean=true"
+         defaultNullsFirst="boolean"
+         tableNameCase="enum:io.nop.commons.text.CharacterCase" columnNameCase="enum:io.nop.commons.text.CharacterCase"
+>
+
+    <driverClassName xdef:value="!class-name" xdef:mandatory="true"/>
+    <dbProductNames xdef:value="!csv-set" xdef:mandatory="true"/>
+    <jdbcUrlPattern xdef:value="!string" xdef:mandatory="true"/>
+
+    <sqlExceptionTranslator xdef:value="class-name"/>
+
+    <paginationHandler xdef:value="class-name"/>
+
+    <!--
+    @supportUpdateTableAlias update语句是否允许表别名。例如 update my_table a where ...
+    @supportDeleteTableAlias delete语句是否允许表别名。例如 delete my_table a where ...
+    @supportNullsFirst 对于不支持的数据库，可以通过
+        order by if(isnull(field),0,1), field来模拟
+    -->
+    <features xdef:name="DialectFeatures" xdef:mandatory="true"
+              supportExecuteLargeUpdate="boolean" supportLargeMaxRows="boolean"
+              supportTransaction="boolean" supportSavePoint="boolean"
+              supportBatchUpdate="boolean" supportBatchUpdateCount="boolean"
+              supportSequence="boolean" supportTruncateTable="boolean"
+              supportUpdateTableAlias="boolean" supportDeleteTableAlias="boolean"
+              supportRowValueConstructor="boolean" supportUpdateFromJoin="boolean"
+              supportQueryTimeout="boolean" supportWithAsClause="boolean"
+              supportDeleteFromJoin="boolean" supportILike="boolean"
+              supportNullsFirst="boolean" useGetStringForDate="boolean"
+    />
+
+    <!--
+     保留的关键字。如果关键字成为列名，则需要用quote来回避
+    -->
+    <reservedKeywords xdef:value="prop-name-set" xdef:mandatory="true"/>
+
+    <!--
+    特殊的关键字可能无法通过quote来回避，只能重新命名，例如Oracle中全大写的ROWID不能作为列名，无论是否quote
+    -->
+    <rename xdef:value="string-map"/>
+
+    <!--
+    @escapeSlash 对sql字符串字面量进行转义时，是否需要将\转义为\\
+    -->
+    <sqls xdef:name="DialectSqls" xdef:mandatory="true" escapeSlash="boolean"
+          insertKeyword="string" updateKeyword="string" trueString="string=1" falseString="string=0">
+
+        <dateLiteral xdef:value="string"/>
+        <timeLiteral xdef:value="string"/>
+        <dateTimeLiteral xdef:value="string"/>
+        <timestampLiteral xdef:value="string"/>
+
+        <!-- 通过 {sequenceName}来表示参数 -->
+        <sequenceNextVal xdef:value="string"/>
+
+        <createSequence xdef:value="string"/>
+
+        <dropSequence xdef:value="string"/>
+
+        <dropTable xdef:value="string"/>
+
+        <selectFromDual xdef:value="string"/>
+
+        <forUpdate xdef:value="string"/>
+
+        <lockHint xdef:value="string"/>
+    </sqls>
+
+    <errorCodes xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @useSqlState 设置此属性为true时，使用SQLState变量来映射，而不是ErrorCode。例如PostgreSQL数据库
+        -->
+        <errorCode name="!string" xdef:value="!word-set" xdef:bean-body-prop="values" useSqlState="boolean"
+                   xdef:name="DialectErrorCodeModel"/>
+    </errorCodes>
+
+    <functions xdef:body-type="list" xdef:key-attr="name"
+               xdef:bean-body-type="List&lt;io.nop.dao.dialect.model.ISqlFunctionModel>">
+        <template name="!string" returnType="std-sql-type" argTypes="std-sql-type-list"
+                  xdef:name="SqlTemplateModel"
+                  xdef:bean-tag-prop="type">
+            <description xdef:value="string"/>
+            <!--
+            如果非空，则在单元测试中调用此函数来测试数据库是否支持此函数
+            -->
+            <testSql xdef:value="string"/>
+            <source xdef:value="!string" xdef:mandatory="true"/>
+        </template>
+
+        <function name="!string" className="class-name" xdef:name="SqlFunctionModel" xdef:bean-tag-prop="type">
+            <description xdef:value="string"/>
+            <testSql xdef:value="string"/>
+        </function>
+
+        <!--
+        sql数据库内部支持的原生函数。
+        @hasParenthesis 数据库引擎是否要求函数调用要有括号。在eql语法中总是要求函数调用有括号，但是数据库引擎可能强制要求没有。
+            例如oracle中的sysdate
+        @argTypes 指定函数参数的类型
+        @realName 数据库中的函数名。在dialect中声明的函数名为标准函数名，它会尽量在多个数据库之间保持一致。realName为对应的数据库中的实现函数名
+        @special 需要特殊语法支持的函数
+        -->
+        <native name="!string" returnType="std-sql-type" hasParenthesis="boolean=true" argTypes="std-sql-type-list"
+                minArgCount="int" maxArgCount="int" realName="string" special="boolean"
+                xdef:name="SqlNativeFunctionModel"
+                xdef:bean-tag-prop="type">
+            <description xdef:value="string"/>
+            <testSql xdef:value="string"/>
+        </native>
+    </functions>
+
+    <sqlDataTypes xdef:body-type="list" xdef:key-attr="name">
+        <!--
+        @alias 数据类型的别名列表，通过逗号分隔
+        @allowPrecision 类型定义是否已经隐含假定了precision，因此不允许在SQL类型定义中再指定precision。
+           allowPrecision为false时，precision仍然可以有值，它表示的是隐含定义的precision
+        @code 数据库中的类型名称。oracle数据库中对DATETIME和DATE类型是不区分的，但是这两者原则上应该映射为不同的StdSqlType，
+           此时可以通过code来实现区分。即name为DATETIME和DATE，但是code设置为DATE
+        @deprecated 虽然数据库支持，但是应用程序并不会使用此类型。IDialect.stdToNativeType转换时会忽略此类型
+        -->
+        <sqlDataType xdef:name="SqlDataTypeModel" name="!string" code="string" alias="csv-set" allowPrecision="boolean"
+                     precision="int" scale="int" stdSqlType="!std-sql-type" jdbcBinder="class-name"
+                     deprecated="!boolean=false"
+        />
+    </sqlDataTypes>
+
+    <discoverySqls xdef:mandatory="true" xdef:name="DialectDiscoverySqls">
+        <!--
+        查询所有视图的定义
+        -->
+        <selectViews xdef:value="string"/>
+        <selectTables xdef:value="string"/>
+        <selectIndexes xdef:value="string"/>
+        <selectConstaints xdef:value="string"/>
+        <selectCatalogs xdef:value="string"/>
+        <selectSchemas xdef:value="string"/>
+        <selectTableComments xdef:value="string"/>
+        <selectTableColumnComments xdef:value="string"/>
+        <selectViewComments xdef:value="string"/>
+        <selectViewColumnComments xdef:value="string"/>
+        <selectPrimaryKeys xdef:value="string"/>
+        <selectSequences xdef:value="string"/>
+    </discoverySqls>
+
+    <allSchemaPattern xdef:value="string"/>
+
+</dialect>

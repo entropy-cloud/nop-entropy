@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopBatchTask" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+
+    <objMeta>/nop/batch/model/NopBatchTask/NopBatchTask.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--SID-->
+                <col id="sid" mandatory="true" sortable="true"/>
+
+                <!--任务名-->
+                <col id="taskName" mandatory="true" sortable="true"/>
+
+                <!--唯一Key-->
+                <col id="taskKey" mandatory="true" sortable="true"/>
+
+                <!--任务状态-->
+                <col id="taskStatus" mandatory="true" sortable="true"/>
+
+                <!--任务启动时间-->
+                <col id="startTime" sortable="true"/>
+
+                <!--任务结束时间-->
+                <col id="endTime" sortable="true"/>
+
+                <!--任务参数-->
+                <col id="taskParams" sortable="true"/>
+
+                <!--执行者-->
+                <col id="worker" mandatory="true" sortable="true"/>
+
+                <!--输入文件-->
+                <col id="inputFileId" sortable="true"/>
+
+                <!--重试次数-->
+                <col id="retryCount" mandatory="true" sortable="true"/>
+
+                <!--返回状态码-->
+                <col id="resultStatus" sortable="true"/>
+
+                <!--返回码-->
+                <col id="resultCode" sortable="true"/>
+
+                <!--返回消息-->
+                <col id="resultMsg" sortable="true"/>
+
+                <!--错误堆栈-->
+                <col id="errorStack" sortable="true"/>
+
+                <!--已完成记录下标-->
+                <col id="completedIndex" sortable="true"/>
+
+                <!--读数量-->
+                <col id="readCount" sortable="true"/>
+
+                <!--写数量-->
+                <col id="writeCount" sortable="true"/>
+
+                <!--处理数量-->
+                <col id="processCount" sortable="true"/>
+
+                <!--跳过数量-->
+                <col id="skipCount" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-批处理任务" i18n-en:title="View Batch Task">
+            <layout>
+ sid[SID] taskName[任务名]
+ taskKey[唯一Key] taskStatus[任务状态]
+ startTime[任务启动时间] endTime[任务结束时间]
+ taskParams[任务参数] worker[执行者]
+ inputFileId[输入文件] retryCount[重试次数]
+ resultStatus[返回状态码] resultCode[返回码]
+ resultMsg[返回消息] errorStack[错误堆栈]
+ completedIndex[已完成记录下标] readCount[读数量]
+ writeCount[写数量] processCount[处理数量]
+ skipCount[跳过数量] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-批处理任务" i18n-en:title="Add Batch Task" x:prototype="edit"/>
+        <form id="edit" editMode="update" title="编辑-批处理任务" i18n-en:title="Edit Batch Task">
+            <layout>
+ sid[SID] taskName[任务名]
+ taskKey[唯一Key] taskStatus[任务状态]
+ startTime[任务启动时间] endTime[任务结束时间]
+ taskParams[任务参数] worker[执行者]
+ inputFileId[输入文件] retryCount[重试次数]
+ resultStatus[返回状态码] resultCode[返回码]
+ resultMsg[返回消息] errorStack[错误堆栈]
+ completedIndex[已完成记录下标] readCount[读数量]
+ writeCount[写数量] processCount[处理数量]
+ skipCount[跳过数量] remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-批处理任务" i18n-en:title="Update Batch Task">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopBatchTask__findPage/{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopBatchTask__delete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopBatchTask__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopBatchTask__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopBatchTask__findPage/{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopBatchTask__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <api url="@query:NopBatchTask__get/{@formSelection}?id=$id"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopBatchTask__get/{@formSelection}?id=$id"/>
+            <api url="@mutation:NopBatchTask__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

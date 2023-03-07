@@ -1,0 +1,236 @@
+entity:
+  label:
+    NopWfAction: Workflow Action
+    NopWfDefinition: Worflow Definition
+    NopWfInstance: Worflow Instance
+    NopWfLog: Workflow Log
+    NopWfOutput: Workflow Outputs
+    NopWfStepInstance: Workflow Step Instance
+    NopWfStepInstanceLink: Workflow Step Instance Link
+    NopWfVar: Workflow Variables
+    NopWfWork: Work List
+    WfActionRequestBean: Workflow Action Request
+    WfCommandRequestBean: Workflow Command Request
+    WfStartRequestBean: Workflow Start Request
+    WfStartResponseBean: Workflow Start Response
+    WfSubFlowEndRequestBean: Notify SubFlow End Request
+prop:
+  label:
+    NopWfAction:
+      sid: SID
+      wfId: Workflow ID
+      stepId: Step ID
+      actionName: Action ID
+      execTime: Exec Time
+      callerId: Caller ID
+      callerName: Caller Name
+      opinion: Opinion
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+      wfStepInstance: Workflow Step Instance
+    NopWfDefinition:
+      wfDefId: Definition ID
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      displayName: DisplayName
+      description: Description
+      modelText: Model Text
+      status: Status
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopWfInstance:
+      wfId: Workflow ID
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfParams: Workflow Params
+      title: Title
+      status: Status
+      status_label: null
+      appState: App State
+      startTime: Start Time
+      endTime: End Time
+      suspendTime: Suspend Time
+      dueTime: Due Time
+      bizKey: BizKey
+      bizObjName: BizObjName
+      bizObjId: BizObjId
+      parentWfName: Parent Flow Name
+      parentWfVersion: Parent Flow Version
+      parentWfId: Parent Flow ID
+      parentStepId: Parent Step ID
+      starterId: Starter ID
+      starterName: Starter Name
+      starterDeptId: Starter Dept ID
+      cancellerId: Canceller ID
+      cancellerName: Canceller Name
+      suspenderId: Suspender ID
+      suspenderName: Suspender Name
+      managerType: Manager Type
+      managerDeptId: Manager Dept ID
+      managerName: Manager Name
+      managerId: Manager ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      wfInstance: Parent Workflow
+      wfInstance.title: Parent Workflow
+    NopWfLog:
+      sid: SID
+      wfId: Workflow ID
+      logLevel: Log Level
+      logLevel_label: null
+      logMsg: Log Message
+      createdBy: Created By
+      createTime: Create Time
+    NopWfOutput:
+      wfId: Workflow ID
+      fieldName: Field Name
+      fieldType: Field Type
+      stringValue: String Value
+      decimalValue: Decimal Value
+      longValue: Long Value
+      dateValue: Date Value
+      timestampValue: Timestamp Value
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+    NopWfStepInstance:
+      stepId: Step ID
+      wfId: Workflow ID
+      stepType: Step Type
+      stepType_label: null
+      stepName: Step Name
+      status: Status
+      status_label: null
+      appState: App State
+      subWfId: Sub Flow ID
+      subWfName: Sub Flow Name
+      subWfVersion: Sub Flow Version
+      isRead: Is Read
+      actorType: Actor Type
+      actorId: Actor ID
+      actorDeptId: Actor Dept ID
+      actorName: Actor Name
+      ownerId: Owner ID
+      ownerName: Owner Name
+      assignerId: Assigner ID
+      assignerName: Assigner Name
+      callerId: Caller ID
+      callerName: Caller Name
+      cancellerId: Canceller ID
+      cancellerName: Canceller Name
+      fromAction: From Action
+      lastAction: Last Action
+      startTime: Start Time
+      finishTime: Finish Time
+      dueTime: Due Time
+      readTime: Read Time
+      priority: Priority
+      joinTrace: Join Trace
+      tagSet: Tags
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+      subWfInstance: Sub Workflow Instance
+      subWfInstance.title: Sub Workflow Instance
+    NopWfStepInstanceLink:
+      wfId: Workflow ID
+      stepId: Step ID
+      prevStepId: Prev Step ID
+      execAction: EXEC_ACTION
+      createdBy: Created By
+      createTime: Create Time
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+      wfStep: Workflow Step
+      prevWfStep: Prev Workflow Step
+    NopWfVar:
+      wfId: Workflow ID
+      fieldName: Field Name
+      fieldType: Field Type
+      stringValue: String Value
+      decimalValue: Decimal Value
+      longValue: Long Value
+      dateValue: Date Value
+      timestampValue: Timestamp Value
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+    NopWfWork:
+      workId: Work ID
+      workType: Work Type
+      title: Title
+      linkUrl: LINK_URL
+      status: Status
+      status_label: null
+      ownerId: Owner ID
+      ownerName: Owner Name
+      callerId: Caller ID
+      callerName: Caller Name
+      readTime: Read Time
+      finishTime: Finish Time
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    WfActionRequestBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfId: Workflow ID
+      stepId: Step ID
+      actionName: Action Name
+      args: Action Args
+    WfCommandRequestBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfId: Workflow ID
+      args: Action Args
+    WfStartRequestBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      args: Start Args
+      parentWfName: Parent Workflow Name
+      parentWfVersion: Parent Workflow Version
+      parentWfId: Parent Workflow ID
+      parentWfStepId: Parent Workflow Step ID
+    WfStartResponseBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfId: Workflow ID
+      managerType: Manager Type
+      managerName: Manager Name
+      managerId: Manager ID
+      managerDeptId: Manager Dept ID
+    WfSubFlowEndRequestBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfId: Workflow ID
+      status: Status
+      results: Results
+      parentWfName: Parent Workflow Name
+      parentWfVersion: Parent Workflow Version
+      parentWfId: Parent Workflow ID
+      parentWfStepId: Parent Workflow Step ID

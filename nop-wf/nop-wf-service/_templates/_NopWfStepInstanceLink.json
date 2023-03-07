@@ -1,0 +1,12 @@
+{
+  "wfId": "",
+  "stepId": "",
+  "prevStepId": "",
+  "execAction": "",
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "wfInstance": null,
+  "wfInstance.title": "",
+  "wfStep": null,
+  "prevWfStep": null
+}

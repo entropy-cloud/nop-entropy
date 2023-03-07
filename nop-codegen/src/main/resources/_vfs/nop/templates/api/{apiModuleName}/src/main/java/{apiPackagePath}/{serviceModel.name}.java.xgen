@@ -1,0 +1,40 @@
+<c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
+    package ${apiPackageName};
+
+    import io.nop.api.core.beans.ApiRequest;
+    import io.nop.api.core.beans.ApiResponse;
+    import java.util.concurrent.CompletionStage;
+    import io.nop.api.core.util.FutureHelper;
+
+    <gen:CollectApiMessageImports xpl:lib="/nop/codegen/xlib/gen.xlib"
+                                  serviceModel="${serviceModel}" xpl:return="types" />
+    <c:for var="type" items="${types}">
+        import ${type};
+    </c:for>
+
+    <c:script>
+        function normalizeReturnType(type){
+           return type == 'void' ? 'Void' : type;
+        }
+    </c:script>
+
+    /**
+     * ${serviceModel.displayName} ${serviceModel.description}
+     */
+    public interface ${serviceModel.name}{
+
+    <c:for var="method" items="${serviceModel.methods}"><![CDATA[
+        /**
+         * ${method.description}
+         */
+        CompletionStage<ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}>> ${method.name}Async(ApiRequest<${method.simpleRequestMessage}> request);
+
+        /**
+         * ${method.description}
+         */
+        default ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}(ApiRequest<${method.simpleRequestMessage}> request){
+            return FutureHelper.syncGet(${method.name}Async(request));
+        }
+    ]]></c:for>
+    }
+</c:unit>

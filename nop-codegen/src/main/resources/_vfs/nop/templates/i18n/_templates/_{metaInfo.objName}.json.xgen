@@ -1,0 +1,5 @@
+<c:unit xpl:outputMode="text">{
+<c:for var="prop" items="${metaInfo.objMeta.props}">
+  "${prop.name}": ${prop.stdDataType?.demoJsonValue ?? "null"},
+</c:for>
+}</c:unit>

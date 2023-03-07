@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+包含表单定义，表格定义，以及页面框架组织
+-->
+<view bizObjName="string" x:schema="/nop/schema/xdef.xdef" xdef:check-ns="auth"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="xdef" xmlns:xui="xui">
+    <!--
+    meta是可选的信息
+    -->
+    <objMeta xdef:value="v-path"/>
+
+    <!--
+    生成前端页面时所使用的控件库
+    -->
+    <controlLib xdef:value="v-path"/>
+
+    <grids xdef:key-attr="id" xdef:body-type="list">
+        <grid id="!xml-name" xdef:ref="grid.xdef"/>
+    </grids>
+
+    <forms xdef:key-attr="id" xdef:body-type="list">
+        <form id="!xml-name" xdef:ref="form.xdef"/>
+    </forms>
+
+    <!--
+    @initFetch 是否默认就拉取
+    @interval 刷新时间(最低 1000)
+    @silentPolling 配置刷新时是否隐藏加载动画
+    -->
+    <xdef:define name="!string"
+                 asideResizor="boolean" asideMinWidth="int" asideMaxWidth="int"
+                 asideClassName="string" asideSticky="boolean"
+                 className="string" headerClassName="string" bodyClassName="string"
+                 title="string" subTitle="string" initFetch="boolean"
+                 interval="int" silentPolling="boolean"
+                 xdef:name="UiPageModel">
+
+        <!--
+        页面描述, 标题旁边会出现个小图标，放上去会显示这个属性配置的内容。
+        -->
+        <remark xdef:value="string"/>
+
+        <!--
+        @stopAutoRefreshWhen 通过表达式来配置停止刷新的条件
+        -->
+        <stopAutoRefreshWhen xdef:value="string"/>
+
+        <!--
+        页面初始化的时候，可以设置一个 API 让其取拉取，发送数据会携带当前 data 数据（包含地址栏参数），获取得数据会合并到 data 中，供组件内使用。
+        -->
+        <initApi xdef:ref="api.xdef"/>
+
+        <initFetchOn xdef:value="string"/>
+
+        <data xdef:value="xjson"/>
+
+    </xdef:define>
+
+    <pages xdef:key-attr="name" xdef:body-type="list">
+
+        <!--
+        @layoutMode 布局模式。bottom-detail表示上面是列表，下方是明细
+        -->
+        <crud name="!string" xdef:ref="UiPageModel" grid="!string" xdef:name="UiCRUDModel"
+              layoutMode="string" asideFilterForm="xml-name" filterForm="xml-name"
+              xdef:bean-tag-prop="type">
+
+            <!--
+            @mode  指定内容区的展示模式。table/grid/cards
+            @initFetch 是否初始化的时候拉取数据, 只针对有 filter 的情况, 没有 filter 初始都会拉取数据
+            @stopAutoRefreshWhenModalIsOpen 当有弹框时关闭自动刷新，关闭弹框又恢复
+            @alwaysShowPagination 总是显示分页设置
+            @autoFillHeight 内容区域自适应高度
+            @noOperations 不显示操作列，没有行操作按钮
+            @operationSize 操作按钮列的宽度
+            -->
+            <table name="string" mode="string" filterDefaultVisible="boolean" filterTogglable="boolean"
+                   stopAutoRefreshWhenModalIsOpen="boolean"
+                   alwaysShowPagination="boolean" initFetch="boolean"
+                   autoFillHeight="boolean-or-number" loadDataOnce="boolean"
+                   sortable="boolean" noOperations="boolean"
+                   multiple="boolean" pickerMode="boolean"
+                   rowDrag="boolean" colDrag="boolean" pager="string"
+                   operationSize="string">
+                <api xdef:ref="api.xdef"/>
+                <initApi xdef:ref="api.xdef"/>
+                <initFetchOn xdef:value="string"/>
+                <stopAutoRefreshWhen xdef:value="string"/>
+                <saveOrderApi xdef:ref="api.xdef"/>
+            </table>
+
+            <listActions xdef:ref="actions.xdef" />
+
+            <rowActions xdef:ref="actions.xdef" />
+
+            <!--
+            点击单行触发的动作。开启 itemAction 后 checkOnItemClick 将会失效。
+            -->
+            <itemAction xdef:ref="action.xdef"/>
+
+            <defaultParams xdef:value="xjson"/>
+        </crud>
+
+        <!--
+         @size 对于picker弹出选择页面，控制弹出窗口的大小
+        -->
+        <picker xdef:ref="UiCRUDModel" size="string" />
+
+        <!--
+        根据单个表单模型生成的页面
+        @useFormActions 对话框和form都支持actions设置。如果useFormActions为true，则actions实际对应的是form的actions
+        -->
+        <simple name="!string" form="!string" title="string" panelClassName="string" useFormActions="boolean"
+                redirect="string" reload="string" resetAfterSubmit="boolean"
+                xdef:bean-tag-prop="type">
+            <remark xdef:value="string"/>
+
+            <initApi xdef:ref="api.xdef"/>
+
+            <api xdef:ref="api.xdef"/>
+
+            <data xdef:value="xjson"/>
+
+            <actions xdef:ref="actions.xdef" />
+        </simple>
+
+        <!--
+        @position tab的位置: top/bottom/left/right
+        @mountOnEnter 只有在点中 tab 的时候才渲染
+        @unmountOnExit 切换 tab 的时候销毁
+        -->
+        <tabs name="!string" xdef:ref="UiPageModel" tabsMode="string" tabsClassName="string"
+              closeable="boolean" draggable="boolean" mountOnEnter="boolean" unmountOnExit="boolean"
+              position="string" xdef:bean-tag-prop="type">
+            <!--
+            @reload 设置以后内容每次都会重新渲染，对于 crud 的重新拉取很有用
+            @unmountOnExit 每次退出都会销毁当前 tab 栏内容
+            @page 如果没有指定，则以name作为page
+            -->
+            <tab xdef:unique-attr="name" name="!string" page="string" hash="string"
+                 icon="string" title="!string" iconPosition="string" lazyLoad="boolean"
+                 unmountOnExit="boolean" reload="boolean" className="string" disabled="boolean"/>
+        </tabs>
+
+        <wizard name="!string" xdef:bean-tag-prop="type">
+            <page xdef:unique-attr="name" name="!string" label="string" lazyLoad="boolean"/>
+        </wizard>
+    </pages>
+</view>

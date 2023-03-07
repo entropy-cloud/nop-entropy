@@ -1,0 +1,11 @@
+<forms x:schema="/nop/schema/xui/forms.xdef" x:extends="page3.xform">
+    <form id="default" x:prototype="other">
+        <layout x:override="remove" />
+    </form>
+
+    <form id="other" >
+        <layout>
+            a
+        </layout>
+    </form>
+</forms>

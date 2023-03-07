@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <bean id="BeanContainerEventListener" abstract="true"
+          class="io.entropy.ioc.util.BeanContainerEventListenerImpl" init-method="register" destroy-method="unregister">
+        <property name="sourceContainer" value="@bean:container"/>
+        <property name="handler">
+            <ioc:xpl>
+                let handled = true;
+            </ioc:xpl>
+        </property>
+    </bean>
+
+    <ioc:listener id="myListener" ref="BeanContainerEventListener"
+                  events="restart"/>
+</beans>

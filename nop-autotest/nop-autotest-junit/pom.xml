@@ -16,11 +16,17 @@
         <dependency>
             <groupId>io.nop</groupId>
             <artifactId>nop-autotest-core</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>io.nop</groupId>
             <artifactId>nop-ioc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-config</artifactId>
         </dependency>
 
         <dependency>

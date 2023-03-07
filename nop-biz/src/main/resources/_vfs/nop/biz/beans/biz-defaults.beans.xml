@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:ioc="ioc"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="nopGraphQLEngine" class="io.nop.graphql.core.engine.GraphQLEngine">
+        <property name="executionInvoker" ref="nopSingleSessionFunctionInvoker" />
+        <property name="operationInvoker">
+            <bean class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
+<!--                <property name="singleSessionInvoker" ref="nopSingleSessionFunctionInvoker" />-->
+                <property name="transactionalInvoker" ref="nopTransactionalFunctionInvoker" />
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager" ioc:delay-method="delayInit">
+        <property name="bizModelBeans">
+            <ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel"
+                               only-concrete-classes="true"/>
+        </property>
+    </bean>
+
+    <bean id="io.nop.biz.dict.DictProviderBizModel" ioc:type="@bean:id"/>
+
+    <!--
+    BizModel模型初始化时需要校验obj字典是否有效，因此需要注册对应的DictLoader
+    -->
+    <bean id="nopObjDictLoader" class="io.nop.biz.dict.ObjDictLoader" ioc:before="nopBizObjectManager"/>
+
+    <bean id="nopDevDocBizModel" class="io.nop.biz.dev.DevDocBizModel">
+        <ioc:condition>
+            <if-property name="nop.debug"/>
+        </ioc:condition>
+    </bean>
+
+    <bean id="io.nop.biz.dev.DevToolBizModel" ioc:type="@bean:id">
+        <ioc:condition>
+            <if-property name="nop.debug"/>
+        </ioc:condition>
+    </bean>
+</beans>

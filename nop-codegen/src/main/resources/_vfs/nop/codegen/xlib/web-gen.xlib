@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef">
+    <tags>
+        <GenLayout outputMode="xml">
+            <attr name="props"/>
+            <source>
+                <c:script><![CDATA[
+                    function cell(prop){
+                        if(!prop) return
+                        return prop.name + '[' + prop.displayName?.$escapeJson()?.$replace(']','_') + ']'
+                    }
+
+                    function cell_gap(left,right){
+                        if(right == null)
+                           return
+                        if(left['ext:show']?.contains('S'))
+                           return '\n                '
+                        if(right['ext:show']?.contains('S'))
+                           return '\n                '
+                    }
+                ]]></c:script>
+                <layout>
+                    <c:choose>
+                        <when test="${props.length >= 10}">
+                            <c:for var="row" items="${_.chunk(props,2)}">
+                                <c:unit>${'\n'} ${cell(row[0])} ${cell_gap(row[0],row[1])}${cell(row[1])}</c:unit>
+                            </c:for>
+                        </when>
+                        <otherwise>
+                            <c:for var="prop" items="${props}">
+                                <c:unit>${'\n'} ${cell(prop)}</c:unit>
+                            </c:for>
+                        </otherwise>
+                    </c:choose>
+                    <c:unit>${'\n'}</c:unit>
+                </layout>
+            </source>
+        </GenLayout>
+    </tags>
+</lib>

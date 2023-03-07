@@ -1,0 +1,106 @@
+<meta type="io.nop.api.support.beans.TreeBean" ref="/test/test-filter.xdef#FilterCondition"
+      x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlName="filter">
+    <defines>
+        <define name="FilterCondition" type="io.nop.api.support.beans.TreeBean">
+            <props>
+                <prop name="$type" xmlPos="tag">
+                    <schema stdDomain="string" id="@0@/test/test-filter.xdef"/>
+                </prop>
+                <prop name="$body" xmlPos="child">
+                    <schema type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;"
+                            id="@2@/test/test-filter.xdef">
+                        <item subTypeOf="$type">
+                            <oneOf>
+                                <schema type="io.nop.api.support.beans.TreeBean"
+                                        ref="/test/test-filter.xdef#SimpleFilterNode" typeValue="timeBetween">
+                                    <description>时间在指定范围之内</description>
+                                    <props>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="excludeMax">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="excludeMin">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="min">
+                                            <schema stdDomain="time"/>
+                                        </prop>
+                                        <prop name="max">
+                                            <schema stdDomain="time"/>
+                                        </prop>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                    </props>
+                                </schema>
+                                <schema type="io.nop.api.support.beans.TreeBean"
+                                        ref="/test/test-filter.xdef#FilterCondition" typeValue="or">
+                                    <props>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="$body" xmlPos="child">
+                                            <schema ref="@2@/test/test-filter.xdef"/>
+                                        </prop>
+                                    </props>
+                                </schema>
+                                <schema type="io.nop.api.support.beans.TreeBean"
+                                        ref="/test/test-filter.xdef#FilterCondition" typeValue="and">
+                                    <props>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="$body" xmlPos="child">
+                                            <schema ref="@2@/test/test-filter.xdef"/>
+                                        </prop>
+                                    </props>
+                                </schema>
+                                <schema type="io.nop.api.support.beans.TreeBean"
+                                        ref="/test/test-filter.xdef#SimpleFilterNode" typeValue="lt">
+                                    <description>小于</description>
+                                    <props>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="value">
+                                            <schema stdDomain="number"/>
+                                        </prop>
+                                    </props>
+                                </schema>
+                                <schema type="io.nop.api.support.beans.TreeBean"
+                                        ref="/test/test-filter.xdef#SimpleFilterNode" typeValue="*">
+                                    <props>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                    </props>
+                                    <unknownAttr stdDomain="any"/>
+                                </schema>
+                            </oneOf>
+                        </item>
+                    </schema>
+                </prop>
+            </props>
+        </define>
+        <define name="SimpleFilterNode" type="io.nop.api.support.beans.TreeBean">
+            <props>
+                <prop name="$type" xmlPos="tag">
+                    <schema stdDomain="string"/>
+                </prop>
+            </props>
+        </define>
+    </defines>
+    <props>
+        <prop name="$type" xmlPos="tag">
+            <schema ref="@0@/test/test-filter.xdef"/>
+        </prop>
+        <prop name="$body" xmlPos="child">
+            <schema ref="@2@/test/test-filter.xdef"/>
+        </prop>
+    </props>
+</meta>

@@ -1,0 +1,38 @@
+<!--
+根据antlr描述文件生成Parser以及将ParseTree转换成AST语法节点数的转换器
+-->
+<c:script>
+    import io.nop.codegen.antlr.AntlrParserConfig;
+    import io.nop.xlang.xmeta.SchemaLoader;
+    import io.nop.antlr4.tool.loader.GrammarLoader;
+    import io.nop.core.model.loop.impl.NestedLoopBuilder;
+
+    let parserConfig = AntlrParserConfig.loadFromPath(codeGenModelPath);
+    parserConfig.resolveAbsolutePath(codeGenModelPath);
+
+    let ast = SchemaLoader.loadXMeta(parserConfig.astModelPath);
+
+    let loader = new GrammarLoader();
+    if(parserConfig.antlrGenCode)
+    loader.setOutputPath(codeGenerator.getTargetPath('src/main/java/'+parserConfig.antlrPackage.replace('.','/')));
+    loader.setLibDirPath(parserConfig.antlrLibDirPath);
+    loader.setVerbose(true);
+    loader.setPackageName(parserConfig.antlrPackage);
+    let grammar = loader.loadAstGrammar(parserConfig.antlrModelPath);
+
+    grammar.validateAstNodeName(astNodeName => ast.getDefine(astNodeName) != null);
+    grammar.initRuleReturnType(ast.packageName, ast.name + 'Node', (astNodeName,propName)=>
+    ast.getDefine(astNodeName).getProp(propName).type.toString());
+
+    let builder = new NestedLoopBuilder();
+    builder.defineGlobalVar("ast",ast);
+    builder.defineGlobalVar("parser", {name: grammar.baseName, parserGrammar: grammar.parserGrammar,
+    mainRule: parserConfig.mainRule,
+    antlrPackage: parserConfig.antlrPackage,
+    packageName: parserConfig.packageName, packagePath: parserConfig.packagePath,
+    primaryExpectedTokens: parserConfig.primaryExpectedTokens});
+    builder.defineGlobalVar("grammar",grammar);
+
+    // 导出codeGenLoop变量到scope中
+    assign("codeGenLoop", builder.build());
+</c:script>

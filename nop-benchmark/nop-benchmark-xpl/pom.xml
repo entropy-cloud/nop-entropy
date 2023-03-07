@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>nop-benchmark</artifactId>
+        <groupId>io.nop</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>nop-benchmark-xpl</artifactId>
+
+    <properties>
+
+        <jmh.version>1.33</jmh.version>
+        <rocker.version>1.3.0</rocker.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.pebbletemplates</groupId>
+            <artifactId>pebble</artifactId>
+            <version>3.1.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fizzed</groupId>
+            <artifactId>rocker-runtime</artifactId>
+            <version>${rocker.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.nop</groupId>
+            <artifactId>nop-xlang</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.fizzed</groupId>
+                <artifactId>rocker-maven-plugin</artifactId>
+                <version>${rocker.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-rocker-templates</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <templateDirectory>src/main/resources</templateDirectory>
+                            <javaVersion>1.8</javaVersion>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+
+</project>

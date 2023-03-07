@@ -1,0 +1,28 @@
+<!--
+@className 外层 CSS 类名
+@btnClassName 按钮 CSS 类名
+@menuClassName 下拉菜单 CSS 类名
+@block 块状样式
+@size 尺寸，支持'xs'、'sm'、'md' 、'lg'
+@align 位置，可选'left'或'right'
+@iconOnly 只显示 icon
+@defaultIsOpened 默认是否打开
+@closeOnOutside 点击外侧区域是否收起,缺省为true
+@closeOnClick 点击按钮后自动关闭下拉菜单
+@trigger click 或 hover,触发方式
+@hideCaret 隐藏下拉图标
+-->
+<actionGroup x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+             xmlns:xui="xui" xmlns:xdef="/nop/schema/xdef.xdef"
+             id="!string" icon="string" label="string" batch="boolean" level="string"
+             xdef:bean-tag-prop="type"
+             className="string" btnClassName="string" block="boolean"
+             size="string" iconOnly="boolean" defaultIsOpened="boolean"
+             closeOnClick="boolean" closeOnOutside="boolean"
+             trigger="string" hideCaret="boolean"
+             xdef:name="UiActionGroupModel" xui:role="csv-set" xui:permissions="csv-set">
+    <disabledOn xdef:value="string"/>
+    <visibleOn xdef:value="string"/>
+    <action id="!string" xdef:ref="action.xdef" xdef:unique-attr="id"/>
+    <onEvent xdef:value="xjson"/>
+</actionGroup>

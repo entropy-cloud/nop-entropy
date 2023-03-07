@@ -1,0 +1,115 @@
+<c:unit xpl:outputMode="text">
+package ${parser.packageName};
+
+import ${parser.antlrPackage}.${parser.name}${parser.parserGrammar?'Parser':''}BaseVisitor;
+import ${parser.antlrPackage}.${parser.name}Parser.*;
+import io.nop.api.core.exceptions.NopException;  //NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.api.core.util.SourceLocation; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.commons.util.CollectionHelper;//NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.commons.util.StringHelper;//NOPMD - suppressed UnusedImports - Auto Gen Code
+import org.antlr.v4.runtime.tree.ParseTree;
+import io.nop.antlr4.common.ParseTreeHelper;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+
+import ${ast.packageName}.${ast.name}Node;
+
+<c:for var="_import" items="${grammar.astImports}">
+import ${_import};
+</c:for>
+
+// tell cpd to start ignoring code - CPD-OFF
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
+public abstract class _${parser.name}ASTBuildVisitor extends ${parser.name}${parser.parserGrammar?'Parser':''}BaseVisitor&lt;${ast.name}Node>{
+<c:for var="rule" items="${grammar.rules}">
+  <c:script>
+    if(rule.notInAst())
+        continue;
+  </c:script>
+
+  <c:choose>
+  <!-- 解析得到AST节点列表 -->
+      <when test="${rule.list}">
+public ${rule.parseFuncDecl}{
+    ${rule.returnType} list = new ArrayList&lt;>();
+    List&lt;${rule.element.contextName}> elms = ctx.${rule.element.ruleName}();
+    if(elms != null){
+      for(${rule.element.contextName} elm: elms){
+         list.add(${rule.element.parseFuncName}(elm));
+      }
+    }
+    return list;
+}
+      </when>
+
+<!-- 单个终止符号解析得到单个AST节点 -->
+      <when test="${rule.astProp}">
+public ${rule.parseFuncDecl}{
+    ${rule.returnType} ret = new ${rule.returnType}();
+    ret.setLocation(ParseTreeHelper.loc(ctx));
+    ret.${rule.astProp.$methodSet()}(${rule.astPropParseFuncName}(ParseTreeHelper.terminalNode(ctx)));
+    ret.normalize();
+    ret.validate();
+    return ret;
+}
+      </when>
+
+      <when test="${rule.innerRule}">
+        public ${rule.parseFuncDecl}{
+           ${rule.innerRule.contextName} node = ctx.${rule.innerRule.ruleName}();
+           return node == null ? null : ${rule.innerRule.parseFuncName}(node);
+        }
+      </when>
+
+            <when test="${rule.group and rule.astNodeName}">
+      public ${rule.parseFuncDecl}{
+        <c:choose>
+          <when test="${rule.childHasAltLabel}">
+            return (${rule.returnType})ctx.accept(this);
+          </when>
+          <otherwise>
+            return (${rule.returnType})this.visitChildren(ctx);
+          </otherwise>
+        </c:choose>
+      }
+            </when>
+
+
+            <when test="${rule.astNodeName}">
+      public ${rule.parseFuncDecl}{
+          ${rule.returnType} ret = new ${rule.returnType}();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          <c:for var="entry" items="${rule.astAssigns.entrySet()}">
+             ret.${entry.key.$methodSet()}(${entry.value});
+          </c:for>
+          <c:for var="entry" items="${rule.properties.entrySet()}">
+            <c:script>
+               let propName = entry.getKey();
+               let propRule = entry.getValue();
+            </c:script>
+            if(ctx.${propRule.propLabel} != null){
+               ret.${propName.$methodSet()}(${propRule.single? 'io.nop.commons.util.CollectionHelper.safeSingletonList':''}(${propRule.parseFuncName}(ctx.${propRule.propLabel})));
+            }<c:if test="${propRule.returnList}">else{
+               ret.${propName.$methodSet()}(Collections.emptyList());
+            }
+            </c:if>
+          </c:for>
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            </when>
+  </c:choose>
+
+</c:for>
+
+<c:for var="entry" items="${grammar.propParseFuncDecls.entrySet()}">
+  /**
+   * rules: ${entry.value.join(',')}
+   */
+  public abstract ${entry.key};
+</c:for>
+}
+ // resume CPD analysis - CPD-ON
+</c:unit>

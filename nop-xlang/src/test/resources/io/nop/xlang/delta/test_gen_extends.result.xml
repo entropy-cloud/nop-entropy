@@ -1,0 +1,6 @@
+<beans xmlns:x="/nop/schema/xdsl.xdef">
+    <bean id="my" class="io.nop.biz.service.BizServiceProxyHandler">
+        <property name="bizObjName" value="x"/>
+    </bean>
+    <bean id="test" class="a.b.Test"/>
+</beans>

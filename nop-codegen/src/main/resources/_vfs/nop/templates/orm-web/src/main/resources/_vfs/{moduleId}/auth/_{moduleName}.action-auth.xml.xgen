@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+    <site id="main">
+        <resource id="test-orm-${moduleName}" displayName="测试${moduleName}" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-${moduleName}" component="layouts/default/index">
+            <children>
+                <c:script>
+                    let index = 1;
+                </c:script>
+                <c:for var="resource" items="${metaResources}">
+                    <c:script><![CDATA[
+                        import io.nop.xlang.xmeta.SchemaLoader;
+                        const objName = resource.path.$fileNameNoExt();
+                        const objMeta = SchemaLoader.loadXMeta(resource.path);
+                    ]]></c:script>
+                    <c:if test="${objMeta['ext:model'] == 'orm'}">
+                        <resource id="${objName}-main" displayName="${objMeta.displayName}" orderNo="${10000+(index++)}"
+                                  i18n-en:displayName="${objMeta['i18n-en:displayName']}"
+                                  icon="ant-design:appstore-twotone"
+                                  component="AMIS" resourceType="SUBM"
+                                  url="/${moduleId}/pages/${objName}/main.page.yaml"/>
+                    </c:if>
+                </c:for>
+            </children>
+        </resource>
+    </site>
+</auth>

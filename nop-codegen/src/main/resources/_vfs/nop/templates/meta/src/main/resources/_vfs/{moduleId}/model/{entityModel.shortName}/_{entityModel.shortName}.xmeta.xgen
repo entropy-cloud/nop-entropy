@@ -1,0 +1,113 @@
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+   xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c"
+    displayName="${entityModel.displayName}" i18n-en:displayName="${entityModel['i18n-en:displayName']}" tagSet="${_.join(entityModel.tagSet,',')}">
+    <entityName>${entityModel.name}</entityName>
+
+    <primaryKey>${_.join(entityModel.pkColumnNames,',')}</primaryKey>
+    <displayProp>${entityModel.getColumnByTag('disp')?.name}</displayProp>
+
+     <c:print>
+      <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib" />
+      </x:post-extends>
+     </c:print>
+
+    <keys>
+        <c:for var="uniqueKey" items="${entityModel.uniqueKeys}">
+            <key name="${uniqueKey.name}" props="${_.join(uniqueKey.columns,',')}"
+                displayName="${uniqueKey.displayName}" />
+        </c:for>
+    </keys>
+
+    <c:script>
+        const sortProps = entityModel.columns.filter(col=> col.containsTag('sort') || col.containsTag('sort-desc'));
+        const parentProp = entityModel.getColumnByTag('parent');
+
+        function buildColControl(col){
+           if(parentProp == col){
+              const childrenProp = parentProp.columnRefs?.[0]?.refPropName;
+              if(childrenProp){
+                 // 如果具有parent和children属性，则使用tree控件来选择
+                 return "tree-parent";
+              }
+           }
+        }
+    </c:script>
+    <orderBy xpl:if="sortProps.size() > 0">
+       <c:for var="sortProp" items="${sortProps}">
+            <field name="${sortProp.name}" desc="${sortProp.containsTag('sort-desc')}" />
+       </c:for>
+    </orderBy>
+
+    <c:if test="${parentProp}">
+       <tree isLeafProp="${entityModel.getColumnByTag('is-leaf')?.name}" parentProp="${parentProp.name}"
+            childrenProp="${parentProp.columnRefs?.[0]?.refPropName}" />
+    </c:if>
+
+     <c:import from="/nop/codegen/xlib/meta-gen.xlib" />
+
+    <props>
+        <c:for var="col" items="${entityModel.columns}">
+            <c:script><![CDATA[
+                // 是否是数据库列对应的增强对象
+                let colComp = entityModel.getComponent(col.name + "Component");
+                let jsonCol = colComp != null && colComp.className.$simpleClassName() == 'JsonOrmComponent'
+            ]]></c:script>
+            <prop name="${col.name}" displayName="${col.displayName}" i18n-en:displayName="${col['i18n-en:displayName']}" tagSet="${_.join(col.tagSet,',')}"
+                mandatory="${col.mandatory || null}" published="${col.tagSet?.contains('not-pub') ? false:null}"
+                queryable="${col['ext:queryable'] ?? true}" sortable="${col['ext:sortable'] ?? true}"
+                insertable="${xpl('meta-gen:IsColInsertable',col)}"  updatable="${xpl('meta-gen:IsColUpdatable',col)}"
+                internal="${xpl('meta-gen:IsColInternal',col)||null}" graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
+                ext:show="${col['ext:show']}" ext:control="${col['ext:control'] || buildColControl(col)}"
+                ext:relation="${col.columnRefs?.[0]?.name}" defaultValue="${col.defaultValue}"
+             >
+                <schema stdDomain="${col.stdDomain}" domain="${col.domain}" type="${col.javaTypeName}"
+                    precision="${col.precision}" scale="${col.scale}"
+                    dict="${col['ext:dict']}" />
+            </prop>
+        </c:for>
+
+        <c:for var="rel" items="${entityModel.relations}">
+            <prop name="${rel.name}" displayName="${rel.displayName}" i18n-en:displayName="${rel['i18n-en:displayName']}" tagSet="${_.join(rel.tagSet,',')}"
+                  ext:kind="${rel.toOneRelation?'to-one':'to-many'}" internal="true" queryable="${rel.toOneRelation?true:null}"
+                  ext:control="${rel['ext:control']}"  defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
+                  ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}" ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
+                  ext:joinRightDisplayProp="${rel.singleColumnJoin?.rightDisplayPropModel?.name}"
+                  insertable="false" updatable="false"
+                  mandatory="${(rel.toOneRelation and rel.mandatory) || null}" lazy="true" published="${rel.tagSet?.contains('pub') ? null :false}">
+                <schema type="${rel.javaTypeName}" bizObjName="${rel.refEntityName.$lastPart('.')}" />
+            </prop>
+            <c:if test="${rel.tagSet?.contains('pub') and rel.toOneRelation and rel.singleColumnJoin?.rightDisplayPropModel}">
+                <prop name="${rel.name}.${rel.singleColumnJoin.rightDisplayPropModel.name}" displayName="${rel.displayName}" i18n-en:displayName="${rel['i18n-en:displayName']}"
+                      internal="true" queryable="true" sortable="true" lazy="true" >
+                    <schema type="String"  />
+                </prop>
+            </c:if>
+        </c:for>
+
+        <c:for var="comp" items="${entityModel.components}">
+            <c:script><![CDATA[
+                // 是否是数据库列对应的增强对象
+                let compCol = null;
+                if(comp.name.endsWith("Component")){
+                    compCol = entityModel.getColumn(comp.name.$removeTail("Component"),true);
+                }
+            ]]></c:script>
+            <prop name="${comp.name}" displayName="${comp.displayName}" i18n-en:displayName="${comp['i18n-en:displayName']}" tagSet="${_.join(comp.tagSet,',')}"
+                    ext:kind="component"  internal="true" ext:control="${comp['ext:control']}"
+                    insertable="${compCol!=null}" updatable="${compCol != null}"
+                    mandatory="${comp.mandatory || null}" lazy="true" published="${comp.tagSet?.contains('pub') ? null :false}">
+                <schema type="${comp.javaTypeName}" />
+            </prop>
+        </c:for>
+
+        <c:for var="alias" items="${entityModel.aliases}">
+            <prop name="${alias.name}" displayName="${alias.displayName}" i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
+                    ext:kind="alias"  internal="true" ext:control="${alias['ext:control']}"
+                    insertable="false" updatable="false"
+                            mandatory="${alias.mandatory || null}" lazy="true" published="${alias.tagSet?.contains('pub') ? null :false}">
+                <schema type="${alias.javaTypeName}" />
+            </prop>
+        </c:for>
+    </props>
+</meta>

@@ -1,0 +1,672 @@
+{
+  "fields": {
+    "__schema": {
+      "fields": {
+        "queryType": {
+          "fields": {
+            "name": {
+              "name": "name"
+            }
+          },
+          "name": "queryType"
+        },
+        "mutationType": {
+          "fields": {
+            "name": {
+              "name": "name"
+            }
+          },
+          "name": "mutationType"
+        },
+        "subscriptionType": {
+          "fields": {
+            "name": {
+              "name": "name"
+            }
+          },
+          "name": "subscriptionType"
+        },
+        "types": {
+          "fields": {
+            "kind": {
+              "name": "kind"
+            },
+            "name": {
+              "name": "name"
+            },
+            "description": {
+              "name": "description"
+            },
+            "fields": {
+              "args": {
+                "includeDeprecated": true
+              },
+              "fields": {
+                "name": {
+                  "name": "name"
+                },
+                "description": {
+                  "name": "description"
+                },
+                "args": {
+                  "fields": {
+                    "name": {
+                      "name": "name"
+                    },
+                    "description": {
+                      "name": "description"
+                    },
+                    "type": {
+                      "fields": {
+                        "kind": {
+                          "name": "kind"
+                        },
+                        "name": {
+                          "name": "name"
+                        },
+                        "ofType": {
+                          "fields": {
+                            "kind": {
+                              "name": "kind"
+                            },
+                            "name": {
+                              "name": "name"
+                            },
+                            "ofType": {
+                              "fields": {
+                                "kind": {
+                                  "name": "kind"
+                                },
+                                "name": {
+                                  "name": "name"
+                                },
+                                "ofType": {
+                                  "fields": {
+                                    "kind": {
+                                      "name": "kind"
+                                    },
+                                    "name": {
+                                      "name": "name"
+                                    },
+                                    "ofType": {
+                                      "fields": {
+                                        "kind": {
+                                          "name": "kind"
+                                        },
+                                        "name": {
+                                          "name": "name"
+                                        },
+                                        "ofType": {
+                                          "fields": {
+                                            "kind": {
+                                              "name": "kind"
+                                            },
+                                            "name": {
+                                              "name": "name"
+                                            },
+                                            "ofType": {
+                                              "fields": {
+                                                "kind": {
+                                                  "name": "kind"
+                                                },
+                                                "name": {
+                                                  "name": "name"
+                                                },
+                                                "ofType": {
+                                                  "fields": {
+                                                    "kind": {
+                                                      "name": "kind"
+                                                    },
+                                                    "name": {
+                                                      "name": "name"
+                                                    }
+                                                  },
+                                                  "name": "ofType"
+                                                }
+                                              },
+                                              "name": "ofType"
+                                            }
+                                          },
+                                          "name": "ofType"
+                                        }
+                                      },
+                                      "name": "ofType"
+                                    }
+                                  },
+                                  "name": "ofType"
+                                }
+                              },
+                              "name": "ofType"
+                            }
+                          },
+                          "name": "ofType"
+                        }
+                      },
+                      "name": "type"
+                    },
+                    "defaultValue": {
+                      "name": "defaultValue"
+                    }
+                  },
+                  "name": "args"
+                },
+                "type": {
+                  "fields": {
+                    "kind": {
+                      "name": "kind"
+                    },
+                    "name": {
+                      "name": "name"
+                    },
+                    "ofType": {
+                      "fields": {
+                        "kind": {
+                          "name": "kind"
+                        },
+                        "name": {
+                          "name": "name"
+                        },
+                        "ofType": {
+                          "fields": {
+                            "kind": {
+                              "name": "kind"
+                            },
+                            "name": {
+                              "name": "name"
+                            },
+                            "ofType": {
+                              "fields": {
+                                "kind": {
+                                  "name": "kind"
+                                },
+                                "name": {
+                                  "name": "name"
+                                },
+                                "ofType": {
+                                  "fields": {
+                                    "kind": {
+                                      "name": "kind"
+                                    },
+                                    "name": {
+                                      "name": "name"
+                                    },
+                                    "ofType": {
+                                      "fields": {
+                                        "kind": {
+                                          "name": "kind"
+                                        },
+                                        "name": {
+                                          "name": "name"
+                                        },
+                                        "ofType": {
+                                          "fields": {
+                                            "kind": {
+                                              "name": "kind"
+                                            },
+                                            "name": {
+                                              "name": "name"
+                                            },
+                                            "ofType": {
+                                              "fields": {
+                                                "kind": {
+                                                  "name": "kind"
+                                                },
+                                                "name": {
+                                                  "name": "name"
+                                                }
+                                              },
+                                              "name": "ofType"
+                                            }
+                                          },
+                                          "name": "ofType"
+                                        }
+                                      },
+                                      "name": "ofType"
+                                    }
+                                  },
+                                  "name": "ofType"
+                                }
+                              },
+                              "name": "ofType"
+                            }
+                          },
+                          "name": "ofType"
+                        }
+                      },
+                      "name": "ofType"
+                    }
+                  },
+                  "name": "type"
+                },
+                "isDeprecated": {
+                  "name": "isDeprecated"
+                },
+                "deprecationReason": {
+                  "name": "deprecationReason"
+                }
+              },
+              "name": "fields"
+            },
+            "inputFields": {
+              "fields": {
+                "name": {
+                  "name": "name"
+                },
+                "description": {
+                  "name": "description"
+                },
+                "type": {
+                  "fields": {
+                    "kind": {
+                      "name": "kind"
+                    },
+                    "name": {
+                      "name": "name"
+                    },
+                    "ofType": {
+                      "fields": {
+                        "kind": {
+                          "name": "kind"
+                        },
+                        "name": {
+                          "name": "name"
+                        },
+                        "ofType": {
+                          "fields": {
+                            "kind": {
+                              "name": "kind"
+                            },
+                            "name": {
+                              "name": "name"
+                            },
+                            "ofType": {
+                              "fields": {
+                                "kind": {
+                                  "name": "kind"
+                                },
+                                "name": {
+                                  "name": "name"
+                                },
+                                "ofType": {
+                                  "fields": {
+                                    "kind": {
+                                      "name": "kind"
+                                    },
+                                    "name": {
+                                      "name": "name"
+                                    },
+                                    "ofType": {
+                                      "fields": {
+                                        "kind": {
+                                          "name": "kind"
+                                        },
+                                        "name": {
+                                          "name": "name"
+                                        },
+                                        "ofType": {
+                                          "fields": {
+                                            "kind": {
+                                              "name": "kind"
+                                            },
+                                            "name": {
+                                              "name": "name"
+                                            },
+                                            "ofType": {
+                                              "fields": {
+                                                "kind": {
+                                                  "name": "kind"
+                                                },
+                                                "name": {
+                                                  "name": "name"
+                                                }
+                                              },
+                                              "name": "ofType"
+                                            }
+                                          },
+                                          "name": "ofType"
+                                        }
+                                      },
+                                      "name": "ofType"
+                                    }
+                                  },
+                                  "name": "ofType"
+                                }
+                              },
+                              "name": "ofType"
+                            }
+                          },
+                          "name": "ofType"
+                        }
+                      },
+                      "name": "ofType"
+                    }
+                  },
+                  "name": "type"
+                },
+                "defaultValue": {
+                  "name": "defaultValue"
+                }
+              },
+              "name": "inputFields"
+            },
+            "interfaces": {
+              "fields": {
+                "kind": {
+                  "name": "kind"
+                },
+                "name": {
+                  "name": "name"
+                },
+                "ofType": {
+                  "fields": {
+                    "kind": {
+                      "name": "kind"
+                    },
+                    "name": {
+                      "name": "name"
+                    },
+                    "ofType": {
+                      "fields": {
+                        "kind": {
+                          "name": "kind"
+                        },
+                        "name": {
+                          "name": "name"
+                        },
+                        "ofType": {
+                          "fields": {
+                            "kind": {
+                              "name": "kind"
+                            },
+                            "name": {
+                              "name": "name"
+                            },
+                            "ofType": {
+                              "fields": {
+                                "kind": {
+                                  "name": "kind"
+                                },
+                                "name": {
+                                  "name": "name"
+                                },
+                                "ofType": {
+                                  "fields": {
+                                    "kind": {
+                                      "name": "kind"
+                                    },
+                                    "name": {
+                                      "name": "name"
+                                    },
+                                    "ofType": {
+                                      "fields": {
+                                        "kind": {
+                                          "name": "kind"
+                                        },
+                                        "name": {
+                                          "name": "name"
+                                        },
+                                        "ofType": {
+                                          "fields": {
+                                            "kind": {
+                                              "name": "kind"
+                                            },
+                                            "name": {
+                                              "name": "name"
+                                            }
+                                          },
+                                          "name": "ofType"
+                                        }
+                                      },
+                                      "name": "ofType"
+                                    }
+                                  },
+                                  "name": "ofType"
+                                }
+                              },
+                              "name": "ofType"
+                            }
+                          },
+                          "name": "ofType"
+                        }
+                      },
+                      "name": "ofType"
+                    }
+                  },
+                  "name": "ofType"
+                }
+              },
+              "name": "interfaces"
+            },
+            "enumValues": {
+              "args": {
+                "includeDeprecated": true
+              },
+              "fields": {
+                "name": {
+                  "name": "name"
+                },
+                "description": {
+                  "name": "description"
+                },
+                "isDeprecated": {
+                  "name": "isDeprecated"
+                },
+                "deprecationReason": {
+                  "name": "deprecationReason"
+                }
+              },
+              "name": "enumValues"
+            },
+            "possibleTypes": {
+              "fields": {
+                "kind": {
+                  "name": "kind"
+                },
+                "name": {
+                  "name": "name"
+                },
+                "ofType": {
+                  "fields": {
+                    "kind": {
+                      "name": "kind"
+                    },
+                    "name": {
+                      "name": "name"
+                    },
+                    "ofType": {
+                      "fields": {
+                        "kind": {
+                          "name": "kind"
+                        },
+                        "name": {
+                          "name": "name"
+                        },
+                        "ofType": {
+                          "fields": {
+                            "kind": {
+                              "name": "kind"
+                            },
+                            "name": {
+                              "name": "name"
+                            },
+                            "ofType": {
+                              "fields": {
+                                "kind": {
+                                  "name": "kind"
+                                },
+                                "name": {
+                                  "name": "name"
+                                },
+                                "ofType": {
+                                  "fields": {
+                                    "kind": {
+                                      "name": "kind"
+                                    },
+                                    "name": {
+                                      "name": "name"
+                                    },
+                                    "ofType": {
+                                      "fields": {
+                                        "kind": {
+                                          "name": "kind"
+                                        },
+                                        "name": {
+                                          "name": "name"
+                                        },
+                                        "ofType": {
+                                          "fields": {
+                                            "kind": {
+                                              "name": "kind"
+                                            },
+                                            "name": {
+                                              "name": "name"
+                                            }
+                                          },
+                                          "name": "ofType"
+                                        }
+                                      },
+                                      "name": "ofType"
+                                    }
+                                  },
+                                  "name": "ofType"
+                                }
+                              },
+                              "name": "ofType"
+                            }
+                          },
+                          "name": "ofType"
+                        }
+                      },
+                      "name": "ofType"
+                    }
+                  },
+                  "name": "ofType"
+                }
+              },
+              "name": "possibleTypes"
+            }
+          },
+          "name": "types"
+        },
+        "directives": {
+          "fields": {
+            "name": {
+              "name": "name"
+            },
+            "description": {
+              "name": "description"
+            },
+            "locations": {
+              "name": "locations"
+            },
+            "args": {
+              "fields": {
+                "name": {
+                  "name": "name"
+                },
+                "description": {
+                  "name": "description"
+                },
+                "type": {
+                  "fields": {
+                    "kind": {
+                      "name": "kind"
+                    },
+                    "name": {
+                      "name": "name"
+                    },
+                    "ofType": {
+                      "fields": {
+                        "kind": {
+                          "name": "kind"
+                        },
+                        "name": {
+                          "name": "name"
+                        },
+                        "ofType": {
+                          "fields": {
+                            "kind": {
+                              "name": "kind"
+                            },
+                            "name": {
+                              "name": "name"
+                            },
+                            "ofType": {
+                              "fields": {
+                                "kind": {
+                                  "name": "kind"
+                                },
+                                "name": {
+                                  "name": "name"
+                                },
+                                "ofType": {
+                                  "fields": {
+                                    "kind": {
+                                      "name": "kind"
+                                    },
+                                    "name": {
+                                      "name": "name"
+                                    },
+                                    "ofType": {
+                                      "fields": {
+                                        "kind": {
+                                          "name": "kind"
+                                        },
+                                        "name": {
+                                          "name": "name"
+                                        },
+                                        "ofType": {
+                                          "fields": {
+                                            "kind": {
+                                              "name": "kind"
+                                            },
+                                            "name": {
+                                              "name": "name"
+                                            },
+                                            "ofType": {
+                                              "fields": {
+                                                "kind": {
+                                                  "name": "kind"
+                                                },
+                                                "name": {
+                                                  "name": "name"
+                                                }
+                                              },
+                                              "name": "ofType"
+                                            }
+                                          },
+                                          "name": "ofType"
+                                        }
+                                      },
+                                      "name": "ofType"
+                                    }
+                                  },
+                                  "name": "ofType"
+                                }
+                              },
+                              "name": "ofType"
+                            }
+                          },
+                          "name": "ofType"
+                        }
+                      },
+                      "name": "ofType"
+                    }
+                  },
+                  "name": "type"
+                },
+                "defaultValue": {
+                  "name": "defaultValue"
+                }
+              },
+              "name": "args"
+            }
+          },
+          "name": "directives"
+        }
+      },
+      "name": "__schema"
+    }
+  },
+  "name": "IntrospectionQuery"
+}

@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <GenOrm outputMode="xml">
+            <description>根据PDMiner的设计文件生成orm模型</description>
+
+            <attr name="src" type="String" stdDomain="v-path"/>
+            <attr name="versionCol" type="String" optional="true"/>
+            <attr name="tenantCol" type="String" optional="true"/>
+            <attr name="createrCol" type="String" optional="true"/>
+            <attr name="createTimeCol" type="String" optional="true"/>
+            <attr name="updaterCol" type="String" optional="true"/>
+            <attr name="updateTimeCol" type="String" optional="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.lang.json.JsonTool;
+                    let json = JsonTool.loadJson(src);
+                ]]></c:script>
+
+                <thisLib:GenOrmFromJson json="${json}"
+                                        versionCol="${versionCol}"
+                                        tenantCol="${tenantCol}"
+                                        createrCol="${createrCol}"
+                                        createTimeCol="${createTimeCol}"
+                                        updaterCol="${updaterCol}"
+                                        updateTimeCol="${updateTimeCol}" />
+            </source>
+        </GenOrm>
+
+        <GenOrmFromJson outputMode="xml">
+            <description>根据PDMiner的设计文件生成orm模型</description>
+
+            <attr name="json" type="any" />
+            <attr name="versionCol" type="String" optional="true"/>
+            <attr name="tenantCol" type="String" optional="true"/>
+            <attr name="createrCol" type="String" optional="true"/>
+            <attr name="createTimeCol" type="String" optional="true"/>
+            <attr name="updaterCol" type="String" optional="true"/>
+            <attr name="updateTimeCol" type="String" optional="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.dao.dialect.DialectManager;
+
+                    const dialect = DialectManager.instance().getDialect("mysql");
+
+                    const mySQLId = _.findWhere(json.profile.dataTypeSupports, 'defKey', 'MYSQL').id;
+                    logDebug("mySQLId={}",mySQLId);
+
+                    // 从dataType的id映射到MySQL数据库的数据类型
+                    const mapping = _.pluckAsMap(json.dataTypeMapping.mappings,"id",mySQLId);
+                    logDebug("mapping={}",mapping);
+
+                    const domains = _.indexBy(json.domains,"id");
+                    json.domains.forEach(domain=>{
+                    domain.stdSqlType = dialect.getNativeType(mapping[domain.applyFor]).stdSqlType;
+                    });
+
+                    // 根据id映射到表定义
+                    const tables = _.indexBy(json.entities,"id");
+                    const views = _.indexBy(json.views,"id");
+                    const fields = {}
+                    tables.values().forEach(table=> table.fields.forEach(field=>{
+                    fields[field.id] = field; field.defKey = field.defKey.toUpperCase();
+                    }));
+                    views.values().forEach(view=> view.fields.forEach(field=>{
+                    fields[field.id] = field; field.defKey= field.defKey.toUpperCase();
+                    }));
+
+                    const tablePackages = {}
+                    json.viewGroups.forEach(viewGroup =>{
+                    // defKey如果是java包名，则
+                    if(viewGroup.defKey.indexOf('.') > 0 and viewGroup.defKey.$isValidClassName()){
+                    viewGroup.refEntities.forEach(refEntity=> {
+                    tablePackages[refEntity] = viewGroup.defKey;
+                    });
+                    viewGroup.refViews.forEach(refView => {
+                    tablePackages[refView] = viewGroup.defKey;
+                    });
+                    }
+                    });
+
+                    tables.values().forEach(table=>{
+                    if(table.env?.namespace)
+                    tablePackages[table.id] = table.env.namespace + '.entity';
+                    });
+                    views.values().forEach(view=>{
+                    if(view.env?.namespace)
+                    tablePackages[view.id] = view.env.namespace + '.entity';
+                    });
+
+                    /****
+                    const cellToTables = {};
+                    const refs = [];
+                    json.diagrams.forEach(diagram=>{
+                    diagram.canvasData.cells.forEach(cell=>{
+                    if(cell.shape == 'table'){
+                    cellToTables[cell.id] = tables[cell.originKey];
+                    }else if(cell.shape == 'erdRelation'){
+                    refs.push(cell);
+                    }
+                    });
+                    });
+
+                    refs.forEach(ref=>{
+                    let leftTable = tables[ref.source.cell];
+                    let leftCol = fields[ref.source.port.$removeTail('%out').$removeTail('%in')];
+                    let rightTable = tables[ref.target.cell];
+                    let rightCol = fields[ref.source.port.$removeTail('%out').$removeTail('%in')];
+                    ref.leftTable = leftTable;
+                    ref.leftCol = leftCol;
+                    ref.rightTable = rightTable;
+                    ref.rightCol = rightCol;
+                    leftTable.relations = leftTable.relations || [];
+                    leftTable.relations.push(ref);
+                    });
+                    */
+                ]]></c:script>
+
+                <orm>
+                    <domains>
+                        <c:for var="domain" items="${domains.values()}">
+                            <domain name="${domain.defKey}" displayName="${domain.defName}"
+                                    stdSqlType="${domain.stdSqlType}"
+                                    precision="${domain.len || null}" scale="${domain.scale || null}"
+                            />
+                        </c:for>
+                    </domains>
+
+                    <entities>
+                        <c:for var="entity" items="${json.entities}">
+                            <c:script>
+                                const colCodeMap = _.indexBy(entity.fields,"defKey");
+                            </c:script>
+                            <entity name="${tablePackages[entity.id]}.${entity.defKey.$camelCase(true)}"
+                                    versionProp="${colCodeMap[versionCol] ? versionCol.$camelCase(false):null}"
+                                    useTenant="${colCodeMap[tenantCol] ? true: null}"
+                                    tenantProp="${colCodeMap[tenantCol] ? tenantCol.$camelCase(false) : null}"
+                                    createrProp="${colCodeMap[createrCol] ? createrCol.$camelCase(false) : null}"
+                                    createTimeProp="${colCodeMap[createTimeCol] ? createTimeCol.$camelCase(false):null}"
+                                    updaterProp="${colCodeMap[updaterCol] ? updaterCol.$camelCase(false) : null}"
+                                    updateTimeProp="${colCodeMap[updateTimeCol]?updateTimeCol.$camelCase(false):null}"
+                                    tableName="${entity.defKey.toLowerCase()}" displayName="${entity.defName}">
+                                <comment>${entity.comment}</comment>
+                                <thisLib:GenColumns/>
+
+                                <thisLib:GenRelations/>
+
+                                <indexes>
+                                    <c:for var="index" items="${entity.indexes}">
+                                        <index name="${index.defKey.toLowerCase()}" displayName="${index.defName}"
+                                               unique="${index.unique}">
+                                            <c:for var="field" items="${index.fields}">
+                                                <column name="${fields[field.fieldDefKey].defKey.$camelCase(false)}"
+                                                        desc="${field.ascOrDesc == 'D'}"/>
+                                            </c:for>
+                                        </index>
+                                    </c:for>
+                                </indexes>
+                            </entity>
+                        </c:for>
+
+                        <c:for var="entity" items="${json.views}">
+                            <c:if test="${entity.fields.some(fld=>fld.primaryKey)}">
+                                <entity name="${tablePackages[entity.id]}.${entity.defKey.$camelCase(true)}"
+                                        readonly="true"
+                                        tableView="true"
+                                        tableName="${entity.defKey.toLowerCase()}" displayName="${entity.defName}">
+
+                                    <thisLib:GenColumns/>
+                                </entity>
+                            </c:if>
+                        </c:for>
+                    </entities>
+                </orm>
+            </source>
+        </GenOrmFromJson>
+
+        <GenColumns outputMode="xml">
+            <attr name="entity" implicit="true"/>
+            <attr name="domains" implicit="true"/>
+            <source>
+                <columns>
+                    <c:for var="field" items="${entity.fields}" index="idx">
+                        <!--
+                        ${domain.primaryKey || null} 当primaryKey为false时返回null，而代码生成器会自动忽略所有null属性，简化输出内容。
+                        -->
+                        <column name="${field.defKey.$camelCase(false).$beanPropName()}" displayName="${field.defName}"
+                                code="${field.defKey}" propId="${idx+1}"
+                                stdSqlType="${domains[field.domain].stdSqlType ?? field.type}"
+                                stdDataType="${domains[field.domain].stdSqlType.stdDataType}"
+                                precision="${field.len || domains[field.domain].len || null}"
+                                scale="${field.scale || domains[field.domain].scale || null}"
+                                primary="${field.primaryKey || null}"
+                                mandatory="${field.notNull || null}"
+                                useSeq="${field.autoIncrement || null}" defaultValue="${field.defaultValue || null}"
+                                uiHint="${field.uiHint || null}" comment="${field.comment || null}"
+                        />
+                    </c:for>
+                </columns>
+            </source>
+        </GenColumns>
+
+        <GenRelations outputMode="xml">
+            <attr name="entity" implicit="true"/>
+            <source>
+                <relations>
+
+                </relations>
+            </source>
+        </GenRelations>
+    </tags>
+</lib>

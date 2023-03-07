@@ -1,0 +1,7 @@
+label: 登录状态
+locale: zh-CN
+options:
+  - label: 在线
+    value: 1
+  - label: 退出
+    value: 2

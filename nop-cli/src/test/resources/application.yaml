@@ -1,0 +1,7 @@
+quarkus:
+  log:
+    level: INFO
+
+    category:
+      "io.nop.core":
+        level: INFO

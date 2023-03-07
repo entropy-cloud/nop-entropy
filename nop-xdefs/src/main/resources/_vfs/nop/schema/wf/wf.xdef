@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  @allowStepLoop 是否允许步骤之间构成循环（除了backLink连接之外）。为了支持回退操作，需要所有步骤节点构成有向无环图。
+  在回退连接上标记backLink=true可以忽略该循环依赖
+-->
+<workflow displayName="string" bizEntityStateProp="prop-name"
+          xdef:default-extends="/nop/core/defaults/default.wf.xml"
+          defaultPriority="!int=100" allowStepLoop="!boolean=false"
+          wfName="!string" wfVersion="!string"
+          x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:xdef="/nop/schema/xdef.xdef"
+          xdef:name="WfModel" xdef:bean-package="io.nop.wf.core.model"
+>
+
+    <description xdef:value="string"/>
+
+
+    <!-- start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点 -->
+    <start xdef:mandatory="true" startStepName="!string" xdef:name="WfStartModel">
+        <!-- when返回false时调用start会抛出异常 -->
+        <when xdef:value="xpl-predicate"/>
+        <source xdef:value="xpl"/>
+
+        <arg xdef:name="WfArgVarModel" name="!var-name" mandatory="!boolean=false"
+             displayName="string" xdef:unique-attr="name">
+            <description xdef:value="string"/>
+            <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
+        </arg>
+    </start>
+
+    <end xdef:name="WfEndModel">
+        <source xdef:value="xpl"/>
+        <!--
+        返回给父流程的值
+        -->
+        <output name="!var-name" xdef:unique-attr="name" displayName="string" type="generic-type"
+                xdef:name="WfReturnVarModel">
+            <description xdef:value="string"/>
+            <source xdef:value="xpl"/>
+        </output>
+    </end>
+
+    <!--
+    触发每一个action的时候所执行的权限验证逻辑
+    -->
+    <check-action-auth xdef:value="xpl"/>
+
+    <!--
+    对工作流执行管理操作的时候所执行的权限验证逻辑
+    -->
+    <check-manage-auth xdef:value="xpl"/>
+
+    <!--
+    启动工作流的时候执行的权限验证逻辑
+    -->
+    <check-start-auth xdef:value="xpl"/>
+
+    <!--
+    前端设计器所设计的可视化流程图
+    -->
+    <diagram xdef:value="string"/>
+
+    <deploy xdef:value="xpl"/>
+
+    <undeploy xdef:value="xpl"/>
+
+    <manager-assignment xdef:ref="assignment.xdef"/>
+
+    <on-error xdef:value="xpl"/>
+
+    <on-signal xdef:value="xpl"/>
+
+    <listeners xdef:body-type="list" xdef:key-attr="id">
+        <listener id="!string" eventPattern="!string" xdef:name="WfListenerModel">
+            <source xdef:value="xpl"/>
+        </listener>
+    </listeners>
+
+    <subscribes xdef:body-type="list" xdef:key-attr="id" xdef:bean-child-name="subscribe">
+        <!--
+          监听全局EventBus上的event。当执行BizModel的action时会触发event, 此时from=bizObjName,event=actionId
+        -->
+        <subscribe xdef:name="WfSubscribeModel" id="!string" from="!string" eventPattern="!string">
+            <source xdef:value="xpl"/>
+        </subscribe>
+    </subscribes>
+
+    <actions xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="action">
+        <!--
+          suspended状态下所有action都不可用
+          @local 是否局部操作，不导致本步骤结束
+          @common 是否每个步骤都具有的公共操作
+          @persist 是否将action执行记录保存到数据库中
+          @specialType 可视化设计器识别的分类标记。每一种specialType对应设计器中的一种图标。
+          @waitSignals 对应一组globalVars中必须存在的变量名，只有这些变量不为null, action才允许被触发
+          @forActivated 是否在步骤处于活动状态时可调用
+          @forHistory 是否在步骤处于历史状态时可调用
+          @forWaiting 是否在工作流步骤处于等待状态时可调用
+          @forEnded 是否在工作流结束之后可调用
+          @forReject 是否退回操作，退回操作可以没有配置步骤迁移
+          @forWithdraw 是否是撤回操作, 撤回操作可以没有配置步骤迁移
+        -->
+        <action name="!string" displayName="string" local="!boolean=false" common="!boolean=false"
+                internal="!boolean=false" group="string"
+                persist="!boolean=true" waitSignals="csv-set" specialType="string" sortOrder="!int=0"
+                forActivated="!boolean=true" forHistory="!boolean=false" saveActionRecord="!boolean=true"
+                forWaiting="!boolean=false" forReject="!boolean=false" forWithdraw="!boolean=false"
+                forEnded="!boolean=false" xdef:name="WfActionModel">
+
+            <description xdef:value="string"/>
+
+            <when xdef:value="xpl-predicate"/>
+
+            <arg name="!var-name" xdef:ref="WfArgVarModel" xdef:unique-attr="name"/>
+
+            <source xdef:value="xpl"/>
+
+            <!--
+              @splitType 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
+              @appState 设置步骤实例上的appState字段
+              @wfAppState  设置工作流实例wfRecord上的appState字段
+            -->
+            <transition splitType="enum:io.nop.wf.core.model.WfSplitType"
+                        appState="#string" wfAppState="#string" bizEntityState="#string"
+                        xdef:name="WfTransitionModel">
+
+                <xdef:define xdef:name="WfTransitionToModel" caseValue="string" order="!int=0">
+                    <when xdef:value="xpl-predicate"/>
+                    <before-transition xdef:value="xpl"/>
+                    <after-transition xdef:value="xpl"/>
+                </xdef:define>
+
+                <to-end xdef:ref="WfTransitionToModel" xdef:name="WfTransitionToEndModel"/>
+
+                <!-- 迁移到空步骤。结束本步骤，但是没有创建新的步骤实例 -->
+                <to-empty xdef:ref="WfTransitionToModel" xdef:name="WfTransitionToEmptyModel"/>
+
+                <to-assigned xdef:ref="WfTransitionToModel" backLink="boolean=false"
+                             xdef:name="WfTransitionToAssignedModel"/>
+
+                <!--
+                  @backLink 如果是后向连接，则在将流程节点整理为树型结构时将会忽略此连接。
+                -->
+                <to-step stepName="!string" xdef:ref="WfTransitionToModel" backLink="!boolean=false"
+                         xdef:allow-multiple="true"
+                         xdef:unique-attr="stepName" xdef:name="WfTransitionToStepModel"/>
+            </transition>
+
+            <after-transition xdef:value="xpl"/>
+        </action>
+    </actions>
+
+    <steps xdef:body-type="list" xdef:key-attr="name" xdef:bean-sub-type-prop="type" xdef:bean-child-name="step"
+           xdef:bean-body-type="List&lt;io.nop.wf.core.model.WfStepModel>">
+        <!--
+          @internal 标记为internal的步骤不会在界面中显示
+          @optional 本步骤是否可选步骤，如果不是，则步骤出现异常时将导致异常向父节点传播，最终可能导致整个流程终止
+          @priority 优先级
+          @waitSignals 对应一组globalVars中必须存在的变量名，只有这些变量不为null, 才activated
+          @appState 进入步骤时将record的appState设置为特定值
+          @specialType 可视化设计器识别的分类标记。每一种specialType对应设计器中的一种图标。
+          @independent 正常情况下整个流程结束时所有正在运行的步骤都会被强制kill，而如果标记为independent，则可以继续保持运行状态。
+          @joinTargetStep 对应于某个join步骤的name, 而joinValueExpr则指定join时的分组条件。
+            join步骤缺省会等待所有前置步骤结束。如果指定了joinValueExpr, 则joinValueExpr相同的步骤会被认为是一组。
+            例如上游步骤A, 下游join步骤为B。A上标记joinTargetStep="B",
+           joinValueExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
+        -->
+        <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
+              internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
+              optional="!boolean=false" priority="!int=100" appState="#string"
+              tags="csv-set" joinTargetStep="string" allowWithdraw="!boolean=false"
+              allowReject="!boolean=false" dueAction="string"
+              specialType="string" independent="!boolean=false">
+
+            <!-- 如果不自动迁移，则必须有assignment -->
+            <assignment xdef:ref="assignment.xdef"/>
+
+            <joinValueExpr xdef:value="xpl"/>
+
+            <ref-actions xdef:body-type="list" xdef:key-attr="name">
+                <ref-action name="!string" xdef:name="WfRefActionModel"/>
+            </ref-actions>
+
+            <!--
+            如果配置了超时表达式，则当超时时刻到达时会自动触发dueAction
+            -->
+            <dueTimeExpr xdef:value="xpl"/>
+
+            <!-- 进入步骤实例时执行。on-enter失败时由父步骤的on-error捕获 -->
+            <on-enter xdef:value="xpl"/>
+
+            <!-- 步骤实例转换为历史状态后执行。在其中可以通过status判断步骤是否是因为被kill而结束 -->
+            <on-exit xdef:value="xpl"/>
+
+            <!-- 在本步骤执行action/source/transition失败时执行
+            -->
+            <on-error xdef:value="xpl"/>
+
+            <source xdef:value="xpl"/>
+
+            <!--
+
+            -->
+            <transition xdef:ref="WfTransitionModel"/>
+
+            <after-transition xdef:value="xpl"/>
+
+            <!--
+            如果check-complete不为空，则为异步任务，需要等待任务结束才能迁移到下一步骤
+            -->
+            <check-complete xdef:value="xpl"/>
+
+        </step>
+
+        <!--
+          @joinType joinType=and时等待所有上游步骤都到达时才激活，
+                 而joinType=or时只要有一个步骤到达就激活，后续步骤再到达时如果join步骤还处于活动状态，则不会产生新的join步骤。
+          @waitSteps joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
+        -->
+        <join name="!string" xdef:ref="WfStepModel" joinType="enum:io.nop.wf.core.model.WfJoinType"
+              waitStepNames="csv-set" xdef:name="WfJoinStepModel">
+            <!-- 是否当前可以激活 -->
+            <may-activated xdef:value="xpl-predicate"/>
+        </join>
+
+        <!--
+        子流程
+        -->
+        <flow name="!string" xdef:ref="WfStepModel" xdef:name="WfSubFlowModel">
+            <start wfName="!string" wfVersion="string"
+                   xdef:mandatory="true" xdef:name="WfSubFlowStartModel">
+                <arg name="!string" xdef:unique-attr="name" displayName="string" xdef:name="WfSubFlowArgModel">
+                    <source xdef:value="xpl"/>
+                </arg>
+
+                <!--
+                将子工作流中的output变量返回到本工作流中作为变量var
+                -->
+                <return var="!string" output="string" xdef:unique-attr="var"
+                        xdef:name="WfSubFlowReturnModel" type="generic-type">
+                    <source xdef:value="xpl"/>
+                </return>
+            </start>
+        </flow>
+
+    </steps>
+
+</workflow>

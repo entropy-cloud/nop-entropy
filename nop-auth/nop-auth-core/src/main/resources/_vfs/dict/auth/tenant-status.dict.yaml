@@ -1,0 +1,9 @@
+label: 租户状态
+locale: zh-CN
+options:
+  - label: 正常
+    value: 1
+  - label: 禁用
+    value: 0
+  - label: 废弃
+    value: -1

@@ -1,0 +1,7 @@
+label: 用户类型
+locale: zh-CN
+options:
+  - label: 普通用户
+    value: 1
+  - label: 外部用户
+    value: 100

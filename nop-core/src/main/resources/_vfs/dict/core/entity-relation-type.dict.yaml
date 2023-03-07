@@ -1,0 +1,7 @@
+label: 实体关系类型
+locale: zh-CN
+options:
+  - label: 一对多
+    value: to-many
+  - label: 多对一或一对一
+    value: to-one

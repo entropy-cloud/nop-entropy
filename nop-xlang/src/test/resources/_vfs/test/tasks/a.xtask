@@ -1,0 +1,12 @@
+<c:unit>
+    <c:include src="classpath:_vfs/test/tasks/b.xpl"/>
+    <c:script>
+        import io.nop.core.resource.ResourceHelper;
+        import io.nop.core.resource.VirtualFileSystem;
+
+        let resource = VirtualFileSystem.instance().getResource("classpath:_vfs/test/tasks/result.txt");
+        let t = now();
+        ResourceHelper.writeText(resource,t);
+        t
+    </c:script>
+</c:unit>

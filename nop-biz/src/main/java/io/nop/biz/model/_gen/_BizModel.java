@@ -1,0 +1,280 @@
+package io.nop.biz.model._gen;
+
+import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.core.lang.json.IJsonHandler;
+
+
+
+// tell cpd to start ignoring code - CPD-OFF
+/**
+ * generate from [8:2:0:0]/nop/schema/biz/xbiz.xdef <p>
+ * 每个业务模型(bizModel)必须关联一个对象模型(objMeta)。BizModel作为后端模型，只返回json, 不允许输出文本， 不包含具体界面实现
+ */
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+public abstract class _BizModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: actions
+     * 
+     */
+    private KeyedList<io.nop.biz.model.BizActionModel> _actions = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: loaders
+     * 
+     */
+    private KeyedList<io.nop.biz.model.BizLoaderModel> _loaders = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: metaDir
+     * 根据传入的bizType参数，可以在metaDir目录下动态查找关联的objMeta模型。
+     */
+    private java.lang.String _metaDir ;
+    
+    /**
+     *  
+     * xml name: observes
+     * 
+     */
+    private KeyedList<io.nop.biz.model.BizObserveModel> _observes = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: state-machine
+     * 与XState库的概念基本保持一致。为了简化设计，只支持单一状态表示，不支持并行状态和历史状态。这样状态信息可以作为一个字段存放到数据库中。
+     */
+    private io.nop.fsm.model.StateMachineModel _stateMachine ;
+    
+    /**
+     *  
+     * xml name: wfName
+     * BizModel可以选择关联一个工作流定义(Workflow)
+     */
+    private java.lang.String _wfName ;
+    
+    /**
+     * 
+     * xml name: actions
+     *  
+     */
+    
+    public java.util.List<io.nop.biz.model.BizActionModel> getActions(){
+      return _actions;
+    }
+
+    
+    public void setActions(java.util.List<io.nop.biz.model.BizActionModel> value){
+        checkAllowChange();
+        
+        this._actions = KeyedList.fromList(value, io.nop.biz.model.BizActionModel::getName);
+           
+    }
+
+    
+    public io.nop.biz.model.BizActionModel getAction(String name){
+        return this._actions.getByKey(name);
+    }
+
+    public boolean hasAction(String name){
+        return this._actions.containsKey(name);
+    }
+
+    public void addAction(io.nop.biz.model.BizActionModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.biz.model.BizActionModel> list = this.getActions();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.biz.model.BizActionModel::getName);
+            setActions(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_actions(){
+        return this._actions.keySet();
+    }
+
+    public boolean hasActions(){
+        return !this._actions.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: loaders
+     *  
+     */
+    
+    public java.util.List<io.nop.biz.model.BizLoaderModel> getLoaders(){
+      return _loaders;
+    }
+
+    
+    public void setLoaders(java.util.List<io.nop.biz.model.BizLoaderModel> value){
+        checkAllowChange();
+        
+        this._loaders = KeyedList.fromList(value, io.nop.biz.model.BizLoaderModel::getName);
+           
+    }
+
+    
+    public io.nop.biz.model.BizLoaderModel getLoader(String name){
+        return this._loaders.getByKey(name);
+    }
+
+    public boolean hasLoader(String name){
+        return this._loaders.containsKey(name);
+    }
+
+    public void addLoader(io.nop.biz.model.BizLoaderModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.biz.model.BizLoaderModel> list = this.getLoaders();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.biz.model.BizLoaderModel::getName);
+            setLoaders(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_loaders(){
+        return this._loaders.keySet();
+    }
+
+    public boolean hasLoaders(){
+        return !this._loaders.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: metaDir
+     *  根据传入的bizType参数，可以在metaDir目录下动态查找关联的objMeta模型。
+     */
+    
+    public java.lang.String getMetaDir(){
+      return _metaDir;
+    }
+
+    
+    public void setMetaDir(java.lang.String value){
+        checkAllowChange();
+        
+        this._metaDir = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: observes
+     *  
+     */
+    
+    public java.util.List<io.nop.biz.model.BizObserveModel> getObserves(){
+      return _observes;
+    }
+
+    
+    public void setObserves(java.util.List<io.nop.biz.model.BizObserveModel> value){
+        checkAllowChange();
+        
+        this._observes = KeyedList.fromList(value, io.nop.biz.model.BizObserveModel::getId);
+           
+    }
+
+    
+    public io.nop.biz.model.BizObserveModel getObserve(String name){
+        return this._observes.getByKey(name);
+    }
+
+    public boolean hasObserve(String name){
+        return this._observes.containsKey(name);
+    }
+
+    public void addObserve(io.nop.biz.model.BizObserveModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.biz.model.BizObserveModel> list = this.getObserves();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.biz.model.BizObserveModel::getId);
+            setObserves(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_observes(){
+        return this._observes.keySet();
+    }
+
+    public boolean hasObserves(){
+        return !this._observes.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: state-machine
+     *  与XState库的概念基本保持一致。为了简化设计，只支持单一状态表示，不支持并行状态和历史状态。这样状态信息可以作为一个字段存放到数据库中。
+     */
+    
+    public io.nop.fsm.model.StateMachineModel getStateMachine(){
+      return _stateMachine;
+    }
+
+    
+    public void setStateMachine(io.nop.fsm.model.StateMachineModel value){
+        checkAllowChange();
+        
+        this._stateMachine = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: wfName
+     *  BizModel可以选择关联一个工作流定义(Workflow)
+     */
+    
+    public java.lang.String getWfName(){
+      return _wfName;
+    }
+
+    
+    public void setWfName(java.lang.String value){
+        checkAllowChange();
+        
+        this._wfName = value;
+           
+    }
+
+    
+
+    public void freeze(boolean cascade){
+        if(frozen()) return;
+        super.freeze(cascade);
+
+        if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
+        
+           this._actions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._actions);
+            
+           this._loaders = io.nop.api.core.util.FreezeHelper.deepFreeze(this._loaders);
+            
+           this._observes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._observes);
+            
+           this._stateMachine = io.nop.api.core.util.FreezeHelper.deepFreeze(this._stateMachine);
+            
+        }
+    }
+
+    protected void outputJson(IJsonHandler out){
+        super.outputJson(out);
+        
+        out.put("actions",this.getActions());
+        out.put("loaders",this.getLoaders());
+        out.put("metaDir",this.getMetaDir());
+        out.put("observes",this.getObserves());
+        out.put("stateMachine",this.getStateMachine());
+        out.put("wfName",this.getWfName());
+    }
+}
+ // resume CPD analysis - CPD-ON

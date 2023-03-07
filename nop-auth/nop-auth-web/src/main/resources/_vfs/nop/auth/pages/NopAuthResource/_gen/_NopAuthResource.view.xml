@@ -4,12 +4,14 @@
 
     <objMeta>/nop/auth/model/NopAuthResource/NopAuthResource.xmeta</objMeta>
 
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
     <grids>
         <grid id="list" x:abstract="true">
             <cols>
 
                 <!--资源ID-->
-                <col id="sid" mandatory="true" sortable="true"/>
+                <col id="resourceId" mandatory="true" sortable="true"/>
 
                 <!--站点ID-->
                 <col id="siteId" mandatory="true" sortable="true"/>
@@ -90,7 +92,7 @@
     <forms>
         <form id="view" editMode="view" title="查看-菜单资源" i18n-en:title="View Menu Resource">
             <layout>
- sid[资源ID] siteId[站点ID]
+ resourceId[资源ID] siteId[站点ID]
  displayName[显示名称] orderNo[排序]
  resourceType[资源类型] parentId[父资源ID]
  icon[图标] routePath[前端路由]
@@ -108,7 +110,7 @@
         <form id="add" editMode="add" title="新增-菜单资源" i18n-en:title="Add Menu Resource" x:prototype="edit"/>
         <form id="edit" editMode="update" title="编辑-菜单资源" i18n-en:title="Edit Menu Resource">
             <layout>
- sid[资源ID] siteId[站点ID]
+ resourceId[资源ID] siteId[站点ID]
  displayName[显示名称] orderNo[排序]
  resourceType[资源类型] parentId[父资源ID]
  icon[图标] routePath[前端路由]
@@ -135,7 +137,7 @@
     <pages>
         <crud name="main" grid="tree-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table loadDataOnce="true" sortable="false" pager="none">
-                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_parentId="/>
+                <api url="@query:NopAuthResource__findList/{@listSelection}?filter_parentId=__null"/>
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
@@ -149,6 +151,13 @@
             <rowActions>
                 <action id="row-view-button" level="primary" label="@i18n:common.view">
                     <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopAuthResource__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
                     <action id="row-update-button" level="primary" label="@i18n:common.edit">
@@ -164,12 +173,11 @@
                 </actionGroup>
             </rowActions>
         </crud>
-        <crud name="picker" grid="pick-list" forPicker="true" asideFilterForm="asideFilter" filterForm="query"
-              x:abstract="true">
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table>
                 <api url="@query:NopAuthResource__findPage/{@pageSelection}"/>
             </table>
-        </crud>
+        </picker>
         <simple name="add" form="add">
             <api url="@mutation:NopAuthResource__save/id"/>
         </simple>

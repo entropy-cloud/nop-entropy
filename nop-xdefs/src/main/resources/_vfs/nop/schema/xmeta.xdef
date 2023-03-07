@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<meta xdef:bean-package="io.nop.xlang.xmeta.impl" xdef:name="ObjMetaImpl" xdef:ref="schema/obj-schema.xdef"
+      tagSet="tag-set" xmlName="string"
+      version="string" defaultExtends="v-path"
+      parseForHtml="boolean" parseKeepComment="boolean"
+      parserClass="class-name" checkNs="csv-set" propNs="csv-set"
+
+      x:schema="/nop/schema/xdef.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <entityName xdef:value="string"/>
+
+    <primaryKey xdef:value="word-set"/>
+
+    <!--
+    用于显示的字段，例如displayName等。选择控件会使用该字段
+    -->
+    <displayProp xdef:value="string"/>
+
+    <keys xdef:key-attr="name" xdef:body-type="list">
+        <!--
+        除主键之外的其他唯一键
+        -->
+        <key name="!string" props="!word-set" displayName="string" xdef:name="ObjKeyModel"/>
+    </keys>
+
+    <!--
+    过滤条件。会追加到GraphQL的query查询条件中
+    -->
+    <filter xdef:ref="query/filter.xdef"/>
+
+    <!-- 排序条件。追加到GraphQL的query查询条件中 -->
+    <orderBy xdef:ref="query/order-by.xdef"/>
+
+    <tree isLeafProp="string" parentProp="!string" childrenProp="string" xdef:name="ObjTreeModel"/>
+
+    <defines xdef:key-attr="name" xdef:body-type="list">
+        <define name="!var-name" xdef:ref="schema/schema.xdef"/>
+    </defines>
+
+    <selections xdef:key-attr="id" xdef:body-type="list">
+        <!--
+        字段选择集合。
+        -->
+        <selection id="!var-name" displayName="string"
+                   xdef:name="ObjSelectionMeta">
+            <mapping xdef:value="field-selection"/>
+        </selection>
+    </selections>
+
+</meta>

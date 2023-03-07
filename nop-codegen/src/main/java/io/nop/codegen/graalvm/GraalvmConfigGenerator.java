@@ -1,0 +1,99 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
+package io.nop.codegen.graalvm;
+
+import io.nop.codegen.maven.MavenModelHelper;
+import io.nop.codegen.maven.model.PomArtifactKey;
+import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.MavenDirHelper;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.resource.VirtualFileSystem;
+
+import java.io.File;
+import java.util.Set;
+
+import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_DIR;
+import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
+
+public class GraalvmConfigGenerator {
+    static final GraalvmConfigGenerator _instance = new GraalvmConfigGenerator();
+
+    private File configDir;
+    private File resourceDir;
+
+    public static GraalvmConfigGenerator instance() {
+        return _instance;
+    }
+
+    public boolean isEnabled() {
+        return CFG_CODEGEN_TRACE_ENABLED.get();
+    }
+
+    private void init() {
+        File projectDir = MavenDirHelper.guessProjectDir();
+        PomArtifactKey artifact = MavenModelHelper.getProjectArtifactKey(projectDir);
+
+        if (configDir == null) {
+            String path = CFG_CODEGEN_TRACE_DIR.get();
+            if (!StringHelper.isEmpty(path)) {
+                configDir = new File(path);
+            }
+        }
+
+        if (configDir == null) {
+            if (artifact != null) {
+                configDir = getNativeImageConfigDir(projectDir, artifact);
+            }
+        }
+
+        if (configDir == null) {
+            configDir = new File(projectDir, "graalvm");
+        }
+
+        if (resourceDir == null) {
+            if (artifact != null) {
+                resourceDir = new File(projectDir, "src/main/resources");
+            } else {
+                resourceDir = new File(projectDir, "graalvm");
+            }
+        }
+
+        // JSON序列化的时候需要使用到反射
+        ReflectionManager.instance().logReflectClass(ReflectClass.class);
+        ReflectionManager.instance().logReflectClass(ReflectField.class);
+        ReflectionManager.instance().logReflectClass(ReflectMethod.class);
+    }
+
+    File getNativeImageConfigDir(File projectDir, PomArtifactKey artifact) {
+        return new File(projectDir,
+                "src/main/resources/META-INF/native-image/" + artifact.getGroupId() + '/' + artifact.getArtifactId());
+    }
+
+    public File getConfigDir() {
+        init();
+        return configDir;
+    }
+
+    public File getResourceDir() {
+        init();
+        return resourceDir;
+    }
+
+    public void generateVfsIndex() {
+        Set<String> files = VirtualFileSystem.instance().getClassPathResources();
+        String text = StringHelper.join(files, "\n");
+        File indexPath = new File(getResourceDir(), "nop-vfs-index.txt");
+        FileHelper.writeText(indexPath, text, null);
+    }
+
+    public void generateGraalvmConfig() {
+        ReflectConfigGenerator.instance().generateDeltaToDir(getConfigDir());
+        ProxyConfigGenerator.instance().generateDeltaToDir(getConfigDir());
+    }
+}

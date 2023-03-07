@@ -1,0 +1,4 @@
+
+xui:js: '@include:NopBatchRecordResult.action.js'
+x:gen-extends: |
+    <web:GenPage view="NopBatchRecordResult.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
