@@ -494,6 +494,18 @@ x:gen-extends: |
 2. 点击JSON设计按钮弹出YAML编辑器，允许在前端直接修改JSON描述然后立刻看到展现效果。
 
 3. 点击可视化设计按钮会弹出amis-editor可视化设计器，允许开发人员通过可视化设计器来调整页面内容。**点击保存后会反向计算出完整页面与生成View的差量，然后将差量部分保存到page.yaml文件中**。
+   
+   ![](amis-editor-view.png)
+
+例如，在可视化设计器中修改【商品上架】页面的标题为【新增-商品】并保存之后，add.page.yaml文件中的内容为
+
+```yaml
+x:gen-extends: |
+  <web:GenPage view="LitemallGoods.view.xml" page="add" xpl:lib="/nop/web/xlib/web.xlib" />
+title: '@i18n:LitemallGoods.forms.add.$title|新增-商品'
+```
+
+保存的内容已经被转换为差量形式。
 
 ### 5.5 引入自定义模块
 
@@ -516,7 +528,13 @@ Nop平台系统化的使用元编程和DSL领域语言来开发，为此它也�
 
 2. nop-idea-plugin模块提供了IDEA开发插件，可以根据xdef元模型定义实现代码自动完成，格式校验等功能，并且对于XScript脚本语言和Xpl模板语言提供了断点调试功能。
 
+3. Quarkus框架内置了graphql-ui开发工具，可以在线查看后台所有GraphQL类型定义，并提供代码提示、自动补全等功能。
+
 详细介绍参见文档[debug.md](../dev-guide/debug.md)
+
+![](xlang-debugger.png)
+
+![](graphql-ui.png)
 
 ## 七. 自动化测试
 
@@ -595,3 +613,13 @@ Nop平台基于可逆计算理论为实现这种面向动态相似性的复用�
 3. **进一步将推理管线差量化**：A => `_B`  => B => `_C` => C 
 
 4. **每一个环节都允许暂存和透传本步骤不需要使用的扩展信息**
+
+具体来说，从后端到前端的逻辑推理链条可以分解为四个主要模型：
+
+1. ORM：面向存储层的领域模型
+
+2. XMeta：针对GraphQL接口层的领域模型，可以直接生成GraphQL的类型定义
+
+3. XView：在业务层面理解的前端逻辑，采用表单、表格、按钮等少量UI元素，与前端框架无关
+
+4. XPage：具体使用某种前端框架的页面模型
