@@ -172,13 +172,13 @@
         </prop>
         <prop name="roleMappings" displayName="角色映射" i18n-en:displayName="RoleMappings" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="userId" ext:joinRightProp="userId" insertable="false"
-              updatable="false" mandatory="true" lazy="true">
+              updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserRole&gt;"
                     bizObjName="NopAuthUserRole"/>
         </prop>
         <prop name="substitutionMappings" displayName="代理人映射" i18n-en:displayName="Substitution Mappings"
               tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="userId"
-              ext:joinRightProp="userId" insertable="false" updatable="false" mandatory="true" lazy="true">
+              ext:joinRightProp="userId" insertable="false" updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserSubstitution&gt;"
                     bizObjName="NopAuthUserSubstitution"/>
         </prop>

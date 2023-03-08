@@ -149,6 +149,8 @@ o.manager_id in (select user.id from User user, Dept dept
 
 例如 `filter_userName__contains`表示按照contains运算符对userName字段进行过滤。对于filterOp为eq(等于条件)的情况，可以省略filterOp的部分，例如 filter_userId等价于`filter_userId__eq`
 
+注意：过滤条件的值如果为空，则会忽略该字段条件。如果一定要按照空值进行查询，则可以使用`__null`来表示null,使用`__empty`来表示空字符串。
+
 ### 3.3 this指针：知识的相对化
 
 GraphQL中定义的操作名是全局名称，例如 `query{ getUser(id:3){ id, userName}}`查询中用到的getUser方法需要在整个模型中具有唯一性，这一要求对于复用代码来说是不利的。

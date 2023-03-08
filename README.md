@@ -143,7 +143,7 @@ nop-entroy不依赖于spring或者quarkus框架，也不依赖于特定数据库
 
 3. 为开发领域特定语言(DSL)提供支持：只需要定义xdef元模型文件即可获得语法提示、链接跳转、断点调试等IDE支持。后续会提供可视化设计器定制支持。参见[idea-plugin.md](docs/user-guide/idea/idea-plugin.md)
 
-4. 作为模型驱动的GraphQL引擎使用：根据Excel模型自动生成GraphQL服务，支持复杂主子表的增删改查。参见[graphql.md](docs/dev-guide/graphql.md)
+4. 作为模型驱动的GraphQL引擎使用：根据Excel模型自动生成GraphQL服务，支持复杂主子表的增删改查。参见[graphql.md](docs/dev-guide/graphql/graphql-java.md)
 
 5. 作为报表引擎使用：只需要在Word或者Excel文件中增加少量标注即可作为报表模板运行，动态生成复杂的中国式报表。参见[report.md](docs/user-guide/report.md)
 

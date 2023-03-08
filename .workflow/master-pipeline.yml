@@ -10,9 +10,9 @@ stages:
         name: build_maven
         displayName: Maven 构建
         # 支持6、7、8、9、10、11六个版本
-        jdkVersion: 8
+        jdkVersion: 11
         # 支持2.2.1、3.2.5、3.3.9、3.5.2、3.5.3、3.5.4、3.6.1、3.6.3八个版本
-        mavenVersion: 3.3.9
+        mavenVersion: 3.6.3
         # 构建命令
         commands:
           - mvn -B clean package -Dmaven.test.skip=true

@@ -2,9 +2,10 @@
 
 NopAutoTest测试框架是一个数据驱动的测试框架，这意味着一般情况下我们不需要编写任何准备输入数据和校验输出结果的代码，只需要编写一个骨架函数，并提供一批测试数据文件即可。具体来看一个示例
 
-[nop-auth/nop-auth-service/src/test/io/nop/auth/service/TestLoginApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/test/io/nop/auth/service/TestLoginApi.java)
+[nop-auth/nop-auth-service/src/test/io/nop/auth/service/TestLoginApi.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestLoginApi.java)
 
 [nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi)
+
 
 ```java
 class TestLoginApi extends JunitAutoTestCase {
@@ -383,4 +384,4 @@ SID, AMOUNT
  * 配置名: 配置
 ```
 
-具体实例可以参见TestXpl的测试用例 [TestXpl](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xlang/src/test/resources/io/nop/xlang/xpls)
+具体实例可以参见TestXpl的测试用例 [TestXpl](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xlang/src/test/resources/io/nop/xlang/xpl/xpls)

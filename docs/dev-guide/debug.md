@@ -56,7 +56,7 @@ Nop平台大量使用了元编程来动态生成代码，为了有效跟踪代�
 
 ## XLang调试器
 
-Nop平台的nop-idea-plugin模块提供了IDEA开发插件，其中包含了针对XScript脚本语言的调试器，可以为所有XDSL领域语言增加断点调试功能。具体参见文档 [idea-plugin.md](user-guide/idea/idea-plugin.md)
+Nop平台的nop-idea-plugin模块提供了IDEA开发插件，其中包含了针对XScript脚本语言的调试器，可以为所有XDSL领域语言增加断点调试功能。具体参见文档 [idea-plugin.md](../user-guide/idea/idea-plugin.md)
 
 ## GraphQL调试工具
 
@@ -120,8 +120,8 @@ nop-config模块负责从多个配置来源收集配置信息，并按照优先�
 
 在返回的结果中包含每个配置变量的来源资源文件路径。
 
-
 ## 自动化测试
+
 1. 自动录制的response中变量名可能不正确
-因为有可能多个随机变量具有同样的值，因此当保存response数据的时候，有可能根据变量的值反向查找变量名的时候出现错误，导致录制出的变量名不正确。
-例如updateTime录制为addTime等。
+   因为有可能多个随机变量具有同样的值，因此当保存response数据的时候，有可能根据变量的值反向查找变量名的时候出现错误，导致录制出的变量名不正确。
+   例如updateTime录制为addTime等。

@@ -64,13 +64,13 @@
         </prop>
         <prop name="userMappings" displayName="用户映射" i18n-en:displayName="UserMappings" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="false"
-              updatable="false" mandatory="true" lazy="true">
+              updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserRole&gt;"
                     bizObjName="NopAuthUserRole"/>
         </prop>
         <prop name="resourceMappings" displayName="资源映射" i18n-en:displayName="Resources" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="false"
-              updatable="false" mandatory="true" lazy="true">
+              updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthRoleResource&gt;"
                     bizObjName="NopAuthRoleResource"/>
         </prop>
