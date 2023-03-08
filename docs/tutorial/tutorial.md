@@ -6,8 +6,8 @@ Nop平台是可逆计算理论的一个具体落地实现方案。为了演示�
 
 > Nop平台开源网址：
 > 
-> * gitee: [https://gitee.com/canonical-entropy/nop-chaos](https://gitee.com/canonical-entropy/nop-chaos)
-> * github: [https://github.com/entropy-cloud/nop-chaos](https://github.com/entropy-cloud/nop-chaos)
+> * gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+> * github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 
 ## 一. 设计Excel数据模型
 

@@ -18,6 +18,11 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 **WARNING: Nop Platform 2.0的代码是由Entropy Platform 1.0重构而来，目前重构工作没有完全做完，且尚未在实际项目中使用过。**
 
+#### 源码地址
+
+- gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+
 #### 设计原理
 
 [可逆计算：下一代软件构造理论](https://zhuanlan.zhihu.com/p/64004026)
