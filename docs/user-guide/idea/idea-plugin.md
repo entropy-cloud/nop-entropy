@@ -43,3 +43,5 @@ XLang DSL采用XML格式，根节点上必须通过x:schema属性来指定所对
 插件增加了一个与Run和Debug指令平级的执行器XLangDebug，通过它启动后会同时启动Java调试器和启动XLang脚本语言调试器。
 
 ![idea-executor](idea-executor.png)
+
+![xlang-debugger](xlang-debugger.png)

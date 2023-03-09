@@ -53,7 +53,7 @@ public class TestGenericDslParser extends BaseTestCase {
         DynamicObject obj = parser.parseFromVirtualPath("/test/my.xlib");
         System.out.println(JSON.serialize(obj, true));
 
-        assertEquals(attachmentJsonText("my2.xlib.json"), JSON.serialize(obj, true));
+        assertEquals(normalizeCRLF(attachmentJsonText("my2.xlib.json")), normalizeCRLF(JSON.serialize(obj, true)));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class TestGenericDslParser extends BaseTestCase {
         XNode node = new DslModelToXNodeTransformer(objMeta).transformToXNode(json);
         node.removeAttr("defaultOutputMode");
         XNode lib = XNodeParser.instance().parseFromVirtualPath("/test/my.xlib");
-        assertEquals(lib.xml(), node.xml());
+        assertEquals(normalizeCRLF(lib.xml()), normalizeCRLF(node.xml()));
     }
 
     @DisplayName("未定义的属性应报错")

@@ -112,8 +112,8 @@
               insertable="true" updatable="true">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="jobParamsComponent" ext:kind="component" internal="true" insertable="true" updatable="true"
-              lazy="true" published="false">
+        <prop name="jobParamsComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
             <schema type="io.nop.orm.support.JsonOrmComponent"/>
         </prop>
     </props>

@@ -123,12 +123,12 @@
         </prop>
         <prop name="taskStates" displayName="任务状态变量" i18n-en:displayName="Task State Vars" tagSet="pub,cascade-delete"
               ext:kind="to-many" internal="true" ext:joinLeftProp="sid" ext:joinRightProp="taskId" insertable="false"
-              updatable="false" mandatory="true" lazy="true">
+              updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.batch.dao.entity.NopBatchTaskState&gt;"
                     bizObjName="NopBatchTaskState"/>
         </prop>
-        <prop name="taskParamsComponent" ext:kind="component" internal="true" insertable="true" updatable="true"
-              lazy="true" published="false">
+        <prop name="taskParamsComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
             <schema type="io.nop.orm.support.JsonOrmComponent"/>
         </prop>
     </props>

@@ -582,6 +582,29 @@ Delta定制代码存放在单独的目录中，可以与程序主应用的代码
 
 更详细的介绍参见[xdsl.md](../dev-guide/xlang/xdsl.md)
 
+## 九. GraalVM原生编译
+
+[GraalVM](https://www.graalvm.org/)是Oracle公司开发的下一代Java虚拟机，支持Python、JavaScript、R等多语言运行，并可以将Java字节码编译为二进制的机器码，直接作为exe运行，摆脱对JDK的依赖。原生程序启动更快（可能快数十倍），使用的 CPU 和内存更少并且占用的磁盘空间也更小。
+
+Nop平台在Quarkus框架的基础上进一步简化了GraalVM支持，可以很容易的将应用模块编译为原生可执行程序。
+
+1. Quarkus框架自身对很多第三方库进行了GraalVM适配
+
+2. Nop平台会分析IoC容器配置，获知所有需要被动态创建的bean，并生成GraalVM配置
+
+3. Nop平台中所有的反射操作都通过ReflectionManager帮助类进行，它会记录所有反射操作。应用程序在调试模式下运行时，会根据收集的反射信息，自动生成GraalVM配置到src/resources/META-INF/native-image目录下
+
+以app-mall项目为例，编译原生运行程序只需如下步骤: ([需要事先安装GraalVM环境](https://blog.csdn.net/wangpaiblog/article/details/122850438))
+
+```java
+cd app-mall-app
+mvn package -Pnative
+```
+
+编译结果为target/app-mall-app-1.0-SNAPSHOT-runner.exe。目前exe体积有些大（146M），主要是因为graalvm.js引擎会占用接近60M，如果不需要动态执行js打包工作，则可以去除对nop-js模块的依赖。
+> 可以只在调试阶段使用nop-js模块执行动态代码，系统运行时原则上只需要生成好的静态js文件即可。
+
+
 ## 总结
 
 Nop平台内置的差量化软件生产线如下图所示：

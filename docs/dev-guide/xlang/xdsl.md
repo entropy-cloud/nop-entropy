@@ -1,4 +1,4 @@
-# XDSL
+# XDSL：通用的领域特定语言设计
 
 Nop平台提供了面向语言编程的编程范式，即我们解决问题时总是倾向于先设计一个领域特定语言(DSL)，然后再利用该DSL来具体描述业务逻辑。Nop平台中极大简化了创建自定义DSL的过程。
 
@@ -14,9 +14,7 @@ Nop平台提供了面向语言编程的编程范式，即我们解决问题时�
 
 ![](xml-to-json.png)
 
-XDef不仅仅定义了XML格式的DSL语法，它还规定了一种XML和JSON之间的双向转换规则。因此，只要定义了XDef元模型，就可以自动得到JSON表示，可以直接用于前台可视化编辑器
-
-的输入输出。
+XDef不仅仅定义了XML格式的DSL语法，它还规定了一种XML和JSON之间的双向转换规则。因此，只要定义了XDef元模型，就可以自动得到JSON表示，可以直接用于前台可视化编辑器的输入输出。
 
 在没有定义XDef元模型的情况下，Nop平台也定义了一种紧凑的约定转换规则，可以实现无Schema约束情况下XML和JSON的双向转换。具体参见前端AMIS页面的XML表示：[amis.md](../xui/amis.md)
 
@@ -85,6 +83,8 @@ F x-extends E x-extends model x-extends D x-extends C x-extends B x-extends A
 
 当前模型会覆盖`x:gen-extends`和`x:extends`的结果，而`x:post-extends`会覆盖当前模型。
 
+借助于x:extends和x:gen-extends我们可以有效的实现DSL的分解和组合。
+
 ### x:post-extends的重要意义
 
 如果我们已经创建了一个XDSL领域特定语言，现在希望针对一些特殊场景引入额外的扩展，但是不想修改底层的运行时引擎，则可以利用`x:post-extends`机制。
@@ -149,6 +149,24 @@ DSL = Delta x-extends Generator<DSLx>
 更进一步，**`x:post-extends`为实现定制化的可视化设计器铺平了道路**。x-extends合并算法执行的时候可以指定合并阶段，如果只合并到mergeBase阶段，则我们会得到当前模型与`x:gen-extends`合并后的结果，但此时尚未应用`x:post-extends`。可视化设计器可以针对mergeBase的产物进行设计，提供大量业务特定的配置选项，而底层的运行引擎无需做出任何改动。
 
 在Nop平台中，OA审批常见的会签节点就是采用`x:post-extends`机制实现。底层的工作流引擎是为通用场景而设计的。因为会签的功能可以通过一个普通步骤节点+一个Join合并节点来实现，所以没有必要在底层引擎中内置会签相关的知识。在工作流设计器中我们提供了会签节点以及大量OA相关的简化操作，然后在元编程阶段由`x:post-extends`机制负责将这些OA相关的配置展开为底层引擎可识别的模型节点和属性。
+
+### 可执行语义
+XDSL中通过XLang语言来实现可执行语义。只要在xdef元模型中标注某个属性为EL表达式，或者某个节点内容为XPL模板语言，则该属性就会被自动解析为IEvalAction可执行函数接口。具体示例可以参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
+```xml
+ <action name="!string" ...>
+    <when xdef:value="xpl-predicate"/>
+
+    <arg name="!var-name" xdef:ref="WfArgVarModel" xdef:unique-attr="name"/>
+
+    <source xdef:value="xpl"/>
+ </action>   
+```
+
+Nop平台通过nop-idea-plugin插件为XLang语言提供了文档提示、自动补全、语法校验、断点调试等功能。具体参见[idea-plugin.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/user-guide/idea/idea-plugin.md)
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/idea/idea-executor.png)
+
+![](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/xlang-debugger.png)
 
 ### 超越接口和组件的Delta定制
 
