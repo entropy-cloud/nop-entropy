@@ -12,12 +12,9 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.json.JSON;
 import io.nop.autotest.junit.JunitBaseTestCase;
-import io.nop.core.initialize.CoreInitialization;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.GraphQLEngine;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,15 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @NopTestConfig(enableAutoConfig = false)
 public class TestBizObjectManager extends JunitBaseTestCase {
-    @BeforeAll
-    public static void init() {
-        CoreInitialization.initialize();
-    }
-
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
 
     BizObjectManager bizObjManager;
 

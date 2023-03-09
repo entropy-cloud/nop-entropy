@@ -7,6 +7,6 @@ nop:
     #    password: nop-test
 
     driver-class-name: org.h2.Driver
-    jdbc-url: jdbc:h2:file:/can/entropy-cloud/db/test
+    jdbc-url: jdbc:h2:mem:test
     username: sa
     password:

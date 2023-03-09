@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
+import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.unittest.BaseTestCase;
@@ -19,7 +20,9 @@ import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 
-@NopTestConfig(localDb = true)
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@NopTestConfig(localDb = true, initDatabaseSchema = true)
 public class TestBizObject extends JunitBaseTestCase {
 
     @Inject
@@ -28,12 +31,17 @@ public class TestBizObject extends JunitBaseTestCase {
     @Inject
     IOrmTemplate ormTemplate;
 
+    public TestBizObject() {
+        setTestConfig("nop.orm.init-database-schema", true);
+    }
+
     @Test
     public void testFindPage() {
         GraphQLRequestBean request = new GraphQLRequestBean();
         request.setQuery("query { NopAuthUser__findPage{ items{ id, userName } } }");
         IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
-        graphQLEngine.executeGraphQL(context);
+        GraphQLResponseBean response = graphQLEngine.executeGraphQL(context);
+        assertTrue(!response.hasError());
     }
 
     @Test

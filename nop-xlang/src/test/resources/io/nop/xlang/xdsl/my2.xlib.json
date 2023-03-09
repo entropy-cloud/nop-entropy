@@ -32,7 +32,7 @@
         "$body": [
           {
             "$type": "c:script",
-            "$body": "\r\n                    a + b\r\n                "
+            "$body": "\n                    a + b\n                "
           }
         ]
       }
