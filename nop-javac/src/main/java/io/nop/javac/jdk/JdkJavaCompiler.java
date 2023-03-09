@@ -7,6 +7,7 @@
  */
 package io.nop.javac.jdk;
 
+import io.nop.commons.env.PlatformEnv;
 import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +91,7 @@ public class JdkJavaCompiler {
 
         // windows不允许classpath为url格式
         for (String str : classPaths) {
-            if (str.startsWith("file:/")) {
+            if (str.startsWith("file:/") && PlatformEnv.isWindows()) {
                 urls.add(str.substring("file:/".length()));
             } else {
                 urls.add(str);
