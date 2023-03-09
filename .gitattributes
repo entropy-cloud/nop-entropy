@@ -1,0 +1,6 @@
+*.xml text eol=lf
+*.yaml text eol=lf
+*.xlib text eol=lf
+*.xdef text eol=lf
+*.xmeta text eol=lf
+*.java text eol=lf
