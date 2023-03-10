@@ -175,3 +175,7 @@ swith(贵公司很有钱吗()){
 #### 技术支持
 
 使用中遇到问题或者BUG可以在[Gitee上提Issues](https://gitee.com/canonical-entropy/nop-chaos/issues)
+
+#### 微信群
+
+![](wechat-group.png)
