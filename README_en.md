@@ -1,4 +1,4 @@
-[[中文]](README.md)   [[Tutorial]](docs/tutorial/tutorial_en.md)  [[开发示例]](docs/tutorial/tutorial.md)
+[[中文]](README.md)   [[Tutorial]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial_en.md)  [[开发示例]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
 
 
 #### Introduction

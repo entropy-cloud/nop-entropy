@@ -1,4 +1,4 @@
-[[English]](README_en.md)   [[Tutorial]](docs/tutorial/tutorial_en.md)  [[开发示例]](docs/tutorial/tutorial.md)
+[[English]](README_en.md)   [[Tutorial]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial_en.md)  [[开发示例]](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
 
 #### 介绍
 
@@ -43,7 +43,7 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 #### 快速开始
 
-[开发示例](docs/tutorial/tutorial.md)
+[开发示例](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
 
 #### 软件架构
 
