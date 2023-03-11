@@ -1,6 +1,10 @@
-[English](README_en.md)   [Tutorial](docs/tutorial/tutorial_en.md)  [开发示例](docs/tutorial/tutorial.md)
+[[English]](README_en.md)   [[Tutorial]](docs/tutorial/tutorial_en.md)  [[开发示例]](docs/tutorial/tutorial.md)
 
 #### 介绍
+
+Nop Platform 2. 0 is a new generation of low-code platform based on the theory of reversible computation. 
+It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, 
+transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
 
 Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
 
@@ -178,4 +182,4 @@ swith(贵公司很有钱吗()){
 
 #### 微信群
 
-![](wechat-group.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)

@@ -1,4 +1,4 @@
-[中文](README.md)   [Tutorial](docs/tutorial/tutorial_en.md)  [开发示例](docs/tutorial/tutorial.md)
+[[中文]](README.md)   [[Tutorial]](docs/tutorial/tutorial_en.md)  [[开发示例]](docs/tutorial/tutorial.md)
 
 
 #### Introduction
@@ -178,4 +178,4 @@ Problems or BUGs encountered in use can be found in [ Gitee Mention Issues ](htt
 
 #### Wechat group
 
-![](wechat-group.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)
