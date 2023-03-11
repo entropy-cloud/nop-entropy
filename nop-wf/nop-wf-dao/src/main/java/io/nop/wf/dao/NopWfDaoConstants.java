@@ -7,6 +7,8 @@
  */
 package io.nop.wf.dao;
 
-public interface NopWfDaoConstants extends _NopWfDaoConstants{
+public interface NopWfDaoConstants extends _NopWfDaoConstants {
+    String NAMESPACE_WF = "wf";
 
+    String FILE_POSTFIX_XWF = ".xwf";
 }

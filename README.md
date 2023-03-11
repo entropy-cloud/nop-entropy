@@ -1,4 +1,4 @@
-# nop-entropy
+[English](README_en.md)   [Tutorial](docs/tutorial/tutorial_en.md)  [开发示例](docs/tutorial/tutorial.md)
 
 #### 介绍
 
