@@ -4,3 +4,4 @@
 *.xdef text eol=lf
 *.xmeta text eol=lf
 *.java text eol=lf
+*.xwf text eol=lf
