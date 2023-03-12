@@ -5,7 +5,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.nop</groupId>
+    <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-bom</artifactId>
     <version>2.0.0-SNAPSHOT</version>
 
@@ -19,7 +19,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-dependencies</artifactId>
                 <version>${nop-entropy.version}</version>
                 <type>pom</type>
@@ -28,509 +28,509 @@
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-api-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-commons</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-javac</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-socket</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-xdefs</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-api-debugger</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-codegen</artifactId>
                 <version>${nop-entropy.version}</version>
                 <optional>true</optional>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-auth-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-xlang</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-match</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-fsm</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-log-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-log-logback</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-rpc</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-job-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-job-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-config</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ioc</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-dao</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-tcc-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-tcc-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-tcc-store</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-tcc-web</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-cluster-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-cluster-sentinel</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-cluster-nacos</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 
             <!--            <dependency>-->
-            <!--                <groupId>io.nop</groupId>-->
+            <!--                <groupId>io.github.entropy-cloud</groupId>-->
             <!--                <artifactId>nop-async</artifactId>-->
             <!--                <version>${nop-async.version}</version>-->
             <!--            </dependency>-->
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-orm</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-rule-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-rule-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-job</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-report-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-nosql</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-shell</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-web</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 <!--            <dependency>-->
-<!--                <groupId>io.nop</groupId>-->
+<!--                <groupId>io.github.entropy-cloud</groupId>-->
 <!--                <artifactId>nop-vertx-commons</artifactId>-->
 <!--                <version>${nop-entropy.version}</version>-->
 <!--            </dependency>-->
 
 <!--            <dependency>-->
-<!--                <groupId>io.nop</groupId>-->
+<!--                <groupId>io.github.entropy-cloud</groupId>-->
 <!--                <artifactId>nop-vertx-web</artifactId>-->
 <!--                <version>${nop-entropy.version}</version>-->
 <!--            </dependency>-->
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-nosql-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-nosql-lettuce</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-web-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 <!--            <dependency>-->
-<!--                <groupId>io.nop</groupId>-->
+<!--                <groupId>io.github.entropy-cloud</groupId>-->
 <!--                <artifactId>nop-web-vertx</artifactId>-->
 <!--                <version>${nop-entropy.version}</version>-->
 <!--            </dependency>-->
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ui</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <!--            <dependency>-->
-            <!--                <groupId>io.nop</groupId>-->
+            <!--                <groupId>io.github.entropy-cloud</groupId>-->
             <!--                <artifactId>nop-antlr4-eql</artifactId>-->
             <!--                <version>${nop-antlr4-eql.version}</version>-->
             <!--            </dependency>-->
 
             <!--            <dependency>-->
-            <!--                <groupId>io.nop</groupId>-->
+            <!--                <groupId>io.github.entropy-cloud</groupId>-->
             <!--                <artifactId>nop-antlr4-graphql</artifactId>-->
             <!--                <version>${nop-antlr4-graphql.version}</version>-->
             <!--            </dependency>-->
 
             <!--            <dependency>-->
-            <!--                <groupId>io.nop</groupId>-->
+            <!--                <groupId>io.github.entropy-cloud</groupId>-->
             <!--                <artifactId>nop-antlr4-xlang</artifactId>-->
             <!--                <version>${nop-antlr4-xlang.version}</version>-->
             <!--            </dependency>-->
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-antlr4-common</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-antlr4-tool</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-http-client-okhttp</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-http-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-http-client-apache</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-http-client-jdk</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-message-pulsar</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-batch-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-batch-gen</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-spring-autoconfig</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ooxml-common</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ooxml-xlsx</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ooxml-docx</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-excel</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-autotest-core</artifactId>
                 <version>${nop-entropy.version}</version>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-autotest-junit</artifactId>
                 <version>${nop-entropy.version}</version>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-graphql-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-graphql-orm</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-biz</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-js</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-boot</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-quarkus-core-starter</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-quarkus-web-starter</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-spring-core-starter</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-spring-web-starter</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-auth-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-auth-sso</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-auth-dao</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-auth-service</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-auth-web</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-web-site</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-web-amis-editor</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-integration-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-integration-sftp</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-integration-sms-tencent</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-integration-sms-yunpian</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-dbtool-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -538,49 +538,49 @@
 
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-sys-dao</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-sys-service</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-sys-web</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-wf-api</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-wf-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-wf-dao</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-wf-service</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-wf-web</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>

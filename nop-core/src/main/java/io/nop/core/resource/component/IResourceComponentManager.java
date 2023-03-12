@@ -7,14 +7,20 @@
  */
 package io.nop.core.resource.component;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.deps.ResourceDependencySet;
 
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static io.nop.core.CoreErrors.ARG_FILE_TYPE;
+import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
 
 /**
  * 管理所有模型文件，并缓存编译和生成结果。每一种模型（Model）可以采用多种文件类型（fileType）来存储，可以生成不同格式（genFormat）的组件 （GeneratedComponent）。
@@ -40,7 +46,15 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     ComponentModelConfig getModelConfigByModelPath(String path);
 
-    IResourceObjectLoader<? extends IComponentModel> getComponentModelLoader(String modelType, String fileType);
+    ComponentModelLoader getComponentModelLoader(String fileType);
+
+    default ComponentModelLoader requireComponentModelLoader(String fileType) {
+        ComponentModelLoader loader = getComponentModelLoader(fileType);
+        if(loader == null)
+            throw new NopException(ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE)
+                    .param(ARG_FILE_TYPE, fileType);
+        return loader;
+    }
 
     void clearCache(String modelType);
 

@@ -4,7 +4,7 @@
 
     <parent>
         <artifactId>nop-sys</artifactId>
-        <groupId>io.nop</groupId>
+        <groupId>io.github.entropy-cloud</groupId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
@@ -15,27 +15,27 @@
     <dependencies>
         <dependency>
             <artifactId>nop-sys-dao</artifactId>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-config</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ioc</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>
             <scope>test</scope>
         </dependency>

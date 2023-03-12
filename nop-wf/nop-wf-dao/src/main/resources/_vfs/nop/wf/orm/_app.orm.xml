@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <orm ext:mavenArtifactId="nop-wf" ext:entityPackageName="io.nop.wf.dao.entity" ext:registerShortName="true"
-     ext:mavenGroupId="io.nop" ext:basePackageName="io.nop.wf" ext:appName="nop-wf" ext:platformVersion="2.0.0-SNAPSHOT"
-     ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT" x:schema="/nop/schema/orm/orm.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext"
-     xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
+     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.wf" ext:appName="nop-wf"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
 
     <x:post-extends>
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>

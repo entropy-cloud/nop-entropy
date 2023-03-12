@@ -1,1 +1,2 @@
 io.nop.report.core.initialize.ReportCoreInitializer
+io.nop.report.core.initialize.ReportImpModelCoreInitializer

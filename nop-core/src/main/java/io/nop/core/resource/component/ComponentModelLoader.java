@@ -10,7 +10,7 @@ package io.nop.core.resource.component;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.core.resource.IResourceObjectLoader;
 
-class ComponentModelLoader {
+public class ComponentModelLoader {
     private final String modelType;
     private final IResourceObjectLoader<? extends IComponentModel> loader;
 

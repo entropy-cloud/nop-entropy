@@ -5,7 +5,7 @@
 
     <parent>
         <artifactId>nop-spring</artifactId>
-        <groupId>io.nop</groupId>
+        <groupId>io.github.entropy-cloud</groupId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
@@ -15,29 +15,29 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-core</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-xlang</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm</artifactId>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-dao</artifactId>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-biz</artifactId>
             <optional>true</optional>
         </dependency>

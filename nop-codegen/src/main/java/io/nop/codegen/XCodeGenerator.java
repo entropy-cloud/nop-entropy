@@ -16,7 +16,7 @@ import io.nop.core.model.loop.INestedLoop;
 import io.nop.core.model.loop.impl.NestedLoop;
 import io.nop.core.model.loop.model.NestedLoopModel;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.component.ComponentModelConfig;
+import io.nop.core.resource.component.ComponentModelLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateLoader;
 import io.nop.core.resource.tpl.TemplateFileGenerator;
@@ -157,8 +157,8 @@ public class XCodeGenerator extends TemplateFileGenerator {
 
         Map<String, Object> vars = new HashMap<>();
         vars.put(CodeGenConstants.VAR_CODE_GEN_MODEL_PATH, fullPath);
-        ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByModelPath(fullPath);
-        if (config != null) {
+        ComponentModelLoader loader = ResourceComponentManager.instance().getComponentModelLoader(fullPath);
+        if (loader != null) {
             IComponentModel model = ResourceComponentManager.instance().loadComponentModel(fullPath);
             scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL, model);
         } else {

@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>nop-entropy</artifactId>
+        <groupId>io.github.entropy-cloud</groupId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nop-cli-core</artifactId>
+
+    <properties>
+        <compiler-plugin.version>3.8.1</compiler-plugin.version>
+        <maven.compiler.release>11</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <skipITs>true</skipITs>
+        <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-quarkus-core-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>nop-ioc</artifactId>
+                    <groupId>io.github.entropy-cloud</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>quarkus-agroal</artifactId>
+                    <groupId>io.quarkus</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli-codegen</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-orm</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-config</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ooxml-xlsx</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-dbtool-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-report-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-graphql-core</artifactId>
+        </dependency>
+
+        <!--    <dependency>-->
+        <!--      <groupId>io.quarkus</groupId>-->
+        <!--      <artifactId>quarkus-resteasy-reactive</artifactId>-->
+        <!--    </dependency>-->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-picocli</artifactId>
+        </dependency>
+
+
+        <!--        <dependency>-->
+        <!--            <groupId>org.mariadb.jdbc</groupId>-->
+        <!--            <artifactId>mariadb-java-client</artifactId>-->
+        <!--        </dependency>-->
+
+        <!--        <dependency>-->
+        <!--            <groupId>com.microsoft.sqlserver</groupId>-->
+        <!--            <artifactId>mssql-jdbc</artifactId>-->
+        <!--        </dependency>-->
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+
+        <!--        <dependency>-->
+        <!--            <groupId>com.oracle.ojdbc</groupId>-->
+        <!--            <artifactId>ojdbc8</artifactId>-->
+        <!--        </dependency>-->
+
+        <!--        <dependency>-->
+        <!--            <groupId>org.postgresql</groupId>-->
+        <!--            <artifactId>postgresql</artifactId>-->
+        <!--        </dependency>-->
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--    <dependency>-->
+        <!--      <groupId>io.rest-assured</groupId>-->
+        <!--      <artifactId>rest-assured</artifactId>-->
+        <!--      <scope>test</scope>-->
+        <!--    </dependency>-->
+    </dependencies>
+
+    <build>
+        <plugins>
+        
+
+        </plugins>
+    </build>
+</project>

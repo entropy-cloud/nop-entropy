@@ -5,7 +5,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.nop</groupId>
+    <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-entropy</artifactId>
     <version>2.0.0-SNAPSHOT</version>
 
@@ -79,7 +79,7 @@
 
         <dependencies>
             <dependency>
-                <groupId>io.nop</groupId>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-bom</artifactId>
                 <version>${nop-entropy.version}</version>
                 <type>pom</type>
@@ -263,7 +263,7 @@
 <!--                </executions>-->
 <!--                <dependencies>-->
 <!--                    <dependency>-->
-<!--                        <groupId>io.nop</groupId>-->
+<!--                        <groupId>io.github.entropy-cloud</groupId>-->
 <!--                        <artifactId>build-tools</artifactId>-->
 <!--                        <version>2.0.0-SNAPSHOT</version>-->
 <!--                    </dependency>-->
@@ -336,7 +336,7 @@
 
                     <dependencies>
                         <dependency>
-                            <groupId>io.nop</groupId>
+                            <groupId>io.github.entropy-cloud</groupId>
                             <artifactId>nop-codegen</artifactId>
                             <version>${nop-entropy.version}</version>
                         </dependency>
@@ -401,7 +401,7 @@
         <module>nop-js</module>
         <module>nop-pdf</module>
         <module>nop-benchmark</module>
-        <module>nop-cli</module>
+        <module>nop-cli-core</module>
         <module>nop-message</module>
         <!--        <module>nop-native</module>-->
         <!--        <module>nop-quarkus</module>-->

@@ -18,18 +18,18 @@
     <dependencies>
         <!-- 解析orm.xlsx模型文件需要依赖 -->
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ooxml-xlsx</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm</artifactId>
         </dependency>
 
         <!-- 解析api.xlsx模型文件需要依赖 -->
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-graphql-core</artifactId>
         </dependency>
     </dependencies>

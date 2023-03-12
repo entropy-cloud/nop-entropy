@@ -4,7 +4,7 @@
 
     <parent>
         <artifactId>nop-auth</artifactId>
-        <groupId>io.nop</groupId>
+        <groupId>io.github.entropy-cloud</groupId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
@@ -15,19 +15,19 @@
     <dependencies>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-web</artifactId>
         </dependency>
 
         <dependency>
             <artifactId>nop-auth-service</artifactId>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <version>2.0.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ooxml-xlsx</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -38,7 +38,7 @@
         </dependency>
 
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>
         </dependency>
 

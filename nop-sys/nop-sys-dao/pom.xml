@@ -4,7 +4,7 @@
 
     <parent>
         <artifactId>nop-sys</artifactId>
-        <groupId>io.nop</groupId>
+        <groupId>io.github.entropy-cloud</groupId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
@@ -14,16 +14,16 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-api-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm</artifactId>
         </dependency>
         <dependency>
             <artifactId>nop-sys-codegen</artifactId>
-            <groupId>io.nop</groupId>
+            <groupId>io.github.entropy-cloud</groupId>
             <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>

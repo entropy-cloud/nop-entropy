@@ -1,123 +1,115 @@
-<?xml version="1.0"?>
-
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <artifactId>nop-entropy</artifactId>
-        <groupId>io.nop</groupId>
-        <version>2.0.0-SNAPSHOT</version>
-    </parent>
 
+    <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-cli</artifactId>
+    <version>2.0.0-BETA.1</version>
+
+    <name>nop-cli</name>
+    <description>a tool for code generation</description>
+    <url>https://github.com/entropy-cloud/nop-entropy</url>
+
+    <licenses>
+        <license>
+            <name>GNU Affero General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/agpl-3.0.html</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>
+            https://github.com/entropy-cloud/nop-entropy
+        </url>
+        <connection>
+            scm:git@github.com/entropy-cloud/nop-entropy.git
+        </connection>
+        <developerConnection>
+            scm:git@github.com/entropy-cloud/nop-entropy.git
+        </developerConnection>
+    </scm>
+
+    <developers>
+        <developer>
+            <name>canonical</name>
+            <email>canonical_entropy@163.com</email>
+            <organization>https://github.com/entropy-cloud</organization>
+            <timezone>+8</timezone>
+        </developer>
+    </developers>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
-        <compiler-plugin.version>3.8.1</compiler-plugin.version>
-        <maven.compiler.release>11</maven.compiler.release>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <skipITs>true</skipITs>
-        <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
+
+        <compiler-plugin.version>3.8.1</compiler-plugin.version>
+        <maven-flatten-version>1.1.0</maven-flatten-version>
+        <quarkus.platform.version>2.12.1.Final</quarkus.platform.version>
+        <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
+
+        <maven-release-plugin.version>3.0.0-M1</maven-release-plugin.version>
+        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+        <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
+        <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
+        <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
-        <dependency>
-            <groupId>io.nop</groupId>
-            <artifactId>nop-quarkus-core-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>nop-ioc</artifactId>
-                    <groupId>io.nop</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>quarkus-agroal</artifactId>
-                    <groupId>io.quarkus</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>info.picocli</groupId>
-            <artifactId>picocli-codegen</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.nop</groupId>
-            <artifactId>nop-orm</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.nop</groupId>
-            <artifactId>nop-config</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.nop</groupId>
-            <artifactId>nop-ooxml-xlsx</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.nop</groupId>
-            <artifactId>nop-dbtool-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.nop</groupId>
-            <artifactId>nop-report-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.nop</groupId>
-            <artifactId>nop-graphql-core</artifactId>
-        </dependency>
-
-        <!--    <dependency>-->
-        <!--      <groupId>io.quarkus</groupId>-->
-        <!--      <artifactId>quarkus-resteasy-reactive</artifactId>-->
-        <!--    </dependency>-->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-picocli</artifactId>
-        </dependency>
-
-
         <!--        <dependency>-->
-        <!--            <groupId>org.mariadb.jdbc</groupId>-->
-        <!--            <artifactId>mariadb-java-client</artifactId>-->
+        <!--            <groupId>org.apache.maven.plugins</groupId>-->
+        <!--            <artifactId>maven-deploy-plugin</artifactId>-->
+        <!--            <version>2.7</version>-->
         <!--        </dependency>-->
 
         <!--        <dependency>-->
-        <!--            <groupId>com.microsoft.sqlserver</groupId>-->
-        <!--            <artifactId>mssql-jdbc</artifactId>-->
+        <!--            <groupId>org.apache.maven.plugins</groupId>-->
+        <!--            <artifactId>maven-artifact-manager</artifactId>-->
+        <!--            <version>2.0.7</version>-->
         <!--        </dependency>-->
 
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+            <version>4.10.1</version>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>com.oracle.ojdbc</groupId>-->
-        <!--            <artifactId>ojdbc8</artifactId>-->
-        <!--        </dependency>-->
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.postgresql</groupId>-->
-        <!--            <artifactId>postgresql</artifactId>-->
-        <!--        </dependency>-->
-
+        <!-- 覆盖quarkus中使用的版本 -->
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit5</artifactId>
-            <scope>test</scope>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-cli-core</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
-        <!--    <dependency>-->
-        <!--      <groupId>io.rest-assured</groupId>-->
-        <!--      <artifactId>rest-assured</artifactId>-->
-        <!--      <scope>test</scope>-->
-        <!--    </dependency>-->
+
     </dependencies>
+
 
     <build>
         <plugins>
@@ -142,34 +134,9 @@
                             </properties>
                         </configuration>
                     </execution>
-
-                    <!--                    <execution>-->
-                    <!--                        <id>prod</id>-->
-                    <!--                        <goals>-->
-                    <!--                            <goal>build</goal>-->
-                    <!--                        </goals>-->
-                    <!--                        <configuration>-->
-                    <!--                            <properties>-->
-                    <!--                                <quarkus.profile>prod</quarkus.profile>-->
-                    <!--                                <quarkus.package.output-directory>nop-cli-prod</quarkus.package.output-directory>-->
-                    <!--                                <quarkus.package.filter-optional-dependencies>true-->
-                    <!--                                </quarkus.package.filter-optional-dependencies>-->
-                    <!--                                <quarkus.package.included-optional-dependencies>org.postgresql:postgresql::jar-->
-                    <!--                                </quarkus.package.included-optional-dependencies>-->
-                    <!--                            </properties>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
                 </executions>
             </plugin>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${compiler-plugin.version}</version>
-                <configuration>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                    </compilerArgs>
-                </configuration>
-            </plugin>
+
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
@@ -180,26 +147,6 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
-            <plugin>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${surefire-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <systemPropertyVariables>
-                                <native.image.path>${project.build.directory}/${project.build.finalName}-runner
-                                </native.image.path>
-                                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                                <maven.home>${maven.home}</maven.home>
-                            </systemPropertyVariables>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -207,39 +154,6 @@
                 <version>4.0.0-M2</version>
             </plugin>
 
-<!--            <plugin>-->
-<!--                <groupId>com.github.wvengen</groupId>-->
-<!--                <artifactId>proguard-maven-plugin</artifactId>-->
-<!--                <version>2.6.0</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <phase>package</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>proguard</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--                <configuration>-->
-<!--                    <proguardVersion>6.2.2</proguardVersion>-->
-<!--                    <injar>${project.build.finalName}-runner.jar</injar>-->
-<!--                    <outjar>nop-cli.jar</outjar>-->
-<!--                    <obfuscate>false</obfuscate>-->
-<!--                    <proguardInclude>${project.basedir}/proguard.conf</proguardInclude>-->
-<!--                    <libs>-->
-<!--                        &lt;!&ndash; Include main JAVA library required.&ndash;&gt;-->
-<!--                        <lib>${java.home}/lib/rt.jar</lib>-->
-<!--                        &lt;!&ndash; Include crypto JAVA library if necessary.&ndash;&gt;-->
-<!--                        <lib>${java.home}/lib/jce.jar</lib>-->
-<!--                    </libs>-->
-<!--                </configuration>-->
-<!--                <dependencies>-->
-<!--                    <dependency>-->
-<!--                        <groupId>net.sf.proguard</groupId>-->
-<!--                        <artifactId>proguard-base</artifactId>-->
-<!--                        <version>6.2.2</version>-->
-<!--                    </dependency>-->
-<!--                </dependencies>-->
-<!--            </plugin>-->
         </plugins>
     </build>
 
@@ -255,6 +169,87 @@
                 <skipITs>false</skipITs>
                 <quarkus.package.type>native</quarkus.package.type>
             </properties>
+        </profile>
+
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>${maven-deploy-plugin.version}</version>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven-source-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc-plugin.version}</version>
+                        <configuration>
+                            <show>package</show>
+                            <tags>
+                                <tag>
+                                    <name>date</name>
+                                </tag>
+                            </tags>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <doclint>none</doclint>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- 工程文件自动签名-->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+<!--                    <plugin>-->
+<!--                        <groupId>org.sonatype.plugins</groupId>-->
+<!--                        <artifactId>nexus-staging-maven-plugin</artifactId>-->
+<!--                        <version>${nexus-staging-maven-plugin.version}</version>-->
+<!--                        <extensions>true</extensions>-->
+<!--                        <configuration>-->
+<!--                            <serverId>ossrh</serverId>-->
+<!--                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>-->
+<!--                            <autoReleaseAfterClose>true</autoReleaseAfterClose>-->
+<!--                        </configuration>-->
+<!--                    </plugin>-->
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>

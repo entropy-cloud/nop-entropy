@@ -115,18 +115,18 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     class ModelLoader implements IResourceObjectLoader<ComponentCacheEntry> {
-        private final ComponentModelConfig config;
+        private final String modelType;
         private boolean forceNoTenant;
 
-        public ModelLoader(ComponentModelConfig config, boolean forceNoTenant) {
-            this.config = config;
+        public ModelLoader(String modelType, boolean forceNoTenant) {
+            this.modelType = modelType;
             this.forceNoTenant = forceNoTenant;
         }
 
         @Override
         public ComponentCacheEntry loadObjectFromPath(String path) {
             String fileType = StringHelper.fileType(path);
-            IResourceObjectLoader<? extends IComponentModel> loader = requireLoader(config, fileType);
+            IResourceObjectLoader<? extends IComponentModel> loader = requireLoader(modelType, fileType);
             IComponentModel model;
             if (forceNoTenant) {
                 model = ContextProvider.runWithoutTenantId(() -> loader.loadObjectFromPath(path));
@@ -350,25 +350,25 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public IComponentModel loadComponentModel(String resourcePath, String transform) {
-        ComponentModelConfig config = requireModelConfigByModelPath(resourcePath);
-        Function<IComponentModel, IComponentModel> transformer = getTransformer(config, transform);
+        String modelType = findModelTypeFromPath(resourcePath);
+        Function<IComponentModel, IComponentModel> transformer = getTransformer(modelType, transform);
 
-        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(config);
+        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
         ComponentCacheEntry entry = cache.require(resourcePath);
-        if (StringHelper.isEmpty(transform) || config.getModelType().equals(transform))
+        if (StringHelper.isEmpty(transform) || modelType.equals(transform))
             return entry.model;
 
         return entry.transformed.computeIfAbsent(transform, k -> transformer.apply(entry.model));
     }
 
-    private Function<IComponentModel, IComponentModel> getTransformer(ComponentModelConfig config, String transform) {
+    private Function<IComponentModel, IComponentModel> getTransformer(String modelType, String transform) {
 
-        if (!StringHelper.isEmpty(transform) && !config.getModelType().equals(transform)) {
+        if (!StringHelper.isEmpty(transform) && !modelType.equals(transform)) {
             Function<IComponentModel, IComponentModel> transformer = modelTypeTransformers
-                    .get(Pair.of(config.getModelType(), transform));
+                    .get(Pair.of(modelType, transform));
             if (transformer == null)
                 throw new NopException(ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM)
-                        .param(ARG_MODEL_TYPE, config.getModelType()).param(ARG_TRANSFORM, transform);
+                        .param(ARG_MODEL_TYPE, modelType).param(ARG_TRANSFORM, transform);
             return transformer;
         } else {
             return null;
@@ -382,10 +382,20 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             cache.clear();
     }
 
+    protected String findModelTypeFromPath(String resourcePath) {
+        String fileType = StringHelper.fileType(resourcePath);
+        ComponentModelLoader loader = findByFileType(fileTypeLoaders, fileType);
+        if (loader != null)
+            return loader.getModelType();
+
+        ComponentModelConfig config = requireModelConfigByModelPath(resourcePath);
+        return config.getModelType();
+    }
+
     @Override
     public IComponentModel loadComponentModel(String resourcePath) {
-        ComponentModelConfig config = requireModelConfigByModelPath(resourcePath);
-        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(config);
+        String modelType = findModelTypeFromPath(resourcePath);
+        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
         return cache.require(resourcePath).model;
     }
 
@@ -398,7 +408,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return ContextProvider.currentTenantId() != null && CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA.get();
     }
 
-    private ResourceLoadingCache<ComponentCacheEntry> makeModelCache(ComponentModelConfig config) {
+    private ResourceLoadingCache<ComponentCacheEntry> makeModelCache(String modelType) {
         Map<String, ResourceLoadingCache<ComponentCacheEntry>> caches = modelCaches;
 
         boolean tenant = useTenantCache();
@@ -406,11 +416,10 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             caches = tenantModelCaches.get(ContextProvider.currentTenantId());
         }
 
-        String modelType = config.getModelType();
         return caches.computeIfAbsent(modelType, k -> {
             String name = (tenant ? "model-tenant-cache:" : "model-cache:") + modelType;
             ResourceLoadingCache<ComponentCacheEntry> cache = new ResourceLoadingCache<>(name,
-                    new ModelLoader(config, !tenant), null);
+                    new ModelLoader(modelType, !tenant), null);
             if (!tenant && registerCache)
                 GlobalCacheRegistry.instance().register(cache);
             return cache;
@@ -442,12 +451,9 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     @Override
-    public IResourceObjectLoader<? extends IComponentModel> getComponentModelLoader(String modelType, String fileType) {
+    public ComponentModelLoader getComponentModelLoader(String fileType) {
         ComponentModelLoader loader = findByFileType(fileTypeLoaders, fileType);
-        if (loader == null || !loader.getModelType().equals(modelType)) {
-            return null;
-        }
-        return loader.getLoader();
+        return loader;
     }
 
     private ComponentModelConfig requireModelConfigByModelPath(String path) {
@@ -458,7 +464,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return config;
     }
 
-    private IResourceObjectLoader<? extends IComponentModel> requireLoader(ComponentModelConfig config,
+    private IResourceObjectLoader<? extends IComponentModel> requireLoader(String modelType,
                                                                            String fileType) {
         ComponentModelLoader loader = fileTypeLoaders.get(fileType);
         if (loader == null) {
@@ -468,9 +474,9 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 loader = fileTypeLoaders.get(fileType);
             }
         }
-        if (loader == null || !loader.getModelType().equals(config.getModelType()))
+        if (loader == null || !loader.getModelType().equals(modelType))
             throw new NopException(ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE).param(ARG_FILE_TYPE, fileType)
-                    .param(ARG_MODEL_TYPE, config.getModelType());
+                    .param(ARG_MODEL_TYPE, modelType);
         return loader.getLoader();
     }
 
@@ -588,8 +594,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     public ResourceDependencySet getModelDepends(String resourcePath) {
-        ComponentModelConfig config = requireModelConfigByModelPath(resourcePath);
-        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(config);
+        String modelType = findModelTypeFromPath(resourcePath);
+        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
         return cache.getResourceDependsSet(resourcePath);
     }
 

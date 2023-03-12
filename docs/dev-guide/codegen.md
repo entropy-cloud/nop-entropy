@@ -8,7 +8,7 @@ Nop平台提供了与Maven相集成的代码生成能力，但是并没有做成
 <pom>
     <parent>
         <artifactId>nop-entropy</artifactId>
-        <groupId>io.nop</groupId>
+        <groupId>io.github.entropy-cloud</groupId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 

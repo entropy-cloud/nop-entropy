@@ -115,7 +115,7 @@ The Nop platform provides code generation capability integrated with Maven. You 
 <pom>
     <parent>
         <artifactId>nop-entropy</artifactId>
-        <groupId>io.nop</groupId>
+        <groupId>io.github.entropy-cloud</groupId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
