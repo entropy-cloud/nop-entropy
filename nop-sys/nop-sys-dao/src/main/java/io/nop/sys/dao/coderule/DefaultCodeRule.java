@@ -46,6 +46,14 @@ public class DefaultCodeRule implements ICodeRule {
         return StringHelper.leftPad(String.valueOf(value), len, '0');
     }
 
+    public void addVariable(String name, ICodeRuleVariable variable) {
+        variables.put(name, variable);
+    }
+
+    public void removeVariable(String name, ICodeRuleVariable variable) {
+        variables.remove(name, variable);
+    }
+
     public void setVariables(Map<String, ICodeRuleVariable> variables) {
         this.variables.putAll(variables);
     }

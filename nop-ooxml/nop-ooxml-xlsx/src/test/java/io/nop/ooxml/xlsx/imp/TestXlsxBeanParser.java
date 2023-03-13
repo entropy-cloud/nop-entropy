@@ -10,10 +10,12 @@ package io.nop.ooxml.xlsx.imp;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.object.DynamicObject;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -40,12 +42,14 @@ public class TestXlsxBeanParser extends BaseTestCase {
                 .parseFromResource(attachmentResource("test.imp.xml"));
 
         XlsxBeanParser parser = new XlsxBeanParser(importModel);
-        Object bean = parser.parseFromResource(new ClassPathResource("classpath:xlsx/test-imp.xlsx"));
+        DynamicObject bean = (DynamicObject) parser.parseFromResource(new ClassPathResource("classpath:xlsx/test-imp.xlsx"));
         System.out.println(JsonTool.stringify(bean, null, "  "));
+        assertEquals("/nop/schema/orm/orm.xdef", bean.prop_get(XDslKeys.DEFAULT.SCHEMA));
+
         IObjMeta meta = SchemaLoader.loadXMeta("/nop/schema/orm/orm.xdef");
         XNode node = new DslModelToXNodeTransformer(meta).transformToXNode(bean);
         node.dump();
-        assertEquals( attachmentXml("result.orm.xml").xml(), node.xml());
+        assertEquals(attachmentXml("result.orm.xml").xml(), node.xml());
 
         Object bean2 = new DslModelParser().dynamic(true).parseFromNode(node);
         XNode node2 = new DslModelToXNodeTransformer(meta).transformToXNode(bean2);

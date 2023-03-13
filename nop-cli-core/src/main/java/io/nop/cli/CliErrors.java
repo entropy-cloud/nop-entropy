@@ -20,4 +20,8 @@ public interface CliErrors {
     ErrorCode ERR_CLI_UNREGISTERED_COMPONENT_MODEL =
             ErrorCode.define("nop.err.cli.unregistered-component-model",
                     "模型文件的格式没有在组件管理器中注册，无法解析:{path}", ARG_PATH);
+
+    ErrorCode ERR_CLI_MODEL_OBJECT_NO_XDSL_SCHEMA =
+            ErrorCode.define("nop.err.cli.model-object-no-xdsl-schema",
+                    "模型对象没有设置x:schema属性，不支持转换为XML格式");
 }

@@ -3,8 +3,9 @@
 <!--
 导入不涉及到展现控制，仅仅需要考虑后台处理逻辑，因此比导出设计要简单的多。导入策略与导出策略可以共享objMeta上的信息。
 @templatePath 空的导入模板文件。导出数据时也会使用这个模板
+@xdef 解析得到的模型对象所对应的xdef元模型定义，用于将模型对象序列化为XML格式时使用
  -->
-<imp defaultStripText="!boolean=true" xdef:name="ImportModel"
+<imp defaultStripText="!boolean=true" xdef:name="ImportModel" xdef="v-path"
      xdef:bean-package="io.nop.excel.imp.model" ignoreUnknownSheet="!boolean=false"
      templatePath="v-path" resultType="generic-type" dump="!boolean=false"
      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
@@ -20,7 +21,7 @@
         @field 整个sheet的数据解析为一个字段。如果multiple=true，则field对应List类型，而sheet的数据解析为List中的一个条目。
         @list sheet中的数据是否为列表数据
         -->
-        <sheet name="!string" namePattern="regex"  sheetNameProp="string"
+        <sheet name="!string" namePattern="regex" sheetNameProp="string"
                xdef:name="ImportSheetModel" resultType="generic-type" ignore="!boolean=false"
                multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false"
                field="string" sheetVarName="string" keyProp="string">

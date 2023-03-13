@@ -12,13 +12,14 @@ import picocli.CommandLine;
 
 @TopCommand
 @CommandLine.Command(
-        name = "nop-cli", description = "Nop命令行工具", version = "nop-cli 1.0",
+        name = "nop-cli", description = "Nop命令行工具", version = "nop-cli 2.0",
         subcommands = {
                 CliGenCommand.class,
                 CliReverseDbCommand.class,
                 CliWatchCommand.class,
                 CliRunCommand.class,
                 CliGenOrmExcelDbCommand.class,
+                CliExtractCommand.class
         })
 public class MainCommand {
 }

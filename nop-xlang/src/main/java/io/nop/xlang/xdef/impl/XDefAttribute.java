@@ -7,10 +7,12 @@
  */
 package io.nop.xlang.xdef.impl;
 
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.core.resource.component.AbstractFreezable;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.XDefTypeDecl;
 
+@DataBean
 public class XDefAttribute extends AbstractFreezable implements IXDefAttribute {
     private String name;
     private XDefTypeDecl type;

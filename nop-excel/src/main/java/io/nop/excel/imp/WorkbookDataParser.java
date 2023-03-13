@@ -25,6 +25,8 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.xdsl.IXDslModel;
+import io.nop.xlang.xdsl.XDslKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +73,10 @@ public class WorkbookDataParser {
 
     public Object parseFromWorkbook(ExcelWorkbook workbook) {
         DynamicObject obj = newObject(workbook);
+        if (importModel.getXdef() != null) {
+            obj.prop_set(XDslKeys.DEFAULT.SCHEMA, importModel.getXdef());
+        }
+
         IEvalScope scope = XLang.newEvalScope();
 
         scope.setLocalValue(null, ExcelConstants.VAR_ROOT_RECORD, obj);
@@ -120,6 +126,12 @@ public class WorkbookDataParser {
         Object result = obj;
         if (importModel.getResultType() != null) {
             result = BeanTool.buildBean(obj, importModel.getResultType());
+            if (result instanceof IXDslModel) {
+                IXDslModel model = (IXDslModel) result;
+                if (obj.prop_has(XDslKeys.DEFAULT.SCHEMA)) {
+                    model.setXdslSchema((String) obj.prop_get(XDslKeys.DEFAULT.SCHEMA));
+                }
+            }
             scope.setLocalValue(null, ExcelConstants.VAR_ROOT_MODEL, result);
         }
 
@@ -141,7 +153,7 @@ public class WorkbookDataParser {
 
     private void parseSheets(ImportSheetModel sheetModel, List<ExcelSheet> sheets, DynamicObject obj, IEvalScope scope) {
         List<Object> list = new ArrayList<>();
-        ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj,list);
+        ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj, list);
 
         for (ExcelSheet sheet : sheets) {
             new TableDataParser().parse(sheet.getName(), sheet.getTable(), sheetModel, builder);

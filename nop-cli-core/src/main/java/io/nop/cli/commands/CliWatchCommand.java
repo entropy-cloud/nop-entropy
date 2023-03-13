@@ -21,8 +21,8 @@ public class CliWatchCommand implements Callable<Integer> {
     @CommandLine.Parameters(index = "0", arity = "0..*", description = "监控文件目录")
     String[] files;
 
-    @CommandLine.Option(names = {"-e", "--execute"},
-            description = "发现文件变动后执行代码")
+    @CommandLine.Option(names = {"-e", "--execute"}, required = true,
+            description = "发现文件变动后执行的代码文件路径")
     String execute;
 
     @Override

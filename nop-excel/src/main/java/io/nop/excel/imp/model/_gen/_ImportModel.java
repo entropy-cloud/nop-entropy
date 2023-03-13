@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [7:2:0:0]/nop/schema/excel/imp.xdef <p>
+ * generate from [8:2:0:0]/nop/schema/excel/imp.xdef <p>
  * 导入不涉及到展现控制，仅仅需要考虑后台处理逻辑，因此比导出设计要简单的多。导入策略与导出策略可以共享objMeta上的信息。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -76,6 +76,13 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private io.nop.core.model.validator.ValidatorModel _validator ;
+    
+    /**
+     *  
+     * xml name: xdef
+     * 解析得到的模型对象所对应的xdef元模型定义，用于将模型对象序列化为XML格式时使用
+     */
+    private java.lang.String _xdef ;
     
     /**
      * 
@@ -274,6 +281,25 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
     }
 
     
+    /**
+     * 
+     * xml name: xdef
+     *  解析得到的模型对象所对应的xdef元模型定义，用于将模型对象序列化为XML格式时使用
+     */
+    
+    public java.lang.String getXdef(){
+      return _xdef;
+    }
+
+    
+    public void setXdef(java.lang.String value){
+        checkAllowChange();
+        
+        this._xdef = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -300,6 +326,7 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         out.put("sheets",this.getSheets());
         out.put("templatePath",this.getTemplatePath());
         out.put("validator",this.getValidator());
+        out.put("xdef",this.getXdef());
     }
 }
  // resume CPD analysis - CPD-ON

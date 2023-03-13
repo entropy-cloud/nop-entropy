@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
-     templatePath="template.orm.xlsx"
+     templatePath="template.orm.xlsx" xdef="/nop/schema/orm/orm.xdef"
      resultType="io.nop.orm.model.OrmModel" defaultStripText="true">
     <sheets>
         <sheet name="目录" ignore="true"/>

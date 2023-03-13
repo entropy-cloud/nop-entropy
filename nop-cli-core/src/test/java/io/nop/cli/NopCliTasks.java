@@ -26,12 +26,12 @@ public class NopCliTasks {
     CommandLine.IFactory factory;
 
     @Test
-    public void discover(){
+    public void discover() {
         AppConfig.getConfigProvider().updateConfigValue(CFG_DEBUG, true);
         String[] args = new String[]{"reverse",
                 "-c=com.mysql.cj.jdbc.Driver",
                 "-j=jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC",
-                "-u=nop", "-p=nop-test","litemall","test"
+                "-u=nop", "-p=nop-test", "litemall", "test"
         };
         NopCliApplication app = new NopCliApplication();
         app.factory = factory;
@@ -54,6 +54,19 @@ public class NopCliTasks {
                 "-t", "/nop/templates/orm",
                 "-o", "target/gen/nop-sys"
         };
+        assertEquals(0, app.run(args));
+
+
+    }
+
+    @Test
+    public void testExtract() {
+        String[] args = new String[]{"extract", "../nop-sys/model/nop-sys.orm.xlsx",
+                "-f", "xml",
+                "-o", "target/gen/out.xml"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.factory = factory;
         assertEquals(0, app.run(args));
     }
 }

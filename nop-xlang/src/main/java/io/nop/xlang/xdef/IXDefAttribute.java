@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.xdef;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.util.IFreezable;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.collections.IKeyedElement;
@@ -22,10 +23,12 @@ public interface IXDefAttribute extends IKeyedElement, ISourceLocationGetter, IF
 
     XDefTypeDecl getType();
 
+    @JsonIgnore
     default boolean isUnknownAttr() {
-        return getName().equals("*");
+        return "*".equals(getName());
     }
 
+    @JsonIgnore
     default boolean isMandatory() {
         XDefTypeDecl type = getType();
         if (type == null)

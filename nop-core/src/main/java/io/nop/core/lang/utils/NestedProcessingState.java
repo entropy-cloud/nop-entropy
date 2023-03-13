@@ -10,6 +10,7 @@ package io.nop.core.lang.utils;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.MutableIntArray;
 
+import static io.nop.core.CoreErrors.ARG_MAX_LEVEL;
 import static io.nop.core.CoreErrors.ERR_HANDLER_EXCEED_MAX_NESTED_LEVEL;
 import static io.nop.core.CoreErrors.ERR_HANDLER_STATE_INCOMPLETE;
 
@@ -25,7 +26,7 @@ public class NestedProcessingState extends MutableIntArray {
 
     public void push(int newTop) {
         if (size() >= maxNestedLevel)
-            throw new NopException(ERR_HANDLER_EXCEED_MAX_NESTED_LEVEL);
+            throw new NopException(ERR_HANDLER_EXCEED_MAX_NESTED_LEVEL).param(ARG_MAX_LEVEL,maxNestedLevel);
         super.push(newTop);
     }
 
