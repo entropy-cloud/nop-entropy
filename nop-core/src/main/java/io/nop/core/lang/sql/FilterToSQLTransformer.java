@@ -89,13 +89,24 @@ public class FilterToSQLTransformer extends FilterBeanVisitor<Void> {
         }
 
         String op = filterOp.name();
+
+        // 对于空字符串和null，op=eq/ne的时候会转换为is null和is not null判断，其他情况下总是false
+
         Object value = getValue(filter);
         if (value == null) {
-            sb.alwaysFalse();
+            if (FILTER_OP_EQ.equals(op)) {
+                sb.owner(owner).eqEx(name, value);
+            } else if (FILTER_OP_NE.equals(op)) {
+                sb.owner(owner).notEqEx(name, value);
+            } else {
+                sb.alwaysFalse();
+            }
             return null;
         }
 
         if (op.equals(FILTER_OP_EQ)) {
+            // 如果是空字符串，实际生成的sql是name is null。也就是说，平台缺省情况下认为数据保存到数据库中空字符串会自动被转换为null，
+            // 这样约定是为了避免数据库移植的时候出现不一致性。
             sb.owner(owner).eqEx(name, value);
         } else if (op.equals(FILTER_OP_NE)) {
             sb.owner(owner).notEqEx(name, value);

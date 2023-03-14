@@ -389,7 +389,6 @@
 /nop/templates/i18n/src/main/resources/_vfs/i18n/{enableEn}en/_{moduleName}.i18n.yaml.xgen
 /nop/templates/i18n/src/main/resources/_vfs/i18n/{enableEn}en/{moduleName}.i18n.yaml.xgen
 /nop/templates/meta/@init.xrun
-/nop/templates/meta/src/main/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{entityModel.shortName}/_{entityModel.shortName}.xmeta.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/orm-entity/@init.xrun
@@ -422,7 +421,10 @@
 /nop/templates/orm/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
 /nop/templates/orm/{appName}-dao/pom.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/java/impl.xrun
+/nop/templates/orm/{appName}-dao/src/main/java/{basePackagePath}/dao/_{moduleClassPrefix}DaoConstants.java.xgen
 /nop/templates/orm/{appName}-dao/src/main/java/{basePackagePath}/dao/mapper/{!!entityModel.tagSet.@mapper}{entityModel.shortName}Mapper.java.xgen
+/nop/templates/orm/{appName}-dao/src/main/java/{basePackagePath}/dao/{moduleClassPrefix}DaoConstants.java.xgen
+/nop/templates/orm/{appName}-dao/src/main/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/_module
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/beans/_dao.beans.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/_app.orm.xml.xgen
@@ -456,6 +458,7 @@
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl
 /nop/web/xlib/web/impl_GenPage.xpl
+/nop/web/xlib/web/init_grid_gen_scope.xpl
 /nop/web/xlib/web/page_crud.xpl
 /nop/web/xlib/web/page_picker.xpl
 /nop/web/xlib/web/page_simple.xpl

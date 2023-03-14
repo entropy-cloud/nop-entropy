@@ -4,6 +4,7 @@ body:
   type: crud
   name: crud-grid
   syncLocation: false
+  footable: false
   bulkActions:
   - type: action
     id: batch-delete-button
@@ -28,6 +29,7 @@ body:
       body:
         type: form
         name: add
+        mode: horizontal
         rules: [
           ]
         data:
@@ -36,75 +38,70 @@ body:
           url: '@mutation:NopAuthResource__save/id'
         body:
         - type: group
-          id: group-0
-          direction: vertical
-          visibleOn: null
+          id: row-resourceId-siteId
           body:
-          - type: group
-            id: row-resourceId-siteId
-            body:
-            - name: resourceId
-              label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
-              required: true
-              type: input-text
-              clearable: true
-              validations:
-                maxLength: 100
-                minLength: null
-                matchRegexp: null
-              transform:
-                upperCase: null
-                lowerCase: null
-            - name: siteId
-              label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
-              required: true
-              type: select
-              searchable: true
-              clearable: true
-              multiple: false
-              source: '@dict:obj/NopAuthSite'
-              value: main
-          - type: group
-            id: row-displayName-orderNo
-            body:
-            - name: displayName
-              label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
-              required: true
-              type: input-text
-              clearable: true
-              validations:
-                maxLength: 100
-                minLength: null
-                matchRegexp: null
-              transform:
-                upperCase: null
-                lowerCase: null
-            - name: orderNo
-              label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
-              required: true
-              type: input-text
-              validations: isInt
-          - type: group
-            id: row-resourceType-parentId
-            body:
-            - name: resourceType
-              label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
-              required: true
-              type: select
-              searchable: true
-              clearable: true
-              multiple: false
-              source: '@dict:auth/resource-type'
-            - name: parentId
-              label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
-              visibleOn: ${resourceType != "TOPM"}
-              requiredOn: ${resourceType != 'TOPM'}
-              type: tree-select
-              clearable: true
-              source:
-                url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
-                  \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
-                  \                                "
+          - name: resourceId
+            label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+            required: true
+            type: input-text
+            clearable: true
+            validations:
+              maxLength: 100
+              minLength: null
+              matchRegexp: null
+            transform:
+              upperCase: null
+              lowerCase: null
+          - name: siteId
+            label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+            required: true
+            type: select
+            searchable: true
+            clearable: true
+            multiple: false
+            source: '@dict:obj/NopAuthSite'
+            value: main
+        - type: group
+          id: row-displayName-orderNo
+          body:
+          - name: displayName
+            label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+            required: true
+            type: input-text
+            clearable: true
+            validations:
+              maxLength: 100
+              minLength: null
+              matchRegexp: null
+            transform:
+              upperCase: null
+              lowerCase: null
+          - name: orderNo
+            label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+            required: true
+            type: input-text
+            validations: isInt
+        - type: group
+          id: row-resourceType-parentId
+          body:
+          - name: resourceType
+            label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+            required: true
+            type: select
+            searchable: true
+            clearable: true
+            multiple: false
+            source: '@dict:auth/resource-type'
+          - name: parentId
+            label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+            visibleOn: ${resourceType != "TOPM"}
+            requiredOn: ${resourceType != 'TOPM'}
+            type: tree-select
+            clearable: true
+            source:
+              url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
+                \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
+                \                                "
         - type: group
           id: menuProps
           direction: vertical
@@ -265,18 +262,13 @@ body:
     rules: [
       ]
     body:
-    - type: group
-      id: group-0
-      direction: vertical
-      visibleOn: null
-      body:
-        name: filter_siteId
-        placeholder: ''
-        label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
-        submitOnChange: true
-        type: button-group-select
-        source: '@dict:obj/NopAuthSite'
-        value: main
+    - name: filter_siteId
+      placeholder: ''
+      label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+      submitOnChange: true
+      type: button-group-select
+      source: '@dict:obj/NopAuthSite'
+      value: main
     actions:
     - type: reset
       label: '@i18n:common.reset'
@@ -402,49 +394,45 @@ body:
         body:
           type: form
           name: view
+          mode: horizontal
           rules: [
             ]
           api:
             url: '@query:NopAuthResource__get/id,resourceId,site{displayName},siteId,siteId_label,displayName,orderNo,resourceType,resourceType_label,parent{displayName},parentId,icon,routePath,url,component,target,hidden,keepAlive,noAuth,depends,permissions,status,status_label,remark?id=$id'
           body:
           - type: group
-            id: group-0
-            direction: vertical
-            visibleOn: null
+            id: row-resourceId-siteId
             body:
-            - type: group
-              id: row-resourceId-siteId
-              body:
-              - name: resourceId
-                label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
-                required: true
-                type: static
-              - name: siteId_label
-                label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
-                required: true
-                type: static
-            - type: group
-              id: row-displayName-orderNo
-              body:
-              - name: displayName
-                label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
-                required: true
-                type: static
-              - name: orderNo
-                label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
-                required: true
-                type: static
-            - type: group
-              id: row-resourceType-parentId
-              body:
-              - name: resourceType_label
-                label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
-                required: true
-                type: static
-              - name: parent.displayName
-                label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
-                requiredOn: ${resourceType != 'TOPM'}
-                type: static
+            - name: resourceId
+              label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+              required: true
+              type: static
+            - name: siteId_label
+              label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+              required: true
+              type: static
+          - type: group
+            id: row-displayName-orderNo
+            body:
+            - name: displayName
+              label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+              required: true
+              type: static
+            - name: orderNo
+              label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+              required: true
+              type: static
+          - type: group
+            id: row-resourceType-parentId
+            body:
+            - name: resourceType_label
+              label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+              required: true
+              type: static
+            - name: parent.displayName
+              label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+              requiredOn: ${resourceType != 'TOPM'}
+              type: static
           - type: group
             id: menuProps
             direction: vertical
@@ -554,6 +542,7 @@ body:
           body:
             type: form
             name: edit
+            mode: horizontal
             rules: [
               ]
             initApi:
@@ -582,66 +571,61 @@ body:
                 remark: $remark
             body:
             - type: group
-              id: group-0
-              direction: vertical
-              visibleOn: null
+              id: row-resourceId-siteId
               body:
-              - type: group
-                id: row-resourceId-siteId
-                body:
-                - name: resourceId
-                  label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
-                  required: true
-                  type: static
-                - name: siteId
-                  label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
-                  required: true
-                  type: select
-                  searchable: true
-                  clearable: true
-                  multiple: false
-                  source: '@dict:obj/NopAuthSite'
-              - type: group
-                id: row-displayName-orderNo
-                body:
-                - name: displayName
-                  label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
-                  required: true
-                  type: input-text
-                  clearable: true
-                  validations:
-                    maxLength: 100
-                    minLength: null
-                    matchRegexp: null
-                  transform:
-                    upperCase: null
-                    lowerCase: null
-                - name: orderNo
-                  label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
-                  required: true
-                  type: input-text
-                  validations: isInt
-              - type: group
-                id: row-resourceType-parentId
-                body:
-                - name: resourceType
-                  label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
-                  required: true
-                  type: select
-                  searchable: true
-                  clearable: true
-                  multiple: false
-                  source: '@dict:auth/resource-type'
-                - name: parentId
-                  label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
-                  visibleOn: ${resourceType != "TOPM"}
-                  requiredOn: ${resourceType != 'TOPM'}
-                  type: tree-select
-                  clearable: true
-                  source:
-                    url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
-                      \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
-                      \                                "
+              - name: resourceId
+                label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+                required: true
+                type: static
+              - name: siteId
+                label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+                required: true
+                type: select
+                searchable: true
+                clearable: true
+                multiple: false
+                source: '@dict:obj/NopAuthSite'
+            - type: group
+              id: row-displayName-orderNo
+              body:
+              - name: displayName
+                label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+                required: true
+                type: input-text
+                clearable: true
+                validations:
+                  maxLength: 100
+                  minLength: null
+                  matchRegexp: null
+                transform:
+                  upperCase: null
+                  lowerCase: null
+              - name: orderNo
+                label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+                required: true
+                type: input-text
+                validations: isInt
+            - type: group
+              id: row-resourceType-parentId
+              body:
+              - name: resourceType
+                label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+                required: true
+                type: select
+                searchable: true
+                clearable: true
+                multiple: false
+                source: '@dict:auth/resource-type'
+              - name: parentId
+                label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+                visibleOn: ${resourceType != "TOPM"}
+                requiredOn: ${resourceType != 'TOPM'}
+                type: tree-select
+                clearable: true
+                source:
+                  url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
+                    \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
+                    \                                "
             - type: group
               id: menuProps
               direction: vertical
@@ -791,6 +775,7 @@ body:
           body:
             type: form
             name: add
+            mode: horizontal
             rules: [
               ]
             data:
@@ -819,75 +804,70 @@ body:
                 remark: $remark
             body:
             - type: group
-              id: group-0
-              direction: vertical
-              visibleOn: null
+              id: row-resourceId-siteId
               body:
-              - type: group
-                id: row-resourceId-siteId
-                body:
-                - name: resourceId
-                  label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
-                  required: true
-                  type: input-text
-                  clearable: true
-                  validations:
-                    maxLength: 100
-                    minLength: null
-                    matchRegexp: null
-                  transform:
-                    upperCase: null
-                    lowerCase: null
-                - name: siteId
-                  label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
-                  required: true
-                  type: select
-                  searchable: true
-                  clearable: true
-                  multiple: false
-                  source: '@dict:obj/NopAuthSite'
-                  value: main
-              - type: group
-                id: row-displayName-orderNo
-                body:
-                - name: displayName
-                  label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
-                  required: true
-                  type: input-text
-                  clearable: true
-                  validations:
-                    maxLength: 100
-                    minLength: null
-                    matchRegexp: null
-                  transform:
-                    upperCase: null
-                    lowerCase: null
-                - name: orderNo
-                  label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
-                  required: true
-                  type: input-text
-                  validations: isInt
-              - type: group
-                id: row-resourceType-parentId
-                body:
-                - name: resourceType
-                  label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
-                  required: true
-                  type: select
-                  searchable: true
-                  clearable: true
-                  multiple: false
-                  source: '@dict:auth/resource-type'
-                - name: parentId
-                  label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
-                  visibleOn: ${resourceType != "TOPM"}
-                  requiredOn: ${resourceType != 'TOPM'}
-                  type: tree-select
-                  clearable: true
-                  source:
-                    url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
-                      \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
-                      \                                "
+              - name: resourceId
+                label: '@i18n:cell.NopAuthResource.resourceId,prop.label.NopAuthResource.resourceId|资源ID'
+                required: true
+                type: input-text
+                clearable: true
+                validations:
+                  maxLength: 100
+                  minLength: null
+                  matchRegexp: null
+                transform:
+                  upperCase: null
+                  lowerCase: null
+              - name: siteId
+                label: '@i18n:cell.NopAuthResource.siteId,prop.label.NopAuthResource.siteId|站点ID'
+                required: true
+                type: select
+                searchable: true
+                clearable: true
+                multiple: false
+                source: '@dict:obj/NopAuthSite'
+                value: main
+            - type: group
+              id: row-displayName-orderNo
+              body:
+              - name: displayName
+                label: '@i18n:cell.NopAuthResource.displayName,prop.label.NopAuthResource.displayName|显示名称'
+                required: true
+                type: input-text
+                clearable: true
+                validations:
+                  maxLength: 100
+                  minLength: null
+                  matchRegexp: null
+                transform:
+                  upperCase: null
+                  lowerCase: null
+              - name: orderNo
+                label: '@i18n:cell.NopAuthResource.orderNo,prop.label.NopAuthResource.orderNo|排序'
+                required: true
+                type: input-text
+                validations: isInt
+            - type: group
+              id: row-resourceType-parentId
+              body:
+              - name: resourceType
+                label: '@i18n:cell.NopAuthResource.resourceType,prop.label.NopAuthResource.resourceType|资源类型'
+                required: true
+                type: select
+                searchable: true
+                clearable: true
+                multiple: false
+                source: '@dict:auth/resource-type'
+              - name: parentId
+                label: '@i18n:cell.NopAuthResource.parentId,prop.label.NopAuthResource.parentId|父资源ID'
+                visibleOn: ${resourceType != "TOPM"}
+                requiredOn: ${resourceType != 'TOPM'}
+                type: tree-select
+                clearable: true
+                source:
+                  url: "@query:NopAuthResource__findList/value:id,label:displayName,\n\
+                    \                                    children @TreeChildren(max:5)?filter_resourceType=TOPM&filter_siteId=$siteId\n\
+                    \                                "
             - type: group
               id: menuProps
               direction: vertical
