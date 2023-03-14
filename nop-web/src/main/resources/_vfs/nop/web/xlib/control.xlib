@@ -24,7 +24,7 @@
                         Amis并不允许url中包含空格和回车。Nop平台为了简化代码编写，在后台通过WebPageHelper.fixPage函数进行了规范化处理
                         -->
                         <url>@query:${bizObjName}__findList/value:id,label:${objMeta.displayProp || 'id'},
-                            ${objMeta.tree.childrenProp} @TreeChildren(max:5)?filter_${objMeta.tree.parentProp}=
+                            ${objMeta.tree.childrenProp} @TreeChildren(max:5)?filter_${objMeta.tree.parentProp}=__null
                         </url>
                     </source>
                 </tree-select>
@@ -418,16 +418,86 @@
 
         <edit-remark x:prototype="edit-textarea"/>
 
+<!--        <view-image>-->
+<!--            <attr name="dispMeta"/>-->
+<!--            <attr name="propMeta"/>-->
+
+<!--            <source><![CDATA[-->
+<!--                return {-->
+<!--                    "type": "image"-->
+<!--                }-->
+<!--            ]]></source>-->
+<!--        </view-image>-->
+
+<!--        <edit-image>-->
+<!--            <attr name="dispMeta"/>-->
+<!--            <attr name="propMeta"/>-->
+
+<!--            <source><![CDATA[-->
+<!--                return {-->
+<!--                    "type": "input-image",-->
+<!--                    "receiver": dispMeta?.uploadUrl || '/upload/image'-->
+<!--                }-->
+<!--            ]]></source>-->
+<!--        </edit-image>-->
+
+        <edit-tag-list>
+            <description>json数组类型的标签列表</description>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+            <attr name="objMeta" mandatory="true"/>
+            <attr name="bizObjName" mandatory="true"/>
+
+            <source><![CDATA[
+           return {
+              type: "input-tag",
+              clearable:true
+            }
+        ]]></source>
+        </edit-tag-list>
+
+        <view-tag-list>
+            <description>json数组类型的标签列表</description>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="editMode"/>
+            <attr name="objMeta" mandatory="true"/>
+            <attr name="bizObjName" mandatory="true"/>
+
+            <source><![CDATA[
+           return {
+              type: "input-tag",
+              disabled:true
+            }
+        ]]></source>
+        </view-tag-list>
+
         <view-image>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
+            <attr name="editMode"/>
+            <attr name="objMeta" mandatory="true"/>
+            <attr name="bizObjName" mandatory="true"/>
 
             <source><![CDATA[
                 return {
-                    "type": "image"
+                  type: 'static-image',
+                  enlargeAble: true,
                 }
             ]]></source>
         </view-image>
+
+        <list-view-image>
+            <source><![CDATA[
+                return {
+                  type: 'static-image',
+                  enlargeAble: true,
+                  width: 40,
+                  height: 40
+                }
+            ]]></source>
+        </list-view-image>
 
         <edit-image>
             <attr name="dispMeta"/>
@@ -435,11 +505,60 @@
 
             <source><![CDATA[
                 return {
-                    "type": "input-image",
-                    "receiver": dispMeta?.uploadUrl || '/upload/image'
+                    "type": "input-text",
+                    "placeholder": "输入图片链接"
                 }
             ]]></source>
         </edit-image>
+
+        <view-images>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    "type": "static-images",
+                    "name": propMeta ? propMeta.name + 'Component' : (dispMeta.id || propMeta.name),
+                    "enlargeAble": true
+                }
+            ]]></source>
+        </view-images>
+
+        <edit-images>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'input-array',
+                    "name": propMeta ? propMeta.name + 'Component' : (dispMeta.id || propMeta.name),
+                    items:{
+                       type: 'input-text',
+                       required:true,
+                       placeholder: '输入图片地址'
+                    }
+                }
+            ]]></source>
+        </edit-images>
+
+        <edit-string-array>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'input-array',
+                    "name": propMeta ? propMeta.name + 'Component' : (dispMeta.id || propMeta.name),
+                    items:{
+                       type: 'input-text',
+                       required:true,
+                       validations:{
+                         maxLength: ((dispMeta?.maxLength ?? propMeta?.schema?.precision)/2).$toInt()
+                       }
+                    }
+                }
+            ]]></source>
+        </edit-string-array>
 
         <edit-deptId outputMode="xjson">
             <attr name="dispMeta"/>

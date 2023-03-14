@@ -233,6 +233,12 @@ public class ConvertHelper {
         return o.toString();
     }
 
+
+    public static Object toObject(Object o, Function<ErrorCode, NopException> errorFactory) {
+        return o;
+    }
+
+
     public static String toString(Object o, Function<ErrorCode, NopException> errorFactory) {
         return toString(o, (String) null);
     }
