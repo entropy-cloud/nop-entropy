@@ -402,6 +402,7 @@
         <module>nop-pdf</module>
         <module>nop-benchmark</module>
         <module>nop-cli-core</module>
+        <module>nop-cli</module>
         <module>nop-message</module>
         <!--        <module>nop-native</module>-->
         <!--        <module>nop-quarkus</module>-->
