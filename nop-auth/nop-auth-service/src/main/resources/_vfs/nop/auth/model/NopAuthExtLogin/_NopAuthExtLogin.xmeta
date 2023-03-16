@@ -57,8 +57,8 @@
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
         <prop name="user" displayName="用户" i18n-en:displayName="User" ext:kind="to-one" internal="true" queryable="true"
-              ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName"
-              insertable="false" updatable="false" mandatory="true" lazy="true" published="false">
+              ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName" mandatory="true"
+              lazy="true" published="false">
             <schema type="io.nop.auth.dao.entity.NopAuthUser" bizObjName="NopAuthUser"/>
         </prop>
     </props>

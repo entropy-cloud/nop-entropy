@@ -97,11 +97,11 @@
             <schema type="java.lang.Integer" dict="core/active-status"/>
         </prop>
         <prop name="metaConfig" displayName="扩展配置" i18n-en:displayName="Meta" queryable="true" sortable="true"
-              insertable="true" updatable="true" ext:show="L">
+              insertable="true" updatable="true" graphql:jsonComponentProp="metaConfigComponent" ext:show="L">
             <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="propsConfig" displayName="组件属性" i18n-en:displayName="Props" queryable="true" sortable="true"
-              insertable="true" updatable="true" ext:show="L">
+              insertable="true" updatable="true" graphql:jsonComponentProp="propsConfigComponent" ext:show="L">
             <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
@@ -162,6 +162,14 @@
               updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthRoleResource&gt;"
                     bizObjName="NopAuthRoleResource"/>
+        </prop>
+        <prop name="metaConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.support.JsonOrmComponent"/>
+        </prop>
+        <prop name="propsConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.support.JsonOrmComponent"/>
         </prop>
     </props>
 </meta>

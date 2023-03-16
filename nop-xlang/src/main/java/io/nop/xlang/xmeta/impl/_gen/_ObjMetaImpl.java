@@ -122,7 +122,7 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     /**
      *  
      * xml name: tree
-     * 
+     * 树形结构
      */
     private io.nop.xlang.xmeta.impl.ObjTreeModel _tree ;
     
@@ -532,7 +532,7 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     /**
      * 
      * xml name: tree
-     *  
+     *  树形结构
      */
     
     public io.nop.xlang.xmeta.impl.ObjTreeModel getTree(){

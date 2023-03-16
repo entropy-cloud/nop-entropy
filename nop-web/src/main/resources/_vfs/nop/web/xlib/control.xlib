@@ -15,6 +15,13 @@
             <attr name="bizObjName" mandatory="true"/>
 
             <source>
+                <c:script>
+                    function filter_cond(){
+                       if(objMeta.tree.levelProp)
+                          return 'filter_' + objMeta.tree.levelProp + '=' + (objMeta.tree.rootLevelValue ?? '__null');
+                       return 'filter_' + objMeta.tree.parentProp + '=_null';
+                    }
+                </c:script>
                 <!--
                 支持五级菜单
                 -->
@@ -24,7 +31,7 @@
                         Amis并不允许url中包含空格和回车。Nop平台为了简化代码编写，在后台通过WebPageHelper.fixPage函数进行了规范化处理
                         -->
                         <url>@query:${bizObjName}__findList/value:id,label:${objMeta.displayProp || 'id'},
-                            ${objMeta.tree.childrenProp} @TreeChildren(max:5)?filter_${objMeta.tree.parentProp}=__null
+                            ${objMeta.tree.childrenProp} @TreeChildren(max:5)?${filter_cond()}
                         </url>
                     </source>
                 </tree-select>

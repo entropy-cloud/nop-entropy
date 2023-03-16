@@ -245,14 +245,18 @@ public class JsonDiffer {
         for (int i = 0, n = matchedList.size() - 1; i < n; i++) {
             DeltaMergeHelper.MatchData matched = matchedList.get(i);
             if (matched.same) {
-                DeltaMergeHelper.MatchData next = matchedList.get(i + 1);
-                if (next.aIndex >= 0 && next.bIndex >= 0 && matched.bIndex == next.bIndex - 1) {
-                    matchedList.remove(i);
-                    i--;
-                    n--;
+                if(matched.bIndex == lastIndex + 1) {
+                    DeltaMergeHelper.MatchData next = matchedList.get(i + 1);
+                    if (next.aIndex >= 0 && next.bIndex >= 0 && matched.bIndex == next.bIndex - 1) {
+                        matchedList.remove(i);
+                        i--;
+                        n--;
+                    }
                 }
             }
-            lastIndex = matched.bIndex;
+            if (matched.bIndex >= 0) {
+                lastIndex = matched.bIndex;
+            }
         }
 
         if (matchedList.size() >= 2) {

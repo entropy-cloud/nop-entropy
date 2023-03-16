@@ -1,0 +1,11 @@
+{
+  "name": "crud-grid",
+  "columns": [
+    {
+      "name": "deptType",
+      "label": "类型",
+      "x:virtual": true
+    }
+  ],
+  "x:virtual": true
+}

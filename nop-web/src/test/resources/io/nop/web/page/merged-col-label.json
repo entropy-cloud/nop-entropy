@@ -1,0 +1,35 @@
+{
+  "type": "page",
+  "name": "main",
+  "body": {
+    "type": "crud",
+    "name": "crud-grid",
+    "columns": [
+      {
+        "name": "orderNum",
+        "label": "排序",
+        "sortable": true,
+        "toggled": true,
+        "type": "static",
+        "i18n:label": "col.NopAuthDept.orderNum,prop.label.NopAuthDept.orderNum"
+      },
+      {
+        "name": "deptType",
+        "label": "改变类型",
+        "sortable": true,
+        "toggled": true,
+        "type": "static",
+        "placeholder": "-",
+        "i18n:label": "col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType"
+      },
+      {
+        "name": "email",
+        "label": "邮件",
+        "sortable": true,
+        "toggled": true,
+        "type": "static",
+        "i18n:label": "col.NopAuthDept.email,prop.label.NopAuthDept.email"
+      }
+    ]
+  }
+}

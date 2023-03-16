@@ -103,5 +103,17 @@ public class TestPageProvider extends JunitBaseTestCase {
 
         Map<String, Object> diff = JsonDiffer.instance().diffMap(json, base);
         System.out.println(JsonTool.serialize(diff, true));
+        assertEquals(attachmentJsonText("delta-col.json"), JsonTool.serialize(diff, true));
+    }
+
+    @Test
+    public void testColLabelChange() {
+        Map<String, Object> json = pageProvider.getPageSource("/nop/test/pages/test-col-label.page.yaml");
+        System.out.println(JsonTool.serialize(json, true));
+        assertEquals(attachmentJsonText("merged-col-label.json"), JsonTool.serialize(json,true));
+
+        json = pageProvider.getPage("/nop/test/pages/test-col-label.page.yaml",null);
+        System.out.println(JsonTool.serialize(json,true));
+        assertEquals(attachmentJsonText("merged-col-label-resolved.json"), JsonTool.serialize(json,true));
     }
 }

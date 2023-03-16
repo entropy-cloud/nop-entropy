@@ -1,0 +1,12 @@
+x:gen-extends: >
+  import io.nop.core.lang.json.JsonTool;
+  return JsonTool.loadJson('/nop/test/pages/base-col.page.yaml');
+
+body:
+  name: crud-grid
+  columns:
+    - name: deptType
+      label: '@i18n:col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType|改变类型'
+      placeholder: '-'
+      x:virtual: true
+  x:virtual: true

@@ -41,7 +41,10 @@
 
     <c:if test="${parentProp}">
        <tree isLeafProp="${entityModel.getColumnByTag('is-leaf')?.name}" parentProp="${parentProp.name}"
-            childrenProp="${parentProp.columnRefs?.[0]?.refPropName}" />
+             childrenProp="${parentProp.columnRefs?.[0]?.refPropName}"
+             levelProp="${entityModel.getColumnByTag('tree-level')?.name}"
+             rootLevelValue="${entityModel.getColumnByTag('tree-level')?.['ext:rootLevel']}"
+            />
     </c:if>
 
      <c:import from="/nop/codegen/xlib/meta-gen.xlib" />
@@ -73,7 +76,7 @@
                   ext:control="${rel['ext:control']}"  defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
                   ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}" ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
                   ext:joinRightDisplayProp="${rel.singleColumnJoin?.rightDisplayPropModel?.name}"
-                  insertable="false" updatable="false"
+                  insertable="${rel.tagSet?.contains('insertable')}" updatable="${rel.tagSet?.contains('updatable')}"
                   mandatory="${(rel.toOneRelation and rel.mandatory) || null}" lazy="true" published="${rel.tagSet?.contains('pub') ? null :false}">
                 <schema type="${rel.javaTypeName}" bizObjName="${rel.refEntityName.$lastPart('.')}" />
             </prop>

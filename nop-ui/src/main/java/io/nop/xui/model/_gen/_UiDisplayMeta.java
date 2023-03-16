@@ -51,6 +51,13 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: control
+     * 与gen-control相比，它不需要执行代码生成，因此也就不存在注意表达式转义的问题。直接对应于前台可使用的界面定义
+     */
+    private java.util.Map<java.lang.String,java.lang.Object> _control ;
+    
+    /**
+     *  
      * xml name: custom
      * 如果为false，则id必须是meta中定义的字段名。如果不是，则会报错。
      * 用于防止拼写错误或者字段从数据模型中删除后出现无效引用
@@ -390,6 +397,29 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
            
     }
 
+    
+    /**
+     * 
+     * xml name: control
+     *  与gen-control相比，它不需要执行代码生成，因此也就不存在注意表达式转义的问题。直接对应于前台可使用的界面定义
+     */
+    
+    public java.util.Map<java.lang.String,java.lang.Object> getControl(){
+      return _control;
+    }
+
+    
+    public void setControl(java.util.Map<java.lang.String,java.lang.Object> value){
+        checkAllowChange();
+        
+        this._control = value;
+           
+    }
+
+    
+    public boolean hasControl(){
+        return this._control != null && !this._control.isEmpty();
+    }
     
     /**
      * 
@@ -1084,6 +1114,7 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
         out.put("className",this.getClassName());
         out.put("classNameExpr",this.getClassNameExpr());
         out.put("component",this.getComponent());
+        out.put("control",this.getControl());
         out.put("custom",this.isCustom());
         out.put("defaultValue",this.getDefaultValue());
         out.put("depends",this.getDepends());

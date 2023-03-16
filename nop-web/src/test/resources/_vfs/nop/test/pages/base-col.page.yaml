@@ -1,0 +1,22 @@
+type: page
+name: main
+body:
+  type: crud
+  name: crud-grid
+  columns:
+    - name: orderNum
+      label: '@i18n:col.NopAuthDept.orderNum,prop.label.NopAuthDept.orderNum|排序'
+      sortable: true
+      toggled: true
+      type: static
+    - name: deptType
+      label: '@i18n:col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType|类型'
+      sortable: true
+      toggled: true
+      type: static
+      placeholder: '-'
+    - name: email
+      label: '@i18n:col.NopAuthDept.email,prop.label.NopAuthDept.email|邮件'
+      sortable: true
+      toggled: true
+      type: static

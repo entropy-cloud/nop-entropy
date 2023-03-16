@@ -57,6 +57,10 @@
     根据propMeta, dispMeta, mode等参数生成控件描述
     -->
     <gen-control xdef:value="xpl-xjson"/>
+
+    <!-- 与gen-control相比，它不需要执行代码生成，因此也就不存在注意表达式转义的问题。直接对应于前台可使用的界面定义 -->
+    <control xdef:value="xjson"/>
+
     <validator xdef:value="xjson"/>
 
     <className xdef:value="string"/>

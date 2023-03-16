@@ -267,6 +267,11 @@
                         <field name="ext:control" displayName="控件">
                             <schema stdDomain="string"/>
                         </field>
+
+                        <field name="ext:rootLevel" displayName="根节点级别">
+                            <schema stdDomain="string" />
+                        </field>
+
                     </fields>
                 </field>
 

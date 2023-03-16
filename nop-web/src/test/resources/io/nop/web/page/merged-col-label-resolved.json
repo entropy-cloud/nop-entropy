@@ -1,0 +1,32 @@
+{
+  "type": "page",
+  "name": "main",
+  "body": {
+    "type": "crud",
+    "name": "crud-grid",
+    "columns": [
+      {
+        "name": "orderNum",
+        "label": "排序",
+        "sortable": true,
+        "toggled": true,
+        "type": "static"
+      },
+      {
+        "name": "deptType",
+        "label": "改变类型",
+        "sortable": true,
+        "toggled": true,
+        "type": "static",
+        "placeholder": "-"
+      },
+      {
+        "name": "email",
+        "label": "邮件",
+        "sortable": true,
+        "toggled": true,
+        "type": "static"
+      }
+    ]
+  }
+}

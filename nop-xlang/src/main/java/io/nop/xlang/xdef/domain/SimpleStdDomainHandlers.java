@@ -524,6 +524,7 @@ public class SimpleStdDomainHandlers {
                             .param(ARG_STD_DOMAIN, getName()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, text);
                 }
             }
+            node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.freeze(true);
             return new XJsonNode(node);
         }
@@ -532,7 +533,6 @@ public class SimpleStdDomainHandlers {
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
-            node.clearAttrs();
             node.freeze(true);
             return new XJsonNode(node);
         }

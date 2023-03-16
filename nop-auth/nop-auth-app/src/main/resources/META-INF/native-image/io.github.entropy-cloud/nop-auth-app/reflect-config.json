@@ -35239,7 +35239,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getLevelProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getParentProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRootLevelValue",
         "parameterTypes": []
       },
       {
@@ -35261,7 +35269,19 @@
         ]
       },
       {
+        "name": "setLevelProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setParentProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRootLevelValue",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -36877,6 +36897,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getControl",
+        "parameterTypes": []
+      },
+      {
         "name": "getDefaultValue",
         "parameterTypes": []
       },
@@ -37005,6 +37029,10 @@
         "parameterTypes": []
       },
       {
+        "name": "hasControl",
+        "parameterTypes": []
+      },
+      {
         "name": "hasValidator",
         "parameterTypes": []
       },
@@ -37054,6 +37082,12 @@
         "name": "setComponent",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setControl",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       },
       {

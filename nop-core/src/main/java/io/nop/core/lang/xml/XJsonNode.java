@@ -23,6 +23,6 @@ public class XJsonNode implements IJsonString {
 
     @Override
     public String toString() {
-        return node.innerXml();
+        return node.xml();
     }
 }

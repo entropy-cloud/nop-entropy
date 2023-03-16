@@ -66,6 +66,8 @@ public class JsonExtender {
         if (extendsList == null || extendsList.isEmpty()) {
             Map<String, Object> genExtends = loadDynamicExtends(obj);
             Map<String, Object> map = extendsMapEntries(obj);
+            if(genExtends == null)
+                return map;
             return (Map<String, Object>) JsonMerger.instance().merge(genExtends, map);
         }
 
@@ -111,6 +113,7 @@ public class JsonExtender {
                 continue;
             map = (Map<String, Object>) JsonMerger.instance().merge(map, map2);
         }
+        //map.put(CoreConstants.ATTR_X_OVERRIDE, CoreConstants.OVERRIDE_REPLACE);
         return map;
     }
 
@@ -181,7 +184,7 @@ public class JsonExtender {
         Map<String, Object> merged = obj;
         for (Map.Entry<String, Object> entry : obj.entrySet()) {
             String name = entry.getKey();
-            if (name.equals(CoreConstants.ATTR_X_EXTENDS)) {
+            if (name.equals(CoreConstants.ATTR_X_EXTENDS) || name.equals(CoreConstants.ATTR_X_GEN_EXTENDS)) {
                 if (merged == obj) {
                     merged = cloneMap(obj);
                     merged.remove(CoreConstants.ATTR_X_EXTENDS);
