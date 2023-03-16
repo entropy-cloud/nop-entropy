@@ -5,3 +5,6 @@
 *.xmeta text eol=lf
 *.java text eol=lf
 *.xwf text eol=lf
+*.xgen text eol=lf
+*.xrun text eol=lf
+*.xtask text eol=lf
