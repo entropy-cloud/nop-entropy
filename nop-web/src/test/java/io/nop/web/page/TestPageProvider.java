@@ -14,6 +14,7 @@ import io.nop.core.lang.json.DeltaJsonOptions;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.delta.DeltaJsonLoader;
 import io.nop.core.lang.json.delta.DeltaJsonSaver;
+import io.nop.core.lang.json.delta.JsonDiffer;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
@@ -93,5 +94,14 @@ public class TestPageProvider extends JunitBaseTestCase {
         String str = JSON.serialize(page, true);
         System.out.println(str);
         assertEquals(attachmentJsonText("test-actions.result.json"), str);
+    }
+
+    @Test
+    public void testChangeColName() {
+        Map<String, Object> base = attachmentBean("col/old-col.json", Map.class);
+        Map<String, Object> json = attachmentBean("col/new-col.json", Map.class);
+
+        Map<String, Object> diff = JsonDiffer.instance().diffMap(json, base);
+        System.out.println(JsonTool.serialize(diff, true));
     }
 }

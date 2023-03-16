@@ -96,6 +96,7 @@ public class CustomTool extends Tool {
                 str = str.substring(0,pos2) + "// tell cpd to start ignoring code - CPD-OFF\n" + str.substring(pos2)
                         +"\n// resume CPD analysis - CPD-ON";
             }
+            str = StringHelper.replace(str,"\r\n","\n");
 
             Writer out = getDefaultOutputFileWriter(g, fileName);
             try {

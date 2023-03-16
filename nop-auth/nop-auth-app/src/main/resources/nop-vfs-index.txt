@@ -100,6 +100,7 @@
 /nop/auth/pages/NopAuthDept/NopAuthDept.view.xml
 /nop/auth/pages/NopAuthDept/_gen/_NopAuthDept.view.xml
 /nop/auth/pages/NopAuthDept/main.page.yaml
+/nop/auth/pages/NopAuthDept/main.page.yaml.bak
 /nop/auth/pages/NopAuthDept/picker.page.yaml
 /nop/auth/pages/NopAuthDept/tabsView.page.yaml
 /nop/auth/pages/NopAuthExtLogin/NopAuthExtLogin.lib.xjs

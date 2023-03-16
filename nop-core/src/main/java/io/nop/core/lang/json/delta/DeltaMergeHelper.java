@@ -22,6 +22,8 @@ public class DeltaMergeHelper {
     public static class MatchData {
         public int aIndex;
         public int bIndex;
+        public Object diffValue;
+        public boolean same;
     }
 
     /**

@@ -1,0 +1,38 @@
+{
+  "type": "crud",
+  "name": "crud-grid",
+  "columns": [
+    {
+      "name": "orderNum",
+      "label": "排序",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "i18n:label": "col.NopAuthDept.orderNum,prop.label.NopAuthDept.orderNum"
+    },
+    {
+      "name": "deptType",
+      "label": "类型",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "i18n:label": "col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType"
+    },
+    {
+      "name": "email",
+      "label": "邮件",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "i18n:label": "col.NopAuthDept.email,prop.label.NopAuthDept.email"
+    },
+    {
+      "name": "phone",
+      "label": "电话",
+      "sortable": true,
+      "toggled": true,
+      "type": "static",
+      "i18n:label": "col.NopAuthDept.phone,prop.label.NopAuthDept.phone"
+    }
+  ]
+}

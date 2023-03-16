@@ -1,0 +1,966 @@
+{
+  "type": "page",
+  "body": [
+    {
+      "type": "crud",
+      "name": "crud-grid",
+      "autoFillHeight": true,
+      "syncLocation": false,
+      "footable": false,
+      "bulkActions": [],
+      "headerToolbar": [
+        {
+          "type": "filter-toggler",
+          "id": "filter-toggler"
+        },
+        {
+          "type": "action",
+          "id": "add-button",
+          "level": "primary",
+          "label": "新增",
+          "dialog": {
+            "type": "page",
+            "name": "add",
+            "size": "md",
+            "title": "新增-外包人员信息表",
+            "body": {
+              "type": "form",
+              "name": "add",
+              "mode": "horizontal",
+              "api": {
+                "url": "@mutation:OaEpibolyEmp__save/id"
+              },
+              "body": [
+                {
+                  "type": "group",
+                  "id": "row-id-createdBy",
+                  "body": [
+                    {
+                      "name": "id",
+                      "label": "自增主键id",
+                      "required": true,
+                      "type": "input-text",
+                      "validations": "isLong",
+                      "i18n:label": "cell.OaEpibolyEmp.id,prop.label.OaEpibolyEmp.id"
+                    },
+                    {
+                      "name": "createdBy",
+                      "label": "创建人",
+                      "required": true,
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 64
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.createdBy,prop.label.OaEpibolyEmp.createdBy"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-createdDate-updatedBy",
+                  "body": [
+                    {
+                      "name": "createdDate",
+                      "label": "创建时间",
+                      "required": true,
+                      "type": "input-datetime",
+                      "format": "YYYY-MM-DD HH:mm:ss",
+                      "i18n:label": "cell.OaEpibolyEmp.createdDate,prop.label.OaEpibolyEmp.createdDate"
+                    },
+                    {
+                      "name": "updatedBy",
+                      "label": "更新人",
+                      "required": true,
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 64
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.updatedBy,prop.label.OaEpibolyEmp.updatedBy"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-updatedDate-recordInd",
+                  "body": [
+                    {
+                      "name": "updatedDate",
+                      "label": "更新时间",
+                      "required": true,
+                      "type": "input-datetime",
+                      "format": "YYYY-MM-DD HH:mm:ss",
+                      "i18n:label": "cell.OaEpibolyEmp.updatedDate,prop.label.OaEpibolyEmp.updatedDate"
+                    },
+                    {
+                      "name": "recordInd",
+                      "label": "逻辑删除标识;A：有效；D：已删除",
+                      "required": true,
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 1
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.recordInd,prop.label.OaEpibolyEmp.recordInd"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-empName-empUm",
+                  "body": [
+                    {
+                      "name": "empName",
+                      "label": "姓名",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 255
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.empName,prop.label.OaEpibolyEmp.empName"
+                    },
+                    {
+                      "name": "empUm",
+                      "label": "um账号",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 64
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.empUm,prop.label.OaEpibolyEmp.empUm"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-empIdCard-empPhone",
+                  "body": [
+                    {
+                      "name": "empIdCard",
+                      "label": "身份证",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 255
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.empIdCard,prop.label.OaEpibolyEmp.empIdCard"
+                    },
+                    {
+                      "name": "empPhone",
+                      "label": "手机号",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 11
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.empPhone,prop.label.OaEpibolyEmp.empPhone"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-empGender-companyId",
+                  "body": [
+                    {
+                      "name": "empGender",
+                      "label": "性别：1男 2女",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 1
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.empGender,prop.label.OaEpibolyEmp.empGender"
+                    },
+                    {
+                      "name": "companyId",
+                      "label": "外包公司id（数据字典）",
+                      "type": "input-text",
+                      "validations": "isLong",
+                      "i18n:label": "cell.OaEpibolyEmp.companyId,prop.label.OaEpibolyEmp.companyId"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-jobLevel-serviceFee",
+                  "body": [
+                    {
+                      "name": "jobLevel",
+                      "label": "岗位级别",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 255
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.jobLevel,prop.label.OaEpibolyEmp.jobLevel"
+                    },
+                    {
+                      "name": "serviceFee",
+                      "label": "服务费用",
+                      "type": "input-number",
+                      "precision": 6,
+                      "i18n:label": "cell.OaEpibolyEmp.serviceFee,prop.label.OaEpibolyEmp.serviceFee"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-jobStatus-entryDate",
+                  "body": [
+                    {
+                      "name": "jobStatus",
+                      "label": "岗位状态（0在岗，1离职）",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 1
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.jobStatus,prop.label.OaEpibolyEmp.jobStatus"
+                    },
+                    {
+                      "name": "entryDate",
+                      "label": "入职时间",
+                      "type": "input-date",
+                      "format": "YYYY-MM-DD",
+                      "i18n:label": "cell.OaEpibolyEmp.entryDate,prop.label.OaEpibolyEmp.entryDate"
+                    }
+                  ]
+                },
+                {
+                  "type": "group",
+                  "id": "row-leaveDate-remark",
+                  "body": [
+                    {
+                      "name": "leaveDate",
+                      "label": "离职时间",
+                      "type": "input-date",
+                      "format": "YYYY-MM-DD",
+                      "i18n:label": "cell.OaEpibolyEmp.leaveDate,prop.label.OaEpibolyEmp.leaveDate"
+                    },
+                    {
+                      "name": "remark",
+                      "label": "备注",
+                      "type": "input-text",
+                      "clearable": true,
+                      "validations": {
+                        "maxLength": 255
+                      },
+                      "i18n:label": "cell.OaEpibolyEmp.remark,prop.label.OaEpibolyEmp.remark"
+                    }
+                  ]
+                }
+              ]
+            },
+            "bodyClassName": "amis",
+            "i18n:title": "OaEpibolyEmp.forms.add.$title"
+          },
+          "actionType": "dialog",
+          "i18n:label": "common.add"
+        },
+        {
+          "type": "bulkActions",
+          "id": "bulkActions"
+        },
+        {
+          "type": "columns-toggler",
+          "align": "right",
+          "id": "columns-toggler"
+        }
+      ],
+      "footerToolbar": [
+        {
+          "type": "statistics",
+          "id": "statistics"
+        },
+        {
+          "type": "switch-per-page",
+          "id": "switch-per-page"
+        },
+        {
+          "type": "pagination",
+          "id": "pagination"
+        }
+      ],
+      "api": {
+        "url": "@query:OaEpibolyEmp__findPage/total,page,items{%20id,createdBy,createdDate,updatedBy,updatedDate,recordInd,empName,empUm,empIdCard,empPhone,empGender,companyId,jobLevel,serviceFee,jobStatus,entryDate,leaveDate,remark%20}"
+      },
+      "columns": [
+        {
+          "name": "id",
+          "label": "自增主键id",
+          "sortable": true,
+          "toggled": true,
+          "fixed": "left",
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.id,prop.label.OaEpibolyEmp.id",
+          "id": "u:c73349c9eaac"
+        },
+        {
+          "name": "createdBy",
+          "label": "创建人",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.createdBy,prop.label.OaEpibolyEmp.createdBy",
+          "id": "u:14a84aea5c09"
+        },
+        {
+          "name": "createdDate",
+          "label": "创建时间",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.createdDate,prop.label.OaEpibolyEmp.createdDate",
+          "id": "u:5ad5cfed5c84"
+        },
+        {
+          "name": "updatedBy",
+          "label": "更新人",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.updatedBy,prop.label.OaEpibolyEmp.updatedBy",
+          "id": "u:e6b82a859815"
+        },
+        {
+          "name": "updatedDate",
+          "label": "更新时间",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.updatedDate,prop.label.OaEpibolyEmp.updatedDate",
+          "id": "u:46a5c0fc552d"
+        },
+        {
+          "name": "recordInd",
+          "label": "逻辑删除标识",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.recordInd,prop.label.OaEpibolyEmp.recordInd",
+          "id": "u:675f0b5f5fc9",
+          "placeholder": "-"
+        },
+        {
+          "name": "empName",
+          "label": "姓名",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.empName,prop.label.OaEpibolyEmp.empName",
+          "id": "u:cb4a3cd47a4e"
+        },
+        {
+          "name": "empUm",
+          "label": "um账号",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.empUm,prop.label.OaEpibolyEmp.empUm",
+          "id": "u:6bab0feffee9"
+        },
+        {
+          "name": "empIdCard",
+          "label": "身份证",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.empIdCard,prop.label.OaEpibolyEmp.empIdCard",
+          "id": "u:2b3976acd40a"
+        },
+        {
+          "name": "empPhone",
+          "label": "手机号",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.empPhone,prop.label.OaEpibolyEmp.empPhone",
+          "id": "u:dd3c45fec2c2"
+        },
+        {
+          "name": "empGender",
+          "label": "性别：1男 2女",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.empGender,prop.label.OaEpibolyEmp.empGender",
+          "id": "u:5a12e35ad053"
+        },
+        {
+          "name": "companyId",
+          "label": "外包公司id（数据字典）",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.companyId,prop.label.OaEpibolyEmp.companyId",
+          "id": "u:816367851bf1"
+        },
+        {
+          "name": "jobLevel",
+          "label": "岗位级别",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.jobLevel,prop.label.OaEpibolyEmp.jobLevel",
+          "id": "u:9de32c558969"
+        },
+        {
+          "name": "serviceFee",
+          "label": "服务费用",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.serviceFee,prop.label.OaEpibolyEmp.serviceFee",
+          "id": "u:93097176c45e"
+        },
+        {
+          "name": "jobStatus",
+          "label": "岗位状态（0在岗，1离职）",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.jobStatus,prop.label.OaEpibolyEmp.jobStatus",
+          "id": "u:81a2b938645c"
+        },
+        {
+          "name": "entryDate",
+          "label": "入职时间",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.entryDate,prop.label.OaEpibolyEmp.entryDate",
+          "id": "u:8107fe3e1bf5"
+        },
+        {
+          "name": "leaveDate",
+          "label": "离职时间",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.leaveDate,prop.label.OaEpibolyEmp.leaveDate",
+          "id": "u:6ff91b986de5"
+        },
+        {
+          "name": "remark",
+          "label": "备注",
+          "sortable": true,
+          "toggled": true,
+          "type": "static",
+          "i18n:label": "col.OaEpibolyEmp.remark,prop.label.OaEpibolyEmp.remark",
+          "id": "u:ead837f6db59"
+        },
+        {
+          "type": "operation",
+          "label": "操作",
+          "id": "operation",
+          "width": "110px",
+          "toggled": true,
+          "fixed": "right",
+          "labelClassName": "text-center",
+          "buttons": [
+            {
+              "type": "action",
+              "id": "row-view-button",
+              "level": "primary",
+              "label": "查看",
+              "dialog": {
+                "type": "page",
+                "name": "view",
+                "size": "md",
+                "title": "查看-外包人员信息表",
+                "body": {
+                  "type": "form",
+                  "name": "view",
+                  "mode": "horizontal",
+                  "api": {
+                    "url": "@query:OaEpibolyEmp__get/id,createdBy,createdDate,updatedBy,updatedDate,recordInd,empName,empUm,empIdCard,empPhone,empGender,companyId,jobLevel,serviceFee,jobStatus,entryDate,leaveDate,remark?id=$id"
+                  },
+                  "body": [
+                    {
+                      "type": "group",
+                      "id": "row-id-createdBy",
+                      "body": [
+                        {
+                          "name": "id",
+                          "label": "自增主键id",
+                          "required": true,
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.id,prop.label.OaEpibolyEmp.id"
+                        },
+                        {
+                          "name": "createdBy",
+                          "label": "创建人",
+                          "required": true,
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.createdBy,prop.label.OaEpibolyEmp.createdBy"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-createdDate-updatedBy",
+                      "body": [
+                        {
+                          "name": "createdDate",
+                          "label": "创建时间",
+                          "required": true,
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.createdDate,prop.label.OaEpibolyEmp.createdDate"
+                        },
+                        {
+                          "name": "updatedBy",
+                          "label": "更新人",
+                          "required": true,
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.updatedBy,prop.label.OaEpibolyEmp.updatedBy"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-updatedDate-recordInd",
+                      "body": [
+                        {
+                          "name": "updatedDate",
+                          "label": "更新时间",
+                          "required": true,
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.updatedDate,prop.label.OaEpibolyEmp.updatedDate"
+                        },
+                        {
+                          "name": "recordInd",
+                          "label": "逻辑删除标识;A：有效；D：已删除",
+                          "required": true,
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.recordInd,prop.label.OaEpibolyEmp.recordInd"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-empName-empUm",
+                      "body": [
+                        {
+                          "name": "empName",
+                          "label": "姓名",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.empName,prop.label.OaEpibolyEmp.empName"
+                        },
+                        {
+                          "name": "empUm",
+                          "label": "um账号",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.empUm,prop.label.OaEpibolyEmp.empUm"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-empIdCard-empPhone",
+                      "body": [
+                        {
+                          "name": "empIdCard",
+                          "label": "身份证",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.empIdCard,prop.label.OaEpibolyEmp.empIdCard"
+                        },
+                        {
+                          "name": "empPhone",
+                          "label": "手机号",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.empPhone,prop.label.OaEpibolyEmp.empPhone"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-empGender-companyId",
+                      "body": [
+                        {
+                          "name": "empGender",
+                          "label": "性别：1男 2女",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.empGender,prop.label.OaEpibolyEmp.empGender"
+                        },
+                        {
+                          "name": "companyId",
+                          "label": "外包公司id（数据字典）",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.companyId,prop.label.OaEpibolyEmp.companyId"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-jobLevel-serviceFee",
+                      "body": [
+                        {
+                          "name": "jobLevel",
+                          "label": "岗位级别",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.jobLevel,prop.label.OaEpibolyEmp.jobLevel"
+                        },
+                        {
+                          "name": "serviceFee",
+                          "label": "服务费用",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.serviceFee,prop.label.OaEpibolyEmp.serviceFee"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-jobStatus-entryDate",
+                      "body": [
+                        {
+                          "name": "jobStatus",
+                          "label": "岗位状态（0在岗，1离职）",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.jobStatus,prop.label.OaEpibolyEmp.jobStatus"
+                        },
+                        {
+                          "name": "entryDate",
+                          "label": "入职时间",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.entryDate,prop.label.OaEpibolyEmp.entryDate"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "group",
+                      "id": "row-leaveDate-remark",
+                      "body": [
+                        {
+                          "name": "leaveDate",
+                          "label": "离职时间",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.leaveDate,prop.label.OaEpibolyEmp.leaveDate"
+                        },
+                        {
+                          "name": "remark",
+                          "label": "备注",
+                          "type": "static",
+                          "i18n:label": "cell.OaEpibolyEmp.remark,prop.label.OaEpibolyEmp.remark"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "bodyClassName": "amis",
+                "i18n:title": "OaEpibolyEmp.forms.view.$title"
+              },
+              "actionType": "dialog",
+              "i18n:label": "common.view"
+            },
+            {
+              "type": "dropdown-button",
+              "id": "row-more-button",
+              "label": "更多",
+              "level": "primary",
+              "buttons": [
+                {
+                  "type": "button",
+                  "id": "row-update-button",
+                  "level": "primary",
+                  "label": "编辑",
+                  "dialog": {
+                    "type": "page",
+                    "name": "update",
+                    "size": "md",
+                    "title": "编辑-外包人员信息表",
+                    "body": {
+                      "type": "form",
+                      "name": "edit",
+                      "mode": "horizontal",
+                      "initApi": {
+                        "url": "@query:OaEpibolyEmp__get/id,createdBy,createdDate,updatedBy,updatedDate,recordInd,empName,empUm,empIdCard,empPhone,empGender,companyId,jobLevel,serviceFee,jobStatus,entryDate,leaveDate,remark?id=$id"
+                      },
+                      "api": {
+                        "url": "@mutation:OaEpibolyEmp__update/id?id=$id",
+                        "withFormData": true,
+                        "data": {
+                          "id": "$id",
+                          "createdBy": "$createdBy",
+                          "createdDate": "$createdDate",
+                          "updatedBy": "$updatedBy",
+                          "updatedDate": "$updatedDate",
+                          "recordInd": "$recordInd",
+                          "empName": "$empName",
+                          "empUm": "$empUm",
+                          "empIdCard": "$empIdCard",
+                          "empPhone": "$empPhone",
+                          "empGender": "$empGender",
+                          "companyId": "$companyId",
+                          "jobLevel": "$jobLevel",
+                          "serviceFee": "$serviceFee",
+                          "jobStatus": "$jobStatus",
+                          "entryDate": "$entryDate",
+                          "leaveDate": "$leaveDate",
+                          "remark": "$remark"
+                        }
+                      },
+                      "body": [
+                        {
+                          "type": "group",
+                          "id": "row-id-createdBy",
+                          "body": [
+                            {
+                              "name": "id",
+                              "label": "自增主键id",
+                              "required": true,
+                              "type": "static",
+                              "i18n:label": "cell.OaEpibolyEmp.id,prop.label.OaEpibolyEmp.id"
+                            },
+                            {
+                              "name": "createdBy",
+                              "label": "创建人",
+                              "required": true,
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 64
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.createdBy,prop.label.OaEpibolyEmp.createdBy"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-createdDate-updatedBy",
+                          "body": [
+                            {
+                              "name": "createdDate",
+                              "label": "创建时间",
+                              "required": true,
+                              "type": "input-datetime",
+                              "format": "YYYY-MM-DD HH:mm:ss",
+                              "i18n:label": "cell.OaEpibolyEmp.createdDate,prop.label.OaEpibolyEmp.createdDate"
+                            },
+                            {
+                              "name": "updatedBy",
+                              "label": "更新人",
+                              "required": true,
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 64
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.updatedBy,prop.label.OaEpibolyEmp.updatedBy"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-updatedDate-recordInd",
+                          "body": [
+                            {
+                              "name": "updatedDate",
+                              "label": "更新时间",
+                              "required": true,
+                              "type": "input-datetime",
+                              "format": "YYYY-MM-DD HH:mm:ss",
+                              "i18n:label": "cell.OaEpibolyEmp.updatedDate,prop.label.OaEpibolyEmp.updatedDate"
+                            },
+                            {
+                              "name": "recordInd",
+                              "label": "逻辑删除标识;A：有效；D：已删除",
+                              "required": true,
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 1
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.recordInd,prop.label.OaEpibolyEmp.recordInd"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-empName-empUm",
+                          "body": [
+                            {
+                              "name": "empName",
+                              "label": "姓名",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 255
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.empName,prop.label.OaEpibolyEmp.empName"
+                            },
+                            {
+                              "name": "empUm",
+                              "label": "um账号",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 64
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.empUm,prop.label.OaEpibolyEmp.empUm"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-empIdCard-empPhone",
+                          "body": [
+                            {
+                              "name": "empIdCard",
+                              "label": "身份证",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 255
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.empIdCard,prop.label.OaEpibolyEmp.empIdCard"
+                            },
+                            {
+                              "name": "empPhone",
+                              "label": "手机号",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 11
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.empPhone,prop.label.OaEpibolyEmp.empPhone"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-empGender-companyId",
+                          "body": [
+                            {
+                              "name": "empGender",
+                              "label": "性别：1男 2女",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 1
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.empGender,prop.label.OaEpibolyEmp.empGender"
+                            },
+                            {
+                              "name": "companyId",
+                              "label": "外包公司id（数据字典）",
+                              "type": "input-text",
+                              "validations": "isLong",
+                              "i18n:label": "cell.OaEpibolyEmp.companyId,prop.label.OaEpibolyEmp.companyId"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-jobLevel-serviceFee",
+                          "body": [
+                            {
+                              "name": "jobLevel",
+                              "label": "岗位级别",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 255
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.jobLevel,prop.label.OaEpibolyEmp.jobLevel"
+                            },
+                            {
+                              "name": "serviceFee",
+                              "label": "服务费用",
+                              "type": "input-number",
+                              "precision": 6,
+                              "i18n:label": "cell.OaEpibolyEmp.serviceFee,prop.label.OaEpibolyEmp.serviceFee"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-jobStatus-entryDate",
+                          "body": [
+                            {
+                              "name": "jobStatus",
+                              "label": "岗位状态（0在岗，1离职）",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 1
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.jobStatus,prop.label.OaEpibolyEmp.jobStatus"
+                            },
+                            {
+                              "name": "entryDate",
+                              "label": "入职时间",
+                              "type": "input-date",
+                              "format": "YYYY-MM-DD",
+                              "i18n:label": "cell.OaEpibolyEmp.entryDate,prop.label.OaEpibolyEmp.entryDate"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "group",
+                          "id": "row-leaveDate-remark",
+                          "body": [
+                            {
+                              "name": "leaveDate",
+                              "label": "离职时间",
+                              "type": "input-date",
+                              "format": "YYYY-MM-DD",
+                              "i18n:label": "cell.OaEpibolyEmp.leaveDate,prop.label.OaEpibolyEmp.leaveDate"
+                            },
+                            {
+                              "name": "remark",
+                              "label": "备注",
+                              "type": "input-text",
+                              "clearable": true,
+                              "validations": {
+                                "maxLength": 255
+                              },
+                              "i18n:label": "cell.OaEpibolyEmp.remark,prop.label.OaEpibolyEmp.remark"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "bodyClassName": "amis",
+                    "i18n:title": "OaEpibolyEmp.forms.edit.$title"
+                  },
+                  "actionType": "dialog",
+                  "i18n:label": "common.edit"
+                },
+                {
+                  "type": "button",
+                  "id": "row-delete-button",
+                  "level": "danger",
+                  "label": "删除",
+                  "api": {
+                    "url": "@mutation:OaEpibolyEmp__delete?id=$id"
+                  },
+                  "confirmText": "确认删除吗？",
+                  "actionType": "ajax",
+                  "i18n:label": "common.delete",
+                  "i18n:confirmText": "common.confirmDelete"
+                }
+              ],
+              "i18n:label": "common.more"
+            }
+          ],
+          "i18n:label": "common.operation"
+        }
+      ],
+      "perPageAvailable": [
+        10
+      ],
+      "messages": {},
+      "id": "u:8f07de75f502"
+    }
+  ],
+  "name": "main",
+  "asideResizor": false,
+  "style": {
+    "boxShadow": " 0px 0px 0px 0px transparent"
+  },
+  "pullRefresh": {
+    "disabled": true
+  },
+  "id": "u:72c128e43c3b"
+}

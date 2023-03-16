@@ -208,13 +208,25 @@ public class JsonDiffer {
 
         // bIndexes为基础对象下表，而aIndexes为合并后对象下表
         List<DeltaMergeHelper.MatchData> matchedList = DeltaMergeHelper.diff(aIndexes, bKeys.size());
-        List<Object> ret = new ArrayList<>();
+        int sameCount = 0;
         for (DeltaMergeHelper.MatchData matched : matchedList) {
             if (matched.aIndex >= 0 && matched.bIndex >= 0) {
                 Object value = diffValue(aList.get(matched.aIndex), bList.get(matched.bIndex));
-                if (value != Undefined.undefined) {
-                    ret.add(value);
-                }
+                matched.diffValue = value;
+                matched.same = value == Undefined.undefined || isKeyMap(value);
+                if (matched.same)
+                    sameCount++;
+            }
+        }
+        if (sameCount == matchedList.size())
+            return Undefined.undefined;
+
+        simplify(matchedList);
+
+        List<Object> ret = new ArrayList<>(matchedList.size());
+        for (DeltaMergeHelper.MatchData matched : matchedList) {
+            if (matched.aIndex >= 0 && matched.bIndex >= 0) {
+                ret.add(matched.diffValue);
             } else if (matched.aIndex >= 0) {
                 // 在最终结果中存在，在基础节点中不存在
                 ret.add(aList.get(matched.aIndex));
@@ -223,53 +235,32 @@ public class JsonDiffer {
                 ret.add(buildRemove(bKeys.get(matched.bIndex)));
             }
         }
-        simplify(matchedList, ret);
 
-        if (isAllIgnorable(ret)) {
-            return Undefined.undefined;
-        }
         return ret;
     }
 
     // 如果合并后出现连续的仅起占位作用的b的元素，则可以只保留第一个和最后一个。因为合并规则是以b的元素为定位基点，插入到定位元素的后面
-    void simplify(List<DeltaMergeHelper.MatchData> matchedList, List<Object> ret) {
-        if (ret.size() <= 2)
-            return;
-
-        DeltaMergeHelper.MatchData prevMatched = null;
-        int removed = 0;
-        boolean first = true;
-        for (int i = 0, n = ret.size(); i < n; i++) {
-            DeltaMergeHelper.MatchData matched = matchedList.get(i + removed);
-            boolean b = matched.aIndex >= 0 && matched.bIndex >= 0;
-            if (b) {
-                if (prevMatched != null) {
-                    if (prevMatched.bIndex == matched.bIndex - 1) {
-                        if (first && prevMatched.bIndex != 0) {
-                            prevMatched = matched;
-                            first = false;
-                            continue;
-                        }
-                        first = false;
-                        ret.remove(i - 1);
-                        i--;
-                        n--;
-                        removed++;
-                    }
+    void simplify(List<DeltaMergeHelper.MatchData> matchedList) {
+        int lastIndex = -1;
+        for (int i = 0, n = matchedList.size() - 1; i < n; i++) {
+            DeltaMergeHelper.MatchData matched = matchedList.get(i);
+            if (matched.same) {
+                DeltaMergeHelper.MatchData next = matchedList.get(i + 1);
+                if (next.aIndex >= 0 && next.bIndex >= 0 && matched.bIndex == next.bIndex - 1) {
+                    matchedList.remove(i);
+                    i--;
+                    n--;
                 }
-                prevMatched = matched;
-                continue;
             }
-            prevMatched = null;
+            lastIndex = matched.bIndex;
         }
-    }
 
-    boolean isAllIgnorable(List<?> list) {
-        for (Object o : list) {
-            if (!isKeyMap(o))
-                return false;
+        if (matchedList.size() >= 2) {
+            DeltaMergeHelper.MatchData last = matchedList.get(matchedList.size() - 1);
+            if (last.same && last.bIndex == lastIndex + 1) {
+                matchedList.remove(matchedList.size() - 1);
+            }
         }
-        return true;
     }
 
     boolean isKeyMap(Object item) {
