@@ -55,6 +55,10 @@ public class ObjMetaToGraphQLDefinition {
             if (!propMeta.isReadable())
                 continue;
 
+            // 忽略a.b.c这种复合字段
+            if(propMeta.getName().indexOf('.') > 0)
+                continue;
+
             GraphQLFieldDefinition field = toFieldDefinition(objMeta.getBizObjName(), propMeta, typeRegistry);
             if (field.getType() == null) {
                 LOG.info("nop.graphql.ignore-field-without-type:objName={},propName={}", objName, field.getName());

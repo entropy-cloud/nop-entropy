@@ -7933,6 +7933,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getXdef",
+        "parameterTypes": []
+      },
+      {
         "name": "hasSheet",
         "parameterTypes": [
           "java.lang.String"
@@ -8016,6 +8020,12 @@
         "name": "setValidator",
         "parameterTypes": [
           "io.nop.core.model.validator.ValidatorModel"
+        ]
+      },
+      {
+        "name": "setXdef",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],

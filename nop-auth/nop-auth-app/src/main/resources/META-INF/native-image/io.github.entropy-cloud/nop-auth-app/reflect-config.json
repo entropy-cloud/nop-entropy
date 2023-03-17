@@ -1860,6 +1860,43 @@
     "fields": [],
     "methods": [
       {
+        "name": "addLocation",
+        "parameterTypes": [
+          "io.nop.api.core.beans.graphql.GraphQLSourceLocation"
+        ]
+      },
+      {
+        "name": "getLocations",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMessage",
+        "parameterTypes": []
+      },
+      {
+        "name": "setLocations",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLErrorBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getExtensions",
         "parameterTypes": []
       },
@@ -21357,6 +21394,300 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.graphql.core.initialize.GraphQLCoreInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsRepeatable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocations",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "setArgs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIsRepeatable",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setLocations",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__Directive",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeprecationReason",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsDeprecated",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "setArgs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDeprecationReason",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIsDeprecated",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__Type"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__Field",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDefaultValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDefaultValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__Type"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__InputValue",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEnumValues",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOfType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPossibleTypes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSpecifiedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEnumValues",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setInputFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setInterfaces",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setKind",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__TypeKind"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOfType",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__Type"
+        ]
+      },
+      {
+        "name": "setPossibleTypes",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setSpecifiedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__Type",
     "unsafeAllocated": false
   },
   {

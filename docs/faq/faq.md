@@ -35,4 +35,54 @@ body:
 
 ![](remove-i18n-key.png)
 
+
+## 2. 在GraphQL中如何构造Query条件
+在前台可以使用`url："@query:NopAuthDept__findList/id?filter_deptName=a"`这种简化查询语法，执行对象的
+findList或者findPage函数时，会识别`filter_`为前缀的参数，然后把它转换为QueryBean的filter树形结构查询条件。如果一定要手工构造QueryBean，则可以仿照如下调用
+
+```graphql
+query($query:QueryBeanInput,$q2:QueryBeaInput){
+  NopAuthDept__findList(query:$query) {
+    id,
+    deptName
+    parent {
+      id
+    }
+  },
+  
+  NopAuthUser__findPage(query:$q2){
+    page
+    items{
+      nickName
+      userName
+    }
+  }
+}
+
+```
+variables设置为:
+```json
+{
+  "query": {
+    "filter": {
+      "$type":"and",
+      "$body": [{
+        "$type":"eq",
+        "name": "deptName",
+        "value": "a"
+      }
+      ]
+    }
+  },
+  "q2":{
+    "filter":{
+      "$type":"eq",
+      "name":"userName",
+      "value":"a"
+    }
+  }
+}
+
+```
+
 # 部署问题

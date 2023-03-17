@@ -232,3 +232,15 @@ AMIS底层是基于React技术开发，而Nop平台的前端主要基于Vue3.0�
   }
 }
 ```
+
+## 1.8 复杂GraphQL调用
+```
+api:{
+  url: '@graphql:query($id:String){ NopAuthUser_get(id:$id){nickName}}',
+  data: {
+    id: "3"
+  }
+}
+```
+
+通过`@graphql:`前缀来表示graphql请求，此时需要使用完整的grapqhl语法，参数需要指定类型。 通过data属性可以传递graphql请求所需的variables参数。
