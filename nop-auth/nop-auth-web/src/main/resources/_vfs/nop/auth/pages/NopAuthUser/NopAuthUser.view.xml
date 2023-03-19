@@ -95,7 +95,7 @@
                 <cell id="deptId">
                     <gen-control>
                         <input-tree
-                                source="@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildren(max:5)?filter_parentId="/>
+                                source="@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildren(max:5)?filter_parentId=__null"/>
                     </gen-control>
                 </cell>
             </cells>

@@ -9,10 +9,17 @@
 1. classpath:bootstrap.yaml 应用的启动配置，其中的所有变量都是固定值，不会被动态覆盖
 2. 配置中心的{nop.application.name}-{nop.config.profile}.yaml
 3. 配置中心的{nop.application.name}.yaml
-4. java的System.getProperties()
-5. java的System.getenv(): StringHelper.envToConfigVar(envName)负责把环境变量名转换为配置项名称
-6. nop.config.additional-location参数指定的配置文件
-7. nop.config.location参数指定的配置文件，它的缺省值为 classpath:application.yaml
+4. nop.config.key-config-source.paths参数指定k8s SecretMap映射文件，定时扫描检测是否已更新
+5. nop.config.props-config-source.paths参数指定k8s ConfigMap映射文件，定时扫描检测是否已更新
+6. 如果配置了nop.config.jdbc.jdbc-url等参数，则会从数据库配置表中加载配置，定时扫描检测是否已更新
+7. java的System.getProperties()
+8. java的System.getenv(): StringHelper.envToConfigVar(envName)负责把环境变量名转换为配置项名称
+9. nop.config.additional-location参数指定的配置文件
+10. nop.config.location参数指定的配置文件，它的缺省值为 classpath:application.yaml
+11. 识别quarkus配置规范规定的`'%dev.'`等profile配置前缀，根据当前的profile配置调整专属于profile的配置项的访问顺序。例如
+dev模式下，`%dev.a.b.c`的值将会覆盖配置项`a.b.c`的值
+
+> 具体配置加载逻辑全部集中在[ConfigStarter.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-config/src/main/java/io/nop/config/starter/ConfigStarter.java)类中
 
 ## 自动更新
 

@@ -602,8 +602,8 @@ mvn package -Pnative
 ```
 
 编译结果为target/app-mall-app-1.0-SNAPSHOT-runner.exe。目前exe体积有些大（146M），主要是因为graalvm.js引擎会占用接近60M，如果不需要动态执行js打包工作，则可以去除对nop-js模块的依赖。
-> 可以只在调试阶段使用nop-js模块执行动态代码，系统运行时原则上只需要生成好的静态js文件即可。
 
+> 可以只在调试阶段使用nop-js模块执行动态代码，系统运行时原则上只需要生成好的静态js文件即可。
 
 ## 总结
 
@@ -615,10 +615,10 @@ Nop平台内置的差量化软件生产线如下图所示：
 
 $$
 \begin{aligned}
-XPage &=  XExtends\langle XView\rangle  + \Delta XPage\\
-XView &= XGen\langle XMeta\rangle  + \Delta XView \\
-XMeta &= XGen\langle ORM \rangle + \Delta XMeta \\
-ORM   &= XGen\langle ExcelModel \rangle + \Delta ORM\ \  \\
+XPage &=  Generator\langle XView\rangle  + \Delta XPage\\
+XView &= Generator\langle XMeta\rangle  + \Delta XView \\
+XMeta &= Generator\langle XORM \rangle + \Delta XMeta \\
+XORM   &= Generator\langle XExcel \rangle + \Delta XORM\ \  \\
 GraphQL &= Builder\langle XMeta\rangle + BizModel\\
 \end{aligned}
 $$
@@ -639,7 +639,7 @@ Nop平台基于可逆计算理论为实现这种面向动态相似性的复用�
 
 具体来说，从后端到前端的逻辑推理链条可以分解为四个主要模型：
 
-1. ORM：面向存储层的领域模型
+1. XORM：面向存储层的领域模型
 
 2. XMeta：针对GraphQL接口层的领域模型，可以直接生成GraphQL的类型定义
 

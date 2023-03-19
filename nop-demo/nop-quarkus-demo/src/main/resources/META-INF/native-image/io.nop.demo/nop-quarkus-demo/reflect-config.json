@@ -19108,6 +19108,18 @@
         ]
       },
       {
+        "name": "findModelTypeFromPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getComponentModelLoader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getComponentModelLoader",
         "parameterTypes": [
           "java.lang.String",
@@ -26767,6 +26779,12 @@
         ]
       },
       {
+        "name": "getComponent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getComponents",
         "parameterTypes": []
       },
@@ -28258,6 +28276,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
         "name": "hasProp",
         "parameterTypes": [
           "java.lang.String"
@@ -28319,6 +28341,12 @@
         "name": "setProps",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
         ]
       }
     ],
@@ -34046,6 +34074,10 @@
         ]
       },
       {
+        "name": "lazyInit",
+        "parameterTypes": []
+      },
+      {
         "name": "loadCacheItemFromDb",
         "parameterTypes": [
           "java.lang.String"
@@ -34444,6 +34476,13 @@
           "io.nop.core.resource.IResource",
           "java.lang.Runnable"
         ]
+      },
+      {
+        "name": "withHistorySupport",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.util.function.Function"
+        ]
       }
     ],
     "name": "io.nop.web.page.ResourceWithHistoryProvider",
@@ -34508,6 +34547,75 @@
       }
     ],
     "name": "io.nop.web.page.SystemJsProvider",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addClassName",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkJsFile",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkPageFile",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeGraphQL",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "fixPage",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "internalLoadPage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeGeneratedId",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "removeNullEntry",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "unfixPage",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.WebPageHelper",
     "unsafeAllocated": false
   },
   {
@@ -36875,7 +36983,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getLevelProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getParentProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRootLevelValue",
         "parameterTypes": []
       },
       {
@@ -36897,7 +37013,19 @@
         ]
       },
       {
+        "name": "setLevelProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setParentProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRootLevelValue",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -38513,6 +38641,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getControl",
+        "parameterTypes": []
+      },
+      {
         "name": "getDefaultValue",
         "parameterTypes": []
       },
@@ -38645,6 +38777,10 @@
         "parameterTypes": []
       },
       {
+        "name": "hasControl",
+        "parameterTypes": []
+      },
+      {
         "name": "hasValidator",
         "parameterTypes": []
       },
@@ -38694,6 +38830,12 @@
         "name": "setComponent",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setControl",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       },
       {
@@ -39123,6 +39265,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRedirect",
+        "parameterTypes": []
+      },
+      {
         "name": "getReload",
         "parameterTypes": []
       },
@@ -39404,6 +39550,12 @@
         "name": "setPromptPageLeave",
         "parameterTypes": [
           "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setRedirect",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
