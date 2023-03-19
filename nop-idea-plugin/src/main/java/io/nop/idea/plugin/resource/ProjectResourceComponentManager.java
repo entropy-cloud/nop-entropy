@@ -11,6 +11,7 @@ import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.component.ComponentModelConfig;
+import io.nop.core.resource.component.ComponentModelLoader;
 import io.nop.core.resource.component.IGeneratedComponent;
 import io.nop.core.resource.component.IResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
@@ -47,8 +48,8 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public IResourceObjectLoader<? extends IComponentModel> getComponentModelLoader(String modelType, String fileType) {
-        return getImpl().getComponentModelLoader(modelType, fileType);
+    public ComponentModelLoader getComponentModelLoader(String path) {
+        return getImpl().getComponentModelLoader(path);
     }
 
     @Override

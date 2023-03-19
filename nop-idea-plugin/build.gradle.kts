@@ -6,7 +6,7 @@ plugins {
 
 
 
-group = "io.nop"
+group = "io.github.entropy-cloud"
 version = "1.0-SNAPSHOT"
 
 
@@ -27,8 +27,8 @@ intellij {
 }
 
 dependencies {
-    implementation( "io.nop:nop-rpc:2.0.0-SNAPSHOT")
-    implementation("io.nop:nop-xlang:2.0.0-SNAPSHOT") {
+    implementation( "io.github.entropy-cloud:nop-rpc:2.0.0-SNAPSHOT")
+    implementation("io.github.entropy-cloud:nop-xlang:2.0.0-SNAPSHOT") {
         //exclude antlr4's dependency icu4j since it is not necessary and is too large.
         exclude(group = "com.ibm.icu")
     }
