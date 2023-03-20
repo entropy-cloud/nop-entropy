@@ -24,6 +24,7 @@ import io.nop.commons.collections.ListFunctions;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.functions.EvalFunctionalAdapter;
 import io.nop.core.lang.xml.XNode;
@@ -54,6 +55,7 @@ import io.nop.core.type.utils.JavaGenericTypeBuilder;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,6 +82,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     static {
         _instance.registerHelperMethods(List.class, ListFunctions.class, null);
         _instance.registerHelperMethods(String.class, StringHelper.class, "$");
+        _instance.registerHelperMethods(LocalDate.class, DateHelper.class, "$");
         _instance.registerBeanModelEnhancer(new StringBeanModelEnhancer());
     }
 

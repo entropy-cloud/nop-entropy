@@ -11515,6 +11515,13 @@
         ]
       },
       {
+        "name": "isPermitted",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      },
+      {
         "name": "loadSiteData",
         "parameterTypes": [
           "java.lang.String"
@@ -11549,6 +11556,12 @@
       {
         "name": "refreshCache",
         "parameterTypes": []
+      },
+      {
+        "name": "setEnableActionAuth",
+        "parameterTypes": [
+          "boolean"
+        ]
       }
     ],
     "name": "io.nop.auth.service.sitemap.SiteMapProviderImpl",
@@ -22539,6 +22552,10 @@
         ]
       },
       {
+        "name": "getDocumentCache",
+        "parameterTypes": []
+      },
+      {
         "name": "getOperationDefinition",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperationType",
@@ -22553,6 +22570,14 @@
       },
       {
         "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEnableActionAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEnableDataAuth",
         "parameterTypes": []
       },
       {
@@ -22627,6 +22652,18 @@
         "name": "setDataAuthChecker",
         "parameterTypes": [
           "io.nop.api.core.auth.IDataAuthChecker"
+        ]
+      },
+      {
+        "name": "setEnableActionAuth",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setEnableDataAuth",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -27621,6 +27658,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isAllColumnPrimary",
+        "parameterTypes": []
+      },
+      {
         "name": "setPkColumns",
         "parameterTypes": [
           "java.util.List"
@@ -27763,6 +27804,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addJoinOn",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmJoinOnModel"
+        ]
+      },
       {
         "name": "getAliasPropPath",
         "parameterTypes": []
@@ -27957,6 +28004,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addColumn",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "getColumnModels",
         "parameterTypes": []
@@ -34826,6 +34879,10 @@
           "io.nop.api.core.util.SourceLocation",
           "java.lang.Object"
         ]
+      },
+      {
+        "name": "today",
+        "parameterTypes": []
       },
       {
         "name": "tpl",

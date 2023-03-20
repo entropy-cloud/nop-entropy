@@ -58,7 +58,7 @@ public class TestTrigger {
         spec.setMaxExecutionCount(10);
         // 每天的6点和19点
         spec.setCronExpr("0 0 6,19 * * *");
-        spec.setMaxScheduleTime(DateHelper.localDateMillis(2022, 2, 15));
+        spec.setMaxScheduleTime(DateHelper.dateMillis(2022, 2, 15));
 
         AnnualCalendarSpec cal = new AnnualCalendarSpec();
         cal.setExcludes(new MonthDay[]{MonthDay.of(2, 11), MonthDay.of(2, 13)});
@@ -66,13 +66,13 @@ public class TestTrigger {
 
         ITrigger trigger = TriggerBuilder.buildTrigger(spec, null);
         TriggerContextImpl context = new TriggerContextImpl("test", spec);
-        long beginTime = DateHelper.localDateMillis(2022, 2, 10);
+        long beginTime = DateHelper.dateMillis(2022, 2, 10);
         List<LocalDateTime> times = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
             long time = trigger.nextScheduleTime(beginTime, context);
             if (time <= 0)
                 break;
-            times.add(DateHelper.millisToLocalDateTime(time));
+            times.add(DateHelper.millisToDateTime(time));
             context.onEndExecute(time + 100);
             beginTime = context.getLastExecutionEndTime();
         }
@@ -97,7 +97,7 @@ public class TestTrigger {
         spec.setMaxExecutionCount(10);
         // 每天的6点和19点
         spec.setCronExpr("0 0 6,19 * * *");
-        spec.setMaxScheduleTime(DateHelper.localDateMillis(2022, 2, 15));
+        spec.setMaxScheduleTime(DateHelper.dateMillis(2022, 2, 15));
 
         AnnualCalendarSpec cal = new AnnualCalendarSpec();
         cal.setExcludes(new MonthDay[]{MonthDay.of(2, 11), MonthDay.of(2, 13)});
@@ -106,15 +106,15 @@ public class TestTrigger {
 
         ITrigger trigger = TriggerBuilder.buildTrigger(spec, null);
         TriggerContextImpl context = new TriggerContextImpl("test", spec);
-        long beginTime = DateHelper.localDateMillis(2022, 2, 10);
+        long beginTime = DateHelper.dateMillis(2022, 2, 10);
 
         long time = trigger.nextScheduleTime(beginTime, context);
         context.onSchedule(time, time);
         context.onEndExecute(time);
 
-        time = trigger.nextScheduleTime(DateHelper.localDateTimeToMillis(LocalDateTime.of(2022, 2, 12, 19, 0, 1)),
+        time = trigger.nextScheduleTime(DateHelper.dateTimeToMillis(LocalDateTime.of(2022, 2, 12, 19, 0, 1)),
                 context);
 
-        assertEquals("2022-02-12T19:00", DateHelper.millisToLocalDateTime(time).toString());
+        assertEquals("2022-02-12T19:00", DateHelper.millisToDateTime(time).toString());
     }
 }

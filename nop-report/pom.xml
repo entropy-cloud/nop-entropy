@@ -26,5 +26,6 @@
         <module>nop-report-service</module>
         <module>nop-report-web</module>
         <module>nop-report-app</module>
+        <module>nop-report-demo</module>
     </modules>
 </project>

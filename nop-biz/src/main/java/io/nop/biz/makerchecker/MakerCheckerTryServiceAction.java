@@ -51,7 +51,7 @@ public class MakerCheckerTryServiceAction implements IServiceAction {
             req.setMakerId(userContext.getUserId());
             req.setMakerName(userContext.getUserName());
         }
-        req.setMakeTime(DateHelper.millisToLocalDateTime(CoreMetrics.currentTimeMillis()));
+        req.setMakeTime(DateHelper.millisToDateTime(CoreMetrics.currentTimeMillis()));
         req.setRequest(toApiRequest(request, selection, context));
         req.setTryMethod(makerCheckerMeta.getTryMethod());
         req.setCancelMethod(makerCheckerMeta.getCancelMethod());

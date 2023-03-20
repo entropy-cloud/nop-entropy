@@ -153,7 +153,7 @@ public class TestDialect extends JdbcTestCase {
 
         LocalDate date = LocalDate.of(2002, 1, 2);
         LocalDateTime dateTime = LocalDateTime.of(2002, 1, 2, 1, 1);
-        Timestamp timestamp = new Timestamp(DateHelper.localDateTimeToMillis(LocalDateTime.of(2002, 1, 2, 1, 3, 4)));
+        Timestamp timestamp = new Timestamp(DateHelper.dateTimeToMillis(LocalDateTime.of(2002, 1, 2, 1, 3, 4)));
 
         checkDual(date, StdSqlType.DATE, dialect.getDateLiteral(date), dialect);
         checkDual(dateTime, StdSqlType.DATETIME, dialect.getDateTimeLiteral(dateTime), dialect);
@@ -235,7 +235,7 @@ public class TestDialect extends JdbcTestCase {
                 return dialect.getDateTimeLiteral(LocalDateTime.of(2002, 1, 2, 14, 1));
             case TIMESTAMP:
                 return dialect.getTimestampLiteral(
-                        new Timestamp(DateHelper.localDateTimeToMillis(LocalDateTime.of(2002, 1, 2, 4, 14, 2, 4))));
+                        new Timestamp(DateHelper.dateTimeToMillis(LocalDateTime.of(2002, 1, 2, 4, 14, 2, 4))));
             case ANY:
                 return "2";
             case BOOLEAN:

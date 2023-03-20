@@ -60,11 +60,11 @@ public class TestXCodeGenerator extends BaseTestCase {
                 strip(readText(targetDir.getResource("child2/enabled.txt"))));
 
         assertEquals("data", readText(targetDir.getResource("child1/_gen/data.txt")));
-        assertEquals(time, DateHelper.parseLocalDataTime(readText(targetDir.getResource("child1/_gen/date.txt"))));
+        assertEquals(time, DateHelper.parseDataTime(readText(targetDir.getResource("child1/_gen/date.txt"))));
 
         assertTrue(!targetDir.getResource("child1/date2.txt").exists());
-        assertEquals(time, DateHelper.parseLocalDataTime(readText(targetDir.getResource("child1/date1.txt"))));
-        assertEquals(time, DateHelper.parseLocalDataTime(readText(targetDir.getResource("child2/date1.txt"))));
+        assertEquals(time, DateHelper.parseDataTime(readText(targetDir.getResource("child1/date1.txt"))));
+        assertEquals(time, DateHelper.parseDataTime(readText(targetDir.getResource("child2/date1.txt"))));
     }
 
     @Test

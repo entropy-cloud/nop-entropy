@@ -401,7 +401,7 @@ public class DialectImpl implements IDialect {
             if (!name.equals("value"))
                 throw new NopException(ERR_DIALECT_INVALID_TPL_PARAM).param(ARG_NAME, name).param(ARG_ALLOWED_NAMES,
                         Arrays.asList("value"));
-            return DateHelper.formatLocalDateTime(value, param.substring(pos + 1).trim());
+            return DateHelper.formatDateTime(value, param.substring(pos + 1).trim());
         });
     }
     // resume CPD analysis - CPD-ON
@@ -417,7 +417,7 @@ public class DialectImpl implements IDialect {
             if (!name.equals("value"))
                 throw new NopException(ERR_DIALECT_INVALID_TPL_PARAM).param(ARG_NAME, name).param(ARG_ALLOWED_NAMES,
                         Arrays.asList("value"));
-            return DateHelper.formatLocalDate(value, param.substring(pos + 1).trim());
+            return DateHelper.formatDate(value, param.substring(pos + 1).trim());
         });
     }
 
@@ -432,7 +432,7 @@ public class DialectImpl implements IDialect {
             if (!name.equals("value"))
                 throw new NopException(ERR_DIALECT_INVALID_TPL_PARAM).param(ARG_NAME, name).param(ARG_ALLOWED_NAMES,
                         Arrays.asList("value"));
-            return DateHelper.formatLocalTime(value, param.substring(pos + 1).trim());
+            return DateHelper.formatTime(value, param.substring(pos + 1).trim());
         });
     }
 

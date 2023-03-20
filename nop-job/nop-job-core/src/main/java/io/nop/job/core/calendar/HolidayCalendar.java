@@ -34,7 +34,7 @@ public class HolidayCalendar extends BaseCalendar implements ICalendar, Serializ
             return false;
         }
 
-        LocalDate day = DateHelper.millisToLocalDate(timeStamp);
+        LocalDate day = DateHelper.millisToDate(timeStamp);
 
         return !(excludedDays.contains(day));
     }
@@ -46,12 +46,12 @@ public class HolidayCalendar extends BaseCalendar implements ICalendar, Serializ
             timeStamp = baseTime;
         }
 
-        LocalDate day = DateHelper.millisToLocalDate(timeStamp);
+        LocalDate day = DateHelper.millisToDate(timeStamp);
 
         while (excludedDays.contains(day)) {
             day = day.plusDays(1);
         }
 
-        return DateHelper.localDateToMillis(day);
+        return DateHelper.dateToMillis(day);
     }
 }

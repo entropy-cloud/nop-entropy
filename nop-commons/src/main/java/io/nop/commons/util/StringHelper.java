@@ -3295,17 +3295,17 @@ public class StringHelper extends ApiStringHelper {
 
     @Deterministic
     public static String formatDate(Date date, String pattern) {
-        return DateHelper.formatDate(date, pattern);
+        return DateHelper.formatJavaDate(date, pattern);
     }
 
     @Deterministic
     public static String formatLocalDate(LocalDate date, String pattern) {
-        return DateHelper.formatLocalDate(date, pattern);
+        return DateHelper.formatDate(date, pattern);
     }
 
     @Deterministic
     public static String formatLocalDateTime(LocalDateTime date, String pattern) {
-        return DateHelper.formatLocalDateTime(date, pattern);
+        return DateHelper.formatDateTime(date, pattern);
     }
 
     @Deterministic

@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.MonthDay;
+import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -70,19 +71,19 @@ public class DateHelper {
     public static final long ONE_HOUR_TS = 60 * ONE_MINUTE_TS;
     public static final long ONE_DAY_TS = 24 * ONE_HOUR_TS;
 
-    public static long getMinuteStart(long ts) {
+    public static long getMinuteStartTs(long ts) {
         return ts / ONE_MINUTE_TS * ONE_MINUTE_TS;
     }
 
-    public static long getHourStart(long ts) {
+    public static long getHourStartTs(long ts) {
         return ts / ONE_HOUR_TS * ONE_HOUR_TS;
     }
 
-    public static long getDayStart(long ts) {
-        return getDayStartWithTimeZone(gmt, ts);
+    public static long getDayStartTs(long ts) {
+        return getDayStartWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getDayStartWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getDayStartWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
@@ -93,11 +94,11 @@ public class DateHelper {
         return calendar.getTimeInMillis();
     }
 
-    public static LocalDateTime now() {
+    public static LocalDateTime currentDateTime() {
         return LocalDateTime.now();
     }
 
-    public static LocalDate currentLocalDate() {
+    public static LocalDate currentDate() {
         return LocalDate.now();
     }
 
@@ -105,22 +106,22 @@ public class DateHelper {
         return System.currentTimeMillis();
     }
 
-    public static long getWeekStart(long ts) {
-        return getWeekStartWithTimeZone(gmt, ts);
+    public static long getWeekStartTs(long ts) {
+        return getWeekStartWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getWeekStartWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getWeekStartWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
-        calendar.setTimeInMillis(getDayStartWithTimeZone(timeZone, ts));
+        calendar.setTimeInMillis(getDayStartWithTimeZoneTs(timeZone, ts));
         calendar.add(Calendar.DAY_OF_WEEK, calendar.getFirstDayOfWeek() - calendar.get(Calendar.DAY_OF_WEEK));
         return calendar.getTimeInMillis();
     }
 
-    public static long getMonthStart(long ts) {
-        return getMonthStartWithTimeZone(gmt, ts);
+    public static long getMonthStartTs(long ts) {
+        return getMonthStartWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getMonthStartWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getMonthStartWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
@@ -130,11 +131,11 @@ public class DateHelper {
         return calendar.getTimeInMillis();
     }
 
-    public static long getQuarterStart(long ts) {
-        return getQuarterStartWithTimeZone(gmt, ts);
+    public static long getQuarterStartTs(long ts) {
+        return getQuarterStartWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getQuarterStartWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getQuarterStartWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
@@ -144,11 +145,11 @@ public class DateHelper {
         return calendar.getTimeInMillis();
     }
 
-    public static long getYearStart(long ts) {
-        return getYearStartWithTimeZone(gmt, ts);
+    public static long getYearStartTs(long ts) {
+        return getYearStartWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getYearStartWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getYearStartWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
         calendar.setTimeInMillis(ts);
         int year = calendar.get(Calendar.YEAR);
@@ -157,22 +158,22 @@ public class DateHelper {
         return calendar.getTimeInMillis();
     }
 
-    public static long getWeekEnd(long ts) {
-        return getWeekEndWithTimeZone(gmt, ts);
+    public static long getWeekEndTs(long ts) {
+        return getWeekEndWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getWeekEndWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getWeekEndWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
-        calendar.setTimeInMillis(getWeekStartWithTimeZone(timeZone, ts));
+        calendar.setTimeInMillis(getWeekStartWithTimeZoneTs(timeZone, ts));
         calendar.add(Calendar.DAY_OF_WEEK, 7);
         return calendar.getTimeInMillis();
     }
 
-    public static long getMonthEnd(long ts) {
-        return getMonthEndWithTimeZone(gmt, ts);
+    public static long getMonthEndTs(long ts) {
+        return getMonthEndWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getMonthEndWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getMonthEndWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
         calendar.setTimeInMillis(ts);
         calendar.set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONDAY), calendar.get(Calendar.DAY_OF_MONTH), 0,
@@ -182,50 +183,50 @@ public class DateHelper {
         return calendar.getTimeInMillis();
     }
 
-    public static long getQuarterEnd(long ts) {
-        return getQuarterEndWithTimeZone(gmt, ts);
+    public static long getQuarterEndTs(long ts) {
+        return getQuarterEndWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getQuarterEndWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getQuarterEndWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
-        calendar.setTimeInMillis(getQuarterStartWithTimeZone(timeZone, ts));
+        calendar.setTimeInMillis(getQuarterStartWithTimeZoneTs(timeZone, ts));
         calendar.add(Calendar.MONTH, 3);
         return calendar.getTimeInMillis();
     }
 
-    public static long getYearEnd(long ts) {
-        return getYearEndWithTimeZone(gmt, ts);
+    public static long getYearEndTs(long ts) {
+        return getYearEndWithTimeZoneTs(gmt, ts);
     }
 
-    public static long getYearEndWithTimeZone(TimeZone timeZone, long ts) {
+    public static long getYearEndWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
-        calendar.setTimeInMillis(getYearStartWithTimeZone(timeZone, ts));
+        calendar.setTimeInMillis(getYearStartWithTimeZoneTs(timeZone, ts));
         calendar.add(Calendar.YEAR, 1);
         return calendar.getTimeInMillis();
     }
 
-    public static String formatDate(Date date, String pattern) {
+    public static String formatJavaDate(Date date, String pattern) {
         if (date == null)
             return null;
         DateTimeFormatter formatter = buildFormatter(pattern);
         return formatter.format(ConvertHelper.toLocalDateTime(date, NopException::new));
     }
 
-    public static String formatLocalDate(LocalDate date, String pattern) {
+    public static String formatDate(LocalDate date, String pattern) {
         if (date == null)
             return null;
         DateTimeFormatter formatter = buildFormatter(pattern);
         return formatter.format(date);
     }
 
-    public static String formatLocalTime(LocalTime time, String pattern) {
+    public static String formatTime(LocalTime time, String pattern) {
         if (time == null)
             return null;
         DateTimeFormatter formatter = buildFormatter(pattern);
         return formatter.format(time);
     }
 
-    public static String formatLocalDateTime(LocalDateTime dateTime, String pattern) {
+    public static String formatDateTime(LocalDateTime dateTime, String pattern) {
         if (dateTime == null)
             return null;
         DateTimeFormatter formatter = buildFormatter(pattern);
@@ -245,11 +246,11 @@ public class DateHelper {
         return formatter;
     }
 
-    public static LocalDate parseLocalDate(String s) {
+    public static LocalDate parseDate(String s) {
         return ConvertHelper.stringToLocalDate(s, NopException::new);
     }
 
-    public static LocalDateTime parseLocalDataTime(String s) {
+    public static LocalDateTime parseDataTime(String s) {
         return ConvertHelper.stringToLocalDateTime(s, NopException::new);
     }
 
@@ -288,33 +289,51 @@ public class DateHelper {
         return date.with(TemporalAdjusters.firstInMonth(toDayOfWeek(dayOfWeek)));
     }
 
-    public static LocalDateTime millisToLocalDateTime(Long timestamp) {
+    public static LocalDateTime millisToDateTime(Long timestamp) {
         return ConvertHelper.millisToLocalDateTime(timestamp);
     }
 
-    public static LocalDate millisToLocalDate(Long timestamp) {
+    public static LocalDate millisToDate(Long timestamp) {
         return ConvertHelper.millisToLocalDate(timestamp);
     }
 
-    public static Long localDateToMillis(LocalDate day) {
+    public static Long dateToMillis(LocalDate day) {
         return ConvertHelper.localDateToMillis(day);
     }
 
-    public static long localDateMillis(int year, int month, int day) {
-        return localDateToMillis(LocalDate.of(year, month, day));
+    public static long dateMillis(int year, int month, int day) {
+        return dateToMillis(LocalDate.of(year, month, day));
     }
 
-    public static Long localDateTimeToMillis(LocalDateTime localDateTime) {
+    public static Long dateTimeToMillis(LocalDateTime localDateTime) {
         return ConvertHelper.localDateTimeToMillis(localDateTime);
     }
 
-    public static Timestamp localDateTimeToTimestamp(LocalDateTime localDateTime) {
+    public static Timestamp dateTimeToTimestamp(LocalDateTime localDateTime) {
         return ConvertHelper.localDateTimeToTimestamp(localDateTime);
     }
 
-    public static long diffDays(LocalDate d1, LocalDate d2) {
+    public static Long dateDiff(LocalDate d1, LocalDate d2) {
+        if (d1 == null || d2 == null)
+            return null;
+
         return d1.toEpochDay() - d2.toEpochDay();
     }
+
+    public static Integer yearDiff(LocalDate d1, LocalDate d2) {
+        if (d1 == null || d2 == null)
+            return null;
+        return d1.getYear() - d2.getYear();
+    }
+
+    public static Integer monthDiff(LocalDate d1, LocalDate d2) {
+        if (d1 == null || d2 == null)
+            return null;
+        Period period = Period.between(d1.withDayOfMonth(1), d2.withDayOfMonth(1));
+        int monthDifference = period.getYears() * 12 + period.getMonths();
+        return monthDifference;
+    }
+
 
     private static DayOfWeek toDayOfWeek(int dayOfWeek) {
         return DayOfWeek.values()[dayOfWeek - 1];

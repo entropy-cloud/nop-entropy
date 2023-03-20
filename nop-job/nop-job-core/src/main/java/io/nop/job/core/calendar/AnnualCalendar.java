@@ -51,7 +51,7 @@ public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializa
             return false;
         }
 
-        LocalDate day = DateHelper.millisToLocalDate(timeStamp);
+        LocalDate day = DateHelper.millisToDate(timeStamp);
 
         return !(isExcludedDay(day));
     }
@@ -63,12 +63,12 @@ public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializa
             timeStamp = baseTime;
         }
 
-        LocalDate day = DateHelper.millisToLocalDate(timeStamp);
+        LocalDate day = DateHelper.millisToDate(timeStamp);
 
         while (isExcludedDay(day)) {
             day = day.plusDays(1);
         }
 
-        return DateHelper.localDateToMillis(day);
+        return DateHelper.dateToMillis(day);
     }
 }

@@ -45,6 +45,7 @@ import io.nop.xlang.ast.definition.ScopeVarDefinition;
 import io.nop.xlang.utils.ExprEvalHelper;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +70,11 @@ public class GlobalFunctions {
     @Description("返回当前时间")
     public static Timestamp now() {
         return CoreMetrics.currentTimestamp();
+    }
+
+    @Description("返回今天的日期")
+    public static LocalDate today() {
+        return LocalDate.now();
     }
 
     @Description("编译并执行xpl语言片段，outputMode=none")
@@ -109,7 +115,7 @@ public class GlobalFunctions {
 
     @Description("类SQL语法的排序条件，解析为List<OrderFieldBean>对象")
     @Macro
-    public static Expression order_by(@Name("scope") IXLangCompileScope scope, @Name("orderBy") CallExpression expr){
+    public static Expression order_by(@Name("scope") IXLangCompileScope scope, @Name("orderBy") CallExpression expr) {
         return TemplateMacroImpls.order_by(scope, expr);
     }
 
