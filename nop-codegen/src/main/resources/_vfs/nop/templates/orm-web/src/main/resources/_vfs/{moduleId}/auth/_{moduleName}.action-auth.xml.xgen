@@ -19,7 +19,16 @@
                                   i18n-en:displayName="${objMeta['i18n-en:displayName']}"
                                   icon="ant-design:appstore-twotone"
                                   component="AMIS" resourceType="SUBM"
-                                  url="/${moduleId}/pages/${objName}/main.page.yaml"/>
+                                  url="/${moduleId}/pages/${objName}/main.page.yaml">
+                            <children>
+                                <resource id="FNPT:${objName}:query" displayName="查询${objMeta.displayName}" orderNo="${10000+(index++)}" resourceType="FNPT" >
+                                    <permissions>${objName}:query</permissions>
+                                </resource>
+                                <resource id="FNPT:${objName}:mutation" displayName="修改${objMeta.displayName}" orderNo="${10000+(index++)}" resourceType="FNPT" >
+                                    <permissions>${objName}:mutation</permissions>
+                                </resource>
+                            </children>
+                        </resource>
                     </c:if>
                 </c:for>
             </children>

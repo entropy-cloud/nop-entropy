@@ -18,6 +18,8 @@ import java.lang.annotation.Target;
 @Documented
 @Directive
 public @interface Auth {
+    boolean noAuth() default  false;
+
     /**
      * 具有任意一个角色就认为具有权限
      */

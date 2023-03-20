@@ -14,6 +14,9 @@
                 <property name="transactionalInvoker" ref="nopTransactionalFunctionInvoker" />
             </bean>
         </property>
+
+        <property name="enableActionAuth" value="@cfg:nop.auth.enable-action-auth|false" />
+        <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|true" />
     </bean>
 
     <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager" ioc:delay-method="delayInit">

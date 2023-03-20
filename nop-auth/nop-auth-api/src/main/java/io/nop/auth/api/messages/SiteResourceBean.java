@@ -270,6 +270,13 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         }
     }
 
+    public void removeFunctionPoints() {
+        if (children != null) {
+            children.removeIf(res -> AuthApiConstants.RESOURCE_TYPE_FUNCTION_POINT.equals(res.getResourceType()));
+            children.forEach(SiteResourceBean::removeFunctionPoints);
+        }
+    }
+
     @JsonIgnore
     public boolean isActive() {
         return getStatus() == AuthApiConstants.RESOURCE_STATUS_ACTIVE;

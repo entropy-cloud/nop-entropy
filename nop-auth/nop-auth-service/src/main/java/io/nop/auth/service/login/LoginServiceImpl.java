@@ -196,7 +196,7 @@ public class LoginServiceImpl extends AbstractLoginService {
             return false;
 
         if (user.getExpireAt() != null) {
-            long time = DateHelper.localDateTimeToTimestamp(user.getExpireAt()).getTime();
+            long time = DateHelper.dateTimeToTimestamp(user.getExpireAt()).getTime();
             return time >= CoreMetrics.currentTimeMillis();
         }
         return true;

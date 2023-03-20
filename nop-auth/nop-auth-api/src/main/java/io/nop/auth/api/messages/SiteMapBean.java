@@ -141,6 +141,12 @@ public class SiteMapBean implements IComponentModel, ISourceLocationSetter {
         }
     }
 
+    public void removeFunctionPoints() {
+        if (resources != null) {
+            resources.forEach(SiteResourceBean::removeFunctionPoints);
+        }
+    }
+
     public List<SiteResourceBean> getResources() {
         return resources;
     }

@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.directive.Auth;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.AuthApiConstants;
@@ -42,6 +43,7 @@ public class LoginApiBizModel implements ILoginSpi {
     ILoginService loginService;
 
     @BizMutation("login")
+    @Auth(noAuth = true)
     public CompletionStage<LoginResult> loginAsync(@RequestBean LoginRequest request, IServiceContext context) {
         return loginService.loginAsync(request, context.getRequestHeaders()).thenApply(this::buildLoginResult);
     }

@@ -82,6 +82,9 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     private IActionAuthChecker actionAuthChecker;
 
+    private boolean enableActionAuth;
+    private boolean enableDataAuth;
+
     public GraphQLEngine() {
         this.documentCache = LocalCache.newCache(
                 "graphql-parse-cache", newConfig(GraphQLConfigs.CFG_GRAPHQL_QUERY_PARSE_CACHE_SIZE.get()).useMetrics()
@@ -103,6 +106,26 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Nullable
     public void setActionAuthChecker(IActionAuthChecker actionAuthChecker) {
         this.actionAuthChecker = actionAuthChecker;
+    }
+
+    public LocalCache<String, GraphQLDocument> getDocumentCache() {
+        return documentCache;
+    }
+
+    public boolean isEnableActionAuth() {
+        return enableActionAuth;
+    }
+
+    public void setEnableActionAuth(boolean enableActionAuth) {
+        this.enableActionAuth = enableActionAuth;
+    }
+
+    public boolean isEnableDataAuth() {
+        return enableDataAuth;
+    }
+
+    public void setEnableDataAuth(boolean enableDataAuth) {
+        this.enableDataAuth = enableDataAuth;
     }
 
     public void setGraphQLHook(IGraphQLHook graphQLHook) {
@@ -249,8 +272,11 @@ public class GraphQLEngine implements IGraphQLEngine {
         context.setOperation(op);
         context.setExecutionId(request.getOperationId());
         context.setFieldSelection(buildSelectionBean(op.getName(), op.getSelectionSet(), vars));
-        context.setActionAuthChecker(actionAuthChecker);
-        context.setDataAuthChecker(dataAuthChecker);
+
+        if (enableActionAuth)
+            context.setActionAuthChecker(actionAuthChecker);
+        if (enableDataAuth)
+            context.setDataAuthChecker(dataAuthChecker);
         return context;
     }
 
@@ -285,8 +311,12 @@ public class GraphQLEngine implements IGraphQLEngine {
         FieldSelectionBean fieldSelection = buildSelectionBean(operationName, selectionSet, Collections.emptyMap());
 
         context.setFieldSelection(fieldSelection);
-        context.setActionAuthChecker(actionAuthChecker);
-        context.setDataAuthChecker(dataAuthChecker);
+
+        if (enableActionAuth)
+            context.setActionAuthChecker(actionAuthChecker);
+
+        if (enableDataAuth)
+            context.setDataAuthChecker(dataAuthChecker);
 
         return context;
     }

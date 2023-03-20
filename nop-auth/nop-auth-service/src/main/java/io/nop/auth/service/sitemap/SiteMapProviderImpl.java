@@ -7,6 +7,8 @@
  */
 package io.nop.auth.service.sitemap;
 
+import io.nop.api.core.auth.IActionAuthChecker;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.SiteMapBean;
@@ -49,10 +51,12 @@ import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_SUB_MENU;
 import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_TOP_MENU;
 import static io.nop.commons.cache.CacheConfig.newConfig;
 
-public class SiteMapProviderImpl implements ISiteMapProvider {
+public class SiteMapProviderImpl implements ISiteMapProvider, IActionAuthChecker {
 
     @Inject
     protected IDaoProvider daoProvider;
+
+    private boolean enableActionAuth;
 
     protected ICache<String, SiteCacheData> siteCache = LocalCache.newCache("sitemap-cache",
             newConfig(10).expireAfterWrite(CFG_AUTH_SITE_MAP_CACHE_TIMEOUT.get()), this::loadSiteData);
@@ -63,13 +67,17 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
     }
 
     @PreDestroy
-    public void destroy(){
+    public void destroy() {
         GlobalCacheRegistry.instance().unregister(siteCache);
     }
 
     @Override
     public void refreshCache() {
         siteCache.clear();
+    }
+
+    public void setEnableActionAuth(boolean enableActionAuth) {
+        this.enableActionAuth = enableActionAuth;
     }
 
     @Override
@@ -172,16 +180,20 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
     @Override
     public SiteMapBean filterAllowedMenu(SiteMapBean site, String userId, String deptId, Set<String> roleIds) {
         site = site.deepClone();
-        if(site.getLocale() == null)
+        if (site.getLocale() == null)
             site.setLocale(I18nMessageManager.instance().getDefaultLocale());
 
         if (roleIds == null)
             roleIds = Collections.emptySet();
 
         SiteCacheData cache = siteCache.get(site.getLocale());
-        applyAuthFilter(site.getResources(), cache.getResourceToRoles(), roleIds);
-
-        site.removeInactive();
+        if (enableActionAuth) {
+            applyAuthFilter(site.getResources(), cache.getResourceToRoles(), roleIds);
+            site.removeFunctionPoints();
+            site.removeInactive();
+        } else {
+            site.removeFunctionPoints();
+        }
         return site;
     }
 
@@ -191,11 +203,6 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
             return;
 
         for (SiteResourceBean resource : resources) {
-            if (!isMenu(resource)) {
-                resource.setStatus(AuthApiConstants.RESOURCE_STATUS_DISABLED);
-                continue;
-            }
-
             if (resource.isNoAuth())
                 continue;
 
@@ -215,12 +222,18 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
 
     boolean containsRole(Set<String> authRoles, Set<String> roleIds) {
         if (authRoles == null || authRoles.isEmpty())
-            return true;
+            return false;
 
         for (String roleId : roleIds) {
             if (authRoles.contains(roleId))
                 return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean isPermitted(String permission, IUserContext userContext) {
+        SiteCacheData cacheData = siteCache.get(I18nMessageManager.instance().getDefaultLocale());
+        return cacheData.isPermitted(permission, userContext);
     }
 }

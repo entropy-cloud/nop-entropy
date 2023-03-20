@@ -46,6 +46,7 @@ import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.fetcher.BeanMethodAction;
 import io.nop.graphql.core.fetcher.BeanMethodBatchFetcher;
 import io.nop.graphql.core.fetcher.BeanMethodFetcher;
@@ -95,7 +96,8 @@ public class ReflectionBizModelBuilder {
                 String action = getMutationName(mutation, func);
                 if (!isLocalMethod(classModel, func) && !isAllowed(action, disabledActions, inheritActions))
                     continue;
-                GraphQLFieldDefinition field = buildActionField(bizObjName, bean, loc, action, func, registry);
+                GraphQLFieldDefinition field = buildActionField(bizObjName, bean, GraphQLOperationType.mutation,
+                        loc, action, func, registry);
                 field.setOperationName(GraphQLNameHelper.getOperationName(bizObjName, action));
                 if (field.getAuth() == null) {
                     String permission = GraphQLNameHelper.getPermission(bizObjName, action);
@@ -110,7 +112,8 @@ public class ReflectionBizModelBuilder {
                 String action = getQueryName(query, func);
                 if (!isLocalMethod(classModel, func) && !isAllowed(action, disabledActions, inheritActions))
                     continue;
-                GraphQLFieldDefinition field = buildActionField(bizObjName, bean, loc, action, func, registry);
+                GraphQLFieldDefinition field = buildActionField(bizObjName, bean, GraphQLOperationType.query,
+                        loc, action, func, registry);
                 field.setOperationName(GraphQLNameHelper.getOperationName(bizObjName, action));
                 if (field.getAuth() == null) {
                     String permission = GraphQLNameHelper.getPermission(bizObjName, action);
@@ -244,7 +247,8 @@ public class ReflectionBizModelBuilder {
         return name;
     }
 
-    private GraphQLFieldDefinition buildActionField(String bizObjName, Object bean, SourceLocation loc, String name,
+    private GraphQLFieldDefinition buildActionField(String bizObjName, Object bean, GraphQLOperationType opType,
+                                                    SourceLocation loc, String name,
                                                     IFunctionModel func, TypeRegistry registry) {
         IServiceAction action = buildAction(bean, loc, name, func);
         IDataFetcher fetcher = new ServiceActionFetcher(action);
@@ -261,8 +265,11 @@ public class ReflectionBizModelBuilder {
             field.setDescription(description.value());
 
         Auth auth = func.getAnnotation(Auth.class);
-        if (auth != null && (auth.permissions().length > 0 || auth.roles().length > 0)) {
+        if (auth != null) {
             field.setAuth(new ActionAuthMeta(buildImmutableSet(auth.roles()), buildImmutableSet(auth.permissions())));
+        } else {
+            String permission = bizObjName + ':' + opType;
+            field.setAuth(new ActionAuthMeta(Collections.emptySet(), Collections.singleton(permission)));
         }
 
         BizMakerChecker makerChecker = func.getAnnotation(BizMakerChecker.class);
