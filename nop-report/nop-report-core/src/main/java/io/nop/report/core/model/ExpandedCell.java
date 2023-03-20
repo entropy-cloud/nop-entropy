@@ -39,8 +39,8 @@ public class ExpandedCell implements ICellView {
     private String linkUrl;
 
     // 对于合并单元格，realCell设置为左上角的单元格
-   // private int rowOffset;
-  //  private int colOffset;
+    // private int rowOffset;
+    //  private int colOffset;
     private ExpandedCell realCell;
 
     private ExpandedCell right;
@@ -104,8 +104,29 @@ public class ExpandedCell implements ICellView {
         return col.getColIndex();
     }
 
+    public void markEvaluated() {
+        setEvaluated(true);
+        setExpandValue(null);
+        setExpandIndex(0);
+    }
+
+    public boolean isStaticCell() {
+        XptCellModel model = getModel();
+        if (model == null)
+            return true;
+        if (model.getExpandType() != null || model.getExpandExpr() != null)
+            return false;
+
+        if (model.getValueExpr() != null)
+            return false;
+
+        if (model.getField() != null)
+            return false;
+        return true;
+    }
+
     public Object getFormattedValue() {
-        if(formattedValue == null)
+        if (formattedValue == null)
             return value;
         return formattedValue;
     }

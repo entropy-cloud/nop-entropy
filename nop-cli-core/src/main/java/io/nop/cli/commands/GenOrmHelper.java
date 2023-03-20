@@ -8,6 +8,9 @@
 package io.nop.cli.commands;
 
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.orm.model.OrmModel;
@@ -18,6 +21,7 @@ import io.nop.report.core.engine.ReportEngine;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xdsl.DslModelHelper;
 
 import java.io.File;
 import java.util.HashMap;
@@ -25,12 +29,16 @@ import java.util.Map;
 
 public class GenOrmHelper {
 
-    public static void saveOrmToExcel(OrmModel ormModel, File outputFile) {
+    public static void saveOrmToExcel(OrmModel ormModel, File outputFile, boolean dump) {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, ormModel);
 
         IReportEngine reportEngine = newReportEngine();
         ExcelWorkbook workbook = reportEngine.buildXptModelFromImpModel("/nop/orm/imp/orm.imp.xml");
+        if (dump) {
+            IResource modelFile = ResourceHelper.getSiblingWithExt(new FileResource(outputFile), ".xpt");
+            DslModelHelper.saveDslModel(XptConstants.XDSL_SCHEMA_WORKBOOK, workbook, modelFile);
+        }
 
         ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
         output.generateToFile(outputFile, scope);

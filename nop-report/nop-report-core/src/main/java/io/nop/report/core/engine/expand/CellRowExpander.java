@@ -66,7 +66,7 @@ public class CellRowExpander extends AbstractCellExpander {
             r.forEachCell(c -> {
                 ExpandedCell realCell = c.getRealCell();
                 if (realCell.getName() != null) {
-                    if (xptModel.getRowExtendCells().containsKey(c.getName())) {
+                    if (xptModel.getRowExtendCells().containsKey(realCell.getName())) {
                         needExtends.put(realCell, Boolean.TRUE);
                     }
                 }

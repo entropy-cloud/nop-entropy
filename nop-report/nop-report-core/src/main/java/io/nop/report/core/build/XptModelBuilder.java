@@ -351,7 +351,7 @@ public class XptModelBuilder {
             // 2. 且整个单元格的延展范围包含了展开单元格的范围
             if (xptModel.getRowParent(name) != null) {
                 if (rcModel.getRowIndex() <= beginIndex
-                        && rcModel.getRowIndex() + ic.getRowSpan() >= endIndex) {
+                        && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
                     xptModel.addRowExtendCell(rc);
                 }
             }

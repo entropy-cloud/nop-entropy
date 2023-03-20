@@ -9,6 +9,7 @@ package io.nop.orm.model;
 
 import io.nop.orm.model._gen._OrmUniqueKeyModel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class OrmUniqueKeyModel extends _OrmUniqueKeyModel {
@@ -16,6 +17,16 @@ public class OrmUniqueKeyModel extends _OrmUniqueKeyModel {
 
     public OrmUniqueKeyModel() {
 
+    }
+
+    public void addColumn(String colName) {
+        List<String> cols = getColumns();
+        if (cols == null || cols.isEmpty()) {
+            cols = new ArrayList<>();
+        }
+        if (!cols.contains(colName))
+            cols.add(colName);
+        setColumns(cols);
     }
 
     public List<OrmColumnModel> getColumnModels() {

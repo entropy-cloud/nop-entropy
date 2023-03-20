@@ -17,9 +17,12 @@ import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.model.SqlDataTypeModel;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.TableSchemaMeta;
-import io.nop.orm.OrmConstants;
 import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.model.OrmIndexColumnModel;
+import io.nop.orm.model.OrmIndexModel;
+import io.nop.orm.model.OrmJoinOnModel;
+import io.nop.orm.model.OrmToOneReferenceModel;
 import io.nop.orm.model.OrmUniqueKeyModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +43,7 @@ public class JdbcMetaDiscovery {
     static final Logger LOG = LoggerFactory.getLogger(JdbcMetaDiscovery.class);
 
     private IDialect dialect;
-    private String packageName;
+    private String packageName = "app";
     private boolean commentAsDisplayName = true;
 
     public JdbcMetaDiscovery basePackageName(String packageName) {
@@ -51,6 +54,27 @@ public class JdbcMetaDiscovery {
     public JdbcMetaDiscovery commentAsDisplayName(boolean b) {
         this.commentAsDisplayName = b;
         return this;
+    }
+
+    public List<String> getCatalogs(DataSource dataSource) {
+        dialect = DialectManager.instance().getDialectForDataSource(dataSource);
+
+        Connection conn = null;
+        try {
+            conn = dataSource.getConnection();
+            DatabaseMetaData metaData = conn.getMetaData();
+            ResultSet rs = metaData.getCatalogs();
+            List<String> ret = new ArrayList<>();
+            while (rs.next()) {
+                String catalogName = rs.getString("TABLE_CAT");
+                ret.add(catalogName);
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw dialect.getSQLExceptionTranslator().translate("sql-discovery", e);
+        } finally {
+            IoHelper.safeCloseObject(conn);
+        }
     }
 
     public DataBaseMeta discover(DataSource dataSource,
@@ -65,6 +89,11 @@ public class JdbcMetaDiscovery {
             DataBaseMeta meta = createMeta(metaData);
             initSchemas(meta, conn.getMetaData());
             discoverTables(meta, metaData, catalog, schemaPattern, tablePattern);
+
+            discoverRelations(metaData, meta, catalog, schemaPattern);
+            discoverIndexes(metaData, meta, catalog, schemaPattern);
+            discoverUniqueKeys(metaData, meta, catalog, schemaPattern);
+
             meta.init();
             return meta;
         } catch (SQLException e) {
@@ -194,10 +223,7 @@ public class JdbcMetaDiscovery {
 
                 OrmColumnModel col = new OrmColumnModel();
                 col.setCode(columnName);
-                col.setName(StringHelper.camelCase(columnName, false));
-                if (OrmConstants.PROP_ID.equals(col.getName())) {
-                    col.setName("id_");
-                }
+                col.setName(StringHelper.colCodeToPropName(columnName));
 
                 SqlDataTypeModel dataType = dialect.getNativeType(typeName);
                 SQLDataType sqlDataType;
@@ -230,7 +256,7 @@ public class JdbcMetaDiscovery {
                     col.setUpdatable(false);
                 }
                 if (StringHelper.isEmpty(col.getDisplayName()))
-                    col.setDisplayName(StringHelper.camelCase(col.getName(), true));
+                    col.setDisplayName(StringHelper.camelCase(col.getCode(), true));
                 tableCols.computeIfAbsent(tableName, k -> new ArrayList<>()).add(col);
             }
         }
@@ -292,5 +318,178 @@ public class JdbcMetaDiscovery {
             key.setColumns(cols.stream().map(Pair::getValue).collect(Collectors.toList()));
             return key;
         }
+    }
+
+    private void discoverRelations(
+            DatabaseMetaData metaData, DataBaseMeta meta,
+            String catalog, String schemaPattern) throws SQLException {
+
+        Map<String, Map<String, OrmToOneReferenceModel>> allRefs = new HashMap<>();
+
+        for (OrmEntityModel table : meta.getTables().values()) {
+            try (ResultSet rs = metaData.getImportedKeys(catalog, schemaPattern, table.getTableName())) {
+                while (rs.next()) {
+                    String fkTableName = rs.getString("FKTABLE_NAME");
+                    String fkColumnName = rs.getString("FKCOLUMN_NAME");
+                    String pkTableName = rs.getString("PKTABLE_NAME");
+                    String pkColumnName = rs.getString("PKCOLUMN_NAME");
+                    String fkName = rs.getString("FK_NAME");
+
+                    if (StringHelper.isEmpty(fkName))
+                        continue;
+
+                    fkTableName = normalizeTableName(fkTableName);
+                    pkTableName = normalizeTableName(pkTableName);
+                    fkColumnName = normalizeColName(fkColumnName);
+                    pkColumnName = normalizeColName(pkColumnName);
+
+                    OrmEntityModel refTable = meta.getTable(pkTableName);
+                    if (refTable == null)
+                        continue;
+
+                    Map<String, OrmToOneReferenceModel> tableRefs = allRefs.computeIfAbsent(fkTableName, k -> new HashMap<>());
+                    OrmToOneReferenceModel ref = tableRefs.computeIfAbsent(fkName, k -> new OrmToOneReferenceModel());
+                    ref.setName(StringHelper.decapitalize(refTable.getShortName()));
+                    ref.setDisplayName(refTable.getShortName());
+                    ref.setRefEntityName(refTable.getName());
+                    ref.setConstraint(fkName);
+
+                    OrmJoinOnModel join = new OrmJoinOnModel();
+                    join.setLeftProp(StringHelper.colCodeToPropName(fkColumnName));
+                    join.setRightProp(StringHelper.colCodeToPropName(pkColumnName));
+                    ref.addJoinOn(join);
+                }
+            }
+        }
+
+        addRefs(meta, allRefs);
+    }
+
+    private void addRefs(DataBaseMeta meta, Map<String, Map<String, OrmToOneReferenceModel>> allRefs) {
+        for (OrmEntityModel table : meta.getTables().values()) {
+            Map<String, OrmToOneReferenceModel> tableRefs = allRefs.get(table.getTableName());
+            if (tableRefs != null) {
+                for (OrmToOneReferenceModel ref : tableRefs.values()) {
+                    String name = guessRelationName(ref);
+                    ref.setName(name);
+
+                    while (table.getProp(name, true) != null) {
+                        name = incName(name);
+                    }
+                    table.addProp(ref);
+                }
+            }
+        }
+    }
+
+    String guessRelationName(OrmToOneReferenceModel ref) {
+        if (ref.getJoin().size() == 1) {
+            // 如果是USER_ID这种类型的关联字段
+            OrmJoinOnModel join = ref.getJoin().get(0);
+            if (join.getLeftProp().endsWith("Id") && join.getLeftProp().length() > 2) {
+                return StringHelper.removeTail(join.getLeftProp(), "Id");
+            }
+        }
+        return StringHelper.decapitalize(StringHelper.simpleClassName(ref.getRefEntityName()));
+    }
+
+    String incName(String name) {
+        char c = name.charAt(name.length() - 1);
+        if (StringHelper.isDigit(c)) {
+            return name.substring(0, name.length() - 1) + (c - '0' + 1);
+        }
+        return name + "1";
+    }
+
+    void discoverIndexes(
+            DatabaseMetaData metaData, DataBaseMeta meta,
+            String catalog, String schemaPattern) throws SQLException {
+
+        for (OrmEntityModel table : meta.getTables().values()) {
+            Map<String, OrmIndexModel> idxMap = new HashMap<>();
+
+            try (ResultSet rs = metaData.getIndexInfo(catalog, schemaPattern, table.getTableName(), false, false)) {
+                while (rs.next()) {
+                    String indexName = rs.getString("INDEX_NAME");
+                    String columnName = rs.getString("COLUMN_NAME");
+                    String tableName = rs.getString("TABLE_NAME");
+                    boolean asc = "A".equals(rs.getString("ASC_OR_DESC"));
+                    boolean unique = !rs.getBoolean("NON_UNIQUE");
+
+                    tableName = normalizeTableName(tableName);
+                    columnName = normalizeColName(columnName);
+
+                    OrmEntityModel refTable = meta.getTable(tableName);
+                    if (refTable == null)
+                        continue;
+
+                    OrmIndexModel idx = idxMap.computeIfAbsent(indexName, k -> new OrmIndexModel());
+                    idx.setUnique(unique);
+                    idx.setName(indexName);
+                    OrmIndexColumnModel col = new OrmIndexColumnModel();
+                    col.setName(StringHelper.colCodeToPropName(columnName));
+                    col.setDesc(asc ? null : true);
+                    idx.addColumn(col);
+                }
+            }
+
+            for (OrmIndexModel indexModel : idxMap.values()) {
+                if (isPrimary(indexModel, table))
+                    continue;
+                table.addIndex(indexModel);
+            }
+        }
+    }
+
+    private boolean isPrimary(OrmIndexModel idx, OrmEntityModel table) {
+        for (OrmIndexColumnModel idxCol : idx.getColumns()) {
+            OrmColumnModel col = table.getColumn(idxCol.getName());
+            if (col == null || !col.isPrimary())
+                return false;
+        }
+        return true;
+    }
+
+    void discoverUniqueKeys(
+            DatabaseMetaData metaData, DataBaseMeta meta,
+            String catalog, String schemaPattern) throws SQLException {
+
+        for (OrmEntityModel table : meta.getTables().values()) {
+            Map<String, OrmUniqueKeyModel> idxMap = new HashMap<>();
+
+            try (ResultSet rs = metaData.getIndexInfo(catalog, schemaPattern, table.getTableName(), true, false)) {
+                while (rs.next()) {
+                    String indexName = rs.getString("INDEX_NAME");
+                    String columnName = rs.getString("COLUMN_NAME");
+                    String tableName = rs.getString("TABLE_NAME");
+
+                    tableName = normalizeTableName(tableName);
+                    columnName = normalizeColName(columnName);
+
+                    OrmEntityModel refTable = meta.getTable(tableName);
+                    if (refTable == null)
+                        continue;
+
+                    OrmUniqueKeyModel idx = idxMap.computeIfAbsent(indexName, k -> new OrmUniqueKeyModel());
+                    idx.setName(indexName);
+                    idx.addColumn(StringHelper.colCodeToPropName(columnName));
+                }
+            }
+
+            for (OrmUniqueKeyModel indexModel : idxMap.values()) {
+                if (isPrimary(indexModel, table))
+                    continue;
+                table.addUniqueKey(indexModel);
+            }
+        }
+    }
+
+    private boolean isPrimary(OrmUniqueKeyModel idx, OrmEntityModel table) {
+        for (String colName : idx.getColumns()) {
+            OrmColumnModel col = table.getColumn(colName);
+            if (col == null || !col.isPrimary())
+                return false;
+        }
+        return true;
     }
 }

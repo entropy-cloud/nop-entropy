@@ -165,6 +165,7 @@ public class ExcelTemplateToXptModelTransformer {
                 initCellField(cellModel, range, fieldModel.getFieldName());
                 cellModel.setExpandType(XptExpandType.r);
                 cellModel.setValueExpr(getExpandIndexAction());
+                cellModel.setKeepExpandEmpty(true);
             }
         }
 

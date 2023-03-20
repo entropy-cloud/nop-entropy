@@ -232,6 +232,12 @@ public class OrmModelInitializer {
 
             IEntityPropModel rightProp = refEntity.getProp(rightPropName, true);
             if (rightProp == null) {
+                rightProp = refEntity.getColumnByCode(rightPropName, true);
+                if (rightProp != null) {
+                    join.setRightProp(rightProp.getName());
+                }
+            }
+            if (rightProp == null) {
                 throw new OrmException(ERR_ORM_MODEL_REF_ENTITY_NO_PROP).source(join)
                         .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_REF_NAME, ref.getName())
                         .param(ARG_REF_ENTITY_NAME, ref.getRefEntityName()).param(ARG_PROP_NAME, rightPropName);

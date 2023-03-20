@@ -15,6 +15,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.model._gen._OrmReferenceModel;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -62,6 +63,15 @@ public abstract class OrmReferenceModel extends _OrmReferenceModel implements IE
     @Override
     public void setPropValue(IOrmEntity entity, Object value) {
         entity.orm_propValueByName(getName(), value);
+    }
+
+    public void addJoinOn(OrmJoinOnModel joinOn) {
+        List<OrmJoinOnModel> joins = getJoin();
+        if (joins == null || joins.isEmpty()) {
+            joins = new ArrayList<>(2);
+        }
+        joins.add(joinOn);
+        setJoin(joins);
     }
 
     @Override

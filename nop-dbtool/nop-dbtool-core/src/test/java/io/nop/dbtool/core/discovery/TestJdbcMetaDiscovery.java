@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 import javax.sql.DataSource;
+import java.util.List;
 
 @Disabled
 public class TestJdbcMetaDiscovery extends JunitBaseTestCase {
@@ -27,7 +28,11 @@ public class TestJdbcMetaDiscovery extends JunitBaseTestCase {
 
     @Test
     public void testDiscovery() {
-        DataBaseMeta meta = new JdbcMetaDiscovery().basePackageName("app.mall").discover(dataSource, "litemall", null, "%");
+        JdbcMetaDiscovery discovery = new JdbcMetaDiscovery();
+        List<String> catalogs = discovery.getCatalogs(dataSource);
+        System.out.println("catalogs="+catalogs);
+
+        DataBaseMeta meta = discovery.discover(dataSource, "datart", null, "%");
 
         OrmModel model = meta.getOrmModel();
         DslModelHelper.dslModelToXNode(OrmConstants.XDSL_SCHEMA_ORM, model).dump();

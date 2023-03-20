@@ -73,6 +73,21 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
                 + getTableName() + "]@" + getLocation();
     }
 
+    /**
+     * 所有的列都是主键。一般对应于多对多中间表
+     */
+    public boolean isAllColumnPrimary() {
+        if (getPkColumns() == null) {
+            for (OrmColumnModel col : getColumns()) {
+                if (!col.isPrimary())
+                    return false;
+            }
+            return true;
+        }
+
+        return getPkColumns().size() == getColumns().size();
+    }
+
     @Override
     public OrmDataTypeKind getKind() {
         return OrmDataTypeKind.ENTITY;
@@ -113,7 +128,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         return pkColumns;
     }
 
-    public void setPkColumns(List<OrmColumnModel> cols){
+    public void setPkColumns(List<OrmColumnModel> cols) {
         checkAllowChange();
         this.pkColumns = cols;
     }

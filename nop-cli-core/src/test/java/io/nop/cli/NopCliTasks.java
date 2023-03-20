@@ -26,12 +26,12 @@ public class NopCliTasks {
     CommandLine.IFactory factory;
 
     @Test
-    public void discover() {
+    public void testReverseDb() {
         AppConfig.getConfigProvider().updateConfigValue(CFG_DEBUG, true);
-        String[] args = new String[]{"reverse",
+        String[] args = new String[]{"reverse-db", "--dump",
                 "-c=com.mysql.cj.jdbc.Driver",
                 "-j=jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC",
-                "-u=nop", "-p=nop-test", "litemall", "test"
+                "-u=nop", "-p=nop-test", "-o=target/reverse.orm.xlsx", "datart",
         };
         NopCliApplication app = new NopCliApplication();
         app.factory = factory;

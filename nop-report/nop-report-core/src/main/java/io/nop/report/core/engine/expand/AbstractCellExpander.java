@@ -9,9 +9,10 @@ package io.nop.report.core.engine.expand;
 
 import io.nop.commons.util.CollectionHelper;
 import io.nop.excel.model.XptCellModel;
+import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.dataset.DynamicReportDataSet;
-import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.engine.IXptRuntime;
+import io.nop.report.core.model.ExpandedCell;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,7 +28,11 @@ public abstract class AbstractCellExpander implements ICellExpander {
     public void expand(ExpandedCell cell, Deque<ExpandedCell> processing, IXptRuntime xptRt) {
         Iterator<?> expandList = runExpandExpr(cell, xptRt);
         if (!expandList.hasNext()) {
-            removeCell(cell);
+            if (cell.getModel() != null && cell.getModel().isKeepExpandEmpty()) {
+                clearCell(cell);
+            } else {
+                removeCell(cell);
+            }
         } else {
             Object value = expandList.next();
             cell.setExpandIndex(0);
@@ -116,5 +121,24 @@ public abstract class AbstractCellExpander implements ICellExpander {
         newCell.setMergeAcross(nextCell.getMergeAcross());
         newCell.setMergeDown(nextCell.getMergeDown());
         newCell.setStyleId(nextCell.getStyleId());
+    }
+
+    protected void clearCell(ExpandedCell cell) {
+        cell.markEvaluated();
+
+        XptExpandType expandType = cell.getExpandType();
+        Map<String, List<ExpandedCell>> descendants;
+        if (expandType == XptExpandType.c) {
+            descendants = cell.getColDescendants();
+        } else {
+            descendants = cell.getRowDescendants();
+        }
+        if (descendants != null) {
+            for (List<ExpandedCell> list : descendants.values()) {
+                for (ExpandedCell child : list) {
+                    child.markEvaluated();
+                }
+            }
+        }
     }
 }

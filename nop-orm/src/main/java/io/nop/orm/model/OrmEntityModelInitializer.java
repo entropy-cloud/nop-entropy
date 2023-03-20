@@ -403,6 +403,12 @@ public class OrmEntityModelInitializer {
                 prop.setName(prop.getName().intern());
 
                 OrmColumnModel colModel = entityModel.getColumn(colName);
+                if (colModel == null) {
+                    colModel = colsByCode.get(colName);
+                    if (colModel != null) {
+                        prop.setColumn(colName);
+                    }
+                }
                 if (colModel == null)
                     throw new OrmException(ERR_ORM_UNKNOWN_COLUMN).source(prop)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, colName);
@@ -415,8 +421,15 @@ public class OrmEntityModelInitializer {
             List<String> columns = keyModel.getColumns();
             List<OrmColumnModel> cols = new ArrayList<>(columns.size());
 
-            for (String column : columns) {
+            for (int i = 0, n = columns.size(); i < n; i++) {
+                String column = columns.get(i);
                 OrmColumnModel col = entityModel.getColumn(column);
+                if (col == null) {
+                    col = colsByCode.get(column);
+                    if (col != null) {
+                        columns.set(i, col.getName());
+                    }
+                }
                 if (col == null)
                     throw new OrmException(ERR_ORM_UNKNOWN_COLUMN).source(keyModel)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_COL_NAME, column);
@@ -430,6 +443,12 @@ public class OrmEntityModelInitializer {
             for (OrmIndexColumnModel indexCol : indexModel.getColumns()) {
                 String name = indexCol.getName();
                 OrmColumnModel col = entityModel.getColumn(name);
+                if (col == null) {
+                    col = colsByCode.get(name);
+                    if (col != null) {
+                        indexCol.setName(col.getName());
+                    }
+                }
                 if (col == null)
                     throw new OrmException(ERR_ORM_UNKNOWN_COLUMN).source(indexCol)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, name);
@@ -448,6 +467,12 @@ public class OrmEntityModelInitializer {
                 join.setLeftProp(leftProp.intern());
 
                 IEntityPropModel propModel = props.get(leftProp);
+                if (propModel == null) {
+                    propModel = colsByCode.get(leftProp);
+                    if (propModel != null) {
+                        join.setLeftProp(propModel.getName());
+                    }
+                }
                 if (propModel == null)
                     throw new OrmException(ERR_ORM_UNKNOWN_PROP).source(ref)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, leftProp);

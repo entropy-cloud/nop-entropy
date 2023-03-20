@@ -87,10 +87,13 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
 
                                 <!--
                                 @expandInplaceCount 单元格展开时
+                                @keepExpandEmpty 当展开集合为空时，缺省会删除模板中定义的单元格以及它所在的行或者列。
+                                           但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。
                                 -->
                                 <model xdef:name="XptCellModel" domain="string" editorId="var-name" viewerId="var-name"
                                        field="prop-name" ds="var-name" expandInplaceCount="int"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
+                                       keepExpandEmpty="!boolean=false"
                                        rowParent="cell-pos" colParent="cell-pos">
                                     <rowTestExpr xdef:value="xpl-predicate"/>
                                     <colTestExpr xdef:value="xpl-predicate"/>

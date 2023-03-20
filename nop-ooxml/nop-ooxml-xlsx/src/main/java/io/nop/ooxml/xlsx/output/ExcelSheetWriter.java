@@ -8,6 +8,7 @@
 package io.nop.ooxml.xlsx.output;
 
 import io.nop.api.core.util.ProcessResult;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.xml.IXNodeHandler;
@@ -21,6 +22,7 @@ import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.util.UnitsHelper;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -154,6 +156,9 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
                 str = value.toString();
             } else if (value instanceof String) {
                 str = value.toString();
+                cellType = "inlineStr";
+            } else if(value instanceof Collection){
+                str = StringHelper.join((Collection)value,",");
                 cellType = "inlineStr";
             } else if(value != null){
                 str = value.toString();

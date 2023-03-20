@@ -34,6 +34,10 @@ public class CliGenOrmExcelDbCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件（缺省输出到命令行窗口中）")
     File outputFile;
 
+
+    @CommandLine.Option(names = {"-d", "--dump"}, description = "输出文件（缺省输出到命令行窗口中）")
+    boolean dump;
+
     @CommandLine.Parameters(description = "模型文件", index = "0")
     File file;
 
@@ -74,7 +78,7 @@ public class CliGenOrmExcelDbCommand implements Callable<Integer> {
             outputFile = new File(fileName + ".orm.xlsx");
         }
 
-        GenOrmHelper.saveOrmToExcel(model, outputFile);
+        GenOrmHelper.saveOrmToExcel(model, outputFile,dump);
         return 0;
     }
 }

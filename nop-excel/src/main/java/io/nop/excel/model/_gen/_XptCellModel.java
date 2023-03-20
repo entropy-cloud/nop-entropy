@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [91:34:0:0]/nop/schema/excel/workbook.xdef <p>
+ * generate from [93:34:0:0]/nop/schema/excel/workbook.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -90,6 +90,14 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _formatExpr ;
+    
+    /**
+     *  
+     * xml name: keepExpandEmpty
+     * 当展开集合为空时，缺省会删除模板中定义的单元格以及它所在的行或者列。
+     * 但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。
+     */
+    private boolean _keepExpandEmpty  = false;
     
     /**
      *  
@@ -344,6 +352,26 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: keepExpandEmpty
+     *  当展开集合为空时，缺省会删除模板中定义的单元格以及它所在的行或者列。
+     * 但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。
+     */
+    
+    public boolean isKeepExpandEmpty(){
+      return _keepExpandEmpty;
+    }
+
+    
+    public void setKeepExpandEmpty(boolean value){
+        checkAllowChange();
+        
+        this._keepExpandEmpty = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: linkExpr
      *  
      */
@@ -480,6 +508,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.put("expandType",this.getExpandType());
         out.put("field",this.getField());
         out.put("formatExpr",this.getFormatExpr());
+        out.put("keepExpandEmpty",this.isKeepExpandEmpty());
         out.put("linkExpr",this.getLinkExpr());
         out.put("rowParent",this.getRowParent());
         out.put("rowTestExpr",this.getRowTestExpr());
