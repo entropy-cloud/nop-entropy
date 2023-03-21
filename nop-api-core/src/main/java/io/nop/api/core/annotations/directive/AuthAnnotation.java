@@ -14,9 +14,19 @@ import java.lang.annotation.Annotation;
 public class AuthAnnotation implements Auth {
     private String[] roles = ApiConstants.EMPTY_STRING_ARRAY;
     private String[] permissions = ApiConstants.EMPTY_STRING_ARRAY;
+    private boolean noAuth;
 
     public String[] roles() {
         return roles;
+    }
+
+    @Override
+    public boolean noAuth() {
+        return noAuth;
+    }
+
+    public void setNoAuth(boolean noAuth){
+        this.noAuth = noAuth;
     }
 
     public void setRoles(String[] roles) {
