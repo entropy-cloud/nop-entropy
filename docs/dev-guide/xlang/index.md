@@ -1,5 +1,7 @@
 # XLang
 
+## [XLang: 快速了解](xlang.md)
+
 ## [XDef: 元模型定义语言](xdef.md)
 
 ## [XDSL: 通用的领域特定语言设计](xdsl.md)

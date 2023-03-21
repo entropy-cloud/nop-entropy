@@ -81,7 +81,7 @@
         <xt:if test="!xt-expr" xdef:ref="XtRuleGroupModel" xdef:name="XtIfModel"/>
 
         <xdef:unknown-tag xdef:bean-tag-prop="tagName" xt:xpath="xpath"
-                          xdef:ref="XtRuleGroupModel" xt:attrs="xt-expr" xdef:unknown-attr="xt-value"
+                          xdef:ref="XtRuleGroupModel" xt:attrs="expr" xdef:unknown-attr="xt-value"
                           xdef:bean-unknown-attrs-prop="attrs"
                           xdef:name="XtCustomTagModel"/>
 
