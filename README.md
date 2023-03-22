@@ -47,6 +47,8 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 [介绍和答疑视频](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
+[与若依Ruoyi框架集成](https://gitee.com/canonical-entropy/nop-for-ruoyi)
+
 #### 软件架构
 
 nop-entropy没有使用Spring框架，所有模块均从零开始采用模型驱动的方式研发（框架本身的很多代码也是根据模型生成并可以通过声明式方式进行定制调整的）。原则上说，nop-entropy可以运行在任何支持REST服务标准的微服务框架之上。目前，我们主要是支持Quarkus框架以及Spring框架的集成。

@@ -35,6 +35,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.File;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -234,12 +236,12 @@ public class GraphQLWebService {
             builder.entity(data);
         } else if (data instanceof WebContentBean) {
             WebContentBean contentBean = (WebContentBean) data;
-            buildContent(builder, contentBean.getContentType(), contentBean.getContent());
+            buildContent(builder, contentBean.getContentType(), contentBean.getContent(), contentBean.getFileName());
         } else if (data instanceof Map) {
             Map<String, Object> map = (Map<String, Object>) data;
-            if (map.containsKey("contentType") && map.containsKey("content") && map.size() == 2) {
+            if (map.containsKey("contentType") && map.containsKey("content") && map.size() >= 2) {
                 String contentType = ConvertHelper.toString(map.get("contentType"));
-                buildContent(builder, contentType, map.get("content"));
+                buildContent(builder, contentType, map.get("content"), (String) map.get("fileName"));
             } else {
                 buildJson(builder, res);
             }
@@ -249,11 +251,17 @@ public class GraphQLWebService {
         return builder.build();
     }
 
-    private void buildContent(Response.ResponseBuilder builder, String contentType, Object content) {
+    private void buildContent(Response.ResponseBuilder builder, String contentType, Object content, String fileName) {
         builder.header(ApiConstants.HEADER_CONTENT_TYPE, contentType);
         if (content instanceof String) {
             LOG.debug("nop.graphql.response:{}", content);
             builder.entity(content);
+        } else if (content instanceof InputStream || content instanceof File) {
+            builder.entity(content);
+            if (!StringHelper.isEmpty(fileName)) {
+                String encoded = StringHelper.encodeURL(fileName);
+                builder.header("Content-Disposition", "attachment;filename=" + encoded);
+            }
         } else {
             String str = JSON.stringify(content);
             LOG.debug("nop.graphql.response:{}", str);

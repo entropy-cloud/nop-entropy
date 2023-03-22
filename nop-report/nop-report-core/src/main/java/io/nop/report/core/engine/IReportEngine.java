@@ -8,7 +8,9 @@
 package io.nop.report.core.engine;
 
 import io.nop.core.resource.tpl.ITemplateOutput;
+import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.report.core.XptConstants;
 
 public interface IReportEngine {
     /**
@@ -23,6 +25,10 @@ public interface IReportEngine {
 
     default ITemplateOutput getRenderer(String reportPath, String renderType) {
         return getRendererForXptModel(getXptModel(reportPath), renderType);
+    }
+
+    default ITextTemplateOutput getHtmlRenderer(String reportPath) {
+        return (ITextTemplateOutput) getRenderer(reportPath, XptConstants.RENDER_TYPE_HTML);
     }
 
     /**

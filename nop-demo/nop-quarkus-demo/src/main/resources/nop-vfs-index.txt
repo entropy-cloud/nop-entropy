@@ -166,6 +166,7 @@
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-quarkus-web-starter.beans
+/nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
 /nop/biz/xlib/biz-gen.xlib
@@ -213,6 +214,12 @@
 /nop/orm/xlib/pdman.xlib
 /nop/orm/xlib/sql.xlib
 /nop/quarkus/beans/quarkus-defaults.beans.xml
+/nop/report/_module
+/nop/report/beans/app-report-demo.beans.xml
+/nop/report/beans/report-defaults.beans.xml
+/nop/report/demo/base/档案式报表.xpt.xlsx
+/nop/report/demo/pages/demo.page.yaml
+/nop/report/imp/xpt.imp.xml
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef

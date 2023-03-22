@@ -357,7 +357,7 @@ public class ConfigStarter extends LifeCycleSupport {
     }
 
     protected List<IConfigSource> loadAppConfigs(IConfigSource configSource) {
-        List<IConfigSource> appSources = new ArrayList<>(2);
+        List<IConfigSource> appSources = new ArrayList<>(4);
 
         String additional = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_ADDITIONAL_LOCATION, "");
         if (!StringHelper.isEmpty(additional)) {
@@ -366,12 +366,37 @@ public class ConfigStarter extends LifeCycleSupport {
             appSources.add(source);
         }
 
+        List<String> profiles = getProfiles(configSource);
+        for (String profile : profiles) {
+            IResource resource = getAppProfileFile(profile);
+            if (resource.exists()) {
+                IConfigSource source = new ResourceConfigSourceLoader(resource).loadConfigSource(configSource);
+                appSources.add(source);
+            }
+        }
+
         String path = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_LOCATION,
                 ConfigConstants.CFG_PATH_APPLICATION_YAML);
         IResource resource = buildConfigResource(path);
+        if (!resource.exists()) {
+            IResource ymlResource = buildConfigResource(ConfigConstants.CFG_PATH_APPLICATION_YML);
+            if (ymlResource.exists()) {
+                resource = ymlResource;
+            }
+        }
         IConfigSource source = new ResourceConfigSourceLoader(resource).loadConfigSource(configSource);
         appSources.add(source);
         return appSources;
+    }
+
+    protected IResource getAppProfileFile(String profile) {
+        String path = "classpath:application-" + profile + ".yaml";
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        if (resource.exists()) {
+            path = "classpath:application-" + profile + ".yml";
+            resource = VirtualFileSystem.instance().getResource(path);
+        }
+        return resource;
     }
 
     protected void initConfigProvider(IConfigSource configSource) {
@@ -408,7 +433,7 @@ public class ConfigStarter extends LifeCycleSupport {
         configSource.addOnChange(changeApplier::requestUpdate);
     }
 
-    protected void traceConfigVars(IConfigSource configSource){
+    protected void traceConfigVars(IConfigSource configSource) {
         boolean debug = configSource.getConfigValue(ApiConfigs.CFG_DEBUG.getName(), false);
         boolean trace = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_TRACE, debug);
         if (trace) {

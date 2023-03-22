@@ -57,7 +57,7 @@ public class BeanConditionEvaluator {
      */
     private Map<String, BeanDefinition> enabledBeans;
 
-    private final Map<String, AliasName> aliases = new HashMap<>();
+    private Map<String, AliasName> aliases;
 
     private final IClassLoader classLoader;
 
@@ -69,8 +69,10 @@ public class BeanConditionEvaluator {
         this.parentContainer = parentContainer;
     }
 
-    public void evaluate(Map<String, BeanDefinition> enabledBeans, Set<BeanDefinition> optionalBeans) {
+    public void evaluate(Map<String, BeanDefinition> enabledBeans, Set<BeanDefinition> optionalBeans,
+                         Map<String, AliasName> aliases) {
         this.enabledBeans = enabledBeans;
+        this.aliases = aliases;
 
         for (BeanDefinition bean : beans.getBeans().values()) {
             addBean(bean);

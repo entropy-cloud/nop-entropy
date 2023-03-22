@@ -19,6 +19,7 @@ import io.nop.ioc.api.BeanScopeContext;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanDefinition;
 import io.nop.ioc.api.IBeanScope;
+import io.nop.ioc.loader.AliasName;
 import io.nop.ioc.loader.BeanDefinitionBuilder;
 import io.nop.xlang.api.XLang;
 import org.slf4j.Logger;
@@ -68,11 +69,14 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     private IBeanScope singletonScope;
 
     private BeanContainerStartMode startMode = BeanContainerStartMode.DEFAULT;
+    private Map<String, AliasName> aliases;
 
     public BeanContainerImpl(String id, Map<String, BeanDefinition> enabledBeans,
-                             Collection<BeanDefinition> optionalBeans, IBeanContainer parentContainer) {
+                             Collection<BeanDefinition> optionalBeans,
+                             Map<String, AliasName> aliases, IBeanContainer parentContainer) {
         this.id = id;
         this.enabledBeans = enabledBeans;
+        this.aliases = aliases;
         this.orderedBeans = BeanTopologySorter.INSTANCE.sort(enabledBeans);
         this.parentContainer = parentContainer;
         this.optionalBeans = optionalBeans == null ? Collections.emptyList() : optionalBeans;
@@ -116,10 +120,16 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         boolean b = enabledBeans.containsKey(name);
         if (!b) {
             if (parentContainer != null) {
+                name = normalizeAlias(name);
                 b = parentContainer.containsBean(name);
             }
         }
         return b;
+    }
+
+    private String normalizeAlias(String name) {
+        AliasName alias = aliases.get(name);
+        return alias == null ? name : alias.getName();
     }
 
     @Override
@@ -157,6 +167,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         IBeanDefinition bean = enabledBeans.get(name);
         if (bean == null) {
             if (parentContainer instanceof IBeanContainerImplementor) {
+                name = normalizeAlias(name);
                 bean = ((IBeanContainerImplementor) parentContainer).getBeanDefinition(name);
             }
         }
@@ -182,8 +193,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     public String getBeanScope(String name) {
         BeanDefinition beanDef = enabledBeans.get(name);
         if (beanDef == null) {
-            if (parentContainer != null)
-                return parentContainer.getBeanScope(name);
+            if (parentContainer != null) {
+                return parentContainer.getBeanScope(normalizeAlias(name));
+            }
 
             throw new NopException(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_NAME).param(ARG_BEAN_NAME, name);
         }
@@ -214,7 +226,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         BeanDefinition bean = enabledBeans.get(name);
         if (bean == null) {
             if (parentContainer != null)
-                return parentContainer.getBean(rawName);
+                return parentContainer.getBean(normalizeAlias(rawName));
 
             throw new NopException(ApiErrors.ERR_IOC_UNKNOWN_BEAN_FOR_NAME).param(ARG_BEAN_NAME, name);
         }

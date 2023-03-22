@@ -475,6 +475,10 @@ public class BeanDefinition implements IBeanDefinition {
 
             return producedBeanInstance != null ? producedBeanInstance : bean;
         } catch (Exception e) {
+            if (e instanceof NopException) {
+                NopException nopErr = (NopException) e;
+                nopErr.addXplStack("createBean:" + getId() + "|" + getLocation());
+            }
             LOG.error("nop.ioc.create-bean-fail:bean={}", this, e);
             throw NopException.adapt(e);
         }

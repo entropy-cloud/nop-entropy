@@ -131,7 +131,11 @@ public class ResourceHelper {
     }
 
     public static IResource getTempResource() {
-        String path = genDayRandPath();
+        return getTempResource("");
+    }
+
+    public static IResource getTempResource(String prefix) {
+        String path = StringHelper.appendPath(prefix, genDayRandPath());
         return VirtualFileSystem.instance().getResource(ResourceConstants.TEMP_NS + ":/" + path);
     }
 

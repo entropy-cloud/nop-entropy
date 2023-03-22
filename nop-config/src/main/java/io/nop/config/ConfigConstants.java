@@ -14,6 +14,7 @@ public interface ConfigConstants {
     String FILE_POSTFIX_PROPERTIES = ".properties";
 
     String FILE_POSTFIX_YAML = ".yaml";
+    String FILE_POSTFIX_YML = ".yml";
 
     //String FILE_POSTFIX_JSON = ".json";
 
@@ -84,6 +85,9 @@ public interface ConfigConstants {
     long DEFAULT_CONFIG_REFRESH_INTERVAL = 15000;
 
     String CFG_PATH_APPLICATION_YAML = "classpath:application.yaml";
+
+    String CFG_PATH_APPLICATION_YML = "classpath:application.yml";
+
 
     String CFG_PATH_PREFIX = "classpath:_conf/";
 

@@ -23,12 +23,21 @@ public class WebContentBean {
 
     private final String contentType;
     private final Object content;
+    private final String fileName;
+
+    public WebContentBean(@JsonProperty("contentType") String contentType,
+                          @JsonProperty("content") Object content,
+                          @JsonProperty("fileName") String fileName) {
+        this.contentType = contentType;
+        this.content = content;
+        this.fileName = fileName;
+    }
 
     public WebContentBean(@JsonProperty("contentType") String contentType,
                           @JsonProperty("content") Object content) {
-        this.contentType = contentType;
-        this.content = content;
+        this(contentType, content, null);
     }
+
 
     public static WebContentBean json(Object json) {
         return new WebContentBean(CONTENT_TYPE_JSON, json);
@@ -60,5 +69,9 @@ public class WebContentBean {
 
     public Object getContent() {
         return content;
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 }

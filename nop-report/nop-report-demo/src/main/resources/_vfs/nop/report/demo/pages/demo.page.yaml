@@ -1,0 +1,27 @@
+type: page
+aside:
+  - type: input-tree
+    name: tree
+    source: /r/ReportDemo__getDemoReports
+    rootLabel: 报表示例
+    value: ''
+    unfold: true
+    multiple: false
+    draggable: false
+    highlight: true
+    hideRoot: false
+    rootCreatable: false
+    rootLevel: 1
+    labelField: label
+    valueField: value
+    childrenField: children
+asideResizor: true
+body:
+  - type: service
+    name: reportHtml
+    api:
+      url: "@query:ReportDemo__renderHtml?reportName=${tree}"
+      sendOn: ${tree}
+  - type: html
+    name: html
+    html: '${reportHtml|raw}'

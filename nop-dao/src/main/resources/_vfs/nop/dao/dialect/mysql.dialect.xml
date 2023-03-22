@@ -129,7 +129,7 @@
         </errorCode>
     </errorCodes>
 
-    <features supportSequence="false"/>
+    <features supportSequence="false" />
 
     <sqls escapeSlash="true">
 

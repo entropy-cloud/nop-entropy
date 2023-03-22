@@ -126,6 +126,7 @@ public class BeanDefinitionBuilder {
     private final IBeanClassIntrospection introspection;
 
     private Map<String, BeanDefinition> beans;
+    private Map<String, AliasName> aliases;
 
     private final Map<Class<?>, BeanTypeMapping> beanTypeMappings = new HashMap<>();
     private final Map<Class<? extends Annotation>, List<BeanDefinition>> annMappings = new HashMap<>();
@@ -144,8 +145,9 @@ public class BeanDefinitionBuilder {
         return this;
     }
 
-    public void buildAll(Map<String, BeanDefinition> beans) {
+    public void buildAll(Map<String, BeanDefinition> beans,Map<String, AliasName> aliases) {
         this.beans = beans;
+        this.aliases = aliases;
 
         initBeanTypes();
         initFactoryBeans();
@@ -970,6 +972,11 @@ public class BeanDefinitionBuilder {
 
     IBeanPropValueResolver buildRefResolver(BeanDefinition bean, SourceLocation loc, String propName, String ref,
                                             boolean optional, boolean ignoreDepends) {
+        AliasName aliasName = aliases.get(ref);
+        if(aliasName != null){
+            ref = aliasName.getName();
+        }
+
         BeanDefinition resolvedBean = beans.get(ref);
         if (resolvedBean == null) {
             if (parentContainer != null && parentContainer.containsBean(ref))

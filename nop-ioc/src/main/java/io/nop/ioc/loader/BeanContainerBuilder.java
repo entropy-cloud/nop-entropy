@@ -259,11 +259,12 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
     public IBeanContainerImplementor build(String containerId) {
         Map<String, BeanDefinition> enabledBeans = new HashMap<>();
         Set<BeanDefinition> optionalBeans = new HashSet<>();
+        Map<String, AliasName> aliases = new HashMap<>();
 
         // 至此，所有的bean都有唯一的id，但是它们的name有可能有重复，按照条件过滤后应该只会保留唯一的一个
 
         // 1. 检查ioc:condition，处理alias映射，返回所有enabledBeans
-        new BeanConditionEvaluator(beans, classLoader, parentContainer).evaluate(enabledBeans, optionalBeans);
+        new BeanConditionEvaluator(beans, classLoader, parentContainer).evaluate(enabledBeans, optionalBeans, aliases);
 
         if (LOG.isTraceEnabled()) {
             XNode config = new BeanContainerDumper().toConfigNode(enabledBeans.values());
@@ -277,7 +278,7 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
         new BeanParentResolver(enabledBeans).resolve();
 
         // 4. 初始化BeanDefinition中的valueResolver
-        new BeanDefinitionBuilder(classLoader, introspection, parentContainer).buildAll(enabledBeans);
+        new BeanDefinitionBuilder(classLoader, introspection, parentContainer).buildAll(enabledBeans, aliases);
 
         if (CFG_IOC_AOP_ENABLED.get()) {
             // 5. 根据ioc:pointcut配置和ioc:interceptor配置，发现需要进行aop处理的类
@@ -289,7 +290,8 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
         // 6. 根据ioc:before设置初始化depends-on属性
         new BeanDependsBuilder().buildAll(enabledBeans);
 
-        BeanContainerImpl container = new BeanContainerImpl(containerId, enabledBeans, optionalBeans, parentContainer);
+        BeanContainerImpl container = new BeanContainerImpl(containerId,
+                enabledBeans, optionalBeans, aliases, parentContainer);
         if (startMode != null)
             container.setStartMode(startMode);
         return container;

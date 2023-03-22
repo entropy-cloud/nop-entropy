@@ -53,7 +53,7 @@ public class ResourceConfigSourceLoader implements IConfigSourceLoader {
     private Map<String, ValueWithLocation> loadFromJson() {
         JsonParseOptions options = new JsonParseOptions();
         if (resource.getName().endsWith(ConfigConstants.FILE_POSTFIX_YAML)
-                || resource.getName().endsWith(ConfigConstants.FILE_POSTFIX_YAML)) {
+                || resource.getName().endsWith(ConfigConstants.FILE_POSTFIX_YML)) {
             options.setYaml(true);
         }
         options.setKeepLocation(true);

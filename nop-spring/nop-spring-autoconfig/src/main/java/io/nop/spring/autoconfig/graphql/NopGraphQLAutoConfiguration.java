@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.Collection;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(BizObjectManager.class)
+@ConditionalOnClass({BizObjectManager.class, GraphQLEngine.class})
 public class NopGraphQLAutoConfiguration {
 
     @Bean("bizModelBeans")

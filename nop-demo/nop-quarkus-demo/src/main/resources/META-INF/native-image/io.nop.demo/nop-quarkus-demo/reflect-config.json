@@ -1804,6 +1804,64 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAttr",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAttrs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setChildren",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setLabel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.TreeResultBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -1849,6 +1907,10 @@
       },
       {
         "name": "getContentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileName",
         "parameterTypes": []
       },
       {
@@ -3612,6 +3674,10 @@
         "parameterTypes": []
       },
       {
+        "name": "removeFunctionPoints",
+        "parameterTypes": []
+      },
+      {
         "name": "removeInactive",
         "parameterTypes": []
       },
@@ -3778,6 +3844,10 @@
       },
       {
         "name": "isNoAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeFunctionPoints",
         "parameterTypes": []
       },
       {
@@ -18571,6 +18641,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getTempResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getZipTool",
         "parameterTypes": []
       },
@@ -22480,6 +22556,703 @@
     "fields": [],
     "methods": [
       {
+        "name": "getFieldLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldNameMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResultComponentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResultType",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "initStripText",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "toNameMap",
+        "parameterTypes": [
+          "java.util.List",
+          "io.nop.excel.imp.model.ImportFieldModel"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model.ImportFieldModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.excel.imp.model.ImportModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getFieldLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldNameMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResultComponentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "initStripText",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "matchNamePattern",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model.ImportSheetModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAlias",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExportExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKeyProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNormalizeFieldsExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getParentProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStripText",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUnknownField",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValueExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWhen",
+        "parameterTypes": []
+      },
+      {
+        "name": "isComputed",
+        "parameterTypes": []
+      },
+      {
+        "name": "isList",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "isVirtual",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAlias",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setComputed",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExportExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setKeyProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setList",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNormalizeFieldsExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setParentProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "setStripText",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setTypeProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUnknownField",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportFieldModel"
+        ]
+      },
+      {
+        "name": "setValueExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setVirtual",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setWhen",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model._gen._ImportFieldModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addSheet",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportSheetModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAfterParse",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBeforeParse",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResultType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSheet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getSheets",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTemplatePath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValidator",
+        "parameterTypes": []
+      },
+      {
+        "name": "getXdef",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasSheet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasSheets",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDefaultStripText",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDump",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIgnoreUnknownSheet",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_sheets",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAfterParse",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setBeforeParse",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setDefaultStripText",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setDump",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setIgnoreUnknownSheet",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setResultType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      },
+      {
+        "name": "setSheets",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setTemplatePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValidator",
+        "parameterTypes": [
+          "io.nop.core.model.validator.ValidatorModel"
+        ]
+      },
+      {
+        "name": "setXdef",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model._gen._ImportModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addField",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportFieldModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAfterParse",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBeforeParse",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getField",
+        "parameterTypes": []
+      },
+      {
+        "name": "getField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKeyProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNamePattern",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNormalizeFieldsExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResultType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSheetNameProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSheetVarName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUnknownField",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWhen",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIgnore",
+        "parameterTypes": []
+      },
+      {
+        "name": "isList",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMultiple",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_fields",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAfterParse",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setBeforeParse",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setIgnore",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setKeyProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setList",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setMultiple",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNamePattern",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNormalizeFieldsExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setResultType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      },
+      {
+        "name": "setSheetNameProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSheetVarName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUnknownField",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportFieldModel"
+        ]
+      },
+      {
+        "name": "setWhen",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.imp.model._gen._ImportSheetModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.excel.initializer.ExcelCoreInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "invokeAsync",
         "parameterTypes": [
           "java.util.function.Function",
@@ -25542,6 +26315,39 @@
       }
     ],
     "name": "io.nop.js.engine.JavaScriptService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "isReturnDynamicObject",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadObjectFromPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseFromResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "setReturnDynamicObject",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.ooxml.xlsx.imp.XlsxBeanParser",
     "unsafeAllocated": false
   },
   {
@@ -30844,6 +31650,205 @@
       }
     ],
     "name": "io.nop.quarkus.core.dao.DataSourceConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildXptModelFromImpModel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRendererForExcel",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelWorkbook",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRendererForXptModel",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelWorkbook",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getXptModel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRenderers",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.ReportEngine",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildRenderer",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelWorkbook",
+          "io.nop.ooxml.xlsx.output.IExcelSheetGenerator"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.renderer.HtmlReportRendererFactory",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildRenderer",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelWorkbook",
+          "io.nop.ooxml.xlsx.output.IExcelSheetGenerator"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.renderer.XlsxReportRendererFactory",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "AVERAGE",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "COUNT",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "COUNTA",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "MAX",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "MIN",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "NVL",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "PRODUCT",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "SUM",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.functions.ReportFunctions",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.core.initialize.ReportCoreInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.core.initialize.ReportImpModelCoreInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "reportEngine"
+      }
+    ],
+    "methods": [
+      {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getDemoReports",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReportBeans",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "renderHtml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.report.demo.biz.ReportDemoBizModel",
     "unsafeAllocated": false
   },
   {
