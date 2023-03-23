@@ -10,6 +10,7 @@ package io.nop.auth.service;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.config.IConfigReference;
+import io.nop.auth.core.AuthCoreConfigs;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -35,8 +36,7 @@ public interface NopAuthConfigs {
             String.class, null);
 
     @Description("是否启用前端调试模式")
-    IConfigReference<Boolean> CFG_AUTH_SITE_MAP_SUPPORT_DEBUG = varRef("nop.auth.site-map.support-debug", Boolean.class,
-            false);
+    IConfigReference<Boolean> CFG_AUTH_SITE_MAP_SUPPORT_DEBUG = AuthCoreConfigs.CFG_AUTH_SITE_MAP_SUPPORT_DEBUG;
 
     @Description("是否自动创建缺省用户")
     IConfigReference<Boolean> CFG_AUTH_ALLOW_CREATE_DEFAULT_USER = varRef("nop.auth.login.allow-create-default-user",

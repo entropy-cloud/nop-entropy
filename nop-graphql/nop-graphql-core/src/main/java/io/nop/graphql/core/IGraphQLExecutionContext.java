@@ -28,11 +28,17 @@ public interface IGraphQLExecutionContext extends IServiceContext {
 
     String getExecutionId();
 
+    void setExecutionId(String executionId);
+
     GraphQLOperation getOperation();
+
+    void setOperation(GraphQLOperation operation);
 
     ParsedGraphQLRequest getRequest();
 
     FieldSelectionBean getFieldSelection();
+
+    void setFieldSelection(FieldSelectionBean selection);
 
     default Object getVariable(String name) {
         ParsedGraphQLRequest request = getRequest();

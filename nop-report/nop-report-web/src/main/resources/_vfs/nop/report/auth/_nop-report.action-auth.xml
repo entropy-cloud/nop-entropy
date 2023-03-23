@@ -8,49 +8,58 @@
                 <resource id="NopReportDataset-main" displayName="数据集定义" orderNo="10001" i18n-en:displayName="Dataset"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/report/pages/NopReportDataset/main.page.yaml">
-                    <resource id="FNPT:NopReportDataset:query" displayName="Query" orderNo="10002" resourceType="FNPT">
-                        <permissions>NopReportDataset:query</permissions>
-                    </resource>
-                    <resource id="FNPT:NopReportDataset:mutation" displayName="Query" orderNo="10003"
-                              resourceType="FNPT">
-                        <permissions>NopReportDataset:mutation</permissions>
-                    </resource>
+                    <children>
+                        <resource id="FNPT:NopReportDataset:query" displayName="查询数据集定义" orderNo="10002"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDataset:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportDataset:mutation" displayName="修改数据集定义" orderNo="10003"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDataset:mutation</permissions>
+                        </resource>
+                    </children>
                 </resource>
                 <resource id="NopReportDatasetAuth-main" displayName="数据集权限" orderNo="10004"
                           i18n-en:displayName="Dataset Auth" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/report/pages/NopReportDatasetAuth/main.page.yaml">
-                    <resource id="FNPT:NopReportDatasetAuth:query" displayName="Query" orderNo="10005"
-                              resourceType="FNPT">
-                        <permissions>NopReportDatasetAuth:query</permissions>
-                    </resource>
-                    <resource id="FNPT:NopReportDatasetAuth:mutation" displayName="Query" orderNo="10006"
-                              resourceType="FNPT">
-                        <permissions>NopReportDatasetAuth:mutation</permissions>
-                    </resource>
+                    <children>
+                        <resource id="FNPT:NopReportDatasetAuth:query" displayName="查询数据集权限" orderNo="10005"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasetAuth:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportDatasetAuth:mutation" displayName="修改数据集权限" orderNo="10006"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasetAuth:mutation</permissions>
+                        </resource>
+                    </children>
                 </resource>
                 <resource id="NopReportDefinition-main" displayName="报表定义" orderNo="10007"
                           i18n-en:displayName="Report Definition" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/report/pages/NopReportDefinition/main.page.yaml">
-                    <resource id="FNPT:NopReportDefinition:query" displayName="Query" orderNo="10008"
-                              resourceType="FNPT">
-                        <permissions>NopReportDefinition:query</permissions>
-                    </resource>
-                    <resource id="FNPT:NopReportDefinition:mutation" displayName="Query" orderNo="10009"
-                              resourceType="FNPT">
-                        <permissions>NopReportDefinition:mutation</permissions>
-                    </resource>
+                    <children>
+                        <resource id="FNPT:NopReportDefinition:query" displayName="查询报表定义" orderNo="10008"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDefinition:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportDefinition:mutation" displayName="修改报表定义" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDefinition:mutation</permissions>
+                        </resource>
+                    </children>
                 </resource>
                 <resource id="NopReportResultFile-main" displayName="报表结果文件" orderNo="10010"
                           i18n-en:displayName="Report Result File" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/report/pages/NopReportResultFile/main.page.yaml">
-                    <resource id="FNPT:NopReportResultFile:query" displayName="Query" orderNo="10011"
-                              resourceType="FNPT">
-                        <permissions>NopReportResultFile:query</permissions>
-                    </resource>
-                    <resource id="FNPT:NopReportResultFile:mutation" displayName="Query" orderNo="10012"
-                              resourceType="FNPT">
-                        <permissions>NopReportResultFile:mutation</permissions>
-                    </resource>
+                    <children>
+                        <resource id="FNPT:NopReportResultFile:query" displayName="查询报表结果文件" orderNo="10011"
+                                  resourceType="FNPT">
+                            <permissions>NopReportResultFile:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportResultFile:mutation" displayName="修改报表结果文件" orderNo="10012"
+                                  resourceType="FNPT">
+                            <permissions>NopReportResultFile:mutation</permissions>
+                        </resource>
+                    </children>
                 </resource>
             </children>
         </resource>

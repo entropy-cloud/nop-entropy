@@ -59,38 +59,49 @@ public class GraphQLWebService {
     @Path("/graphql")
     @Produces(MediaType.APPLICATION_JSON)
     public CompletionStage<Response> graphql(String body) {
+        return runGraphQL(body, this::buildJaxrsGraphQLResponse);
+    }
 
+    protected <T> CompletionStage<T> runGraphQL(String body, BiFunction<GraphQLResponseBean,
+            IGraphQLExecutionContext, T> responseBuilder) {
         IGraphQLEngine engine = BeanContainer.instance().getBeanByType(IGraphQLEngine.class);
-
         long beginTime = CoreMetrics.currentTimeMillis();
 
+        IGraphQLExecutionContext context = null;
         try {
+            context = newGraphQLContext(engine);
+
             GraphQLRequestBean request = (GraphQLRequestBean) JSON.parseToBean(null, body, GraphQLRequestBean.class);
             LOG.debug("nop.graphql.parse:vars={},document=\n{}", request.getVariables(), request.getQuery());
 
-            IGraphQLExecutionContext context = engine.newGraphQLContext(request);
+            context = engine.newGraphQLContext(request);
             context.setMakerCheckerEnabled(CFG_GRAPHQL_MAKER_CHECKER_ENABLED.get());
             prepareContext(context);
 
+            IGraphQLExecutionContext ctx = context;
             return engine.executeGraphQLAsync(context).thenApply(res -> {
                 LOG.info("nop.graphql.end-graphql-request:usedTime={},query={},errorCode={},msg={}",
                         CoreMetrics.currentTimeMillis() - beginTime, request.getQuery(), res.getErrorCode(),
                         res.getMsg());
-                return buildGraphQLResponse(res, context);
+                return responseBuilder.apply(res, ctx);
             });
         } catch (Exception e) {
-            return FutureHelper.success(JSON.stringify(engine.buildGraphQLResponse(null, e, null)));
+            return FutureHelper.success(responseBuilder.apply(engine.buildGraphQLResponse(null, e, context), context));
         }
     }
 
-    protected Response buildGraphQLResponse(GraphQLResponseBean res, IGraphQLExecutionContext context) {
+    protected IGraphQLExecutionContext newGraphQLContext(IGraphQLEngine engine) {
+        return engine.newGraphQLContext();
+    }
+
+    protected Response buildJaxrsGraphQLResponse(GraphQLResponseBean res, IGraphQLExecutionContext context) {
         Response.ResponseBuilder builder = Response.status(200);
         String str = JSON.stringify(res);
         LOG.debug("nop.graphql.response:{}", str);
 
         builder.entity(str);
 
-        if (context.getResponseHeaders() != null) {
+        if (context != null && context.getResponseHeaders() != null) {
             context.getResponseHeaders().forEach(builder::header);
         }
         return builder.build();
@@ -103,39 +114,38 @@ public class GraphQLWebService {
                                           @QueryParam(SYS_PARAM_SELECTION) String selection, String body) {
         return runRest(null, operationName, () -> {
             return buildRequest(body, selection, true);
-        });
+        }, this::buildJaxrsRestResponse);
     }
 
-    protected CompletionStage<Response> runRest(GraphQLOperationType expectedOpType, String operationName,
-                                                Supplier<ApiRequest<?>> requestBuilder) {
-        return runRest(expectedOpType, operationName, requestBuilder, this::buildRestResponse);
-    }
 
-    protected CompletionStage<Response> runRest(GraphQLOperationType expectedOpType, String operationName,
+    protected <T> CompletionStage<T> runRest(GraphQLOperationType expectedOpType, String operationName,
                                                 Supplier<ApiRequest<?>> requestBuilder,
-                                                BiFunction<ApiResponse<?>, IGraphQLExecutionContext, Response> responseBuilder
+                                                BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder
     ) {
         IGraphQLEngine engine = BeanContainer.instance().getBeanByType(IGraphQLEngine.class);
 
         long beginTime = CoreMetrics.currentTimeMillis();
 
+        IGraphQLExecutionContext context = null;
         try {
+            context = newGraphQLContext(engine);
             ApiRequest<?> request = requestBuilder.get();
             if (LOG.isDebugEnabled()) {
                 LOG.debug("nop.graphql.rpc-request:operationName={},request={}", operationName,
                         JSON.serialize(request, true));
             }
-            IGraphQLExecutionContext context = engine.newRpcContext(expectedOpType, operationName, request);
+            engine.initRpcContext(context, expectedOpType, operationName, request);
             context.setMakerCheckerEnabled(CFG_GRAPHQL_MAKER_CHECKER_ENABLED.get());
             prepareContext(context);
 
+            IGraphQLExecutionContext ctx = context;
             return engine.executeRpcAsync(context).thenApply(res -> {
                 LOG.info("nop.graphql.end-rpc-request:usedTime={},operationName={},errorCode={},msg={}",
                         CoreMetrics.currentTimeMillis() - beginTime, operationName, res.getCode(), res.getMsg());
-                return responseBuilder.apply(res, context);
+                return responseBuilder.apply(res, ctx);
             });
         } catch (Exception e) {
-            return FutureHelper.success(JSON.stringify(engine.buildRpcResponse(null, e, null)));
+            return FutureHelper.success(responseBuilder.apply(engine.buildRpcResponse(null, e, context), context));
         }
     }
 
@@ -146,10 +156,10 @@ public class GraphQLWebService {
                                                @QueryParam(SYS_PARAM_SELECTION) String selection, @QueryParam(SYS_PARAM_ARGS) String args) {
         return runRest(GraphQLOperationType.query, operationName, () -> {
             return buildRequest(args, selection, true);
-        });
+        }, this::buildJaxrsRestResponse);
     }
 
-    protected Response buildRestResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
+    protected Response buildJaxrsRestResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
         String str = JSON.stringify(res.cloneInstance(false));
         LOG.debug("nop.graphql.response:{}", str);
 
@@ -215,10 +225,10 @@ public class GraphQLWebService {
                 req.getData().put(GraphQLConstants.PARAM_PATH, path);
             }
             return req;
-        }, this::buildPageResponse);
+        }, this::buildJaxrsPageResponse);
     }
 
-    protected Response buildPageResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
+    protected Response buildJaxrsPageResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
 
         int status = res.getHttpStatus();
         if (status == 0)

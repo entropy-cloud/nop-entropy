@@ -260,8 +260,16 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     @Override
-    public IGraphQLExecutionContext newGraphQLContext(ParsedGraphQLRequest request) {
+    public IGraphQLExecutionContext newGraphQLContext() {
         GraphQLExecutionContext context = new GraphQLExecutionContext();
+        if (enableActionAuth)
+            context.setActionAuthChecker(actionAuthChecker);
+        if (enableDataAuth)
+            context.setDataAuthChecker(dataAuthChecker);
+        return context;
+    }
+
+    public void initGraphQLContext(IGraphQLExecutionContext context, ParsedGraphQLRequest request) {
         GraphQLDocument doc = request.getDocument();
         if (!doc.isResolved()) {
             resolveSelections(doc, CFG_GRAPHQL_QUERY_MAX_DEPTH.get());
@@ -272,16 +280,10 @@ public class GraphQLEngine implements IGraphQLEngine {
         context.setOperation(op);
         context.setExecutionId(request.getOperationId());
         context.setFieldSelection(buildSelectionBean(op.getName(), op.getSelectionSet(), vars));
-
-        if (enableActionAuth)
-            context.setActionAuthChecker(actionAuthChecker);
-        if (enableDataAuth)
-            context.setDataAuthChecker(dataAuthChecker);
-        return context;
     }
 
-    public IGraphQLExecutionContext newRpcContext(GraphQLOperationType expectedOpType, String operationName,
-                                                  ApiRequest<?> request) {
+    public void initRpcContext(IGraphQLExecutionContext context, GraphQLOperationType expectedOpType,
+                               String operationName, ApiRequest<?> request) {
 
         GraphQLFieldDefinition action = schemaLoader.getOperationDefinition(null, operationName);
         if (action == null)
@@ -293,7 +295,6 @@ public class GraphQLEngine implements IGraphQLEngine {
                     .param(ARG_OPERATION_TYPE, opType).param(ARG_EXPECTED_OPERATION_TYPE, expectedOpType);
         }
 
-        GraphQLExecutionContext context = new GraphQLExecutionContext();
         context.setRequestHeaders(request.getHeaders());
         GraphQLDocument doc = new GraphQLDocument();
         GraphQLFieldSelection selection = doc.addOperation(action.getOperationType(), operationName, request.getData());
@@ -311,14 +312,6 @@ public class GraphQLEngine implements IGraphQLEngine {
         FieldSelectionBean fieldSelection = buildSelectionBean(operationName, selectionSet, Collections.emptyMap());
 
         context.setFieldSelection(fieldSelection);
-
-        if (enableActionAuth)
-            context.setActionAuthChecker(actionAuthChecker);
-
-        if (enableDataAuth)
-            context.setDataAuthChecker(dataAuthChecker);
-
-        return context;
     }
 
     @Override

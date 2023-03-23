@@ -46,7 +46,25 @@ public interface IGraphQLEngine {
      */
     FieldSelectionBean buildSelectionBean(String name, GraphQLSelectionSet selectionSet, Map<String, Object> vars);
 
-    IGraphQLExecutionContext newGraphQLContext(ParsedGraphQLRequest request);
+    IGraphQLExecutionContext newGraphQLContext();
+
+    void initGraphQLContext(IGraphQLExecutionContext context, ParsedGraphQLRequest request);
+
+    default ParsedGraphQLRequest parseRequest(GraphQLRequestBean request) {
+        GraphQLDocument doc = parseOperation(request.getQuery(), false);
+        ParsedGraphQLRequest parsed = new ParsedGraphQLRequest();
+        parsed.setOperationId(request.getOperationId());
+        parsed.setDocument(doc);
+        parsed.setExtensions(request.getExtensions());
+        parsed.setVariables(request.getVariables());
+        return parsed;
+    }
+
+    default IGraphQLExecutionContext newGraphQLContext(ParsedGraphQLRequest request) {
+        IGraphQLExecutionContext context = newGraphQLContext();
+        initGraphQLContext(context, request);
+        return context;
+    }
 
     default IGraphQLExecutionContext newGraphQLContext(GraphQLRequestBean request) {
         GraphQLDocument doc = parseOperation(request.getQuery(), false);
@@ -69,8 +87,15 @@ public interface IGraphQLEngine {
      */
     CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext context);
 
-    IGraphQLExecutionContext newRpcContext(GraphQLOperationType expectedOpType, String operationName,
-                                           ApiRequest<?> request);
+    void initRpcContext(IGraphQLExecutionContext context, GraphQLOperationType opType,
+                        String operationName, ApiRequest<?> request);
+
+    default IGraphQLExecutionContext newRpcContext(GraphQLOperationType opType, String operationName,
+                                           ApiRequest<?> request){
+        IGraphQLExecutionContext context = newGraphQLContext();
+        initRpcContext(context, opType, operationName, request);
+        return context;
+    }
 
     GraphQLResponseBean buildGraphQLResponse(Object result, Throwable err, IGraphQLExecutionContext context);
 
