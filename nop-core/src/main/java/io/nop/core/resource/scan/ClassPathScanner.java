@@ -27,7 +27,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.JarURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
@@ -102,45 +104,46 @@ public class ClassPathScanner {
     protected void doFindPathMatchingJarResources(URL rootDirURL, String path, BiConsumer<String, URL> consumer)
             throws IOException {
 
-        // URLConnection con = rootDirURL.openConnection();
+        URLConnection con = rootDirURL.openConnection();
         JarFile jarFile;
         String jarFileUrl;
         boolean closeJarFile;
 
-        // if (con instanceof JarURLConnection) {
-        // // Should usually be the case for traditional JAR files.
-        // JarURLConnection jarCon = (JarURLConnection) con;
-        // URLHelper.useCachesIfNecessary(jarCon);
-        // jarFile = jarCon.getJarFile();
-        // jarFileUrl = jarCon.getJarFileURL().toExternalForm();
-        // JarEntry jarEntry = jarCon.getJarEntry();
-        // closeJarFile = !jarCon.getUseCaches();
-        // } else {
-        // No JarURLConnection -> need to resort to URL file parsing.
-        // We'll assume URLs of the format "jar:path!/entry", with the protocol
-        // being arbitrary as long as following the entry format.
-        // We'll also handle paths with and without leading "file:" prefix.
-        String urlFile = rootDirURL.getFile();
-        try {
-            int separatorIndex = urlFile.indexOf(WAR_URL_SEPARATOR);
-            if (separatorIndex == -1) {
-                separatorIndex = urlFile.indexOf(JAR_URL_SEPARATOR);
+        if (con instanceof JarURLConnection) {
+            // Should usually be the case for traditional JAR files.
+            JarURLConnection jarCon = (JarURLConnection) con;
+            URLHelper.useCachesIfNecessary(jarCon);
+            jarFile = jarCon.getJarFile();
+            jarFileUrl = jarCon.getJarFileURL().toExternalForm();
+            //JarEntry jarEntry = jarCon.getJarEntry();
+            closeJarFile = !jarCon.getUseCaches();
+        } else {
+//         No JarURLConnection -> need to resort to URL file parsing.
+//         We'll assume URLs of the format "jar:path!/entry", with the protocol
+//         being arbitrary as long as following the entry format.
+//         We'll also handle paths with and without leading "file:" prefix.
+            String urlFile = rootDirURL.getFile();
+            try {
+                int separatorIndex = urlFile.indexOf(WAR_URL_SEPARATOR);
+                if (separatorIndex == -1) {
+                    // spring boot打包后的jar路径可能是file://a.jar!/b.jar!/_vfs
+                    separatorIndex = urlFile.indexOf(JAR_URL_SEPARATOR);
+                }
+                if (separatorIndex != -1) {
+                    jarFileUrl = urlFile.substring(0, separatorIndex);
+                    jarFile = getJarFile(jarFileUrl);
+                } else {
+                    jarFile = new JarFile(urlFile);
+                    jarFileUrl = urlFile;
+                }
+                closeJarFile = true;
+            } catch (ZipException ex) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Skipping invalid jar classpath entry [" + urlFile + "]");
+                }
+                return;
             }
-            if (separatorIndex != -1) {
-                jarFileUrl = urlFile.substring(0, separatorIndex);
-                jarFile = getJarFile(jarFileUrl);
-            } else {
-                jarFile = new JarFile(urlFile);
-                jarFileUrl = urlFile;
-            }
-            closeJarFile = true;
-        } catch (ZipException ex) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Skipping invalid jar classpath entry [" + urlFile + "]");
-            }
-            return;
         }
-        // }
 
         try {
             if (logger.isTraceEnabled()) {
