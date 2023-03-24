@@ -104,20 +104,28 @@ public class ClassPathScanner {
     protected void doFindPathMatchingJarResources(URL rootDirURL, String path, BiConsumer<String, URL> consumer)
             throws IOException {
 
-        URLConnection con = rootDirURL.openConnection();
-        JarFile jarFile;
-        String jarFileUrl;
-        boolean closeJarFile;
+        JarFile jarFile = null;
+        String jarFileUrl = null;
+        boolean closeJarFile = false;
 
-        if (con instanceof JarURLConnection) {
-            // Should usually be the case for traditional JAR files.
-            JarURLConnection jarCon = (JarURLConnection) con;
-            URLHelper.useCachesIfNecessary(jarCon);
-            jarFile = jarCon.getJarFile();
-            jarFileUrl = jarCon.getJarFileURL().toExternalForm();
-            //JarEntry jarEntry = jarCon.getJarEntry();
-            closeJarFile = !jarCon.getUseCaches();
-        } else {
+        URLConnection con;
+        try{
+            con = rootDirURL.openConnection();
+
+            if (con instanceof JarURLConnection) {
+                // Should usually be the case for traditional JAR files.
+                JarURLConnection jarCon = (JarURLConnection) con;
+                URLHelper.useCachesIfNecessary(jarCon);
+                jarFile = jarCon.getJarFile();
+                jarFileUrl = jarCon.getJarFileURL().toExternalForm();
+                //JarEntry jarEntry = jarCon.getJarEntry();
+                closeJarFile = !jarCon.getUseCaches();
+            }
+        }catch (Exception e){
+            // IGNORE
+        }
+
+        if(jarFile == null){
 //         No JarURLConnection -> need to resort to URL file parsing.
 //         We'll assume URLs of the format "jar:path!/entry", with the protocol
 //         being arbitrary as long as following the entry format.

@@ -23346,6 +23346,22 @@
         "parameterTypes": []
       },
       {
+        "name": "initGraphQLContext",
+        "parameterTypes": [
+          "io.nop.graphql.core.IGraphQLExecutionContext",
+          "io.nop.graphql.core.ParsedGraphQLRequest"
+        ]
+      },
+      {
+        "name": "initRpcContext",
+        "parameterTypes": [
+          "io.nop.graphql.core.IGraphQLExecutionContext",
+          "io.nop.graphql.core.ast.GraphQLOperationType",
+          "java.lang.String",
+          "io.nop.api.core.beans.ApiRequest"
+        ]
+      },
+      {
         "name": "isEnableActionAuth",
         "parameterTypes": []
       },
@@ -23358,6 +23374,10 @@
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperation"
         ]
+      },
+      {
+        "name": "newGraphQLContext",
+        "parameterTypes": []
       },
       {
         "name": "newGraphQLContext",
