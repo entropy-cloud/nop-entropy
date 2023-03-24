@@ -54,8 +54,8 @@
                 <c:for var="col" items="${table.columns}">
                     <c:unit><![CDATA[ ${     dialect.escapeSQLName(col.code)} ]]></c:unit>
                     <thisLib:ColSqlType/>
+                    <thisLib:ColNullDef/>
                     <thisLib:DefaultValue/>
-                    <c:unit><![CDATA[ ${col.mandatory and !allNullable ? 'NOT NULL' : ''} ]]></c:unit>
                     <thisLib:ColCommentDef/>
                     <c:unit><![CDATA[,
  ]]></c:unit>
@@ -82,6 +82,15 @@
                 <c:unit>${dialect.stdToNativeSqlType(col.stdSqlType,col.precision,col.scale)}</c:unit>
             </source>
         </ColSqlType>
+
+        <ColNullDef>
+            <attr name="col" implicit="true"/>
+            <attr name="dialect" implicit="true"/>
+            <attr name="allNullable" implicit="true" />
+            <source>
+                <c:unit><![CDATA[ ${col.mandatory and !allNullable ? 'NOT NULL' : ''} ]]></c:unit>
+            </source>
+        </ColNullDef>
 
         <ColCommentDef outputMode="text">
             <attr name="col" implicit="true"/>

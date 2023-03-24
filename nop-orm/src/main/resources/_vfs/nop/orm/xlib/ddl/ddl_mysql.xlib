@@ -19,6 +19,15 @@
             </source>
         </AddComment>
 
+        <DefaultValue>
+            <attr name="col" implicit="true"/>
+            <attr name="dialect" implicit="true"/>
+            <attr name="allNullable" implicit="true" />
+            <source>
+                <c:unit>${col.stdSqlType.toString() == 'TIMESTAMP' and col.mandatory and !allNullable ? ' DEFAULT CURRENT_TIMESTAMP ':''}</c:unit>
+            </source>
+        </DefaultValue>
+
         <ColCommentDef>
             <source>
                 <thisLib:ColumnComment col="${col}" xpl:return="colComment"/>
