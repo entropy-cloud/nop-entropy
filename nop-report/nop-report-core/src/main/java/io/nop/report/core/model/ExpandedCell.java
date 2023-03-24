@@ -108,6 +108,9 @@ public class ExpandedCell implements ICellView {
         setEvaluated(true);
         setExpandValue(null);
         setExpandIndex(0);
+        if (!isStaticCell()) {
+            setValue(null);
+        }
     }
 
     public boolean isStaticCell() {

@@ -326,10 +326,13 @@ public class DateHelper {
         return d1.getYear() - d2.getYear();
     }
 
+    /**
+     * 返回 d1 - d2
+     */
     public static Integer monthDiff(LocalDate d1, LocalDate d2) {
         if (d1 == null || d2 == null)
             return null;
-        Period period = Period.between(d1.withDayOfMonth(1), d2.withDayOfMonth(1));
+        Period period = Period.between(d2.withDayOfMonth(1), d1.withDayOfMonth(1));
         int monthDifference = period.getYears() * 12 + period.getMonths();
         return monthDifference;
     }

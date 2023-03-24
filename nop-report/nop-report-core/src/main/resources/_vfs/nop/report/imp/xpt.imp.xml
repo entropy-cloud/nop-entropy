@@ -30,8 +30,8 @@
 
                 <field name="ext:namedStyles" list="true" keyProp="id" displayName="命名样式">
                     <fields>
-                        <field name="id" displayName="样式ID">
-                            <schema stdDomain="string" mandatory="true"/>
+                        <field name="id" displayName="样式ID" mandatory="true">
+                            <schema stdDomain="string"/>
                         </field>
 
                         <field name="style" displayName="样式">
@@ -44,8 +44,8 @@
 
                 <field name="editors" list="true" keyProp="id" displayName="编辑控件">
                     <fields>
-                        <field name="id" displayName="控件ID">
-                            <schema stdDomain="string" mandatory="true"/>
+                        <field name="id" displayName="控件ID" mandatory="true">
+                            <schema stdDomain="string"/>
                         </field>
                         <field name="source" displayName="控件内容">
                             <schema stdDomain="xpl-xjson"/>
@@ -85,12 +85,12 @@
 
                 <field name="conditionalStyles" list="true" keyProp="id" displayName="条件样式">
                     <fields>
-                        <field name="range" displayName="单元格区间">
-                            <schema stdDomain="string" mandatory="true"/>
+                        <field name="range" displayName="单元格区间" mandatory="true">
+                            <schema stdDomain="string"/>
                         </field>
 
-                        <field name="when" displayName="匹配条件">
-                            <schema stdDomain="filter" mandatory="true"/>
+                        <field name="when" displayName="匹配条件" mandatory="true">
+                            <schema stdDomain="filter"/>
                         </field>
 
                         <field name="style" displayName="样式">

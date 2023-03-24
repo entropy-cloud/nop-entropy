@@ -85,6 +85,11 @@
             <artifactId>nop-auth-sso</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-js</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

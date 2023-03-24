@@ -697,6 +697,7 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
             LOG.trace("nop.xlang.register-scope-var:name={},loc={},macro={}", name, identifier.getLocation(),
                     scope.isInMacro());
             var = new ScopeVarDefinition(name);
+            var.setLocation(identifier.getLocation());
             // var.setAllowAssignment(true); 缺省不允许更新scope变量，避免拼写错误导致的bug。使用assign函数来更新scope变量
             scope.registerScopeVarDefinition(var, scope.isInMacro());
             identifier.setIdentifierKind(IdentifierKind.SCOPE_VAR_REF);

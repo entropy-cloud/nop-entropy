@@ -49,7 +49,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
     public DslXNodeToJsonTransformer(boolean forEditor, IXDefinition rootDefNode, XLangCompileTool compileTool) {
         this.forEditor = forEditor;
         this.rootDefNode = rootDefNode;
-        this.compileTool = compileTool;
+        this.compileTool = compileTool.allowUnregisteredScopeVar(true);
     }
 
     public XLangCompileTool getCompileTool() {

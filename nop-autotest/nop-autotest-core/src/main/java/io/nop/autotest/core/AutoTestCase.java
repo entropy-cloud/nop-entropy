@@ -312,7 +312,7 @@ public class AutoTestCase extends BaseTestCase {
     }
 
     public void outputText(String fileName, String text) {
-        String path = caseData.getOutputFileName(fileName, text);
+        String path = caseData.getOutputFileName(fileName, variant);
         if (saveOutput) {
             caseData.writeText(path, text, null);
         } else {

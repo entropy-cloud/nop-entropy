@@ -58,7 +58,7 @@ public abstract class AbstractParseTreeParser extends AbstractCharReaderResource
             return null;
         this.baseLocation = loc;
         this.source = text;
-        String sourceName = loc == null ? IntStream.UNKNOWN_SOURCE_NAME : loc.getPath();
+        String sourceName = loc == null ? IntStream.UNKNOWN_SOURCE_NAME : loc.getCellPath();
         CodePointCharStream stream = CharStreams.fromString(text, sourceName);
         return doParse(stream);
     }

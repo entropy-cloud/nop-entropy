@@ -23253,6 +23253,450 @@
     "fields": [],
     "methods": [
       {
+        "name": "addColChildCell",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelCell"
+        ]
+      },
+      {
+        "name": "addColDuplicateCells",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "addColExtendCell",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelCell"
+        ]
+      },
+      {
+        "name": "addRowChildCell",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelCell"
+        ]
+      },
+      {
+        "name": "addRowDuplicateCells",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "addRowExtendCell",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelCell"
+        ]
+      },
+      {
+        "name": "getCellPosition",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColChildCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColDuplicateCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColExpandLevel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColExpandOffset",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColExpandSpan",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColExtendCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColParent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getColParentCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowChildCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowDuplicateCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowExpandLevel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowExpandOffset",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowExpandSpan",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowExtendCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowParent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRowParentCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "isColDuplicate",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isRowDuplicate",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setColExpandLevel",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setColExpandOffset",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setColExpandSpan",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setColIndex",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setColParentCell",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelCell"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRowExpandLevel",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setRowExpandOffset",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setRowExpandSpan",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setRowIndex",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setRowParentCell",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelCell"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.model.XptCellModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getColParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColTestExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDomain",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEditorId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandInplaceCount",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandOrderBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getField",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFormatExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLinkExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowTestExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStyleIdExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValueExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getViewerId",
+        "parameterTypes": []
+      },
+      {
+        "name": "isKeepExpandEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setColParent",
+        "parameterTypes": [
+          "io.nop.core.model.table.CellPosition"
+        ]
+      },
+      {
+        "name": "setColTestExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      },
+      {
+        "name": "setDomain",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEditorId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExpandExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setExpandInplaceCount",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setExpandOrderBy",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setExpandType",
+        "parameterTypes": [
+          "io.nop.excel.model.constants.XptExpandType"
+        ]
+      },
+      {
+        "name": "setField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFormatExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setKeepExpandEmpty",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setLinkExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setRowParent",
+        "parameterTypes": [
+          "io.nop.core.model.table.CellPosition"
+        ]
+      },
+      {
+        "name": "setRowTestExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      },
+      {
+        "name": "setStyleIdExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setValueExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setViewerId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.model._gen._XptCellModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "c"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "r"
+      }
+    ],
+    "methods": [
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.excel.model.constants.XptExpandType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "invokeAsync",
         "parameterTypes": [
           "java.util.function.Function",

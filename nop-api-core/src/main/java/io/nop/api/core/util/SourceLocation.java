@@ -119,6 +119,24 @@ public class SourceLocation implements Serializable, IJsonString {
     }
 
     public static SourceLocation fromLine(String path, int line, int col, int len) {
+        int pos = path.indexOf('?');
+        if (pos > 0) {
+            String sheet = path.substring(pos + 1);
+            String ref = null;
+            String cell = null;
+            path = path.substring(0, pos);
+            int pos2 = sheet.indexOf('#');
+            if (pos2 > 0) {
+                ref = sheet.substring(pos2 + 1);
+                sheet = sheet.substring(0, pos2);
+            }
+            pos2 = sheet.indexOf('!');
+            if (pos2 > 0) {
+                cell = sheet.substring(pos2 + 1);
+                sheet = sheet.substring(0, pos2);
+            }
+            return new SourceLocation(path, line, col, len, 0, sheet, cell, ref);
+        }
         return new SourceLocation(path, line, col, len, 0, null, null, null);
     }
 

@@ -145,7 +145,7 @@ public class BeanDefinitionBuilder {
         return this;
     }
 
-    public void buildAll(Map<String, BeanDefinition> beans,Map<String, AliasName> aliases) {
+    public void buildAll(Map<String, BeanDefinition> beans, Map<String, AliasName> aliases) {
         this.beans = beans;
         this.aliases = aliases;
 
@@ -598,7 +598,7 @@ public class BeanDefinitionBuilder {
 
                 if (resolver != null) {
                     IPropertySetter setter = field.getSetter();
-                    bean.addProp(propName, new BeanProperty(loc, setter, field.getRawClass(), resolver, true,false));
+                    bean.addProp(propName, new BeanProperty(loc, setter, field.getRawClass(), resolver, true, false));
                 } else {
                     LOG.info("nop.ioc.ignore-optional-inject:prop={},bean={}", propName, bean);
                 }
@@ -972,9 +972,11 @@ public class BeanDefinitionBuilder {
 
     IBeanPropValueResolver buildRefResolver(BeanDefinition bean, SourceLocation loc, String propName, String ref,
                                             boolean optional, boolean ignoreDepends) {
-        AliasName aliasName = aliases.get(ref);
-        if(aliasName != null){
-            ref = aliasName.getName();
+        if (aliases != null) {
+            AliasName aliasName = aliases.get(ref);
+            if (aliasName != null) {
+                ref = aliasName.getName();
+            }
         }
 
         BeanDefinition resolvedBean = beans.get(ref);

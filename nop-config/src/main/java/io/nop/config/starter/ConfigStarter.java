@@ -369,7 +369,7 @@ public class ConfigStarter extends LifeCycleSupport {
         List<String> profiles = getProfiles(configSource);
         for (String profile : profiles) {
             IResource resource = getAppProfileFile(profile);
-            if (resource.exists()) {
+            if (!resource.exists()) {
                 IConfigSource source = new ResourceConfigSourceLoader(resource).loadConfigSource(configSource);
                 appSources.add(source);
             }

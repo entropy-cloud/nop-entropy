@@ -13,10 +13,16 @@
     <bean id="io.nop.web.biz.SystemJsProviderBizModel" ioc:type="@bean:id"/>
 
     <bean id="io.nop.web.page.SystemJsProvider" ioc:type="@bean:id">
-        <property name="jsFunctionService" ref="nopJsFunctionService"/>
+        <property name="jsFunctionService">
+            <ref bean="nopJsFunctionService" ioc:optional="true" />
+        </property>
     </bean>
 
     <bean id="nopJsFunctionService" class="io.nop.js.engine.JavaScriptService">
+        <ioc:condition>
+            <on-class>io.nop.js.engine.JavaScriptService</on-class>
+        </ioc:condition>
+
         <property name="initScriptPath" value="/nop/js/libs/nop-server-tool.mjs"/>
         <property name="workerCount" value="@r-cfg:nop.js.service.worker-count|5"/>
         <property name="jsLibLoader">

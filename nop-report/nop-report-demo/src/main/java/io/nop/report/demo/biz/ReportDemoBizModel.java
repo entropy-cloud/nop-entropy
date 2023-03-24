@@ -55,7 +55,7 @@ public class ReportDemoBizModel {
 
         List<TreeResultBean> ret = new ArrayList<>();
         for (IResource child : children) {
-            if (child.getName().endsWith(".xpt.xlsx")) {
+            if (!child.getName().startsWith("~") && child.getName().endsWith(".xpt.xlsx")) {
                 TreeResultBean bean = new TreeResultBean();
                 String rptName = StringHelper.removeTail(child.getName(), ".xpt.xlsx");
                 bean.setLabel(rptName);

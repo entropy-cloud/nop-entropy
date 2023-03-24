@@ -11,7 +11,7 @@
     <paginationHandler>io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler</paginationHandler>
 
     <features
-            supportExecuteLargeUpdate="false" supportLargeMaxRows="true"
+            supportExecuteLargeUpdate="false" supportLargeMaxRows="false"
             supportTransaction="true" supportSavePoint="true"
             supportBatchUpdate="true" supportSequence="false" supportTruncateTable="true"
             supportUpdateTableAlias="false" supportDeleteTableAlias="false"

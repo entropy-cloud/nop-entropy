@@ -21,6 +21,8 @@ import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.TextFile;
 import io.nop.web.WebConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -30,6 +32,8 @@ import static io.nop.web.WebErrors.ARG_PATH;
 import static io.nop.web.WebErrors.ERR_WEB_MISSING_RESOURCE;
 
 public class SystemJsProvider extends ResourceWithHistoryProvider {
+    static final Logger LOG = LoggerFactory.getLogger(SystemJsProvider.class);
+
     private final Cancellable cleanup = new Cancellable();
     private IAsyncFunctionService jsFunctionService;
 
@@ -71,10 +75,14 @@ public class SystemJsProvider extends ResourceWithHistoryProvider {
             String text = ResourceHelper.readText(resource).trim();
             // 如果不是SystemJs格式，则假设它是ESM格式，需要转换格式
             if (!text.startsWith("System.register(")) {
-                CompletionStage<?> future = jsFunctionService.invokeAsync(WebConstants.FUNC_ROLLUP_TRANSFORM, path, text);
-                String result = (String) FutureHelper.syncGet(future);
-                dumpResource(resource, result);
-                text = result;
+                if (jsFunctionService != null) {
+                    CompletionStage<?> future = jsFunctionService.invokeAsync(WebConstants.FUNC_ROLLUP_TRANSFORM, path, text);
+                    String result = (String) FutureHelper.syncGet(future);
+                    dumpResource(resource, result);
+                    text = result;
+                } else {
+                    LOG.warn("nop.web.no-js-function-service:resource={}", resource.getPath());
+                }
             }
             return new TextFile(loc, text);
         }
@@ -102,10 +110,13 @@ public class SystemJsProvider extends ResourceWithHistoryProvider {
         }
 
         // 调用js服务将ESM模块文件格式转换为SystemJs格式
-        CompletionStage<?> future = jsFunctionService.invokeAsync(WebConstants.FUNC_ROLLUP_TRANSFORM, path, source);
-        String result = (String) FutureHelper.syncGet(future);
-        dumpResource(resource, result);
-        return new TextFile(loc, result);
+        if (jsFunctionService != null) {
+            CompletionStage<?> future = jsFunctionService.invokeAsync(WebConstants.FUNC_ROLLUP_TRANSFORM, path, source);
+            String result = (String) FutureHelper.syncGet(future);
+            dumpResource(resource, result);
+            source = result;
+        }
+        return new TextFile(loc, source);
     }
 
     public static TextFile emptyFile(SourceLocation loc) {

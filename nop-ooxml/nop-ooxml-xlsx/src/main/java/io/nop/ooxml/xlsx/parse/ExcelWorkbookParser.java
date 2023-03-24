@@ -8,6 +8,7 @@
 package io.nop.ooxml.xlsx.parse;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICell;
@@ -41,14 +42,13 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
             throw new NopException(ERR_XLSX_NULL_REL_PART).param(ARG_TYPE, "sheet").param(ARG_REL_ID, sheetRef.getRelId());
         CommentsPart comments = getCommentsTable(sheetPart);
 
-        SimpleSheetContentsHandler contentsHandler = new SimpleSheetContentsHandler(workbook);
+        SimpleSheetContentsHandler contentsHandler = new SimpleSheetContentsHandler(workbook, sheetRef.getName());
 
         SheetNodeHandler handler = new SheetNodeHandler(sharedStringsTable, contentsHandler);
         sheetPart.processXml(handler, null);
 
         ExcelSheet sheet = contentsHandler.getSheet();
         sheet.setLocation(pkg.getLocation());
-        sheet.setName(sheetRef.getName());
         sheet.setDefaultColumnWidth(ExcelConstants.DEFAULT_COL_WIDTH * UnitsHelper.DEFAULT_CHARACTER_WIDTH_IN_PT);
 
         if (comments != null) {
@@ -74,8 +74,9 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
         private final ExcelSheet sheet = new ExcelSheet();
         private ExcelTable table = sheet.getTable();
 
-        public SimpleSheetContentsHandler(ExcelWorkbook workbook) {
+        public SimpleSheetContentsHandler(ExcelWorkbook workbook, String sheetName) {
             this.workbook = workbook;
+            this.sheet.setName(sheetName);
         }
 
         public ExcelSheet getSheet() {
@@ -115,6 +116,8 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
         @Override
         public void cell(CellPosition cellRef, Object value, int styleId) {
             ExcelCell cell = table.newCell();
+            cell.setLocation(new SourceLocation(workbook.resourcePath(), 0, 0, 0, 0,
+                    sheet.getName(), cellRef.toABString(), null));
             if (styleId >= 0) {
                 cell.setStyleId(String.valueOf(styleId));
             }

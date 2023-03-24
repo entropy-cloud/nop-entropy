@@ -173,7 +173,15 @@ public class XplStdDomainHandlers {
                                 XLangCompileTool cp) {
             if (value instanceof ExprEvalAction)
                 return value;
-            return parsePropFullExpr(outputMode, loc, propName, value.toString(), cp);
+            if (value instanceof XNode)
+                return parseXplBody((XNode) value, cp);
+
+            String text = value.toString().trim();
+            if (text.startsWith("<") || text.endsWith(">")) {
+                XNode node = XNodeParser.instance().forFragments(true).parseFromText(loc, text);
+                return parseXplBody(node, cp);
+            }
+            return parsePropFullExpr(outputMode, loc, propName, text, cp);
         }
 
         @Override
