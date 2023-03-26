@@ -19,6 +19,8 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptModelBuilder;
 import io.nop.report.core.imp.ExcelTemplateToXptModelTransformer;
+import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
 
 import java.util.Collections;
 import java.util.Map;
@@ -69,7 +71,7 @@ public class ReportEngine implements IReportEngine {
             throw new NopException(ERR_XPT_UNSUPPORTED_RENDER_TYPE)
                     .param(ARG_RENDER_TYPE, renderType);
 
-        return rendererFactory.buildRenderer(model, (ctx,action)-> model.getSheets().forEach(action));
+        return rendererFactory.buildRenderer(model, (ctx, action) -> model.getSheets().forEach(action));
     }
 
 
@@ -82,7 +84,8 @@ public class ReportEngine implements IReportEngine {
 
         new ExcelTemplateToXptModelTransformer().transform(template, impModel);
 
-        new XptModelBuilder().build(template);
+        XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        new XptModelBuilder(cp).build(template);
 
         return template;
     }

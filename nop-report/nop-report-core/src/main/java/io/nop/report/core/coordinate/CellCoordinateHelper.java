@@ -24,6 +24,10 @@ public class CellCoordinateHelper {
     static final Logger LOG = LoggerFactory.getLogger(CellCoordinateHelper.class);
 
     public static List<ExpandedCell> resolveLayerCoordinate(ExpandedCell cell, CellLayerCoordinate layerCoord) {
+        if (layerCoord.getRowCoordinates() == null && layerCoord.getColCoordinates() == null) {
+            return resolveCell(cell, layerCoord.getCellName());
+        }
+
         List<ExpandedCell> rowCells = resolveRowCoordinates(cell, layerCoord.getCellName(), layerCoord.getRowCoordinates());
         List<ExpandedCell> colCells = resolveColCoordinates(cell, layerCoord.getCellName(), layerCoord.getColCoordinates());
         if (rowCells != null && colCells != null) {
@@ -32,8 +36,6 @@ public class CellCoordinateHelper {
             return rowCells;
         } else if (colCells != null) {
             return colCells;
-        } else if (layerCoord.getRowCoordinates() == null && layerCoord.getColCoordinates() == null) {
-            return resolveCell(cell, layerCoord.getCellName());
         } else {
             return null;
         }
@@ -210,7 +212,7 @@ public class CellCoordinateHelper {
     }
 
     private static List<ExpandedCell> resolveCellInColParents(ExpandedCell cell, String cellName) {
-        ExpandedCell colParent = cell.getRowParent();
+        ExpandedCell colParent = cell.getColParent();
         if (colParent == null)
             return null;
 
@@ -220,7 +222,7 @@ public class CellCoordinateHelper {
             return ret;
         }
 
-        List<ExpandedCell> cells = colParent.getRowDescendants().get(cellName);
+        List<ExpandedCell> cells = colParent.getColDescendants().get(cellName);
         if (cells != null)
             return cells;
 

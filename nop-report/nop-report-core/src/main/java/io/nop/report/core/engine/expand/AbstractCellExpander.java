@@ -13,6 +13,8 @@ import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.dataset.DynamicReportDataSet;
 import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.model.ExpandedCell;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,9 +25,13 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractCellExpander implements ICellExpander {
+    static final Logger LOG = LoggerFactory.getLogger(AbstractCellExpander.class);
 
     @Override
     public void expand(ExpandedCell cell, Deque<ExpandedCell> processing, IXptRuntime xptRt) {
+        //  LOG.info("nop.report.expand-cell:cell={},expandType={},rowParentExpandIndex={},colParentExpandIndex={}",
+        //          cell.getName(), cell.getExpandType(), cell.getRowParentExpandIndex(), cell.getColParentExpandIndex());
+
         Iterator<?> expandList = runExpandExpr(cell, xptRt);
         if (!expandList.hasNext()) {
             if (cell.getModel() != null && cell.getModel().isKeepExpandEmpty()) {
@@ -42,6 +48,7 @@ public abstract class AbstractCellExpander implements ICellExpander {
             if (expandCount > 1)
                 extendCells(cell, expandCount);
         }
+        //ExpandedTableToNode.dump(cell.getTable());
     }
 
     protected Iterator<?> runExpandExpr(ExpandedCell cell, IXptRuntime xptRt) {
@@ -121,6 +128,8 @@ public abstract class AbstractCellExpander implements ICellExpander {
         newCell.setMergeAcross(nextCell.getMergeAcross());
         newCell.setMergeDown(nextCell.getMergeDown());
         newCell.setStyleId(nextCell.getStyleId());
+        newCell.setRowParent(nextCell.getRowParent());
+        newCell.setColParent(nextCell.getColParent());
     }
 
     protected void clearCell(ExpandedCell cell) {

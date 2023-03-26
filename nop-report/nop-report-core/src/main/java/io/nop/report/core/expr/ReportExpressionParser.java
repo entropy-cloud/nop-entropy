@@ -17,6 +17,7 @@ import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.MemberExpression;
 import io.nop.xlang.ast.XLangOperator;
+import io.nop.xlang.expr.ExprFeatures;
 import io.nop.xlang.expr.simple.SimpleExprParser;
 
 import java.util.ArrayList;
@@ -26,6 +27,11 @@ import java.util.List;
  * 在XLang表达式的基础上增加CellCoordinate语法的支持。可以支持简单的Excel公式形式，例如 SUM(A3:A5) + C1
  */
 public class ReportExpressionParser extends SimpleExprParser {
+    public ReportExpressionParser() {
+        setUseEvalException(true);
+        enableFeatures(ExprFeatures.ALL);
+    }
+
     @Override
     protected Expression varFactorExpr(TextScanner sc) {
         Identifier id = tokenExpr(sc);

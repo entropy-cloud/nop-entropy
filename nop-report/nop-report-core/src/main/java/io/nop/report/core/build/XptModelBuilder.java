@@ -9,6 +9,9 @@ package io.nop.report.core.build;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
+import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
 import io.nop.excel.model.ExcelCell;
@@ -19,7 +22,11 @@ import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptRowModel;
+import io.nop.excel.model.XptSheetModel;
+import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.model.constants.XptExpandType;
+import io.nop.report.core.initialize.TemplateReportExprStdDomainHandler;
+import io.nop.xlang.api.XLangCompileTool;
 
 import java.util.HashSet;
 import java.util.List;
@@ -27,12 +34,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import static io.nop.report.core.XptConstants.EXCEL_MODEL_FIELD_PREFIX;
 import static io.nop.report.core.XptErrors.ARG_CELL_POS;
 import static io.nop.report.core.XptErrors.ARG_COL_PARENT;
+import static io.nop.report.core.XptErrors.ARG_DS_NAME;
+import static io.nop.report.core.XptErrors.ARG_FIELD_NAME;
 import static io.nop.report.core.XptErrors.ARG_ROW_PARENT;
 import static io.nop.report.core.XptErrors.ARG_SHEET_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_COL_PARENT_CONTAINS_LOOP;
 import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_COL_PARENT;
+import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_DS_NAME;
+import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_FIELD_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_ROW_PARENT;
 import static io.nop.report.core.XptErrors.ERR_XPT_ROW_PARENT_CONTAINS_LOOP;
 
@@ -40,14 +52,25 @@ import static io.nop.report.core.XptErrors.ERR_XPT_ROW_PARENT_CONTAINS_LOOP;
  * 分析rowParent和colParent的关联关系，产生的分析结果保存在XptCellModel中
  */
 public class XptModelBuilder {
+    private final XLangCompileTool cp;
+
+    public XptModelBuilder(XLangCompileTool cp) {
+        this.cp = cp;
+    }
 
     public void build(ExcelWorkbook workbook) {
+        if (workbook.getModel() == null)
+            workbook.setModel(new XptWorkbookModel());
+
         for (ExcelSheet sheet : workbook.getSheets()) {
             buildSheetModel(sheet);
         }
     }
 
     public void buildSheetModel(ExcelSheet sheet) {
+        if (sheet.getModel() == null)
+            sheet.setModel(new XptSheetModel());
+
         Map<String, ExcelCell> cells = new TreeMap<>();
         initCols(sheet);
         initXptModels(sheet, cells);
@@ -105,7 +128,63 @@ public class XptModelBuilder {
                 xptModel.setRowIndex(i);
                 xptModel.setColIndex(j);
                 xptModel.setName(name);
+
+                normalizeValueExpr(ec);
             }
+        }
+    }
+
+    private void normalizeValueExpr(ExcelCell cell) {
+        XptCellModel cellModel = cell.getModel();
+        String text = cell.getText();
+        if (!StringHelper.isEmpty(text)) {
+            // 解析 *=^ds!myField 这种形式的单元格表达式
+            if (text.startsWith(EXCEL_MODEL_FIELD_PREFIX)) {
+                parseCellExpr(cellModel, cell.getLocation(), text.substring(EXCEL_MODEL_FIELD_PREFIX.length()).trim());
+            } else if (text.contains("${") && text.contains("}")) {
+                // 解析 ${x}这种xpl模板表达式
+                IEvalAction valueExpr = (IEvalAction) TemplateReportExprStdDomainHandler.INSTANCE.parseProp(null, cell.getLocation(),
+                        "valueExpr", text, cp);
+                cellModel.setValueExpr(valueExpr);
+            }
+        }
+    }
+
+    private void parseCellExpr(XptCellModel cellModel, SourceLocation loc, String text) {
+        XptExpandType expandType = null;
+        if (text.startsWith("^")) {
+            expandType = XptExpandType.r;
+            text = text.substring(1).trim();
+        } else if (text.startsWith(">")) {
+            expandType = XptExpandType.c;
+            text = text.substring(1).trim();
+        }
+
+        if (expandType != null) {
+            cellModel.setExpandType(expandType);
+        }
+
+        int pos = text.indexOf('!');
+        if (pos > 0) {
+            String ds = text.substring(0, pos);
+            String field = text.substring(pos + 1);
+            if (!StringHelper.isValidJavaVarName(ds))
+                throw new NopException(ERR_XPT_INVALID_DS_NAME)
+                        .loc(loc)
+                        .param(ARG_DS_NAME, ds);
+
+            if (!StringHelper.isValidPropPath(field))
+                throw new NopException(ERR_XPT_INVALID_FIELD_NAME)
+                        .loc(loc)
+                        .param(ARG_FIELD_NAME, field);
+            cellModel.setField(field);
+            cellModel.setDs(ds);
+        } else {
+            if (!StringHelper.isValidPropPath(text))
+                throw new NopException(ERR_XPT_INVALID_FIELD_NAME)
+                        .loc(loc)
+                        .param(ARG_FIELD_NAME, text);
+            cellModel.setField(text);
         }
     }
 
@@ -344,14 +423,16 @@ public class XptModelBuilder {
                 i += ic.getMergeAcross();
             }
             ExcelCell rc = (ExcelCell) ic.getRealCell();
+            if (rc == cell)
+                continue;
             XptCellModel rcModel = rc.getModel();
             String name = rc.getModel().getName();
 
-            // 1. 如果是展开单元格的父单元格
-            // 2. 且整个单元格的延展范围包含了展开单元格的范围
-            if (xptModel.getRowParent(name) != null) {
-                if (rcModel.getRowIndex() <= beginIndex
-                        && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
+            // 1. 整个单元格的延展范围包含了展开单元格的范围
+            // 2. 且不是展开单元格的子单元格
+            if (rcModel.getRowIndex() <= beginIndex
+                    && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
+                if (!xptModel.getRowDuplicateCells().containsKey(name)) {
                     xptModel.addRowExtendCell(rc);
                 }
             }
@@ -374,14 +455,17 @@ public class XptModelBuilder {
                 i += ic.getMergeDown();
             }
             ExcelCell rc = (ExcelCell) ic.getRealCell();
+            if (rc == cell)
+                continue;
+
             XptCellModel rcModel = rc.getModel();
             String name = rc.getModel().getName();
 
-            // 1. 如果是展开单元格的父单元格
-            // 2. 且整个单元格的延展范围包含了展开单元格的范围
-            if (xptModel.getColParent(name) != null) {
-                if (rcModel.getColIndex() <= beginIndex
-                        && rcModel.getColIndex() + ic.getColSpan() >= endIndex) {
+            // 1. 整个单元格的延展范围包含了展开单元格的范围
+            // 2. 且不是展开单元格的子单元格
+            if (rcModel.getColIndex() <= beginIndex
+                    && rcModel.getColIndex() + ic.getColSpan() >= endIndex) {
+                if (!xptModel.getColDuplicateCells().containsKey(name)) {
                     xptModel.addColExtendCell(rc);
                 }
             }

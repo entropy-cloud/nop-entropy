@@ -8,6 +8,7 @@
 package io.nop.report.core.engine;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
@@ -98,6 +99,8 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
     private void generateSheet(ExcelSheet sheet, IXptRuntime xptRt, Consumer<IExcelSheet> consumer,
                                Map<String, Integer> sheetNames) {
         XptSheetModel sheetModel = sheet.getModel();
+        Guard.notNull(sheetModel, "sheetModel");
+
         String sheetName = sheet.getName();
         xptRt.getEvalScope().setLocalValue(null, XptConstants.VAR_SHEET_NAME, sheetName);
 
@@ -112,8 +115,11 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
         xptRt.getEvalScope().setLocalValue(null, XptConstants.VAR_SHEET_NAME, sheetName);
 
         ExpandedSheet expandedSheet = new ExpandedSheet(sheet);
+        expandedSheet.setModel(sheetModel);
         expandedSheet.setName(sheetName);
         xptRt.setSheet(expandedSheet);
+
+        //ExpandedTableToNode.dump(expandedSheet.getTable());
 
         new TableExpander(expandedSheet.getTable()).expand(xptRt);
 

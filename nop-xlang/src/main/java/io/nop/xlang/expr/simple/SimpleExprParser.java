@@ -44,6 +44,7 @@ import io.nop.xlang.ast.XLangASTNode;
 import io.nop.xlang.ast.XLangOperator;
 import io.nop.xlang.expr.ExprFeatures;
 import io.nop.xlang.expr.ExprPhase;
+import io.nop.xlang.expr.IExpressionParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +62,7 @@ import static io.nop.xlang.ast.XLangASTHelper.allowCall;
 import static io.nop.xlang.ast.XLangASTHelper.allowMandatoryChain;
 import static io.nop.xlang.ast.XLangASTHelper.allowMember;
 
-public class SimpleExprParser extends AbstractExprParser<Expression> {
+public class SimpleExprParser extends AbstractExprParser<Expression> implements IExpressionParser {
     static final Logger LOG = LoggerFactory.getLogger(SimpleExprParser.class);
 
     private IGenericTypeParser typeParser = new GenericTypeParser();

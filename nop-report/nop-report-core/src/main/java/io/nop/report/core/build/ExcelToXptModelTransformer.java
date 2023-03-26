@@ -9,7 +9,6 @@ package io.nop.report.core.build;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
-import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalAction;
@@ -26,26 +25,20 @@ import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
-import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.XptConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
-import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.source.SourceEvalAction;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
 import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.report.core.XptConstants.EXCEL_MODEL_FIELD_PREFIX;
-import static io.nop.report.core.XptErrors.ARG_DS_NAME;
-import static io.nop.report.core.XptErrors.ARG_FIELD_NAME;
 import static io.nop.report.core.XptErrors.ARG_PROP_NAME;
-import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_DS_NAME;
-import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_FIELD_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CELL_MODEL_PROP;
 
 /**
@@ -118,18 +111,6 @@ public class ExcelToXptModelTransformer {
                 parseCellModelFromComment(ec, cellModelNode, transformer);
             }
 
-            String text = cell.getText();
-            if (text != null) {
-                // 解析 *=^ds!myField 这种形式的单元格表达式
-                if (text.startsWith(EXCEL_MODEL_FIELD_PREFIX)) {
-                    parseCellExpr(cellModel, ec.getLocation(), text.substring(EXCEL_MODEL_FIELD_PREFIX.length()).trim());
-                } else if (text.contains("${") && text.contains("}")) {
-                    // 解析 ${x}这种xpl模板表达式
-                    IEvalAction valueExpr = transformer.getCompileTool().compileTemplateExpr(ec.getLocation(),
-                            text, false, ExprPhase.eval);
-                    cellModel.setValueExpr(valueExpr);
-                }
-            }
             return ProcessResult.CONTINUE;
         });
     }
@@ -147,11 +128,13 @@ public class ExcelToXptModelTransformer {
             IXDefAttribute attr = cellModelNode.getAttribute(varName);
             if (attr != null) {
                 Object value = transformer.parseValue(vl, varName, attr.getType());
+                value = addSource(vl, value);
                 BeanTool.instance().setProperty(cellModel, attr.getPropName(), value);
             } else {
                 IXDefNode child = cellModelNode.getChild(varName);
                 if (child != null && child.getXdefValue() != null) {
                     Object value = transformer.parseValue(vl, varName, child.getXdefValue());
+                    value = addSource(vl, value);
                     BeanTool.instance().setProperty(cellModel, child.getXdefBeanProp(), value);
                 } else {
                     throw new NopException(ERR_XPT_UNDEFINED_CELL_MODEL_PROP)
@@ -162,42 +145,11 @@ public class ExcelToXptModelTransformer {
         }
     }
 
-    private void parseCellExpr(XptCellModel cellModel, SourceLocation loc, String text) {
-        XptExpandType expandType = null;
-        if (text.startsWith("^")) {
-            expandType = XptExpandType.r;
-            text = text.substring(1).trim();
-        } else if (text.startsWith(">")) {
-            expandType = XptExpandType.c;
-            text = text.substring(1).trim();
+    private Object addSource(ValueWithLocation vl, Object value) {
+        if (value instanceof IEvalAction && vl.getValue() instanceof String) {
+            return new SourceEvalAction((String) vl.getValue(), (IEvalAction) value);
         }
-
-        if (expandType != null) {
-            cellModel.setExpandType(expandType);
-        }
-
-        int pos = text.indexOf('!');
-        if (pos > 0) {
-            String ds = text.substring(0, pos);
-            String field = text.substring(pos + 1);
-            if (!StringHelper.isValidJavaVarName(ds))
-                throw new NopException(ERR_XPT_INVALID_DS_NAME)
-                        .loc(loc)
-                        .param(ARG_DS_NAME, ds);
-
-            if (!StringHelper.isValidPropPath(field))
-                throw new NopException(ERR_XPT_INVALID_FIELD_NAME)
-                        .loc(loc)
-                        .param(ARG_FIELD_NAME, field);
-            cellModel.setField(field);
-            cellModel.setDs(ds);
-        } else {
-            if (!StringHelper.isValidPropPath(text))
-                throw new NopException(ERR_XPT_INVALID_FIELD_NAME)
-                        .loc(loc)
-                        .param(ARG_FIELD_NAME, text);
-            cellModel.setField(text);
-        }
+        return value;
     }
 
     private <T> T importModel(ImportSheetModel impModel, ExcelSheet sheet, Class<T> clazz) {

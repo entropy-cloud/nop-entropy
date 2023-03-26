@@ -27,4 +27,12 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
             }
         }
     }
+
+    @EnableSnapshot
+    @Test
+    public void testSingleReport() {
+        String reportName = "/base/交叉报表—数据双向扩展.xpt.xlsx";
+        String html = reportDemo.renderHtml(reportName);
+        outputText(reportName + ".html", html);
+    }
 }

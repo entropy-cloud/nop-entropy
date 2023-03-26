@@ -89,6 +89,7 @@ public interface XDefConstants {
     String STD_DOMAIN_XPL_XJSON = "xpl-xjson";
 
     String STD_DOMAIN_REPORT_EXPR = "report-expr";
+    String STD_DOMAIN_T_REPORT_EXPR = "t-report-expr";
 
     String STD_DOMAIN_EXPR = "expr";
     String STD_DOMAIN_S_EXPR = "s-expr";

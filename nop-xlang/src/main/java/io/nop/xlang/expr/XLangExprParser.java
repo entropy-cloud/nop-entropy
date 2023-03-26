@@ -18,7 +18,6 @@ import io.nop.xlang.compile.LexicalScopeAnalysis;
 import io.nop.xlang.compile.PrintResolvedIdentifier;
 import io.nop.xlang.compile.TypeInferenceProcessor;
 import io.nop.xlang.compile.TypeInferenceState;
-import io.nop.xlang.expr.simple.SimpleExprParser;
 import io.nop.xlang.parse.XLangASTBuildVisitor;
 import io.nop.xlang.parse.XLangParseTreeParser;
 import io.nop.xlang.parse.antlr.XLangParser;
@@ -41,18 +40,18 @@ public class XLangExprParser implements IXLangExprParser {
     @Override
     public Expression parseSimpleExpr(SourceLocation loc, String source, IXLangCompileScope scope,
                                       boolean resolveMacro) {
-        SimpleExprParser parser = newExprParser(scope, resolveMacro);
+        IExpressionParser parser = newExprParser(scope, resolveMacro);
         return parser.parseExpr(loc, source);
     }
 
     @Override
     public Expression parseTemplateExpr(SourceLocation loc, String source, boolean singleExpr, ExprPhase phase,
                                         IXLangCompileScope scope, boolean resolveMacro) {
-        SimpleExprParser parser = newExprParser(scope, resolveMacro);
+        IExpressionParser parser = newExprParser(scope, resolveMacro);
         return parser.parseTemplateExpr(loc, source, singleExpr, phase);
     }
 
-    SimpleExprParser newExprParser(IXLangCompileScope scope, boolean resolveMacro) {
+    protected IExpressionParser newExprParser(IXLangCompileScope scope, boolean resolveMacro) {
         return new XplExprParser(this, scope, resolveMacro);
     }
 

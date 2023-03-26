@@ -17,6 +17,10 @@ public class KeyedReportDataSet extends ReportDataSet {
         this.key = key;
     }
 
+    public String toString() {
+        return "KeyedReportDataSet[" + key + "]";
+    }
+
     public Object getKey() {
         return key;
     }

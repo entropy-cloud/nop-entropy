@@ -18,6 +18,7 @@ import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.dataset.ReportDataSet;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,11 @@ public class ExpandedCell implements ICellView {
      * valueExpr已经执行完毕，value值可用
      */
     private boolean evaluated;
+
+    public String toString() {
+        return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandValue() + ",text=" + getText() + "]";
+    }
+
 
     /**
      * 标记colSpan和rowSpan范围内的所有单元格的realCell为当前单元格。
@@ -206,6 +212,18 @@ public class ExpandedCell implements ICellView {
         return model == null ? null : model.getExpandType();
     }
 
+    public int getRowParentExpandIndex() {
+        if (rowParent == null)
+            return -1;
+        return rowParent.getExpandIndex();
+    }
+
+    public int getColParentExpandIndex() {
+        if (colParent == null)
+            return -1;
+        return colParent.getExpandIndex();
+    }
+
     public boolean isProxyCell() {
         return realCell != null && realCell != this;
     }
@@ -304,6 +322,44 @@ public class ExpandedCell implements ICellView {
 
     public void setRowParent(ExpandedCell rowParent) {
         this.rowParent = rowParent;
+//        System.out.println("setRowParent:child="+model.getName()+",parent="+rowParent.getModel().getName()
+//                +",expandValue="+expandValue+",expandIndex="+expandIndex+",value="+value);
+    }
+
+    public List<ExpandedCell> getRowChildren() {
+        if (rowDescendants == null || rowDescendants.isEmpty())
+            return Collections.emptyList();
+
+        List<ExpandedCell> children = new ArrayList<>();
+        for (String cellName : model.getRowChildCells().keySet()) {
+            List<ExpandedCell> list = rowDescendants.get(cellName);
+            if (list != null) {
+                for (ExpandedCell cell : list) {
+                    if (cell.getRowParent() == this) {
+                        children.add(cell);
+                    }
+                }
+            }
+        }
+        return children;
+    }
+
+    public List<ExpandedCell> getColChildren() {
+        if (colDescendants == null || colDescendants.isEmpty())
+            return Collections.emptyList();
+
+        List<ExpandedCell> children = new ArrayList<>();
+        for (String cellName : model.getColChildCells().keySet()) {
+            List<ExpandedCell> list = colDescendants.get(cellName);
+            if (list != null) {
+                for (ExpandedCell cell : list) {
+                    if (cell.getColParent() == this) {
+                        children.add(cell);
+                    }
+                }
+            }
+        }
+        return children;
     }
 
     public ExpandedCell getColParent() {
@@ -381,6 +437,8 @@ public class ExpandedCell implements ICellView {
 
         ExpandedCell p = rowParent;
         while (p != null) {
+            if (p.rowDescendants == null)
+                p.rowDescendants = new HashMap<>();
             addToList(p.rowDescendants, cell);
             p = p.getRowParent();
         }
@@ -394,16 +452,18 @@ public class ExpandedCell implements ICellView {
 
         ExpandedCell p = colParent;
         while (p != null) {
+            if (p.colDescendants == null)
+                p.colDescendants = new HashMap<>();
             addToList(p.colDescendants, cell);
             p = p.getColParent();
         }
     }
 
     void addToList(Map<String, List<ExpandedCell>> map, ExpandedCell cell) {
-        List<ExpandedCell> list = rowDescendants.get(cell.getName());
+        List<ExpandedCell> list = map.get(cell.getName());
         if (list == null) {
             list = new ArrayList<>();
-            rowDescendants.put(cell.getName(), list);
+            map.put(cell.getName(), list);
         }
         list.add(cell);
     }

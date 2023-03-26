@@ -32,8 +32,10 @@ public class ReportCoreInitializer implements ICoreInitializer {
     public void initialize() {
         cancellable.append(ReportFunctionProvider.INSTANCE.registerStaticFunctions(ReportFunctions.class));
         StdDomainRegistry.instance().registerStdDomainHandler(ReportExprStdDomainHandler.INSTANCE);
+        StdDomainRegistry.instance().registerStdDomainHandler(TemplateReportExprStdDomainHandler.INSTANCE);
         cancellable.appendOnCancelTask(() -> {
             StdDomainRegistry.instance().unregisterStdDomainHandler(ReportExprStdDomainHandler.INSTANCE);
+            StdDomainRegistry.instance().unregisterStdDomainHandler(TemplateReportExprStdDomainHandler.INSTANCE);
         });
 
         registerXpt();

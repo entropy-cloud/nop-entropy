@@ -63,7 +63,7 @@ public class CellColExpander extends AbstractCellExpander {
             r.forEachCell(c -> {
                 ExpandedCell realCell = c.getRealCell();
                 if (realCell.getName() != null) {
-                    if (xptModel.getColExtendCells().containsKey(c.getName())) {
+                    if (xptModel.getColExtendCells().containsKey(realCell.getName())) {
                         needExtends.put(realCell, Boolean.TRUE);
                     }
                 }
@@ -83,8 +83,8 @@ public class CellColExpander extends AbstractCellExpander {
         XptCellModel xptModel = cell.getModel();
         ExpandedCol col = cell.getCol();
         int colIndex = col.getColIndex();
-        int expandSpan = xptModel.getColExpandSpan();
-        int expandOffset = xptModel.getColExpandOffset();
+        int expandSpan = xptModel == null ? 1 : xptModel.getColExpandSpan();
+        int expandOffset = xptModel == null ? 0 : xptModel.getColExpandOffset();
 
         // 记录复制的单元格所对应的原始单元格
         Map<ExpandedCell, ExpandedCell> cellMap = new IdentityHashMap<>();
@@ -114,7 +114,12 @@ public class CellColExpander extends AbstractCellExpander {
             if (newCell.getMergeAcross() > 0 || newCell.getMergeDown() > 0)
                 newCell.markProxy();
 
-            if (newCell.getColParent() != null && newCell.getColParent() == cell.getColParent()) {
+
+            if (newCell.getRowParent() != null) {
+                newCell.getRowParent().addRowChild(newCell);
+            }
+
+            if (newCell.getColParent() != null) {
                 newCell.getColParent().addColChild(newCell);
             }
         }
@@ -144,8 +149,8 @@ public class CellColExpander extends AbstractCellExpander {
                 if (newCell.isExpandable())
                     processing.add(newCell);
             }
-            nextCell = nextCell.getRight();
-            newCell = newCell.getRight();
+            nextCell = nextCell.getDown();
+            newCell = newCell.getDown();
         }
     }
 
@@ -168,10 +173,10 @@ public class CellColExpander extends AbstractCellExpander {
                 newCell.setColParent(newParent);
             }
 
-            if (cell.hasColDescendant()) {
-                Map<String, List<ExpandedCell>> children = getNewListMap(cell.getColDescendants(), cellMap);
-                newCell.setColDescendants(children);
-            }
+//            if (cell.hasColDescendant()) {
+//                Map<String, List<ExpandedCell>> children = getNewListMap(cell.getColDescendants(), cellMap);
+//                newCell.setColDescendants(children);
+//            }
         }
     }
 }

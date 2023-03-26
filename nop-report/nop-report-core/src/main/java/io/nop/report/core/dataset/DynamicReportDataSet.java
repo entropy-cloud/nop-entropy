@@ -68,9 +68,6 @@ public class DynamicReportDataSet extends ReportDataSet {
             dsName = getDsName(cell);
         }
 
-        if (dsName == null)
-            return null;
-
         // 行坐标决定的数据集
         List<Object> rowItems = getRowParentItems(cell, dsName);
 
@@ -131,7 +128,7 @@ public class DynamicReportDataSet extends ReportDataSet {
             return null;
 
         ReportDataSet ds = parent.getDs();
-        if (ds != null && ds.getDsName().equals(dsName))
+        if (ds != null && (dsName == null || ds.getDsName().equals(dsName)))
             return ds.getItems();
         return getRowParentItems(parent, dsName);
     }
@@ -142,7 +139,7 @@ public class DynamicReportDataSet extends ReportDataSet {
             return null;
 
         ReportDataSet ds = parent.getDs();
-        if (ds != null && ds.getDsName().equals(dsName))
+        if (ds != null && (dsName == null || ds.getDsName().equals(dsName)))
             return ds.getItems();
         return getColParentItems(parent, dsName);
     }

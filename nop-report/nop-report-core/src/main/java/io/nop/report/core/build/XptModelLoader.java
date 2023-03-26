@@ -14,6 +14,8 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.report.core.XptConstants;
+import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdsl.DslModelParser;
 
 import static io.nop.report.core.XptConstants.ALLOWED_XPT_FILE_TYPES;
@@ -51,7 +53,8 @@ public class XptModelLoader {
         }
 
         // 分析rowParent/colParent设置，建立单元格的父子关系
-        new XptModelBuilder().build(workbook);
+        XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        new XptModelBuilder(cp).build(workbook);
         return workbook;
     }
 }

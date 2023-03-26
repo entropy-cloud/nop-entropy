@@ -116,8 +116,13 @@ public class CellRowExpander extends AbstractCellExpander {
             if (newCell.getMergeAcross() > 0 || newCell.getMergeDown() > 0)
                 newCell.markProxy();
 
-            if (newCell.getRowParent() != null && newCell.getRowParent() == cell.getRowParent()) {
+            if (newCell.getRowParent() != null) {
                 newCell.getRowParent().addRowChild(newCell);
+            }
+
+
+            if (newCell.getColParent() != null) {
+                newCell.getColParent().addColChild(newCell);
             }
         }
     }
@@ -169,11 +174,11 @@ public class CellRowExpander extends AbstractCellExpander {
                     newParent = parent;
                 newCell.setRowParent(newParent);
             }
-
-            if (cell.hasRowDescendant()) {
-                Map<String, List<ExpandedCell>> children = getNewListMap(cell.getRowDescendants(), cellMap);
-                newCell.setRowDescendants(children);
-            }
+//
+//            if (cell.hasRowDescendant()) {
+//                Map<String, List<ExpandedCell>> children = getNewListMap(cell.getRowDescendants(), cellMap);
+//                newCell.setRowDescendants(children);
+//            }
         }
     }
 }
