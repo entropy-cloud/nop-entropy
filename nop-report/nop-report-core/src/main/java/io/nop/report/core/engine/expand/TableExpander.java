@@ -8,10 +8,10 @@
 package io.nop.report.core.engine.expand;
 
 import io.nop.excel.model.constants.XptExpandType;
+import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedTable;
-import io.nop.report.core.engine.IXptRuntime;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -39,7 +39,7 @@ public class TableExpander {
             if (cell == null)
                 return;
 
-            System.out.println("process="+cell.getName());
+            //System.out.println("process="+cell.getName());
 
             if (cell.isRemoved() || cell.isExpanded())
                 continue;

@@ -12,17 +12,7 @@
         <form id="view">
         </form>
 
-        <form id="edit" >
-        <layout>
-            @deptName[名称]
-            parentId[父ID]
-            orderNum[排序]
-            deptType[类型]
-            email[邮件]
-            phone[电话]
-            remark[备注]
-        </layout>
-        </form>
+        <form id="edit" />
     </forms>
 
     <pages>
