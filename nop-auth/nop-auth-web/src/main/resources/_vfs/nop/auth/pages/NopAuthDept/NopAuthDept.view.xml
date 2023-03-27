@@ -2,14 +2,27 @@
 <view x:extends="_gen/_NopAuthDept.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <grids>
-        <grid id="list"/>
+        <grid id="list">
+        </grid>
         <grid id="pick-list"/>
 
     </grids>
 
     <forms>
-        <form id="view"/>
-        <form id="edit"/>
+        <form id="view">
+        </form>
+
+        <form id="edit" >
+        <layout>
+            @deptName[名称]
+            parentId[父ID]
+            orderNum[排序]
+            deptType[类型]
+            email[邮件]
+            phone[电话]
+            remark[备注]
+        </layout>
+        </form>
     </forms>
 
     <pages>

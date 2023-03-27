@@ -12,21 +12,29 @@ import java.util.function.BiFunction;
 
 public class FieldComparator<T> implements Comparator<T> {
     private final String field;
-    private final boolean asc;
+    private final boolean desc;
     private final Boolean nullsFirst;
     private final BiFunction<T, String, Object> propGetter;
 
-    public FieldComparator(String field, boolean asc,
+    public FieldComparator(String field, boolean desc,
                            Boolean nullsFirst, BiFunction<T, String, Object> propGetter) {
         this.field = field;
-        this.asc = asc;
+        this.desc = desc;
         this.nullsFirst = nullsFirst;
         this.propGetter = propGetter;
     }
 
+    public String getField() {
+        return field;
+    }
+
+    public boolean isAsc() {
+        return !desc;
+    }
+
     @Override
     public int compare(T o1, T o2) {
-        boolean b = nullsFirst != null ? nullsFirst : asc;
+        boolean b = nullsFirst != null ? nullsFirst : isAsc();
         Object v1 = o1 == null ? null : propGetter.apply(o1, field);
         Object v2 = o2 == null ? null : propGetter.apply(o2, field);
         int cmp = b ? SafeOrderedComparator.NULLS_FIRST.compare(v1, v2)

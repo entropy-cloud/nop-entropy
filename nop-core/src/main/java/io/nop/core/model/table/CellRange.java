@@ -63,6 +63,10 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
         this.lastColIndex = lastColIndex;
     }
 
+    public static CellRange fromPosition(CellPosition first, CellPosition last) {
+        return new CellRange(first.getRowIndex(), first.getColIndex(), last.getRowIndex(), last.getColIndex());
+    }
+
     public static CellRange fromABString(String str) {
         if (StringHelper.isEmpty(str))
             return null;
@@ -133,7 +137,7 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
     }
 
     public String toString() {
-        return toRCString();
+        return toABString();
     }
 
     public boolean isWholeCol() {

@@ -12,7 +12,6 @@ import io.nop.core.model.table.CellPosition;
 import io.nop.excel.model._gen._XptCellModel;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -250,8 +249,22 @@ public class XptCellModel extends _XptCellModel {
         return rowDuplicateCells;
     }
 
+    public void addRowDuplicateCell(ExcelCell cell) {
+        if (rowDuplicateCells.isEmpty()) {
+            rowDuplicateCells = new LinkedHashMap<>();
+        }
+        rowDuplicateCells.put(cell.getModel().getName(), cell);
+    }
+
+    public void addColDuplicateCell(ExcelCell cell) {
+        if (colDuplicateCells.isEmpty()) {
+            colDuplicateCells = new LinkedHashMap<>();
+        }
+        colDuplicateCells.put(cell.getModel().getName(), cell);
+    }
+
     public void addRowDuplicateCells(Map<String, ExcelCell> cells) {
-        if(cells.isEmpty())
+        if (cells.isEmpty())
             return;
 
         if (rowDuplicateCells.isEmpty()) {
@@ -261,7 +274,7 @@ public class XptCellModel extends _XptCellModel {
     }
 
     public void addColDuplicateCells(Map<String, ExcelCell> cells) {
-        if(cells.isEmpty())
+        if (cells.isEmpty())
             return;
 
         if (colDuplicateCells.isEmpty()) {

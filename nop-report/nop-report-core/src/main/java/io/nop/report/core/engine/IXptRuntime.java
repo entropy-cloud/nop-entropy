@@ -9,6 +9,7 @@ package io.nop.report.core.engine;
 
 import io.nop.core.context.IEvalContext;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.report.core.dataset.DynamicReportDataSet;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
@@ -36,4 +37,8 @@ public interface IXptRuntime extends IEvalContext {
     Object evaluateCell(ExpandedCell cell);
 
     Object field(String field);
+
+    DynamicReportDataSet ds(String dsName);
+
+    DynamicReportDataSet makeDs(String dsName, Object value);
 }

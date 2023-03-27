@@ -34,7 +34,7 @@ public interface ITable<T extends IRow> extends ITableView {
      */
     T makeRow(int rowIndex);
 
-    default ProxyCell newProxyCell(ICell cell, int rowOffset, int colOffset) {
+    default ICell newProxyCell(ICell cell, int rowOffset, int colOffset) {
         return new ProxyCell(cell, rowOffset, colOffset);
     }
 

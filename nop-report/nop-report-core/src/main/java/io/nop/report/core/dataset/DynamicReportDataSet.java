@@ -36,6 +36,11 @@ public class DynamicReportDataSet extends ReportDataSet {
                     .param(ARG_DS_NAME, dsName);
         }
 
+        return makeDataSetFromValue(scope, dsName, value);
+    }
+
+    @EvalMethod
+    public static DynamicReportDataSet makeDataSetFromValue(IEvalScope scope, String dsName, Object value) {
         DynamicReportDataSet ds;
         if (value instanceof DynamicReportDataSet) {
             DynamicReportDataSet rs = (DynamicReportDataSet) value;

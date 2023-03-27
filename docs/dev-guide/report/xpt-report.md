@@ -25,6 +25,11 @@ assign调用将把变量设置到scope上下文中，在报表单元格中就可
 - xptRt.sheet； 当前Excel表单
 - xptRt.workbook: 当前Excel工作簿
 - xptRt.field(name): 从最近邻的环境对象上获取字段值
+- cell: 等价于xptRt.cell
+- row: 等价于xptRt.row
+- table: 等价于xptRt.table
+- sheet: 等价于xptRt.sheet
+- workbook: 等价于xptRt.workbook
 
 ## 单元格展开
 在单元格的批注中可以写如下属性

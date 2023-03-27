@@ -246,8 +246,8 @@
                                  || (formModel.editMode == 'add' && !propMeta?.insertable)
 
                     let mode = cellModel?.editMode || (rd? 'view' : formModel.editMode) || 'view'
-                    const labelKey = '@i18n:cell.'+i18nRoot+"."+formCell.id+',prop.label.'
-                           +bizObjName+'.'+propMeta?.name;
+                    const labelKey = '@i18n:cell.'+i18nRoot+"."+formCell.id+(cellModel?.label ? '' : ',prop.label.'
+                           +bizObjName+'.'+propMeta?.name);
                     let label =  labelKey.$i18n(cellModel?.label || propMeta?.displayName);
 
                     let mandatory = formCell?.mandatory || propMeta?.mandatory;
@@ -330,7 +330,7 @@
 
                     let col = {
                         name:colModel.id,
-                        label: '@i18n:col.'+i18nRoot+"."+colModel.id+",prop.label."+bizObjName+"."+propMeta?.name+"|"+propMeta?.displayName,
+                        label: '@i18n:col.'+i18nRoot+"."+colModel.id+(colModel.label ? '|'+colModel.label : ",prop.label."+bizObjName+"."+propMeta?.name+"|"+propMeta?.displayName),
                         sortable: gridModel.sortable != false and colModel.sortable,
                         width: colModel.width || xpl('thisLib:GetColDefaultWidth',colModel,propMeta),
                         toggled:true,

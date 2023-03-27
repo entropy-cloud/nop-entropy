@@ -21,6 +21,7 @@ public interface FilterBeanConstants {
     String FILTER_ATTR_EXCLUDE_MAX = "excludeMax";
 
     String FILTER_ATTR_OWNER = "owner";
+    String FILTER_ATTR_VALUE_OWNER = "valueOwner";
 //    String FILTER_ATTR_LEFT_OWNER = "leftOwner";
 //    String FILTER_ATTR_RIGHT_OWNER = "rightOwner";
 

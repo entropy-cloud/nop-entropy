@@ -266,4 +266,14 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
 
         return scope.getValueByPropPath(field);
     }
+
+    @Override
+    public DynamicReportDataSet ds(String dsName) {
+        return DynamicReportDataSet.makeDataSet(getEvalScope(), dsName);
+    }
+
+    @Override
+    public DynamicReportDataSet makeDs(String dsName, Object value) {
+        return DynamicReportDataSet.makeDataSetFromValue(getEvalScope(), dsName, value);
+    }
 }

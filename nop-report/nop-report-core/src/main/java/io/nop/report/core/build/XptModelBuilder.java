@@ -77,6 +77,8 @@ public class XptModelBuilder {
         initParentChildren(sheet, cells);
         initDuplicateCells(sheet, cells);
         initExtendCells(sheet, cells);
+
+        // new XptStructureToNode().buildNodeForSheet(sheet).dump();
     }
 
     private void initCols(ExcelSheet sheet) {
@@ -240,7 +242,7 @@ public class XptModelBuilder {
             if (firstCell == null)
                 return null;
             ExcelCell ec = (ExcelCell) firstCell.getRealCell();
-            CellPosition pos = ec.getModel().getColParent();
+            CellPosition pos = ec.getModel().getRowParent();
             if (pos == null)
                 return null;
             return resolveRowParent(sheet, cell, cells, pos);
@@ -310,10 +312,14 @@ public class XptModelBuilder {
             // 如果是最顶层的单元格
             if (xptModel.getRowParentCell() == null) {
                 collectRowChild(sheet, cell, new HashSet<>());
+                if (xptModel.getExpandType() == XptExpandType.r)
+                    addDefaultRowParents(cell, sheet.getTable());
             }
 
             if (xptModel.getColParentCell() == null) {
                 collectColChild(sheet, cell, new HashSet<>());
+                if (xptModel.getExpandType() == XptExpandType.c)
+                    addDefaultColParents(cell, sheet.getTable());
             }
         }
     }
@@ -467,6 +473,51 @@ public class XptModelBuilder {
                     && rcModel.getColIndex() + ic.getColSpan() >= endIndex) {
                 if (!xptModel.getColDuplicateCells().containsKey(name)) {
                     xptModel.addColExtendCell(rc);
+                }
+            }
+        }
+    }
+
+    private void addDefaultRowParents(ExcelCell cell, ExcelTable table) {
+        XptCellModel cellModel = cell.getModel();
+        int startIndex = cellModel.getRowIndex() + cellModel.getRowExpandOffset();
+        int endIndex = startIndex + cellModel.getRowExpandSpan();
+
+        for (int i = startIndex; i < endIndex; i++) {
+            ExcelRow row = table.getRow(i);
+            for (ExcelCell c : row.getCells()) {
+                if (c != null && c != cell && !c.isProxyCell()) {
+                    XptCellModel cm = c.getModel();
+                    if (cm.getRowParent() == null) {
+                        cm.setRowParent(cellModel.getCellPosition());
+                        cm.setRowParentCell(cell);
+                        cellModel.addRowChildCell(c);
+                        cellModel.addRowDuplicateCell(c);
+                        cellModel.addRowDuplicateCells(cm.getRowDuplicateCells());
+                    }
+                }
+            }
+        }
+    }
+
+    private void addDefaultColParents(ExcelCell cell, ExcelTable table) {
+        XptCellModel cellModel = cell.getModel();
+        int startIndex = cellModel.getColIndex() + cellModel.getColExpandOffset();
+        int endIndex = startIndex + cellModel.getColExpandSpan();
+
+        for (int i = 0, n = table.getRowCount(); i < n; i++) {
+            for (int j = startIndex; j < endIndex; j++) {
+                ICell ic = table.getCell(i, j);
+                if (ic != null && ic != cell && !ic.isProxyCell()) {
+                    ExcelCell c = (ExcelCell) ic.getRealCell();
+                    XptCellModel cm = c.getModel();
+                    if (cm.getColParent() == null) {
+                        cm.setColParent(cellModel.getCellPosition());
+                        cm.setColParentCell(cell);
+                        cellModel.addColChildCell(c);
+                        cellModel.addColDuplicateCell(c);
+                        cellModel.addColDuplicateCells(cm.getColDuplicateCells());
+                    }
                 }
             }
         }

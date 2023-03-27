@@ -8,6 +8,8 @@
 package io.nop.report.core.coordinate;
 
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.model.table.CellPosition;
+import io.nop.core.model.table.CellRange;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCol;
 import io.nop.report.core.model.ExpandedRow;
@@ -191,6 +193,20 @@ public class CellCoordinateHelper {
         } else {
             return cell.getTable().getNamedCells(cellName);
         }
+    }
+
+    public static List<ExpandedCell> resolveCellRange(ExpandedCell cell, CellRange range) {
+        List<ExpandedCell> ret = new ArrayList<>();
+        int lastRow = range.getLastRowIndex();
+        int lastCol = range.getLastColIndex();
+        for (int i = range.getFirstRowIndex(); i <= lastRow; i++) {
+            for (int j = range.getFirstColIndex(); j <= lastCol; j++) {
+                String cellName = CellPosition.toABString(i, j);
+                List<ExpandedCell> cells = resolveCell(cell, cellName);
+                ret.addAll(cells);
+            }
+        }
+        return ret;
     }
 
     private static List<ExpandedCell> resolveCellInRowParents(ExpandedCell cell, String cellName) {

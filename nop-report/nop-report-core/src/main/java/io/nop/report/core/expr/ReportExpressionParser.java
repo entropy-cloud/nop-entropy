@@ -9,6 +9,8 @@ package io.nop.report.core.expr;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
+import io.nop.core.model.table.CellPosition;
+import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.utils.CellReferenceHelper;
 import io.nop.report.core.coordinate.CellCoordinate;
 import io.nop.report.core.coordinate.CellLayerCoordinate;
@@ -23,6 +25,9 @@ import io.nop.xlang.expr.simple.SimpleExprParser;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.report.core.XptErrors.ARG_CELL_POS;
+import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_CELL_RANGE_EXPR;
+
 /**
  * 在XLang表达式的基础上增加CellCoordinate语法的支持。可以支持简单的Excel公式形式，例如 SUM(A3:A5) + C1
  */
@@ -36,9 +41,26 @@ public class ReportExpressionParser extends SimpleExprParser {
     protected Expression varFactorExpr(TextScanner sc) {
         Identifier id = tokenExpr(sc);
         if (CellReferenceHelper.isABString(id.getName())) {
+            if (sc.cur == ':') {
+                return cellRangeExpr(sc, id);
+            }
             return cellCoordinateExpr(sc, id);
         }
         return arrowFuncExpr(sc, id);
+    }
+
+    private Expression cellRangeExpr(TextScanner sc, Identifier id) {
+        sc.consume(':');
+        Identifier end = tokenExpr(sc);
+        if (!CellReferenceHelper.isABString(id.getName()))
+            throw sc.newError(ERR_XPT_INVALID_CELL_RANGE_EXPR)
+                    .param(ARG_CELL_POS, end.getName());
+
+        CellPosition first = CellPosition.fromABString(id.getName());
+        CellPosition last = CellPosition.fromABString(end.getName());
+        CellRange range = CellRange.fromPosition(first, last);
+        SourceLocation loc = id.getLocation();
+        return CustomExpression.build(loc, range.toString(), new CellRangeExecutable(loc, range));
     }
 
     public CellLayerCoordinate parseLayerCoordinate(SourceLocation loc, String text) {

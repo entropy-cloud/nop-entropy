@@ -39,6 +39,8 @@ public class TableExpander {
             if (cell == null)
                 return;
 
+            System.out.println("process="+cell.getName());
+
             if (cell.isRemoved() || cell.isExpanded())
                 continue;
 

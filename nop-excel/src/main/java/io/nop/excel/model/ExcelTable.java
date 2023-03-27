@@ -29,6 +29,15 @@ public class ExcelTable extends _ExcelTable implements INeedInit {
         return new ExcelCell();
     }
 
+    @Override
+    public ExcelCell newProxyCell(ICell cell, int rowOffset, int colOffset) {
+        ExcelCell proxy = new ExcelCell();
+        proxy.setRealCell((ExcelCell) cell);
+        proxy.setRowOffset(rowOffset);
+        proxy.setColOffset(colOffset);
+        return proxy;
+    }
+
 
     public ExcelTable cloneInstance() {
         ExcelTable table = new ExcelTable();

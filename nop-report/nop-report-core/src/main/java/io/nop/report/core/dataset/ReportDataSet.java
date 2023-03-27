@@ -132,14 +132,25 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
     @EvalMethod
-    public ReportDataSet sort(IEvalScope scope, String field, boolean asc) {
+    public ReportDataSet sort(IEvalScope scope, String field, boolean desc) {
         List<Object> items = current(scope);
         items = new ArrayList<>(items);
-        items.sort(new FieldComparator<>(field, asc, null, this::getFieldValue));
+        items.sort(new FieldComparator<>(field, desc, null, this::getFieldValue));
         return new ReportDataSet(dsName, items);
     }
 
+    @EvalMethod
+    public ReportDataSet sort2(IEvalScope scope, String field, boolean desc, String field2, boolean desc2) {
+        List<OrderFieldBean> orderBy = new ArrayList<>(2);
+        orderBy.add(OrderFieldBean.forField(field, desc));
+        orderBy.add(OrderFieldBean.forField(field2, desc2));
+        return sort(scope, orderBy);
+    }
 
+
+    /**
+     * 在EL表达式中可以使用 ds.sort(order_by `a asc, b desc`)，利用order_by宏表达式来生成orderBy
+     */
     @EvalMethod
     public ReportDataSet sort(IEvalScope scope, List<OrderFieldBean> orderBy) {
         List<Object> items = current(scope);

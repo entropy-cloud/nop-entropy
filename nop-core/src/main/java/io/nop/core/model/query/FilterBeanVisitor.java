@@ -25,6 +25,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_NAME;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_OWNER;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_NAME;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_OWNER;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ALWAYS_FALSE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ALWAYS_TRUE;
 import static io.nop.api.core.convert.ConvertHelper.defaults;
@@ -227,4 +228,10 @@ public class FilterBeanVisitor<T> {
         return name;
     }
 
+    protected String getValueOwner(ITreeBean filter, String defaultOwner) {
+        String name = ConvertHelper.toString(filter.getAttr(FILTER_ATTR_VALUE_OWNER));
+        if (StringHelper.isEmpty(name))
+            return defaultOwner;
+        return name;
+    }
 }

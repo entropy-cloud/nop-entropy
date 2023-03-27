@@ -87,10 +87,57 @@ codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/
 4. 类似于pick-list与list的关系，新增表单add缺省情况下从edit继承，表示除非特殊定制，新增页面的布局与编辑页面相同。每个表单都有自己对应的编辑模式editMode，这样可以使得新增、修改、选择、查看的时候，同一个字段可以使用不同的控件来显示。
 5. main页面设置了filterForm=query, asiderFilterForm=asideFilter。这表示如果query表单会作为main页面的查询条件表单。如果配置了asideFilter表单，则会在main页面上通过左侧的side边栏用于显示一部分查询条件。
 
-## 表格、表单、页面
-xview模型把表单和表格看作是可复用的基础对象，然后在page模型中可以直接引用表格和表单。
+## 表格基本配置
+具体配置选项可以参见 [grid.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/grid.xdef)元模型定义。
 
-表单布局使用的DSL参见[layout.md](layout.md)
+### 1. 控制列表显示哪些字段，以及字段的顺序
+```xml
+<grid id="list">
+   <cols x:override="bounded-merge">
+      <col id="fieldA">
+      </col>
+
+      <col id="fieldB">
+      </col>
+   </cols>
+</grid>
+```
+
+`x:override=bounded-merge`表示cols子节点的范围限制在当前指定的范围之内，在被继承的基础模型中定义的多余的字段会被自动删除。如果不指定x:override，则缺省为merge模式，执行结果是向基础模型增加字段以及修改字段，除非显式通过`x:override="remove"`来表示删除字段。
+
+
+### 2. 指定列表字段的表头、宽度、对齐模式等
+```xml
+
+<col width="100px" align="right" id="fieldA" label="My Field" />
+
+```
+
+### 3. 指定显式控件
+缺省情况下表格字段的显式控件是根据字段类型和表格上指定的editMode来确定，具体使用的控件在[control.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-web/src/main/resources/_vfs/nop/web/xlib/control.xlib)中定义。
+
+如果需要特殊指定显示控件，可以使用gen-control配置
+```
+<col id="fieldA">
+  <gen-control>
+    <c:script>
+       return {
+         'type': 'my-control'
+       }
+    </c:script>
+  </gen-control>
+</col>   
+```
+
+
+
+## 表单基本配置
+
+表单布局使用的DSL参见[layout.md](layout.md)。
+
+表单的配置选项可以参见 [form.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xui/form.xdef)元模型定义。
+
+
 
 # 常见功能配置
 

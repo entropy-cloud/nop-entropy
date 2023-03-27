@@ -1343,6 +1343,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "FILTER_ATTR_VALUE_OWNER"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "FILTER_OP_ALWAYS_FALSE"
       },
       {
@@ -1816,6 +1821,10 @@
       },
       {
         "name": "getContentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileName",
         "parameterTypes": []
       },
       {
@@ -3538,6 +3547,10 @@
         "parameterTypes": []
       },
       {
+        "name": "removeFunctionPoints",
+        "parameterTypes": []
+      },
+      {
         "name": "removeInactive",
         "parameterTypes": []
       },
@@ -3704,6 +3717,10 @@
       },
       {
         "name": "isNoAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeFunctionPoints",
         "parameterTypes": []
       },
       {
@@ -10751,6 +10768,13 @@
         ]
       },
       {
+        "name": "isPermitted",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      },
+      {
         "name": "loadSiteData",
         "parameterTypes": [
           "java.lang.String"
@@ -10785,6 +10809,12 @@
       {
         "name": "refreshCache",
         "parameterTypes": []
+      },
+      {
+        "name": "setEnableActionAuth",
+        "parameterTypes": [
+          "boolean"
+        ]
       }
     ],
     "name": "io.nop.auth.service.sitemap.SiteMapProviderImpl",
@@ -17357,6 +17387,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getTempResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getZipTool",
         "parameterTypes": []
       },
@@ -21282,6 +21318,10 @@
         ]
       },
       {
+        "name": "getDocumentCache",
+        "parameterTypes": []
+      },
+      {
         "name": "getOperationDefinition",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperationType",
@@ -21299,10 +21339,38 @@
         "parameterTypes": []
       },
       {
+        "name": "initGraphQLContext",
+        "parameterTypes": [
+          "io.nop.graphql.core.IGraphQLExecutionContext",
+          "io.nop.graphql.core.ParsedGraphQLRequest"
+        ]
+      },
+      {
+        "name": "initRpcContext",
+        "parameterTypes": [
+          "io.nop.graphql.core.IGraphQLExecutionContext",
+          "io.nop.graphql.core.ast.GraphQLOperationType",
+          "java.lang.String",
+          "io.nop.api.core.beans.ApiRequest"
+        ]
+      },
+      {
+        "name": "isEnableActionAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEnableDataAuth",
+        "parameterTypes": []
+      },
+      {
         "name": "isIntrospection",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperation"
         ]
+      },
+      {
+        "name": "newGraphQLContext",
+        "parameterTypes": []
       },
       {
         "name": "newGraphQLContext",
@@ -21356,6 +21424,18 @@
         "name": "setDataAuthChecker",
         "parameterTypes": [
           "io.nop.api.core.auth.IDataAuthChecker"
+        ]
+      },
+      {
+        "name": "setEnableActionAuth",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setEnableDataAuth",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -22298,6 +22378,21 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.ioc.model.BeanRefValue",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.ioc.model.BeanSimpleValue",
     "unsafeAllocated": false
   },
@@ -23219,6 +23314,59 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanPropertyModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getBean",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocIgnoreDepends",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocOptional",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIocIgnoreDepends",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setIocOptional",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model._gen._BeanRefValue",
     "unsafeAllocated": false
   },
   {
@@ -26255,6 +26403,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isAllColumnPrimary",
+        "parameterTypes": []
+      },
+      {
         "name": "setPkColumns",
         "parameterTypes": [
           "java.util.List"
@@ -26397,6 +26549,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addJoinOn",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmJoinOnModel"
+        ]
+      },
       {
         "name": "getAliasPropPath",
         "parameterTypes": []
@@ -26591,6 +26749,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addColumn",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "getColumnModels",
         "parameterTypes": []
@@ -33100,7 +33264,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "destroy",
@@ -33319,6 +33489,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "O",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "assign",
         "parameterTypes": [
           "io.nop.xlang.api.IXLangCompileScope",
@@ -33401,6 +33577,12 @@
         "parameterTypes": []
       },
       {
+        "name": "optional",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "order_by",
         "parameterTypes": [
           "io.nop.xlang.api.IXLangCompileScope",
@@ -33433,6 +33615,10 @@
           "io.nop.api.core.util.SourceLocation",
           "java.lang.Object"
         ]
+      },
+      {
+        "name": "today",
+        "parameterTypes": []
       },
       {
         "name": "tpl",

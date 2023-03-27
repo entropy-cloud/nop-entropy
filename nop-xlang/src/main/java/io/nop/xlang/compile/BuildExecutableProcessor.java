@@ -46,6 +46,7 @@ import io.nop.xlang.ast.CompareOpExpression;
 import io.nop.xlang.ast.ConcatExpression;
 import io.nop.xlang.ast.ContinueStatement;
 import io.nop.xlang.ast.CustomExpression;
+import io.nop.xlang.ast.Declaration;
 import io.nop.xlang.ast.Decorator;
 import io.nop.xlang.ast.Decorators;
 import io.nop.xlang.ast.DeleteStatement;
@@ -1391,7 +1392,8 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
 
     @Override
     public IExecutableExpression processExportDeclaration(ExportDeclaration node, IXLangCompileScope context) {
-        return processAST(node.getDeclaration(), context);
+        Declaration decl = node.getDeclaration();
+        return processAST(decl, context);
     }
 
     @Override

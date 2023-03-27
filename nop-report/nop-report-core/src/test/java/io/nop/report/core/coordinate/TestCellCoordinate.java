@@ -37,4 +37,11 @@ public class TestCellCoordinate {
         Expression expr = new ReportExpressionParser().parseExpr(null, source);
         System.out.println(JsonTool.serialize(expr, true));
     }
+
+    @Test
+    public void testRange(){
+        String source = "SUM(B2:E4)";
+        Expression expr = new ReportExpressionParser().parseExpr(null, source);
+        System.out.println(JsonTool.serialize(expr, true));
+    }
 }

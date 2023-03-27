@@ -102,6 +102,8 @@ public class CellColExpander extends AbstractCellExpander {
                     xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
 
             ExpandedCol newCol = needInsert ? table.insertEmptyCol(newIndex) : table.makeCol(newIndex);
+            if(needInsert)
+                newCol.setColModel(col.getColModel());
             duplicateCol(r, cell, expandIndex, expandValue, newCol, cellMap, processing);
 
         }

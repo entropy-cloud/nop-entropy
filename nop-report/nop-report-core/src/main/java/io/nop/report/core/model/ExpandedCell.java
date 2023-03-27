@@ -15,6 +15,7 @@ import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.constants.XptExpandType;
+import io.nop.report.core.dataset.KeyedReportDataSet;
 import io.nop.report.core.dataset.ReportDataSet;
 
 import java.util.ArrayList;
@@ -322,8 +323,6 @@ public class ExpandedCell implements ICellView {
 
     public void setRowParent(ExpandedCell rowParent) {
         this.rowParent = rowParent;
-//        System.out.println("setRowParent:child="+model.getName()+",parent="+rowParent.getModel().getName()
-//                +",expandValue="+expandValue+",expandIndex="+expandIndex+",value="+value);
     }
 
     public List<ExpandedCell> getRowChildren() {
@@ -376,6 +375,12 @@ public class ExpandedCell implements ICellView {
 
     public void setExpandValue(Object expandValue) {
         this.expandValue = expandValue;
+    }
+
+    public Object getExpandKey() {
+        if (expandValue instanceof KeyedReportDataSet)
+            return ((KeyedReportDataSet) expandValue).getKey();
+        return null;
     }
 
     @EvalMethod

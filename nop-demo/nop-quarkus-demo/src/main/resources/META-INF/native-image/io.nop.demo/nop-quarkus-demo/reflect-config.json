@@ -1358,6 +1358,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "FILTER_ATTR_VALUE_OWNER"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "FILTER_OP_ALWAYS_FALSE"
       },
       {
@@ -24924,6 +24929,21 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.ioc.model.BeanRefValue",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getBeanValueType",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.ioc.model.BeanSimpleValue",
     "unsafeAllocated": false
   },
@@ -25845,6 +25865,59 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanPropertyModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getBean",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocIgnoreDepends",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocOptional",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIocIgnoreDepends",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setIocOptional",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model._gen._BeanRefValue",
     "unsafeAllocated": false
   },
   {
@@ -36015,7 +36088,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "destroy",
@@ -36314,6 +36393,12 @@
       {
         "name": "now",
         "parameterTypes": []
+      },
+      {
+        "name": "optional",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
       },
       {
         "name": "order_by",

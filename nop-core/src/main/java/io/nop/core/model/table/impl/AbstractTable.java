@@ -205,7 +205,7 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
 
                     for (int p = startRow; p <= lastRow; p++) {
                         for (int k = 0; k <= cell.getMergeAcross(); k++) {
-                            ProxyCell proxy = getProxy(p, j + k);
+                            ICell proxy = getProxy(p, j + k);
                             proxy.setRowOffset(proxy.getRowOffset() + count);
                         }
                     }
@@ -300,7 +300,7 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
                         // 贯穿下来的单元格
                         for (int p = rowOffset, n = cell.getMergeDown(); p <= n; p++) {
                             for (int k = 0; k <= cell.getMergeAcross(); k++) {
-                                ProxyCell proxy = getProxy(start + p, j + k);
+                                ICell proxy = getProxy(start + p, j + k);
                                 proxy.setRowOffset(p - count);
                             }
                         }
@@ -390,7 +390,7 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
                 int start = colIndex + count - colOffset;
                 for (int p = 0; p <= cell.getMergeDown(); p++) {
                     for (int k = colOffset; k <= cell.getMergeAcross(); k++) {
-                        ProxyCell proxy = getProxy(i + p, start + k);
+                        ICell proxy = getProxy(i + p, start + k);
                         proxy.setColOffset(k + count);
                     }
                 }
@@ -412,7 +412,7 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
                 for (int p = 0; p <= cell.getMergeDown(); p++) {
                     IRow row2 = getRow(i + p);
                     for (int k = 0; k < count; k++) {
-                        ProxyCell proxy = newProxyCell(cell, p, colOffset + k + 1);
+                        ICell proxy = newProxyCell(cell, p, colOffset + k + 1);
                         row2.internalSetCell(colIndex + k, proxy);
                     }
                 }
@@ -490,7 +490,7 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
                     int start = colIndex + count - colOffset;
                     for (int p = colOffset, m = cell.getMergeAcross(); p <= m; p++) {
                         for (int k = 0; k <= cell.getMergeDown(); k++) {
-                            ProxyCell proxy = getProxy(i + k, start + p);
+                            ICell proxy = getProxy(i + k, start + p);
                             proxy.setColOffset(p - count);
                         }
                     }
@@ -521,12 +521,12 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
         }
     }
 
-    ProxyCell getProxy(int rowIndex, int colIndex) {
+    ICell getProxy(int rowIndex, int colIndex) {
         ICell cell = getCell(rowIndex, colIndex);
         if (cell == null || !cell.isProxyCell())
             throw new NopException(ERR_TABLE_NOT_PROXY_CELL).param(ARG_ROW_INDEX, rowIndex).param(ARG_COL_INDEX,
                     colIndex);
-        return (ProxyCell) cell;
+        return cell;
     }
 
     @Override
@@ -651,7 +651,7 @@ public abstract class AbstractTable<T extends IRow> extends AbstractComponentMod
                         continue;
 
                     IRow row = makeRow(rowIndex + i);
-                    ProxyCell proxy = newProxyCell(cell, i, j);
+                    ICell proxy = newProxyCell(cell, i, j);
                     internalSetCell(row, rowIndex + i, colIndex + j, proxy);
                 }
             }

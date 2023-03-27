@@ -10,13 +10,52 @@ package io.nop.excel.model;
 import io.nop.excel.model._gen._ExcelCell;
 
 public class ExcelCell extends _ExcelCell {
+    private ExcelCell realCell;
+    private int rowOffset;
+    private int colOffset;
 
     public ExcelCell() {
 
     }
 
+    public boolean isProxyCell() {
+        return realCell != null && realCell != this;
+    }
+
+    @Override
+    public ExcelCell getRealCell() {
+        if (realCell == null)
+            return this;
+
+        return realCell;
+    }
+
+    public void setRealCell(ExcelCell realCell) {
+        this.realCell = realCell;
+    }
+
+    @Override
+    public int getRowOffset() {
+        return rowOffset;
+    }
+
+    @Override
+    public void setRowOffset(int rowOffset) {
+        this.rowOffset = rowOffset;
+    }
+
+    @Override
+    public int getColOffset() {
+        return colOffset;
+    }
+
+    @Override
+    public void setColOffset(int colOffset) {
+        this.colOffset = colOffset;
+    }
+
     public String toString() {
-        return getClass().getSimpleName() + "[text=" + getText() + ",loc=" + getLocation() + "]";
+        return getClass().getSimpleName() + "[text=" + getText() + (isProxyCell() ? ",proxy" : "") + ",loc=" + getLocation() + "]";
     }
 
     public XptCellModel makeModel() {

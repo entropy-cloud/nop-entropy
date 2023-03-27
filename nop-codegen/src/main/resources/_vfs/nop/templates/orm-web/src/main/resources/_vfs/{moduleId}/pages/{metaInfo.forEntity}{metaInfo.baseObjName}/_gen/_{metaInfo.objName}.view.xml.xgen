@@ -24,6 +24,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
       const supportAdd = !objMeta.containsTag('view') and !objMeta.containsTag('log');
       const supportUpdate = !objMeta.containsTag('view') and !objMeta.containsTag('log');
       const supportDelete = !objMeta.containsTag('view')
+      const useAddForm = !supportUpdate or insertableProps.size() != editableProps.size()
     ]]></c:script>
 
     <grids>
@@ -52,12 +53,12 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
 
         <form id="add" editMode="add"
             title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
-            xpl:if="supportAdd and supportUpdate" x:prototype="edit">
+            xpl:if="supportAdd and !useAddForm" x:prototype="edit">
         </form>
 
         <form id="add" editMode="add"
             title="新增-${objMeta.displayName}" i18n-en:title="Add ${objMeta['i18n-en:displayName']}"
-            xpl:if="supportAdd and !supportUpdate">
+            xpl:if="supportAdd and useAddForm">
            <web-gen:GenLayout props="${insertableProps}" />
         </form>
 

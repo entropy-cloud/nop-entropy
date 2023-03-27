@@ -75,4 +75,8 @@ public interface XptErrors {
     ErrorCode ERR_XPT_INVALID_FIELD_NAME =
             define("nop.err.xpt.invalid-field-name",
                     "非法的字段名", ARG_FIELD_NAME);
+
+    ErrorCode ERR_XPT_INVALID_CELL_RANGE_EXPR =
+            define("nop.err.xpt.invalid-cell-range-expr",
+                    "非法的单元格区间表达式", ARG_CELL_POS);
 }

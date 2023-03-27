@@ -217,6 +217,8 @@
 /nop/report/_module
 /nop/report/beans/app-report-demo.beans.xml
 /nop/report/beans/report-defaults.beans.xml
+/nop/report/demo/base/交叉报表—数据双向扩展.xpt.xlsx
+/nop/report/demo/base/复杂多源报表.xpt.xlsx
 /nop/report/demo/base/档案式报表.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/imp/xpt.imp.xml

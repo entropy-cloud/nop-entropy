@@ -50,7 +50,7 @@ public class WorkbookDataParser {
     static final Logger LOG = LoggerFactory.getLogger(WorkbookDataParser.class);
 
     private final ImportModel importModel;
-    private final XLangCompileTool compileTool = XLang.newCompileTool();
+    private final XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
     private final ICache<Object, Object> cache = LocalCache.newCache("dict-cache", newConfig(100));
 
     private boolean returnDynamicObject;

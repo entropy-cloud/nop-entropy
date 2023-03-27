@@ -24,6 +24,14 @@ public interface ICell extends ICellView, IFreezable {
 
     void setMergeDown(int mergeDown);
 
+    default void setRowOffset(int rowOffset){
+
+    }
+
+    default void setColOffset(int colOffset){
+
+    }
+
     Object getValue();
 
     void setValue(Object value);

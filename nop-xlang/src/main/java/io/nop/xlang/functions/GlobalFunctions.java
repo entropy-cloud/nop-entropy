@@ -24,6 +24,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.RawText;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
+import io.nop.commons.util.objects.OptionalValue;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -67,6 +68,12 @@ import static io.nop.xlang.XLangErrors.ERR_XLANG_INVALID_VAR_NAME;
 
 @Locale("zh-CN")
 public class GlobalFunctions {
+
+    @Description("返回OptionalValue包装对象")
+    public static OptionalValue optional(Object value) {
+        return OptionalValue.of(value);
+    }
+
     @Description("返回当前时间")
     public static Timestamp now() {
         return CoreMetrics.currentTimestamp();
