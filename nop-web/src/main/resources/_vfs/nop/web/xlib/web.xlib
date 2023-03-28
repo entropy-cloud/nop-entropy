@@ -53,7 +53,7 @@
                     const xdef = SchemaLoader.loadXDefinition('/nop/schema/xui/action.xdef');
                     SchemaLoader.validateNode(node,xdef,true);
                 </c:script>
-                <action xpl:attrs="${xpl('thisLib:NormalizeAction',node.toXJson(),null)}" />
+                <action xpl:attrs="${xpl('thisLib:NormalizeAction',node.toXJson(),null)}"/>
             </source>
         </GenAction>
 
@@ -69,6 +69,9 @@
             <source>
                 <body j:list="true">
                     <c:choose>
+                        <when test="${formModel.layoutComponent=='tabs'}">
+                            <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}" />
+                        </when>
                         <when test="${formModel.layout.simpleTable}">
                             <thisLib:GenFormTable formTable="${formModel.layout.firstTable}"/>
                         </when>
@@ -132,6 +135,37 @@
             </source>
 
         </GenLayoutGroups>
+
+        <GenLayoutTabs outputMode="xjson">
+            <attr name="layoutGroups"/>
+            <attr name="formModel" implicit="true"/>
+            <attr name="objMeta" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+
+            <source>
+                <tabs>
+                    <tabs j:list="true">
+                        <c:for var="formTable" items="${layoutGroups}">
+                            <c:script>
+                                const groupModel = formModel.getCell(formTable.id);
+                            </c:script>
+
+                            <_ title="@i18n:forms.${i18nRoot}.${formModel.id}.${formTable.id}|${formTable.label}">
+                                <visibleOn>${groupModel?.visibleOn}</visibleOn>
+                                <tab j:list="true">
+                                    <c:for var="formRow" items="${formTable.rows}" index="rowIndex">
+                                        <thisLib:GenFormRow formRow="${formRow}" rowIndex="${rowIndex}"/>
+                                    </c:for>
+                                </tab>
+                            </_>
+                        </c:for>
+                    </tabs>
+                </tabs>
+            </source>
+
+        </GenLayoutTabs>
 
         <GenFormTable outputMode="xjson">
             <attr name="formTable"/>

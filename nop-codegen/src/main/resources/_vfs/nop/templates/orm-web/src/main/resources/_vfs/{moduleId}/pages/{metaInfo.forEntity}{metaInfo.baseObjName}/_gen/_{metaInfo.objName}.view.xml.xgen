@@ -165,7 +165,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
         </simple>
 
         <simple name="view" form="view">
-            <api url="@query:${metaInfo.objName}__get/{@formSelection}?id=$id" />
+            <initApi url="@query:${metaInfo.objName}__get/{@formSelection}?id=$id" />
         </simple>
 
         <simple name="update" form="edit" xpl:if="supportUpdate">

@@ -1473,6 +1473,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "FILTER_OP_LIKE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "FILTER_OP_LT"
       },
       {
@@ -40840,11 +40845,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getLabelAlign",
+        "parameterTypes": []
+      },
+      {
         "name": "getLabelWidth",
         "parameterTypes": []
       },
       {
         "name": "getLayout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLayoutComponent",
         "parameterTypes": []
       },
       {
@@ -41110,6 +41123,12 @@
         ]
       },
       {
+        "name": "setLabelAlign",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setLabelWidth",
         "parameterTypes": [
           "java.lang.String"
@@ -41119,6 +41138,12 @@
         "name": "setLayout",
         "parameterTypes": [
           "io.nop.xlang.xmeta.layout.LayoutModel"
+        ]
+      },
+      {
+        "name": "setLayoutComponent",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

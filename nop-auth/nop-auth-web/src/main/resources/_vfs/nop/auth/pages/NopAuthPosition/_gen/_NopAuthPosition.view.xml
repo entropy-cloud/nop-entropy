@@ -106,7 +106,7 @@
             <api url="@mutation:NopAuthPosition__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopAuthPosition__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopAuthPosition__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopAuthPosition__get/{@formSelection}?id=$id"/>

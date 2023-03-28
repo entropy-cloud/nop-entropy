@@ -35,7 +35,7 @@
             </layout>
         </form>
 
-        <form id="add" x:inherit="true">
+        <form id="add" x:inherit="true" layoutComponent="tabs">
             <layout>
                 ============>baseInfo[基本信息]======
                 userName status[用户状态]
@@ -63,7 +63,7 @@
             </cells>
         </form>
 
-        <form id="edit">
+        <form id="edit" layoutComponent="tabs">
             <layout>
                 ============>baseInfo[基本信息]======
                 userName status[用户状态]

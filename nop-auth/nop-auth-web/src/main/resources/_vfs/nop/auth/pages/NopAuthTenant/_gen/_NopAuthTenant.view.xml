@@ -121,7 +121,7 @@
             <api url="@mutation:NopAuthTenant__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopAuthTenant__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopAuthTenant__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopAuthTenant__get/{@formSelection}?id=$id"/>

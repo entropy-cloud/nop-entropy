@@ -112,7 +112,7 @@
             </table>
         </picker>
         <simple name="view" form="view">
-            <api url="@query:NopAuthSession__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopAuthSession__get/{@formSelection}?id=$id"/>
         </simple>
     </pages>
 </view>
