@@ -50,6 +50,17 @@ public class FilterOpHelper {
         return s1.endsWith(s2);
     }
 
+    public static boolean like(Object value, Object pattern) {
+        String s1 = ConvertHelper.toString(value, "");
+        String s2 = ConvertHelper.toString(pattern, "");
+        if (s1.isEmpty())
+            return false;
+        if (s2.isEmpty())
+            return true;
+        String regex = SqlLikeUtils.sqlToRegexLike(s1, '\\');
+        return RegexHelper.fromPattern(regex).test(s1);
+    }
+
     public static boolean contains(Object v1, Object v2) {
         String s1 = ConvertHelper.toString(v1, "");
         String s2 = ConvertHelper.toString(v2, "");

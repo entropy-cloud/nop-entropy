@@ -48,6 +48,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_IS_TRUE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LENGTH;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LENGTH_BETWEEN;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LIKE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LT;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT;
@@ -280,9 +281,10 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
     public static final FilterOp LENGTH = compareOp(FILTER_OP_LENGTH, 41, FilterOpHelper::length);
     public static final FilterOp REGEX = compareOp(FILTER_OP_REGEX, 42, FilterOpHelper::regex);
     public static final FilterOp ICONTAINS = compareOp(FILTER_OP_ICONTAINS, 43, FilterOpHelper::icontains);
+    public static final FilterOp LIKE = compareOp(FILTER_OP_LIKE, 44, FilterOpHelper::like);
 
     public static final List<FilterOp> DEFAULT_COMPARE_OPS = buildImmutableList(EQ, NE, GT, GE, LT, LE, IN, NOT_IN,
-            STARTS_WITH, ENDS_WITH, CONTAINS, LENGTH, REGEX, ICONTAINS);
+            STARTS_WITH, ENDS_WITH, CONTAINS, LENGTH, REGEX, ICONTAINS, LIKE);
 
     public static final FilterOp BETWEEN = betweenOp(FILTER_OP_BETWEEN, 50, FilterOpHelper::between);
     public static final FilterOp DATE_BETWEEN = betweenOp(FILTER_OP_DATE_BETWEEN, 51, FilterOpHelper::dateBetween);

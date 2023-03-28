@@ -86,7 +86,7 @@ Nop平台内置的表名都具有前缀`nop_`。
 一般情况下我们只定义to-one类型的关联对象，它的左对象对应于当前表，关联对象对应于父表。join的左属性对应于外键属性（不是数据库字段名，而是java中的属性名），关联属性是父实体中对应子实体的集合属性，而join的右属性为父表的主键属性
 
 * pub: 关联属性缺省仅在后台编程使用，不对外暴露为GraphQL接口。标记为pub之后才对外暴露。
-* ref-cascade-delete: 删除父表的时候自动删除子表集合对象
 * cascade-delete: 删除当前对象的时候，也删除关联对象。一般使用的是ref-cascade-delete，而不是cascade-delete。
-* insertable: 主表提交的时候允许也同时提交子表数据，一次性插入
-* updatable: 主表提交的时候允许同时更新子表数据
+* ref-cascade-delete: 删除父表的时候自动删除子表集合对象
+* ref-insertable: 主表提交的时候允许也同时提交子表数据，一次性插入
+* ref-updatable: 主表提交的时候允许同时更新子表数据

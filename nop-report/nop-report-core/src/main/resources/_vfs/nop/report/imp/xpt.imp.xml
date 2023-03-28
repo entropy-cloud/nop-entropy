@@ -12,7 +12,7 @@
                     <schema stdDomain="csv-set"/>
                 </field>
 
-                <field name="beginLoop" displayName="初始化脚本">
+                <field name="beginLoop" displayName="构建循环变量">
                     <schema stdDomain="xpl"/>
                 </field>
 
@@ -63,7 +63,7 @@
                     <schema stdDomain="xpl-predicate"/>
                 </field>
 
-                <field name="beginLoop" displayName="初始化脚本">
+                <field name="beginLoop" displayName="构建循环变量">
                     <schema stdDomain="xpl"/>
                 </field>
 

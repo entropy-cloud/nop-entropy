@@ -3,15 +3,19 @@
 ## 初始化数据
 在Excel报表文件中，通过XptWorkbookModel这个Sheet来设置整个报表的初始化逻辑。它对应workbook.xdef元模型中的XptWorkbookModel定义。
 
-一般我们在展开前这个xpl段中执行初始化代码，例如
+一般我们在【展开前】这个xpl段中执行初始化代码，例如
 ```
 <c:script>
   let entity = {...}
-  assign("entity",entity)
+  assign("entity",entity);
+
+  let ds1 = [...];
+  xptRt.makeDs("ds1",ds1);
 </c:script>
 ```
 
 assign调用将把变量设置到scope上下文中，在报表单元格中就可以使用该变量。否则变量的作用域就是script内部，不会暴露给外部环境。
+xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置到scope上下文中。
 
 
 ## 单元格表达式

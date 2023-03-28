@@ -34,6 +34,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_IS_FALSE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_IS_NULL;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_IS_TRUE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LE;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LIKE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LT;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_EMPTY;
@@ -126,6 +127,8 @@ public class FilterToSQLTransformer extends FilterBeanVisitor<Void> {
             sb.owner(owner).sql(name).sql(" like ").param("%" + value);
         } else if (op.equals(FILTER_OP_CONTAINS)) {
             sb.owner(owner).sql(name).sql(" like ").param("%" + value + "%");
+        } else if (op.equals(FILTER_OP_LIKE)) {
+            sb.owner(owner).sql(name).sql(" like ").param(value);
         } else if (op.equals(FILTER_OP_ICONTAINS)) {
             sb.owner(owner).sql(name).sql(" ilike ").param("%" + value + "%");
         } else {

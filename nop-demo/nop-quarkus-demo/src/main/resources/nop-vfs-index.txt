@@ -218,8 +218,11 @@
 /nop/report/beans/app-report-demo.beans.xml
 /nop/report/beans/report-defaults.beans.xml
 /nop/report/demo/base/交叉报表—数据双向扩展.xpt.xlsx
+/nop/report/demo/base/同比环比等财务统计表.xpt.xlsx
 /nop/report/demo/base/复杂多源报表.xpt.xlsx
+/nop/report/demo/base/数据钻取主报表.xlsx
 /nop/report/demo/base/档案式报表.xpt.xlsx
+/nop/report/demo/base/段落明细表.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/imp/xpt.imp.xml
 /nop/schema/action-auth.xdef

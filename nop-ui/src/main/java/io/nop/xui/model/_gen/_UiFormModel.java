@@ -65,13 +65,6 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: component
-     * 如果设置为wizard，则表示采用向导布局来组织页面
-     */
-    private java.lang.String _component ;
-    
-    /**
-     *  
      * xml name: data
      * 表单的静态初始化数据
      */
@@ -149,6 +142,13 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: labelAlign
+     * 
+     */
+    private java.lang.String _labelAlign ;
+    
+    /**
+     *  
      * xml name: labelWidth
      * 
      */
@@ -160,6 +160,13 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private io.nop.xlang.xmeta.layout.LayoutModel _layout ;
+    
+    /**
+     *  
+     * xml name: layoutComponent
+     * 如果设置为wizard，则表示采用向导布局来组织页面。
+     */
+    private java.lang.String _layoutComponent ;
     
     /**
      *  
@@ -485,25 +492,6 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: component
-     *  如果设置为wizard，则表示采用向导布局来组织页面
-     */
-    
-    public java.lang.String getComponent(){
-      return _component;
-    }
-
-    
-    public void setComponent(java.lang.String value){
-        checkAllowChange();
-        
-        this._component = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: data
      *  表单的静态初始化数据
      */
@@ -725,6 +713,25 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: labelAlign
+     *  
+     */
+    
+    public java.lang.String getLabelAlign(){
+      return _labelAlign;
+    }
+
+    
+    public void setLabelAlign(java.lang.String value){
+        checkAllowChange();
+        
+        this._labelAlign = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: labelWidth
      *  
      */
@@ -757,6 +764,25 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._layout = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: layoutComponent
+     *  如果设置为wizard，则表示采用向导布局来组织页面。
+     */
+    
+    public java.lang.String getLayoutComponent(){
+      return _layoutComponent;
+    }
+
+    
+    public void setLayoutComponent(java.lang.String value){
+        checkAllowChange();
+        
+        this._layoutComponent = value;
            
     }
 
@@ -1238,7 +1264,6 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         out.put("cells",this.getCells());
         out.put("checkInterval",this.getCheckInterval());
         out.put("className",this.getClassName());
-        out.put("component",this.getComponent());
         out.put("data",this.getData());
         out.put("editMode",this.getEditMode());
         out.put("id",this.getId());
@@ -1250,8 +1275,10 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         out.put("initFetchOn",this.getInitFetchOn());
         out.put("interval",this.getInterval());
         out.put("label",this.getLabel());
+        out.put("labelAlign",this.getLabelAlign());
         out.put("labelWidth",this.getLabelWidth());
         out.put("layout",this.getLayout());
+        out.put("layoutComponent",this.getLayoutComponent());
         out.put("layoutMode",this.getLayoutMode());
         out.put("objMeta",this.getObjMeta());
         out.put("panelClassName",this.getPanelClassName());

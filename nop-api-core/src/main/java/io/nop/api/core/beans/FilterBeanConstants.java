@@ -51,6 +51,11 @@ public interface FilterBeanConstants {
     String FILTER_OP_ICONTAINS = "icontains";
 
     /**
+     * SQL语言中的like语法
+     */
+    String FILTER_OP_LIKE = "like";
+
+    /**
      * 是否包含匹配指定模式的子字符串
      */
     String FILTER_OP_REGEX = "regex";
