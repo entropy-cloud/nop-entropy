@@ -13,3 +13,4 @@
 *.json5 text eol=lf
 *.xbiz text eol=lf
 *.interp text eol=lf
+*.tokens text eol=lf
