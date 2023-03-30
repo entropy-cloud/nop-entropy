@@ -25,9 +25,6 @@
                 <!--序列号名称-->
                 <col id="seqName" sortable="true"/>
 
-                <!--删除标识-->
-                <col id="delFlag" mandatory="true" sortable="true"/>
-
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -52,10 +49,9 @@
             <layout>
  sid[主键] name[名称]
  displayName[显示名称] codePattern[编码模式]
- seqName[序列号名称] delFlag[删除标识]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ seqName[序列号名称] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-编码规则" i18n-en:title="Add Code Rule" x:prototype="edit"/>
@@ -66,7 +62,6 @@
  displayName[显示名称]
  codePattern[编码模式]
  seqName[序列号名称]
- delFlag[删除标识]
  createTime[创建时间]
  remark[备注]
 </layout>
@@ -127,7 +122,7 @@
             <api url="@mutation:NopSysCodeRule__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopSysCodeRule__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopSysCodeRule__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopSysCodeRule__get/{@formSelection}?id=$id"/>

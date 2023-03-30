@@ -19,9 +19,6 @@
                 <!--显示名-->
                 <col id="displayName" mandatory="true" sortable="true"/>
 
-                <!--删除标识-->
-                <col id="delFlag" mandatory="true" sortable="true"/>
-
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -47,7 +44,6 @@
  sid[主键]
  dictName[字典名]
  displayName[显示名]
- delFlag[删除标识]
  createdBy[创建人]
  createTime[创建时间]
  updatedBy[修改人]
@@ -61,7 +57,6 @@
  sid[主键]
  dictName[字典名]
  displayName[显示名]
- delFlag[删除标识]
  remark[备注]
 </layout>
         </form>
@@ -121,7 +116,7 @@
             <api url="@mutation:NopSysDict__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopSysDict__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopSysDict__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopSysDict__get/{@formSelection}?id=$id"/>

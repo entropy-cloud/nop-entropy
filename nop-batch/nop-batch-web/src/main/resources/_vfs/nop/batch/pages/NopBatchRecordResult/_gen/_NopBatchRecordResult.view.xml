@@ -122,7 +122,7 @@
             <api url="@mutation:NopBatchRecordResult__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopBatchRecordResult__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopBatchRecordResult__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopBatchRecordResult__get/{@formSelection}?id=$id"/>

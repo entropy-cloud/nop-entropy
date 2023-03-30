@@ -34,9 +34,6 @@
                 <!--是否已废弃-->
                 <col id="isDeprecated" mandatory="true" sortable="true"/>
 
-                <!--删除标识-->
-                <col id="delFlag" mandatory="true" sortable="true"/>
-
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -63,19 +60,23 @@
  label[显示名] value[值]
  codeValue[内部编码] groupName[分组名]
  isInternal[是否内部] isDeprecated[是否已废弃]
- delFlag[删除标识] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-字典明细" i18n-en:title="Add Dictionay Item" x:prototype="edit"/>
         <form id="edit" editMode="update" title="编辑-字典明细" i18n-en:title="Edit Dictionay Item">
             <layout>
- sid[主键] dictId[字典ID]
- label[显示名] value[值]
- codeValue[内部编码] groupName[分组名]
- isInternal[是否内部] isDeprecated[是否已废弃]
- delFlag[删除标识] remark[备注]
+ sid[主键]
+ dictId[字典ID]
+ label[显示名]
+ value[值]
+ codeValue[内部编码]
+ groupName[分组名]
+ isInternal[是否内部]
+ isDeprecated[是否已废弃]
+ remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
@@ -134,7 +135,7 @@
             <api url="@mutation:NopSysDictOption__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopSysDictOption__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopSysDictOption__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopSysDictOption__get/{@formSelection}?id=$id"/>

@@ -34,9 +34,6 @@
                 <!--重置方式-->
                 <col id="resetType" sortable="true"/>
 
-                <!--删除标识-->
-                <col id="delFlag" mandatory="true" sortable="true"/>
-
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -63,19 +60,23 @@
  isUuid[是否UUID] nextValue[下一个值]
  stepSize[步长] cacheSize[缓存个数]
  maxValue[最大值] resetType[重置方式]
- delFlag[删除标识] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-序列号" i18n-en:title="Add Sequence" x:prototype="edit"/>
         <form id="edit" editMode="update" title="编辑-序列号" i18n-en:title="Edit Sequence">
             <layout>
- seqName[名称] seqType[类型]
- isUuid[是否UUID] nextValue[下一个值]
- stepSize[步长] cacheSize[缓存个数]
- maxValue[最大值] resetType[重置方式]
- delFlag[删除标识] remark[备注]
+ seqName[名称]
+ seqType[类型]
+ isUuid[是否UUID]
+ nextValue[下一个值]
+ stepSize[步长]
+ cacheSize[缓存个数]
+ maxValue[最大值]
+ resetType[重置方式]
+ remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
@@ -134,7 +135,7 @@
             <api url="@mutation:NopSysSequence__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopSysSequence__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopSysSequence__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopSysSequence__get/{@formSelection}?id=$id"/>

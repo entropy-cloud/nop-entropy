@@ -21699,6 +21699,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isAllowExceedPrecision",
+        "parameterTypes": []
+      },
+      {
         "name": "isDeprecated",
         "parameterTypes": []
       },
@@ -21712,6 +21716,12 @@
         "name": "setAlias",
         "parameterTypes": [
           "java.util.Set"
+        ]
+      },
+      {
+        "name": "setAllowExceedPrecision",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

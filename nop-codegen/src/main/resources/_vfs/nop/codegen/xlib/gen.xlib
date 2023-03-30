@@ -83,6 +83,8 @@
             <source>
                 <thisLib:DefineLoop>
                     <c:script><![CDATA[
+                        import io.nop.core.resource.ResourceHelper;
+
                         let ormModel = codeGenModel;
                         let appName = ormModel['ext:appName'];
                         let pkgName = ormModel['ext:basePackageName'];
@@ -95,6 +97,8 @@
                             }
                         }
                         let pkgPath = pkgName.replace('.','/');
+
+                        ResourceHelper.checkValidModuleName(appName);
 
                         let moduleId = ormModel['ext:moduleId'] || appName.replace('-','/');
                         builder.defineGlobalVar("ormModel",ormModel);

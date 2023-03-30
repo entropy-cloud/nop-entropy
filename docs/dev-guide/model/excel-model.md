@@ -1,6 +1,6 @@
 # 配置
 * registerShortName	:实体名为包含包名的全类名，如果registerShortName设置为true，则也可以通过去除包名的短类名来访问实体
-* appName：	所有子模块的前缀名，格式应该为 xxx-yyy，例如nop-sys，它会自动成为两级目录名
+* appName：	所有子模块的前缀名，**格式必须为 xxx-yyy，例如nop-sys**，它会自动成为两级目录名。Excel模型的名称应该与appName相同，否则自动生成codegen模块中的配置不正确
 * entityPackageName：	实体对象所在的包名，一般应该是xxx.dao.entity，例如io.nop.sys.dao.entity	
 * basePackageName:	所有子模块的父包名, 例如 io.nop.sys
 * maven.groupId	：	主工程的groupId

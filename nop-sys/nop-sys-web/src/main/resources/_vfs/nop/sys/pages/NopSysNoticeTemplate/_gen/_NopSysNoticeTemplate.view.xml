@@ -22,9 +22,6 @@
                 <!--模板内容-->
                 <col id="content" mandatory="true" sortable="true"/>
 
-                <!--删除标识-->
-                <col id="delFlag" mandatory="true" sortable="true"/>
-
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -47,11 +44,15 @@
     <forms>
         <form id="view" editMode="view" title="查看-通知模板" i18n-en:title="View Notice Template">
             <layout>
- sid[主键] name[名称]
- tplType[模板类型] content[模板内容]
- delFlag[删除标识] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ sid[主键]
+ name[名称]
+ tplType[模板类型]
+ content[模板内容]
+ createdBy[创建人]
+ createTime[创建时间]
+ updatedBy[修改人]
+ updateTime[修改时间]
+ remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-通知模板" i18n-en:title="Add Notice Template" x:prototype="edit"/>
@@ -61,7 +62,6 @@
  name[名称]
  tplType[模板类型]
  content[模板内容]
- delFlag[删除标识]
  remark[备注]
 </layout>
         </form>
@@ -122,7 +122,7 @@
             <api url="@mutation:NopSysNoticeTemplate__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopSysNoticeTemplate__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopSysNoticeTemplate__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopSysNoticeTemplate__get/{@formSelection}?id=$id"/>

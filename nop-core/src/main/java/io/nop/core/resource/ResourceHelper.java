@@ -61,10 +61,12 @@ import java.util.zip.GZIPOutputStream;
 
 import static io.nop.commons.CommonConfigs.CFG_IO_DEFAULT_BUF_SIZE;
 import static io.nop.core.CoreErrors.ARG_MODULE_ID;
+import static io.nop.core.CoreErrors.ARG_MODULE_NAME;
 import static io.nop.core.CoreErrors.ARG_NAMESPACE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_MODULE_ID;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_MODULE_NAME;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_DIR;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_PATH_NOT_IN_NAMESPACE;
@@ -137,6 +139,24 @@ public class ResourceHelper {
     public static IResource getTempResource(String prefix) {
         String path = StringHelper.appendPath(prefix, genDayRandPath());
         return VirtualFileSystem.instance().getResource(ResourceConstants.TEMP_NS + ":/" + path);
+    }
+
+    public static boolean isValidModuleName(String moduleName) {
+        int pos = moduleName.indexOf('-');
+        if (pos <= 0)
+            return false;
+        String provider = moduleName.substring(0, pos);
+        if (!StringHelper.isValidSimpleVarName(provider))
+            return false;
+        String subName = moduleName.substring(pos + 1);
+        if (!StringHelper.isValidSimpleVarName(subName))
+            return false;
+        return true;
+    }
+
+    public static void checkValidModuleName(String moduleName) {
+        if (!isValidModuleName(moduleName))
+            throw new NopException(ERR_RESOURCE_INVALID_MODULE_NAME).param(ARG_MODULE_NAME, moduleName);
     }
 
     public static boolean isValidModuleId(String moduleId) {

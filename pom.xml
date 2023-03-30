@@ -102,6 +102,20 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven-source-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- mvn site指令生成报告 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -373,6 +387,7 @@
             <!--                <artifactId>maven-jxr-plugin</artifactId>-->
             <!--                <version>3.3.0</version>-->
             <!--            </plugin>-->
+
         </plugins>
     </reporting>
 

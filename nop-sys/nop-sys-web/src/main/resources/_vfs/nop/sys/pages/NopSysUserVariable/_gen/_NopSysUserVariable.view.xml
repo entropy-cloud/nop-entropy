@@ -121,7 +121,7 @@
             <api url="@mutation:NopSysUserVariable__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <api url="@query:NopSysUserVariable__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopSysUserVariable__get/{@formSelection}?id=$id"/>
         </simple>
         <simple name="update" form="edit">
             <initApi url="@query:NopSysUserVariable__get/{@formSelection}?id=$id"/>

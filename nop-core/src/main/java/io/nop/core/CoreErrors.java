@@ -95,6 +95,7 @@ public interface CoreErrors {
     String ARG_MERGE_ACROSS = "mergeAcross";
 
     String ARG_MODULE_ID = "moduleId";
+    String ARG_MODULE_NAME = "moduleName";
 
     String ARG_KEY = "key";
 
@@ -483,8 +484,12 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_NOT_ALLOW_ACCESS_PATH = define("nop.err.core.resource.not-allow-path",
             "不允许访问资源路径[{resourcePath}]", ARG_RESOURCE_PATH);
 
-    ErrorCode ERR_RESOURCE_INVALID_MODULE_ID = define("nop.err.core.resource.invalid-module-id", "模块ID必须是A/B这种格式",
+    ErrorCode ERR_RESOURCE_INVALID_MODULE_ID = define("nop.err.core.resource.invalid-module-id",
+            "模块ID必须是A/B这种格式，而现在是：{moduleId}",
             ARG_MODULE_ID);
+
+    ErrorCode ERR_RESOURCE_INVALID_MODULE_NAME = define("nop.err.core.resource.invalid-module-name",
+            "模块名必须是A-B这种格式，而现在是:{moduleName}",            ARG_MODULE_NAME);
 
     ErrorCode ERR_RESOURCE_MODULE_PATH_RESOLVE_TO_MULTI_FILE = define(
             "nop.err.core.resource.module-path-resolve-to-multi-file", "虚拟文件路径[{stdPath}]对应到多个模块文件:{path},{otherPath}",
