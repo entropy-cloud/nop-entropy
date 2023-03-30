@@ -23,6 +23,13 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: allowExceedPrecision
+     * 
+     */
+    private boolean _allowExceedPrecision  = false;
+    
+    /**
+     *  
      * xml name: allowPrecision
      * 类型定义是否已经隐含假定了precision，因此不允许在SQL类型定义中再指定precision。
      * allowPrecision为false时，precision仍然可以有值，它表示的是隐含定义的precision
@@ -94,6 +101,25 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._alias = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: allowExceedPrecision
+     *  
+     */
+    
+    public boolean isAllowExceedPrecision(){
+      return _allowExceedPrecision;
+    }
+
+    
+    public void setAllowExceedPrecision(boolean value){
+        checkAllowChange();
+        
+        this._allowExceedPrecision = value;
            
     }
 
@@ -266,6 +292,7 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
         super.outputJson(out);
         
         out.put("alias",this.getAlias());
+        out.put("allowExceedPrecision",this.isAllowExceedPrecision());
         out.put("allowPrecision",this.getAllowPrecision());
         out.put("code",this.getCode());
         out.put("deprecated",this.isDeprecated());

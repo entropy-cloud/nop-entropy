@@ -132,7 +132,7 @@
         -->
         <sqlDataType xdef:name="SqlDataTypeModel" name="!string" code="string" alias="csv-set" allowPrecision="boolean"
                      precision="int" scale="int" stdSqlType="!std-sql-type" jdbcBinder="class-name"
-                     deprecated="!boolean=false"
+                     deprecated="!boolean=false" allowExceedPrecision="!boolean=false"
         />
     </sqlDataTypes>
 

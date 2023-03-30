@@ -47,7 +47,9 @@ public class SqlDataTypeMapping {
 
     public void register(SqlDataTypeModel dataType) {
         List<SqlDataTypeModel> list = stdToNative.computeIfAbsent(dataType.getStdSqlType(), k -> new ArrayList<>());
-        list.add(dataType);
+        // 标记为deprecated的类型不参与从StdSqlType到NativeSqlType的转换
+        if (!dataType.isDeprecated())
+            list.add(dataType);
 
         nativeTypes.put(dataType.getName().toUpperCase(), dataType);
 

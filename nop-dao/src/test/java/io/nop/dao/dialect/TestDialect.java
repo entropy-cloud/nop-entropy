@@ -88,6 +88,9 @@ public class TestDialect extends JdbcTestCase {
         safeDropTable("test_dt");
 
         for (SqlDataTypeModel dataTypeModel : dialect.getDialectModel().getSqlDataTypes()) {
+            if(dataTypeModel.isDeprecated())
+                continue;
+
             String dataType = getDataTypeMaxPrecision(dataTypeModel);
             String sql = "create table test_dt ( f1 " + dataType + ")";
 
@@ -99,7 +102,8 @@ public class TestDialect extends JdbcTestCase {
                 sql = "create table test_dt( f1 " + getDataTypeError(dataTypeModel) + ")";
                 try {
                     jdbc().executeUpdate(new SQL(sql));
-                    assertTrue(false, sql);
+                    if(!dataTypeModel.isAllowExceedPrecision())
+                        assertTrue(false, sql);
                 } catch (NopException e) {
                     e.printStackTrace();
                 }

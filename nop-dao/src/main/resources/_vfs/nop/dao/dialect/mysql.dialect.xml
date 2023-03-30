@@ -47,7 +47,7 @@
         INNER ,INOUT ,INSENSITIVE ,INSERT ,INT ,
         INT1 , INT2 ,INT3 ,INT4 ,INT8 ,
         INTEGER , INTERVAL ,INTO ,IO_AFTER_GTIDS ,IO_BEFORE_GTIDS ,
-        IS ,ITERATE ,
+        IS ,ITERATE , INTERSECT,
 
         JOIN ,JSON_TABLE ,
 
@@ -143,9 +143,10 @@
     <sqlDataTypes>
         <sqlDataType name="CHAR" precision="255" stdSqlType="CHAR"/>
         <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT,INT UNSIGNED"/>
-        <sqlDataType name="TINYINT" stdSqlType="TINYINT"/>
+        <sqlDataType name="TINYINT" stdSqlType="TINYINT" />
+        <sqlDataType name="TINYINT UNSIGNED" stdSqlType="INTEGER" deprecated="true"/>
         <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
-        <sqlDataType name="ENUM" stdSqlType="INTEGER" />
+        <sqlDataType name="ENUM" stdSqlType="INTEGER" deprecated="true" />
         <sqlDataType name="BIGINT" stdSqlType="BIGINT" alias="BIGINT UNSIGNED"/>
         <sqlDataType name="TINYTEXT" precision="255" stdSqlType="VARCHAR" allowPrecision="false" deprecated="true"/>
         <sqlDataType name="VARCHAR" precision="16383" stdSqlType="VARCHAR"/>
@@ -159,13 +160,13 @@
         <sqlDataType name="DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="DECIMAL" stdSqlType="DECIMAL"/>
         <sqlDataType name="BLOB" precision="255" allowPrecision="false" stdSqlType="VARBINARY"/>
-        <sqlDataType name="VARBINARY" precision="16383" stdSqlType="VARBINARY"/>
+        <sqlDataType name="VARBINARY" precision="16383" stdSqlType="VARBINARY" allowExceedPrecision="true"/>
         <sqlDataType name="MEDIUMBLOB" precision="16777215" stdSqlType="VARBINARY" allowPrecision="false"/>
         <sqlDataType name="LONGBLOB" stdSqlType="VARBINARY" allowPrecision="false"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN" alias="BIT" />
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
         <sqlDataType name="JSON" stdSqlType="JSON" />
-        <sqlDataType name="SET" stdSqlType="ARRAY" />
+        <sqlDataType name="SET" stdSqlType="ARRAY" deprecated="true"/>
         <sqlDataType name="BINARY" stdSqlType="VARBINARY" />
     </sqlDataTypes>
 

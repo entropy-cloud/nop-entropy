@@ -163,7 +163,11 @@
 
             <rowActions>
                 <action id="recover-deleted-button" label="@i18n:common.recoverDeleted" level="primary">
-                    <api url="@mutation:NopAuthUser__recoverDeleted/id?id=$id"/>
+                    <api url="@mutation:NopAuthUser__recoverDeleted/id">
+                        <data>
+                            <id>$id</id>
+                        </data>
+                    </api>
                     <confirmText>@i18n:common.confirmRecoverDeleted</confirmText>
                 </action>
             </rowActions>

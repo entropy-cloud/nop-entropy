@@ -9,7 +9,6 @@ package io.nop.graphql.core.engine;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.StringHelper;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.ast.GraphQLArgument;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
@@ -45,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
+import static io.nop.graphql.core.GraphQLConstants.BIZ_OBJ_NAME_ROOT;
+import static io.nop.graphql.core.GraphQLConstants.OBJ_ACTION_SEPARATOR;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ALLOWED_NAMES;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_AST_NODE;
@@ -123,7 +124,9 @@ public class GraphQLSelectionResolver {
                             .param(ARG_OPERATION_NAME, fieldSelection.getName())
                             .param(ARG_OPERATION_TYPE, op.getOperationType());
                 }
-                resolveFieldSelection(doc, StringHelper.capitalize(op.getOperationType().name()), fieldDef,
+                int index = fieldSelection.getName().indexOf(OBJ_ACTION_SEPARATOR);
+                String objName = index < 0 ? BIZ_OBJ_NAME_ROOT : fieldSelection.getName().substring(0, index);
+                resolveFieldSelection(doc, objName, fieldDef,
                         fieldSelection, op.getVars(), level + 1);
             } else {
                 throw new NopException(ERR_GRAPHQL_UNSUPPORTED_AST).param(ARG_AST_NODE, selection);
