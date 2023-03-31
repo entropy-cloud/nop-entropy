@@ -82,7 +82,8 @@ public class ServletHttpServerContext implements IHttpServerContext {
     public void addCookie(String sameSite, HttpCookie cookie) {
         Cookie retCookie = new Cookie(cookie.getName(), cookie.getValue());
         retCookie.setHttpOnly(cookie.isHttpOnly());
-        retCookie.setDomain(cookie.getDomain());
+        if (cookie.getDomain() != null)
+            retCookie.setDomain(cookie.getDomain());
         retCookie.setPath(cookie.getPath());
         retCookie.setSecure(cookie.getSecure());
         retCookie.setMaxAge((int) cookie.getMaxAge());
