@@ -95,8 +95,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Produces(MediaType.APPLICATION_JSON)
     @PostMapping(path = "/r/{operationName}", produces = MediaType.APPLICATION_JSON)
     public CompletionStage<ResponseEntity<Object>> restSpring(@PathVariable("operationName") String operationName,
-                                                              @RequestParam(SYS_PARAM_SELECTION) String selection,
-                                                              @RequestBody String body) {
+                                                              @RequestParam(value=SYS_PARAM_SELECTION,required = false) String selection,
+                                                              @RequestBody(required = false) String body) {
         return runRest(null, operationName, () -> {
             return (ApiRequest<?>) buildRequest(body, selection, true);
         }, this::transformRestResponse);
@@ -107,8 +107,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Produces(MediaType.APPLICATION_JSON)
     @GetMapping(path = "/r/{operationName}", produces = MediaType.APPLICATION_JSON)
     public CompletionStage<ResponseEntity<Object>> restQuerySpring(@PathVariable("operationName") String operationName,
-                                                                   @RequestParam(SYS_PARAM_SELECTION) String selection,
-                                                                   @RequestParam(SYS_PARAM_ARGS) String args) {
+                                                                   @RequestParam(value=SYS_PARAM_SELECTION,required = false) String selection,
+                                                                   @RequestParam(value=SYS_PARAM_ARGS,required = false) String args) {
         return runRest(GraphQLOperationType.query, operationName, () -> {
             return buildRequest(args, selection, true);
         }, this::transformRestResponse);
@@ -135,8 +135,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Path("/p/{query: [a-zA-Z].*}")
     @GetMapping("/p/{query: [a-zA-Z].*}")
     public CompletionStage<ResponseEntity<Object>> pageQuerySpring(@PathVariable("query") String query,
-                                                                   @RequestParam(SYS_PARAM_SELECTION) String selection,
-                                                                   @RequestParam(SYS_PARAM_ARGS) String args) {
+                                                                   @RequestParam(value=SYS_PARAM_SELECTION,required = false) String selection,
+                                                                   @RequestParam(value=SYS_PARAM_ARGS,required = false) String args) {
         int pos = query.indexOf('/');
         String operationName = query;
         String path = pos > 0 ? query.substring(pos) : null;
