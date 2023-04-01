@@ -18,6 +18,7 @@ import java.net.HttpCookie;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
 
@@ -82,8 +83,10 @@ public class ServletHttpServerContext implements IHttpServerContext {
     public void addCookie(String sameSite, HttpCookie cookie) {
         Cookie retCookie = new Cookie(cookie.getName(), cookie.getValue());
         retCookie.setHttpOnly(cookie.isHttpOnly());
-        if (cookie.getDomain() != null)
+        // issues/I6RRQ7
+        if(Objects.nonNull(cookie.getDomain())){
             retCookie.setDomain(cookie.getDomain());
+        }
         retCookie.setPath(cookie.getPath());
         retCookie.setSecure(cookie.getSecure());
         retCookie.setMaxAge((int) cookie.getMaxAge());
