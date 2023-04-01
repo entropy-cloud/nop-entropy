@@ -6,6 +6,7 @@
             <attr name="_dsl_root" implicit="true"/>
             <source>
                 <thisLib:JsonComponentSupport/>
+                <thisLib:ExtFieldsSupport/>
             </source>
         </DefaultPostExtends>
 
@@ -35,10 +36,12 @@
                                 <components>
                                     <c:for var="colNode" items="${jsonCols}">
                                         <c:script>
-                                            const pub = !colNode.attrCsvSet('tagSet')?.contains('no-pub').$('gen-component-for-json-col')
+                                            const pub =
+                                            !colNode.attrCsvSet('tagSet')?.contains('no-pub').$('gen-component-for-json-col')
                                         </c:script>
                                         <component name="${colNode.getAttr('name')}Component" needFlush="true"
-                                                   notGenCode="${colNode.getAttr('notGenCode')}" tagSet="json${pub and ',pub'}"
+                                                   notGenCode="${colNode.getAttr('notGenCode')}"
+                                                   tagSet="json${pub and ',pub'}"
                                                    className="io.nop.orm.support.JsonOrmComponent">
                                             <prop name="_jsonText" column="${colNode.getAttr('name')}"/>
                                         </component>
@@ -50,6 +53,37 @@
                 </orm>
             </source>
         </JsonComponentSupport>
+
+        <ExtFieldsSupport>
+            <!--
+             _dsl_root为元编程阶段可访问的配置文件根节点
+            -->
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    let entityNodes = _dsl_root.childByTag('entities').children
+                        .filter(child=> child.attrCsvSet('tagSet')?.contains('use-ext-field'));
+                ]]></c:script>
+
+                <orm xpl:if="!entityNodes.empty">
+                    <entities>
+                        <c:for var="entityNode" items="${entityNodes}">
+                            <entity name="${entityNode.getAttr('name')}">
+                                <relations>
+                                    <to-many name="extFields" refEntityName="io.nop.sys.dao.entity.NopSysExtField" keyProp="fieldName">
+                                        <join>
+                                            <on leftProp="id" rightProp="entityId"/>
+                                            <on leftValue="${entityNode.getAttr('name')}" rightProp="entityName"/>
+                                        </join>
+                                    </to-many>
+                                </relations>
+                            </entity>
+                        </c:for>
+                    </entities>
+                </orm>
+            </source>
+        </ExtFieldsSupport>
 
         <GenFromExcel>
             <attr name="path" type="string"/>

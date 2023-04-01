@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+    <web:GenPage view="NopSysExtField.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

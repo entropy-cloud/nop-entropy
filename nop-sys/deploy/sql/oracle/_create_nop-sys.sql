@@ -137,6 +137,25 @@ CREATE TABLE nop_sys_variable(
   constraint PK_nop_sys_variable primary key (VAR_NAME)
 );
 
+CREATE TABLE nop_sys_ext_field(
+  ENTITY_NAME VARCHAR2(200) NOT NULL ,
+  ENTITY_ID VARCHAR2(100) NOT NULL ,
+  FIELD_NAME VARCHAR2(100) NOT NULL ,
+  FIELD_TYPE INTEGER NOT NULL ,
+  DECIMAL_SCALE SMALLINT  ,
+  DECIMAL_VALUE NUMBER(24,8)  ,
+  DATE_VALUE DATE  ,
+  TIMESTAMP_VALUE TIMESTAMP  ,
+  STRING_VALUE VARCHAR2(4000)  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_sys_ext_field primary key (ENTITY_NAME,ENTITY_ID,FIELD_NAME)
+);
+
 CREATE TABLE nop_sys_dict(
   SID VARCHAR2(32) NOT NULL ,
   DICT_NAME VARCHAR2(150) NOT NULL ,
@@ -379,6 +398,38 @@ CREATE TABLE nop_sys_dict(
       COMMENT ON COLUMN nop_sys_variable.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_sys_variable.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_sys_ext_field IS '扩展字段';
+                
+      COMMENT ON COLUMN nop_sys_ext_field.ENTITY_NAME IS '实体名';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.ENTITY_ID IS '实体ID';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.FIELD_NAME IS '字段名';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.FIELD_TYPE IS '字段类型';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.DECIMAL_SCALE IS '浮点精度';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.DECIMAL_VALUE IS '浮点值';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.DATE_VALUE IS '日期值';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.TIMESTAMP_VALUE IS '时间点值';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.STRING_VALUE IS '字符串值';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_sys_ext_field.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_sys_dict IS '字典表';
                 

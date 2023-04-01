@@ -68,6 +68,9 @@ public class _NopSysNoticeTemplate extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 12;
 
     
+    /* relation:  */
+    public static final String PROP_NAME_extFields = "extFields";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
@@ -670,5 +673,15 @@ public class _NopSysNoticeTemplate extends DynamicOrmEntity{
         }
     }
     
+    private final OrmEntitySet<io.nop.sys.dao.entity.NopSysExtField> _extFields = new OrmEntitySet<>(this, PROP_NAME_extFields,
+        null, io.nop.sys.dao.entity.NopSysExtField.PROP_NAME_fieldName,io.nop.sys.dao.entity.NopSysExtField.class);
+
+    /**
+     * 。 refPropName: , keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.sys.dao.entity.NopSysExtField> getExtFields(){
+       return _extFields;
+    }
+       
 }
 // resume CPD analysis - CPD-ON

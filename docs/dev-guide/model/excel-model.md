@@ -1,3 +1,14 @@
+# Excel数据模型
+通过Excel格式的文档可以配置数据模型。数据模型的具体结构由[orm.imp.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/imp/orm.imp.xml)导入模型文件来定义。
+
+在Nop平台中，无需手工编程，只需要增加imp.xml配置文件，即可实现对Excel文件的解析。例如[Api模型](api-model.md)也是采用同一机制实现。
+
+imp导入规范对于Excel格式的要求相对比较灵活，并不依赖于字段出现的前后顺序，非必填的字段如果不需要设置可以直接从模板中删除。
+只需要满足如下两条规则即可采用imp模型来实现解析：
+1. 普通字段的布局应该是 字段名 - 字段值，即字段名所在单元格的右侧为字段值
+2. 列表字段的字段名字段的下方为它的值的列表，列表的第一列必须是序号列，其中为数字格式。注意字段名所在的单元格必须能够覆盖它的所有列。
+
+
 # 配置
 * registerShortName	:实体名为包含包名的全类名，如果registerShortName设置为true，则也可以通过去除包名的短类名来访问实体
 * appName：	所有子模块的前缀名，**格式必须为 xxx-yyy，例如nop-sys**，它会自动成为两级目录名。Excel模型的名称应该与appName相同，否则自动生成codegen模块中的配置不正确
@@ -58,6 +69,8 @@ Nop平台内置的表名都具有前缀`nop_`。
 * dict: 标记为字典表，其他地方可以通过obj/{objName}来将该表的数据作为字典表来使用
 * mapper: 为该表生成类似MyBatis的Mapper定义文件和Mapper接口类。
 * no-web: 后台使用的数据对象，不为它单独生成前台页面入口
+* kv-table: 标记当前实体需要实现IOrmKeyValueTable接口。这个接口要求表中必须具有fieldName,fieldType, stringValue等字段，具体参考nop_sys_ext_field表的字段设计。
+* use-ext-field: 为当前实体增加扩展字段支持，将扩展字段值以数据行的形式保存到nop_sys_ext_field表中。关于扩展字段详细介绍参见[ext-field.md](../orm/ext-field.md)
 
 ## 字段标签
 * seq： 利用SequenceGenerator来自动生成主键。缺省使用nop_sys_sequence表来记录sequence。

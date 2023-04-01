@@ -11,7 +11,6 @@ import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
-import io.nop.core.unittest.BaseTestCase;
 import io.nop.dao.DaoErrors;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
@@ -80,8 +79,8 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     }
 
     public void lazyInit(){
-        if(BaseTestCase.isTestRunning())
-            return;
+//        if(BaseTestCase.isTestRunning())
+//            return;
         addDefaultSequence();
     }
 

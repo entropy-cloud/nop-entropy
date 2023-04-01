@@ -45,83 +45,97 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysI18n-main" displayName="多语言消息" orderNo="10010" i18n-en:displayName="I18n Message"
+                <resource id="NopSysExtField-main" displayName="扩展字段" orderNo="10010"
+                          i18n-en:displayName="Extension Field" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/sys/pages/NopSysExtField/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopSysExtField:query" displayName="查询扩展字段" orderNo="10011"
+                                  resourceType="FNPT">
+                            <permissions>NopSysExtField:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopSysExtField:mutation" displayName="修改扩展字段" orderNo="10012"
+                                  resourceType="FNPT">
+                            <permissions>NopSysExtField:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopSysI18n-main" displayName="多语言消息" orderNo="10013" i18n-en:displayName="I18n Message"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysI18n/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysI18n:query" displayName="查询多语言消息" orderNo="10011" resourceType="FNPT">
+                        <resource id="FNPT:NopSysI18n:query" displayName="查询多语言消息" orderNo="10014" resourceType="FNPT">
                             <permissions>NopSysI18n:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysI18n:mutation" displayName="修改多语言消息" orderNo="10012"
+                        <resource id="FNPT:NopSysI18n:mutation" displayName="修改多语言消息" orderNo="10015"
                                   resourceType="FNPT">
                             <permissions>NopSysI18n:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysMakerCheckerRecord-main" displayName="MakerChecker审批记录" orderNo="10013"
+                <resource id="NopSysMakerCheckerRecord-main" displayName="MakerChecker审批记录" orderNo="10016"
                           i18n-en:displayName="Maker Checker Record" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysMakerCheckerRecord/main.page.yaml">
                     <children>
                         <resource id="FNPT:NopSysMakerCheckerRecord:query" displayName="查询MakerChecker审批记录"
-                                  orderNo="10014" resourceType="FNPT">
+                                  orderNo="10017" resourceType="FNPT">
                             <permissions>NopSysMakerCheckerRecord:query</permissions>
                         </resource>
                         <resource id="FNPT:NopSysMakerCheckerRecord:mutation" displayName="修改MakerChecker审批记录"
-                                  orderNo="10015" resourceType="FNPT">
+                                  orderNo="10018" resourceType="FNPT">
                             <permissions>NopSysMakerCheckerRecord:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysNoticeTemplate-main" displayName="通知模板" orderNo="10016"
+                <resource id="NopSysNoticeTemplate-main" displayName="通知模板" orderNo="10019"
                           i18n-en:displayName="Notice Template" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysNoticeTemplate/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysNoticeTemplate:query" displayName="查询通知模板" orderNo="10017"
+                        <resource id="FNPT:NopSysNoticeTemplate:query" displayName="查询通知模板" orderNo="10020"
                                   resourceType="FNPT">
                             <permissions>NopSysNoticeTemplate:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysNoticeTemplate:mutation" displayName="修改通知模板" orderNo="10018"
+                        <resource id="FNPT:NopSysNoticeTemplate:mutation" displayName="修改通知模板" orderNo="10021"
                                   resourceType="FNPT">
                             <permissions>NopSysNoticeTemplate:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysSequence-main" displayName="序列号" orderNo="10019" i18n-en:displayName="Sequence"
+                <resource id="NopSysSequence-main" displayName="序列号" orderNo="10022" i18n-en:displayName="Sequence"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysSequence/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysSequence:query" displayName="查询序列号" orderNo="10020" resourceType="FNPT">
+                        <resource id="FNPT:NopSysSequence:query" displayName="查询序列号" orderNo="10023" resourceType="FNPT">
                             <permissions>NopSysSequence:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysSequence:mutation" displayName="修改序列号" orderNo="10021"
+                        <resource id="FNPT:NopSysSequence:mutation" displayName="修改序列号" orderNo="10024"
                                   resourceType="FNPT">
                             <permissions>NopSysSequence:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysUserVariable-main" displayName="用户变量" orderNo="10022"
+                <resource id="NopSysUserVariable-main" displayName="用户变量" orderNo="10025"
                           i18n-en:displayName="User Variable" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysUserVariable/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysUserVariable:query" displayName="查询用户变量" orderNo="10023"
+                        <resource id="FNPT:NopSysUserVariable:query" displayName="查询用户变量" orderNo="10026"
                                   resourceType="FNPT">
                             <permissions>NopSysUserVariable:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysUserVariable:mutation" displayName="修改用户变量" orderNo="10024"
+                        <resource id="FNPT:NopSysUserVariable:mutation" displayName="修改用户变量" orderNo="10027"
                                   resourceType="FNPT">
                             <permissions>NopSysUserVariable:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysVariable-main" displayName="系统变量" orderNo="10025"
+                <resource id="NopSysVariable-main" displayName="系统变量" orderNo="10028"
                           i18n-en:displayName="System Variable" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysVariable/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysVariable:query" displayName="查询系统变量" orderNo="10026"
+                        <resource id="FNPT:NopSysVariable:query" displayName="查询系统变量" orderNo="10029"
                                   resourceType="FNPT">
                             <permissions>NopSysVariable:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysVariable:mutation" displayName="修改系统变量" orderNo="10027"
+                        <resource id="FNPT:NopSysVariable:mutation" displayName="修改系统变量" orderNo="10030"
                                   resourceType="FNPT">
                             <permissions>NopSysVariable:mutation</permissions>
                         </resource>

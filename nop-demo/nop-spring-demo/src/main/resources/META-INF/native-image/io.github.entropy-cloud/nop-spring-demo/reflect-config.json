@@ -2070,6 +2070,168 @@
     "fields": [],
     "methods": [
       {
+        "name": "addChild",
+        "parameterTypes": [
+          "io.nop.api.core.beans.TreeBean"
+        ]
+      },
+      {
+        "name": "appendChildren",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "attr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "attrIgnoreNull",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "childByTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "childWithAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "cloneChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "createFromJson",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "fromTreeBean",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ITreeBean"
+        ]
+      },
+      {
+        "name": "getAttrs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBody",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildCount",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "getContentValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocation",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagName",
+        "parameterTypes": []
+      },
+      {
+        "name": "replaceChild",
+        "parameterTypes": [
+          "io.nop.api.core.beans.TreeBean",
+          "io.nop.api.core.beans.TreeBean"
+        ]
+      },
+      {
+        "name": "setAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setBody",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setChildren",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setContentValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setLocation",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation"
+        ]
+      },
+      {
+        "name": "setTagName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "toJsonObject",
+        "parameterTypes": []
+      },
+      {
+        "name": "toQueryBean",
+        "parameterTypes": []
+      },
+      {
+        "name": "toTreeBean",
+        "parameterTypes": []
+      },
+      {
+        "name": "transformChild",
+        "parameterTypes": [
+          "java.util.function.Predicate",
+          "java.util.function.Function",
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.TreeBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getAttr",
         "parameterTypes": [
           "java.lang.String"
@@ -4736,6 +4898,111 @@
       }
     ],
     "name": "io.nop.auth.core.login.UserContextConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.model.ActionAuthModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addRole",
+        "parameterTypes": [
+          "io.nop.auth.core.model.AuthRoleModel"
+        ]
+      },
+      {
+        "name": "addSite",
+        "parameterTypes": [
+          "io.nop.auth.api.messages.SiteMapBean"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRoles",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSite",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getSites",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasRoles",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasSite",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasSites",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_roles",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_sites",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setRoles",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setSites",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.model._gen._ActionAuthModel",
     "unsafeAllocated": false
   },
   {

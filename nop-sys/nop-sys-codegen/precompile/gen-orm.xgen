@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<c:script>
+<c:script><![CDATA[
 // 根据ORM模型生成dao/entity/xbiz
 codeGenerator.withTargetDir("../").renderModel('../../model/nop-sys.orm.xlsx','/nop/templates/orm', '/',$scope);
-</c:script>
+codeGenerator.withTargetDir("../nop-sys-dao/src/main/java").renderModel('../../nop-sys-dao/src/main/resources/_vfs/nop/sys/orm/app.orm.xml',
+    '/nop/templates/orm-entity','/',$scope);
+]]></c:script>

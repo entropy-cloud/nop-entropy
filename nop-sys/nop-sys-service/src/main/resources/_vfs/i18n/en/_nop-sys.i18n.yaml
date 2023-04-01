@@ -3,6 +3,7 @@ entity:
     NopSysCodeRule: Code Rule
     NopSysDict: Dictionary
     NopSysDictOption: Dictionay Item
+    NopSysExtField: Extension Field
     NopSysI18n: I18n Message
     NopSysMakerCheckerRecord: Maker Checker Record
     NopSysNoticeTemplate: Notice Template
@@ -53,6 +54,22 @@ prop:
       updateTime: Update Time
       remark: Remark
       dict: Dictionary
+    NopSysExtField:
+      entityName: Entity Name
+      entityId: Entity ID
+      fieldName: Field Name
+      fieldType: Field Type
+      decimalScale: Decimal Scale
+      decimalValue: Decimal Value
+      dateValue: Date Value
+      timestampValue: Timestamp Value
+      stringValue: String Value
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
     NopSysI18n:
       i18nKey: I18n Key
       i18nLocale: Locale
@@ -99,6 +116,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      extFields: null
     NopSysSequence:
       seqName: Name
       seqType: Type

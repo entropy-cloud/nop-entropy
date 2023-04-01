@@ -138,6 +138,9 @@
                     if(record.tagSet?.contains('cache'))
                         record.useGlobalCache = true;
 
+                    if(record.tagSet?.contains('kv-table'))
+                        record.kvTable = true;
+
                     record.columns.forEach(col=>{
                         const domain = col.domain;
                         if(!domain) return;

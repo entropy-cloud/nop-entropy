@@ -7,5 +7,6 @@ drop table  if exists  nop_sys_code_rule;
 drop table  if exists  nop_sys_notice_template;
 drop table  if exists  nop_sys_user_variable;
 drop table  if exists  nop_sys_variable;
+drop table  if exists  nop_sys_ext_field;
 drop table  if exists  nop_sys_dict;
 

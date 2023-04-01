@@ -1,0 +1,10 @@
+<orm x:extends="super" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <entity name="io.nop.sys.dao.entity.NopSysNoticeTemplate">
+            <aliases>
+                <alias name="extFldA" propPath="extFields.fldA.string" type="String"/>
+                <alias name="extFldB" propPath="extFields.fldB.int" type="Integer"/>
+            </aliases>
+        </entity>
+    </entities>
+</orm>

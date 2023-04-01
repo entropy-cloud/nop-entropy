@@ -3,6 +3,7 @@ entity:
     NopSysCodeRule: 编码规则
     NopSysDict: 字典表
     NopSysDictOption: 字典明细
+    NopSysExtField: 扩展字段
     NopSysI18n: 多语言消息
     NopSysMakerCheckerRecord: MakerChecker审批记录
     NopSysNoticeTemplate: 通知模板
@@ -53,6 +54,22 @@ prop:
       updatedBy: 修改人
       value: 值
       version: 数据版本
+    NopSysExtField:
+      createTime: 创建时间
+      createdBy: 创建人
+      dateValue: 日期值
+      decimalScale: 浮点精度
+      decimalValue: 浮点值
+      entityId: 实体ID
+      entityName: 实体名
+      fieldName: 字段名
+      fieldType: 字段类型
+      remark: 备注
+      stringValue: 字符串值
+      timestampValue: 时间点值
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopSysI18n:
       createTime: 创建时间
       createdBy: 创建人
@@ -92,6 +109,7 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       delFlag: 删除标识
+      extFields: null
       name: 名称
       remark: 备注
       sid: 主键

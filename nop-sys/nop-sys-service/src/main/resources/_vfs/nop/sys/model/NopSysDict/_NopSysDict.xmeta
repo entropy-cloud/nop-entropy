@@ -56,8 +56,9 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="dictOptions" ext:kind="to-many" internal="true" ext:joinLeftProp="sid" ext:joinRightProp="dictId"
-              ext:joinRightDisplayProp="label" lazy="true" published="false">
+        <prop name="dictOptions" tagSet="" ext:kind="to-many" internal="true" ext:joinLeftProp="sid"
+              ext:joinRightProp="dictId" ext:joinRightDisplayProp="label" insertable="false" updatable="false"
+              lazy="true" published="false">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.sys.dao.entity.NopSysDictOption&gt;"
                     bizObjName="NopSysDictOption"/>
         </prop>
