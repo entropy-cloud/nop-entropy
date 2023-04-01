@@ -44,17 +44,10 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     
     /**
      *  
-     * xml name: component
+     * xml name: control
      * 直接指定使用的控件类型
      */
-    private java.lang.String _component ;
-    
-    /**
-     *  
-     * xml name: control
-     * 与gen-control相比，它不需要执行代码生成，因此也就不存在注意表达式转义的问题。直接对应于前台可使用的界面定义
-     */
-    private java.util.Map<java.lang.String,java.lang.Object> _control ;
+    private java.lang.String _control ;
     
     /**
      *  
@@ -381,45 +374,22 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     
     /**
      * 
-     * xml name: component
+     * xml name: control
      *  直接指定使用的控件类型
      */
     
-    public java.lang.String getComponent(){
-      return _component;
-    }
-
-    
-    public void setComponent(java.lang.String value){
-        checkAllowChange();
-        
-        this._component = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: control
-     *  与gen-control相比，它不需要执行代码生成，因此也就不存在注意表达式转义的问题。直接对应于前台可使用的界面定义
-     */
-    
-    public java.util.Map<java.lang.String,java.lang.Object> getControl(){
+    public java.lang.String getControl(){
       return _control;
     }
 
     
-    public void setControl(java.util.Map<java.lang.String,java.lang.Object> value){
+    public void setControl(java.lang.String value){
         checkAllowChange();
         
         this._control = value;
            
     }
 
-    
-    public boolean hasControl(){
-        return this._control != null && !this._control.isEmpty();
-    }
     
     /**
      * 
@@ -1113,7 +1083,6 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
         out.put("charCase",this.getCharCase());
         out.put("className",this.getClassName());
         out.put("classNameExpr",this.getClassNameExpr());
-        out.put("component",this.getComponent());
         out.put("control",this.getControl());
         out.put("custom",this.isCustom());
         out.put("defaultValue",this.getDefaultValue());

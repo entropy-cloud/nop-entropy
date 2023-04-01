@@ -4072,6 +4072,12 @@
         ]
       },
       {
+        "name": "checkValidModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "copy",
         "parameterTypes": [
           "io.nop.core.resource.IFile",
@@ -4252,6 +4258,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getTempResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getZipTool",
         "parameterTypes": []
       },
@@ -4288,6 +4300,12 @@
       },
       {
         "name": "isValidModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidModuleName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -7135,6 +7153,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isAllowExceedPrecision",
+        "parameterTypes": []
+      },
+      {
         "name": "isDeprecated",
         "parameterTypes": []
       },
@@ -7148,6 +7170,12 @@
         "name": "setAlias",
         "parameterTypes": [
           "java.util.Set"
+        ]
+      },
+      {
+        "name": "setAllowExceedPrecision",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -9168,6 +9196,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isAllColumnPrimary",
+        "parameterTypes": []
+      },
+      {
         "name": "setPkColumns",
         "parameterTypes": [
           "java.util.List"
@@ -9345,6 +9377,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addJoinOn",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmJoinOnModel"
+        ]
+      },
       {
         "name": "getAliasPropPath",
         "parameterTypes": []
@@ -11419,6 +11457,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getColChildren",
+        "parameterTypes": []
+      },
+      {
         "name": "getColDescendants",
         "parameterTypes": []
       },
@@ -11428,6 +11470,10 @@
       },
       {
         "name": "getColParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColParentExpandIndex",
         "parameterTypes": []
       },
       {
@@ -11459,6 +11505,10 @@
       },
       {
         "name": "getExpandIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandKey",
         "parameterTypes": []
       },
       {
@@ -11510,6 +11560,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRowChildren",
+        "parameterTypes": []
+      },
+      {
         "name": "getRowDescendants",
         "parameterTypes": []
       },
@@ -11519,6 +11573,10 @@
       },
       {
         "name": "getRowParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowParentExpandIndex",
         "parameterTypes": []
       },
       {
@@ -11576,6 +11634,14 @@
         "parameterTypes": [
           "io.nop.report.core.model.ExpandedCell"
         ]
+      },
+      {
+        "name": "isStaticCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "markEvaluated",
+        "parameterTypes": []
       },
       {
         "name": "markProxy",
@@ -11732,6 +11798,10 @@
         "parameterTypes": [
           "java.lang.Object"
         ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.report.core.model.ExpandedCell",
@@ -11913,6 +11983,12 @@
         "parameterTypes": []
       },
       {
+        "name": "optional",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "order_by",
         "parameterTypes": [
           "io.nop.xlang.api.IXLangCompileScope",
@@ -11945,6 +12021,10 @@
           "io.nop.api.core.util.SourceLocation",
           "java.lang.Object"
         ]
+      },
+      {
+        "name": "today",
+        "parameterTypes": []
       },
       {
         "name": "tpl",

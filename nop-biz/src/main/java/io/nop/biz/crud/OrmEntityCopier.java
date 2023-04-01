@@ -30,8 +30,6 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjSchema;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;

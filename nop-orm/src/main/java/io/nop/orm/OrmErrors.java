@@ -559,4 +559,7 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_COPY_ENTITY_PROP_NOT_COLLECTION = define("nop.err.orm.copy-entity-prop-not-collection",
             "值的类型是[{propClass}]，不能复制到实体的集合属性[{propName}]上", ARG_PROP_NAME, ARG_PROP_CLASS);
+
+    ErrorCode ERR_ORM_NOT_SINGLETON_SET = define("nop.err.orm.not-singleton-set",
+            "集合[{collectionName}]中的元素个数不是1，不是单例集合", ARG_COLLECTION_NAME, ARG_OWNER);
 }

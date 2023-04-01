@@ -69,7 +69,7 @@
             <source>
                 <body j:list="true">
                     <c:choose>
-                        <when test="${formModel.layoutComponent=='tabs'}">
+                        <when test="${formModel.layoutControl=='tabs'}">
                             <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}" />
                         </when>
                         <when test="${formModel.layout.simpleTable}">

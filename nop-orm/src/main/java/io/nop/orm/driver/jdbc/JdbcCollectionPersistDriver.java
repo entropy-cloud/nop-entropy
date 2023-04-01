@@ -91,7 +91,7 @@ public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
                 Object id = OrmAssembly.readId(values, refEntityModel);
                 IOrmEntity refEntity = session.internalLoad(refEntityModel.getName(), id);
                 session.internalAssemble(refEntity, values, loadPropIds);
-                coll.orm_add(refEntity);
+                coll.orm_internalAdd(refEntity);
             }
             coll.orm_endLoad();
             return null;
@@ -134,7 +134,7 @@ public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
                         LOG.warn("orm.err_batch_load_collection_missing:ownerId={}", ownerId);
                         continue;
                     }
-                    coll.orm_add(refEntity);
+                    coll.orm_internalAdd(refEntity);
                 }
                 return null;
             });

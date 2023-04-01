@@ -1,7 +1,7 @@
 <!--
 表单模型
 @editMode [控件编辑模式] edit:编辑模式, add:新增模式, view:查看模式, query:查询条件。不同的模式下使用的控件可能不同
-@layoutComponent 如果设置为wizard，则表示采用向导布局来组织页面。
+@layoutControl 如果设置为wizard，则表示采用向导布局来组织页面。如果设置为tabs，则采用标签页来组织页面。
 @resetAfterSubmit 提交表单成功后，重置当前表单至初始状态
 @persistData 表单默认在重置之后（切换页面、弹框中表单关闭表单），会自动清空掉表单中的所有数据，
   如果你想持久化保留当前表单项的数据而不清空它，那么通过 Form 配置 persistData: "xxx"，指定一个 key ，来实现数据持久化保存
@@ -13,7 +13,7 @@
 @initFetch 设置了 initApi 或者 initAsyncApi 后，默认会开始就发请求，设置为 false 后就不会起始就请求接口
 @silentPolling 配置刷新时是否显示加载动画
 -->
-<form id="!xml-name" title="string" label="string" editMode="xml-name" layoutMode="var-name" layoutComponent="xml-name"
+<form id="!xml-name" title="string" label="string" editMode="xml-name" layoutMode="var-name" layoutControl="xml-name"
       size="string"
       submitOnChange="boolean" submitOnInit="boolean"
       resetAfterSubmit="boolean" reload="string" target="string" redirect="string"

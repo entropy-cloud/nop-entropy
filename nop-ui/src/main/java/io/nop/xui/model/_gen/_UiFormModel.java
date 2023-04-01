@@ -163,10 +163,10 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: layoutComponent
-     * 如果设置为wizard，则表示采用向导布局来组织页面。
+     * xml name: layoutControl
+     * 如果设置为wizard，则表示采用向导布局来组织页面。如果设置为tabs，则采用标签页来组织页面。
      */
-    private java.lang.String _layoutComponent ;
+    private java.lang.String _layoutControl ;
     
     /**
      *  
@@ -770,19 +770,19 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: layoutComponent
-     *  如果设置为wizard，则表示采用向导布局来组织页面。
+     * xml name: layoutControl
+     *  如果设置为wizard，则表示采用向导布局来组织页面。如果设置为tabs，则采用标签页来组织页面。
      */
     
-    public java.lang.String getLayoutComponent(){
-      return _layoutComponent;
+    public java.lang.String getLayoutControl(){
+      return _layoutControl;
     }
 
     
-    public void setLayoutComponent(java.lang.String value){
+    public void setLayoutControl(java.lang.String value){
         checkAllowChange();
         
-        this._layoutComponent = value;
+        this._layoutControl = value;
            
     }
 
@@ -1278,7 +1278,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         out.put("labelAlign",this.getLabelAlign());
         out.put("labelWidth",this.getLabelWidth());
         out.put("layout",this.getLayout());
-        out.put("layoutComponent",this.getLayoutComponent());
+        out.put("layoutControl",this.getLayoutControl());
         out.put("layoutMode",this.getLayoutMode());
         out.put("objMeta",this.getObjMeta());
         out.put("panelClassName",this.getPanelClassName());

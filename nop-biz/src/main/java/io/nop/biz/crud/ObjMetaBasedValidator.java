@@ -247,17 +247,21 @@ public class ObjMetaBasedValidator {
                     if (relProp == null)
                         throw newError(ERR_BIZ_UNKNOWN_PROP, propMeta)
                                 .param(ARG_PROP_NAME, relation);
-                    ISchema relSchema = relProp.getSchema();
-                    if (relSchema != null) {
-                        String bizObjName = relSchema.getBizObjName();
-                        if (bizObjName != null) {
-                            Map<String, Object> request = new HashMap<>();
-                            request.put(PROP_ID, value);
-                            // 确保对象可见
-                            bizObjectManager.getBizObject(bizObjName).invoke(METHOD_GET, request, null, context);
-                        }
-                    }
+                    validateRefValue(relProp, value);
                 }
+            }
+        }
+    }
+
+    private void validateRefValue(IObjPropMeta relProp, Object value) {
+        ISchema relSchema = relProp.getSchema();
+        if (relSchema != null) {
+            String bizObjName = relSchema.getBizObjName();
+            if (bizObjName != null) {
+                Map<String, Object> request = new HashMap<>();
+                request.put(PROP_ID, value);
+                // 确保对象可见
+                bizObjectManager.getBizObject(bizObjName).invoke(METHOD_GET, request, null, context);
             }
         }
     }

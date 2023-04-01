@@ -35,7 +35,7 @@
             </layout>
         </form>
 
-        <form id="add" x:inherit="true" layoutComponent="tabs">
+        <form id="add" x:inherit="true" layoutControl="tabs">
             <layout>
                 ============>baseInfo[基本信息]======
                 userName status[用户状态]
@@ -63,7 +63,7 @@
             </cells>
         </form>
 
-        <form id="edit" layoutComponent="tabs">
+        <form id="edit" layoutControl="tabs">
             <layout>
                 ============>baseInfo[基本信息]======
                 userName status[用户状态]
@@ -109,8 +109,8 @@
             </layout>
 
             <cells>
-                <cell id="oldPassword" component="password" custom="true"/>
-                <cell id="newPassword" component="password" custom="true"/>
+                <cell id="oldPassword" control="password" custom="true"/>
+                <cell id="newPassword" control="password" custom="true"/>
             </cells>
         </form>
 
@@ -120,7 +120,7 @@
                 password
             </layout>
             <cells>
-                <cell id="password" component="password" custom="true"/>
+                <cell id="password" control="password" custom="true"/>
             </cells>
         </form>
     </forms>

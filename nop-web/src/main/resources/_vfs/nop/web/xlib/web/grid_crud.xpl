@@ -19,7 +19,7 @@
         <!--
         amis的picker控件要求source同时提供获取初始值和查询列表的功能，而没有使用pickerSchema中定义的api
         -->
-        <source xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api,genScope)"/>
+        <source xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api,genScope)" valueField="id" labelField="${objMeta?.displayProp}"/>
     </c:if>
 
     <!--

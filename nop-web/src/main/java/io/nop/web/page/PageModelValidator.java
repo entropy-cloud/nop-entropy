@@ -7,14 +7,8 @@
  */
 package io.nop.web.page;
 
-import io.nop.api.core.config.AppConfig;
-import io.nop.core.module.ModuleManager;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
-
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import java.util.List;
 
 public class PageModelValidator {
     @Inject
@@ -26,11 +20,6 @@ public class PageModelValidator {
 
     @PostConstruct
     public void validate() {
-        ModuleManager.instance().getEnabledModuleIds().forEach(moduleId -> {
-            List<IResource> pageFiles = VirtualFileSystem.instance().findAll("/" + moduleId, "pages/*/*.page.yaml");
-            for (IResource resource : pageFiles) {
-                pageProvider.getPage(resource.getPath(), AppConfig.defaultLocale());
-            }
-        });
+        pageProvider.validateAllPages();
     }
 }

@@ -49,13 +49,13 @@ public class XuiHelper {
      */
     public static IXplTag getControlTag(IXplTagLib lib, IUiDisplayMeta dispMeta, IObjPropMeta propMeta,
                                         IObjMeta objMeta, String editMode) {
-        String component = null;
+        String control = null;
         String domain = null;
         String stdDomain = null;
         String stdDataType = null;
 
         if (dispMeta != null) {
-            component = dispMeta.getComponent();
+            control = dispMeta.getControl();
             domain = dispMeta.getDomain();
             stdDomain = dispMeta.getStdDomain();
 
@@ -65,8 +65,8 @@ public class XuiHelper {
             }
         }
 
-        if (component == null && propMeta != null)
-            component = (String) propMeta.prop_get(XuiConstants.EXT_CONTROL);
+        if (control == null && propMeta != null)
+            control = (String) propMeta.prop_get(XuiConstants.EXT_CONTROL);
 
         ISchema schema = propMeta == null ? null : propMeta.getSchema();
         if (schema != null) {
@@ -86,7 +86,7 @@ public class XuiHelper {
 
         IObjPropMeta relProp = getRelationProp(propMeta, objMeta);
         String relKind = relProp != null ? (String) relProp.prop_get(EXT_KIND) : null;
-        IXplTag tag = getControlTag(lib, component, domain, stdDomain, relKind, stdDataType, editMode);
+        IXplTag tag = getControlTag(lib, control, domain, stdDomain, relKind, stdDataType, editMode);
         if (tag == null) {
             tag = tryGetControl(lib, DATA_TYPE_ANY, MODE_VIEW);
         }

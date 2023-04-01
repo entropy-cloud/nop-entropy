@@ -23,7 +23,8 @@ public interface XuiConstants {
 
     String PROP_ID = "id";
 
-    String GRAPHQL_DICT_LABEL_PROP = "graphql:dictLabelProp";
+
+    String GRAPHQL_LABEL_PROP = "graphql:labelProp";
     String GRAPHQL_JSON_COMPONENT_PROP = "graphql:jsonComponentProp";
 
     String EXT_RELATION = "ext:relation";
@@ -32,6 +33,7 @@ public interface XuiConstants {
     String EXT_JOIN_LEFT_PROP = "ext:joinLeftProp";
     String EXT_JOIN_RIGHT_PROP = "ext:joinRightProp";
     String EXT_JOIN_RIGHT_DISPLAY_PROP = "ext:joinRightDisplayProp";
+    String EXT_REF_DISPLAY_PROP = "ext:refDisplayProp";
 
     String KIND_TO_ONE = "to-one";
     String KIND_TO_MANY = "to-many";

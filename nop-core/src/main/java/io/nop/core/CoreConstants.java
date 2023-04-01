@@ -138,6 +138,7 @@ public interface CoreConstants extends ResourceConstants {
     String NAMESPACE_X = "x";
 
     String NAMESPACE_X_PREFIX = "x:";
+    String NAMESPACE_XDSL_PREFIX = "xdsl:";
 
     String ATTR_X_ABSTRACT = "x:abstract";
     String ATTR_X_EXTENDS = "x:extends";

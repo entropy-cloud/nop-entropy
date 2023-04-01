@@ -21,14 +21,18 @@ import io.nop.orm.model.IEntityRelationModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
+import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
 import static io.nop.orm.OrmErrors.ARG_COUNT;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.OrmErrors.ARG_OWNER;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_COMPOSITE_PK_PART_COUNT;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_ENTITY_ID;
+import static io.nop.orm.OrmErrors.ERR_ORM_NOT_SINGLETON_SET;
 
 public class OrmEntityHelper {
     public static String buildCollectionName(String entityName, String propName) {
@@ -200,5 +204,89 @@ public class OrmEntityHelper {
             ret[i] = cols.get(i).getPropId();
         }
         return ret;
+    }
+
+    /**
+     * 假设多对多关联表中目前实际只维持一对多或者一对一关系
+     *
+     * @param coll     多对多关联实体集合，实际其中最多只有一条记录
+     * @param propName 关联实体上的属性
+     * @return 属性值
+     */
+    public static Object getPropFromSingleton(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
+        if (coll.isEmpty())
+            return null;
+        if (coll.size() > 1)
+            throw new OrmException(ERR_ORM_NOT_SINGLETON_SET)
+                    .param(ARG_COLLECTION_NAME, coll.orm_collectionName())
+                    .param(ARG_OWNER, coll.orm_owner());
+
+        IOrmEntity data = coll.iterator().next();
+        return data.orm_propValueByName(propName);
+    }
+
+    public static <T extends IOrmEntity> void setPropToSingleton(IOrmEntitySet<T> coll, String propName, Object value) {
+        IOrmEntity entity;
+        if (coll.isEmpty()) {
+            entity = coll.orm_newItem();
+            entity.orm_propValueByName(propName, value);
+            coll.add((T) entity);
+        } else {
+            if (coll.size() > 1)
+                throw new OrmException(ERR_ORM_NOT_SINGLETON_SET)
+                        .param(ARG_COLLECTION_NAME, coll.orm_collectionName())
+                        .param(ARG_OWNER, coll.orm_owner());
+
+            entity = coll.iterator().next();
+            entity.orm_propValueByName(propName, value);
+        }
+    }
+
+    /**
+     * 从多对多关联表中获取指定关联属性值
+     *
+     * @param coll     关联实体集合
+     * @param propName 关联属性值
+     * @return 属性值集合
+     */
+    public static List<Object> getRefProps(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
+        if (coll.isEmpty())
+            return Collections.emptyList();
+        List<Object> ret = new ArrayList<>(coll.size());
+        for (IOrmEntity entity : coll) {
+            Object value = entity.orm_propValueByName(propName);
+            ret.add(value);
+        }
+        return ret;
+    }
+
+    public static <T extends IOrmEntity> void setRefProps(IOrmEntitySet<T> coll, String propName, List<Object> values) {
+        if (values == null)
+            values = Collections.emptyList();
+
+        if (coll.isEmpty()) {
+            for (Object value : values) {
+                IOrmEntity entity = coll.orm_newItem();
+                entity.orm_propValueByName(propName, value);
+                coll.add((T) entity);
+            }
+        } else {
+            List<Object> newValues = new ArrayList<>(values);
+            Iterator<T> it = coll.iterator();
+            while (it.hasNext()) {
+                T entity = it.next();
+                Object value = entity.orm_propValueByName(propName);
+                // 如果旧集合中有但是新的数据中没有，则删除
+                if (!newValues.remove(value)) {
+                    it.remove();
+                }
+            }
+
+            for (Object value : newValues) {
+                IOrmEntity entity = coll.orm_newItem();
+                entity.orm_propValueByName(propName, value);
+                coll.add((T) entity);
+            }
+        }
     }
 }

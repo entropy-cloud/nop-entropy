@@ -57,7 +57,7 @@
                             continue;
                     ]]></c:script>
 
-                    <prop name="${name}" graphql:dictLabelProp="${name}_label">
+                    <prop name="${name}" graphql:labelProp="${name}_label" xpl:if="!prop.hasAttr('graphql:labelProp')">
                     </prop>
 
                     <prop name="${name}_label" displayName="${prop.getAttr('displayName')}" internal="true"

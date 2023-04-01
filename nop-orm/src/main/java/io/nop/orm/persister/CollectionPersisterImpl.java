@@ -178,7 +178,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
         coll.orm_beginLoad();
         for (Object id : elementIds) {
             IOrmEntity entity = session.load(entityName, id);
-            coll.orm_add(entity);
+            coll.orm_internalAdd(entity);
             queue.enqueue(entity);
         }
         coll.orm_endLoad();
@@ -251,7 +251,7 @@ public class CollectionPersisterImpl implements ICollectionPersister {
                 coll.orm_beginLoad();
                 for (Object elmId : elmIds) {
                     IOrmEntity entity = session.load(entityName, elmId);
-                    coll.orm_add(entity);
+                    coll.orm_internalAdd(entity);
                 }
                 coll.orm_endLoad();
                 queue.internalEnqueueCollection(coll, propIds, selection);

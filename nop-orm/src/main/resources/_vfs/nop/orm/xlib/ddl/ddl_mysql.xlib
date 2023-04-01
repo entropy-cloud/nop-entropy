@@ -19,6 +19,12 @@
             </source>
         </AddComment>
 
+        <ColNullDef>
+            <source>
+                <c:unit><![CDATA[ ${col.mandatory and !allNullable ? 'NOT NULL' : 'NULL'} ]]></c:unit>
+            </source>
+        </ColNullDef>
+
         <DefaultValue>
             <attr name="col" implicit="true"/>
             <attr name="dialect" implicit="true"/>

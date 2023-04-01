@@ -17,9 +17,9 @@
             <source>
                 <c:script>
                     function filter_cond(){
-                       if(objMeta.tree.levelProp)
-                          return 'filter_' + objMeta.tree.levelProp + '=' + (objMeta.tree.rootLevelValue ?? '__null');
-                       return 'filter_' + objMeta.tree.parentProp + '=_null';
+                    if(objMeta.tree.levelProp)
+                    return 'filter_' + objMeta.tree.levelProp + '=' + (objMeta.tree.rootLevelValue ?? '__null');
+                    return 'filter_' + objMeta.tree.parentProp + '=_null';
                     }
                 </c:script>
                 <!--
@@ -362,15 +362,16 @@
             ]]></source>
         </edit-enum>
 
+        <view-enum x:prototype="view-labelProp"/>
 
-        <view-enum>
+        <view-labelProp>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="mandatory"/>
             <attr name="editMode"/>
 
             <source><![CDATA[
-                const labelProp = propMeta?.['graphql:dictLabelProp']
+                const labelProp = propMeta?.['graphql:labelProp']
                 if(labelProp){
                     return {
                         type:"static",
@@ -382,7 +383,7 @@
                     }
                 }
             ]]></source>
-        </view-enum>
+        </view-labelProp>
 
 
         <edit-textarea>
@@ -425,28 +426,28 @@
 
         <edit-remark x:prototype="edit-textarea"/>
 
-<!--        <view-image>-->
-<!--            <attr name="dispMeta"/>-->
-<!--            <attr name="propMeta"/>-->
+        <!--        <view-image>-->
+        <!--            <attr name="dispMeta"/>-->
+        <!--            <attr name="propMeta"/>-->
 
-<!--            <source><![CDATA[-->
-<!--                return {-->
-<!--                    "type": "image"-->
-<!--                }-->
-<!--            ]]></source>-->
-<!--        </view-image>-->
+        <!--            <source><![CDATA[-->
+        <!--                return {-->
+        <!--                    "type": "image"-->
+        <!--                }-->
+        <!--            ]]></source>-->
+        <!--        </view-image>-->
 
-<!--        <edit-image>-->
-<!--            <attr name="dispMeta"/>-->
-<!--            <attr name="propMeta"/>-->
+        <!--        <edit-image>-->
+        <!--            <attr name="dispMeta"/>-->
+        <!--            <attr name="propMeta"/>-->
 
-<!--            <source><![CDATA[-->
-<!--                return {-->
-<!--                    "type": "input-image",-->
-<!--                    "receiver": dispMeta?.uploadUrl || '/upload/image'-->
-<!--                }-->
-<!--            ]]></source>-->
-<!--        </edit-image>-->
+        <!--            <source><![CDATA[-->
+        <!--                return {-->
+        <!--                    "type": "input-image",-->
+        <!--                    "receiver": dispMeta?.uploadUrl || '/upload/image'-->
+        <!--                }-->
+        <!--            ]]></source>-->
+        <!--        </edit-image>-->
 
         <edit-tag-list>
             <description>json数组类型的标签列表</description>
@@ -585,9 +586,9 @@
             </source>
         </edit-deptId>
 
-        <view-boolean x:prototype="view-boolFlag" />
+        <view-boolean x:prototype="view-boolFlag"/>
 
-        <edit-boolean x:prototype="edit-boolFlag" />
+        <edit-boolean x:prototype="edit-boolFlag"/>
 
         <view-boolFlag>
             <attr name="dispMeta"/>
@@ -681,7 +682,7 @@
             ]]></source>
         </query-string>
 
-        <edit-to-one>
+        <edit-picker>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="objMeta"/>
@@ -697,52 +698,58 @@
                     valueField: relProp['ext:joinRightProp'],
                     labelField: relProp['ext:joinRightDisplayProp'],
                     source: {
+                       // 前端AMIS控件在初始化数据的时候会把source转换成loadOptions调用，
+                       // 但此时无法自动获取到外层的valueField配置，所以这里只能重复设置一下。
                        valueField: relProp['ext:joinRightProp'],
                        labelField: relProp['ext:joinRightDisplayProp']
                     },
                     multiple: false,
                 }
             ]]></source>
-        </edit-to-one>
+        </edit-picker>
 
-        <view-to-one>
+        <view-picker>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="objMeta"/>
             <attr name="editMode"/>
+
             <source><![CDATA[
                 import io.nop.xui.utils.XuiHelper;
                 const relProp = XuiHelper.getRelationProp(propMeta,objMeta);
 
                 return {
                    type: 'static',
-                   name: relProp.name+'.'+relProp['ext:joinRightDisplayProp']
+                   name: propMeta['graphql:labelProp'] || relProp.name+'.'+relProp['ext:joinRightDisplayProp']
                 }
             ]]></source>
-        </view-to-one>
+        </view-picker>
+
+        <edit-to-one x:prototype="edit-picker"/>
+
+        <view-to-one x:prototype="view-picker"/>
 
         <edit-password>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="objMeta"/>
             <attr name="editMode"/>
-            <source>
+            <source><![CDATA[
                 return {
-                   type: 'input-password'
+                    type: 'input-password'
                 }
-            </source>
+            ]]></source>
         </edit-password>
+
+        <view-password>
+            <source><![CDATA[
+                return { type:'static', value: '***', name:''}
+            ]]></source>
+        </view-password>
 
         <edit-any x:prototype="edit-string"/>
 
-        <view-any>
-            <attr name="dispMeta"/>
-            <attr name="propMeta"/>
-            <source><![CDATA[
-                return {
-                    type:"static"
-                }
-            ]]></source>
+        <view-any x:prototype="view-labelProp">
         </view-any>
     </tags>
 </lib>

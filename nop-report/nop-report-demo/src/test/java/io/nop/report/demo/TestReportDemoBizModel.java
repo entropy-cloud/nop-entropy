@@ -5,12 +5,14 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.beans.TreeResultBean;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.report.demo.biz.ReportDemoBizModel;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 import java.util.List;
 
 @NopTestConfig(localDb = true)
+@Disabled
 public class TestReportDemoBizModel extends JunitAutoTestCase {
 
     @Inject

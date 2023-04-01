@@ -100,7 +100,7 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
         return bean;
     }
 
-    public String toString(){
+    public String toString() {
         return toString(false);
     }
 

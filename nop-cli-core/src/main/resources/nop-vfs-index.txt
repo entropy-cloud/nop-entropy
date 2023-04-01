@@ -6,6 +6,7 @@
 /nop/aop/nop-api-core.annotations
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-orm.beans
+/nop/autoconfig/nop-report.beans
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
 /nop/codegen/xlib/web-gen.xlib
@@ -46,7 +47,6 @@
 /nop/orm/xlib/orm-gen.xlib
 /nop/orm/xlib/pdman.xlib
 /nop/orm/xlib/sql.xlib
-/nop/report/autoconfig/nop-report.beans
 /nop/report/beans/report-defaults.beans.xml
 /nop/report/imp/xpt.imp.xml
 /nop/schema/action-auth.xdef

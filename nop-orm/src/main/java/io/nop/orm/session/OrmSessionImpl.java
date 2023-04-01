@@ -611,7 +611,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
         this.cache.forEachCurrent(refEntityName, entity -> {
             if (entity.orm_refEntity(relModel.getRefPropName()) == owner) {
-                pc.orm_add(entity);
+                pc.orm_internalAdd(entity);
             }
         });
         pc.orm_endLoad();

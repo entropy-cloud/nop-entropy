@@ -8,6 +8,7 @@
 package io.nop.web.page;
 
 import io.nop.api.core.auth.IRolePermissionMapping;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
@@ -27,6 +28,7 @@ import io.nop.core.lang.json.bind.resolver.I18nTextResolver;
 import io.nop.core.lang.json.bind.resolver.LoadTextResolver;
 import io.nop.core.lang.json.delta.DeltaJsonSaver;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
+import io.nop.core.module.ModuleManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
@@ -138,6 +140,15 @@ public class PageProvider extends ResourceWithHistoryProvider {
     @PreDestroy
     public void destroy() {
         cleanup.cancel();
+    }
+
+    public void validateAllPages() {
+        ModuleManager.instance().getEnabledModuleIds().forEach(moduleId -> {
+            List<IResource> pageFiles = VirtualFileSystem.instance().findAll("/" + moduleId, "pages/*/*.page.yaml");
+            for (IResource resource : pageFiles) {
+                getPage(resource.getPath(), AppConfig.defaultLocale());
+            }
+        });
     }
 
     public Map<String, Object> getPage(String path, String locale) {

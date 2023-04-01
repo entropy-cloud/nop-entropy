@@ -24,7 +24,7 @@ public interface IUiDisplayMeta extends IExtensibleObject {
 
     String getStdDomain();
 
-    String getComponent();
+    String getControl();
 
     String getEditMode();
 

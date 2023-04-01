@@ -35,8 +35,8 @@ import io.nop.xui.model.UiRefViewModel;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static io.nop.xui.XuiConstants.GRAPHQL_DICT_LABEL_PROP;
 import static io.nop.xui.XuiConstants.GRAPHQL_JSON_COMPONENT_PROP;
+import static io.nop.xui.XuiConstants.GRAPHQL_LABEL_PROP;
 import static io.nop.xui.XuiErrors.ARG_CELL_ID;
 import static io.nop.xui.XuiErrors.ARG_COL_ID;
 import static io.nop.xui.XuiErrors.ARG_FORM_ID;
@@ -71,7 +71,7 @@ public class XuiViewAnalyzer {
                 } else {
                     selection.makeSubField(colModel.getId(), false);
                 }
-                addDictLabel(propMeta, selection);
+                addLabelProp(propMeta, selection);
                 addJsonComponent(propMeta, objMeta, selection);
                 addDepend(propMeta.getDepends(), objMeta, name -> {
                     selection.addCompositeField(name, false);
@@ -153,7 +153,7 @@ public class XuiViewAnalyzer {
                 } else {
                     selection.makeSubField(lc.getId(), false);
                 }
-                addDictLabel(propMeta, selection);
+                addLabelProp(propMeta, selection);
                 addJsonComponent(propMeta, objMeta, selection);
                 addDepend(propMeta.getDepends(), objMeta, name -> {
                     selection.addCompositeField(name, false);
@@ -187,10 +187,10 @@ public class XuiViewAnalyzer {
         String jsonComponentProp = (String) propMeta.prop_get(GRAPHQL_JSON_COMPONENT_PROP);
         if (!StringHelper.isEmpty(jsonComponentProp)) {
             IObjPropMeta jsonProp = objMeta.getProp(jsonComponentProp);
-            if(jsonProp == null)
+            if (jsonProp == null)
                 throw new NopException(ERR_XUI_UNKNOWN_JSON_COMPONENT_PROP)
                         .source(propMeta)
-                        .param(ARG_PROP_NAME,jsonComponentProp);
+                        .param(ARG_PROP_NAME, jsonComponentProp);
             selection.addField(jsonComponentProp);
         }
     }
@@ -274,18 +274,27 @@ public class XuiViewAnalyzer {
 
         IObjPropMeta relProp = XuiHelper.getRelationProp(propMeta, objMeta);
         if (relProp != null) {
-            String rightProp = (String) relProp.prop_get(XuiConstants.EXT_JOIN_RIGHT_DISPLAY_PROP);
-            if (!StringHelper.isEmpty(rightProp)) {
-                selection.addCompositeField(relProp.getName() + '.' + rightProp, false);
+            if (!addLabelProp(propMeta, selection)) {
+                String rightProp = (String) relProp.prop_get(XuiConstants.EXT_JOIN_RIGHT_DISPLAY_PROP);
+                if (!StringHelper.isEmpty(rightProp)) {
+                    selection.addCompositeField(relProp.getName() + '.' + rightProp, false);
+                }
             }
         }
     }
 
-    void addDictLabel(IObjPropMeta propMeta, FieldSelectionBean selection) {
-        String labelProp = (String) propMeta.prop_get(GRAPHQL_DICT_LABEL_PROP);
+    boolean addLabelProp(IObjPropMeta propMeta, FieldSelectionBean selection) {
+        String labelProp = getLabelProp(propMeta);
         if (!StringHelper.isEmpty(labelProp)) {
             selection.addField(labelProp);
+            return true;
         }
+        return false;
+    }
+
+    String getLabelProp(IObjPropMeta propMeta) {
+        String labelProp = (String) propMeta.prop_get(GRAPHQL_LABEL_PROP);
+        return labelProp;
     }
 
     static IComponentModel loadViewModel(String viewPath) {

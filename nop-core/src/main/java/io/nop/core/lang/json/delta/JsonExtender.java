@@ -66,7 +66,7 @@ public class JsonExtender {
         if (extendsList == null || extendsList.isEmpty()) {
             Map<String, Object> genExtends = loadDynamicExtends(obj);
             Map<String, Object> map = extendsMapEntries(obj);
-            if(genExtends == null)
+            if (genExtends == null)
                 return map;
             return (Map<String, Object>) JsonMerger.instance().merge(genExtends, map);
         }
@@ -138,6 +138,9 @@ public class JsonExtender {
         Object generated = options.getExtendsGenerator().genExtends(loc, genExtends, obj);
         if (generated == null)
             return null;
+
+        JsonCleaner.changeNamePrefix(generated,
+                CoreConstants.NAMESPACE_XDSL_PREFIX, CoreConstants.NAMESPACE_X_PREFIX);
 
         generated = xtend(generated, true);
 

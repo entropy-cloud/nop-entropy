@@ -112,6 +112,22 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     @Override
+    public T orm_newItem() {
+        IOrmEntityEnhancer enhancer = this.orm_enhancer();
+        IOrmEntity entity;
+        if (enhancer == null) {
+            entity = (IOrmEntity) ClassHelper.newInstance(refEntityClass);
+        } else {
+            entity = enhancer.newEntity(refEntityClass.getName());
+        }
+
+        if (refPropName != null) {
+            entity.orm_propValueByName(refPropName, owner);
+        }
+        return (T) entity;
+    }
+
+    @Override
     public Object prop_get(String propName) {
         if (keyProp == null)
             throw newError(ERR_ORM_ENTITY_SET_NO_KEY_PROP).param(ARG_PROP_NAME, propName);
@@ -526,7 +542,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     @Override
-    public void orm_add(T o) {
+    public void orm_internalAdd(T o) {
         initialEntities.add(o);
         entities.add(o);
         this.keyToEntityMap = null;

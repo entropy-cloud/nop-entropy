@@ -41,6 +41,8 @@ public interface IOrmEntitySet<T extends IOrmEntity>
      */
     String orm_collectionName();
 
+    T orm_newItem();
+
     /**
      * 集合是否是proxy对象。如果是，则第一次访问集合元素时会从数据库中实际加载数据
      *
@@ -86,7 +88,7 @@ public interface IOrmEntitySet<T extends IOrmEntity>
     void orm_beginLoad();
 
     @Internal
-    void orm_add(T entity);
+    void orm_internalAdd(T entity);
 
     @Internal
     void orm_endLoad();

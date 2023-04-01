@@ -16,6 +16,7 @@ import io.nop.core.lang.json.utils.SourceLocationHelper;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -156,5 +157,42 @@ public class JsonCleaner {
                 return true;
         }
         return false;
+    }
+
+    public static void changeNamePrefix(Object obj, String oldPrefix, String newPrefix) {
+        if (obj instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) obj;
+            Iterator<Map.Entry<String, Object>> it = map.entrySet().iterator();
+
+            Map<String, Object> changed = null;
+
+            while (it.hasNext()) {
+                Map.Entry<String, Object> entry = it.next();
+                String name = entry.getKey();
+                Object value = entry.getValue();
+
+                if (name.startsWith(oldPrefix)) {
+                    if (changed == null) {
+                        changed = new LinkedHashMap<>();
+                    }
+                    changed.put(newPrefix + name.substring(oldPrefix.length()), value);
+                    it.remove();
+                }
+
+                // 如果是map或者list，则先处理子节点
+                if (value != null) {
+                    changeNamePrefix(value, oldPrefix, newPrefix);
+                }
+            }
+
+            if (changed != null)
+                map.putAll(changed);
+        } else if (obj instanceof List) {
+            List<Object> list = (List<Object>) obj;
+            for (int i = 0, n = list.size(); i < n; i++) {
+                Object v = list.get(i);
+                changeNamePrefix(v, oldPrefix, newPrefix);
+            }
+        }
     }
 }
