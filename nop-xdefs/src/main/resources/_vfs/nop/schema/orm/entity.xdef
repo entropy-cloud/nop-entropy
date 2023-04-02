@@ -82,7 +82,7 @@
         关联表上的字段可以通过alias映射为主实体的属性，从而简化程序编写
         -->
         <alias name="!prop-name" displayName="string" propPath="!string" type="!generic-type"
-               notGenCode="!boolean=false"
+               notGenCode="!boolean=false" tagSet="tag-set"
                xdef:name="OrmAliasModel"/>
     </aliases>
 

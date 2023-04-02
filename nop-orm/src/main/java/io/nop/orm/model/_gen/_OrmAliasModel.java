@@ -44,6 +44,13 @@ public abstract class _OrmAliasModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: tagSet
+     * 
+     */
+    private java.util.Set<java.lang.String> _tagSet ;
+    
+    /**
+     *  
      * xml name: type
      * 
      */
@@ -127,6 +134,25 @@ public abstract class _OrmAliasModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: tagSet
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getTagSet(){
+      return _tagSet;
+    }
+
+    
+    public void setTagSet(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._tagSet = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: type
      *  
      */
@@ -161,6 +187,7 @@ public abstract class _OrmAliasModel extends io.nop.core.resource.component.Abst
         out.put("name",this.getName());
         out.put("notGenCode",this.isNotGenCode());
         out.put("propPath",this.getPropPath());
+        out.put("tagSet",this.getTagSet());
         out.put("type",this.getType());
     }
 }

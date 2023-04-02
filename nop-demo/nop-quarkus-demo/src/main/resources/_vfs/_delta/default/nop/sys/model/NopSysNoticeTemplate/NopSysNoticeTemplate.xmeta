@@ -1,0 +1,13 @@
+<meta x:extends="super" x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="extFldA" displayName="扩展字段A"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="String" domain="email"/>
+        </prop>
+
+        <prop name="extFldB" displayName="扩展字段B"
+              queryable="true" sortable="true" insertable="true" updatable="true" mandatory="true">
+            <schema type="Integer"/>
+        </prop>
+    </props>
+</meta>

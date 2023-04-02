@@ -1,7 +1,10 @@
 <lib x:schema="/nop/schema/xlib.xdef" defaultOutputMode="node"
-     xmlns:x="/nop/schema/xdsl.xdef">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:thisLib="thisLib" xmlns:c="c" xmlns:xpl="xpl">
 
     <tags>
+        <!--
+        在_app.orm.xml的<x:gen-extends>段中会调用这个标签函数，从而为实体增加相应扩展支持
+        -->
         <DefaultPostExtends outputMode="xml">
             <attr name="_dsl_root" implicit="true"/>
             <source>
@@ -54,6 +57,9 @@
             </source>
         </JsonComponentSupport>
 
+        <!--
+        识别use-ext-field配置，自动生成扩展字段所需要的关联属性配置
+        -->
         <ExtFieldsSupport>
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点
@@ -69,21 +75,90 @@
                 <orm xpl:if="!entityNodes.empty">
                     <entities>
                         <c:for var="entityNode" items="${entityNodes}">
-                            <entity name="${entityNode.getAttr('name')}">
-                                <relations>
-                                    <to-many name="extFields" refEntityName="io.nop.sys.dao.entity.NopSysExtField" keyProp="fieldName">
-                                        <join>
-                                            <on leftProp="id" rightProp="entityId"/>
-                                            <on leftValue="${entityNode.getAttr('name')}" rightProp="entityName"/>
-                                        </join>
-                                    </to-many>
-                                </relations>
-                            </entity>
+                            <c:choose>
+                                <when test="${entityNode.attrCsvSet('tagSet').contains('local-ext')}">
+                                    <thisLib:GenLocalExtFieldSupport
+                                            entityNode="${entityNode}"
+                                            genExtTable="${_dsl_root.childByTag('entities')
+                                                .childWithAttr('name',entityNode.getAttr('name')+'Ext') == null}"/>
+                                </when>
+                                <otherwise>
+                                    <entity name="${entityNode.getAttr('name')}">
+                                        <relations>
+                                            <to-many name="extFields" refEntityName="io.nop.sys.dao.entity.NopSysExtField" keyProp="fieldName">
+                                                <join>
+                                                    <on leftProp="id" rightProp="entityId"/>
+                                                    <on leftValue="${entityNode.getAttr('name')}" rightProp="entityName"/>
+                                                </join>
+                                            </to-many>
+                                        </relations>
+                                    </entity>
+                                </otherwise>
+                            </c:choose>
                         </c:for>
                     </entities>
                 </orm>
             </source>
         </ExtFieldsSupport>
+
+        <GenLocalExtFieldSupport>
+            <attr name="entityNode" />
+            <attr name="genExtTable">
+                <description>是否自动生成扩展表定义</description>
+            </attr>
+
+            <source>
+                <entity name="${entityNode.getAttr('name')}">
+                    <relations>
+                        <to-many name="extFields" refEntityName="${entityNode.getAttr('name')}Ext" keyProp="fieldName">
+                            <join>
+                                <on leftProp="id" rightProp="entityId"/>
+                            </join>
+                        </to-many>
+                    </relations>
+                </entity>
+
+                <!-- 自动生成一个扩展表配置 -->
+                <entity name="${entityNode.getAttr('name')}Ext" tableName="${entityNode.getAttr('tableName')}_ext"
+                    displayName="扩展属性" i18n-en:displayName="Extension Fields" xpl:if="genExtTable"
+                >
+                    <columns>
+                        <column code="ENTITY_ID" displayName="实体ID" mandatory="true" name="entityId" precision="100"
+                                primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                                i18n-en:displayName="Entity ID"/>
+                        <column code="FIELD_NAME" displayName="字段名" mandatory="true" name="fieldName" precision="100"
+                                primary="true" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                                i18n-en:displayName="Field Name"/>
+                        <column code="FIELD_TYPE" displayName="字段类型" mandatory="true" name="fieldType" propId="4"
+                                stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Field Type"/>
+                        <column code="DECIMAL_SCALE" displayName="浮点精度" name="decimalScale" propId="5" stdDataType="byte"
+                                stdSqlType="TINYINT" i18n-en:displayName="Decimal Scale"/>
+                        <column code="DECIMAL_VALUE" displayName="浮点值" name="decimalValue" precision="24" propId="6" scale="8"
+                                stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Value"/>
+                        <column code="DATE_VALUE" displayName="日期值" name="dateValue" propId="7" stdDataType="date"
+                                stdSqlType="DATE" i18n-en:displayName="Date Value"/>
+                        <column code="TIMESTAMP_VALUE" displayName="时间点值" name="timestampValue" propId="8"
+                                stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Value"/>
+                        <column code="STRING_VALUE" displayName="字符串值" name="stringValue" precision="4000" propId="9"
+                                stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Value"/>
+                        <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                                stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                        <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                                precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                                i18n-en:displayName="Created By"/>
+                        <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                                propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                                precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                                i18n-en:displayName="Updated By"/>
+                        <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                                propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                        <column code="REMARK" displayName="备注" name="remark" precision="200" propId="15" stdDataType="string"
+                                stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+                    </columns>
+                </entity>
+            </source>
+        </GenLocalExtFieldSupport>
 
         <GenFromExcel>
             <attr name="path" type="string"/>

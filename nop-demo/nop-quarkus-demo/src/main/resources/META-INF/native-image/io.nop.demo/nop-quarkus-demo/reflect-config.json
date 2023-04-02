@@ -18471,6 +18471,12 @@
         ]
       },
       {
+        "name": "checkValidModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "copy",
         "parameterTypes": [
           "io.nop.core.resource.IFile",
@@ -18693,6 +18699,12 @@
       },
       {
         "name": "isValidModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidModuleName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -27229,6 +27241,177 @@
     "fields": [],
     "methods": [
       {
+        "name": "getBoolean",
+        "parameterTypes": []
+      },
+      {
+        "name": "getByte",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChar",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDate",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDatetime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecimal",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDouble",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFloat",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInt",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLong",
+        "parameterTypes": []
+      },
+      {
+        "name": "getShort",
+        "parameterTypes": []
+      },
+      {
+        "name": "getString",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimestamp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "setBoolean",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setByte",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setChar",
+        "parameterTypes": [
+          "java.lang.Character"
+        ]
+      },
+      {
+        "name": "setDate",
+        "parameterTypes": [
+          "java.time.LocalDate"
+        ]
+      },
+      {
+        "name": "setDatetime",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      },
+      {
+        "name": "setDecimal",
+        "parameterTypes": [
+          "java.math.BigDecimal"
+        ]
+      },
+      {
+        "name": "setDouble",
+        "parameterTypes": [
+          "java.lang.Double"
+        ]
+      },
+      {
+        "name": "setFieldName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFieldType",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setFloat",
+        "parameterTypes": [
+          "java.lang.Float"
+        ]
+      },
+      {
+        "name": "setInt",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setLong",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
+        "name": "setShort",
+        "parameterTypes": [
+          "java.lang.Short"
+        ]
+      },
+      {
+        "name": "setString",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimestamp",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.IOrmKeyValueTable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "orm_attached",
         "parameterTypes": []
       },
@@ -28578,6 +28761,88 @@
         "parameterTypes": []
       },
       {
+        "name": "getColumns",
+        "parameterTypes": []
+      },
+      {
+        "name": "getComment",
+        "parameterTypes": []
+      },
+      {
+        "name": "getJavaTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOwnerEntityModel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropValue",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasLazyLoadColumn",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSingleColumn",
+        "parameterTypes": []
+      },
+      {
+        "name": "setOwnerEntityModel",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmEntityModel"
+        ]
+      },
+      {
+        "name": "setPropValue",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.model.OrmAliasModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAliasPropPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColumnPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColumnPropIds",
+        "parameterTypes": []
+      },
+      {
         "name": "getColumnRefs",
         "parameterTypes": []
       },
@@ -29380,6 +29645,89 @@
       }
     ],
     "name": "io.nop.orm.model.OrmUniqueKeyModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "isNotGenCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNotGenCode",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setPropPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.model._gen._OrmAliasModel",
     "unsafeAllocated": false
   },
   {
@@ -31389,6 +31737,340 @@
     "fields": [],
     "methods": [
       {
+        "name": "getBigIntValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBoolean",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBooleanValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getByte",
+        "parameterTypes": []
+      },
+      {
+        "name": "getByteValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChar",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCharValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDate",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDateTimeValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDateValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDatetime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecimal",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecimalScale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecimalValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDouble",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDoubleValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFloat",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFloatValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInt",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIntValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLong",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLongValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNumberValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getShort",
+        "parameterTypes": []
+      },
+      {
+        "name": "getShortValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getString",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStringValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimestamp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimestampValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUnknownTypedValue",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType"
+        ]
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_refLoaded",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_unsetRef",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setBigIntValue",
+        "parameterTypes": [
+          "java.math.BigInteger"
+        ]
+      },
+      {
+        "name": "setBoolean",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setBooleanValue",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setByte",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setByteValue",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setChar",
+        "parameterTypes": [
+          "java.lang.Character"
+        ]
+      },
+      {
+        "name": "setCharValue",
+        "parameterTypes": [
+          "java.lang.Character"
+        ]
+      },
+      {
+        "name": "setDate",
+        "parameterTypes": [
+          "java.time.LocalDate"
+        ]
+      },
+      {
+        "name": "setDateTimeValue",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      },
+      {
+        "name": "setDateValue",
+        "parameterTypes": [
+          "java.time.LocalDate"
+        ]
+      },
+      {
+        "name": "setDatetime",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      },
+      {
+        "name": "setDecimal",
+        "parameterTypes": [
+          "java.math.BigDecimal"
+        ]
+      },
+      {
+        "name": "setDecimalScale",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setDecimalValue",
+        "parameterTypes": [
+          "java.math.BigDecimal"
+        ]
+      },
+      {
+        "name": "setDouble",
+        "parameterTypes": [
+          "java.lang.Double"
+        ]
+      },
+      {
+        "name": "setDoubleValue",
+        "parameterTypes": [
+          "java.lang.Double"
+        ]
+      },
+      {
+        "name": "setFloat",
+        "parameterTypes": [
+          "java.lang.Float"
+        ]
+      },
+      {
+        "name": "setFloatValue",
+        "parameterTypes": [
+          "java.lang.Float"
+        ]
+      },
+      {
+        "name": "setInt",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setIntValue",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setLong",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
+        "name": "setLongValue",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
+        "name": "setNullValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "setShort",
+        "parameterTypes": [
+          "java.lang.Short"
+        ]
+      },
+      {
+        "name": "setShortValue",
+        "parameterTypes": [
+          "java.lang.Short"
+        ]
+      },
+      {
+        "name": "setString",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStringValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimestamp",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setTimestampValue",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUnknownTypedValue",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.support.AbstractOrmKeyValueTable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "cloneInstance",
         "parameterTypes": []
       },
@@ -32475,6 +33157,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysDictOption",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newPk",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity.NopSysExtField",
     "unsafeAllocated": false
   },
   {
@@ -33580,6 +34277,386 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_dateValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_decimalScale"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_decimalValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_entityId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_entityName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fieldName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fieldType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_stringValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_timestampValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_dateValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_decimalScale"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_decimalValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_entityId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_entityName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fieldName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fieldType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_stringValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_timestampValue"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_version"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDateValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecimalScale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecimalValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEntityId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEntityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStringValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimestampValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_entityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalSet",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_isPrimary",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propIdBound",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCreateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDateValue",
+        "parameterTypes": [
+          "java.time.LocalDate"
+        ]
+      },
+      {
+        "name": "setDecimalScale",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setDecimalValue",
+        "parameterTypes": [
+          "java.math.BigDecimal"
+        ]
+      },
+      {
+        "name": "setEntityId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEntityName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFieldName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFieldType",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setStringValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimestampValue",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUpdateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUpdatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysExtField",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_IDS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_NAMES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_i18nKey"
       },
       {
@@ -34445,6 +35522,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_extFields"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_name"
       },
       {
@@ -34497,6 +35579,10 @@
       },
       {
         "name": "getDelFlag",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExtFields",
         "parameterTypes": []
       },
       {
@@ -35758,6 +36844,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysExtFieldBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.service.entity.NopSysI18nBizModel",
     "unsafeAllocated": false
   },
@@ -36049,6 +37145,10 @@
         "parameterTypes": [
           "java.lang.Object"
         ]
+      },
+      {
+        "name": "validateAllPages",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.web.page.PageProvider",
@@ -40461,6 +41561,12 @@
       {
         "name": "setControl",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setControl",
+        "parameterTypes": [
           "java.util.Map"
         ]
       },
@@ -40871,6 +41977,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getLayoutControl",
+        "parameterTypes": []
+      },
+      {
         "name": "getLayoutMode",
         "parameterTypes": []
       },
@@ -41152,6 +42262,12 @@
       },
       {
         "name": "setLayoutComponent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLayoutControl",
         "parameterTypes": [
           "java.lang.String"
         ]

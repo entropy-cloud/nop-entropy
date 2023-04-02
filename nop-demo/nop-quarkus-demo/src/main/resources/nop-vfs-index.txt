@@ -1,3 +1,6 @@
+/_delta/default/nop/sys/model/NopSysNoticeTemplate/NopSysNoticeTemplate.xmeta
+/_delta/default/nop/sys/orm/app.orm.xml
+/_delta/default/nop/sys/pages/NopSysNoticeTemplate/NopSysNoticeTemplate.view.xml
 /dict/auth/gender.dict.yaml
 /dict/auth/login-status.dict.yaml
 /dict/auth/login-type.dict.yaml
@@ -297,6 +300,10 @@
 /nop/sys/model/NopSysDictOption/NopSysDictOption.xmeta
 /nop/sys/model/NopSysDictOption/_NopSysDictOption.xbiz
 /nop/sys/model/NopSysDictOption/_NopSysDictOption.xmeta
+/nop/sys/model/NopSysExtField/NopSysExtField.xbiz
+/nop/sys/model/NopSysExtField/NopSysExtField.xmeta
+/nop/sys/model/NopSysExtField/_NopSysExtField.xbiz
+/nop/sys/model/NopSysExtField/_NopSysExtField.xmeta
 /nop/sys/model/NopSysI18n/NopSysI18n.xbiz
 /nop/sys/model/NopSysI18n/NopSysI18n.xmeta
 /nop/sys/model/NopSysI18n/_NopSysI18n.xbiz
@@ -338,6 +345,11 @@
 /nop/sys/pages/NopSysDictOption/_gen/_NopSysDictOption.view.xml
 /nop/sys/pages/NopSysDictOption/main.page.yaml
 /nop/sys/pages/NopSysDictOption/picker.page.yaml
+/nop/sys/pages/NopSysExtField/NopSysExtField.lib.xjs
+/nop/sys/pages/NopSysExtField/NopSysExtField.view.xml
+/nop/sys/pages/NopSysExtField/_gen/_NopSysExtField.view.xml
+/nop/sys/pages/NopSysExtField/main.page.yaml
+/nop/sys/pages/NopSysExtField/picker.page.yaml
 /nop/sys/pages/NopSysI18n/NopSysI18n.lib.xjs
 /nop/sys/pages/NopSysI18n/NopSysI18n.view.xml
 /nop/sys/pages/NopSysI18n/_gen/_NopSysI18n.view.xml
