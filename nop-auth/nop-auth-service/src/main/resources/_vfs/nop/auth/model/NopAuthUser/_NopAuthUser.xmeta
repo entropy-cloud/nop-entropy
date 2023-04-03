@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="用户" i18n-en:displayName="User"
-      tagSet="mapper">
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="用户"
+      i18n-en:displayName="User" tagSet="mapper">
 
     <entityName>io.nop.auth.dao.entity.NopAuthUser</entityName>
 
@@ -170,9 +170,9 @@
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="roleMappings" displayName="角色映射" i18n-en:displayName="RoleMappings" tagSet="pub,cascade-delete"
-              ext:kind="to-many" internal="true" ext:joinLeftProp="userId" ext:joinRightProp="userId" insertable="false"
-              updatable="false" lazy="true">
+        <prop name="roleMappings" displayName="角色映射" i18n-en:displayName="RoleMappings"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="userId" ext:joinRightProp="userId" insertable="true" updatable="true" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserRole&gt;"
                     bizObjName="NopAuthUserRole"/>
         </prop>
@@ -181,6 +181,16 @@
               ext:joinRightProp="userId" insertable="false" updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserSubstitution&gt;"
                     bizObjName="NopAuthUserSubstitution"/>
+        </prop>
+        <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" internal="true">
+            <schema type="List&lt;io.nop.auth.dao.entity.NopAuthRole&gt;" bizObjName="NopAuthRole"/>
+        </prop>
+        <prop name="relatedRoleIdList" displayName="角色列表" i18n-en:displayName="Role List" insertable="true"
+              updatable="true" graphql:labelProp="relatedRoleList_label" internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedRoleList_label" displayName="角色列表" i18n-en:displayName="Role List" internal="true">
+            <schema type="String"/>
         </prop>
     </props>
 </meta>

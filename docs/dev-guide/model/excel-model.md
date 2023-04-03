@@ -71,6 +71,7 @@ Nop平台内置的表名都具有前缀`nop_`。
 * no-web: 后台使用的数据对象，不为它单独生成前台页面入口
 * kv-table: 标记当前实体需要实现IOrmKeyValueTable接口。这个接口要求表中必须具有fieldName,fieldType, stringValue等字段，具体参考nop_sys_ext_field表的字段设计。
 * use-ext-field: 为当前实体增加扩展字段支持，将扩展字段值以数据行的形式保存到nop_sys_ext_field表中。关于扩展字段详细介绍参见[ext-field.md](../orm/ext-field.md)
+* many-to-many: 标注是多对多关联的中间表，根据此标签会在Java实体上生成多个帮助函数，用于自动处理多对多关联。参见[many-to-many.md](../orm/many-to-many.md)
 
 ## 字段标签
 * seq： 利用SequenceGenerator来自动生成主键。缺省使用nop_sys_sequence表来记录sequence。

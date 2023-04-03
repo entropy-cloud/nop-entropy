@@ -8,11 +8,12 @@
 package io.nop.orm.model;
 
 import io.nop.commons.type.StdDataType;
+import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.orm.IOrmEntity;
 
 import java.util.List;
 
-public interface IEntityPropModel extends IPdmElement, IOrmDataType {
+public interface IEntityPropModel extends IPdmElement, IOrmDataType, IPropGetMissingHook {
 
     IEntityModel getOwnerEntityModel();
 

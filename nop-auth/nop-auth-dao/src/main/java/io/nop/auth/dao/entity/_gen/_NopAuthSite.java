@@ -76,6 +76,9 @@ public class _NopAuthSite extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 14;
 
     
+    /* component:  */
+    public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_siteId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_siteId};
@@ -768,5 +771,22 @@ public class _NopAuthSite extends DynamicOrmEntity{
         }
     }
     
+   private io.nop.orm.support.JsonOrmComponent _extConfigComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_extConfigComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_extConfigComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_extConfig);
+      
+   }
+
+   public io.nop.orm.support.JsonOrmComponent getExtConfigComponent(){
+      if(_extConfigComponent == null){
+          _extConfigComponent = new io.nop.orm.support.JsonOrmComponent();
+          _extConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_extConfigComponent);
+      }
+      return _extConfigComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="角色" i18n-en:displayName="Role"
-      tagSet="mapper">
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="角色"
+      i18n-en:displayName="Role" tagSet="mapper">
 
     <entityName>io.nop.auth.dao.entity.NopAuthRole</entityName>
 
@@ -62,17 +62,37 @@
               insertable="true" updatable="true" ext:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="userMappings" displayName="用户映射" i18n-en:displayName="UserMappings" tagSet="pub,cascade-delete"
-              ext:kind="to-many" internal="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="false"
-              updatable="false" lazy="true">
+        <prop name="userMappings" displayName="用户映射" i18n-en:displayName="UserMappings"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="true" updatable="true" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserRole&gt;"
                     bizObjName="NopAuthUserRole"/>
         </prop>
-        <prop name="resourceMappings" displayName="资源映射" i18n-en:displayName="Resources" tagSet="pub,cascade-delete"
-              ext:kind="to-many" internal="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="false"
-              updatable="false" lazy="true">
+        <prop name="resourceMappings" displayName="资源映射" i18n-en:displayName="Resources"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="true" updatable="true" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthRoleResource&gt;"
                     bizObjName="NopAuthRoleResource"/>
+        </prop>
+        <prop name="relatedUserList" displayName="用户列表" i18n-en:displayName="User List" internal="true">
+            <schema type="List&lt;io.nop.auth.dao.entity.NopAuthUser&gt;" bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="relatedUserIdList" displayName="用户列表" i18n-en:displayName="User List" insertable="true"
+              updatable="true" graphql:labelProp="relatedUserList_label" internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedUserList_label" displayName="用户列表" i18n-en:displayName="User List" internal="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="relatedResourceList" displayName="资源列表" i18n-en:displayName="Resource List" internal="true">
+            <schema type="List&lt;io.nop.auth.dao.entity.NopAuthResource&gt;" bizObjName="NopAuthResource"/>
+        </prop>
+        <prop name="relatedResourceIdList" displayName="资源列表" i18n-en:displayName="Resource List" insertable="true"
+              updatable="true" graphql:labelProp="relatedResourceList_label" internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedResourceList_label" displayName="资源列表" i18n-en:displayName="Resource List" internal="true">
+            <schema type="String"/>
         </prop>
     </props>
 </meta>

@@ -76,6 +76,10 @@ public interface OrmConstants {
 
     String TAG_JSON = "json";
 
+    String TAG_MANY_TO_MANY = "many-to-many";
+
+    String TAG_ONE_TO_ONE = "one-to-one";
+
     /**
      * 新建实体
      */

@@ -222,6 +222,20 @@ public class Underscore {
     }
 
     @Deterministic
+    public static String pluckThenJoin(Collection<?> c, String propName) {
+        if (c == null)
+            return null;
+
+        StringBuilder sb = new StringBuilder();
+        for (Object o : c) {
+            if (sb.length() > 0)
+                sb.append(',');
+            sb.append((Object) getFieldValue(o, propName));
+        }
+        return sb.toString();
+    }
+
+    @Deterministic
     public static <T> List<List<T>> chunk(Collection<T> c, int chunkSize) {
         return CollectionHelper.splitChunk(c, chunkSize);
     }

@@ -116,4 +116,14 @@ public class OrmCompositePKModel implements IEntityPropModel {
     public Set<String> getTagSet() {
         return null;
     }
+
+    @Override
+    public Object prop_get(String propName) {
+        return null;
+    }
+
+    @Override
+    public boolean prop_has(String propName) {
+        return false;
+    }
 }

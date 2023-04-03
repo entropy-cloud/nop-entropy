@@ -16,11 +16,23 @@ public class EntityData<T> {
     private T entity;
     private final IObjMeta objMeta;
     private boolean recoverDeleted;
+    private Map<String,Object> extData;
 
     public EntityData(Map<String, Object> validatedData, T entity, IObjMeta objMeta) {
         this.validatedData = validatedData;
         this.entity = entity;
         this.objMeta = objMeta;
+    }
+
+    /**
+     * 自定义的扩展数据。
+     */
+    public Map<String, Object> getExtData() {
+        return extData;
+    }
+
+    public void setExtData(Map<String, Object> extData) {
+        this.extData = extData;
     }
 
     public boolean isRecoverDeleted() {

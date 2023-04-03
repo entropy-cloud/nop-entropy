@@ -40,5 +40,8 @@
   "position": null,
   "position.name": "",
   "roleMappings": null,
-  "substitutionMappings": null
+  "substitutionMappings": null,
+  "relatedRoleList": null,
+  "relatedRoleIdList": null,
+  "relatedRoleList_label": ""
 }

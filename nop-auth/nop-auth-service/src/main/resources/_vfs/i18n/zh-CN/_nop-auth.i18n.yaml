@@ -93,6 +93,9 @@ prop:
       permissions: 权限标识
       propsConfig: 组件属性
       propsConfigComponent: null
+      relatedRoleIdList: 角色列表
+      relatedRoleList: 角色列表
+      relatedRoleList_label: 角色列表
       remark: 备注
       resourceId: 资源ID
       resourceType: 资源类型
@@ -116,6 +119,12 @@ prop:
       createdBy: 创建人
       delFlag: 删除标识
       isPrimary: 是否主角色
+      relatedResourceIdList: 资源列表
+      relatedResourceList: 资源列表
+      relatedResourceList_label: 资源列表
+      relatedUserIdList: 用户列表
+      relatedUserList: 用户列表
+      relatedUserList_label: 用户列表
       remark: 备注
       resourceMappings: 资源映射
       roleId: 角色ID
@@ -219,6 +228,9 @@ prop:
       positionId: 职务
       pwdUpdateTime: 上次密码更新时间
       realName: 真实姓名
+      relatedRoleIdList: 角色列表
+      relatedRoleList: 角色列表
+      relatedRoleList_label: 角色列表
       remark: 备注
       roleMappings: 角色映射
       salt: 密码加盐

@@ -26,6 +26,11 @@ public interface IEntityRelationModel extends IEntityPropModel {
      */
     IEntityJoinConditionModel getSingleColumnJoin();
 
+    default IColumnModel getSingleJoinColumn() {
+        int propId = getColumnPropId();
+        return propId <= 0 ? null : getOwnerEntityModel().getColumnByPropId(propId, false);
+    }
+
     /**
      * refEntity上的关联数据列
      */

@@ -32,6 +32,7 @@ import java.util.Set;
 import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
 import static io.nop.orm.OrmErrors.ARG_ENTITY;
 import static io.nop.orm.OrmErrors.ARG_OWNER;
+import static io.nop.orm.OrmErrors.ARG_OWNER_PROP;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_ADD_NULL_ELEMENT_TO_COLLECTION;
 import static io.nop.orm.OrmErrors.ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER;
@@ -306,7 +307,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     protected NopException newError(ErrorCode errorCode) {
-        return new OrmException(errorCode).param(ARG_COLLECTION_NAME, collectionName).param(ARG_OWNER, owner);
+        return new OrmException(errorCode).param(ARG_COLLECTION_NAME, collectionName)
+                .param(ARG_OWNER, owner).param(ARG_OWNER_PROP, refPropName);
     }
 
     public void orm_markDirty() {
@@ -372,7 +374,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
             if (elmOwner == null) {
                 e.orm_propValueByName(refPropName, owner);
             } else if (elmOwner != owner) {
-                throw newError(ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER).param(ARG_ENTITY, e);
+                throw newError(ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER)
+                        .param(ARG_ENTITY, e);
             }
         }
 

@@ -144,6 +144,12 @@ public class _NopAuthResource extends DynamicOrmEntity{
     /* relation: 角色映射 */
     public static final String PROP_NAME_roleMappings = "roleMappings";
     
+    /* component:  */
+    public static final String PROP_NAME_metaConfigComponent = "metaConfigComponent";
+    
+    /* component:  */
+    public static final String PROP_NAME_propsConfigComponent = "propsConfigComponent";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_resourceId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_resourceId};
@@ -1528,5 +1534,55 @@ public class _NopAuthResource extends DynamicOrmEntity{
        return _roleMappings;
     }
        
+   private io.nop.orm.support.JsonOrmComponent _metaConfigComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_metaConfigComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_metaConfigComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_metaConfig);
+      
+   }
+
+   public io.nop.orm.support.JsonOrmComponent getMetaConfigComponent(){
+      if(_metaConfigComponent == null){
+          _metaConfigComponent = new io.nop.orm.support.JsonOrmComponent();
+          _metaConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_metaConfigComponent);
+      }
+      return _metaConfigComponent;
+   }
+
+   private io.nop.orm.support.JsonOrmComponent _propsConfigComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_propsConfigComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_propsConfigComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_propsConfig);
+      
+   }
+
+   public io.nop.orm.support.JsonOrmComponent getPropsConfigComponent(){
+      if(_propsConfigComponent == null){
+          _propsConfigComponent = new io.nop.orm.support.JsonOrmComponent();
+          _propsConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_propsConfigComponent);
+      }
+      return _propsConfigComponent;
+   }
+
+        public List<io.nop.auth.dao.entity.NopAuthRole> getRelatedRoleList(){
+            return (List<io.nop.auth.dao.entity.NopAuthRole>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_role);
+        }
+    
+        public String getRelatedRoleList_label(){
+        return io.nop.core.lang.utils.Underscore.pluckThenJoin(getRelatedRoleList(),io.nop.auth.dao.entity.NopAuthRole.PROP_NAME_roleName);
+        }
+    
+        public List<java.lang.String> getRelatedRoleIdList(){
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRole.PROP_NAME_roleId);
+        }
+
+        public void setRelatedRoleIdList(List<java.lang.String> value){
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRole.PROP_NAME_roleId,value);
+        }
+    
 }
 // resume CPD analysis - CPD-ON

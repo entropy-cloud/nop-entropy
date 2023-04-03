@@ -6775,6 +6775,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_metaConfigComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_noAuth"
       },
       {
@@ -6806,6 +6811,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_propsConfig"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_propsConfigComponent"
       },
       {
         "allowUnsafeAccess": false,
@@ -6936,6 +6946,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getMetaConfigComponent",
+        "parameterTypes": []
+      },
+      {
         "name": "getNoAuth",
         "parameterTypes": []
       },
@@ -6961,6 +6975,28 @@
       },
       {
         "name": "getPropsConfig",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropsConfigComponent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedRoleIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedRoleIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "getRelatedRoleList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedRoleList_label",
         "parameterTypes": []
       },
       {
@@ -7485,6 +7521,42 @@
       },
       {
         "name": "getParentRoleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedResourceIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedResourceIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "getRelatedResourceList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedResourceList_label",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "getRelatedUserList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserList_label",
         "parameterTypes": []
       },
       {
@@ -8602,6 +8674,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_extConfigComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_orderNo"
       },
       {
@@ -8663,6 +8740,10 @@
       },
       {
         "name": "getExtConfig",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExtConfigComponent",
         "parameterTypes": []
       },
       {
@@ -9693,6 +9774,24 @@
       },
       {
         "name": "getRealName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedRoleIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedRoleIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "getRelatedRoleList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedRoleList_label",
         "parameterTypes": []
       },
       {
@@ -15178,6 +15277,13 @@
         "parameterTypes": [
           "java.util.Collection",
           "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "pluckThenJoin",
+        "parameterTypes": [
+          "java.util.Collection",
           "java.lang.String"
         ]
       },
@@ -29092,6 +29198,18 @@
         "parameterTypes": []
       },
       {
+        "name": "prop_get",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_has",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setPropValue",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -32630,6 +32748,228 @@
       }
     ],
     "name": "io.nop.orm.support.OrmEntity",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "add",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "addAll",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "beginModify",
+        "parameterTypes": []
+      },
+      {
+        "name": "clear",
+        "parameterTypes": []
+      },
+      {
+        "name": "contains",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "containsAll",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "makeKeyToEntityMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "makeRemovedEntities",
+        "parameterTypes": []
+      },
+      {
+        "name": "newError",
+        "parameterTypes": [
+          "io.nop.api.core.exceptions.ErrorCode"
+        ]
+      },
+      {
+        "name": "orm_added",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_attached",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_beginLoad",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_clearDirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_collectionName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_dirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_endLoad",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_enhancer",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalAdd",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity"
+        ]
+      },
+      {
+        "name": "orm_markDirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_newItem",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_owner",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_proxy",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_proxy",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "orm_readonly",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_readonly",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "orm_refPropName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_removed",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_reset",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_sort",
+        "parameterTypes": [
+          "java.util.Comparator"
+        ]
+      },
+      {
+        "name": "orm_unload",
+        "parameterTypes": []
+      },
+      {
+        "name": "prop_get",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_has",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_make",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_set",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "remove",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "removeAll",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "retainAll",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      },
+      {
+        "name": "toArray",
+        "parameterTypes": []
+      },
+      {
+        "name": "toArray",
+        "parameterTypes": [
+          "[Ljava.lang.Object;"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.support.OrmEntitySet",
     "unsafeAllocated": false
   },
   {

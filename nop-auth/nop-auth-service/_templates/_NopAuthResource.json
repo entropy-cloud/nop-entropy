@@ -36,5 +36,8 @@
   "children": null,
   "roleMappings": null,
   "metaConfigComponent": null,
-  "propsConfigComponent": null
+  "propsConfigComponent": null,
+  "relatedRoleList": null,
+  "relatedRoleIdList": null,
+  "relatedRoleList_label": ""
 }

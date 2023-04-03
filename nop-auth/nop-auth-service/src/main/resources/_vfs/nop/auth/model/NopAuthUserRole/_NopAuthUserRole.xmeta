@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="用户角色"
-      i18n-en:displayName="User Role" tagSet="no-web">
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="用户角色"
+      i18n-en:displayName="User Role" tagSet="no-web,many-to-many">
 
     <entityName>io.nop.auth.dao.entity.NopAuthUserRole</entityName>
 
@@ -48,18 +48,20 @@
               insertable="true" updatable="true" ext:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="user" displayName="用户" i18n-en:displayName="User" tagSet="pub,ref-pub,ref-cascade-delete"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId"
-              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" mandatory="true" lazy="true">
+        <prop name="user" displayName="用户" i18n-en:displayName="User"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema type="io.nop.auth.dao.entity.NopAuthUser" bizObjName="NopAuthUser"/>
         </prop>
         <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="role" displayName="角色" i18n-en:displayName="Role" tagSet="pub,ref-pub,ref-cascade-delete"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId"
-              ext:joinRightDisplayProp="roleName" insertable="false" updatable="false" mandatory="true" lazy="true">
+        <prop name="role" displayName="角色" i18n-en:displayName="Role"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId" ext:joinRightDisplayProp="roleName"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema type="io.nop.auth.dao.entity.NopAuthRole" bizObjName="NopAuthRole"/>
         </prop>
         <prop name="role.roleName" displayName="角色" i18n-en:displayName="Role" internal="true" queryable="true"

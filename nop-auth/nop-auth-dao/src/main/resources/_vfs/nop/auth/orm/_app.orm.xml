@@ -128,7 +128,8 @@
                     </join>
                 </to-one>
                 <to-many displayName="角色映射" name="roleMappings" refEntityName="io.nop.auth.dao.entity.NopAuthUserRole"
-                         refPropName="user" tagSet="pub,cascade-delete" i18n-en:displayName="RoleMappings">
+                         refPropName="user" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="RoleMappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
@@ -226,14 +227,15 @@
             </columns>
             <relations>
                 <to-many displayName="用户映射" name="userMappings" refEntityName="io.nop.auth.dao.entity.NopAuthUserRole"
-                         refPropName="role" tagSet="pub,cascade-delete" i18n-en:displayName="UserMappings">
+                         refPropName="role" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="UserMappings">
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
                 </to-many>
                 <to-many displayName="资源映射" name="resourceMappings"
                          refEntityName="io.nop.auth.dao.entity.NopAuthRoleResource" refPropName="role"
-                         tagSet="pub,cascade-delete" i18n-en:displayName="Resources">
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
@@ -245,8 +247,8 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthUserRole" createTimeProp="createTime" createrProp="createdBy"
                 displayName="用户角色" name="io.nop.auth.dao.entity.NopAuthUserRole" registerShortName="true"
-                tableName="nop_auth_user_role" tagSet="no-web" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="User Role">
+                tableName="nop_auth_user_role" tagSet="no-web,many-to-many" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="User Role">
             <columns>
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
@@ -270,15 +272,15 @@
             </columns>
             <relations>
                 <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
-                        refPropName="roleMappings" tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="User"
-                        ref-i18n-en:displayName="RoleMappings">
+                        refPropName="roleMappings" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="User" ref-i18n-en:displayName="RoleMappings">
                     <join>
                         <on leftProp="userId" rightProp="userId"/>
                     </join>
                 </to-one>
                 <to-one displayName="角色" name="role" refEntityName="io.nop.auth.dao.entity.NopAuthRole"
-                        refPropName="userMappings" tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Role"
-                        ref-i18n-en:displayName="UserMappings">
+                        refPropName="userMappings" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Role" ref-i18n-en:displayName="UserMappings">
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
@@ -472,8 +474,8 @@
                     </join>
                 </to-many>
                 <to-many displayName="角色映射" name="roleMappings"
-                         refEntityName="io.nop.auth.dao.entity.NopAuthRoleResource" refPropName="resource" tagSet="pub"
-                         i18n-en:displayName="Roles">
+                         refEntityName="io.nop.auth.dao.entity.NopAuthRoleResource" refPropName="resource"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="Roles">
                     <join>
                         <on leftProp="resourceId" rightProp="resourceId"/>
                     </join>
@@ -482,8 +484,9 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthRoleResource" createTimeProp="createTime"
                 createrProp="createdBy" displayName="角色可访问资源" name="io.nop.auth.dao.entity.NopAuthRoleResource"
-                registerShortName="true" tableName="nop_auth_role_resource" tagSet="no-web" updateTimeProp="updateTime"
-                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Role Resource">
+                registerShortName="true" tableName="nop_auth_role_resource" tagSet="no-web,many-to-many"
+                updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Role Resource">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
@@ -511,15 +514,16 @@
             <comment>角色可访问的资源，包括模块菜单和操作按钮</comment>
             <relations>
                 <to-one displayName="角色" name="role" refEntityName="io.nop.auth.dao.entity.NopAuthRole"
-                        refPropName="resourceMappings" tagSet="pub,ref-pub,ref-cascade-delete"
-                        i18n-en:displayName="Role" ref-i18n-en:displayName="Resources">
+                        refPropName="resourceMappings"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" i18n-en:displayName="Role"
+                        ref-i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="roleId" rightProp="roleId"/>
                     </join>
                 </to-one>
                 <to-one displayName="资源" name="resource" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                        refPropName="roleMappings" tagSet="pub,ref-pub" i18n-en:displayName="Resource"
-                        ref-i18n-en:displayName="Roles">
+                        refPropName="roleMappings" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Resource" ref-i18n-en:displayName="Roles">
                     <join>
                         <on leftProp="resourceId" rightProp="resourceId"/>
                     </join>

@@ -110,6 +110,9 @@ prop:
       roleMappings: Roles
       metaConfigComponent: null
       propsConfigComponent: null
+      relatedRoleList: Role List
+      relatedRoleIdList: Role List
+      relatedRoleList_label: Role List
     NopAuthRole:
       roleId: Role ID
       roleName: Role Name
@@ -124,6 +127,12 @@ prop:
       remark: Remark
       userMappings: UserMappings
       resourceMappings: Resources
+      relatedUserList: User List
+      relatedUserIdList: User List
+      relatedUserList_label: User List
+      relatedResourceList: Resource List
+      relatedResourceIdList: Resource List
+      relatedResourceList_label: Resource List
       roleUsers: null
       roleResourceIds: null
     NopAuthRoleResource:
@@ -234,6 +243,9 @@ prop:
       position.name: Position
       roleMappings: RoleMappings
       substitutionMappings: Substitution Mappings
+      relatedRoleList: Role List
+      relatedRoleIdList: Role List
+      relatedRoleList_label: Role List
     NopAuthUserRole:
       userId: User ID
       roleId: Role ID

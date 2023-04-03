@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="角色可访问资源"
-      i18n-en:displayName="Role Resource" tagSet="no-web">
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="角色可访问资源"
+      i18n-en:displayName="Role Resource" tagSet="no-web,many-to-many">
 
     <entityName>io.nop.auth.dao.entity.NopAuthRoleResource</entityName>
 
@@ -56,17 +56,19 @@
               insertable="true" updatable="true" ext:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="role" displayName="角色" i18n-en:displayName="Role" tagSet="pub,ref-pub,ref-cascade-delete"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId"
-              ext:joinRightDisplayProp="roleName" insertable="false" updatable="false" mandatory="true" lazy="true">
+        <prop name="role" displayName="角色" i18n-en:displayName="Role"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="roleId" ext:joinRightProp="roleId" ext:joinRightDisplayProp="roleName"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema type="io.nop.auth.dao.entity.NopAuthRole" bizObjName="NopAuthRole"/>
         </prop>
         <prop name="role.roleName" displayName="角色" i18n-en:displayName="Role" internal="true" queryable="true"
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="resource" displayName="资源" i18n-en:displayName="Resource" tagSet="pub,ref-pub" ext:kind="to-one"
-              internal="true" queryable="true" ext:joinLeftProp="resourceId" ext:joinRightProp="resourceId"
+        <prop name="resource" displayName="资源" i18n-en:displayName="Resource"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="resourceId" ext:joinRightProp="resourceId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema type="io.nop.auth.dao.entity.NopAuthResource" bizObjName="NopAuthResource"/>
         </prop>

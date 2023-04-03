@@ -309,6 +309,52 @@ public class _${entityModel.shortName} extends ${entityModel.kvTable ? 'Abstract
       return _${prop.name};
    }
 </c:for>
+<c:for var="rel" items="${entityModel.relations}">
+    <c:script><![CDATA[
+        import io.nop.orm.support.OrmManyToManyHelper;
+
+        const refOnePropInfo = OrmManyToManyHelper.getRefOnePropInfo(rel);
+        const refManyPropInfo = OrmManyToManyHelper.getRefManyPropInfo(rel);
+    ]]></c:script>
+    <c:if test="${refOnePropInfo}"><![CDATA[
+        public ${refOnePropInfo.relatedEntityName} ${refOnePropInfo.relatedObjPropName.$methodGet()}(){
+            return (${refOnePropInfo.relatedEntityName})io.nop.orm.support.OrmEntityHelper.getPropFromSingleton(${rel.name.$methodGet()}(),${refOnePropInfo.getObjPropNameConst()});
+        }
+    ]]></c:if>
+    <c:if test="${refOnePropInfo and refOnePropInfo.dispColName}"><![CDATA[
+        public String ${refOnePropInfo.relatedObjPropName.$methodGet()}_label(){
+        return ConvertHelper.toString(io.nop.core.reflect.bean.BeanTool.getProperty(${refOnePropInfo.relatedObjPropName.$methodGet()}}(),${refOnePropInfo.dispColNameConst}));
+        }
+    ]]></c:if>
+    <c:if test="${refOnePropInfo and refOnePropInfo.relatedColPropName}"><![CDATA[
+        public ${refOnePropInfo.relatedColTypeName} ${refOnePropInfo.relatedColPropName.$methodGet()}(){
+            return (${refOnePropInfo.relatedColTypeName})io.nop.orm.support.OrmEntityHelper.getPropFromSingleton(${rel.name.$methodGet()}(),${refOnePropInfo.getColNameConst()});
+        }
+
+        public void ${refOnePropInfo.relatedColPropName.$methodSet()}(${refOnePropInfo.relatedColTypeName} value){
+            io.nop.orm.support.OrmEntityHelper.setPropToSingleton(${rel.name.$methodGet()}(),${refOnePropInfo.getColNameConst()},value);
+        }
+    ]]></c:if>
+    <c:if test="${refManyPropInfo}"><![CDATA[
+        public List<${refManyPropInfo.relatedEntityName}> ${refManyPropInfo.relatedObjListPropName.$methodGet()}(){
+            return (List<${refManyPropInfo.relatedEntityName}>)io.nop.orm.support.OrmEntityHelper.getRefProps(${rel.name.$methodGet()}(),${refManyPropInfo.objPropNameConst});
+        }
+    ]]></c:if>
+    <c:if test="${refManyPropInfo and refManyPropInfo.dispColName}"><![CDATA[
+        public String ${refManyPropInfo.relatedObjListPropName.$methodGet()}_label(){
+        return io.nop.core.lang.utils.Underscore.pluckThenJoin(${refManyPropInfo.relatedObjListPropName.$methodGet()}(),${refManyPropInfo.dispColNameConst});
+        }
+    ]]></c:if>
+    <c:if test="${refManyPropInfo and refManyPropInfo.relatedColPropName}"><![CDATA[
+        public List<${refManyPropInfo.relatedColTypeName}> ${refManyPropInfo.relatedColListPropName.$methodGet()}(){
+        return (List<${refManyPropInfo.relatedColTypeName}>)io.nop.orm.support.OrmEntityHelper.getRefProps(${rel.name.$methodGet()}(),${refManyPropInfo.colNameConst});
+        }
+
+        public void ${refManyPropInfo.relatedColListPropName.$methodSet()}(List<${refManyPropInfo.relatedColTypeName}> value){
+        io.nop.orm.support.OrmEntityHelper.setRefProps(${rel.name.$methodGet()}(),${refManyPropInfo.colNameConst},value);
+        }
+    ]]></c:if>
+</c:for>
 }
 // resume CPD analysis - CPD-ON
 </c:unit>

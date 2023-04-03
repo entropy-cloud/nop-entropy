@@ -249,7 +249,7 @@ public class OrmEntityHelper {
      * @param propName 关联属性值
      * @return 属性值集合
      */
-    public static List<Object> getRefProps(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
+    public static List<?> getRefProps(IOrmEntitySet<? extends IOrmEntity> coll, String propName) {
         if (coll.isEmpty())
             return Collections.emptyList();
         List<Object> ret = new ArrayList<>(coll.size());
@@ -260,7 +260,7 @@ public class OrmEntityHelper {
         return ret;
     }
 
-    public static <T extends IOrmEntity> void setRefProps(IOrmEntitySet<T> coll, String propName, List<Object> values) {
+    public static <T extends IOrmEntity> void setRefProps(IOrmEntitySet<T> coll, String propName, List<?> values) {
         if (values == null)
             values = Collections.emptyList();
 

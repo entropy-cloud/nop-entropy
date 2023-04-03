@@ -269,9 +269,10 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
         if (refEntity == null) {
             refProps.remove(propName);
         } else {
-            refProps.put(propName, refEntity);
             // watcher函数从refEntity读取关联属性值设置到当前实体上
             pkWatcher.run();
+
+            refProps.put(propName, refEntity);
             // 如果实体主键尚未初始化，则注册回调函数。
             if (!refEntity.orm_hasId())
                 refEntity.orm_addPkWatcher(pkWatcher);
