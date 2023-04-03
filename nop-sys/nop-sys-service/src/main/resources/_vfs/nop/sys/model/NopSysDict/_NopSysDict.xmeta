@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="字典表"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="字典表"
       i18n-en:displayName="Dictionary">
 
     <entityName>io.nop.sys.dao.entity.NopSysDict</entityName>
@@ -56,9 +56,8 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="dictOptions" tagSet="" ext:kind="to-many" internal="true" ext:joinLeftProp="sid"
-              ext:joinRightProp="dictId" ext:joinRightDisplayProp="label" insertable="false" updatable="false"
-              lazy="true" published="false">
+        <prop name="dictOptions" ext:kind="to-many" internal="true" ext:joinLeftProp="sid" ext:joinRightProp="dictId"
+              ext:joinRightDisplayProp="label" lazy="true" published="false">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.sys.dao.entity.NopSysDictOption&gt;"
                     bizObjName="NopSysDictOption"/>
         </prop>

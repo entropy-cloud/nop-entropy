@@ -129,7 +129,7 @@ prop:
       resourceMappings: 资源映射
       roleId: 角色ID
       roleName: 角色名
-      roleResourceIds: null
+      roleResourceIds: 角色拥有的资源
       roleUsers: 具有此角色的用户
       updateTime: 修改时间
       updatedBy: 修改人

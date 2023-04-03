@@ -13,6 +13,7 @@ import io.nop.api.core.util.IVariableScope;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.query.FilterBeanValidator;
 import io.nop.core.model.query.FilterOp;
+import io.nop.orm.OrmConstants;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
@@ -46,6 +47,11 @@ public class ObjMetaBasedFilterValidator extends FilterBeanValidator {
     @Override
     protected void validateVarFilter(FilterOp filterOp, String name, ITreeBean filter, IVariableScope scope) {
         IObjPropMeta propMeta = objMeta.getProp(name);
+        if (propMeta == null) {
+            if (OrmConstants.PROP_ID.equals(name)) {
+                propMeta = objMeta.getIdProp();
+            }
+        }
         if (propMeta == null)
             throw new NopException(ERR_BIZ_UNKNOWN_QUERY_PROP).param(ARG_BIZ_OBJ_NAME, objMeta.getBizObjName())
                     .param(ARG_PROP_NAME, name).param(ARG_FILTER_OP, filterOp.name());

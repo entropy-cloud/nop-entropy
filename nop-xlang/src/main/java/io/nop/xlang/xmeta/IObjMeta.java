@@ -28,6 +28,15 @@ public interface IObjMeta extends IXDslModel, IObjSchema, ITagSetSupport, IExten
 
     Set<String> getPrimaryKey();
 
+    default IObjPropMeta getIdProp() {
+        Set<String> pk = getPrimaryKey();
+        if (pk == null || pk.isEmpty())
+            return null;
+        if (pk.size() == 1)
+            return getProp(getPrimaryKey().iterator().next());
+        return null;
+    }
+
     ObjTreeModel getTree();
 
     default boolean isPrimaryKeyProp(String propName) {

@@ -15,13 +15,13 @@
             <attr name="bizObjName" mandatory="true"/>
 
             <source>
-                <c:script>
+                <c:script><![CDATA[
                     function filter_cond(){
-                    if(objMeta.tree.levelProp)
-                    return 'filter_' + objMeta.tree.levelProp + '=' + (objMeta.tree.rootLevelValue ?? '__null');
-                    return 'filter_' + objMeta.tree.parentProp + '=_null';
+                        if(objMeta.tree.levelProp)
+                            return 'filter_' + objMeta.tree.levelProp + '=' + (objMeta.tree.rootLevelValue ?? '__null');
+                        return 'filter_' + objMeta.tree.parentProp + '=_null';
                     }
-                </c:script>
+                ]]></c:script>
                 <!--
                 支持五级菜单
                 -->
@@ -682,7 +682,7 @@
             ]]></source>
         </query-string>
 
-        <edit-picker>
+        <edit-relation>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="objMeta"/>
@@ -692,23 +692,25 @@
                 import io.nop.xui.utils.XuiHelper;
                 const relProp = XuiHelper.getRelationProp(propMeta,objMeta);
 
-                return {
+                return _.filterNull({
                     type: 'picker',
                     'x:extends': XuiHelper.getRelationPickerUrl(propMeta,objMeta),
                     valueField: relProp['ext:joinRightProp'],
                     labelField: relProp['ext:joinRightDisplayProp'],
-                    source: {
+                    source: _.filterNull({
                        // 前端AMIS控件在初始化数据的时候会把source转换成loadOptions调用，
                        // 但此时无法自动获取到外层的valueField配置，所以这里只能重复设置一下。
                        valueField: relProp['ext:joinRightProp'],
                        labelField: relProp['ext:joinRightDisplayProp']
-                    },
-                    multiple: false,
-                }
+                    }),
+                    joinValues: false,
+                    extractValue:true,
+                    multiple: propMeta.type.collectionLike || propMeta.listSchema,
+                })
             ]]></source>
-        </edit-picker>
+        </edit-relation>
 
-        <view-picker>
+        <view-relation>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="objMeta"/>
@@ -723,11 +725,15 @@
                    name: propMeta['graphql:labelProp'] || relProp.name+'.'+relProp['ext:joinRightDisplayProp']
                 }
             ]]></source>
-        </view-picker>
+        </view-relation>
 
-        <edit-to-one x:prototype="edit-picker"/>
+        <edit-to-one x:prototype="edit-relation"/>
 
-        <view-to-one x:prototype="view-picker"/>
+        <view-to-one x:prototype="view-relation"/>
+
+        <edit-to-many x:prototype="edit-relation"/>
+
+        <view-to-many x:prototype="view-relation"/>
 
         <edit-password>
             <attr name="dispMeta"/>

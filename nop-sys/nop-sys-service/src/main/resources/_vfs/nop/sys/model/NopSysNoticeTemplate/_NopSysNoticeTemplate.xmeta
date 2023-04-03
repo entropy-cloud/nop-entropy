@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" displayName="通知模板"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="通知模板"
       i18n-en:displayName="Notice Template" tagSet="use-ext-field">
 
     <entityName>io.nop.sys.dao.entity.NopSysNoticeTemplate</entityName>
@@ -59,6 +59,10 @@
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="extFields" ext:kind="to-many" internal="true" lazy="true" published="false">
+            <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.sys.dao.entity.NopSysExtField&gt;"
+                    bizObjName="NopSysExtField"/>
         </prop>
     </props>
 </meta>

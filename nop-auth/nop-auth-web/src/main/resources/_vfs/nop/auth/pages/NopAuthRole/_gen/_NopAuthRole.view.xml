@@ -33,7 +33,6 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
-                <col id="roleResourceIds"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -50,7 +49,6 @@
  updatedBy[修改人]
  updateTime[修改时间]
  remark[备注]
- roleResourceIds[null]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-角色" i18n-en:title="Add Role" x:prototype="edit"/>
@@ -60,7 +58,6 @@
  roleName[角色名]
  isPrimary[是否主角色]
  remark[备注]
- roleResourceIds[null]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

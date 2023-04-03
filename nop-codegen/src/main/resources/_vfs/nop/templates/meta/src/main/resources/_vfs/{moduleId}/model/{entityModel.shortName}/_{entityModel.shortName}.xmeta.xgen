@@ -124,13 +124,13 @@
                 const published = rel.tagSet?.contains('pub') ? null : false;
             ]]></c:script>
             <prop name="${refOnePropInfo.relatedObjPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
-                  i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
+                  i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}" ext:kind="to-one"
                   xpl:if="refOnePropInfo" internal="true">
                 <schema type="${refOnePropInfo.relatedEntityName}" bizObjName="${refOnePropInfo.bizObjName}" />
             </prop>
             <prop name="${refOnePropInfo.relatedColPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
                   i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
-                  insertable="${insertable}" updatable="${updatable}"
+                  insertable="${insertable}" updatable="${updatable}" ext:relation="${refOnePropInfo.relatedObjPropName}"
                   graphql:labelProp="${refOnePropInfo.relatedObjPropName_label}"
                   xpl:if="refOnePropInfo and refOnePropInfo.relatedColPropName" internal="true">
                 <schema type="${refOnePropInfo.relatedColTypeName}"  />
@@ -141,13 +141,15 @@
                 <schema type="String"  />
             </prop>
             <prop name="${refManyPropInfo.relatedObjListPropName}" displayName="${refManyPropInfo.relatedDisplayName}列表"
-                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
+                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}" ext:kind="to-many"
                   xpl:if="refManyPropInfo" internal="true">
-                <schema type="List&lt;${refManyPropInfo.relatedEntityName}>" bizObjName="${refManyPropInfo.bizObjName}" />
+                <schema type="List&lt;${refManyPropInfo.relatedEntityName}>" >
+                    <item bizObjName="${refManyPropInfo.bizObjName}" />
+                </schema>
             </prop>
             <prop name="${refManyPropInfo.relatedColListPropName}" displayName="${refManyPropInfo.relatedDisplayName}列表"
                   i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
-                  insertable="${insertable}" updatable="${updatable}"
+                  insertable="${insertable}" updatable="${updatable}"  ext:relation="${refManyPropInfo.relatedObjListPropName}"
                   graphql:labelProp="${refManyPropInfo.relatedObjListPropName_label}"
                   xpl:if="refManyPropInfo and refManyPropInfo.relatedColListPropName" internal="true">
                 <schema type="List&lt;${refManyPropInfo.relatedColTypeName}>"  />

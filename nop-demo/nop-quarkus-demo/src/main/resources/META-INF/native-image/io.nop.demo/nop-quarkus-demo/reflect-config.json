@@ -2859,6 +2859,21 @@
     "fields": [],
     "methods": [
       {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.api.core.json.IJsonString",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getInputStream",
         "parameterTypes": []
       },
@@ -7242,6 +7257,12 @@
         ]
       },
       {
+        "name": "setRelatedRoleIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
         "name": "setRemark",
         "parameterTypes": [
           "java.lang.String"
@@ -7701,6 +7722,18 @@
         "name": "setParentRoleId",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelatedResourceIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRelatedUserIdList",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -10068,6 +10101,12 @@
         "name": "setRealName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelatedRoleIdList",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -19849,6 +19888,346 @@
       }
     ],
     "name": "io.nop.core.resource.impl.UnknownResource",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "resolve",
+        "parameterTypes": [
+          "io.nop.core.type.IRawTypeResolver"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.type.IGenericType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "arrayType",
+        "parameterTypes": [
+          "io.nop.core.type.impl.PredefinedGenericType",
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "containsTypeVariable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPredefinedName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isArray",
+        "parameterTypes": []
+      },
+      {
+        "name": "isPredefined",
+        "parameterTypes": []
+      },
+      {
+        "name": "isResolved",
+        "parameterTypes": []
+      },
+      {
+        "name": "javaType",
+        "parameterTypes": [
+          "java.lang.Class",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parameterizedType",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.type.impl.PredefinedRawType",
+          "[Lio.nop.core.type.impl.PredefinedGenericType;"
+        ]
+      },
+      {
+        "name": "primitiveType",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "refine",
+        "parameterTypes": [
+          "io.nop.core.type.ITypeScope"
+        ]
+      },
+      {
+        "name": "resolve",
+        "parameterTypes": [
+          "io.nop.core.type.IRawTypeResolver"
+        ]
+      },
+      {
+        "name": "simpleType",
+        "parameterTypes": [
+          "io.nop.commons.type.StdDataType",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      },
+      {
+        "name": "variableType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "writeReplace",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.type.impl.PredefinedGenericType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getComponentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncArgTypes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncReturnType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapKeyType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapValueType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSuperType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeParameters",
+        "parameterTypes": []
+      },
+      {
+        "name": "isArray",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCollectionLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isFunctionalClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "isListLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMapLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSetLike",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.type.impl.PredefinedParameterizedType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getComponentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncArgTypes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncReturnType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapKeyType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapValueType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSuperType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeParameters",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCollectionLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isFunctionalClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "isListLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMapLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSetLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.type.impl.PredefinedRawType",
     "unsafeAllocated": false
   },
   {
@@ -44183,6 +44562,16 @@
       }
     ],
     "name": "java.lang.constant.Constable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.lang.reflect.Type",
     "unsafeAllocated": false
   },
   {

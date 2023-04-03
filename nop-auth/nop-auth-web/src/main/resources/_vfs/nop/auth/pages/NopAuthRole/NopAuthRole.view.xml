@@ -7,8 +7,11 @@
     </grids>
 
     <forms>
-        <form id="view"/>
-        <form id="edit"/>
+        <form id="view">
+        </form>
+
+        <form id="edit">
+        </form>
     </forms>
 
     <pages>
