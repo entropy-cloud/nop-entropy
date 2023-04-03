@@ -51,7 +51,11 @@ public class SessionBatchActionQueue {
         if (queues != null) {
             List<CompletionStage<?>> futures = new ArrayList<>();
             for (IBatchActionQueue queue : queues.values()) {
-                FutureHelper.collectWaiting(queue.flushAsync(session), futures);
+                CompletionStage<?> future = queue.flushAsync(session);
+                FutureHelper.collectWaiting(future, futures);
+                if(FutureHelper.isError(future)){
+                    break;
+                }
             }
             return FutureHelper.waitAll(futures);
         } else {

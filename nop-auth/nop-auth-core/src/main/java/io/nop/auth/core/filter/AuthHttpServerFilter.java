@@ -178,8 +178,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         CompletableFuture<Void> future = new CompletableFuture<>();
         ctx.runOnContext(() -> {
             CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
-                loginService.flushUserContextAsync(userContext);
-                ctx.close();
+                try {
+                    loginService.flushUserContextAsync(userContext);
+                }finally {
+                    ctx.close();
+                }
             });
             FutureHelper.bindResult(promise, future);
         });

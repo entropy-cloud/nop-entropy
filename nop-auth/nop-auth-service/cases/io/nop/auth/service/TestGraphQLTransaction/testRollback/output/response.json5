@@ -1,0 +1,12 @@
+{
+  "data": null,
+  "errors": [
+    {
+      "message": "违反数据库完整性约束"
+    }
+  ],
+  "extensions": {
+    "nop-error-code": "nop.err.dao.sql.data-integrity-violation",
+    "nop-status": -1
+  }
+}

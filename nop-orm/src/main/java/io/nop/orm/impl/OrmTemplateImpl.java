@@ -236,32 +236,28 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
         IOrmSession session = sessionFactory.openSession(stateless);
         OrmSessionRegistry registry = OrmSessionRegistry.instance();
         IOrmSession oldSession = registry.put(sessionFactory, session);
+
+        CompletionStage<T> future;
         try {
-            return ContextProvider.thenOnContext(callback.apply(session)).whenComplete((ret, err) -> {
-                try {
-                    if (err != null) {
-                        session.flush();
-                    }
-                } finally {
-                    IOrmSession s = registry.put(sessionFactory, oldSession);
-                    // 如果已经unregister，则s为null，这里将不会关闭session
-                    if (s == session) {
-                        session.close();
-                    } else {
-                        LOG.info("nop.orm.skip-session-close-when-not-current-session");
-                    }
-                }
-            });
-        } catch (Exception e) {
-            IOrmSession s = registry.put(sessionFactory, oldSession);
-            // 如果已经unregister，则s为null，这里将不会关闭session
-            if (s == session) {
-                session.close();
-            } else {
-                LOG.info("nop.orm.skip-session-close-when-not-current-session");
-            }
-            return FutureHelper.reject(e);
+            future = callback.apply(session);
+        } catch (Throwable t) {
+            future = FutureHelper.reject(t);
         }
+        return ContextProvider.thenOnContext(future).whenComplete((ret, err) -> {
+            try {
+                if (err != null) {
+                    session.flush();
+                }
+            } finally {
+                IOrmSession s = registry.put(sessionFactory, oldSession);
+                // 如果已经unregister，则s为null，这里将不会关闭session
+                if (s == session) {
+                    session.close();
+                } else {
+                    LOG.info("nop.orm.skip-session-close-when-not-current-session");
+                }
+            }
+        });
     }
 
     @Override

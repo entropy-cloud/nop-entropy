@@ -290,7 +290,7 @@ public abstract class AbstractTransaction implements ITransaction {
 
         try {
             invokeListener(listener -> listener.onBeforeCommit(this), false);
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             return FutureHelper.reject(e);
         }
 

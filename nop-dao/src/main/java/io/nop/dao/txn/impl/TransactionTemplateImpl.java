@@ -146,23 +146,28 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
     public <T> CompletionStage<T> runInTransactionAsync(String txnGroup, TransactionPropagation propagation,
                                                         Function<ITransaction, CompletionStage<T>> task) {
         TxnState state = openTransaction(txnGroup, propagation);
+
+        CompletionStage<T> future;
         try {
-            return completeAsyncOnContext(task.apply(state.txn), (ret, err) -> {
-                if (err != null) {
-                    // 出错时总是执行rollback，确保数据库资源得到释放
-                    return rollbackTransactionAsync(state, err).whenComplete((a, b) -> {
-                        throw NopException.adapt(err);
-                    }).thenApply(v -> null);
-                } else {
-                    return commitTransactionAsync(state).thenApply(v -> ret);
-                }
-            }).whenComplete((ret, err) -> {
-                cleanupTransaction(state);
-            });
-        } catch (Exception e) {
-            cleanupTransaction(state);
-            throw NopException.adapt(e);
+            future = task.apply(state.txn);
+        } catch (Throwable e) {
+            future = FutureHelper.reject(e);
         }
+        return completeAsyncOnContext(future, (ret, err) -> {
+            if (err != null) {
+                // 出错时总是执行rollback，确保数据库资源得到释放
+                return rollbackTransactionAsync(state, err).whenComplete((a, b) -> {
+                    throw NopException.adapt(err);
+                }).thenApply(v -> null);
+            } else {
+                return commitTransactionAsync(state).exceptionally(err2 -> {
+                    rollbackTransaction(state, err2);
+                    throw NopException.adapt(err2);
+                }).thenApply(v -> ret);
+            }
+        }).whenComplete((ret, err) -> {
+            cleanupTransaction(state);
+        });
     }
 
     @Override

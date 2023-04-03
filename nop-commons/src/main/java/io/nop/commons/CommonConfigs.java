@@ -22,11 +22,11 @@ public interface CommonConfigs {
 
     @Description("限制StringHelper.repeat函数的参数值小于指定值，不会过大")
     IConfigReference<Integer> CFG_UTILS_STRING_MAX_REPEAT_LEN = varRef("nop.commons.util.string-max-repeat-len",
-            Integer.class, 1000);
+            Integer.class, 2000);
 
     @Description("限制StringHelper.pad函数的参数值小于指定值，不会过大")
     IConfigReference<Integer> CFG_UTILS_STRING_MAX_PAD_LEN = varRef("nop.commons.util.string-max-pad-len",
-            Integer.class, 1000);
+            Integer.class, 2000);
 
     IConfigReference<Integer> CFG_IO_DEFAULT_BUF_SIZE = varRef("nop.commons.io.default-buf-size", Integer.class, 8192);
 

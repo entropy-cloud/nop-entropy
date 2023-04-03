@@ -143,6 +143,7 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
 
             List<IBatchAction.CollectionBatchAction> collActions = this.collectionActions;
 
+            boolean bError = false;
             for (Map.Entry<TopoEntry<? extends IEntityModel>, BatchActionHolder> entry : actionMap.entrySet()) {
                 IEntityModel entityModel = entry.getKey().getValue();
                 BatchActionHolder holder = entry.getValue();
@@ -151,17 +152,28 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
                         holder.getUpdateActions(), holder.deleteActions, session);
 
                 FutureHelper.collectWaiting(future, futures);
+                // 已经出现异常，没有必要再继续执行
+                if(FutureHelper.isError(future)) {
+                    bError = true;
+                    break;
+                }
             }
 
-            for (Map.Entry<TopoEntry<? extends IEntityModel>, BatchActionHolder> entry : actionMap.descendingMap()
-                    .entrySet()) {
-                IEntityModel entityModel = entry.getKey().getValue();
-                BatchActionHolder holder = entry.getValue();
-                IEntityPersister persister = env.requireEntityPersister(entityModel.getName());
+            if(!bError) {
+                for (Map.Entry<TopoEntry<? extends IEntityModel>, BatchActionHolder> entry : actionMap.descendingMap()
+                        .entrySet()) {
+                    IEntityModel entityModel = entry.getKey().getValue();
+                    BatchActionHolder holder = entry.getValue();
+                    IEntityPersister persister = env.requireEntityPersister(entityModel.getName());
 
-                CompletionStage<Void> future = persister.batchExecuteAsync(false, querySpace, holder.saveActions,
-                        holder.getUpdateActions(), holder.deleteActions, session);
-                FutureHelper.collectWaiting(future, futures);
+                    CompletionStage<Void> future = persister.batchExecuteAsync(false, querySpace, holder.saveActions,
+                            holder.getUpdateActions(), holder.deleteActions, session);
+                    FutureHelper.collectWaiting(future, futures);
+
+                    // 已经出现异常，没有必要再继续执行
+                    if (FutureHelper.isError(future))
+                        break;
+                }
             }
 
             flushDelayTasks();

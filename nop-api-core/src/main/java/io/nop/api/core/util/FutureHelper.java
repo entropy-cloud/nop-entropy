@@ -418,6 +418,12 @@ public class FutureHelper {
         return false;
     }
 
+    public static boolean isError(CompletionStage<?> f){
+        if(f instanceof ResolvedPromise)
+            return ((ResolvedPromise<?>) f).getException() != null;
+        return true;
+    }
+
     public static CompletableFuture<?> waitAnySuccess(Collection<? extends CompletionStage> futures) {
         if (futures.isEmpty())
             return NULL_JAVA_FUTURE;
