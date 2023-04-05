@@ -17,12 +17,14 @@ import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.dataset.KeyedReportDataSet;
 import io.nop.report.core.dataset.ReportDataSet;
+import io.nop.report.core.engine.IXptRuntime;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * 报表展开过程中需要频繁修改行和列，所以采用单向列表形式来维护
@@ -68,8 +70,20 @@ public class ExpandedCell implements ICellView {
      */
     private boolean evaluated;
 
+    /**
+     * 缓存与单元格有关的动态计算的值
+     */
+    private Map<String, Object> computedValues;
+
     public String toString() {
         return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandValue() + ",text=" + getText() + "]";
+    }
+
+    public Object getComputed(String key, Function<ExpandedCell, Object> fn) {
+        if (computedValues == null) {
+            computedValues = new HashMap<>();
+        }
+        return computedValues.computeIfAbsent(key, k -> fn.apply(this));
     }
 
 
@@ -88,6 +102,13 @@ public class ExpandedCell implements ICellView {
             }
             cell = cell.getDown();
         }
+    }
+
+    public Number getNumberValue() {
+        Object value = getValue();
+        if (value instanceof Number)
+            return (Number) value;
+        return null;
     }
 
     public ReportDataSet getDs() {
@@ -325,6 +346,28 @@ public class ExpandedCell implements ICellView {
         this.rowParent = rowParent;
     }
 
+    public ExpandedCell getRowClosest(String cellName) {
+        if (cellName.equals(this.getName()))
+            return this;
+
+        if (this.rowParent == null)
+            return null;
+        if (cellName.equals(this.rowParent.getName()))
+            return this.rowParent;
+        return this.rowParent.getRowClosest(cellName);
+    }
+
+    public ExpandedCell getColClosest(String cellName) {
+        if (cellName.equals(this.getName()))
+            return this;
+
+        if (this.colParent == null)
+            return null;
+        if (cellName.equals(this.colParent.getName()))
+            return colParent;
+        return this.colParent.getColClosest(cellName);
+    }
+
     public List<ExpandedCell> getRowChildren() {
         if (rowDescendants == null || rowDescendants.isEmpty())
             return Collections.emptyList();
@@ -420,6 +463,20 @@ public class ExpandedCell implements ICellView {
 
     public Map<String, List<ExpandedCell>> getRowDescendants() {
         return rowDescendants;
+    }
+
+    public ExpandedCellSet getChildSet(String cellName, IXptRuntime xptRt) {
+        if (rowDescendants != null) {
+            List<ExpandedCell> cells = rowDescendants.get(cellName);
+            if (cells != null && !cells.isEmpty())
+                return new ExpandedCellSet(null, cellName, cells).evaluateAll(xptRt);
+        }
+        if (colDescendants != null) {
+            List<ExpandedCell> cells = colDescendants.get(cellName);
+            if (cells != null && !cells.isEmpty())
+                return new ExpandedCellSet(null, cellName, cells).evaluateAll(xptRt);
+        }
+        return null;
     }
 
     public boolean hasRowDescendant() {
@@ -543,6 +600,32 @@ public class ExpandedCell implements ICellView {
 
     public void addColChildren(Map<String, List<ExpandedCell>> colChildren) {
         this.colDescendants = merge(this.colDescendants, colChildren);
+    }
+
+    public ExpandedCellSet rowChildSet(String cellName) {
+        String expr = cellName + "[" + getName() + "]";
+
+        List<ExpandedCell> cells = null;
+        if (rowDescendants != null) {
+            cells = rowDescendants.get(cellName);
+        }
+
+        if (cells == null || cells.isEmpty())
+            return new ExpandedCellSet(null, expr, Collections.emptyList());
+        return new ExpandedCellSet(null, expr, cells);
+    }
+
+    public ExpandedCellSet colChildSet(String cellName) {
+        String expr = cellName + "[" + getName() + "]";
+
+        List<ExpandedCell> cells = null;
+        if (colDescendants != null) {
+            cells = colDescendants.get(cellName);
+        }
+
+        if (cells == null || cells.isEmpty())
+            return new ExpandedCellSet(null, expr, Collections.emptyList());
+        return new ExpandedCellSet(null, expr, cells);
     }
 
     public void changeColSpan(int delta) {

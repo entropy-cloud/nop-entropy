@@ -24,10 +24,12 @@ import static io.nop.report.core.XptErrors.ERR_XPT_MISSING_VAR_CELL;
 
 public class CellRangeExecutable extends AbstractExecutable {
     private final CellRange cellRange;
+    private final String expr;
 
     public CellRangeExecutable(SourceLocation loc, CellRange cellRange) {
         super(loc);
         this.cellRange = cellRange;
+        this.expr = cellRange.toABString();
     }
 
     @Override
@@ -53,6 +55,6 @@ public class CellRangeExecutable extends AbstractExecutable {
             xptRt.evaluateCell(layerCell);
         }
 
-        return new ExpandedCellSet(cells);
+        return new ExpandedCellSet(getLocation(), expr, cells);
     }
 }

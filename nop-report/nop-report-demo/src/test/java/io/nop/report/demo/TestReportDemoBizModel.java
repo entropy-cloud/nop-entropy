@@ -1,5 +1,6 @@
 package io.nop.report.demo;
 
+import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.beans.TreeResultBean;
@@ -33,7 +34,8 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testSingleReport() {
-        String reportName = "/base/段落明细表.xpt.xlsx";
+        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
+        String reportName = "/base/同比环比等财务统计表.xpt.xlsx";
         String html = reportDemo.renderHtml(reportName);
         outputText(reportName + ".html", html);
     }

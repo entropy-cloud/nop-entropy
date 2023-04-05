@@ -13,9 +13,9 @@ import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.coordinate.CellCoordinateHelper;
 import io.nop.report.core.coordinate.CellLayerCoordinate;
+import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCellSet;
-import io.nop.report.core.engine.IXptRuntime;
 import io.nop.xlang.exec.AbstractExecutable;
 
 import java.util.List;
@@ -24,10 +24,12 @@ import static io.nop.report.core.XptErrors.ERR_XPT_MISSING_VAR_CELL;
 
 public class CellLayerCoordinateExecutable extends AbstractExecutable {
     private final CellLayerCoordinate layerCoordinate;
+    private final String expr;
 
     public CellLayerCoordinateExecutable(SourceLocation loc, CellLayerCoordinate layerCoordinate) {
         super(loc);
         this.layerCoordinate = layerCoordinate;
+        this.expr = layerCoordinate.toString();
     }
 
     @Override
@@ -53,6 +55,6 @@ public class CellLayerCoordinateExecutable extends AbstractExecutable {
             xptRt.evaluateCell(layerCell);
         }
 
-        return new ExpandedCellSet(cells);
+        return new ExpandedCellSet(getLocation(), expr, cells);
     }
 }

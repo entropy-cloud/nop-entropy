@@ -16,8 +16,6 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptModelLoader;
-import io.nop.report.core.functions.ReportFunctionProvider;
-import io.nop.report.core.functions.ReportFunctions;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 public class ReportCoreInitializer implements ICoreInitializer {
@@ -30,7 +28,6 @@ public class ReportCoreInitializer implements ICoreInitializer {
 
     @Override
     public void initialize() {
-        cancellable.append(ReportFunctionProvider.INSTANCE.registerStaticFunctions(ReportFunctions.class));
         StdDomainRegistry.instance().registerStdDomainHandler(ReportExprStdDomainHandler.INSTANCE);
         StdDomainRegistry.instance().registerStdDomainHandler(TemplateReportExprStdDomainHandler.INSTANCE);
         cancellable.appendOnCancelTask(() -> {

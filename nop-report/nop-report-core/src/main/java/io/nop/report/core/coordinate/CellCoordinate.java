@@ -12,8 +12,9 @@ import io.nop.api.core.annotations.data.DataBean;
 @DataBean
 public class CellCoordinate {
     private String cellName;
-    private int position;
     private boolean reverse;
+    private boolean relative;
+    private int position;
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -28,8 +29,20 @@ public class CellCoordinate {
             if (reverse) {
                 sb.append('!');
             }
+            if (relative) {
+                if (position > 0)
+                    sb.append('+');
+            }
             sb.append(position);
         }
+    }
+
+    public boolean isRelative() {
+        return relative;
+    }
+
+    public void setRelative(boolean relative) {
+        this.relative = relative;
     }
 
     public String getCellName() {

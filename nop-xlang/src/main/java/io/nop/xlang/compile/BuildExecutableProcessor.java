@@ -13,7 +13,7 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.util.Symbol;
 import io.nop.commons.text.regex.RegexHelper;
-import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.model.query.FilterOp;
 import io.nop.core.reflect.IClassModel;
@@ -210,6 +210,7 @@ import io.nop.xlang.scope.LexicalScope;
 import io.nop.xlang.xpl.output.OutputParseHelper;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -228,6 +229,7 @@ import static io.nop.xlang.XLangErrors.ARG_FUNC_NAME;
 import static io.nop.xlang.XLangErrors.ARG_IDENTIFIER_KIND;
 import static io.nop.xlang.XLangErrors.ARG_MAX_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_METHOD_NAME;
+import static io.nop.xlang.XLangErrors.ARG_MIN_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_OP;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
@@ -238,6 +240,7 @@ import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_STATIC_METHOD;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_CONVERT_FUNC_ONLY_ALLOW_ONE_ARG;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_SUPPORTED_AST_NODE;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_PROGRAM_SHOULD_NOT_USE_EXTERNAL_CLOSURE_VAR;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_TOO_FEW_ARGS;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_TOO_MANY_ARGS;
 import static io.nop.xlang.XLangErrors.ERR_XPL_UNKNOWN_FILTER_OP;
 
@@ -1194,7 +1197,8 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
     private IExecutableExpression buildIdentifierCall(Identifier id, IExecutableExpression[] argExprs,
                                                       CallExpression node, IXLangCompileScope context) {
         if (id.getResolvedDefinition() instanceof ResolvedFuncDefinition) {
-            IEvalFunction fn = ((ResolvedFuncDefinition) id.getResolvedDefinition()).getFunctionModel();
+            IFunctionModel fn = ((ResolvedFuncDefinition) id.getResolvedDefinition()).getFunctionModel();
+            argExprs = normalizeArgExprs(node, fn, argExprs);
             return FunctionExecutable.build(node.getLocation(), id.getName(), fn, argExprs);
         } else if (id.getIdentifierKind() == IdentifierKind.FUNC_REF) {
             LocalVarDeclaration func = (LocalVarDeclaration) id.getResolvedDefinition();
@@ -1225,6 +1229,28 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
             IExecutableExpression funcExpr = processIdentifier(id, context);
             return VarFunctionExecutable.build(node.getLocation(), funcExpr, node.getOptional(), argExprs);
         }
+    }
+
+    private IExecutableExpression[] normalizeArgExprs(CallExpression node, IFunctionModel fn, IExecutableExpression[] argExprs) {
+        if (fn.getArgCount() == argExprs.length)
+            return argExprs;
+
+        if (fn.getMaxArgCount() < argExprs.length)
+            throw new NopEvalException(ERR_EXEC_TOO_MANY_ARGS).param(ARG_MAX_COUNT, fn.getMaxArgCount())
+                    .param(ARG_FUNC_NAME, fn.getName()).source(node).param(ARG_EXPR,
+                            fn.getName() + "(" + StringHelper.join(Arrays.asList(argExprs), ",") + ")");
+
+        if (fn.getMinArgCount() > argExprs.length)
+            throw new NopEvalException(ERR_EXEC_TOO_FEW_ARGS).param(ARG_MIN_COUNT, fn.getMinArgCount())
+                    .param(ARG_FUNC_NAME, fn.getName()).source(node).param(ARG_EXPR,
+                            fn.getName() + "(" + StringHelper.join(Arrays.asList(argExprs), ",") + ")");
+
+        IExecutableExpression[] ret = new IExecutableExpression[fn.getArgCount()];
+        System.arraycopy(argExprs, 0, ret, 0, argExprs.length);
+        for (int i = argExprs.length, n = ret.length; i < n; i++) {
+            ret[i] = NullExecutable.NULL;
+        }
+        return ret;
     }
 
     private IExecutableExpression buildMemberCall(MemberExpression callee, IExecutableExpression[] argExprs,

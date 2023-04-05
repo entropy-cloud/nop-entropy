@@ -118,12 +118,16 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
 
     private final IXLangCompileScope scope;
 
+    private Expression rootNode;
+
     public LexicalScopeAnalysis(IXLangCompileScope scope) {
         this.scope = scope;
     }
 
-    public void analyze(Expression node) {
-        visit(node);
+    public Expression analyze(Expression node) {
+        rootNode = node;
+        visit(rootNode);
+
         new XLangASTVisitor() {
             @Override
             public void visitProgram(Program node) {
@@ -143,7 +147,9 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
                 node.getLexicalScope().hoistClosureVars();
                 super.visitArrowFunctionExpression(node);
             }
-        }.visit(node);
+        }.visit(rootNode);
+
+        return rootNode;
     }
 
     @Override
@@ -532,8 +538,7 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
     @Override
     public void visitThisExpression(ThisExpression node) {
         Identifier id = Identifier.valueOf(node.getLocation(), "this");
-        if (node.getASTParent() != null)
-            node.getASTParent().replaceChild(node, id);
+        replaceNode(node, id);
         this.visitIdentifier(id);
     }
 
@@ -556,9 +561,8 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
                         return;
                     }
 
-                    if (node.getASTParent() != null) {
-                        node.getASTParent().replaceChild(node, ret);
-                    }
+                    replaceNode(node, ret);
+                   
                     if (ret != null)
                         visit(ret);
                     return;
@@ -824,14 +828,24 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
                 call.setCallee(node.getId().deepClone());
                 call.setArguments(Arrays.asList(node.getValue().deepClone()));
                 Expression ret = (Expression) fn.call2(null, scope, call, scope);
-                if (node.getASTParent() != null) {
-                    node.getASTParent().replaceChild(node, ret);
-                }
+
+                replaceNode(node, ret);
+
                 if (ret != null)
                     visit(ret);
             }
         }
 
+    }
+
+    private void replaceNode(Expression node, Expression ret) {
+        if (node.getASTParent() != null) {
+            node.getASTParent().replaceChild(node, ret);
+        } else {
+            if (rootNode == node) {
+                rootNode = ret;
+            }
+        }
     }
 
     //
@@ -864,15 +878,16 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
         scope.enterMacro();
         scope.enterBlock(false);
 
+        Expression expr;
         try {
-            analyze(node.getExpr());
+            expr = new LexicalScopeAnalysis(scope).analyze(node.getExpr());
         } finally {
             scope.leaveBlock(false);
             scope.leaveMacro();
         }
-        IExecutableExpression executable = scope.getCompiler().buildExecutable(node, false, scope);
+        IExecutableExpression executable = scope.getCompiler().buildExecutable(expr, false, scope);
         Object value = executable == null ? null : XLang.execute(executable, scope);
-        Expression expr;
+
         if (value instanceof Expression) {
             expr = (Expression) value;
         } else {

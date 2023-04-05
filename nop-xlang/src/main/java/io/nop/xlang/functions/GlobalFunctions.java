@@ -39,6 +39,7 @@ import io.nop.xlang.ast.ConcatExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.IdentifierKind;
+import io.nop.xlang.ast.IfStatement;
 import io.nop.xlang.ast.Literal;
 import io.nop.xlang.ast.XLangASTKind;
 import io.nop.xlang.ast.XLangOperator;
@@ -256,6 +257,24 @@ public class GlobalFunctions {
             if (path != null)
                 ResourceComponentManager.instance().traceDepends(path);
         }
+    }
+
+    @Description("类似于Excel的IF函数")
+    @Macro
+    public static Expression IF(@Name("scope") IEvalScope scope, @Name("expr") CallExpression expr) {
+        if (expr.getArguments().size() != 3)
+            throw new NopEvalException(ERR_EXEC_INVALID_ARG_COUNT).param(ARG_EXPR, expr).param(ARG_ARG_COUNT, 3);
+
+        for (Expression arg : expr.getArguments()) {
+            arg.setASTParent(null);
+        }
+        
+        IfStatement stm = new IfStatement();
+        stm.setLocation(expr.getLocation());
+        stm.setTest(expr.getArgument(0));
+        stm.setConsequent(expr.getArgument(1));
+        stm.setAlternate(expr.getArgument(2));
+        return stm;
     }
 
     @Description("创建XNode节点")

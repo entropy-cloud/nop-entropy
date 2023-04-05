@@ -8,7 +8,6 @@
 package io.nop.core.lang.eval.global;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.lang.impl.Cancellable;
@@ -26,9 +25,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static io.nop.core.CoreErrors.ARG_NAME;
-import static io.nop.core.CoreErrors.ERR_EVAL_FUNCTION_NAME_MUST_STARTS_WITH_LOWER_CASE;
 
 @GlobalInstance
 public class EvalGlobalRegistry {
@@ -91,8 +87,8 @@ public class EvalGlobalRegistry {
         Guard.notEmpty(name, "name is empty");
         Guard.notNull(func, "func is null");
 
-        if (!Character.isLowerCase(name.charAt(0)))
-            throw new NopException(ERR_EVAL_FUNCTION_NAME_MUST_STARTS_WITH_LOWER_CASE).param(ARG_NAME, name);
+//        if (!Character.isLowerCase(name.charAt(0)))
+//            throw new NopException(ERR_EVAL_FUNCTION_NAME_MUST_STARTS_WITH_LOWER_CASE).param(ARG_NAME, name);
 
         IFunctionModel old = functions.put(name, func);
         if (old != null) {

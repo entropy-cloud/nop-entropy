@@ -23,18 +23,24 @@ import io.nop.report.core.dataset.DynamicReportDataSet;
 import io.nop.report.core.dataset.KeyedReportDataSet;
 import io.nop.report.core.dataset.ReportDataSet;
 import io.nop.report.core.model.ExpandedCell;
+import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.report.core.model.ExpandedCol;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.Format;
+import java.util.Collections;
 import java.util.List;
 
 import static io.nop.report.core.XptErrors.ARG_CELL_POS;
 import static io.nop.report.core.XptErrors.ARG_SHEET_NAME;
 
 public class XptRuntime implements IXptRuntime, IVariableScope {
+    static final Logger LOG = LoggerFactory.getLogger(XptRuntime.class);
+
     private final IEvalScope scope;
     private ExpandedCell cell;
     private ExpandedTable table;
@@ -195,6 +201,9 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
                 cell.setLinkUrl(linkUrl);
             }
             evalTestExpr(cellModel);
+
+            if (LOG.isTraceEnabled())
+                LOG.trace("nop.xpt.eval-cell:cell={}", cell.getName(), cell.getValue());
             return cell.getValue();
         } catch (NopException e) {
             e.param(ARG_CELL_POS, cell.getName())
@@ -275,5 +284,27 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     @Override
     public DynamicReportDataSet makeDs(String dsName, Object value) {
         return DynamicReportDataSet.makeDataSetFromValue(getEvalScope(), dsName, value);
+    }
+
+    @Override
+    public ExpandedCellSet getNamedCellSet(String cellName) {
+        ExpandedTable table = getTable();
+        if (table == null)
+            return new ExpandedCellSet(null, cellName, Collections.emptyList());
+
+        List<ExpandedCell> cells = table.getNamedCells(cellName);
+        return new ExpandedCellSet(null, cellName, cells).evaluateAll(this);
+    }
+
+    @Override
+    public ExpandedCell getNamedCell(String cellName) {
+        ExpandedTable table = getTable();
+        if (table == null)
+            return null;
+
+        ExpandedCell cell = table.getNamedCell(cellName);
+        if (cell != null)
+            evaluateCell(cell);
+        return cell;
     }
 }

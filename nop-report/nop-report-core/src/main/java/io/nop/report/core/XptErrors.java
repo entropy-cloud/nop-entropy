@@ -27,6 +27,9 @@ public interface XptErrors {
     String ARG_PROP_NAME = "propName";
     String ARG_FIELD_NAME = "fieldName";
 
+    String ARG_EXPR = "expr";
+    String ARG_SIZE = "size";
+
     ErrorCode ERR_XPT_INVALID_ROW_PARENT =
             define("nop.err.xpt.invalid-row-parent",
                     "表格[{sheetName}]的单元格[{cellPos}]的行父格[{rowParent}]必须配置为行展开",
@@ -79,4 +82,12 @@ public interface XptErrors {
     ErrorCode ERR_XPT_INVALID_CELL_RANGE_EXPR =
             define("nop.err.xpt.invalid-cell-range-expr",
                     "非法的单元格区间表达式", ARG_CELL_POS);
+
+    ErrorCode ERR_XPT_CELL_EXPR_RESULT_NOT_ONE_CELL =
+            define("nop.err.xpt.cell-expr-result-not-one-cell",
+                    "表达式[{expr}]返回单元格个数为[{size}]，不是单个单元格", ARG_EXPR);
+
+    ErrorCode ERR_XPT_CELL_EXPR_NO_DS_NAME =
+            define("nop.err.xpt.cell-expr-ds-name",
+                    "单元格展开表达式中必须具有ds定义，格式为^dsName!fieldName: {expr}", ARG_EXPR);
 }

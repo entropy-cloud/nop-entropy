@@ -11,4 +11,8 @@ import io.nop.xlang.api.DefaultFunctionProvider;
 
 public class ReportFunctionProvider extends DefaultFunctionProvider {
     public static final ReportFunctionProvider INSTANCE = new ReportFunctionProvider();
+
+    static {
+        ReportFunctionProvider.INSTANCE.registerStaticFunctions(ReportFunctions.class);
+    }
 }

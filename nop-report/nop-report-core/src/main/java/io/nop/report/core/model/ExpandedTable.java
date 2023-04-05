@@ -113,6 +113,11 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
         return namedCells.get(cellName);
     }
 
+    public ExpandedCell getNamedCell(String cellName) {
+        List<ExpandedCell> cells = getNamedCells(cellName);
+        return cells == null ? null : cells.get(0);
+    }
+
     private void initParentChildren(Map<ExcelCell, ExpandedCell> cellMap) {
         for (ExpandedCell cell : cellMap.values()) {
             XptCellModel xptModel = cell.getModel();

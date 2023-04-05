@@ -8,14 +8,21 @@
 package io.nop.report.core.engine;
 
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.report.core.XptConstants;
 import io.nop.report.core.dataset.DynamicReportDataSet;
 import io.nop.report.core.model.ExpandedCell;
+import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
 
 public interface IXptRuntime extends IEvalContext {
+    static IXptRuntime fromScope(IEvalScope scope){
+        return (IXptRuntime) scope.getValue(XptConstants.VAR_XPT_RT);
+    }
+
     ExpandedCell getCell();
 
     void setCell(ExpandedCell cell);
@@ -37,6 +44,10 @@ public interface IXptRuntime extends IEvalContext {
     Object evaluateCell(ExpandedCell cell);
 
     Object field(String field);
+
+    ExpandedCellSet getNamedCellSet(String cellName);
+
+    ExpandedCell getNamedCell(String cellName);
 
     DynamicReportDataSet ds(String dsName);
 

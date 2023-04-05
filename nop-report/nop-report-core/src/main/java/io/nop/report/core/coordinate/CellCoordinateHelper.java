@@ -10,13 +10,13 @@ package io.nop.report.core.coordinate;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
+import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.model.ExpandedCell;
-import io.nop.report.core.model.ExpandedCol;
-import io.nop.report.core.model.ExpandedRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -48,65 +48,108 @@ public class CellCoordinateHelper {
         if (coords == null || coords.isEmpty())
             return null;
 
-        ExpandedRow row = cell.getRow();
-        int rowIndex = row.getRowIndex();
         ExpandedCell resolvedCell = null;
 
         for (CellCoordinate coord : coords) {
             List<ExpandedCell> cells;
             if (resolvedCell == null) {
-                cells = resolveCell(cell, coord.getCellName());
+                cells = resolveAllCellsInRowParent(cell, coord.getCellName());
             } else {
                 cells = resolvedCell.getRowDescendants().get(coord.getCellName());
             }
-            if (cells == null) {
+            if (cells == null || cells.isEmpty()) {
                 LOG.info("nop.xpt.cell-row-coordinate-resolve-to-null:cellName={}, coordinates={}",
                         coord.getCellName(), coords);
                 return null;
             }
 
             int pos = coord.getPosition();
-            if (pos > 0) {
-                if (pos < cells.size()) {
-                    resolvedCell = cells.get(pos - 1);
+            if (coord.isReverse() && pos < 0) {
+                int index = cells.size() + pos;
+                if (index >= 0) {
+                    resolvedCell = cells.get(index);
                 }
             } else {
-                if (coord.isReverse() && pos < 0) {
-                    int index = cells.size() + pos;
-                    if (index >= 0) {
-                        resolvedCell = cells.get(index);
+                if (coord.isRelative()) {
+                    ExpandedCell parentCell = cell.getRowClosest(coord.getCellName());
+                    if (parentCell == null) {
+                        LOG.info("nop.xpt.cell-row-coordinate-resolve-to-null:cellName={}, coordinates={}",
+                                coord.getCellName(), coords);
+                        return null;
                     }
-                } else {
-                    int index = -1;
-                    // 查找到当前单元格所在行随对应的单元格，然后再确定相对位置
-                    for (int i = 0, n = cells.size(); i < n; i++) {
-                        ExpandedCell child = cells.get(i);
-                        ExpandedRow childRow = child.getRow();
-                        if (childRow == row) {
-                            index = i;
-                            break;
-                        }
-                        int childRowIndex = childRow.getRowIndex();
-                        if (rowIndex >= childRowIndex && rowIndex <= childRowIndex + child.getMergeDown()) {
-                            index = i;
-                            break;
-                        }
-                    }
+                    int index = getRowExpandIndex(parentCell);
                     if (index >= 0) {
                         // 这里pos为0或者小于0
                         index += pos;
-                        if (index >= 0) {
+                        if (index >= 0 && index < cells.size()) {
                             resolvedCell = cells.get(index);
                         }
                     }
+                } else {
+                    if (pos > 0 && pos <= cells.size()) {
+                        resolvedCell = cells.get(pos - 1);
+                    }
                 }
             }
+
+            if (resolvedCell == null)
+                return null;
         }
-        if (resolvedCell == null) {
-            return null;
-        }
+
         return resolvedCell.getRowDescendants().get(cellName);
     }
+
+    public static int getRowExpandIndex(ExpandedCell cell) {
+        if (cell.getExpandType() == XptExpandType.r) {
+            return cell.getExpandIndex();
+        }
+        return -1;
+    }
+
+    public static int getColExpandIndex(ExpandedCell cell) {
+        if (cell.getExpandType() == XptExpandType.c) {
+            return cell.getExpandIndex();
+        }
+        return -1;
+    }
+//
+//    public static int findRowIndex(List<ExpandedCell> cells, int rowIndex, ExpandedRow row) {
+//        int index = -1;
+//        // 查找到当前单元格所在行随对应的单元格，然后再确定相对位置
+//        for (int i = 0, n = cells.size(); i < n; i++) {
+//            ExpandedCell child = cells.get(i);
+//            ExpandedRow childRow = child.getRow();
+//            if (childRow == row) {
+//                index = i;
+//                break;
+//            }
+//            int childRowIndex = childRow.getRowIndex();
+//            if (rowIndex >= childRowIndex && rowIndex <= childRowIndex + child.getMergeDown()) {
+//                index = i;
+//                break;
+//            }
+//        }
+//        return index;
+//    }
+//
+//    public static int findColIndex(List<ExpandedCell> cells, int colIndex, ExpandedCol col) {
+//        int index = -1;
+//        // 查找到当前单元格所在行随对应的单元格，然后再确定相对位置
+//        for (int i = 0, n = cells.size(); i < n; i++) {
+//            ExpandedCell child = cells.get(i);
+//            ExpandedCol childCol = child.getCol();
+//            if (childCol == col) {
+//                index = i;
+//                break;
+//            }
+//            int childColIndex = childCol.getColIndex();
+//            if (colIndex >= childColIndex && colIndex <= childColIndex + child.getMergeDown()) {
+//                index = i;
+//                break;
+//            }
+//        }
+//        return index;
+//    }
 
     // tell cpd to start ignoring code - CPD-OFF
     private static List<ExpandedCell> resolveColCoordinates(ExpandedCell cell, String cellName,
@@ -114,14 +157,12 @@ public class CellCoordinateHelper {
         if (coords == null || coords.isEmpty())
             return null;
 
-        ExpandedCol col = cell.getCol();
-        int colIndex = col.getColIndex();
         ExpandedCell resolvedCell = null;
 
         for (CellCoordinate coord : coords) {
             List<ExpandedCell> cells;
             if (resolvedCell == null) {
-                cells = resolveCell(cell, coord.getCellName());
+                cells = resolveAllCellsInColParent(cell, coord.getCellName());
             } else {
                 cells = resolvedCell.getColDescendants().get(coord.getCellName());
             }
@@ -132,45 +173,38 @@ public class CellCoordinateHelper {
             }
 
             int pos = coord.getPosition();
-            if (pos > 0) {
-                if (pos < cells.size()) {
-                    resolvedCell = cells.get(pos - 1);
+            if (coord.isReverse() && pos < 0) {
+                int index = cells.size() + pos;
+                if (index >= 0) {
+                    resolvedCell = cells.get(index);
                 }
             } else {
-                if (coord.isReverse() && pos < 0) {
-                    int index = cells.size() + pos;
-                    if (index >= 0) {
-                        resolvedCell = cells.get(index);
+                if (coord.isRelative()) {
+                    ExpandedCell parentCell = cell.getColClosest(coord.getCellName());
+                    if (parentCell == null) {
+                        LOG.info("nop.xpt.cell-col-coordinate-resolve-to-null:cellName={}, coordinates={}",
+                                coord.getCellName(), coords);
+                        return null;
                     }
-                } else {
-                    int index = -1;
-                    // 查找到当前单元格所在行随对应的单元格，然后再确定相对位置
-                    for (int i = 0, n = cells.size(); i < n; i++) {
-                        ExpandedCell child = cells.get(i);
-                        ExpandedCol childCol = child.getCol();
-                        if (childCol == col) {
-                            index = i;
-                            break;
-                        }
-                        int childColIndex = childCol.getColIndex();
-                        if (colIndex >= childColIndex && colIndex <= childColIndex + child.getMergeDown()) {
-                            index = i;
-                            break;
-                        }
-                    }
+                    int index = getColExpandIndex(parentCell);
                     if (index >= 0) {
                         // 这里pos为0或者小于0
                         index += pos;
-                        if (index >= 0) {
+                        if (index >= 0 && index < cells.size()) {
                             resolvedCell = cells.get(index);
                         }
                     }
+                } else {
+                    if (pos < cells.size()) {
+                        resolvedCell = cells.get(pos - 1);
+                    }
                 }
             }
+
+            if (resolvedCell == null)
+                return null;
         }
-        if (resolvedCell == null) {
-            return null;
-        }
+
         return resolvedCell.getColDescendants().get(cellName);
     }
     // resume CPD analysis - CPD-ON
@@ -209,15 +243,47 @@ public class CellCoordinateHelper {
         return ret;
     }
 
+    private static List<ExpandedCell> resolveAllCellsInRowParent(ExpandedCell cell, String cellName) {
+        ExpandedCell parent = cell.getRowParent();
+        if (parent == null) {
+            return cell.getTable().getNamedCells(cellName);
+        }
+
+        if (cellName.equals(cell.getName())) {
+            if (cell.getExpandType() == XptExpandType.r) {
+                return parent.getRowDescendants().get(cellName);
+            } else {
+                return Collections.singletonList(cell);
+            }
+        } else {
+            return resolveAllCellsInRowParent(parent, cellName);
+        }
+    }
+
+    private static List<ExpandedCell> resolveAllCellsInColParent(ExpandedCell cell, String cellName) {
+        ExpandedCell parent = cell.getColParent();
+        if (parent == null) {
+            return cell.getTable().getNamedCells(cellName);
+        }
+
+        if (cellName.equals(cell.getName())) {
+            if (cell.getExpandType() == XptExpandType.c) {
+                return parent.getRowDescendants().get(cellName);
+            } else {
+                return Collections.singletonList(cell);
+            }
+        } else {
+            return resolveAllCellsInColParent(parent, cellName);
+        }
+    }
+
     private static List<ExpandedCell> resolveCellInRowParents(ExpandedCell cell, String cellName) {
         ExpandedCell rowParent = cell.getRowParent();
         if (rowParent == null)
             return null;
 
         if (rowParent.getName().equals(cellName)) {
-            ArrayList<ExpandedCell> ret = new ArrayList<>(1);
-            ret.add(rowParent);
-            return ret;
+            return Collections.singletonList(rowParent);
         }
 
         List<ExpandedCell> cells = rowParent.getRowDescendants().get(cellName);
@@ -233,9 +299,7 @@ public class CellCoordinateHelper {
             return null;
 
         if (colParent.getName().equals(cellName)) {
-            ArrayList<ExpandedCell> ret = new ArrayList<>(1);
-            ret.add(colParent);
-            return ret;
+            return Collections.singletonList(colParent);
         }
 
         List<ExpandedCell> cells = colParent.getColDescendants().get(cellName);

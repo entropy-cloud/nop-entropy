@@ -57,16 +57,19 @@ public class XLangExprParser implements IXLangExprParser {
 
     @Override
     public IExecutableExpression buildExecutable(Expression expr, boolean optimize, IXLangCompileScope scope) {
-        new LexicalScopeAnalysis(scope).analyze(expr);
+        expr = new LexicalScopeAnalysis(scope).analyze(expr);
+
         if (LOG.isTraceEnabled()) {
             PrintResolvedIdentifier print = new PrintResolvedIdentifier();
             print.visit(expr);
             LOG.trace(print.getOutput());
         }
+
         if (optimize) {
             new TypeInferenceProcessor().processAST(expr, new TypeInferenceState());
             // expr = (Expression) new ExpressionOptimizer().optimize(expr, scope);
         }
+
         return new BuildExecutableProcessor().processAST(expr, scope);
     }
 }

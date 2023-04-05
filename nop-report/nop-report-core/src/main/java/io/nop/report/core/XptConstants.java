@@ -67,4 +67,11 @@ public interface XptConstants {
     double DEFAULT_WIDTH = 8.5;
 
     String EXT_PROP_FORMAT_EXPR = "xpt:formatExpr";
+
+    String KEY_SUM = "SUM";
+    String KEY_ALL_SUM = "ALL_SUM";
+
+    String KEY_RANK = "RANK";
+
+    String KEY_ACCSUM = "ACCSUM";
 }

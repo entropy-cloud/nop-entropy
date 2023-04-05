@@ -41,7 +41,7 @@ public class TemplateReportExprStdDomainHandler extends XplStdDomainHandlers.Abs
             cp.getScope().setFunctionProvider(ReportFunctionProvider.INSTANCE);
             return cp.buildActionForExpr(expr);
         } catch (Exception e) {
-            throw newPropError(loc, propName, source);
+            throw newPropError(loc, propName, source).cause(e);
         } finally {
             cp.getScope().setFunctionProvider(provider);
             cp.outputMode(oldMode);

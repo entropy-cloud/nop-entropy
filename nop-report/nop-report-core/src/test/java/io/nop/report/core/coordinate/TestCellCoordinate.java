@@ -20,7 +20,7 @@ public class TestCellCoordinate {
     public void testParse() {
         check("C1");
         check("C1[A1:2,B1:1]");
-        check("C2[A1:2,B1:2;C1:3]");
+        check("C2[A1:2,B1:2;C1:+3]");
         check("C2[A2:-1]");
         check("C2[A2:!-1,B1]");
     }

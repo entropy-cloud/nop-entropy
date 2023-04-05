@@ -8,6 +8,7 @@
 package io.nop.core.reflect.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -46,8 +47,8 @@ public class FunctionModel extends AnnotatedElement implements IFunctionModel {
     private boolean macro;
     private boolean deprecated;
     private Class<?> varArgElementClass;
-    private int minArgCount;
-    private int maxArgCount;
+    private int minArgCount = -1;
+    private int maxArgCount = -1;
     // private boolean templateStringMethod;
 
     private IFunctionType functionType;
@@ -92,6 +93,18 @@ public class FunctionModel extends AnnotatedElement implements IFunctionModel {
 
     @Override
     public int getMinArgCount() {
+        if (minArgCount < 0) {
+            int n = args.size();
+            for (int i = n - 1; i >= 0; i--) {
+                IFunctionArgument arg = args.get(i);
+                if (arg.isAnnotationPresent(Optional.class)) {
+                    n--;
+                } else {
+                    break;
+                }
+            }
+            minArgCount = n;
+        }
         return minArgCount;
     }
 
@@ -101,10 +114,12 @@ public class FunctionModel extends AnnotatedElement implements IFunctionModel {
 
     @Override
     public int getMaxArgCount() {
-        if (maxArgCount == 0) {
-            if (varArgs)
-                return 100;
-            return args.size();
+        if (maxArgCount < 0) {
+            if (varArgs) {
+                maxArgCount = 100;
+            } else {
+                maxArgCount = args.size();
+            }
         }
         return maxArgCount;
     }

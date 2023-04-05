@@ -10,15 +10,31 @@ package io.nop.report.core.functions;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.core.Optional;
+import io.nop.api.core.annotations.lang.EvalMethod;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.collections.SafeNumberComparator;
+import io.nop.commons.functional.IEqualsChecker;
 import io.nop.commons.lang.IValueWrapper;
+import io.nop.commons.mutable.MutableValue;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalScope;
+import io.nop.report.core.XptConstants;
+import io.nop.report.core.engine.IXptRuntime;
+import io.nop.report.core.model.ExpandedCell;
+import io.nop.report.core.model.ExpandedCellSet;
 
 import java.util.Iterator;
+import java.util.Objects;
+
+import static io.nop.report.core.XptErrors.ARG_EXPR;
 
 @Locale("zh-CN")
 public class ReportFunctions {
+
     @Description("求和。忽略所有非数值类型")
     public static Number SUM(@Name("values") Object values) {
         if (values == null)
@@ -167,4 +183,102 @@ public class ReportFunctions {
             value = ((IValueWrapper) value).getValue();
         return value;
     }
+
+    @Description("计算当前单元格的值在所有展开单元格的汇总值中所占的比例")
+    @EvalMethod
+    public static Number PROPORTION(IEvalScope scope,
+                                    @Name("cell") ExpandedCellSet cell,
+                                    @Name("range") @Optional ExpandedCellSet range) {
+        IXptRuntime xptRt = IXptRuntime.fromScope(scope);
+        Object value = cell.getValue();
+        if (value == null)
+            return null;
+
+        Number v = ConvertHelper.toNumber(value, err -> new NopException(err).source(cell).param(ARG_EXPR, cell));
+
+        String cellName = cell.getCellName();
+        if (range == null) {
+            ExpandedCell firstCell = xptRt.getNamedCell(cellName);
+            // 利用第一个单元格的计算属性来缓存汇总结果
+            Number sum = (Number) firstCell.getComputed(XptConstants.KEY_ALL_SUM,
+                    c -> SUM(xptRt.getNamedCellSet(cellName)));
+            return MathHelper.divide(v, sum);
+        } else {
+            ExpandedCell rangeCell = range.getCell();
+            // 利用第一个单元格的计算属性来缓存汇总结果
+            Number sum = (Number) rangeCell.getComputed(cellName + '_' + XptConstants.KEY_ALL_SUM,
+                    c -> SUM(rangeCell.getChildSet(cellName, xptRt)));
+            return MathHelper.divide(v, sum);
+        }
+    }
+
+    @Description("排名")
+    @EvalMethod
+    public static Integer RANK(IEvalScope scope, @Name("cell") ExpandedCellSet cell,
+                               @Name("range") @Optional ExpandedCellSet range) {
+        IXptRuntime xptRt = IXptRuntime.fromScope(scope);
+        ExpandedCell curCell = cell.getCell();
+        Object value = curCell.getValue();
+        if (value == null)
+            return null;
+
+        String cellName = cell.getCellName();
+        if (range == null) {
+            ExpandedCell firstCell = xptRt.getNamedCell(cellName);
+            // 利用第一个单元格的计算属性来缓存汇总结果
+            RankCompute.RankResult rankResult = (RankCompute.RankResult) firstCell.getComputed(XptConstants.KEY_RANK,
+                    c -> computeRank(xptRt.getNamedCellSet(cellName)));
+            return rankResult.getRank(curCell);
+        } else {
+            ExpandedCell rangeCell = range.getCell();
+            RankCompute.RankResult rankResult = (RankCompute.RankResult) rangeCell.getComputed(
+                    cellName + '_' + XptConstants.KEY_RANK,
+                    c -> computeRank(rangeCell.getChildSet(cellName, xptRt)));
+            return rankResult.getRank(curCell);
+        }
+    }
+
+    static ExpandedCellSet evaluateAll(ExpandedCellSet cellSet, IXptRuntime xptRt) {
+        if (cellSet == null)
+            return null;
+        cellSet.evaluateAll(xptRt);
+        return cellSet;
+    }
+
+    static RankCompute.RankResult<Number> computeRank(ExpandedCellSet cells) {
+        return RankCompute.computeRank(cells.getCells(), ExpandedCell::getNumberValue,
+                SafeNumberComparator.DESC, (IEqualsChecker) Objects::equals);
+    }
+
+    @Description("累积汇总")
+    @EvalMethod
+    public static Number ACCSUM(IEvalScope scope, @Name("cell") ExpandedCellSet cell,
+                                @Name("range") @Optional ExpandedCellSet range) {
+        IXptRuntime xptRt = IXptRuntime.fromScope(scope);
+        ExpandedCell curCell = cell.getCell();
+
+        ExpandedCell rangeCell = null;
+        MutableValue<Number> accValue;
+        if (range == null) {
+            rangeCell = xptRt.getNamedCell(curCell.getName());
+            accValue = (MutableValue<Number>) rangeCell.getComputed(XptConstants.KEY_ACCSUM,
+                    c -> new MutableValue<>(0));
+        } else {
+            rangeCell = range.getCell();
+            accValue = (MutableValue<Number>) rangeCell.getComputed(curCell.getName() + "_" + XptConstants.KEY_ACCSUM,
+                    c -> new MutableValue<>(0));
+        }
+
+        Number value = curCell.getNumberValue();
+        if (value != null) {
+            accValue.setValue(MathHelper.add(accValue.getValue(), value));
+        }
+        return accValue.getValue();
+    }
+
+//    @Description("计算环比")
+//    public static Object MOM(@Name("range") ExpandedCellSet range, @Name("value") ExpandedCellSet value,
+//                             @Name("shift") @Optional Integer shift) {
+//        return null;
+//    }
 }

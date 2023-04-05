@@ -108,7 +108,13 @@ public class ReportExpressionParser extends SimpleExprParser {
                 if (sc.tryMatch('!')) {
                     coord.setReverse(true);
                 }
+                if(sc.tryMatch('+')){
+                    coord.setRelative(true);
+                }
                 int pos = sc.nextInt();
+                if(pos < 0){
+                    coord.setRelative(true);
+                }
                 coord.setPosition(pos);
             }
             ret.add(coord);

@@ -30,6 +30,7 @@ public class XLangASTHelper {
             case CallExpression:
             case ChainExpression:
             case BraceExpression:
+            case CustomExpression:
                 return true;
             default:
         }
