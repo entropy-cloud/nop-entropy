@@ -9,10 +9,12 @@ import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.IReportEngine;
 import io.nop.xlang.api.XLang;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 
+@Disabled
 @NopTestConfig(localDb = true)
 public class TestReportSpeed extends JunitBaseTestCase {
 
@@ -25,16 +27,22 @@ public class TestReportSpeed extends JunitBaseTestCase {
         ITextTemplateOutput output = reportEngine.getHtmlRenderer(path);
         IEvalScope scope = XLang.newEvalScope();
         IResource resource = getTargetResource("/test-speed-result.xpt.html");
-        output.generateToResource(resource, scope);
-
+        System.out.println("output path:" + resource.toFile());
+        for (int i = 0; i < 100; i++) {
+            output.generateToResource(resource, scope);
+        }
     }
 
     @Test
     public void testRenderXlsx() {
+        // 生成的Excel中包含12000条结果记录。报表展开时执行大量分组、汇总、比较的计算。
         String path = "/nop/report/demo/performance/测试同比环比.xpt.xlsx";
         ITemplateOutput output = reportEngine.getRenderer(path, XptConstants.RENDER_TYPE_XLSX);
         IEvalScope scope = XLang.newEvalScope();
         IResource resource = getTargetResource("/test-speed-result.xlsx");
-        output.generateToResource(resource, scope);
+        System.out.println("output path:" + resource.toFile());
+        for (int i = 0; i < 100; i++) {
+            output.generateToResource(resource, scope);
+        }
     }
 }

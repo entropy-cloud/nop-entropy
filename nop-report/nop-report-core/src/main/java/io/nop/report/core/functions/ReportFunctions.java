@@ -238,13 +238,6 @@ public class ReportFunctions {
         }
     }
 
-    static ExpandedCellSet evaluateAll(ExpandedCellSet cellSet, IXptRuntime xptRt) {
-        if (cellSet == null)
-            return null;
-        cellSet.evaluateAll(xptRt);
-        return cellSet;
-    }
-
     static RankCompute.RankResult<Number> computeRank(ExpandedCellSet cells) {
         return RankCompute.computeRank(cells.getCells(), ExpandedCell::getNumberValue,
                 SafeNumberComparator.DESC, (IEqualsChecker) Objects::equals);

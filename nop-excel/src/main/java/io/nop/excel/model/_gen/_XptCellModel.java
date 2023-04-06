@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [93:34:0:0]/nop/schema/excel/workbook.xdef <p>
+ * generate from [95:34:0:0]/nop/schema/excel/workbook.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -76,6 +76,14 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
      * 
      */
     private io.nop.excel.model.constants.XptExpandType _expandType ;
+    
+    /**
+     *  
+     * xml name: exportFormattedValue
+     * 如果设置为true，则导出Excel时会应用formatExpr或者Excel配置的NumberFormat，
+     * 格式化为字符串后导出，而不是导出单元格的原始值。缺省情况下会导出原始值，使用Excel的NumberFormat来格式化
+     */
+    private boolean _exportFormattedValue  = false;
     
     /**
      *  
@@ -314,6 +322,26 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: exportFormattedValue
+     *  如果设置为true，则导出Excel时会应用formatExpr或者Excel配置的NumberFormat，
+     * 格式化为字符串后导出，而不是导出单元格的原始值。缺省情况下会导出原始值，使用Excel的NumberFormat来格式化
+     */
+    
+    public boolean isExportFormattedValue(){
+      return _exportFormattedValue;
+    }
+
+    
+    public void setExportFormattedValue(boolean value){
+        checkAllowChange();
+        
+        this._exportFormattedValue = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: field
      *  
      */
@@ -506,6 +534,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.put("expandInplaceCount",this.getExpandInplaceCount());
         out.put("expandOrderBy",this.getExpandOrderBy());
         out.put("expandType",this.getExpandType());
+        out.put("exportFormattedValue",this.isExportFormattedValue());
         out.put("field",this.getField());
         out.put("formatExpr",this.getFormatExpr());
         out.put("keepExpandEmpty",this.isKeepExpandEmpty());

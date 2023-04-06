@@ -85,6 +85,10 @@ public interface ICellView extends ICloneable {
         return getValue();
     }
 
+    default Object getExportValue(){
+        return getValue();
+    }
+
     @JsonIgnore
     /**
      * 单元格的显示文本. 对于ProxyCell, 这里总返回null

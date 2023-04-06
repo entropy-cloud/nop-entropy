@@ -81,9 +81,9 @@ public class ReportDemoBizModel {
         Guard.checkArgument(StringHelper.isValidVPath(reportName));
         Guard.notEmpty(renderType, "renderType");
 
-        String path = REPORT_DEMO_PATH + reportName + ".xpt.xlsx";
+        String path = REPORT_DEMO_PATH + reportName;
 
-        ITemplateOutput output = reportEngine.getHtmlRenderer(path);
+        ITemplateOutput output = reportEngine.getRenderer(path, renderType);
         IEvalScope scope = XLang.newEvalScope();
 
         IResource resource = ResourceHelper.getTempResource("demo");

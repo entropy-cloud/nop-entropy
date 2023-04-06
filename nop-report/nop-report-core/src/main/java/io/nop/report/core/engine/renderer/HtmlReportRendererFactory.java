@@ -8,6 +8,7 @@
 package io.nop.report.core.engine.renderer;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.model.table.html.HtmlTableOutput;
@@ -19,18 +20,23 @@ import io.nop.excel.model.IExcelSheet;
 import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.IReportRendererFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 
 public class HtmlReportRendererFactory implements IReportRendererFactory {
+    static final Logger LOG = LoggerFactory.getLogger(HtmlTemplate.class);
+
     @Override
     public ITemplateOutput buildRenderer(ExcelWorkbook model, IExcelSheetGenerator sheetGenerator) {
         return new HtmlTemplate(model, sheetGenerator);
     }
 
     static class HtmlTemplate implements ITextTemplateOutput {
+
         private final ExcelWorkbook model;
         private final IExcelSheetGenerator sheetGenerator;
 
@@ -41,6 +47,9 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
 
         @Override
         public void generateToWriter(Writer out, IEvalContext context) throws IOException {
+            long beginTime = CoreMetrics.currentTimeMillis();
+            LOG.debug("nop.report.begin-generate-html");
+
             String scopeCssPrefix = getScopeCssPrefix(context);
 
             renderStyles(model.getStyles(), scopeCssPrefix, out);
@@ -54,6 +63,9 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
                     renderSheet(sheet, scopeCssPrefix, out, context);
                 });
             }
+            out.flush();
+            long endTime = CoreMetrics.currentTimeMillis();
+            LOG.info("nop.report.end-generate-html:usedTime={}", endTime - beginTime);
         }
 
         private String getScopeCssPrefix(IEvalContext context) {

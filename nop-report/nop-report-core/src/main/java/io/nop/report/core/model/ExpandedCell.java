@@ -234,6 +234,13 @@ public class ExpandedCell implements ICellView {
         return model == null ? null : model.getExpandType();
     }
 
+    @Override
+    public Object getExportValue() {
+        if (model.isExportFormattedValue())
+            return getFormattedValue();
+        return getValue();
+    }
+
     public int getRowParentExpandIndex() {
         if (rowParent == null)
             return -1;
