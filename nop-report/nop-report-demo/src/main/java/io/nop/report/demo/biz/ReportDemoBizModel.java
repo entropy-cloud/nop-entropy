@@ -24,6 +24,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.report.core.XptErrors.ARG_REPORT_NAME;
+import static io.nop.report.core.XptErrors.ERR_XPT_UNKNOWN_REPORT_MODEL;
+
 @BizModel("ReportDemo")
 public class ReportDemoBizModel {
     private final String REPORT_DEMO_PATH = "/nop/report/demo";
@@ -90,7 +93,14 @@ public class ReportDemoBizModel {
         try {
             output.generateToResource(resource, scope);
 
-            WebContentBean content = new WebContentBean("application/octet-stream", resource.toFile());
+            String fileName = (String) scope.getLocalValue("exportFileName");
+            if (StringHelper.isEmpty(fileName)) {
+                fileName = StringHelper.removeTail(StringHelper.fileNameNoExt(reportName), ".xpt");
+            }
+            fileName = StringHelper.removeFileExt(fileName) + "." + renderType;
+
+            WebContentBean content = new WebContentBean("application/octet-stream",
+                    resource.toFile(), fileName);
 
             GlobalExecutors.globalTimer().schedule(() -> {
                 resource.delete();
@@ -102,5 +112,18 @@ public class ReportDemoBizModel {
             resource.delete();
             throw NopException.adapt(e);
         }
+    }
+
+    @BizQuery
+    public WebContentBean downloadModel(@Name("reportName") String reportName) {
+        Guard.checkArgument(StringHelper.isValidVPath(reportName));
+        String path = REPORT_DEMO_PATH + reportName;
+
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        if (!resource.exists())
+            throw new NopException(ERR_XPT_UNKNOWN_REPORT_MODEL).param(ARG_REPORT_NAME, reportName);
+        WebContentBean content = new WebContentBean("application/octet-stream", resource.toFile(),
+                StringHelper.fileFullName(reportName));
+        return content;
     }
 }

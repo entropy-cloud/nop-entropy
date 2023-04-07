@@ -134,6 +134,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @GET
     @Path("/p/{query: [a-zA-Z].*}")
     @GetMapping("/p/{query: [a-zA-Z].*}")
+    @PostMapping("/p/{query: [a-zA-Z].*}")
     public CompletionStage<ResponseEntity<Object>> pageQuerySpring(@PathVariable("query") String query,
                                                                    @RequestParam(value=SYS_PARAM_SELECTION,required = false) String selection,
                                                                    @RequestParam(value=SYS_PARAM_ARGS,required = false) String args) {

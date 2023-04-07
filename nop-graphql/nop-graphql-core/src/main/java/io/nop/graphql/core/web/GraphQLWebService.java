@@ -119,8 +119,8 @@ public class GraphQLWebService {
 
 
     protected <T> CompletionStage<T> runRest(GraphQLOperationType expectedOpType, String operationName,
-                                                Supplier<ApiRequest<?>> requestBuilder,
-                                                BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder
+                                             Supplier<ApiRequest<?>> requestBuilder,
+                                             BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder
     ) {
         IGraphQLEngine engine = BeanContainer.instance().getBeanByType(IGraphQLEngine.class);
 
@@ -208,10 +208,16 @@ public class GraphQLWebService {
         return request;
     }
 
+    @POST
     @GET
     @Path("/p/{query: [a-zA-Z].*}")
     public CompletionStage<Response> pageQuery(@PathParam("query") String query,
                                                @QueryParam(SYS_PARAM_SELECTION) String selection, @QueryParam(SYS_PARAM_ARGS) String args) {
+        return doPageQuery(query, selection, args);
+    }
+
+    protected CompletionStage<Response> doPageQuery(@PathParam("query") String query,
+                                                    @QueryParam(SYS_PARAM_SELECTION) String selection, @QueryParam(SYS_PARAM_ARGS) String args) {
         int pos = query.indexOf('/');
         String operationName = query;
         String path = pos > 0 ? query.substring(pos) : null;
@@ -272,6 +278,9 @@ public class GraphQLWebService {
                 String encoded = StringHelper.encodeURL(fileName);
                 builder.header("Content-Disposition", "attachment;filename=" + encoded);
             }
+//            if(content instanceof File){
+//                builder.header(HttpHeaders.CONTENT_LENGTH,((File) content).length());
+//            }
         } else {
             String str = JSON.stringify(content);
             LOG.debug("nop.graphql.response:{}", str);

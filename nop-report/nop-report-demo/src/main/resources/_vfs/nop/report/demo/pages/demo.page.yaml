@@ -15,12 +15,29 @@ aside:
     labelField: label
     valueField: value
     childrenField: children
+    treeContainerClassName: h-full
 asideResizor: true
+asideClassName: w-64
+toolbar:
+  - type: action
+    level: primary
+    label: 下载报表模型
+    actionType: ajax
+    api:
+      url: "/p/ReportDemo__downloadModel?reportName=${tree}"
+      responseType: "blob"
+  - type: action
+    level: primary
+    label: 导出Excel
+    actionType: ajax
+    api:
+      url: "/p/ReportDemo__download?reportName=${tree}&renderType=xlsx"
+      responseType: "blob"
 body:
   - type: service
-    name: reportHtml
     api:
       url: "@query:ReportDemo__renderHtml?reportName=${tree}"
+      responseKey: reportHtml
       sendOn: ${tree}
   - type: html
     name: html

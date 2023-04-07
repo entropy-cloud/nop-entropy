@@ -3,4 +3,17 @@
       x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
 
+    <site id="main">
+        <resource id="test-demo" displayName="功能演示" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="100" routePath="/test-demo" component="layouts/default/index">
+            <children>
+                <resource id="report-demo" displayName="报表演示" i18n-en:displayName="Report Demo"
+                          icon="ant-design:appstore-twotone" routePath="/report/demo/pages/demo" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/demo/pages/demo.page.yaml"/>
+
+
+            </children>
+        </resource>
+    </site>
+
 </auth>

@@ -30,6 +30,8 @@ public interface XptErrors {
     String ARG_EXPR = "expr";
     String ARG_SIZE = "size";
 
+    String ARG_REPORT_NAME = "reportName";
+
     ErrorCode ERR_XPT_INVALID_ROW_PARENT =
             define("nop.err.xpt.invalid-row-parent",
                     "表格[{sheetName}]的单元格[{cellPos}]的行父格[{rowParent}]必须配置为行展开",
@@ -90,4 +92,7 @@ public interface XptErrors {
     ErrorCode ERR_XPT_CELL_EXPR_NO_DS_NAME =
             define("nop.err.xpt.cell-expr-ds-name",
                     "单元格展开表达式中必须具有ds定义，格式为^dsName!fieldName: {expr}", ARG_EXPR);
+
+    ErrorCode ERR_XPT_UNKNOWN_REPORT_MODEL =
+            define("nop.err.xpt.unknown-report-model", "未知的报表模型：{reportName}", ARG_REPORT_NAME);
 }
