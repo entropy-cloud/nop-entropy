@@ -29,6 +29,7 @@ public class TestReportSpeed extends JunitBaseTestCase {
         IResource resource = getTargetResource("/test-speed-result.xpt.html");
         System.out.println("output path:" + resource.toFile());
         for (int i = 0; i < 100; i++) {
+            System.out.println("i="+i);
             output.generateToResource(resource, scope);
         }
     }

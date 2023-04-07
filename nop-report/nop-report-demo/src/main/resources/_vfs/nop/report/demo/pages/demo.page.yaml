@@ -33,8 +33,15 @@ toolbar:
     api:
       url: "/p/ReportDemo__download?reportName=${tree}&renderType=xlsx"
       responseType: "blob"
+
+  - type: action
+    level: primary
+    label: 更新显示
+    actionType: reload
+    target: reportService
 body:
   - type: service
+    name: reportService
     api:
       url: "@query:ReportDemo__renderHtml?reportName=${tree}"
       responseKey: reportHtml
