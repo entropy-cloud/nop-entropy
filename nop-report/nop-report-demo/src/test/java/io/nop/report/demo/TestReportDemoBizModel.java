@@ -23,7 +23,7 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     @Inject
     ReportDemoBizModel reportDemo;
 
-    @EnableSnapshot
+    //@EnableSnapshot
     @Test
     public void testReport() {
         List<TreeResultBean> reports = reportDemo.getDemoReports();

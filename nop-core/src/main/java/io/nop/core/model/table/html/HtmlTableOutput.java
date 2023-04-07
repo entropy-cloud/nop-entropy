@@ -112,9 +112,20 @@ public class HtmlTableOutput implements ITextTemplateOutput {
 
         out.write(">");
 
-        String text = cell.getText();
-        if (text != null)
-            out.write(StringHelper.escapeHtml(text));
+        String linkUrl = cell.getLinkUrl();
+        if (StringHelper.isEmpty(linkUrl)) {
+            String text = cell.getText();
+            if (text != null)
+                out.write(StringHelper.escapeHtml(text));
+        } else {
+            out.write("<a href=\"");
+            StringHelper.escapeXmlAttrTo(linkUrl, out);
+            out.write("\">");
+            String text = cell.getText();
+            if (text != null)
+                out.write(StringHelper.escapeHtml(text));
+            out.write("</a>");
+        }
         out.write("</td>");
     }
 

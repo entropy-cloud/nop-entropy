@@ -100,6 +100,10 @@ public interface ICellView extends ICloneable {
         return StringHelper.toString(value, null);
     }
 
+    default String getLinkUrl(){
+        return null;
+    }
+
     @JsonIgnore
     /**
      * 是否空白单元格. 对于ProxyCell, 这里总返回true

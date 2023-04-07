@@ -2344,6 +2344,10 @@ public class StringHelper extends ApiStringHelper {
         return v.toString();
     }
 
+    public static String encodeQuery(Map<String, Object> query) {
+        return encodeQuery(query, ENCODING_UTF8);
+    }
+
     public static String encodeQuery(Map<String, ?> query, String encoding) {
         if (query == null)
             return null;

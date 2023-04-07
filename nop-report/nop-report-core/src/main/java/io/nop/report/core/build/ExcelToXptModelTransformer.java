@@ -7,6 +7,7 @@
  */
 package io.nop.report.core.build;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.StringHelper;
@@ -14,6 +15,9 @@ import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.excel.imp.WorkbookDataParser;
 import io.nop.excel.imp.model.ImportModel;
@@ -32,6 +36,7 @@ import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.source.SourceEvalAction;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
 import io.nop.xlang.xmeta.SchemaLoader;
 
@@ -99,6 +104,23 @@ public class ExcelToXptModelTransformer {
             return sheetName.equals(XptConstants.SHEET_NAME_XPT_WORKBOOK_MODEL)
                     || sheetName.endsWith(XptConstants.POSTFIX_XPT_SHEET_MODEL);
         });
+
+        if (AppConfig.isDebugMode()) {
+            dumpModel(workbook);
+        }
+    }
+
+    private void dumpModel(ExcelWorkbook workbook) {
+        String path = workbook.resourcePath();
+        if (StringHelper.isEmpty(path))
+            path = "unknown.xpt.xlsx";
+        path = StringHelper.removeTail(path, ".xlsx");
+
+        path = ResourceHelper.getDumpPath(path);
+
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        DslModelHelper.saveDslModel(XptConstants.XDSL_SCHEMA_WORKBOOK, workbook, resource);
+
     }
 
     private void parseCellModel(ExcelSheet sheet, IXDefNode cellModelNode, DslXNodeToJsonTransformer transformer) {
