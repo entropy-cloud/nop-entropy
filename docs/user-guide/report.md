@@ -16,32 +16,34 @@ NopReport在[Nop平台](https://gitee.com/canonical-entropy/nop-entropy)中的�
 
 # 一. 采用Excel作为设计器
 
+[操作演示视频](https://www.bilibili.com/video/BV1Sa4y1K7tD/)
+
 根据可逆计算原理，报表引擎的本质是定义了一个针对表格形式数据结构的DSL（参见元模型定义[workbook.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/excel/workbook.xdef)），而可视化设计器不过是这个DSL的一种可视化展现形式。Nop平台为了实现模型驱动的代码生成器，已经实现了Excel文件的解析和生成，那么只要再做少量扩展标注，就可以把Excel作为报表设计器来使用。具体做法是将Excel的批注作为扩展信息，并识别单元格文本中的表达式语法。目前NopReport已经可以支持如下几种报表：
 
 ## 档案式报表
 
-![](report/profile-report.png)
-![](report/profile-report-result.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report-result.png)
 
 ## 段落明细表
 
-![](report/block-report.png)
-![](report/block-report-result.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report-result.png)
 
 ## 复杂多源报表
 
-![](report/multi-ds-report.png)
-![](report/multi-ds-report-result.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/multi-ds-report.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/multi-ds-report-result.png)
 
 ## 交叉报表—数据双向扩展
 
-![](report/cross-table-report.png)
-![](report/cross-table-report-result.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
 
 ## 同比环比等财务统计表
 
-![](report/MOM-YOY-report.png)
-![](report/MOM-YOY-report-result.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/MOM-YOY-report.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/MOM-YOY-report-result.png)
 
 ## Excel模型扩展
 
@@ -53,7 +55,7 @@ NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格
    B. `*=^ds1!fieldName`，等价于配置 expandType=r, ds=ds1, field=fieldName
    C. `*=>ds1!fieldName` 等价于配置 expandType=c, ds=ds1, field=fieldName
 
-详细说明参见文档[xpt-report.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/report/xpt-report.md)
+详细说明参见文档[xpt-report.md](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report.md)
 
 ## 二. 高度灵活的数据对象支持
 
@@ -62,7 +64,7 @@ NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格
 这种做法的好处是报表引擎比较容易通用化，可以独立于业务系统运行。但是坏处也很明显，那就是报表引擎无法直接使用应用程序内部已经建立的领域对象模型，也无法利用领域模型内在的结构关系来进行性能优化。
 
 NopReport采用的是一种更加灵活、开放的分层式设计，它的运行时直接面向领域模型对象，而数据集（DataSet）仅仅是作为可选的一种数据组织形式。例如，在上一节介绍的档案式报表中，通过JSON变量直接构造报表数据
-![](report/profile-report-data.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/profile-report-data.png)
 
 展开【教育经历】时，只需要配置 expandType=r, expandExpr=entity.educations。而类似帆软报表的报表工具需要定义多个数据集： ds_study、ds_work等，然后再配置这些数据集之间的关联过滤条件。而在NopReport中，我们直接假定用户信息按照树状结构进行组织。从NopOrm引擎中查询得到的用户对象可以直接送到报表引擎中作为输入数据，并不需要在报表引擎中重新定义一个专为报表导出而用的数据集。
 
@@ -168,8 +170,6 @@ assign("myFunc",myFunc); // 在当前报表的表达式中就可以使用myFunc�
 
 NopReport采用了大量性能优化的结构设计，并且大幅简化了报表层次展开算法。
 
-
-
 最基础的展开单元格对象采用了单向链表设计，当频繁进行单元格插入操作时可以提高性能。
 
 ```java
@@ -236,7 +236,7 @@ class ExpandedCell{
         Number v = ConvertHelper.toNumber(value, err -> new NopException(err).source(cell).param(ARG_EXPR, cell));
 
         String cellName = cell.getCellName();
-        
+
             ExpandedCell rangeCell = range.getCell();
             // 利用第一个单元格的计算属性来缓存汇总结果
             Number sum = (Number) rangeCell.getComputed(cellName + '_' + XptConstants.KEY_ALL_SUM,
@@ -244,8 +244,8 @@ class ExpandedCell{
             return MathHelper.divide(v, sum);
     }
 ```
-我们利用了rangeCell的扩展属性缓存了rangeCell的具有指定名称的所有子单元格的汇总值。
 
+我们利用了rangeCell的扩展属性缓存了rangeCell的具有指定名称的所有子单元格的汇总值。
 
 ## 五. 多Sheet支持和循环生成
 
