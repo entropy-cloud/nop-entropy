@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.lang.EvalMethod;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.FieldComparator;
+import io.nop.commons.collections.MappingComparator;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
@@ -23,6 +24,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -101,6 +104,22 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
     @EvalMethod
+    public List<KeyedReportDataSet> groupBy(IEvalScope scope, Function<Object, Object> fn) {
+        Map<Object, List<Object>> map = new LinkedHashMap<>();
+        for (Object item : current(scope)) {
+            Object value = fn.apply(item);
+            map.computeIfAbsent(value, k -> new ArrayList<>()).add(item);
+        }
+
+        List<KeyedReportDataSet> ret = new ArrayList<>(map.size());
+        for (Map.Entry<Object, List<Object>> entry : map.entrySet()) {
+            KeyedReportDataSet result = new KeyedReportDataSet(dsName, entry.getValue(), entry.getKey());
+            ret.add(result);
+        }
+        return ret;
+    }
+
+    @EvalMethod
     public List<KeyedReportDataSet> group(IEvalScope scope, String field, Object sortFn) {
         List<KeyedReportDataSet> ret = group(scope, field);
         return Underscore.sortBy(ret, sortFn);
@@ -126,7 +145,7 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
     @EvalMethod
-    public int count(IEvalScope scope, Predicate<Object> filter) {
+    public int countIf(IEvalScope scope, Predicate<Object> filter) {
         List<Object> items = current(scope);
         return (int) items.stream().filter(filter).count();
     }
@@ -137,6 +156,21 @@ public class ReportDataSet implements Iterable<Object> {
         items = new ArrayList<>(items);
         items.sort(new FieldComparator<>(field, desc, null, this::getFieldValue));
         return new ReportDataSet(dsName, items);
+    }
+
+    @EvalMethod
+    public ReportDataSet sortBy(IEvalScope scope, Function<Object, Object> fn) {
+        List<Object> items = current(scope);
+        items = new ArrayList<>(items);
+        items.sort(new MappingComparator<>(false, null, fn));
+        return new ReportDataSet(dsName, items);
+    }
+
+    @EvalMethod
+    public ReportDataSet forEach(IEvalScope scope, Consumer<Object> action) {
+        List<Object> items = current(scope);
+        items.forEach(action);
+        return this;
     }
 
     @EvalMethod
@@ -190,11 +224,31 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
     @EvalMethod
+    public ReportDataSet map(IEvalScope scope, Function<Object, Object> fn) {
+        List<Object> items = current(scope);
+        items = items.stream().map(fn).collect(Collectors.toList());
+        return new ReportDataSet(dsName, items);
+    }
+
+    @EvalMethod
     public Number sum(IEvalScope scope, String field) {
         List<Object> items = current(scope);
         Number ret = 0;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
+            if (!StringHelper.isEmptyObject(value)) {
+                ret = MathHelper.add(ret, value);
+            }
+        }
+        return ret;
+    }
+
+    @EvalMethod
+    public Number sumBy(IEvalScope scope, Function<Object, Object> fn) {
+        List<Object> items = current(scope);
+        Number ret = 0;
+        for (Object item : items) {
+            Object value = fn.apply(item);
             if (!StringHelper.isEmptyObject(value)) {
                 ret = MathHelper.add(ret, value);
             }
@@ -216,11 +270,43 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
     @EvalMethod
+    public Number avgBy(IEvalScope scope, Function<Object, Object> fn) {
+        List<Object> items = current(scope);
+        Number ret = 0;
+        for (Object item : items) {
+            Object value = fn.apply(item);
+            if (!StringHelper.isEmptyObject(value)) {
+                ret = MathHelper.add(ret, value);
+            }
+        }
+        return MathHelper.divide(ret, items.size());
+    }
+
+
+    @EvalMethod
     public Object max(IEvalScope scope, String field) {
         List<Object> items = current(scope);
         Object ret = null;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
+            if (ret == null) {
+                ret = value;
+            } else if (value != null) {
+                if (MathHelper.compareWithConversion(ret, value) < 0) {
+                    ret = value;
+                }
+            }
+        }
+        return ret;
+    }
+
+
+    @EvalMethod
+    public Object maxBy(IEvalScope scope, Function<Object, Object> fn) {
+        List<Object> items = current(scope);
+        Object ret = null;
+        for (Object item : items) {
+            Object value = fn.apply(item);
             if (ret == null) {
                 ret = value;
             } else if (value != null) {
@@ -238,6 +324,23 @@ public class ReportDataSet implements Iterable<Object> {
         Object ret = null;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
+            if (ret == null) {
+                ret = value;
+            } else if (value == null) {
+                return value;
+            } else if (MathHelper.compareWithConversion(ret, value) > 0) {
+                ret = value;
+            }
+        }
+        return ret;
+    }
+
+    @EvalMethod
+    public Object minBy(IEvalScope scope, Function<Object, Object> fn) {
+        List<Object> items = current(scope);
+        Object ret = null;
+        for (Object item : items) {
+            Object value = fn.apply(item);
             if (ret == null) {
                 ret = value;
             } else if (value == null) {
