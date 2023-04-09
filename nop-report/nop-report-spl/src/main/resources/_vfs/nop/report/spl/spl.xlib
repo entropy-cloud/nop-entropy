@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <Execute>
+            <attr name="dsName"/>
+            <attr name="src"/>
+
+            <source>
+                <c:script>
+                    const splExecutor = inject('nopSplExecutor');
+                    const result = sqlExecutor.executeForPath(src);
+                    assign(dsName, result);
+                </c:script>
+            </source>
+        </Execute>
+    </tags>
+</lib>

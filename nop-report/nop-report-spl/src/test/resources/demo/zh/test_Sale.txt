@@ -1,0 +1,51 @@
+ID	Name	Education	Area
+1	Salesperson_1	Associate Degree	NorthChina
+2	Salesperson_2	Associate Degree	SouthChina
+3	Salesperson_3	Bachelor	NorthChina
+4	Salesperson_4	Bachelor	Northwest
+5	Salesperson_5	Master	Northwest
+6	Salesperson_6	Senior High School	Southwest
+7	Salesperson_7	Bachelor	CentralChina
+8	Salesperson_8	Master	CentralChina
+9	Salesperson_9	Bachelor	Southwest
+10	Salesperson_10	Master	Southwest
+11	Salesperson_11	Master	Southwest
+12	Salesperson_12	Associate Degree	CentralChina
+13	Salesperson_13	Master	NorthChina
+14	Salesperson_14	Associate Degree	Northwest
+15	Salesperson_15	Master	Northwest
+16	Salesperson_16	Senior High School	NorthChina
+17	Salesperson_17	Senior High School	Northwest
+18	Salesperson_18	Master	Southwest
+19	Salesperson_19	Bachelor	Northwest
+20	Salesperson_20	Associate Degree	NorthChina
+21	Salesperson_21	Associate Degree	CentralChina
+22	Salesperson_22	Associate Degree	Southwest
+23	Salesperson_23	Associate Degree	SouthChina
+24	Salesperson_24	Master	Northwest
+25	Salesperson_25	Master	SouthChina
+26	Salesperson_26	Master	NorthChina
+27	Salesperson_27	Associate Degree	SouthChina
+28	Salesperson_28	Master	NorthChina
+29	Salesperson_29	Associate Degree	Southwest
+30	Salesperson_30	Master	SouthChina
+31	Salesperson_31	Master	Northwest
+32	Salesperson_32	Associate Degree	CentralChina
+33	Salesperson_33	Master	Southwest
+34	Salesperson_34	Bachelor	Southwest
+35	Salesperson_35	Bachelor	SouthChina
+36	Salesperson_36	Bachelor	SouthChina
+37	Salesperson_37	Associate Degree	Southwest
+38	Salesperson_38	Senior High School	SouthChina
+39	Salesperson_39	Master	Northwest
+40	Salesperson_40	Bachelor	NorthChina
+41	Salesperson_41	Senior High School	CentralChina
+42	Salesperson_42	Senior High School	SouthChina
+43	Salesperson_43	Associate Degree	NorthChina
+44	Salesperson_44	Master	CentralChina
+45	Salesperson_45	Senior High School	Northwest
+46	Salesperson_46	Master	Southwest
+47	Salesperson_47	Associate Degree	SouthChina
+48	Salesperson_48	Master	NorthChina
+49	Salesperson_49	Associate Degree	Northwest
+50	Salesperson_50	Master	Northwest

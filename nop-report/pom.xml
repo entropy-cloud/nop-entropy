@@ -27,5 +27,6 @@
         <module>nop-report-web</module>
         <module>nop-report-app</module>
         <module>nop-report-demo</module>
+        <module>nop-report-spl</module>
     </modules>
 </project>
