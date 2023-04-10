@@ -55,7 +55,12 @@ public class SplExecutor {
 
     @EvalMethod
     public Object executeForModel(IEvalScope scope, SplModel model) {
-        PgmCellSet pgmCellSet = spl2CellSet(model.getSource());  // dfx, sqlx 二进制文件
+        return executeSPL(scope, model.getSource());
+    }
+
+    @EvalMethod
+    public Object executeSPL(IEvalScope scope, String source) {
+        PgmCellSet pgmCellSet = spl2CellSet(source);  // dfx, sqlx 二进制文件
         Context context = new Context(); //上下文,参数..设置
 
         try {

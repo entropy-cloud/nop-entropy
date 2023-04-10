@@ -90,12 +90,12 @@ public class SplHelper {
         IArray data = seq.getMems();
 
         if (ds == null) {
-            for (int i = 0; i < n; i++) {
+            for (int i = 1; i <= n; i++) {
                 Object value = data.get(i);
                 ret.add(value);
             }
         } else {
-            for (int i = 0; i < n; i++) {
+            for (int i = 1; i <= n; i++) {
                 Map<String, Object> record = buildRecord(data.get(i), ds);
                 ret.add(record);
             }

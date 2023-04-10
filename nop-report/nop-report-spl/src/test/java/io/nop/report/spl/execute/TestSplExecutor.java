@@ -2,7 +2,6 @@ package io.nop.report.spl.execute;
 
 import com.scudata.cellset.datamodel.PgmCellSet;
 import com.scudata.dm.Context;
-import com.scudata.dm.Env;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.MavenDirHelper;
 import io.nop.core.lang.eval.IEvalScope;
@@ -30,8 +29,8 @@ public class TestSplExecutor extends JunitBaseTestCase {
         PgmCellSet pgmCellSet = spl2CellSet("=100.new(~:baseNum,~*~:square2)");  // dfx, sqlx 二进制文件
         Context context = new Context(); //上下文,参数..设置
         pgmCellSet.setContext(context);
-        Object execute = pgmCellSet.execute();
-        System.out.println(execute);
+        Object result = SplHelper.normalizeResult(pgmCellSet.execute());
+        System.out.println(result);
     }
 
     @Test

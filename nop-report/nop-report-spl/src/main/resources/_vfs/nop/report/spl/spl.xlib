@@ -4,16 +4,28 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
         <Execute>
-            <attr name="dsName"/>
             <attr name="src"/>
 
             <source>
                 <c:script>
                     const splExecutor = inject('nopSplExecutor');
-                    const result = sqlExecutor.executeForPath(src);
-                    assign(dsName, result);
+                    const result = splExecutor.executeForPath(src);
+                    return result;
                 </c:script>
             </source>
         </Execute>
+
+        <MakeDataSet>
+            <attr name="dsName" />
+            <attr name="src" />
+            <attr name="xptRt" implicit="true" />
+
+            <source>
+                <c:script>
+                    const result = xpl('thisLib:Execute',src);
+                    xptRt.makeDs(dsName,result);
+                </c:script>
+            </source>
+        </MakeDataSet>
     </tags>
 </lib>

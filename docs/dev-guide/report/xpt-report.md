@@ -97,3 +97,6 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 * PROPORTIION: 占比
 * RANK: 计算排名
 * ACCSUM: 累积汇总
+
+## 与润乾集算器集成
+润乾软件开源了一个数据处理中间件，可以使用类似于报表表达式的机制对异构数据进行处理加工。在Nop平台中可以很方便的集成SPL处理引擎。具体参见[spl.md](spl.md)

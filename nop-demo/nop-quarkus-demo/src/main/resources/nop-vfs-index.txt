@@ -169,6 +169,7 @@
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-quarkus-web-starter.beans
+/nop/autoconfig/nop-report-spl.beans
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
@@ -220,6 +221,7 @@
 /nop/report/_module
 /nop/report/beans/app-report-demo.beans.xml
 /nop/report/beans/report-defaults.beans.xml
+/nop/report/beans/spl-defaults.beans.xml
 /nop/report/demo/base/01-档案式报表.xpt.xlsx
 /nop/report/demo/base/02-段落明细表.xpt.xlsx
 /nop/report/demo/base/03-复杂多源报表.xpt.xlsx
@@ -229,7 +231,12 @@
 /nop/report/demo/base/07-数据钻取主报表.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/performance/测试同比环比.xpt.xlsx
+/nop/report/demo/spl/test-data.splx
+/nop/report/demo/spl/test-data.splx.bak
+/nop/report/demo/spl/~$润乾集算器提供数据.xpt.xlsx
+/nop/report/demo/spl/润乾集算器提供数据.xpt.xlsx
 /nop/report/imp/xpt.imp.xml
+/nop/report/spl/spl.xlib
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
