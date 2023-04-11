@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-orm-nop-rule" displayName="测试nop-rule" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-rule" component="layouts/default/index">
+            <children>
+                <resource id="NopRuleDefinition-main" displayName="规则模型定义" orderNo="10001"
+                          i18n-en:displayName="Rule Definition" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/rule/pages/NopRuleDefinition/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRuleDefinition:query" displayName="查询规则模型定义" orderNo="10002"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleDefinition:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRuleDefinition:mutation" displayName="修改规则模型定义" orderNo="10003"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleDefinition:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRuleInput-main" displayName="规则输入变量" orderNo="10004"
+                          i18n-en:displayName="Rule Input Variable" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/rule/pages/NopRuleInput/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRuleInput:query" displayName="查询规则输入变量" orderNo="10005"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleInput:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRuleInput:mutation" displayName="修改规则输入变量" orderNo="10006"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleInput:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRuleLog-main" displayName="规则执行日志" orderNo="10007" i18n-en:displayName="Rule Log"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/rule/pages/NopRuleLog/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRuleLog:query" displayName="查询规则执行日志" orderNo="10008" resourceType="FNPT">
+                            <permissions>NopRuleLog:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRuleLog:mutation" displayName="修改规则执行日志" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleLog:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRuleNode-main" displayName="规则节点" orderNo="10010" i18n-en:displayName="Rule Node"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/rule/pages/NopRuleNode/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRuleNode:query" displayName="查询规则节点" orderNo="10011" resourceType="FNPT">
+                            <permissions>NopRuleNode:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRuleNode:mutation" displayName="修改规则节点" orderNo="10012"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleNode:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRuleOutput-main" displayName="规则输出变量" orderNo="10013"
+                          i18n-en:displayName="Rule Output Variable" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/rule/pages/NopRuleOutput/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRuleOutput:query" displayName="查询规则输出变量" orderNo="10014"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleOutput:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRuleOutput:mutation" displayName="修改规则输出变量" orderNo="10015"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleOutput:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopRuleRole-main" displayName="规则角色" orderNo="10016" i18n-en:displayName="Rule Role"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/rule/pages/NopRuleRole/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopRuleRole:query" displayName="查询规则角色" orderNo="10017" resourceType="FNPT">
+                            <permissions>NopRuleRole:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopRuleRole:mutation" displayName="修改规则角色" orderNo="10018"
+                                  resourceType="FNPT">
+                            <permissions>NopRuleRole:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

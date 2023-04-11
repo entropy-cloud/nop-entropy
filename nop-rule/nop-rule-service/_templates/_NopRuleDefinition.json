@@ -1,0 +1,22 @@
+{
+  "ruleId": "",
+  "ruleName": "",
+  "ruleVersion": "",
+  "displayName": "",
+  "ruleGroup": "",
+  "ruleType": "",
+  "ruleType_label": "",
+  "description": "",
+  "modelText": "",
+  "status": 0,
+  "status_label": "",
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "inputs": null,
+  "outputs": null,
+  "ruleNodes": null
+}

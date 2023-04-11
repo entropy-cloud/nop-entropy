@@ -1,6 +1,5 @@
 package io.nop.auth.dao.entity._gen;
 
-import io.nop.auth.dao.entity.NopAuthUserRole;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
 import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
@@ -10,8 +9,6 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import io.nop.auth.dao.entity.NopAuthRole;
 

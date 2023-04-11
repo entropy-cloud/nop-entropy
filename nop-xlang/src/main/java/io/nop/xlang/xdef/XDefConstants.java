@@ -44,6 +44,9 @@ public interface XDefConstants {
     String STD_DOMAIN_STRING_MAP = "string-map";
     String STD_DOMAIN_SLOT_SCOPE = "slot-scope";
 
+    String STD_DOMAIN_INT_SIZE = "int-size";
+
+    String STD_DOMAIN_LONG_SIZE = "long-size";
 
     String STD_DOMAIN_SQL_ORDER_BY = "sql-order-by";
 

@@ -1,0 +1,14 @@
+label: 日志级别
+locale: zh-CN
+valueType: int
+options:
+  - label: TRACE
+    value: 1
+  - label: DEBUG
+    value: 2
+  - label: INFO
+    value: 3
+  - label: WARN
+    value: 4
+  - label: ERROR
+    value: 5

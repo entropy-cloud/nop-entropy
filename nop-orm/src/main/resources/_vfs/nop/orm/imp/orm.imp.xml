@@ -69,7 +69,7 @@
                 </field>
 
                 <field name="precision" displayName="长度">
-                    <schema stdDomain="int"/>
+                    <schema stdDomain="int-size"/>
                 </field>
 
                 <field name="scale" displayName="小数位数">
@@ -244,10 +244,10 @@
                             <schema stdDomain="std-sql-type"/>
                         </field>
                         <field name="precision" displayName="长度">
-                            <schema stdDomain="int"/>
+                            <schema stdDomain="int-size"/>
                         </field>
                         <field name="scale" displayName="小数位数">
-                            <schema stdDomain="int"/>
+                            <schema stdDomain="int-size"/>
                         </field>
                         <field name="ext:dict" displayName="字典">
                             <schema stdDomain="string"/>

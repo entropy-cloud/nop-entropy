@@ -1,0 +1,23 @@
+{
+  "sid": "",
+  "ruleId": "",
+  "label": "",
+  "sortNo": 0,
+  "predicate": "",
+  "outputs": "",
+  "parentId": "",
+  "isLeaf": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00",
+  "remark": "",
+  "parent": null,
+  "parent.label": "",
+  "ruleDefinition": null,
+  "ruleDefinition.displayName": "",
+  "children": null,
+  "predicateComponent": null,
+  "outputsComponent": null
+}

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="规则执行请求"
+      i18n-en:displayName="Rule Request" ext:model="api">
+
+    <props>
+        <prop name="ruleName" displayName="规则名称" i18n-en:displayName="Rule Name" mandatory="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="ruleVersion" displayName="规则版本" i18n-en:displayName="Rule Version">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="inputs" displayName="输入参数" i18n-en:displayName="Inputs">
+            <schema type="java.util.Map&lt;java.lang.String,java.lang.Object&gt;" precision="160000"/>
+        </prop>
+    </props>
+</meta>

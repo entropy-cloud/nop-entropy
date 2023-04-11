@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopRuleLog" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+
+    <objMeta>/nop/rule/model/NopRuleLog/NopRuleLog.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--日志ID-->
+                <col id="sid" mandatory="true" sortable="true"/>
+
+                <!--规则ID-->
+                <col id="ruleId" mandatory="true" sortable="true"/>
+
+                <!--日志级别-->
+                <col id="logLevel" mandatory="true" sortable="true"/>
+
+                <!--日志消息-->
+                <col id="logMsg" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-规则执行日志" i18n-en:title="View Rule Log">
+            <layout>
+ sid[日志ID]
+ ruleId[规则ID]
+ logLevel[日志级别]
+ logMsg[日志消息]
+ createdBy[创建人]
+ createTime[创建时间]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopRuleLog__findPage/{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopRuleLog__delete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopRuleLog__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopRuleLog__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopRuleLog__findPage/{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="view" form="view">
+            <initApi url="@query:NopRuleLog__get/{@formSelection}?id=$id"/>
+        </simple>
+    </pages>
+</view>

@@ -4200,4 +4200,21 @@ public class StringHelper extends ApiStringHelper {
         int c = p1.charAt(p1.length() - p2.length());
         return c == '/';
     }
+
+    public static long parseSize(String str) {
+        if (isEmpty(str))
+            return 0;
+        char c = str.charAt(str.length() - 1);
+        if (c == 'M' || c == 'm') {
+            str = str.substring(0,str.length() - 1);
+            long value = (long) (parseNumber(str).doubleValue() * 1024 * 1024);
+            return value;
+        } else if (c == 'K' || c == 'k') {
+            str = str.substring(0, str.length()-1);
+            long value = (long) (parseNumber(str).doubleValue() * 1024);
+            return value;
+        } else {
+            return ConvertHelper.toLong(str);
+        }
+    }
 }

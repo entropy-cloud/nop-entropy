@@ -45,7 +45,7 @@ public class CodeGen {
             // "/src/test/resources/gen-demo-entity.xgen", true);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-graphql/nop-graphql-core"), "", false);
-
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-rule/nop-rule-core"), "", false);
             // System.setProperty("dryRun","true");
             // CodeGenTask.main(new String[]{new File("projectDir","../nop-graphql").getAbsolutePath()});
         } finally {

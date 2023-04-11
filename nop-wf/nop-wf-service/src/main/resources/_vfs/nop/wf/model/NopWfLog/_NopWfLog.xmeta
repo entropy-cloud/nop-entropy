@@ -26,7 +26,7 @@
         </prop>
         <prop name="logLevel" displayName="日志级别" i18n-en:displayName="Log Level" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer" dict="wf/log-level"/>
+            <schema type="java.lang.Integer" dict="core/log-level"/>
         </prop>
         <prop name="logMsg" displayName="日志消息" i18n-en:displayName="Log Message" queryable="true" sortable="true"
               insertable="true" updatable="true">

@@ -37849,6 +37849,13 @@
         ]
       },
       {
+        "name": "executeSPL",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "init",
         "parameterTypes": []
       },

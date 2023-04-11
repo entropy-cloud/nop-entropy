@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="规则元数据"
+      i18n-en:displayName="Rule Meta" ext:model="api">
+
+    <props>
+        <prop name="ruleName" displayName="规则名称" i18n-en:displayName="Rule Name" mandatory="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="ruleVersion" displayName="规则版本" i18n-en:displayName="Rule Version">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="displayName" displayName="显示名称" i18n-en:displayName="Display Name">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="description" displayName="描述" i18n-en:displayName="Description">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="inputs" displayName="输入数据类型" i18n-en:displayName="Inputs">
+            <schema type="java.util.List&lt;io.nop.api.core.beans.VarMetaBean&gt;" precision="4000"/>
+        </prop>
+        <prop name="outputs" displayName="输出数据类型" i18n-en:displayName="Outputs">
+            <schema type="java.util.List&lt;io.nop.api.core.beans.VarMetaBean&gt;" precision="4000"/>
+        </prop>
+    </props>
+</meta>

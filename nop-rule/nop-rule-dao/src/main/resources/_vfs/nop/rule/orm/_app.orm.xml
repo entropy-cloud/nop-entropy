@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:mavenArtifactId="nop-rule" ext:entityPackageName="io.nop.rule.dao.entity" ext:registerShortName="true"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.rule" ext:appName="nop-rule"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
+
+    <x:post-extends>
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <dicts>
+        <dict label="规则类型" name="rule/rule-type" valueType="string" i18n-en:label="Rule Type">
+            <option code="TREE" label="决策树" value="TREE"/>
+            <option code="TABL" label="决策表" value="TABL"/>
+        </dict>
+    </dicts>
+
+    <domains>
+        <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="email" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="phone" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="roleId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="userId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="deptId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="json-4000" precision="4000" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="remark" precision="1" stdSqlType="VARCHAR"/>
+        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="mediumtext" precision="16777216" stdSqlType="VARCHAR"/>
+        <domain name="wfAction" precision="200" stdSqlType="VARCHAR"/>
+        <domain name="xml-4k" precision="4000" stdDomain="xml" stdSqlType="VARCHAR"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.rule.dao.entity.NopRuleDefinition" createTimeProp="createTime" createrProp="createdBy"
+                displayName="规则模型定义" name="io.nop.rule.dao.entity.NopRuleDefinition" registerShortName="true"
+                tableName="nop_rule_definition" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" i18n-en:displayName="Rule Definition">
+            <columns>
+                <column code="RULE_ID" displayName="主键" mandatory="true" name="ruleId" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="RULE ID"
+                        ext:show="X"/>
+                <column code="RULE_NAME" displayName="规则名称" mandatory="true" name="ruleName" precision="500" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Name"/>
+                <column code="RULE_VERSION" displayName="规则版本" mandatory="true" name="ruleVersion" precision="50"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Version"/>
+                <column code="DISPLAY_NAME" displayName="显示名称" mandatory="true" name="displayName" precision="200"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="DisplayName"/>
+                <column code="RULE_GROUP" displayName="规则分组" mandatory="true" name="ruleGroup" precision="200"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Group Name"/>
+                <column code="RULE_TYPE" displayName="规则类型" mandatory="true" name="ruleType" precision="10" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Type"
+                        ext:dict="rule/rule-type"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="MODEL_TEXT" displayName="模型文本" domain="mediumtext" name="modelText" precision="16777216"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Model Text"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="9" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+            </columns>
+            <relations>
+                <to-many displayName="规则输入变量" name="inputs" refEntityName="io.nop.rule.dao.entity.NopRuleInput"
+                         refPropName="ruleDefinition" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="Input Variables">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="规则输出变量" name="outputs" refEntityName="io.nop.rule.dao.entity.NopRuleOutput"
+                         refPropName="ruleDefinition" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="Output Variables">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-many>
+                <to-many displayName="规则节点" name="ruleNodes" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
+                         refPropName="ruleDefinition" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="Rule Nodes">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.rule.dao.entity.NopRuleInput" createTimeProp="createTime" createrProp="createdBy"
+                displayName="规则输入变量" name="io.nop.rule.dao.entity.NopRuleInput" registerShortName="true"
+                tableName="nop_rule_input" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Rule Input Variable">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
+                <column code="RULE_ID" displayName="规则ID" mandatory="true" name="ruleId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
+                <column code="NAME" displayName="名称" mandatory="true" name="name" precision="50" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名称" mandatory="true" name="displayName" precision="200"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
+                <column code="DEFAULT_VALUE" displayName="缺省值" name="defaultValue" precision="200" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Default Value"/>
+                <column code="TYPE" displayName="类型" mandatory="true" name="type" precision="200" propId="6"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Type"/>
+                <column code="SCHEMA" displayName="结构定义" domain="xml-4k" name="schema" precision="4000" propId="7"
+                        stdDataType="string" stdDomain="xml" stdSqlType="VARCHAR" i18n-en:displayName="Schema"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="4000" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+            </columns>
+            <relations>
+                <to-one displayName="规则定义" name="ruleDefinition"
+                        refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="inputs"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Input Variables">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.rule.dao.entity.NopRuleOutput" createTimeProp="createTime" createrProp="createdBy"
+                displayName="规则输出变量" name="io.nop.rule.dao.entity.NopRuleOutput" registerShortName="true"
+                tableName="nop_rule_output" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Rule Output Variable">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
+                <column code="RULE_ID" displayName="规则ID" mandatory="true" name="ruleId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
+                <column code="NAME" displayName="名称" mandatory="true" name="name" precision="50" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Name"/>
+                <column code="DISPLAY_NAME" displayName="显示名称" mandatory="true" name="displayName" precision="200"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
+                <column code="DEFAULT_VALUE" displayName="缺省值" name="defaultValue" precision="200" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Default Value"/>
+                <column code="TYPE" displayName="类型" mandatory="true" name="type" precision="200" propId="6"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Type"/>
+                <column code="SCHEMA" displayName="结构定义" domain="xml-4k" name="schema" precision="4000" propId="7"
+                        stdDataType="string" stdDomain="xml" stdSqlType="VARCHAR" i18n-en:displayName="Schema"/>
+                <column code="DESCRIPTION" displayName="描述" name="description" precision="4000" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+            </columns>
+            <relations>
+                <to-one displayName="规则定义" name="ruleDefinition"
+                        refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="outputs"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Output Variables">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.rule.dao.entity.NopRuleNode" createTimeProp="createTime" createrProp="createdBy"
+                displayName="规则节点" name="io.nop.rule.dao.entity.NopRuleNode" registerShortName="true"
+                tableName="nop_rule_node" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Rule Node">
+            <columns>
+                <column code="SID" displayName="SID" mandatory="true" name="sid" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"
+                        ext:show="X"/>
+                <column code="RULE_ID" displayName="规则ID" mandatory="true" name="ruleId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
+                <column code="LABEL" displayName="显示标签" mandatory="true" name="label" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Label"/>
+                <column code="SORT_NO" displayName="排序序号" mandatory="true" name="sortNo" propId="4" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Sort No"/>
+                <column code="PREDICATE" displayName="判断条件" domain="json-4000" mandatory="true" name="predicate"
+                        precision="4000" propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="PREDICATE"/>
+                <column code="OUTPUTS" displayName="输出结果" domain="json-4000" name="outputs" precision="50" propId="6"
+                        stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Outputs"/>
+                <column code="PARENT_ID" displayName="父ID" name="parentId" precision="32" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="parent" i18n-en:displayName="Parent ID"/>
+                <column code="IS_LEAF" defaultValue="0" displayName="是否叶子节点" domain="boolFlag" mandatory="true"
+                        name="isLeaf" propId="8" stdDataType="byte" stdSqlType="TINYINT" tagSet="leaf"
+                        i18n-en:displayName="Is Leaf"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+            </columns>
+            <relations>
+                <to-one displayName="父节点" name="parent" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
+                        refPropName="children" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Parent Node" ref-i18n-en:displayName="Children">
+                    <join>
+                        <on leftProp="parentId" rightProp="sid"/>
+                    </join>
+                </to-one>
+                <to-one displayName="规则定义" name="ruleDefinition"
+                        refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleNodes"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Rule Nodes">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-one>
+                <to-many displayName="子节点" name="children" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
+                         refPropName="parent" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="Children">
+                    <join>
+                        <on leftProp="sid" rightProp="parentId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.rule.dao.entity.NopRuleRole" createTimeProp="createTime" createrProp="createdBy"
+                displayName="规则角色" name="io.nop.rule.dao.entity.NopRuleRole" registerShortName="true"
+                tableName="nop_rule_role" tagSet="many-to-many" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" i18n-en:displayName="Rule Role">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
+                <column code="RULE_ID" displayName="Rule ID" mandatory="true" name="ruleId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
+                <column code="ROLE_ID" displayName="Role ID" domain="roleId" mandatory="true" name="roleId"
+                        precision="100" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Role ID"/>
+                <column code="IS_ADMIN" defaultValue="0" displayName="是否管理者" domain="boolFlag" mandatory="true"
+                        name="isAdmin" propId="4" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Admin"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+            </columns>
+            <comment>具有指定规则访问权限的角色列表</comment>
+            <relations>
+                <to-one displayName="规则定义" name="ruleDefinition"
+                        refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleNodes"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Rule Nodes">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="io.nop.rule.dao.entity.NopRuleLog" createTimeProp="createTime" createrProp="createdBy"
+                displayName="规则执行日志" name="io.nop.rule.dao.entity.NopRuleLog" registerShortName="true"
+                tableName="nop_rule_log" tagSet="log" i18n-en:displayName="Rule Log">
+            <columns>
+                <column code="SID" displayName="日志ID" mandatory="true" name="sid" precision="32" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                <column code="RULE_ID" displayName="规则ID" mandatory="true" name="ruleId" precision="32" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="RULE ID"/>
+                <column code="LOG_LEVEL" displayName="日志级别" mandatory="true" name="logLevel" propId="3"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Log Level" ext:dict="core/log-level"/>
+                <column code="LOG_MSG" displayName="日志消息" name="logMsg" precision="4000" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Log Message"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="6" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+            </columns>
+            <relations>
+                <to-one displayName="规则定义" name="ruleDefinition"
+                        refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" tagSet="pub"
+                        i18n-en:displayName="Rule Definition">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

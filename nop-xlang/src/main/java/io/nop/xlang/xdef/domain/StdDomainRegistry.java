@@ -84,6 +84,9 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.StdSqlTypeType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.StdSqlTypeListType());
 
+        registerStdDomainHandler(new SimpleStdDomainHandlers.IntSizeType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.LongSizeType());
+
         registerStdDomainHandler(new SimpleStdDomainHandlers.BoolFlagType());
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.IntListType());

@@ -263,7 +263,7 @@
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfStepInstanceLink" createTimeProp="createTime"
                 createrProp="createdBy" displayName="工作流步骤关联" name="io.nop.wf.dao.entity.NopWfStepInstanceLink"
-                registerShortName="true" tableName="nop_wf_step_instance_link"
+                registerShortName="true" tableName="nop_wf_step_instance_link" tagSet="many-to-many"
                 i18n-en:displayName="Workflow Step Instance Link">
             <columns>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" primary="true"
@@ -355,8 +355,8 @@
             </relations>
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfOutput" createTimeProp="createTime" createrProp="createdBy"
-                displayName="工作流输出变量" name="io.nop.wf.dao.entity.NopWfOutput" registerShortName="true"
-                tableName="nop_wf_output" tagSet="kvTable" updateTimeProp="updateTime" updaterProp="updatedBy"
+                displayName="工作流输出变量" kvTable="true" name="io.nop.wf.dao.entity.NopWfOutput" registerShortName="true"
+                tableName="nop_wf_output" tagSet="kv-table" updateTimeProp="updateTime" updaterProp="updatedBy"
                 versionProp="version" i18n-en:displayName="Workflow Outputs">
             <columns>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" primary="true"
@@ -435,7 +435,7 @@
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
                 <column code="LOG_LEVEL" displayName="日志级别" mandatory="true" name="logLevel" propId="3"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Log Level" ext:dict="wf/log-level"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Log Level" ext:dict="core/log-level"/>
                 <column code="LOG_MSG" displayName="日志消息" name="logMsg" precision="4000" propId="4" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Log Message"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

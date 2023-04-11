@@ -538,6 +538,77 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class IntSizeType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_INT_SIZE;
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return PredefinedGenericTypes.INT_TYPE;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (StringHelper.isEmptyObject(text))
+                return null;
+
+            if (text instanceof Number) {
+                int value = ((Number) text).intValue();
+                if (value < 0)
+                    throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc).param(ARG_PROP_NAME, propName)
+                            .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text);
+            }
+
+            long value = StringHelper.parseSize(text.toString());
+            if (value < 0 || value > Integer.MAX_VALUE)
+                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc).param(ARG_PROP_NAME, propName)
+                        .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text);
+            return (int) value;
+        }
+    }
+
+    public static class LongSizeType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_LONG_SIZE;
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return PredefinedGenericTypes.LONG_TYPE;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (StringHelper.isEmptyObject(text))
+                return null;
+            long value;
+            if (text instanceof Number) {
+                value = ((Number) text).longValue();
+            } else {
+                value = StringHelper.parseSize(text.toString());
+            }
+            if (value < 0)
+                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc).param(ARG_PROP_NAME, propName)
+                        .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text);
+            return value;
+        }
+    }
+
     public static class CsvSetType extends SimpleStdDomainHandler {
         @Override
         public String getName() {
