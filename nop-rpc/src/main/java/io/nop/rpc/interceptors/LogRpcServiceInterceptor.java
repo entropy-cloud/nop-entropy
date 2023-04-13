@@ -24,16 +24,16 @@ public class LogRpcServiceInterceptor implements IRpcServiceInterceptor {
 
     @Override
     public CompletionStage<ApiResponse<?>> interceptAsync(IRpcServiceInvocation inv) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("nop.rpc.invoke:request={}", JSON.serialize(inv.getRequest(), true));
+        if (LOG.isInfoEnabled()) {
+            LOG.info("nop.rpc.invoke:request={}", JSON.serialize(inv.getRequest(), true));
         }
         return inv.proceedAsync().whenComplete((res, err) -> {
             if (err != null) {
                 String reqId = ApiHeaders.getId(inv.getRequest());
                 LOG.error("nop.err.rpc.invoke-error:serviceName={},serviceMethod={},reqId={}", inv.getServiceName(),
                         inv.getServiceMethod(), reqId, err);
-            } else if (LOG.isDebugEnabled()) {
-                LOG.debug("nop.rpc.return-result:response={}", JSON.serialize(res, true));
+            } else if (LOG.isInfoEnabled()) {
+                LOG.info("nop.rpc.return-result:response={}", JSON.serialize(res, true));
             }
         });
     }

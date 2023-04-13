@@ -50,7 +50,7 @@ public class ColorHelper {
 
         if (color.length() == 8) {
             // rgba
-            double alpha = Integer.parseInt(color.substring(0, 2), 16)/255.0;
+            double alpha = Integer.parseInt(color.substring(0, 2), 16) / 255.0;
             int red = Integer.parseInt(color.substring(2, 4), 16);
             int green = Integer.parseInt(color.substring(4, 6), 16);
             int blue = Integer.parseInt(color.substring(6, 8), 16);
@@ -61,5 +61,39 @@ public class ColorHelper {
         if (!color.startsWith("#"))
             return "#" + color;
         return color;
+    }
+
+    public static int toArgbInt(String color) {
+        if (StringHelper.isEmpty(color))
+            return 0;
+
+        if (color.startsWith("#")) {
+            color = color.substring(1);
+        } else if (color.startsWith("0x")) {
+            color = color.substring(2);
+        }
+
+        int ret = 0;
+        if (color.length() == 8) {
+            return argb(color);
+        } else if (color.length() == 6) {
+            return rgb(color);
+        }
+        return ret;
+    }
+
+    private static int argb(String color) {
+        int alpha = Integer.parseInt(color.substring(0, 2), 16) & 0xFF;
+        int red = Integer.parseInt(color.substring(2, 4), 16) & 0xFF;
+        int green = Integer.parseInt(color.substring(4, 6), 16) & 0xFF;
+        int blue = Integer.parseInt(color.substring(6, 8), 16) & 0xFF;
+        return alpha << 24 | red << 16 | green << 8 | blue;
+    }
+
+    private static int rgb(String color) {
+        int red = Integer.parseInt(color.substring(0, 2), 16) & 0xFF;
+        int green = Integer.parseInt(color.substring(2, 4), 16) & 0xFF;
+        int blue = Integer.parseInt(color.substring(4, 6), 16) & 0xFF;
+        return red << 16 | green << 8 | blue;
     }
 }

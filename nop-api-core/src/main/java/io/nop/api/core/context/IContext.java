@@ -23,6 +23,11 @@ import java.util.function.Supplier;
 public interface IContext extends Executor, AutoCloseable {
     boolean isClosed();
 
+    String getTraceId();
+
+    @NoReflection
+    void setTraceId(String traceId);
+
     /**
      * SAAS模式下的租户id
      */

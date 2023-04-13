@@ -7,7 +7,6 @@
  */
 package io.nop.core.model.table;
 
-import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.impl.SubTableView;
 import io.nop.core.model.table.impl.TableImpls;
@@ -63,6 +62,11 @@ public interface ITableView extends IExtensibleObject {
         return CollectionHelper.get(getCols(), colIndex);
     }
 
+    default Double getColWidth(int colIndex) {
+        IColumnConfig colConfig = getCol(colIndex);
+        return colConfig == null ? null : colConfig.getWidth();
+    }
+
     List<? extends IRowView> getRows();
 
     /**
@@ -115,15 +119,7 @@ public interface ITableView extends IExtensibleObject {
             IRowView row = getRow(i);
             if (row == null)
                 continue;
-            for (int j = 0, m = row.getColCount(); j < m; j++) {
-                ICellView icell = row.getCell(j);
-                if (icell == null)
-                    continue;
-                if (!icell.isProxyCell()) {
-                    if (processor.process((E) icell, i, j) == ProcessResult.STOP)
-                        return;
-                }
-            }
+            row.forEachRealCell(i, processor);
         }
     }
 
@@ -132,14 +128,7 @@ public interface ITableView extends IExtensibleObject {
             IRowView row = getRow(i);
             if (row == null)
                 continue;
-            for (int j = 0, m = row.getColCount(); j < m; j++) {
-                ICellView icell = row.getCell(j);
-                if (icell == null)
-                    continue;
-                if (processor.process((E) icell, i, j) == ProcessResult.STOP)
-                    return;
-                j += icell.getMergeAcross();
-            }
+            row.forEachCell(i, processor);
         }
     }
 

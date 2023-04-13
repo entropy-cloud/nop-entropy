@@ -179,6 +179,14 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_USER_ID, value);
     }
 
+    public static void setTrace(ApiMessage message, String value) {
+        message.setHeader(ApiConstants.HEADER_TRACE, value);
+    }
+
+    public static String getTrace(ApiMessage message, String value) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_TRACE);
+    }
+
     public static String getHost(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_HOST);
     }

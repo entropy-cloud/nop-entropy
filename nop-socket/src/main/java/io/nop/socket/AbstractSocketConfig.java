@@ -11,6 +11,16 @@ public class AbstractSocketConfig {
     private short masks = (short) 'S';
     private short version = 0x1;
 
+    private boolean logBody;
+
+    public boolean isLogBody() {
+        return logBody;
+    }
+
+    public void setLogBody(boolean logBody) {
+        this.logBody = logBody;
+    }
+
     public short getMasks() {
         return masks;
     }

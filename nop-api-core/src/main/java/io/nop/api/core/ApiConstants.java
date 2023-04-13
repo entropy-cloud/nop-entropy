@@ -55,6 +55,8 @@ public interface ApiConstants extends FilterBeanConstants {
      */
     String HEADER_SHARD = "nop-shard";
 
+    String HEADER_TRACE = "nop-trace";
+
     /**
      * 身份认证token
      */
@@ -217,4 +219,10 @@ public interface ApiConstants extends FilterBeanConstants {
      * 用于表示不选择
      */
     String CONFIG_VALUE_NONE = "none";
+
+
+    String MDC_NOP_TENANT = "nop-tenant";
+    String MDC_NOP_SESSION = "nop-session";
+    String MDC_NOP_USER = "nop-user";
+    String MDC_NOP_TRACE = "nop-trace";
 }

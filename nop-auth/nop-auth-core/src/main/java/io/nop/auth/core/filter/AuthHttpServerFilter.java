@@ -13,7 +13,6 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
@@ -32,6 +31,7 @@ import io.nop.http.api.server.IHttpServerContext;
 import io.nop.http.api.server.IHttpServerFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import javax.inject.Inject;
 import java.net.HttpCookie;
@@ -76,6 +76,16 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     @Override
     public CompletionStage<Void> filterAsync(IHttpServerContext routeContext,
                                              Supplier<CompletionStage<Void>> next) {
+        try {
+            return _filterAsync(routeContext, next);
+        } finally {
+            MDC.remove(ApiConstants.MDC_NOP_SESSION);
+            MDC.remove(ApiConstants.MDC_NOP_USER);
+            MDC.remove(ApiConstants.MDC_NOP_TENANT);
+        }
+    }
+
+    private CompletionStage<Void> _filterAsync(IHttpServerContext routeContext, Supplier<CompletionStage<Void>> next) {
         String path = routeContext.getRequestPath();
         // 如果是退出链接，则没有必要检查是否已登录。
         if (checkLogoutUrl(routeContext))
@@ -180,7 +190,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
                 try {
                     loginService.flushUserContextAsync(userContext);
-                }finally {
+                } finally {
                     ctx.close();
                 }
             });
@@ -311,27 +321,23 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     protected IContext initUserContext(IUserContext userContext, IHttpServerContext context) {
 
-        IContext ctx = ContextProvider.currentContext();
-        if (ctx != null) {
-            ctx.close();
-        }
-
         String locale = (String) context.getRequestHeader(ApiConstants.HEADER_LOCALE);
         if (locale == null) {
             locale = userContext.getLocale();
         }
 
-        ctx = ContextProvider.getOrCreateContext();
+        IContext ctx = ContextProvider.getOrCreateContext();
         ctx.setUserId(userContext.getUserId());
         ctx.setUserName(userContext.getUserName());
         ctx.setTenantId(userContext.getTenantId());
         ctx.setUserRefNo(userContext.getUserName());
         ctx.setLocale(locale);
         ctx.setTimezone(userContext.getTimeZone());
-        // 前台主动要求限制服务超时时间
-        long expireTime = ConvertHelper.toPrimitiveLong(context.getRequestHeader(ApiConstants.HEADER_TIMEOUT), -1L, NopException::new);
-        if (expireTime > 0)
-            ctx.setCallExpireTime(expireTime);
+
+        MDC.put(ApiConstants.MDC_NOP_SESSION, userContext.getSessionId());
+        if (userContext.getTenantId() != null)
+            MDC.put(ApiConstants.MDC_NOP_TENANT, userContext.getTenantId());
+        MDC.put(ApiConstants.MDC_NOP_USER, userContext.getUserId());
 
         IUserContext.set(userContext);
         return ctx;

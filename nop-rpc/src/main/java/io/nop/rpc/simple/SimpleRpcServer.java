@@ -19,6 +19,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.service.ILifeCycle;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
@@ -35,7 +36,6 @@ import io.nop.socket.SocketServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +55,7 @@ public class SimpleRpcServer implements ILifeCycle {
     private IRpcService handler;
     private ICommandServer socketServer;
 
-    private List<IRpcServiceInterceptor> interceptors = Arrays.asList(LogRpcServiceInterceptor.INSTANCE);
+    private List<IRpcServiceInterceptor> interceptors;
     private IRpcMessageTransformer transformer = DefaultRpcMessageTransformer.INSTANCE;
     private Map<Class<?>, Object> serviceImpls;
 
@@ -121,6 +121,10 @@ public class SimpleRpcServer implements ILifeCycle {
     }
 
     protected void init() {
+        if (serverConfig.isLogBody()) {
+            this.interceptors = CollectionHelper.prepend(interceptors, LogRpcServiceInterceptor.INSTANCE);
+        }
+
         if (executor == null) {
             String serverName = serverConfig.getServerName();
             if (serverName == null)

@@ -667,6 +667,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "HEADER_TRACE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "HEADER_TXN_BRANCH_ID"
       },
       {
@@ -733,6 +738,26 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "INTERCEPTOR_PRIORITY_TRANSACTIONAL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MDC_NOP_SESSION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MDC_NOP_TENANT"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MDC_NOP_TRACE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MDC_NOP_USER"
       },
       {
         "allowUnsafeAccess": false,
@@ -28182,6 +28207,28 @@
       }
     ],
     "name": "io.nop.http.api.client.HttpClientConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "filterAsync",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.util.function.Supplier"
+        ]
+      },
+      {
+        "name": "order",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.http.api.server.ContextHttpServerFilter",
     "unsafeAllocated": false
   },
   {

@@ -7,16 +7,16 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="nopGraphQLEngine" class="io.nop.graphql.core.engine.GraphQLEngine">
-        <property name="executionInvoker" ref="nopSingleSessionFunctionInvoker" />
+        <property name="executionInvoker" ref="nopSingleSessionFunctionInvoker"/>
         <property name="operationInvoker">
             <bean class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
-<!--                <property name="singleSessionInvoker" ref="nopSingleSessionFunctionInvoker" />-->
-                <property name="transactionalInvoker" ref="nopTransactionalFunctionInvoker" />
+                <!--                <property name="singleSessionInvoker" ref="nopSingleSessionFunctionInvoker" />-->
+                <property name="transactionalInvoker" ref="nopTransactionalFunctionInvoker"/>
             </bean>
         </property>
 
-        <property name="enableActionAuth" value="@cfg:nop.auth.enable-action-auth|false" />
-        <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|true" />
+        <property name="enableActionAuth" value="@cfg:nop.auth.enable-action-auth|false"/>
+        <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|true"/>
     </bean>
 
     <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager" ioc:delay-method="delayInit">
@@ -32,6 +32,12 @@
     BizModel模型初始化时需要校验obj字典是否有效，因此需要注册对应的DictLoader
     -->
     <bean id="nopObjDictLoader" class="io.nop.biz.dict.ObjDictLoader" ioc:before="nopBizObjectManager"/>
+
+    <bean id="nopContextHttpServerFilter" class="io.nop.http.api.server.ContextHttpServerFilter">
+        <ioc:condition>
+            <on-class>io.nop.http.api.server.ContextHttpServerFilter</on-class>
+        </ioc:condition>
+    </bean>
 
     <bean id="nopDevDocBizModel" class="io.nop.biz.dev.DevDocBizModel">
         <ioc:condition>

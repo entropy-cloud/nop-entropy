@@ -12,6 +12,7 @@
 /dict/core/active-status.dict.yaml
 /dict/core/bool-flag.dict.yaml
 /dict/core/entity-relation-type.dict.yaml
+/dict/core/log-level.dict.yaml
 /dict/core/std-domain.dict.yaml
 /i18n/en/_nop-auth-web.i18n.yaml
 /i18n/en/_nop-auth.i18n.yaml
@@ -232,8 +233,6 @@
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/performance/测试同比环比.xpt.xlsx
 /nop/report/demo/spl/test-data.splx
-/nop/report/demo/spl/test-data.splx.bak
-/nop/report/demo/spl/~$润乾集算器提供数据.xpt.xlsx
 /nop/report/demo/spl/润乾集算器提供数据.xpt.xlsx
 /nop/report/imp/xpt.imp.xml
 /nop/report/spl/spl.xlib
@@ -266,6 +265,7 @@
 /nop/schema/schema/obj-schema.xdef
 /nop/schema/schema/schema-node.xdef
 /nop/schema/schema/schema.xdef
+/nop/schema/schema/var-define.xdef
 /nop/schema/site.xdef
 /nop/schema/task/batch.xdef
 /nop/schema/task/task.xdef

@@ -7,10 +7,15 @@
  */
 package io.nop.http.api.server;
 
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
+
 import java.net.HttpCookie;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
+
+import static io.nop.http.api.HttpApiErrors.ARG_HEADER_NAME;
 
 /**
  * 封装http请求过程，底层支持不同的Web框架，如vertx，servlet等
@@ -41,9 +46,21 @@ public interface IHttpServerContext {
 
     Object getRequestHeader(String headerName);
 
+    default String getRequestStringHelper(String headerName) {
+        return (String) getRequestHeader(headerName);
+    }
+
+    default long getRequestLongHeader(String headerName, long defaultValue) {
+        Long value = ConvertHelper.toLong(getRequestHeader(headerName), err -> new NopException(err).param(ARG_HEADER_NAME, headerName));
+        if (value == null)
+            return defaultValue;
+        return value;
+    }
+
     String getCookie(String name);
 
     void addCookie(String sameSite, HttpCookie cookie);
+
     void removeCookie(String name);
 
     void removeCookie(String name, String domain, String path);

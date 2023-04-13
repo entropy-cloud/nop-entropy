@@ -30,7 +30,7 @@ public class ApiContextInterceptor implements IRpcServiceInterceptor {
     public CompletionStage<ApiResponse<?>> interceptAsync(
             IRpcServiceInvocation inv) {
 
-        IContext context = ContextProvider.getOrCreateContext();
+        IContext context = ContextProvider.newContext();
 
         ApiRequest<?> request = inv.getRequest();
         initContext(context, request);
@@ -45,7 +45,7 @@ public class ApiContextInterceptor implements IRpcServiceInterceptor {
     public ApiResponse<?> intercept(
             IRpcServiceInvocation inv) {
 
-        IContext context = ContextProvider.getOrCreateContext();
+        IContext context = ContextProvider.newContext();
 
         ApiRequest<?> request = inv.getRequest();
         initContext(context, request);

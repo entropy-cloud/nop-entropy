@@ -7,6 +7,7 @@
  */
 package io.nop.core.model.table.impl;
 
+import io.nop.api.core.util.ProcessResult;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IRow;
@@ -41,21 +42,25 @@ public class TableImpls {
     }
 
     public static boolean isAllRowCellSatisfy(ITableView table, int rowIndex, Predicate<ICellView> predicate) {
-        for (int i = 0, n = table.getColCount(); i < n; i++) {
-            ICellView cell = table.getCell(rowIndex, i);
-            if (!predicate.test(cell))
-                return false;
-        }
-        return true;
+        IRowView row = table.getRow(rowIndex);
+        if (row == null)
+            return false;
+        return row.forEachCell(rowIndex, (cell, i, j) -> {
+            if (predicate.test(cell))
+                return ProcessResult.CONTINUE;
+            return ProcessResult.STOP;
+        }) == ProcessResult.CONTINUE;
     }
 
     public static boolean isSomeRowCellSatisfy(ITableView table, int rowIndex, Predicate<ICellView> predicate) {
-        for (int i = 0, n = table.getRowCount(); i < n; i++) {
-            ICellView cell = table.getCell(rowIndex, i);
+        IRowView row = table.getRow(rowIndex);
+        if (row == null)
+            return false;
+        return row.forEachCell(rowIndex, (cell, i, j) -> {
             if (predicate.test(cell))
-                return true;
-        }
-        return false;
+                return ProcessResult.STOP;
+            return ProcessResult.CONTINUE;
+        }) == ProcessResult.STOP;
     }
 
     public static <T> List<List<T>> getMatrixValues(ITableView table, Function<ICellView, T> fn) {
@@ -87,6 +92,7 @@ public class TableImpls {
                                                         Function<ICellView, T> fn) {
         int nRow = table.getRowCount();
         List<Map<String, T>> ret = new ArrayList<>(nRow);
+        int rowIndex = 0;
         for (IRowView row : table.getRows()) {
             Map<String, T> map = new HashMap<>(headers.size());
             if (row == null) {
@@ -98,15 +104,16 @@ public class TableImpls {
                     map.put(header, fn.apply(null));
                 }
             } else {
-                for (int i = 0, n = headers.size(); i < n; i++) {
-                    String header = headers.get(i);
+                row.forEachCell(rowIndex, (cell, i, j) -> {
+                    String header = headers.get(j);
                     if (header == null) {
-                        continue;
+                        return ProcessResult.CONTINUE;
                     }
-                    ICellView cell = row.getCell(i);
                     map.put(header, fn.apply(cell));
-                }
+                    return ProcessResult.CONTINUE;
+                });
             }
+            rowIndex++;
             ret.add(map);
         }
         return ret;
@@ -115,10 +122,12 @@ public class TableImpls {
     public static <T> List<T> getRowCellValues(IRowView row, Function<ICellView, T> fn) {
         int nCol = row.getColCount();
         List<T> ret = new ArrayList<>(nCol);
-        for (int i = 0; i < nCol; i++) {
-            ICellView cell = row.getCell(i);
+
+        row.forEachCell(0, (cell, i, j) -> {
             ret.add(fn.apply(cell));
-        }
+            return ProcessResult.CONTINUE;
+        });
+
         return ret;
     }
 

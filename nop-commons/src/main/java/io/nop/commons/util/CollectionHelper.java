@@ -1027,4 +1027,12 @@ public class CollectionHelper {
         ret.addAll(bList);
         return ret;
     }
+
+    public static <T> List<T> prepend(List<T> list, T item) {
+        if (list == null || list == Collections.emptyList()) {
+            list = new ArrayList<>();
+        }
+        list.add(0, item);
+        return list;
+    }
 }

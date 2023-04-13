@@ -8,6 +8,7 @@
 package io.nop.core.model.table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.util.ProcessResult;
 import io.nop.core.model.table.impl.TableImpls;
 import io.nop.core.reflect.hook.IExtensibleObject;
 
@@ -121,6 +122,32 @@ public interface IRowView extends IExtensibleObject {
                 return cell;
         }
         return null;
+    }
+
+    default <E extends ICellView> ProcessResult forEachCell(int rowIndex, ICellProcessor<E> processor) {
+        Iterator<? extends ICellView> it = this.iterator();
+        int colIndex = 0;
+        while (it.hasNext()) {
+            if (processor.process((E) it.next(), rowIndex, colIndex++) == ProcessResult.STOP)
+                return ProcessResult.STOP;
+        }
+        return ProcessResult.CONTINUE;
+    }
+
+    default <E extends ICellView> ProcessResult forEachRealCell(int rowIndex, ICellProcessor<E> processor) {
+        Iterator<? extends ICellView> it = this.iterator();
+        int colIndex = 0;
+        while (it.hasNext()) {
+            E cell = (E) it.next();
+            if (cell == null || cell.isProxyCell()) {
+                colIndex++;
+                continue;
+            }
+
+            if (processor.process(cell, rowIndex, colIndex++) == ProcessResult.STOP)
+                return ProcessResult.STOP;
+        }
+        return ProcessResult.CONTINUE;
     }
 
     /**

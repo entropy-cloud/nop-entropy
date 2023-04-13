@@ -30,6 +30,7 @@ public class BaseContext implements IContext {
 
     private final long seq = s_seq.incrementAndGet();
 
+    private String traceId;
     private String tenantId;
     private String userId;
     private String userName;
@@ -223,6 +224,16 @@ public class BaseContext implements IContext {
         }
         this.closed = true;
         this.attributes.clear();
+    }
+
+    @Override
+    public String getTraceId() {
+        return traceId;
+    }
+
+    @Override
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
     }
 
     @Override

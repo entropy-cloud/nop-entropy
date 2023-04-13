@@ -28,5 +28,6 @@
         <module>nop-report-app</module>
         <module>nop-report-demo</module>
         <module>nop-report-spl</module>
+        <module>nop-report-pdf</module>
     </modules>
 </project>

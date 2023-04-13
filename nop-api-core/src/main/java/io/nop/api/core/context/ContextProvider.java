@@ -64,6 +64,13 @@ public class ContextProvider {
         return _instance.getOrCreateContext();
     }
 
+    public static IContext newContext() {
+        IContext ctx = currentContext();
+        if (ctx != null)
+            ctx.close();
+        return getOrCreateContext();
+    }
+
 
     public static String currentLocale() {
         IContext context = currentContext();

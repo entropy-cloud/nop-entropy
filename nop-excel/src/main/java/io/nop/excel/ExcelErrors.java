@@ -34,6 +34,8 @@ public interface ExcelErrors {
 
     String ARG_KEY_PROP = "keyProp";
 
+    String ARG_PAPER_SIZE = "paperSize";
+
     ErrorCode ERR_IMPORT_UNKNOWN_SHEET = define("nop.err.excel.import.unknown-sheet",
             "未定义的Excel表格:{sheetName},允许的名称为[{allowedNames}]", ARG_SHEET_NAME, ARG_ALLOWED_NAMES);
 
@@ -62,4 +64,7 @@ public interface ExcelErrors {
 
     ErrorCode ERR_IMPORT_MULTIPLE_ITEM_WITH_SAME_KEY = define("nop.err.excel.import.multiple-item-with-same-key",
             "列表属性[{fieldName}]中多个条目的属性[{keyProp}]的值相同：{key}", ARG_FIELD_NAME, ARG_KEY, ARG_KEY_PROP);
+
+    ErrorCode ERR_EXCEL_INVALID_PAPER_SIZE =
+            define("nop.err.excel.invalid-paper-size", "页面大小[{paperSize}]不是允许的值", ARG_PAPER_SIZE);
 }

@@ -15,6 +15,7 @@ import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.lang.IDestroyable;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.rpc.interceptors.LogRpcServiceInterceptor;
 import io.nop.rpc.reflect.DefaultRpcMessageTransformer;
 import io.nop.rpc.reflect.IRpcMessageTransformer;
@@ -24,7 +25,6 @@ import io.nop.socket.ICommandClient;
 import io.nop.socket.SocketClient;
 
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -35,7 +35,7 @@ public class SimpleRpcClientFactory<T> implements IDestroyable {
     private boolean ownExecutor;
     private boolean destroyed;
 
-    private List<IRpcServiceInterceptor> interceptors = Arrays.asList(LogRpcServiceInterceptor.INSTANCE);
+    private List<IRpcServiceInterceptor> interceptors;
     private IRpcMessageTransformer transformer = DefaultRpcMessageTransformer.INSTANCE;
     private ClientConfig clientConfig;
     private String serviceName;
@@ -110,6 +110,10 @@ public class SimpleRpcClientFactory<T> implements IDestroyable {
     }
 
     void init() {
+        if (clientConfig.isLogBody()) {
+            this.interceptors = CollectionHelper.prepend(interceptors, LogRpcServiceInterceptor.INSTANCE);
+        }
+
         String clientName = clientConfig.getClientName();
         if (clientName == null)
             clientName = "default";
