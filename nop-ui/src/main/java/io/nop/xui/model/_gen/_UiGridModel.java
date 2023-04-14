@@ -108,6 +108,13 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: filer
+     * 
+     */
+    private io.nop.api.core.beans.TreeBean _filer ;
+    
+    /**
+     *  
      * xml name: footerClassName
      * 
      */
@@ -519,6 +526,25 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: filer
+     *  
+     */
+    
+    public io.nop.api.core.beans.TreeBean getFiler(){
+      return _filer;
+    }
+
+    
+    public void setFiler(io.nop.api.core.beans.TreeBean value){
+        checkAllowChange();
+        
+        this._filer = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: footerClassName
      *  
      */
@@ -897,6 +923,8 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
             
            this._cols = io.nop.api.core.util.FreezeHelper.deepFreeze(this._cols);
             
+           this._filer = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filer);
+            
            this._initApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._initApi);
             
            this._saveOrderApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._saveOrderApi);
@@ -920,6 +948,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
         out.put("combineNum",this.getCombineNum());
         out.put("displayName",this.getDisplayName());
         out.put("editMode",this.getEditMode());
+        out.put("filer",this.getFiler());
         out.put("footerClassName",this.getFooterClassName());
         out.put("headerClassName",this.getHeaderClassName());
         out.put("id",this.getId());

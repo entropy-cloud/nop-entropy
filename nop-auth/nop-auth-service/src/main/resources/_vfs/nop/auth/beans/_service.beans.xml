@@ -16,6 +16,8 @@
 
     <bean id="io.nop.auth.service.entity.NopAuthRoleBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
 
+    <bean id="io.nop.auth.service.entity.NopAuthRoleDataAuthBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+
     <bean id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
 
     <bean id="io.nop.auth.service.entity.NopAuthSessionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>

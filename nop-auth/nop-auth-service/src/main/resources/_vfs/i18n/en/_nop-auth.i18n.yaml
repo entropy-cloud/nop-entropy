@@ -6,6 +6,7 @@ entity:
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
     NopAuthRole: Role
+    NopAuthRoleDataAuth: Role Data Auth
     NopAuthRoleResource: Role Resource
     NopAuthSession: Session
     NopAuthSite: Sub Site
@@ -135,6 +136,22 @@ prop:
       relatedResourceList_label: Resource List
       roleUsers: null
       roleResourceIds: null
+    NopAuthRoleDataAuth:
+      sid: SID
+      roleId: ROLE_ID
+      bizObj: Biz Object
+      priority: Priority
+      filterConfig: Filter Config
+      description: Description
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      role: Role
+      role.roleName: Role
     NopAuthRoleResource:
       sid: SID
       roleId: ROLE_ID

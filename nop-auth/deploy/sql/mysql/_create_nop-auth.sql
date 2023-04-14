@@ -54,6 +54,23 @@ CREATE TABLE nop_auth_role_resource(
   constraint PK_nop_auth_role_resource primary key (SID)
 );
 
+CREATE TABLE nop_auth_role_data_auth(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
+  BIZ_OBJ VARCHAR(100) NULL    COMMENT '业务对象名',
+  PRIORITY INTEGER NOT NULL    COMMENT '优先级',
+  FILTER_CONFIG VARCHAR(4000) NOT NULL    COMMENT '业务过滤条件',
+  DESCRIPTION VARCHAR(4000) NULL    COMMENT '描述',
+  DEL_FLAG TINYINT NULL    COMMENT '删除标识',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_auth_role_data_auth primary key (SID)
+);
+
 CREATE TABLE nop_auth_op_log(
   LOG_ID VARCHAR(32) NOT NULL    COMMENT '主键',
   USER_NAME VARCHAR(32) NOT NULL    COMMENT '用户名',
@@ -124,21 +141,6 @@ CREATE TABLE nop_auth_user(
   constraint PK_nop_auth_user primary key (USER_ID)
 );
 
-CREATE TABLE nop_auth_role(
-  ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
-  ROLE_NAME VARCHAR(50) NOT NULL    COMMENT '角色名',
-  CHILD_ROLE_IDS VARCHAR(500) NULL    COMMENT '子角色',
-  IS_PRIMARY TINYINT NULL    COMMENT '是否主角色',
-  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
-  VERSION INTEGER NOT NULL    COMMENT '数据版本',
-  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
-  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
-  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
-  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
-  REMARK VARCHAR(200) NULL    COMMENT '备注',
-  constraint PK_nop_auth_role primary key (ROLE_ID)
-);
-
 CREATE TABLE nop_auth_resource(
   RESOURCE_ID VARCHAR(100) NOT NULL    COMMENT '资源ID',
   SITE_ID VARCHAR(100) NOT NULL    COMMENT '站点ID',
@@ -168,6 +170,21 @@ CREATE TABLE nop_auth_resource(
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_auth_resource primary key (RESOURCE_ID)
+);
+
+CREATE TABLE nop_auth_role(
+  ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
+  ROLE_NAME VARCHAR(50) NOT NULL    COMMENT '角色名',
+  CHILD_ROLE_IDS VARCHAR(500) NULL    COMMENT '子角色',
+  IS_PRIMARY TINYINT NULL    COMMENT '是否主角色',
+  DEL_FLAG TINYINT NOT NULL    COMMENT '删除标识',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_auth_role primary key (ROLE_ID)
 );
 
 CREATE TABLE nop_auth_session(
@@ -248,15 +265,17 @@ CREATE TABLE nop_auth_site(
                 
    ALTER TABLE nop_auth_role_resource COMMENT '角色可访问资源';
                 
+   ALTER TABLE nop_auth_role_data_auth COMMENT '角色数据权限';
+                
    ALTER TABLE nop_auth_op_log COMMENT '操作日志';
                 
    ALTER TABLE nop_auth_tenant COMMENT '租户';
                 
    ALTER TABLE nop_auth_user COMMENT '用户';
                 
-   ALTER TABLE nop_auth_role COMMENT '角色';
-                
    ALTER TABLE nop_auth_resource COMMENT '菜单资源';
+                
+   ALTER TABLE nop_auth_role COMMENT '角色';
                 
    ALTER TABLE nop_auth_session COMMENT '会话日志';
                 

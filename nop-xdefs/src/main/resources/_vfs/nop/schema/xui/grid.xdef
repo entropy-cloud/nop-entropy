@@ -66,4 +66,6 @@
     -->
     <selection xdef:value="field-selection"/>
 
+    <filer xdef:ref="/nop/schema/query/filter.xdef" />
+
 </grid>

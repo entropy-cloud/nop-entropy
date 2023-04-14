@@ -54,6 +54,23 @@ CREATE TABLE nop_auth_role_resource(
   constraint PK_nop_auth_role_resource primary key (SID)
 );
 
+CREATE TABLE nop_auth_role_data_auth(
+  SID VARCHAR(32) NOT NULL ,
+  ROLE_ID VARCHAR(50) NOT NULL ,
+  BIZ_OBJ VARCHAR(100)  ,
+  PRIORITY INT4 NOT NULL ,
+  FILTER_CONFIG VARCHAR(4000) NOT NULL ,
+  DESCRIPTION VARCHAR(4000)  ,
+  DEL_FLAG INT4  ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_auth_role_data_auth primary key (SID)
+);
+
 CREATE TABLE nop_auth_op_log(
   LOG_ID VARCHAR(32) NOT NULL ,
   USER_NAME VARCHAR(32) NOT NULL ,
@@ -124,21 +141,6 @@ CREATE TABLE nop_auth_user(
   constraint PK_nop_auth_user primary key (USER_ID)
 );
 
-CREATE TABLE nop_auth_role(
-  ROLE_ID VARCHAR(50) NOT NULL ,
-  ROLE_NAME VARCHAR(50) NOT NULL ,
-  CHILD_ROLE_IDS VARCHAR(500)  ,
-  IS_PRIMARY INT4  ,
-  DEL_FLAG INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_auth_role primary key (ROLE_ID)
-);
-
 CREATE TABLE nop_auth_resource(
   RESOURCE_ID VARCHAR(100) NOT NULL ,
   SITE_ID VARCHAR(100) NOT NULL ,
@@ -168,6 +170,21 @@ CREATE TABLE nop_auth_resource(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
   constraint PK_nop_auth_resource primary key (RESOURCE_ID)
+);
+
+CREATE TABLE nop_auth_role(
+  ROLE_ID VARCHAR(50) NOT NULL ,
+  ROLE_NAME VARCHAR(50) NOT NULL ,
+  CHILD_ROLE_IDS VARCHAR(500)  ,
+  IS_PRIMARY INT4  ,
+  DEL_FLAG INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_auth_role primary key (ROLE_ID)
 );
 
 CREATE TABLE nop_auth_session(
@@ -326,6 +343,34 @@ CREATE TABLE nop_auth_site(
                     
       COMMENT ON COLUMN nop_auth_role_resource.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_auth_role_data_auth IS '角色数据权限';
+                
+      COMMENT ON COLUMN nop_auth_role_data_auth.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.ROLE_ID IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.BIZ_OBJ IS '业务对象名';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.PRIORITY IS '优先级';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.FILTER_CONFIG IS '业务过滤条件';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.DEL_FLAG IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_role_data_auth.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_auth_op_log IS '操作日志';
                 
       COMMENT ON COLUMN nop_auth_op_log.LOG_ID IS '主键';
@@ -448,30 +493,6 @@ CREATE TABLE nop_auth_site(
                     
       COMMENT ON COLUMN nop_auth_user.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_auth_role IS '角色';
-                
-      COMMENT ON COLUMN nop_auth_role.ROLE_ID IS '角色ID';
-                    
-      COMMENT ON COLUMN nop_auth_role.ROLE_NAME IS '角色名';
-                    
-      COMMENT ON COLUMN nop_auth_role.CHILD_ROLE_IDS IS '子角色';
-                    
-      COMMENT ON COLUMN nop_auth_role.IS_PRIMARY IS '是否主角色';
-                    
-      COMMENT ON COLUMN nop_auth_role.DEL_FLAG IS '删除标识';
-                    
-      COMMENT ON COLUMN nop_auth_role.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_auth_role.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_auth_role.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_auth_role.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_auth_role.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_auth_role.REMARK IS '备注';
-                    
       COMMENT ON TABLE nop_auth_resource IS '菜单资源';
                 
       COMMENT ON COLUMN nop_auth_resource.RESOURCE_ID IS '资源ID';
@@ -527,6 +548,30 @@ CREATE TABLE nop_auth_site(
       COMMENT ON COLUMN nop_auth_resource.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_resource.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_role IS '角色';
+                
+      COMMENT ON COLUMN nop_auth_role.ROLE_ID IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_auth_role.ROLE_NAME IS '角色名';
+                    
+      COMMENT ON COLUMN nop_auth_role.CHILD_ROLE_IDS IS '子角色';
+                    
+      COMMENT ON COLUMN nop_auth_role.IS_PRIMARY IS '是否主角色';
+                    
+      COMMENT ON COLUMN nop_auth_role.DEL_FLAG IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_role.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_role.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_role.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_role.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_role.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_role.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_auth_session IS '会话日志';
                 

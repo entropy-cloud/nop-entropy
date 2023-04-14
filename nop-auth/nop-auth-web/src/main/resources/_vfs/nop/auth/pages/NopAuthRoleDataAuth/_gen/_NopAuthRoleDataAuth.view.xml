@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthRoleDataAuth" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+
+    <objMeta>/nop/auth/model/NopAuthRoleDataAuth/NopAuthRoleDataAuth.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--角色ID-->
+                <col id="roleId" mandatory="true" sortable="true"/>
+
+                <!--业务对象名-->
+                <col id="bizObj" sortable="true"/>
+
+                <!--优先级-->
+                <col id="priority" mandatory="true" sortable="true"/>
+
+                <!--业务过滤条件-->
+                <col id="filterConfig" mandatory="true" sortable="true"/>
+
+                <!--描述-->
+                <col id="description" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-角色数据权限" i18n-en:title="View Role Data Auth">
+            <layout>
+ roleId[角色ID] bizObj[业务对象名]
+ priority[优先级] filterConfig[业务过滤条件]
+ description[描述] 
+                createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-角色数据权限" i18n-en:title="Add Role Data Auth" x:prototype="edit"/>
+        <form id="edit" editMode="update" title="编辑-角色数据权限" i18n-en:title="Edit Role Data Auth">
+            <layout>
+ roleId[角色ID]
+ bizObj[业务对象名]
+ priority[优先级]
+ filterConfig[业务过滤条件]
+ description[描述]
+ remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-角色数据权限"
+              i18n-en:title="Update Role Data Auth">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopAuthRoleDataAuth__findPage/{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopAuthRoleDataAuth__delete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopAuthRoleDataAuth__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopAuthRoleDataAuth__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopAuthRoleDataAuth__findPage/{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopAuthRoleDataAuth__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopAuthRoleDataAuth__get/{@formSelection}?id=$id"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopAuthRoleDataAuth__get/{@formSelection}?id=$id"/>
+            <api url="@mutation:NopAuthRoleDataAuth__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

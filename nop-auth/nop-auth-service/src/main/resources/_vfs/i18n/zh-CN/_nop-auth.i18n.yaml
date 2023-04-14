@@ -6,6 +6,7 @@ entity:
     NopAuthPosition: 岗位
     NopAuthResource: 菜单资源
     NopAuthRole: 角色
+    NopAuthRoleDataAuth: 角色数据权限
     NopAuthRoleResource: 角色可访问资源
     NopAuthSession: 会话日志
     NopAuthSite: 子站点
@@ -134,6 +135,22 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       userMappings: 用户映射
+      version: 数据版本
+    NopAuthRoleDataAuth:
+      bizObj: 业务对象名
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      description: 描述
+      filterConfig: 业务过滤条件
+      priority: 优先级
+      remark: 备注
+      role: 角色
+      role.roleName: 角色
+      roleId: 角色ID
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
       version: 数据版本
     NopAuthRoleResource:
       createTime: 创建时间

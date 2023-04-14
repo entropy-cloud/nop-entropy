@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+用于描述系统内置的数据权限规则
+-->
+<data-auth xdef:bean-package="io.nop.auth.core.model" xdef:name="DataAuthModel" x:schema="/nop/schema/xdef.xdef"
+           xmlns:x="/nop/schema/xdsl.xdef">
+
+    <objs xdef:body-type="list" xdef:key-attr="name">
+
+        <obj name="!var-name" displayName="string" xdef:name="ObjDataAuthModel">
+
+            <role-auths xdef:body-type="list" xdef:key-attr="roleId">
+                <!--
+                @roleId [角色id]
+                @priority [权限规则优先级] 如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
+                    如果多个规则具有相同优先级，则它们需要同时被执行
+                -->
+                <role-auth roleId="!string" priority="!int=100" xdef:name="RoleDataAuthModel">
+                    <description xdef:value="string" />
+
+                    <!--
+                    检查单个实体是否满足数据权限要求
+                    -->
+                    <check xdef:value="xpl"/>
+
+                    <!--
+                    增加数据权限过滤条件，例如 <eq name="internal" value="0" />
+                    -->
+                    <filter xdef:value="xpl-node"/>
+                </role-auth>
+            </role-auths>
+        </obj>
+
+    </objs>
+
+</data-auth>
