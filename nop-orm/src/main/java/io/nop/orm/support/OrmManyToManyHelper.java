@@ -34,7 +34,7 @@ public class OrmManyToManyHelper {
 
         public String getColNameConst() {
             IColumnModel col = relatedObjProp.getSingleJoinColumn();
-            return getConstantName(col.getName());
+            return relatedObjProp.getOwnerEntityModel().getName() + ".PROP_NAME_" + col.getName();
         }
 
         public String getDispColName() {

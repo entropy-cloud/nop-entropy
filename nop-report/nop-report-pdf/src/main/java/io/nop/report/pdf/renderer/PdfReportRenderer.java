@@ -1,11 +1,11 @@
 package io.nop.report.pdf.renderer;
 
+import com.lowagie.text.Cell;
 import com.lowagie.text.Document;
 import com.lowagie.text.Font;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Rectangle;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.Table;
 import com.lowagie.text.pdf.PdfWriter;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ProcessResult;
@@ -95,7 +95,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
 
         doc.setPageSize(getPageSize(sheet.getPageSetup()));
         doc.newPage();
-        PdfPTable pTable = new PdfPTable(this.getColWidths(table, doc.getPageSize().getWidth()));
+        Table pTable = new Table(table.getColCount(), table.getRowCount());
         int row = table.getRowCount();
         int colCount = table.getColCount();
 
@@ -132,12 +132,12 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         return widths;
     }
 
-    private void renderRow(IRowView row, PdfPTable pTable, IEvalContext context,
+    private void renderRow(IRowView row, Table pTable, IEvalContext context,
                            ITableView table, int rowIndex, int colCount) {
         row.forEachCell(rowIndex, (cell, i, j) -> {
-            PdfPCell pCell;
+            Cell pCell;
             if (cell == null) {
-                pCell = new PdfPCell();
+                pCell = new Cell();
                 pCell.disableBorderSide(Rectangle.BOX);
             } else {
                 pCell = renderCell(cell, i, j, context);
@@ -145,7 +145,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
 
             if (j == 0) {
                 if (row.getHeight() != null) {
-                    pCell.setFixedHeight(row.getHeight().floatValue());
+                    // pTable.getRow.set(row.getHeight().floatValue());
                 }
             }
             pTable.addCell(pCell);
@@ -153,7 +153,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         });
     }
 
-    private PdfPCell renderCell(ICellView cell, int rowIndex, int colIndex, IEvalContext context) {
+    private Cell renderCell(ICellView cell, int rowIndex, int colIndex, IEvalContext context) {
         ExcelStyle style = model.getStyle(cell.getStyleId());
         Font font;
         if (style != null && style.getFont() != null) {
@@ -163,7 +163,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         }
 
         String value = cell.getText();
-        PdfPCell pCell = new PdfPCell(new Paragraph(value, font));
+        Cell pCell = new Cell(new Paragraph(value, font));
 
         //cellStyle
         pCell.setColspan(cell.getColSpan());
@@ -180,7 +180,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         return pCell;
     }
 
-    private void setBorder(PdfPCell pCell, ExcelStyle style, int rowIndex, int colIndex, IEvalContext context) {
+    private void setBorder(Cell pCell, ExcelStyle style, int rowIndex, int colIndex, IEvalContext context) {
         //预先判定是否要生成上边框
         boolean setTop = true;
         //预先判定是否要生成左边框

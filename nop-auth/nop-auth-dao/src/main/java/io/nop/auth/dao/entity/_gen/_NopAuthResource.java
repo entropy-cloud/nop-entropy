@@ -1577,11 +1577,11 @@ public class _NopAuthResource extends DynamicOrmEntity{
         }
     
         public List<java.lang.String> getRelatedRoleIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRole.PROP_NAME_roleId);
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_roleId);
         }
 
         public void setRelatedRoleIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRole.PROP_NAME_roleId,value);
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_roleId,value);
         }
     
 }

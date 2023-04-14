@@ -705,11 +705,11 @@ public class _NopAuthRole extends DynamicOrmEntity{
         }
     
         public List<java.lang.String> getRelatedUserIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthUser.PROP_NAME_userId);
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthUserRole.PROP_NAME_userId);
         }
 
         public void setRelatedUserIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthUser.PROP_NAME_userId,value);
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getUserMappings(),io.nop.auth.dao.entity.NopAuthUserRole.PROP_NAME_userId,value);
         }
     
         public List<io.nop.auth.dao.entity.NopAuthResource> getRelatedResourceList(){
@@ -721,11 +721,11 @@ public class _NopAuthRole extends DynamicOrmEntity{
         }
     
         public List<java.lang.String> getRelatedResourceIdList(){
-        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getResourceMappings(),io.nop.auth.dao.entity.NopAuthResource.PROP_NAME_resourceId);
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getResourceMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_resourceId);
         }
 
         public void setRelatedResourceIdList(List<java.lang.String> value){
-        io.nop.orm.support.OrmEntityHelper.setRefProps(getResourceMappings(),io.nop.auth.dao.entity.NopAuthResource.PROP_NAME_resourceId,value);
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getResourceMappings(),io.nop.auth.dao.entity.NopAuthRoleResource.PROP_NAME_resourceId,value);
         }
     
 }
