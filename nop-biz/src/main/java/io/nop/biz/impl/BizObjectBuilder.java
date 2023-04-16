@@ -7,10 +7,12 @@
  */
 package io.nop.biz.impl;
 
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.OrderedComparator;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
+import io.nop.biz.crud.BizExprHelper;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.makerchecker.IMakerCheckerProvider;
 import io.nop.biz.model.BizActionModel;
@@ -25,6 +27,7 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.fsm.execution.StateMachine;
 import io.nop.fsm.model.StateMachineModel;
+import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
@@ -127,7 +130,7 @@ public class BizObjectBuilder {
 
         // 单元测试中ormTemplate可能是null
         if (ormTemplate != null) {
-            new OrmFetcherBuilder(ormTemplate, daoProvider).initFetchers(objDef, entityName);
+            new OrmFetcherBuilder(ormTemplate, daoProvider,this::resolveBizExpr).initFetchers(objDef, entityName);
         }
 
         ObjectDefinitionExtProcessor.provideFetchers(objDef);
@@ -148,6 +151,10 @@ public class BizObjectBuilder {
             bizObj.setObjectDefinition(null);
 
         return bizObj;
+    }
+
+    private void resolveBizExpr(QueryBean query, IDataFetchingEnvironment env) {
+        BizExprHelper.resolveBizExpr(query.getFilter(), env.getExecutionContext());
     }
 
     BizObjectImpl loadBizObjFromModel(String bizObjName) {

@@ -19,7 +19,7 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
      * xml name: check
      * 检查单个实体是否满足数据权限要求
      */
-    private io.nop.core.lang.eval.IEvalAction _check ;
+    private io.nop.core.lang.eval.IEvalPredicate _check ;
     
     /**
      *  
@@ -56,12 +56,12 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
      *  检查单个实体是否满足数据权限要求
      */
     
-    public io.nop.core.lang.eval.IEvalAction getCheck(){
+    public io.nop.core.lang.eval.IEvalPredicate getCheck(){
       return _check;
     }
 
     
-    public void setCheck(io.nop.core.lang.eval.IEvalAction value){
+    public void setCheck(io.nop.core.lang.eval.IEvalPredicate value){
         checkAllowChange();
         
         this._check = value;

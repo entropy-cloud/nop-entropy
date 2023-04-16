@@ -9,6 +9,7 @@ package io.nop.core.context;
 
 import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IDataAuthChecker;
+import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ApiHeaders;
@@ -22,7 +23,7 @@ import java.util.TreeMap;
  * 服务响应函数处理完毕之后，框架根据{@link IServiceContext}上的
  * response,error,responseHeaders等信息构造{@link io.nop.api.core.beans.ApiResponse}
  */
-public interface IServiceContext extends IExecutionContext {
+public interface IServiceContext extends IExecutionContext, ISecurityContext {
     /**
      * 服务入口的请求对象，贯穿任务的处理过程。对应于ApiRequest的data部分
      */

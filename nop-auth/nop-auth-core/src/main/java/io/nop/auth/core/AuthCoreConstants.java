@@ -16,4 +16,9 @@ public interface AuthCoreConstants {
     String PARAM_STATE = "state";
 
     String COOKIE_NOP_TOKEN = "nop-token";
+
+    String VAR_ACTION = "action";
+    String VAR_ENTITY = "entity";
+    String VAR_USER_CONTEXT = "userContext";
+    String VAR_FILTER = "filter";
 }

@@ -22,7 +22,7 @@ public interface IDataAuthChecker {
      * @param userContext 用户上下文
      * @return 是否允许该操作
      */
-    boolean isPermitted(String bizObj, String action, Object entity, IUserContext userContext);
+    boolean isPermitted(String bizObj, String action, Object entity, ISecurityContext context);
 
     /**
      * 为列表查询追加数据权限相关的过滤条件
@@ -30,5 +30,5 @@ public interface IDataAuthChecker {
      * @param bizObj      业务对象名
      * @param userContext 用户上下文
      */
-    TreeBean getFilter(String bizObj, String action, IUserContext userContext);
+    TreeBean getFilter(String bizObj, String action, ISecurityContext context);
 }

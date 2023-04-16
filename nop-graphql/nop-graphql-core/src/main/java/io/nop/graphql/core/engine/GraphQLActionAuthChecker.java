@@ -48,7 +48,7 @@ public class GraphQLActionAuthChecker {
             if (subSelection == null)
                 continue;
 
-            checkAuth(selection, checker, userContext);
+            checkAuth(selection, checker, context);
 
             checkSelectionSet(selection.getSelectionSet(), subSelection, checker, userContext, context);
         }
@@ -70,19 +70,20 @@ public class GraphQLActionAuthChecker {
                 if (subSelection == null)
                     continue;
 
-                checkAuth(fieldSelection, checker, userContext);
+                checkAuth(fieldSelection, checker, context);
 
                 checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, userContext, context);
             }
         }
     }
 
-    void checkAuth(GraphQLFieldSelection selection, IActionAuthChecker checker, IUserContext userContext) {
+    void checkAuth(GraphQLFieldSelection selection, IActionAuthChecker checker, IGraphQLExecutionContext context) {
         GraphQLFieldDefinition field = selection.getFieldDefinition();
         ActionAuthMeta auth = field.getAuth();
         if (auth == null)
             return;
 
+        IUserContext userContext = context.getUserContext();
         if (!CollectionHelper.isEmpty(auth.getRoles())) {
             if (userContext.isUserInAnyRole(auth.getRoles()))
                 return;
@@ -90,7 +91,7 @@ public class GraphQLActionAuthChecker {
 
         if (!CollectionHelper.isEmpty(auth.getPermissions())) {
             for (String permission : auth.getPermissions()) {
-                if (!checker.isPermitted(permission, userContext))
+                if (!checker.isPermitted(permission, context))
                     throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION).source(field)
                             .param(ARG_PERMISSION, permission).param(ARG_FIELD_NAME, field.getName());
             }

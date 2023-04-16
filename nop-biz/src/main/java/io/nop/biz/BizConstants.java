@@ -17,6 +17,16 @@ public interface BizConstants {
 
     String FILE_POSTFIX_XMETA = ".xmeta";
 
+    String XLIB_NS_BIZ = "biz";
+
+    String XLIB_BIZ_CHECK = "/nop/biz/xlib/biz!check.xlib";
+
+    String VAR_USER_CONTEXT = "userContext";
+
+    String DICT_NAME_BIZ_VAR = "core/biz-var";
+
+    String BIZ_EXPR_PREFIX = "@biz:";
+
     String FILE_EXT_XBIZ = "xbiz";
     String DEFAULT_WORK_EXECUTOR_NAME = "defaultWorkExecutor";
 

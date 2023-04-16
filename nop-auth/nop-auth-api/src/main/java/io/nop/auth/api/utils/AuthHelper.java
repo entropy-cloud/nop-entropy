@@ -8,7 +8,7 @@
 package io.nop.auth.api.utils;
 
 import io.nop.api.core.auth.IDataAuthChecker;
-import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
@@ -25,11 +25,11 @@ import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class AuthHelper {
     public static QueryBean appendFilter(IDataAuthChecker checker, QueryBean query,
-                                         String bizObjName, String action, IUserContext userContext) {
-        if (checker == null || userContext == null)
+                                         String bizObjName, String action, ISecurityContext context) {
+        if (checker == null || context.getUserContext() == null)
             return query;
 
-        TreeBean filter = checker.getFilter(bizObjName, action, userContext);
+        TreeBean filter = checker.getFilter(bizObjName, action, context);
         if (filter == null)
             return query;
 
@@ -43,27 +43,27 @@ public class AuthHelper {
     public static void checkDataAuth(IDataAuthChecker checker,
                                      String bizObjName,
                                      String action,
-                                     Object entity, IUserContext userContext) {
-        if (checker == null || entity == null || userContext == null)
+                                     Object entity, ISecurityContext context) {
+        if (checker == null || entity == null || context.getUserContext() == null)
             return;
 
-        if (!checker.isPermitted(bizObjName, action, entity, userContext))
+        if (!checker.isPermitted(bizObjName, action, entity, context))
             throw new NopException(ERR_AUTH_NO_DATA_AUTH)
                     .param(ARG_BIZ_OBJ_NAME, bizObjName)
                     .param(ARG_ACTION_NAME, action)
                     .param(ARG_ID, getId(entity))
-                    .param(ARG_USER_NAME, userContext.getUserName());
+                    .param(ARG_USER_NAME, context.getUserContext().getUserName());
     }
 
     public static void checkDataAuthForList(IDataAuthChecker checker,
                                             String bizObjName,
                                             String action,
-                                            Collection<?> entities, IUserContext userContext) {
-        if (checker == null || userContext == null)
+                                            Collection<?> entities, ISecurityContext context) {
+        if (checker == null || context.getUserContext() == null)
             return;
 
         for (Object entity : entities) {
-            checkDataAuth(checker, bizObjName, action, entity, userContext);
+            checkDataAuth(checker, bizObjName, action, entity, context);
         }
     }
 

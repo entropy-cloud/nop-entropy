@@ -60,6 +60,9 @@ public interface BizErrors {
 
     String ARG_DICT_NAME = "dictName";
 
+    String ARG_VAR_NAME = "varName";
+    String ARG_ATTR_NAME = "attrName";
+
     ErrorCode ERR_BIZ_INVALID_BIZ_OBJ_NAME = define("nop.err.biz.invalid-biz-obj-name", "非法的bizObjName: {bizObjName}",
             ARG_BIZ_OBJ_NAME);
 
@@ -181,4 +184,8 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_INVALID_META_PATH =
             define("nop.err.biz.invalid-meta-path", "meta文件的后缀名必须是xmeta:{metaPath}",
                     ARG_META_PATH);
+
+
+    ErrorCode ERR_BIZ_UNKNOWN_BIZ_VAR = define("nop.err.biz.unknown-biz-var",
+            "未定义的前缀引导语法变量:{varName}", ARG_VAR_NAME);
 }

@@ -26,7 +26,6 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.IVariableScope;
 import io.nop.auth.api.utils.AuthHelper;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
@@ -36,10 +35,6 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.lang.eval.DisabledEvalScope;
-import io.nop.core.model.query.QueryBeanHelper;
-import io.nop.core.reflect.ReflectionManager;
-import io.nop.core.reflect.bean.BeanTool;
-import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryTransformer;
@@ -231,7 +226,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         checkAllowQuery(query, getThisObj().getObjMeta());
 
         query = AuthHelper.appendFilter(context.getDataAuthChecker(), query, bizObjName, action,
-                context.getUserContext());
+                context);
         if (query == null)
             query = new QueryBean();
 
@@ -265,6 +260,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         if (queryTransformer != null)
             queryTransformer.transform(query);
+
+        BizExprHelper.resolveBizExpr(query.getFilter(), context);
         return query;
     }
 
@@ -467,7 +464,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
             return;
 
         String bizObjName = getBizObjName();
-        if (!dataAuthChecker.isPermitted(bizObjName, action, entity, context.getUserContext())) {
+        if (!dataAuthChecker.isPermitted(bizObjName, action, entity, context)) {
             throw new NopException(ERR_AUTH_NO_DATA_AUTH).param(ARG_BIZ_OBJ_NAME, bizObjName);
         }
     }
@@ -562,32 +559,14 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         Object id = data.get(OrmConstants.PROP_ID);
 
         T entity = dao().requireEntityById(id);
-        checkEntityFilter(entity, objMeta);
+        checkEntityFilter(entity, objMeta, context);
 
         return new EntityData<>(validated, entity, objMeta);
     }
 
-    protected void checkEntityFilter(T entity, IObjMeta objMeta) {
+    protected void checkEntityFilter(T entity, IObjMeta objMeta, IServiceContext context) {
         if (objMeta != null && objMeta.getFilter() != null) {
-            boolean b = QueryBeanHelper.evaluateFilter(objMeta.getFilter(), new IVariableScope() {
-                @Override
-                public boolean containsValue(String name) {
-                    IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(entity.getClass());
-                    if (beanModel.getPropertyModel(name) != null)
-                        return true;
-                    return beanModel.isAllowExtProperty(entity, name);
-                }
-
-                @Override
-                public Object getValue(String name) {
-                    return entity.orm_propValueByName(name);
-                }
-
-                @Override
-                public Object getValueByPropPath(String propPath) {
-                    return BeanTool.getComplexProperty(entity, propPath);
-                }
-            });
+            boolean b = new BizFilterEvaluator(context).testForEntity(objMeta.getFilter(), entity);
 
             if (!b)
                 throw new NopException(ERR_BIZ_ENTITY_NOT_MATCH_FILTER_CONDITION)
@@ -622,7 +601,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
                 return null;
             throw new UnknownEntityException(dao.getEntityName(), id);
         }
-        checkEntityFilter(entity, getThisObj().getObjMeta());
+        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
         checkDataAuth(BizConstants.METHOD_GET, entity, context);
         return entity;
     }
@@ -641,7 +620,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         }
 
         for (T entity : list) {
-            checkEntityFilter(entity, getThisObj().getObjMeta());
+            checkEntityFilter(entity, getThisObj().getObjMeta(), context);
             checkDataAuth(BizConstants.METHOD_GET, entity, context);
         }
         return list;
@@ -669,7 +648,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         if (entity == null)
             return true;
 
-        checkEntityFilter(entity, getThisObj().getObjMeta());
+        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
         checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
 
         if (prepareDelete != null) {
@@ -778,7 +757,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         T entity = dao().requireEntityById(id);
 
-        checkEntityFilter(entity, getThisObj().getObjMeta());
+        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
         checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
     }
 
@@ -871,7 +850,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
             throw new NopException(ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
         T entity = dao().requireEntityById(id);
-        checkEntityFilter(entity, getThisObj().getObjMeta());
+        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
 
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
 
@@ -935,7 +914,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         IEntityDao<T> dao = dao();
         T entity = dao.requireEntityById(id);
         IObjMeta objMeta = getThisObj().requireObjMeta();
-        checkEntityFilter(entity, objMeta);
+        checkEntityFilter(entity, objMeta, context);
 
         FieldSelectionBean inputSelection = objMeta.getFieldSelection(BizConstants.SELECTION_COPY_FOR_NEW);
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);

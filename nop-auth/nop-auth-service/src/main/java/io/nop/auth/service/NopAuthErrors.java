@@ -24,6 +24,9 @@ public interface NopAuthErrors {
     String ARG_SESSION_ID = "sessionId";
     String ARG_AUTH_TOKEN = "authToken";
 
+    String ARG_VAR_NAME = "varName";
+    String ARG_ATTR_NAME = "attrName";
+
     ErrorCode ERR_AUTH_INVALID_LOGIN_REQUEST = define(API_STATUS_BAD_REQUEST, "nop.err.auth.invalid-login-request",
             "登录请求参数不合法");
 

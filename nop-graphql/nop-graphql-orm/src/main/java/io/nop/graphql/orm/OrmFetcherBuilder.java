@@ -9,6 +9,7 @@ package io.nop.graphql.orm;
 
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.convert.ITypeConverter;
 import io.nop.api.core.convert.SysConverterRegistry;
@@ -20,6 +21,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
+import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
@@ -46,6 +48,7 @@ import io.nop.xlang.xmeta.ISchema;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
@@ -57,15 +60,18 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NOT_SCALAR;
 public class OrmFetcherBuilder {
     private final IOrmTemplate ormTemplate;
     private final IDaoProvider daoProvider;
+    private final BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor;
 
     /**
      * 为减少创建fetcher，对于propId<=300的实体列，可以使用共享的fetcher
      */
     private final OrmEntityColumnFetcher[] cachedColumnFetchers = new OrmEntityColumnFetcher[300];
 
-    public OrmFetcherBuilder(IOrmTemplate ormTemplate, IDaoProvider daoProvider) {
+    public OrmFetcherBuilder(IOrmTemplate ormTemplate, IDaoProvider daoProvider,
+                             BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor) {
         this.ormTemplate = ormTemplate;
         this.daoProvider = daoProvider;
+        this.queryProcessor = queryProcessor;
         for (int i = 1, n = cachedColumnFetchers.length; i < n; i++) {
             cachedColumnFetchers[i] = new OrmEntityColumnFetcher(ormTemplate, i);
         }
@@ -161,7 +167,7 @@ public class OrmFetcherBuilder {
         boolean findFirst = isFindFirst(propMeta);
 
         return new OrmEntityPropConnectionFetcher(dao, bizObjName, fetchAction, maxFetchSize, findFirst, filter,
-                orderBy);
+                orderBy,queryProcessor);
     }
 
     boolean isFindFirst(IObjPropMeta propMeta) {

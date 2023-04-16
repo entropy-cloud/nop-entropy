@@ -26,39 +26,43 @@ public class FilterBeanEvaluator extends FilterBeanVisitor<Boolean> {
     @Override
     protected Boolean visitCompareOp(FilterOp filterOp, ITreeBean filter, IVariableScope scope) {
         String name = getName(filter);
-        Object leftValue = scope.getValueByPropPath(name);
+        Object leftValue = getValue(scope, name);
         String valueName = getValueName(filter);
         Object rightValue;
         if (valueName != null) {
-            rightValue = scope.getValueByPropPath(valueName);
+            rightValue = getValue(scope, valueName);
         } else {
             rightValue = getValue(filter);
         }
         return filterOp.getBiPredicate().test(leftValue, rightValue);
     }
 
+    protected Object getValue(IVariableScope scope, String name){
+        return scope.getValueByPropPath(name);
+    }
+
     @Override
     protected Boolean visitAssertOp(FilterOp filterOp, ITreeBean filter, IVariableScope scope) {
         String name = getName(filter);
-        Object value = scope.getValueByPropPath(name);
+        Object value = getValue(scope, name);
         return filterOp.getPredicate().test(value);
     }
 
     protected Boolean visitBetweenOp(FilterOp filterOp, ITreeBean filter, IVariableScope scope) {
         String name = getName(filter);
-        Object value = scope.getValueByPropPath(name);
+        Object value = getValue(scope, name);
         String minName = getMinName(filter);
         String maxName = getMaxName(filter);
         Object min;
         if (minName != null) {
-            min = scope.getValueByPropPath(minName);
+            min = getValue(scope, minName);
         } else {
             min = getMin(filter);
         }
 
         Object max;
         if (maxName != null) {
-            max = scope.getValueByPropPath(maxName);
+            max = getValue(scope, maxName);
         } else {
             max = getMax(filter);
         }

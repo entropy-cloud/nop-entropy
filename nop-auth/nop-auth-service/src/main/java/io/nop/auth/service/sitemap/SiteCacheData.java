@@ -7,7 +7,7 @@
  */
 package io.nop.auth.service.sitemap;
 
-import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.auth.ISecurityContext;
 import io.nop.auth.api.messages.SiteMapBean;
 import io.nop.commons.util.CollectionHelper;
 
@@ -72,11 +72,11 @@ public class SiteCacheData {
         return ret;
     }
 
-    public boolean isPermitted(String permission, IUserContext userContext) {
+    public boolean isPermitted(String permission, ISecurityContext context) {
         Set<String> roles = permissionToRoles.get(permission);
         if (CollectionHelper.isEmpty(roles))
             return false;
 
-        return userContext.isUserInAnyRole(roles);
+        return context.getUserContext().isUserInAnyRole(roles);
     }
 }

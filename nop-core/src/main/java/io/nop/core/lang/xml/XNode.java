@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -1545,6 +1546,19 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public void forEachAttr(BiConsumer<String, ValueWithLocation> consumer) {
         attributes.forEach(consumer);
+    }
+
+    public void transformAttr(BiFunction<String, ValueWithLocation, ValueWithLocation> fn) {
+        Iterator<Map.Entry<String, ValueWithLocation>> it = attributes.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, ValueWithLocation> entry = it.next();
+            ValueWithLocation vl = fn.apply(entry.getKey(), entry.getValue());
+            if (vl == null) {
+                it.remove();
+            } else if (vl != entry.getValue()) {
+                entry.setValue(vl);
+            }
+        }
     }
 
     public void before(String xml) {

@@ -177,6 +177,9 @@ public interface CoreErrors {
 
     String ARG_PARENT = "parent";
 
+    String ARG_ALLOWED_NS = "allowedNs";
+    String ARG_XML_NAME = "xmlName";
+
     ErrorCode ERR_JSON_FLATTEN_KEY_CONFLICT = define("nop.err.core.json.flatten-key-conflict",
             "将JSON按key嵌套展平时出现重名的key:[{key}]", ARG_KEY);
 
@@ -489,7 +492,7 @@ public interface CoreErrors {
             ARG_MODULE_ID);
 
     ErrorCode ERR_RESOURCE_INVALID_MODULE_NAME = define("nop.err.core.resource.invalid-module-name",
-            "模块名必须是A-B这种格式，而现在是:{moduleName}",            ARG_MODULE_NAME);
+            "模块名必须是A-B这种格式，而现在是:{moduleName}", ARG_MODULE_NAME);
 
     ErrorCode ERR_RESOURCE_MODULE_PATH_RESOLVE_TO_MULTI_FILE = define(
             "nop.err.core.resource.module-path-resolve-to-multi-file", "虚拟文件路径[{stdPath}]对应到多个模块文件:{path},{otherPath}",
@@ -837,4 +840,16 @@ public interface CoreErrors {
 
     ErrorCode ERR_DELTA_MERGE_NODE_NOT_INHERIT = define("nop.err.core.delta-merge-node-not-inherit",
             "路径为[{jsonPath}]的节点没有对应可继承的父节点", ARG_JSON_PATH);
+
+    ErrorCode ERR_XML_NOT_ALLOW_CUSTOM_NAMESPACE =
+            define("nop.err.core.xml.not-allow-custom-namespace",
+                    "[{xmlName}]不允许自定义的名字空间，允许的名字空间为:{allowedNs}", ARG_XML_NAME, ARG_ALLOWED_NS);
+
+    ErrorCode ERR_XML_NOT_ALLOW_COMPILE_PHASE_EXPR =
+            define("nop.err.core.xml.not-allow-compile-phase-expr",
+                    "不允许使用编译期表达式:{expr}", ARG_EXPR);
+
+    ErrorCode ERR_XML_NOT_ALLOW_EXPR =
+            define("nop.err.core.xml.not-allow-expr",
+                    "不允许使用表达式:{expr}", ARG_EXPR);
 }

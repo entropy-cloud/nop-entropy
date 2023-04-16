@@ -7,7 +7,7 @@
  */
 package io.nop.auth.service.sitemap;
 
-import io.nop.api.core.auth.IActionAuthChecker;
+import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.auth.api.AuthApiConstants;
@@ -51,7 +51,7 @@ import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_SUB_MENU;
 import static io.nop.auth.service.NopAuthConstants.RESOURCE_TYPE_TOP_MENU;
 import static io.nop.commons.cache.CacheConfig.newConfig;
 
-public class SiteMapProviderImpl implements ISiteMapProvider, IActionAuthChecker {
+public class SiteMapProviderImpl implements ISiteMapProvider {
 
     @Inject
     protected IDaoProvider daoProvider;
@@ -231,9 +231,8 @@ public class SiteMapProviderImpl implements ISiteMapProvider, IActionAuthChecker
         return false;
     }
 
-    @Override
-    public boolean isPermitted(String permission, IUserContext userContext) {
+    public boolean isPermitted(String permission, ISecurityContext context) {
         SiteCacheData cacheData = siteCache.get(I18nMessageManager.instance().getDefaultLocale());
-        return cacheData.isPermitted(permission, userContext);
+        return cacheData.isPermitted(permission, context);
     }
 }

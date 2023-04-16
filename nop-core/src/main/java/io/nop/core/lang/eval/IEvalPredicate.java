@@ -12,4 +12,8 @@ import io.nop.core.context.IEvalContext;
 @FunctionalInterface
 public interface IEvalPredicate {
     boolean passConditions(IEvalContext ctx);
+
+    default IEvalPredicate both(IEvalPredicate test) {
+        return ctx -> passConditions(ctx) && test.passConditions(ctx);
+    }
 }

@@ -22,7 +22,7 @@
                     <!--
                     检查单个实体是否满足数据权限要求
                     -->
-                    <check xdef:value="xpl"/>
+                    <check xdef:value="xpl-predicate"/>
 
                     <!--
                     增加数据权限过滤条件，例如 <eq name="internal" value="0" />

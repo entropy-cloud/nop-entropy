@@ -23,6 +23,7 @@ import io.nop.orm.utils.OrmQueryHelper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
@@ -34,9 +35,11 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
     private final boolean findFirst;
     private final TreeBean filter;
     private final List<OrderFieldBean> orderBy;
+    private final BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor;
 
     public OrmEntityPropConnectionFetcher(IEntityDao entityDao, String bizObjName, String fetchAction, int maxFetchSize,
-                                          boolean findFirst, TreeBean filter, List<OrderFieldBean> orderBy) {
+                                          boolean findFirst, TreeBean filter, List<OrderFieldBean> orderBy,
+                                          BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor) {
         this.entityDao = entityDao;
         this.bizObjName = bizObjName;
         this.fetchAction = fetchAction;
@@ -44,6 +47,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
         this.findFirst = findFirst;
         this.filter = Guard.notNull(filter, "filter");
         this.orderBy = orderBy;
+        this.queryProcessor = queryProcessor;
     }
 
     @Override
@@ -53,7 +57,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
 
         GraphQLConnectionInput input = BeanTool.castBeanToType(env.getArgs(), GraphQLConnectionInput.class);
         QueryBean query = new QueryBean();
-        AuthHelper.appendFilter(context.getDataAuthChecker(), query, bizObjName, fetchAction, context.getUserContext());
+        AuthHelper.appendFilter(context.getDataAuthChecker(), query, bizObjName, fetchAction, context);
 
         query.setOffset(input.getOffset());
 
@@ -100,11 +104,18 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             OrmQueryHelper.appendOrderByPk(query, entityDao.getPkColumnNames(), true);
         }
 
+        processQuery(query, env);
+
         if (findFirst) {
             return entityDao.findFirstByQuery(query);
         } else {
             return entityDao.findPageByQuery(query);
         }
+    }
+
+    protected void processQuery(QueryBean query, IDataFetchingEnvironment env) {
+        if (queryProcessor != null)
+            queryProcessor.accept(query, env);
     }
 
     void resolveRef(TreeBean filter, Object source) {

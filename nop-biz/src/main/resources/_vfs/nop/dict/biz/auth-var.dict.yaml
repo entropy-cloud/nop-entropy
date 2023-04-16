@@ -1,0 +1,25 @@
+label: 变量定义
+locale: zh-CN
+description: 数据权限配置中可以使用的变量，它们会被自动转换为对应的表达式
+options:
+  - label: 用户ID
+    value: @biz:userId
+    code: userContext.userId
+  - label: 部门ID
+    value: @biz:deptId
+    code: userContext.deptId
+  - label: 主角色ID
+    value: @biz:primaryRole
+    code: userContext.primaryRole
+  - label: 用户角色
+    value: @biz:roles
+    code: userContext.roles
+  - label: 租户ID
+    value: @biz:tenantId
+    code: userContext.tenantId
+  - label: 用户语言
+    value: @biz:locale
+    code: userContext.locale
+  - label: 用户时区
+    value: @biz:timezone
+    code: userContext.timezone

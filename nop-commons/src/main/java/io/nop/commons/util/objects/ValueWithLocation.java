@@ -94,6 +94,10 @@ public class ValueWithLocation implements Serializable, ISourceLocationGetter, I
         return value instanceof CDataText;
     }
 
+    public boolean isStringValue() {
+        return value instanceof String || value instanceof CDataText;
+    }
+
     public Object getValue() {
         return value;
     }

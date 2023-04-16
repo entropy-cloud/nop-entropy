@@ -49,4 +49,9 @@ public interface NopAuthConfigs {
     @Description("是否使用验证码机制")
     IConfigReference<Boolean> CFG_AUTH_VERIFY_CODE_ENABLED = varRef("nop.auth.login.verify-code.enabled", Boolean.class,
             false);
+
+    @Description("是否检查数据权限缓存需要被更新")
+    IConfigReference<Boolean> CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED =
+            varRef("nop.auth.data-auth-cache.check-changed", Boolean.class, true);
+
 }

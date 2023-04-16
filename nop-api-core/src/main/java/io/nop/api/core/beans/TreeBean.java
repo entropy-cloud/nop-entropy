@@ -63,6 +63,10 @@ public class TreeBean extends ExtensibleBean implements ITreeBean {
         return children == null ? 0 : children.size();
     }
 
+    public boolean hasChild() {
+        return children != null && !children.isEmpty();
+    }
+
     public TreeBean attrIgnoreNull(String name, Object value) {
         if (value == null)
             return this;

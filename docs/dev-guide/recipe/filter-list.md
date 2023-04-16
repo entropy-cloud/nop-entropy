@@ -9,8 +9,35 @@
 * 通过auth模块的数据权限菜单配置数据权限，它对应于NopAuthRoleDataAuth表。
 * 在{moduleName}.data-auth.xml文件中配置数据权限。
 
+````xml
+<data-auth>
+    <objs>
+        <obj name="MyEntity">
+            <role-auths>
+                <role-auth roleId="manager">
+                    <filter>
+                        <eq name="type" value="1" />
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
+</data-auth>
+````
+
 ### B. 在前台拼接过滤条件
 XView模型中定义的grid可以配置filter条件，使用该grid生成的表格查询数据时会自动携带过滤条件。
+````
+<grid id="list">
+  <cols>
+    ...
+  </cols>
+  
+  <filter>
+    <eq name="type" value="1" />
+  </filter>
+</grid>    
+````
 
 ### C. 后台XMeta对象配置过滤条件
 xmeta配置文件中可以配置filter过滤条件。如果在meta中配置，则新增、修改的时候也会按照这里的过滤条件自动设置。例如
@@ -51,8 +78,8 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
         return doFindPage(query, this::addExtQuery, selection, context);
     }
     
-    protected void addExtQuery(@Name("query") QueryBean query, IServiceContext context) {
-        query.addFilter(...);
+    protected void defaultPrepareQuery(@Name("query") QueryBean query, IServiceContext context) {
+        query.addFilter(FilterBeans.eq(MyEntity.PROP_NAME_status,1));
     }
 }
 ````

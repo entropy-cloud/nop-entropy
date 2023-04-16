@@ -12,6 +12,10 @@
 
     <bean id="nopSiteMapProvider" class="io.nop.auth.service.sitemap.SiteMapProviderImpl"/>
 
+    <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
+
+    <bean id="nopDataAuthChecker" class="io.nop.auth.service.auth.DefaultDataAuthChecker" ioc:default="true"/>
+
     <bean id="nopLoginService" class="io.nop.auth.service.login.LoginServiceImpl" ioc:default="true"
           ioc:delay-method="lazyInit"/>
 
@@ -59,6 +63,6 @@
         单页应用总是跳转回首页，由首页中的js负责显示登录页面
         -->
         <property name="loginUrl" value="@cfg:nop.auth.login-url|/index.html#/login"/>
-        <property name="logoutUrl" value="/r/LoginApi__logout" />
+        <property name="logoutUrl" value="/r/LoginApi__logout"/>
     </bean>
 </beans>
