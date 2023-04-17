@@ -9,7 +9,7 @@ package io.nop.integration.api.sms;
 
 import io.nop.api.core.annotations.data.DataBean;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @DataBean
 public class SmsMessage {
@@ -21,7 +21,7 @@ public class SmsMessage {
     private String mobile;
     private String text;
     private String templateCode;
-    private ArrayList<String> params;
+    private List<String> params;
 
     public int getType() {
         return type;
@@ -39,11 +39,11 @@ public class SmsMessage {
         this.templateCode = templateCode;
     }
 
-    public ArrayList<String> getParams() {
+    public List<String> getParams() {
         return params;
     }
 
-    public void setParams(ArrayList<String> params) {
+    public void setParams(List<String> params) {
         this.params = params;
     }
 

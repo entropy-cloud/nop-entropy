@@ -10,9 +10,13 @@
     <version>${ormModel['ext:mavenVersion'] || '1.0.0-SNAPSHOT'}</version>
 
     <properties>
-        <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
+        <nop-entropy.version>${ormModel['ext:platformVersion'] || '2.0.0-SNAPSHOT'}</nop-entropy.version>
+        <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>${'$'}{java.version}</maven.compiler.source>
+        <maven.compiler.target>${'$'}{java.version}</maven.compiler.target>
+        <maven.compiler.release>${'$'}{java.version}</maven.compiler.release>
     </properties>
 
     <dependencies>

@@ -11,6 +11,8 @@ nop:
       cache-timeout: 1s
       support-debug: true
 
+    data-auth-config-path: /nop/demo/app.data-auth.xml
+
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
 

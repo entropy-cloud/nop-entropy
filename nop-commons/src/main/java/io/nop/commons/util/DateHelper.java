@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiStringHelper;
 
 import java.sql.Timestamp;
@@ -95,11 +96,11 @@ public class DateHelper {
     }
 
     public static LocalDateTime currentDateTime() {
-        return LocalDateTime.now();
+        return CoreMetrics.currentDateTime();
     }
 
     public static LocalDate currentDate() {
-        return LocalDate.now();
+        return CoreMetrics.today();
     }
 
     public static long currentTimeMillis() {

@@ -137,6 +137,10 @@ public class DeltaResourceStoreBuilder {
         if (config.isScanClassPath()) {
             new ClassPathScanner().scanPath(ResourceConstants.CLASS_PATH_VFS_DIR, (path, url) -> {
                 path = path.substring(ResourceConstants.CLASS_PATH_VFS_DIR.length() - 1);
+                String fileName = StringHelper.fileFullName(path);
+                if(fileName.startsWith("~"))
+                    return;
+
                 LOG.trace("nop.vfs.add:path={},url={}", path, url);
                 if (ReflectionManager.instance().isRecordForNativeImage()) {
                     classPathFiles.add(path);
@@ -171,10 +175,14 @@ public class DeltaResourceStoreBuilder {
                         @Override
                         public TreeVisitResult beginNodeState(ResourceTreeVisitState state) {
                             IResource res = state.getCurrent();
+                            if(res.getName().startsWith("~"))
+                                return TreeVisitResult.CONTINUE;
+
                             if (res.isDirectory()) {
                                 store.addResourceIfAbsent(res);
                                 return TreeVisitResult.CONTINUE;
                             }
+
 
                             boolean b = store.addResourceIfAbsent(res);
                             if (!b && !isAllowDuplicate(res.getPath()) && CFG_CHECK_DUPLICATE_VFS_RESOURCE.get()) {

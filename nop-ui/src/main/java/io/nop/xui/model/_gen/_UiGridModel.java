@@ -108,10 +108,10 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: filer
+     * xml name: filter
      * 
      */
-    private io.nop.api.core.beans.TreeBean _filer ;
+    private io.nop.api.core.beans.TreeBean _filter ;
     
     /**
      *  
@@ -133,13 +133,6 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private java.lang.String _id ;
-    
-    /**
-     *  
-     * xml name: initApi
-     * 
-     */
-    private java.util.Map _initApi ;
     
     /**
      *  
@@ -526,19 +519,19 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: filer
+     * xml name: filter
      *  
      */
     
-    public io.nop.api.core.beans.TreeBean getFiler(){
-      return _filer;
+    public io.nop.api.core.beans.TreeBean getFilter(){
+      return _filter;
     }
 
     
-    public void setFiler(io.nop.api.core.beans.TreeBean value){
+    public void setFilter(io.nop.api.core.beans.TreeBean value){
         checkAllowChange();
         
-        this._filer = value;
+        this._filter = value;
            
     }
 
@@ -599,29 +592,6 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
            
     }
 
-    
-    /**
-     * 
-     * xml name: initApi
-     *  
-     */
-    
-    public java.util.Map getInitApi(){
-      return _initApi;
-    }
-
-    
-    public void setInitApi(java.util.Map value){
-        checkAllowChange();
-        
-        this._initApi = value;
-           
-    }
-
-    
-    public boolean hasInitApi(){
-        return this._initApi != null && !this._initApi.isEmpty();
-    }
     
     /**
      * 
@@ -923,9 +893,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
             
            this._cols = io.nop.api.core.util.FreezeHelper.deepFreeze(this._cols);
             
-           this._filer = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filer);
-            
-           this._initApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._initApi);
+           this._filter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filter);
             
            this._saveOrderApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._saveOrderApi);
             
@@ -948,11 +916,10 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
         out.put("combineNum",this.getCombineNum());
         out.put("displayName",this.getDisplayName());
         out.put("editMode",this.getEditMode());
-        out.put("filer",this.getFiler());
+        out.put("filter",this.getFilter());
         out.put("footerClassName",this.getFooterClassName());
         out.put("headerClassName",this.getHeaderClassName());
         out.put("id",this.getId());
-        out.put("initApi",this.getInitApi());
         out.put("itemCheckableOn",this.getItemCheckableOn());
         out.put("multiple",this.getMultiple());
         out.put("objMeta",this.getObjMeta());

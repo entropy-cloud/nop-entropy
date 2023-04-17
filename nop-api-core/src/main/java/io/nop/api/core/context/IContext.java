@@ -77,6 +77,10 @@ public interface IContext extends Executor, AutoCloseable {
 
     void setCallExpireTime(long expireTime);
 
+    String getCallIp();
+
+    void setCallIp(String callIp);
+
     @JsonAnyGetter
     Map<String, Object> getAttrs();
 

@@ -38,6 +38,7 @@ public class BaseContext implements IContext {
     private String timezone;
     private long expireTime;
     private String userRefNo;
+    private String callIp;
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
     protected final ContextTaskQueue taskQueue = new ContextTaskQueue();
@@ -62,6 +63,16 @@ public class BaseContext implements IContext {
     public void setUserRefNo(String userRefNo) {
         checkClosed();
         this.userRefNo = userRefNo;
+    }
+
+    @Override
+    public String getCallIp() {
+        return callIp;
+    }
+
+    @Override
+    public void setCallIp(String callIp) {
+        this.callIp = callIp;
     }
 
     @Override

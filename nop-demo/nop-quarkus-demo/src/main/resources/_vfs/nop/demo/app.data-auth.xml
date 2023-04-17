@@ -1,0 +1,4 @@
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+    x:extends="/nop/sys/auth/nop-sys.data-auth.xml">
+
+</data-auth>

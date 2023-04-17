@@ -25,3 +25,34 @@
 
 然后系统后台可以配置用户角色和NopAuthResource的对应关系，用于控制用户能访问哪些菜单，再由此推断出用户具有哪些permission。
 
+# 数据权限
+后台内置的findPage、findList和findFirst动作都会应用数据权限检查接口 IDataAuthChecker。
+通过nop.auth.enable-data-auth来启用数据权限，缺省为true
+
+### 数据权限定义文件
+在/nop/main/auth/main.data-auth.xml文件中配置数据权限。filter段为xpl格式，输出filter定义节点。xpl执行时上下文具有entity,userContext等变量
+
+````xml
+<data-auth>
+    <objs>
+        <obj name="NopSysUserVariable">
+            <role-auths>
+                <role-auth roleId="manager">
+                </role-auth>
+                
+                <role-auth roleId="user">
+                    <filter>
+                        <eq name="userId" value="@biz:userId" />
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
+</data-auth>
+````
+
+在filter段中可以编写权限过滤条件，其中value部分可以使用`@biz:`为前缀的表达式变量，例如`@biz:userId, @biz:deptId`等。
+全部可用的变量在[biz-var.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/resources/_vfs/nop/dict/biz/biz-var.dict.yaml)中定义。
+
+### 通过NopAuthRoleDataAuth表来定义数据权限
+数据库中定义的数据权限会和data-auth.xml配置文件中定义的权限合并。

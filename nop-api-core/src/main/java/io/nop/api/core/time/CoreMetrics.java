@@ -12,6 +12,8 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -39,6 +41,14 @@ public class CoreMetrics {
 
     public static Timestamp currentTimestamp() {
         return new Timestamp(currentTimeMillis());
+    }
+
+    public static LocalDate today() {
+        return LocalDate.now();
+    }
+
+    public static LocalDateTime currentDateTime() {
+        return LocalDateTime.now();
     }
 
     public static long nanoTime() {

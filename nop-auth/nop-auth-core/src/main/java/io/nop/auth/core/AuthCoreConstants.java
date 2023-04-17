@@ -12,6 +12,9 @@ public interface AuthCoreConstants {
     String PLACEHOLDER_HOST = "{host}";
     String PLACEHOLDER_PORT = "{port}";
 
+    String ROLE_ADMIN = "admin";
+    String ROLE_USER = "user";
+
     String PARAM_CODE = "code";
     String PARAM_STATE = "state";
 

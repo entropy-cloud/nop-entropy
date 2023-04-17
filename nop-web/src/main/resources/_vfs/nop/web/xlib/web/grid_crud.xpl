@@ -19,7 +19,7 @@
         <!--
         amis的picker控件要求source同时提供获取初始值和查询列表的功能，而没有使用pickerSchema中定义的api
         -->
-        <source xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api,genScope)" valueField="id" labelField="${objMeta?.displayProp}"/>
+        <source xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api,genScope)" valueField="id" labelField="${objMeta?.displayProp}" filter="${gridModel.filter?.toJsonObject()}"/>
     </c:if>
 
     <!--
@@ -52,9 +52,7 @@
             <pagination id="pagination"/>
         </footerToolbar>
 
-        <initApi xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table?.initApi || gridModel.initApi,genScope)"
-                 xpl:if="pageModel.table?.initApi || gridModel.initApi"/>
-        <api xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api || gridModel.api,genScope)"/>
+        <api xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api || gridModel.api,genScope)" filter="${gridModel.filter?.toJsonObject()}"/>
 
         <saveOrderApi xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table?.saveOrderApi || gridModel.saveOrderApi,genScope)"
                       xpl:if="pageModel.table?.saveOrderApi || gridModel.saveOrderApi"/>
@@ -63,7 +61,7 @@
             <labelTpl>$${objMeta.displayProp}</labelTpl>
         </c:if>
 
-        <filter xpl:if="filterForm" id="crud-filter" xpl:attrs="xpl('thisLib:FormDefaultAttrs',filterForm)">
+        <filter xpl:if="filterForm" id="crud-filter" xpl:attrs="xpl('thisLib:FormDefaultAttrs',filterForm)" mode="${filterForm.layoutMode || 'horizontal'}">
             <thisLib:GenFormBody formModel="${filterForm}" objMeta="${objMeta}"/>
             <actions j:list="true">
                 <reset label="@i18n:common.reset" id="reset-button"/>

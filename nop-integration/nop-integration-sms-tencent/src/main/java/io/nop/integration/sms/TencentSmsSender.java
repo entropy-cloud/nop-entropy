@@ -15,6 +15,7 @@ import io.nop.integration.api.sms.SmsMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static io.nop.integration.api.IntegrationErrors.ARG_ERROR_CODE;
@@ -58,7 +59,7 @@ public class TencentSmsSender implements ISmsSender {
             if (message.getTemplateCode() != null) {
                 result = sender.sendWithParam(areaCode,
                         message.getMobile(), Integer.parseInt(message.getTemplateCode()),
-                        message.getParams(), sign, "", "");
+                        toArrayList(message.getParams()), sign, "", "");
             } else {
                 result = sender.send(message.getType(), message.getMobile(), message.getText(), sign, "", "");
             }
@@ -75,6 +76,14 @@ public class TencentSmsSender implements ISmsSender {
             LOG.error("nop.send-sms-fail:mobile={}", message.getMobile(), e);
             throw new NopException(ERR_SEND_SMS_FAIL, e).param(ARG_MOBILE, message.getMobile());
         }
+    }
+
+    private ArrayList<String> toArrayList(List<String> list) {
+        if (list == null || list.isEmpty())
+            return new ArrayList<>();
+        if (list instanceof ArrayList)
+            return (ArrayList<String>) list;
+        return new ArrayList<>(list);
     }
 
     @Override

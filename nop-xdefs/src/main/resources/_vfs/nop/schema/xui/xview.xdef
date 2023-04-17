@@ -84,7 +84,6 @@
                    rowDrag="boolean" colDrag="boolean" pager="string"
                    operationSize="string">
                 <api xdef:ref="api.xdef"/>
-                <initApi xdef:ref="api.xdef"/>
                 <initFetchOn xdef:value="string"/>
                 <stopAutoRefreshWhen xdef:value="string"/>
                 <saveOrderApi xdef:ref="api.xdef"/>
@@ -126,13 +125,12 @@
         </simple>
 
         <!--
-        @position tab的位置: top/bottom/left/right
         @mountOnEnter 只有在点中 tab 的时候才渲染
         @unmountOnExit 切换 tab 的时候销毁
         -->
         <tabs name="!string" xdef:ref="UiPageModel" tabsMode="string" tabsClassName="string"
               closeable="boolean" draggable="boolean" mountOnEnter="boolean" unmountOnExit="boolean"
-              position="string" xdef:bean-tag-prop="type">
+              xdef:bean-tag-prop="type">
             <!--
             @reload 设置以后内容每次都会重新渲染，对于 crud 的重新拉取很有用
             @unmountOnExit 每次退出都会销毁当前 tab 栏内容

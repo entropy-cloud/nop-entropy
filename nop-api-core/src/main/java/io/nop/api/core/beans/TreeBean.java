@@ -19,6 +19,8 @@ import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiStringHelper;
+import io.nop.api.core.util.IComponentModel;
+import io.nop.api.core.util.IMapLike;
 import io.nop.api.core.util.SourceLocation;
 
 import java.util.ArrayList;
@@ -37,7 +39,7 @@ import static io.nop.api.core.ApiErrors.ERR_JSON_TREE_BEAN_INVALID_TAG_NAME;
 
 @DataBean
 @GraphQLMap
-public class TreeBean extends ExtensibleBean implements ITreeBean {
+public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentModel {
     private static final long serialVersionUID = 5994290726377063658L;
     private SourceLocation loc;
     private String tagName;
@@ -188,11 +190,12 @@ public class TreeBean extends ExtensibleBean implements ITreeBean {
     }
 
     public void setBody(Object value) {
+
         if (value instanceof List) {
             List<Object> list = (List<Object>) value;
             this.children = new ArrayList<>(list.size());
             for (Object item : list) {
-                Map<String, Object> map = (Map<String, Object>) item;
+                Map<String, Object> map = toMap(item);
                 TreeBean bean = createFromJson(map);
                 children.add(bean);
             }
@@ -200,9 +203,21 @@ public class TreeBean extends ExtensibleBean implements ITreeBean {
             TreeBean child = createFromJson((Map<String, Object>) value);
             this.children = new ArrayList<>(1);
             this.children.add(child);
+        } else if (value instanceof IMapLike) {
+            TreeBean child = createFromJson(((IMapLike) value).toMap());
+            this.children = new ArrayList<>(1);
+            this.children.add(child);
         } else {
             this.value = value;
         }
+    }
+
+    private Map<String, Object> toMap(Object value) {
+        if (value instanceof Map)
+            return (Map<String, Object>) value;
+        if (value instanceof IMapLike)
+            return ((IMapLike) value).toMap();
+        throw new IllegalArgumentException("value not Map");
     }
 
     public void replaceChild(TreeBean oldChild, TreeBean newChild) {
@@ -296,17 +311,23 @@ public class TreeBean extends ExtensibleBean implements ITreeBean {
         return ret;
     }
 
+    @Override
     public Object toJsonObject() {
+        return toJsonObject(false);
+    }
+
+    public Object toJsonObject(boolean includeLoc) {
         Map<String, Object> ret = new LinkedHashMap<>();
         ret.put(ApiConstants.TREE_BEAN_PROP_TYPE, getTagName());
-        if (loc != null) {
+        if (loc != null && includeLoc) {
             ret.put(ApiConstants.TREE_BEAN_PROP_LOC, loc.toString());
         }
         if (getAttrs() != null) {
             ret.putAll(getAttrs());
         }
 
-        ret.put(ApiConstants.TREE_BEAN_PROP_BODY, getContentValue());
+        if (getContentValue() != null)
+            ret.put(ApiConstants.TREE_BEAN_PROP_BODY, getContentValue());
 
         if (children != null && !children.isEmpty()) {
             List<Object> body = new ArrayList<>(children.size());

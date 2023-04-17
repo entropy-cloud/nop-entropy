@@ -7,7 +7,7 @@
 通过nop.auth.enable-data-auth来启用数据权限，缺省为true
 
 * 通过auth模块的数据权限菜单配置数据权限，它对应于NopAuthRoleDataAuth表。
-* 在{moduleName}.data-auth.xml文件中配置数据权限。
+* 在/nop/main/auth/main.data-auth.xml文件中配置数据权限
 
 ````xml
 <data-auth>
@@ -24,6 +24,8 @@
     </objs>
 </data-auth>
 ````
+具体数据权限配置参见 [auth.md](../auth/auth.md)
+
 
 ### B. 在前台拼接过滤条件
 XView模型中定义的grid可以配置filter条件，使用该grid生成的表格查询数据时会自动携带过滤条件。

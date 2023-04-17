@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import static io.nop.fsm.FsmErrors.ARG_EVENT;
 import static io.nop.fsm.FsmErrors.ARG_STATE_ID;
@@ -49,11 +50,13 @@ public class StateMachine implements IStateMachine {
     }
 
     @Override
-    public void triggerStateChange(Object bean, String event, IEvalContext scope) {
+    public void triggerStateChange(Object bean, String event, IEvalContext scope, Consumer<StateModel> action) {
         Object stateValue = BeanTool.getComplexProperty(bean, model.getStateProp());
 
         transit(stateValue, event, scope, (stateModel, value) -> {
             BeanTool.setComplexProperty(bean, model.getStateProp(), value);
+            if (action != null)
+                action.accept(stateModel);
         });
     }
 

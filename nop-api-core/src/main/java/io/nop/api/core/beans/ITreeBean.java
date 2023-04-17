@@ -8,11 +8,12 @@
 package io.nop.api.core.beans;
 
 import io.nop.api.core.util.ISourceLocationGetter;
+import io.nop.api.core.util.ISourceLocationSetter;
 
 import java.util.List;
 import java.util.Map;
 
-public interface ITreeBean extends ISourceLocationGetter {
+public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter {
     String getTagName();
 
     Map<String, Object> getAttrs();

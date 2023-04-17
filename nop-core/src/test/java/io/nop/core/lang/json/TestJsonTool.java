@@ -8,6 +8,7 @@
 package io.nop.core.lang.json;
 
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.json.JSON;
 import io.nop.core.reflect.ReflectionManager;
@@ -74,5 +75,13 @@ public class TestJsonTool {
 
         Map<String, Object> map = (Map<String, Object>) JsonTool.parseYaml(null, yaml);
         assertEquals("{\"a\":null,\"b\":\"null\"}", JsonTool.serialize(map, false));
+    }
+
+    @Test
+    public void testFilterBean(){
+        TreeBean filter = new TreeBean();
+        filter.setTagName("filter");
+        filter.addChild(FilterBeans.eq("status",1));
+        assertEquals("{\"$body\":[{\"$type\":\"eq\",\"name\":\"status\",\"value\":1}],\"$type\":\"filter\"}", JsonTool.serialize(filter,false));
     }
 }

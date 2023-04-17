@@ -517,6 +517,10 @@ public class ClassModelBuilder extends MethodModelBuilder {
                     inheritAnnotations((FunctionModel) fn, method);
                 }
             }
+
+            for (IFieldModel field : infModel.getStaticFields().values()) {
+                staticFields.putIfAbsent(field.getName(), field);
+            }
         }
     }
 

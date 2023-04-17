@@ -65,4 +65,5 @@ public interface AuthCoreErrors {
     ErrorCode ERR_AUTH_NOT_AUTHORIZED =
             define("nop.err.auth.not-authorized",
                     "用户未登录或者会话已过期");
+
 }

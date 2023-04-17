@@ -163,6 +163,8 @@ public class TestClassModel {
 
     @BizModel("My")
     static class MyBizModel {
+        public static final String DEFAULT_NAME = "default";
+
         @BizQuery
         public List<String> findPage(@Name("str") @Description("test") String str) {
             return null;
@@ -179,6 +181,7 @@ public class TestClassModel {
     @Test
     public void testInherited() {
         IClassModel classModel = ReflectionManager.instance().getClassModel(MyExtBizModel.class);
+        assertEquals("default", classModel.getStaticField("DEFAULT_NAME").getValue(null));
         assertEquals("My", classModel.getAnnotation(BizModel.class).value());
 
         IFunctionModel fn = classModel.getMethod("findPage", 1);
@@ -186,5 +189,20 @@ public class TestClassModel {
 
         assertEquals("str", fn.getArgs().get(0).getAnnotation(Name.class).value());
         assertEquals("test", fn.getArgs().get(0).getAnnotation(Description.class).value());
+    }
+
+    interface MyBaseType {
+        String TYPE_A = "a";
+    }
+
+    interface MyExtType extends MyBaseType {
+        String TYPE_B = "b";
+    }
+
+    @Test
+    public void testInterfaceFields() {
+        IClassModel classModel = ReflectionManager.instance().getClassModel(MyExtType.class);
+        assertEquals("a", classModel.getStaticField("TYPE_A").getValue(null));
+        assertEquals("b", classModel.getStaticField("TYPE_B").getValue(null));
     }
 }

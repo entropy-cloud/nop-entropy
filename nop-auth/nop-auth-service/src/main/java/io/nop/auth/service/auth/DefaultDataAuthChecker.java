@@ -3,10 +3,14 @@ package io.nop.auth.service.auth;
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.model.DataAuthModel;
 import io.nop.auth.core.model.ObjDataAuthModel;
 import io.nop.auth.core.model.RoleDataAuthModel;
 import io.nop.auth.dao.entity.NopAuthRoleDataAuth;
+import io.nop.biz.crud.BizFilterEvaluator;
+import io.nop.biz.crud.BizFilterNodeGenerator;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.xml.IXNodeGenerator;
 import io.nop.core.lang.xml.XNode;
@@ -21,6 +25,7 @@ import javax.inject.Inject;
 import java.util.List;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CONFIG_PATH;
 
 public class DefaultDataAuthChecker implements IDataAuthChecker {
     static final String MAIN_DATA_AUTH_XML = "/nop/main/auth/main.data-auth.xml";
@@ -35,7 +40,9 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
         this.daoProvider = daoProvider;
     }
 
-    protected DataAuthModel loadDataAuthModel(String path) {
+    protected DataAuthModel loadDataAuthModel(String key) {
+        String path = CFG_AUTH_DATA_AUTH_CONFIG_PATH.get();
+
         IResource resource = VirtualFileSystem.instance().getResource(path);
         DataAuthModel authModel;
         if (resource.exists()) {
@@ -60,8 +67,8 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
                 authModel.addObj(objAuth);
             }
 
-            IEvalPredicate checker = null;
-            IXNodeGenerator filterBuilder = null;
+            IEvalPredicate checker = ctx -> new BizFilterEvaluator((IServiceContext) ctx).testForEntity(filter.toTreeBean(), ctx.getEvalScope().getValue(AuthCoreConstants.VAR_ENTITY));
+            IXNodeGenerator filterBuilder = new BizFilterNodeGenerator(filter);
 
             RoleDataAuthModel roleAuth = objAuth.getRoleAuth(auth.getRoleId());
             if (roleAuth == null) {

@@ -20,10 +20,11 @@ public interface BizConstants {
     String XLIB_NS_BIZ = "biz";
 
     String XLIB_BIZ_CHECK = "/nop/biz/xlib/biz!check.xlib";
+    String XLIb_BIZ_FILTER = "/nop/biz/xlib/biz!filter.xlib";
 
     String VAR_USER_CONTEXT = "userContext";
 
-    String DICT_NAME_BIZ_VAR = "core/biz-var";
+    String DICT_NAME_BIZ_VAR = "biz/biz-var";
 
     String BIZ_EXPR_PREFIX = "@biz:";
 

@@ -11,6 +11,7 @@ import io.nop.core.context.IEvalContext;
 import io.nop.fsm.model.StateModel;
 
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * 有限状态自动机模型
@@ -23,11 +24,14 @@ public interface IStateMachine {
      * @param event         触发事件
      * @param context       执行上下文
      * @param onStateChange 当状态发生变化的时候，通过这个回调函数来通知迁移到的目标状态。
-     *
      */
     void transit(Object stateValue, String event, IEvalContext context, BiConsumer<StateModel, Object> onStateChange);
 
     void initState(Object bean);
 
-    void triggerStateChange(Object bean, String event, IEvalContext context);
+    default void triggerStateChange(Object bean, String event, IEvalContext context) {
+        triggerStateChange(bean, event, context, null);
+    }
+
+    void triggerStateChange(Object bean, String event, IEvalContext context, Consumer<StateModel> action);
 }

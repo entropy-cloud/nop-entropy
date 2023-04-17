@@ -7,9 +7,11 @@
  */
 package io.nop.xlang.xdsl;
 
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.object.DynamicObject;
@@ -76,5 +78,12 @@ public class TestGenericDslParser extends BaseTestCase {
         } catch (NopException e) {
             assertEquals(ERR_XDSL_ATTR_NOT_ALLOWED.getErrorCode(), e.getErrorCode());
         }
+    }
+
+    @Test
+    public void testFilter() {
+        XNode node = XNodeParser.instance().parseFromText(null, "<filter x:schema='/nop/schema/query/filter.xdef'><eq name='status' value='1'/></filter>");
+        TreeBean bean = (TreeBean) new DslModelParser().parseFromNode(node);
+        System.out.println(JsonTool.serialize(bean,true));
     }
 }

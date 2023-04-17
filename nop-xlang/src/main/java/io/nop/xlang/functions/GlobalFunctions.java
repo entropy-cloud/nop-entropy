@@ -48,6 +48,7 @@ import io.nop.xlang.utils.ExprEvalHelper;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +83,12 @@ public class GlobalFunctions {
 
     @Description("返回今天的日期")
     public static LocalDate today() {
-        return LocalDate.now();
+        return CoreMetrics.today();
+    }
+
+    @Description("返回当前的日期和时间")
+    public static LocalDateTime currentDateTime() {
+        return CoreMetrics.currentDateTime();
     }
 
     @Description("编译并执行xpl语言片段，outputMode=none")
@@ -268,7 +274,7 @@ public class GlobalFunctions {
         for (Expression arg : expr.getArguments()) {
             arg.setASTParent(null);
         }
-        
+
         IfStatement stm = new IfStatement();
         stm.setLocation(expr.getLocation());
         stm.setTest(expr.getArgument(0));

@@ -10,6 +10,8 @@ nop:
       cache-timeout: 1s
       support-debug: true
 
+    data-auth-config-path: /${moduleId}/auth/app.data-auth.xml
+
   web:
     validate-page-model: true
 

@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FreezeHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.api.core.util.IMapLike;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.IKeyedElement;
 import io.nop.commons.util.StringHelper;
@@ -28,6 +29,7 @@ import io.nop.core.reflect.impl.HelperMethodInvoker;
 import io.nop.core.resource.component.AbstractFreezable;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -53,7 +55,7 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_INVALID_EXT_PROP_NAME;
  * 动态构建的对象。在EL表达式中使用时与Java对象相同。
  */
 public class DynamicObject extends AbstractFreezable implements IComponentModel, IMethodMissingHook,
-        IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook, IJsonSerializable, IKeyedElement {
+        IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook, IJsonSerializable, IKeyedElement, IMapLike {
     private static final AtomicLong s_seq = new AtomicLong();
 
     private final long seq = s_seq.incrementAndGet();
@@ -113,6 +115,11 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
             func = new HelperMethodInvoker(func);
         methods.put(methodName, func);
         return this;
+    }
+
+    @Override
+    public Map<String, Object> toMap() {
+        return Collections.unmodifiableMap(propValues);
     }
 
     @Override

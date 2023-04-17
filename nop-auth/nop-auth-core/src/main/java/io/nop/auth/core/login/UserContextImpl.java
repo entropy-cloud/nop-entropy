@@ -9,6 +9,7 @@ package io.nop.auth.core.login;
 
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ExtensibleBean;
+import io.nop.auth.core.AuthCoreConstants;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -228,7 +229,11 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext {
 
     @Override
     public boolean isUserInRole(String roleId) {
-        if (Objects.equals(roleId, primaryRole))
+        if (primaryRole != null && Objects.equals(roleId, primaryRole))
+            return true;
+
+        // 总是具有user角色
+        if (AuthCoreConstants.ROLE_USER.equals(roleId))
             return true;
 
         return roles != null && roles.contains(roleId);

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <objs>
+        <obj name="NopSysUserVariable">
+            <role-auths>
+                <role-auth roleId="user">
+                    <filter>
+                        <eq name="userId" value="@biz:userId"/>
+                    </filter>
+                </role-auth>
+            </role-auths>
+        </obj>
+    </objs>
+
+</data-auth>
