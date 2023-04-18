@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="sid" mandatory="true" sortable="true"/>
-
                 <!--字典ID-->
                 <col id="dictId" mandatory="true" sortable="true"/>
 
@@ -56,19 +53,17 @@
     <forms>
         <form id="view" editMode="view" title="查看-字典明细" i18n-en:title="View Dictionay Item">
             <layout>
- sid[主键] dictId[字典ID]
- label[显示名] value[值]
- codeValue[内部编码] groupName[分组名]
- isInternal[是否内部] isDeprecated[是否已废弃]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ dictId[字典ID] label[显示名]
+ value[值] codeValue[内部编码]
+ groupName[分组名] isInternal[是否内部]
+ isDeprecated[是否已废弃] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-字典明细" i18n-en:title="Add Dictionay Item" x:prototype="edit"/>
         <form id="edit" editMode="update" title="编辑-字典明细" i18n-en:title="Edit Dictionay Item">
             <layout>
- sid[主键]
  dictId[字典ID]
  label[显示名]
  value[值]
@@ -97,7 +92,7 @@
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopSysDictOption__delete?ids=$ids"/>
+                    <api url="@mutation:NopSysDictOption__batchDelete?ids=$ids"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
                 <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">

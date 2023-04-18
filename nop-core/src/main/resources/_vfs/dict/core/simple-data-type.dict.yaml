@@ -1,0 +1,19 @@
+label: 简单数据类型
+locale: zh-CN
+options:
+  - label: 字符串
+    value: string
+  - label: 整数
+    value: int
+  - label: 长整数
+    value: long
+  - label: 浮点型
+    value: decimal
+  - label: 日期
+    value: date
+  - label: 日期时间
+    value: datetime
+  - label: 时间戳
+    value: timestamp
+  - label: 时间区间
+    value: duration

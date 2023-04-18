@@ -1,4 +1,3 @@
 
-xui:js: '@include:NopSysMakerCheckerRecord.action.js'
 x:gen-extends: |
     <web:GenPage view="NopSysMakerCheckerRecord.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

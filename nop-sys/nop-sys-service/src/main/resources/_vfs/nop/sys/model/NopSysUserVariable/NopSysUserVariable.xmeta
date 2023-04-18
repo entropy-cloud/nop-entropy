@@ -1,2 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopSysUserVariable.xmeta"/>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopSysUserVariable.xmeta">
+
+    <props>
+        <prop name="userId" insertable="false" updatable="false" internal="true">
+            <schema domain="userId"/>
+            <!--
+            保存时自动设置userId的值为当前用户id
+            -->
+            <autoExpr when="save">
+                $context.userId
+            </autoExpr>
+        </prop>
+
+        <prop name="varName">
+            <schema stdDomain="var-name"/>
+        </prop>
+
+        <prop name="varType">
+            <schema dict="core/simple-data-type"/>
+        </prop>
+
+        <prop name="createdBy" internal="true">
+        </prop>
+
+        <prop name="updatedBy" internal="true">
+        </prop>
+
+    </props>
+</meta>

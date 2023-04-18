@@ -30,6 +30,13 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     
     /**
      *  
+     * xml name: readonly
+     * 
+     */
+    private java.lang.Boolean _readonly ;
+    
+    /**
+     *  
      * xml name: submitOnChange
      * 
      */
@@ -76,6 +83,25 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         checkAllowChange();
         
         this._notSubmit = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: readonly
+     *  
+     */
+    
+    public java.lang.Boolean getReadonly(){
+      return _readonly;
+    }
+
+    
+    public void setReadonly(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._readonly = value;
            
     }
 
@@ -133,6 +159,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         
         out.put("collapseTitle",this.getCollapseTitle());
         out.put("notSubmit",this.isNotSubmit());
+        out.put("readonly",this.getReadonly());
         out.put("submitOnChange",this.getSubmitOnChange());
         out.put("titlePosition",this.getTitlePosition());
     }

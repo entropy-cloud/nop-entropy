@@ -17,11 +17,11 @@
 
     <props>
         <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+              sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="dictId" displayName="字典ID" i18n-en:displayName="Dictionary" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" ext:relation="dict">
+              sortable="true" insertable="true" updatable="false" ext:show="C" ext:relation="dict">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="label" displayName="显示名" i18n-en:displayName="Label" tagSet="disp" mandatory="true" queryable="true"
@@ -76,11 +76,15 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="dict" displayName="字典" i18n-en:displayName="Dictionary" tagSet="published" ext:kind="to-one"
-              internal="true" queryable="true" ext:joinLeftProp="dictId" ext:joinRightProp="sid"
-              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true"
-              published="false">
+        <prop name="dict" displayName="字典" i18n-en:displayName="Dictionary"
+              tagSet="pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="dictId" ext:joinRightProp="sid" ext:joinRightDisplayProp="displayName"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema type="io.nop.sys.dao.entity.NopSysDict" bizObjName="NopSysDict"/>
+        </prop>
+        <prop name="dict.displayName" displayName="字典" i18n-en:displayName="Dictionary" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
         </prop>
     </props>
 </meta>

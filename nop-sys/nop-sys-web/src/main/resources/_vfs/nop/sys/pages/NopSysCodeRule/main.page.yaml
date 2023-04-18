@@ -1,4 +1,3 @@
 
-xui:js: '@include:NopSysCodeRule.action.js'
 x:gen-extends: |
     <web:GenPage view="NopSysCodeRule.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

@@ -12,8 +12,10 @@
 /dict/biz/biz-var.dict.yaml
 /dict/core/active-status.dict.yaml
 /dict/core/bool-flag.dict.yaml
+/dict/core/enabled-locale.dict.yaml
 /dict/core/entity-relation-type.dict.yaml
 /dict/core/log-level.dict.yaml
+/dict/core/simple-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
 /i18n/en/_nop-auth-web.i18n.yaml
 /i18n/en/_nop-auth.i18n.yaml
@@ -368,6 +370,7 @@
 /nop/sys/pages/NopSysDictOption/NopSysDictOption.lib.xjs
 /nop/sys/pages/NopSysDictOption/NopSysDictOption.view.xml
 /nop/sys/pages/NopSysDictOption/_gen/_NopSysDictOption.view.xml
+/nop/sys/pages/NopSysDictOption/dict-ref.page.yaml
 /nop/sys/pages/NopSysDictOption/main.page.yaml
 /nop/sys/pages/NopSysDictOption/picker.page.yaml
 /nop/sys/pages/NopSysExtField/NopSysExtField.lib.xjs

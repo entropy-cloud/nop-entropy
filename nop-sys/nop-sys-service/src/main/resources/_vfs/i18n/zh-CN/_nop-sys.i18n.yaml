@@ -43,6 +43,7 @@ prop:
       createdBy: 创建人
       delFlag: 删除标识
       dict: 字典
+      dict.displayName: 字典
       dictId: 字典ID
       groupName: 分组名
       isDeprecated: 是否已废弃
@@ -75,6 +76,7 @@ prop:
       createdBy: 创建人
       i18nKey: 字符串Key
       i18nLocale: 语言
+      i18nLocale_label: 语言
       remark: 备注
       updateTime: 修改时间
       updatedBy: 修改人
@@ -143,6 +145,7 @@ prop:
       userId: 用户ID
       varName: 变量名
       varType: 变量类型
+      varType_label: 变量类型
       varValue: 变量值
       version: 数据版本
     NopSysVariable:

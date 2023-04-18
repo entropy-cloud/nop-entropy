@@ -48,7 +48,7 @@ public class ObjDataAuthModel extends _ObjDataAuthModel {
             priority = roleAuth.getPriority();
         }
 
-        return priority != priority;
+        return priority != Integer.MAX_VALUE;
     }
 
     public TreeBean getFilter(String action, ISecurityContext context) {

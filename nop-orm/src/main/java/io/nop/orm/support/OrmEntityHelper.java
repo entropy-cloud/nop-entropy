@@ -128,8 +128,7 @@ public class OrmEntityHelper {
             } else {
                 IOrmCompositePk pk;
                 if (id instanceof String) {
-                    Object[] idValues = OrmCompositePk.parse(entityModel, (String) id);
-                    pk = new OrmCompositePk(entityModel.getPkColumnNames(), idValues);
+                    pk = OrmCompositePk.parse(entityModel, (String) id);
                 } else {
                     pk = (IOrmCompositePk) id;
                 }

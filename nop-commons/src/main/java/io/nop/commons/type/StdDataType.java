@@ -7,6 +7,8 @@
  */
 package io.nop.commons.type;
 
+import io.nop.api.core.annotations.core.Locale;
+import io.nop.api.core.annotations.core.Option;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
 import io.nop.api.core.beans.PointBean;
 import io.nop.api.core.convert.ConvertHelper;
@@ -44,50 +46,93 @@ import static io.nop.commons.CommonErrors.ERR_TYPE_UNKNOWN_TYPE_NAME;
  * <p>
  * json schema type: null, boolean, object, array, number, string
  */
+@Locale("zh-CN")
 public enum StdDataType {
+    @Option("any")
     ANY(0, "any", Object.class), //
 
+    @Option("boolean")
     BOOLEAN(1, "boolean", Boolean.class), //
+
+    @Option("char")
     CHAR(2, "char", Character.class), //
+
+    @Option("byte")
     BYTE(3, "byte", Byte.class), //
 
+    @Option("short")
     SHORT(4, "short", Short.class), //
+
+    @Option("int")
     INT(5, "int", Integer.class), //
+
+    @Option("long")
     LONG(6, "long", Long.class), //
 
+    @Option("float")
     FLOAT(7, "float", Float.class), //
+
+    @Option("double")
     DOUBLE(8, "double", Double.class), //
 
+    @Option("decimal")
     DECIMAL(9, "decimal", BigDecimal.class), //
+
+    @Option("bigint")
     BIGINT(10, "bigint", BigInteger.class), //
 
+    @Option("string")
     STRING(11, "string", String.class), // String类型对应于VARCHAR
 
+    @Option("date")
     DATE(12, "date", LocalDate.class), //
-    DATETIME(13, "datetime", LocalDateTime.class), //
-    TIMESTAMP(14, "timestamp", Timestamp.class), //
-    TIME(15, "time", LocalTime.class), DURATION(16, "duration", Duration.class),
 
+    @Option("datetime")
+    DATETIME(13, "datetime", LocalDateTime.class), //
+
+    @Option("timestamp")
+    TIMESTAMP(14, "timestamp", Timestamp.class), //
+
+    @Option("time")
+    TIME(15, "time", LocalTime.class),
+
+    @Option("duration")
+    DURATION(16, "duration", Duration.class),
+
+    @Option("map")
     MAP(17, "map", Map.class), // 可以映射到数据库中的JSON类型
+
+    @Option("list")
     LIST(18, "list", List.class), // 可以映射到数据库中的JSON类型
 
+    @Option("file")
     FILE(19, "file", FileReference.class), // 对应于附件字段
+
+    @Option("files")
     FILES(20, "files", FileListReference.class), // 对应于附件列表字段
 
+    @Option("point")
     POINT(21, "point", PointBean.class), // 对应于平面二维点
+
+    @Option("geometry")
     GEOMETRY(22, "geometry", GeometryObject.class), // 对应于地理信息对象等
 
+    @Option("bytes")
     BYTES(23, "bytes", ByteString.class), //
 
+    @Option("void")
     // 当一个函数返回空值时，它的返回值为 void 类型
     VOID(24, "void", Void.class), //
 
+    @Option("null")
     NULL(25, "null", Null.class),
 
+    @Option("unknown")
     UNKNOWN(26, "unknown", Unknown.class),
 
     // 当一个函数永不返回时（或者总是抛出错误），它的返回值为 never 类型。
     // 除了 never 本身以外，其他任何类型不能赋值给 never
+    @Option("never")
     NEVER(27, "never", Never.class);
 
     private final String name;

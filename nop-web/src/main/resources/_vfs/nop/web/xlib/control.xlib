@@ -753,6 +753,20 @@
             ]]></source>
         </view-password>
 
+        <edit-hidden>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+            <source><![CDATA[
+                return {
+                    type: 'hidden'
+                }
+            ]]></source>
+        </edit-hidden>
+
+        <view-hidden x:prototype="edit-hidden" />
+
         <edit-any x:prototype="edit-string"/>
 
         <view-any x:prototype="view-labelProp">

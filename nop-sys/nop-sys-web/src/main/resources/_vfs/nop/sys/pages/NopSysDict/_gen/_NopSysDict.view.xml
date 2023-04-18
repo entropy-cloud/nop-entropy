@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="sid" mandatory="true" sortable="true"/>
-
                 <!--字典名-->
                 <col id="dictName" mandatory="true" sortable="true"/>
 
@@ -41,7 +38,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-字典表" i18n-en:title="View Dictionary">
             <layout>
- sid[主键]
  dictName[字典名]
  displayName[显示名]
  createdBy[创建人]
@@ -54,7 +50,6 @@
         <form id="add" editMode="add" title="新增-字典表" i18n-en:title="Add Dictionary" x:prototype="edit"/>
         <form id="edit" editMode="update" title="编辑-字典表" i18n-en:title="Edit Dictionary">
             <layout>
- sid[主键]
  dictName[字典名]
  displayName[显示名]
  remark[备注]
@@ -78,7 +73,7 @@
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopSysDict__delete?ids=$ids"/>
+                    <api url="@mutation:NopSysDict__batchDelete?ids=$ids"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
                 <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">

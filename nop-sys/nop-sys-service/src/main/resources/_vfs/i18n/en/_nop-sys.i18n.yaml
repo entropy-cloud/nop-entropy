@@ -54,6 +54,7 @@ prop:
       updateTime: Update Time
       remark: Remark
       dict: Dictionary
+      dict.displayName: Dictionary
     NopSysExtField:
       entityName: Entity Name
       entityId: Entity ID
@@ -73,6 +74,7 @@ prop:
     NopSysI18n:
       i18nKey: I18n Key
       i18nLocale: Locale
+      i18nLocale_label: null
       value: Value
       version: Version
       createdBy: Created By
@@ -139,6 +141,7 @@ prop:
       varValue: Var Value
       stdDomain: Std Domain
       varType: Var Type
+      varType_label: null
       version: Version
       createdBy: Created By
       createTime: Create Time

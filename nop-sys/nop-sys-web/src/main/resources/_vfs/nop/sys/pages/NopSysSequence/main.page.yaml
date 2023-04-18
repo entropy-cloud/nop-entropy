@@ -1,4 +1,3 @@
 
-xui:js: '@include:NopSysSequence.action.js'
 x:gen-extends: |
     <web:GenPage view="NopSysSequence.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

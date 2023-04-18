@@ -17,6 +17,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
+import io.nop.commons.lang.Undefined;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -315,14 +316,16 @@ public class ObjMetaBasedValidator {
             if (data.containsKey(propMeta.getName()))
                 continue;
 
-            if (!autoExpr.getWhen().contains(action))
+            if (autoExpr.getWhen() != null && !autoExpr.getWhen().contains(action))
                 continue;
 
             Object value = null;
             if (autoExpr.getSource() != null) {
                 value = autoExpr.getSource().invoke(scope);
             }
-            data.put(propMeta.getName(), value);
+
+            if (value != Undefined.undefined)
+                data.put(propMeta.getName(), value);
         }
     }
 

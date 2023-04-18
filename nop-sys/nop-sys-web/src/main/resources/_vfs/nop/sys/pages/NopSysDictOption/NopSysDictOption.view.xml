@@ -9,11 +9,35 @@
     <forms>
         <form id="view"/>
         <form id="edit"/>
-        <form id="add"/>
+        <form id="add">
+            <cells>
+                <cell id="dictId" control="hidden">
+                    <selection/>
+                    <!-- <gen-control>-->
+                    <!--    <group>-->
+                    <!--        <body>-->
+                    <!--          <hidden name="dictId"/>-->
+                    <!--          <tpl tpl="${'$'}{dictName}"/>-->
+                    <!--        </body>-->
+                    <!--    </group>-->
+                    <!--</gen-control>-->
+
+                    <!--<gen-control>-->
+                    <!--    <web:HiddenAndLabel hiddenProp="dictId" labelProp="dictName" xpl:lib="/nop/web/xlib/web.xlib"/>-->
+                    <!--</gen-control>-->
+                </cell>
+            </cells>
+        </form>
     </forms>
 
     <pages>
         <crud name="main"/>
         <picker name="picker"/>
+
+        <crud name="dict-ref" x:prototype="main">
+            <table>
+                <api url="@query:NopSysDictOption__findPage/{@pageSelection}?filter_dictId=$dictId"/>
+            </table>
+        </crud>
     </pages>
 </view>

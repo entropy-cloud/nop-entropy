@@ -101,7 +101,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
 
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true" x:abstract="${supportDelete?null:'true'}">
-                    <api url="@mutation:${metaInfo.objName}__delete?ids=$ids" />
+                    <api url="@mutation:${metaInfo.objName}__batchDelete?ids=$ids" />
                      <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
 

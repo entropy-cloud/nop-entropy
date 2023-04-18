@@ -1,4 +1,3 @@
 
-xui:js: '@include:NopSysDict.action.js'
 x:gen-extends: |
     <web:GenPage view="NopSysDict.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />

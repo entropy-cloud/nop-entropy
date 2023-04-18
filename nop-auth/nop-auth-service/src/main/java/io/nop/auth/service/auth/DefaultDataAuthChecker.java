@@ -28,10 +28,9 @@ import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CACHE_CHECK_
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CONFIG_PATH;
 
 public class DefaultDataAuthChecker implements IDataAuthChecker {
-    static final String MAIN_DATA_AUTH_XML = "/nop/main/auth/main.data-auth.xml";
 
     private final ResourceCacheEntry<DataAuthModel> modelCache =
-            new ResourceCacheEntry<>(MAIN_DATA_AUTH_XML, this::loadDataAuthModel);
+            new ResourceCacheEntry<>("data-auth", this::loadDataAuthModel);
 
     private IDaoProvider daoProvider;
 

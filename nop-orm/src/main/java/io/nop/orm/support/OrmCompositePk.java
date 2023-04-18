@@ -164,7 +164,7 @@ public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJso
     // return propValues;
     // }
 
-    public static Object[] parse(IEntityModel entityModel, String str) {
+    public static OrmCompositePk parse(IEntityModel entityModel, String str) {
         if (str == null || str.length() <= 0)
             return null;
         List<String> parts = StringHelper.splitDupEscaped(str, COMPOSITE_PK_SEPARATOR);
@@ -188,7 +188,7 @@ public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJso
                                 .param(ARG_PROP_NAME, propName).param(ARG_VALUE, part));
             }
         }
-        return propValues;
+        return new OrmCompositePk(entityModel.getPkColumnNames(),propValues);
     }
 
     public static OrmCompositePk build(IEntityModel entityModel, Object[] propValues) {

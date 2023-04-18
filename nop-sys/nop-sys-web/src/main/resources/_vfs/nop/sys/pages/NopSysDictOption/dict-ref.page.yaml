@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+  <web:GenPage view="NopSysDictOption.view.xml" page="dict-ref" xpl:lib="/nop/web/xlib/web.xlib" />

@@ -75,7 +75,7 @@
                 useLogicalDelete="true" versionProp="version" i18n-en:displayName="Dictionary">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
                 <column code="DICT_NAME" displayName="字典名" mandatory="true" name="dictName" precision="150" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名" mandatory="true" name="displayName" precision="50"
@@ -101,7 +101,7 @@
             </columns>
             <relations>
                 <to-many name="dictOptions" refEntityName="io.nop.sys.dao.entity.NopSysDictOption" refPropName="dict"
-                         tagSet="">
+                         tagSet="cascade-delete,insertable,updatable">
                     <join>
                         <on leftProp="sid" rightProp="dictId"/>
                     </join>
@@ -115,9 +115,9 @@
                 i18n-en:displayName="Dictionay Item">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
                 <column code="DICT_ID" displayName="字典ID" mandatory="true" name="dictId" precision="32" propId="2"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dictionary"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Dictionary" ext:show="C"/>
                 <column code="LABEL" displayName="显示名" mandatory="true" name="label" precision="150" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Label"/>
                 <column code="VALUE" displayName="值" mandatory="true" name="value" precision="150" propId="4"
@@ -152,7 +152,8 @@
             </columns>
             <relations>
                 <to-one displayName="字典" name="dict" refEntityName="io.nop.sys.dao.entity.NopSysDict"
-                        refPropName="dictOptions" tagSet="published" i18n-en:displayName="Dictionary">
+                        refPropName="dictOptions" tagSet="pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="Dictionary">
                     <join>
                         <on leftProp="dictId" rightProp="sid"/>
                     </join>
@@ -168,7 +169,8 @@
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="I18n Key"/>
                 <column code="I18N_LOCALE" displayName="语言" mandatory="true" name="i18nLocale" precision="50"
-                        primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Locale"/>
+                        primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Locale"
+                        ext:dict="core/enabled-locale"/>
                 <column code="VALUE" displayName="值" mandatory="true" name="value" precision="300" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Value"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"

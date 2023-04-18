@@ -1,0 +1,7 @@
+label: 可选语言
+locale: zh-CN
+options:
+  - label: 中文
+    value: zh-CN
+  - label: 英文
+    value: en

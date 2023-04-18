@@ -17,7 +17,7 @@
 
     <props>
         <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+              sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="dictName" displayName="字典名" i18n-en:displayName="Name" mandatory="true" queryable="true"
@@ -56,8 +56,9 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="dictOptions" ext:kind="to-many" internal="true" ext:joinLeftProp="sid" ext:joinRightProp="dictId"
-              ext:joinRightDisplayProp="label" lazy="true" published="false">
+        <prop name="dictOptions" tagSet="cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="sid" ext:joinRightProp="dictId" ext:joinRightDisplayProp="label" insertable="true"
+              updatable="true" lazy="true" published="false">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.sys.dao.entity.NopSysDictOption&gt;"
                     bizObjName="NopSysDictOption"/>
         </prop>

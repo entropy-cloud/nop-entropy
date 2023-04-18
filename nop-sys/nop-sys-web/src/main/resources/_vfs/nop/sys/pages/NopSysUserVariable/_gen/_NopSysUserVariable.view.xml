@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--用户ID-->
-                <col id="userId" mandatory="true" sortable="true"/>
-
                 <!--变量名-->
                 <col id="varName" mandatory="true" sortable="true"/>
 
@@ -25,14 +22,8 @@
                 <!--变量类型-->
                 <col id="varType" sortable="true"/>
 
-                <!--创建人-->
-                <col id="createdBy" mandatory="true" sortable="true"/>
-
                 <!--创建时间-->
                 <col id="createTime" mandatory="true" sortable="true"/>
-
-                <!--修改人-->
-                <col id="updatedBy" mandatory="true" sortable="true"/>
 
                 <!--修改时间-->
                 <col id="updateTime" mandatory="true" sortable="true"/>
@@ -47,17 +38,18 @@
     <forms>
         <form id="view" editMode="view" title="查看-用户变量" i18n-en:title="View User Variable">
             <layout>
- userId[用户ID] varName[变量名]
- varValue[变量值] stdDomain[变量域]
- varType[变量类型] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ varName[变量名]
+ varValue[变量值]
+ stdDomain[变量域]
+ varType[变量类型]
+ createTime[创建时间]
+ updateTime[修改时间]
+ remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-用户变量" i18n-en:title="Add User Variable" x:prototype="edit"/>
         <form id="edit" editMode="update" title="编辑-用户变量" i18n-en:title="Edit User Variable">
             <layout>
- userId[用户ID]
  varName[变量名]
  varValue[变量值]
  stdDomain[变量域]
@@ -83,7 +75,7 @@
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopSysUserVariable__delete?ids=$ids"/>
+                    <api url="@mutation:NopSysUserVariable__batchDelete?ids=$ids"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
                 <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">

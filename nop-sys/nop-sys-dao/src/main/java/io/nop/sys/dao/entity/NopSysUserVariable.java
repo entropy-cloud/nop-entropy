@@ -8,19 +8,27 @@
 package io.nop.sys.dao.entity;
 
 import io.nop.api.core.annotations.biz.BizObjName;
-import io.nop.sys.dao.entity._gen._NopSysUserVariable;
-
+import io.nop.commons.type.StdDataType;
 import io.nop.sys.dao.entity._gen.NopSysUserVariablePkBuilder;
+import io.nop.sys.dao.entity._gen._NopSysUserVariable;
 
 
 @BizObjName("NopSysUserVariable")
-public class NopSysUserVariable extends _NopSysUserVariable{
-    public NopSysUserVariable(){
+public class NopSysUserVariable extends _NopSysUserVariable {
+    public NopSysUserVariable() {
     }
 
 
-    public static NopSysUserVariablePkBuilder newPk(){
+    public static NopSysUserVariablePkBuilder newPk() {
         return new NopSysUserVariablePkBuilder();
     }
 
+    public Object getNormalizedValue() {
+        String value = getVarValue();
+        StdDataType dataType = StdDataType.fromStdName(getVarType());
+        if (dataType != null) {
+            return dataType.convert(value);
+        }
+        return value;
+    }
 }

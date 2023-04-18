@@ -22,7 +22,7 @@
         </prop>
         <prop name="i18nLocale" displayName="语言" i18n-en:displayName="Locale" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="false">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="java.lang.String" precision="50" dict="core/enabled-locale"/>
         </prop>
         <prop name="value" displayName="值" i18n-en:displayName="Value" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">

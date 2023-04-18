@@ -276,7 +276,8 @@
                 <c:script><![CDATA[
                     let cellModel = formModel.getCell(formCell.id);
                     let propMeta = objMeta?.getProp(cellModel?.prop || formCell.id);
-                    const rd = formCell.readonly || (formModel.editMode == 'update' && !propMeta?.updatable)
+                    const rd = formCell.readonly || cellModel?.readonly
+                                 || (formModel.editMode == 'update' && !propMeta?.updatable)
                                  || (formModel.editMode == 'add' && !propMeta?.insertable)
 
                     let mode = cellModel?.editMode || (rd? 'view' : formModel.editMode) || 'view'
@@ -674,7 +675,11 @@
 
                // 完整页面路径
                if(page.endsWith('.page.yaml')){
-                  return { 'x:extends': viewModel.resourcePath().$absolutePath(page),...dlgProps}
+                  const pageJson = { 'x:extends': viewModel.resourcePath().$absolutePath(page),...dlgProps};
+                  if(dialog?.data){
+                     pageJson.data = dialog.data
+                  }
+                  return pageJson;
                }
 
                // 如果传入的是pageId, 先检查对应的页面是否存在
@@ -721,5 +726,19 @@
                     "unmountOnExit", "hash","reload", "className", "disabled"])
             ]]></source>
         </TabDefaultAttrs>
+
+        <HiddenAndLabel>
+            <attr name="hiddenProp" />
+            <attr name="labelProp" />
+
+            <source>
+                <group>
+                    <body>
+                        <hidden name="${hiddenProp}" />
+                        <tpl tpl="${'$'}{${labelProp}}" />
+                    </body>
+                </group>
+            </source>
+        </HiddenAndLabel>
     </tags>
 </lib>
