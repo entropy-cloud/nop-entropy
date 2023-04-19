@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static io.nop.dao.DaoErrors.ARG_ALLOWED_TYPES;
@@ -61,7 +62,7 @@ public class SqlDataTypeMapping {
     }
 
     public SqlDataTypeModel getNativeType(String sqlTypeName) {
-        SqlDataTypeModel type = nativeTypes.get(sqlTypeName);
+        SqlDataTypeModel type = nativeTypes.get(sqlTypeName.toUpperCase(Locale.ENGLISH));
         if (type == null) {
             throw new NopException(ERR_DIALECT_DATA_TYPE_NOT_SUPPORTED).param(ARG_DATA_TYPE, sqlTypeName)
                     .param(ARG_ALLOWED_TYPES, nativeTypes.keySet());

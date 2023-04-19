@@ -15,6 +15,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.orm.model.OrmModel;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -56,5 +57,16 @@ public class TestPdmParser extends BaseTestCase {
         XNode node2 = new DslModelToXNodeTransformer(objMeta).transformToXNode(json);
         node2.dump();
         assertEquals(node2.xml(), node.xml());
+    }
+
+    @Test
+    public void testRelation(){
+        IResource resource = attachmentResource("test-relation.pdm");
+        PdmModelParser parser = new PdmModelParser();
+        OrmModel ormModel = parser.parseFromResource(resource);
+
+        XNode node = DslModelHelper.dslModelToXNode("/nop/schema/orm/orm.xdef",ormModel);
+        node.dump();
+        assertEquals(attachmentXml("test-relation.orm.xml").xml(), node.xml());
     }
 }

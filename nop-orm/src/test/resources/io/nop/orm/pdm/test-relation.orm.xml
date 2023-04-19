@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<orm displayName="hedata_db" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <entity className="app.entity.TPurchaseOrder" displayName="采购单信息表" name="app.entity.TPurchaseOrder"
+                tableName="t_purchase_order">
+            <columns>
+                <column code="ID" displayName="ID" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT"/>
+                <column code="TENANTID" displayName="TenantID" name="tenantid" propId="2" stdDataType="long"
+                        stdSqlType="BIGINT"/>
+                <column code="PCODE" displayName="PCode" name="pcode" precision="50" propId="3" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="SID" displayName="SID" name="sid" propId="4" stdDataType="long" stdSqlType="BIGINT"/>
+                <column code="ORDERDATE" displayName="OrderDate" name="orderdate" propId="5" stdDataType="datetime"
+                        stdSqlType="DATETIME"/>
+                <column code="ORDERSTATUS" comment="已下单、已到货待验收、验收完毕待入库、已入库" displayName="OrderStatus" name="orderstatus"
+                        propId="6" stdDataType="int" stdSqlType="INTEGER"/>
+                <column code="EXPECTEDARRIVALDATE" displayName="ExpectedArrivalDate" name="expectedarrivaldate"
+                        propId="7" stdDataType="datetime" stdSqlType="DATETIME"/>
+                <column code="ARRIVALDATE" displayName="ArrivalDate" name="arrivaldate" propId="8"
+                        stdDataType="datetime" stdSqlType="DATETIME"/>
+                <column code="PURCHASEUNITPRICE" displayName="PurchaseUnitPrice" name="purchaseunitprice" precision="8"
+                        propId="9" scale="3" stdDataType="decimal" stdSqlType="DECIMAL"/>
+                <column code="PURCHASEQUANTITY" displayName="PurchaseQuantity" name="purchasequantity" precision="8"
+                        propId="10" scale="3" stdDataType="decimal" stdSqlType="DECIMAL"/>
+                <column code="PURCHASER" displayName="Purchaser" name="purchaser" precision="20" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+            <relations>
+                <to-one displayName="sid" name="supplier" refDisplayName="采购单信息表" refEntityName="app.entity.TSupplier">
+                    <join>
+                        <on leftProp="sid" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="app.entity.TSupplier" displayName="供应商信息表" name="app.entity.TSupplier" tableName="t_supplier">
+            <columns>
+                <column code="ID" displayName="ID" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT"/>
+                <column code="TENANTID" displayName="TenantID" name="tenantid" propId="2" stdDataType="long"
+                        stdSqlType="BIGINT"/>
+                <column code="SUPPLIERTENANTID" comment="如果供应商也是本系统租户，这里可以关联，实现后续库存信息开放给供应商功能"
+                        displayName="SupplierTenantID" name="suppliertenantid" propId="3" stdDataType="long"
+                        stdSqlType="BIGINT"/>
+                <column code="SCODE" displayName="SCode" name="scode" precision="20" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="SSHORTNAME" displayName="SShortName" name="sshortname" precision="30" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="SNAME" displayName="SName" name="sname" precision="100" propId="6" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="SCREATETIME" displayName="SCreatetime" name="screatetime" propId="7"
+                        stdDataType="datetime" stdSqlType="DATETIME"/>
+                <column code="SMODIFYTIME" displayName="SModifytime" name="smodifytime" propId="8"
+                        stdDataType="datetime" stdSqlType="DATETIME"/>
+                <column code="STEL" displayName="STel" name="stel" precision="50" propId="9" stdDataType="string"
+                        stdSqlType="VARCHAR"/>
+                <column code="SLIAISON" displayName="SLiaison" name="sliaison" precision="20" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="SCOUNTERPART" displayName="SCounterpart" name="scounterpart" precision="30" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

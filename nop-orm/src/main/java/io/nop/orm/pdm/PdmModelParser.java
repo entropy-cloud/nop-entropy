@@ -164,7 +164,6 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
         parseDomains(modelNode);
         parsePackages(modelNode, null);
-        parseAllReferences(modelNode);
 
         if (modelNode.element(TABLES_NAME) != null) {
             parseTables(modelNode, null);
@@ -172,6 +171,8 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
         // 删除没有定义主键的视图对象。所有实体都必须具有主键
         removeViewsNoPk();
+
+        parseAllReferences(modelNode);
 
         Map<String, OrmEntityModel> sorted = new TreeMap<>(tablesByCode);
         model.setEntities(new ArrayList<>(sorted.values()));
@@ -388,6 +389,9 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
     }
 
     void parseAllReferences(XNode node) {
+        parseReferences(node);
+        parseViewReferences(node);
+
         XNode pkgsN = node.element(PACKAGES_NAME);
         // 允许空模型的存在
         if (pkgsN == null)
@@ -700,7 +704,8 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
                 continue;
             }
             RefInfo refInfo = collectRefInfo(refN);
-            refInfos.add(refInfo);
+            if (refInfo != null)
+                refInfos.add(refInfo);
         }
 
         refInfos = normalizeRefInfo(refInfos);
@@ -768,6 +773,8 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             return null;
         }
 
+        rel.setRefEntityModel(parentTableInfo);
+        rel.setOwnerEntityModel(childTableInfo);
         addJoin(rel, node, false);
 
         RefInfo refInfo = parseRefInfo(rel, node);
@@ -775,8 +782,8 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
         boolean oneToOne = isAllPrimaryCol(rel.getColumns());
 
         if (refInfo.childDesc.propName == null) {
-            refInfo.childDesc.propName = oneToOne ? StringHelper.decapitalize(parentTableInfo.getName())
-                    : getRefColPropName(rel.getColumns().get(0));
+            refInfo.childDesc.propName = oneToOne ? getTablePropName(parentTableInfo)
+                    : getRefColPropName(rel.getColumns().get(0),rel);
         }
         if (refInfo.childDesc.displayName == null) {
             refInfo.childDesc.displayName = oneToOne ? parentTableInfo.getDisplayName()
@@ -784,7 +791,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
         }
 
         if (refInfo.parentDesc.propName == null) {
-            refInfo.parentDesc.propName = oneToOne ? StringHelper.decapitalize(childTableInfo.getName())
+            refInfo.parentDesc.propName = oneToOne ? getTablePropName(childTableInfo)
                     : getChildrenPropName(childTableInfo, oneToOne);
         }
         if (refInfo.parentDesc.displayName == null) {
@@ -797,6 +804,15 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
         refInfo.childTable = childTableInfo;
         refInfo.oneToOne = oneToOne;
         return refInfo;
+    }
+
+    private String getTablePropName(OrmEntityModel entityModel) {
+        String tableName = entityModel.getTableName();
+        String objName = entityModel.getShortName();
+        if (StringHelper.startsWithIgnoreCase(tableName, "t_") && objName.startsWith("T")) {
+            objName = objName.substring(1);
+        }
+        return StringHelper.beanPropName(objName);
     }
 
     List<RefInfo> normalizeRefInfo(List<RefInfo> refInfos) {
@@ -886,6 +902,9 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
     String getChildrenPropName(OrmEntityModel childTable, boolean oneToOne) {
         String code = childTable.getTableName();
+        if(StringHelper.startsWithIgnoreCase(code,"t_"))
+            code = code.substring(2);
+
         // int pos = code.indexOf('_');
         // if (pos > 0) {
         // code = code.substring(pos + 1);
@@ -897,11 +916,14 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
     }
 
     // 根据外键列名猜测引用属性名
-    String getRefColPropName(OrmColumnModel col) {
+    String getRefColPropName(OrmColumnModel col,OrmReferenceModel rel) {
         if (col == null)
             return null;
 
         String name = col.getCode();
+        if(name.equalsIgnoreCase("id") || name.equalsIgnoreCase("sid")){
+            return getTablePropName(rel.getRefEntityModel());
+        }
         String refName;
         if (StringHelper.endsWithIgnoreCase(name, _ID_POSTFIX) && name.length() > _ID_POSTFIX.length()) {
             refName = name.substring(0, name.length() - _ID_POSTFIX.length());
@@ -923,8 +945,10 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             return null;
 
         String name = col.getDisplayName();
-        if (StringHelper.endsWithIgnoreCase(name, ID_POSTFIX) && name.length() > ID_POSTFIX.length()) {
-            name = name.substring(0, name.length() - ID_POSTFIX.length());
+        if(!name.equalsIgnoreCase("sid")) {
+            if (StringHelper.endsWithIgnoreCase(name, ID_POSTFIX) && name.length() > ID_POSTFIX.length()) {
+                name = name.substring(0, name.length() - ID_POSTFIX.length());
+            }
         }
         return StringHelper.camelCase(name, false);
     }
@@ -1001,6 +1025,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             info.parentDesc = parseRelationDesc(parentRole);
         } else {
             info.parentDesc = new RelationDesc();
+            info.parentDesc.ignore = true;
         }
 
         if (childRole != null) {
