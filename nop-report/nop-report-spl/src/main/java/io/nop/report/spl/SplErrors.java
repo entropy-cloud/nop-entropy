@@ -7,6 +7,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface SplErrors {
     String ARG_RESULT_TYPE = "resultType";
     String ARG_PATH = "path";
+    String ARG_PARAM_NAME = "paramName";
 
     ErrorCode ERR_XPT_SPL_RESULT_NOT_CURSOR = define("nop.err.xpt.spl-result-not-cursor",
             "结果类型为[{resultType}]，不是ICursor类型", ARG_RESULT_TYPE);
@@ -17,4 +18,7 @@ public interface SplErrors {
     ErrorCode ERR_XPT_UNKNOWN_SPL_RESOURCE = define("nop.err.xpt.unknown-spl-resource",
             "SPL模型文件不存在：{path}", ARG_PATH);
 
+    ErrorCode ERR_XPT_UNKNOWN_SPL_PARAM =
+            define("nop.err.xpt.unknown-spl-param",
+                    "未定义的SPL参数:{paramName}", ARG_PARAM_NAME);
 }

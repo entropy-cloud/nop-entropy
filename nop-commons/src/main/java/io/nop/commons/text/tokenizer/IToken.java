@@ -8,4 +8,7 @@
 package io.nop.commons.text.tokenizer;
 
 public interface IToken {
+    default boolean isOperator(){
+        return false;
+    }
 }

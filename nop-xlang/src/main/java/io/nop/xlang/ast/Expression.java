@@ -10,6 +10,7 @@ package io.nop.xlang.ast;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.ast._gen._Expression;
+import io.nop.xlang.ast.print.XLangExpressionPrinter;
 
 public abstract class Expression extends _Expression {
     private transient IGenericType returnTypeInfo;
@@ -23,4 +24,13 @@ public abstract class Expression extends _Expression {
         this.returnTypeInfo = returnTypeInfo;
     }
 
+    public String toString() {
+        return toExprString();
+    }
+
+    public String toExprString() {
+        XLangExpressionPrinter out = new XLangExpressionPrinter();
+        out.visit(this);
+        return out.getResult();
+    }
 }

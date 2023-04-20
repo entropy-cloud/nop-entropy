@@ -51,12 +51,20 @@ public enum XLangOperator implements IToken {
         this.selfAssign = selfAssign;
     }
 
+    public boolean isOperator() {
+        return true;
+    }
+
     public String toString() {
         return text;
     }
 
     public boolean isCompareOp() {
         return this == LE || this == LT || this == GT || this == GE;
+    }
+
+    public boolean isEqualityOp() {
+        return this == EQ || this == NE;
     }
 
     public boolean isBitOp() {

@@ -10,6 +10,7 @@ package io.nop.core.model.query;
 import io.nop.api.core.annotations.core.EnumValuesMethod;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.collections.MapOfInt;
 import io.nop.commons.lang.impl.EnumLike;
@@ -21,9 +22,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PrimitiveIterator;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_ALWAYS_FALSE;
@@ -130,6 +135,35 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
         List<FilterOp> list = new ArrayList<>(nameMap.values());
         Collections.sort(list, Comparator.comparingInt(FilterOp::ordinal));
         return list;
+    }
+
+    public static void forEachOp(Consumer<FilterOp> fn) {
+        indexMap.forEachEntry((op, index) -> fn.accept(op));
+    }
+
+    public static ProcessResult processEachOp(Function<FilterOp, ProcessResult> fn) {
+        PrimitiveIterator.OfInt it = indexMap.keysIterator();
+        while (it.hasNext()) {
+            int index = it.nextInt();
+            if (fn.apply(indexMap.get(index)) == ProcessResult.STOP)
+                return ProcessResult.STOP;
+        }
+        return ProcessResult.CONTINUE;
+    }
+
+    public static Iterator<FilterOp> opIterator() {
+        PrimitiveIterator.OfInt it = indexMap.keysIterator();
+        return new Iterator<FilterOp>() {
+            @Override
+            public boolean hasNext() {
+                return it.hasNext();
+            }
+
+            @Override
+            public FilterOp next() {
+                return indexMap.get(it.nextInt());
+            }
+        };
     }
 
     @StaticFactoryMethod

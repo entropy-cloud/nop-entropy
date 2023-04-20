@@ -8,6 +8,7 @@ import com.scudata.common.UUID;
 import com.scudata.dm.Context;
 import com.scudata.dm.JobSpace;
 import com.scudata.dm.JobSpaceManager;
+import com.scudata.dm.Param;
 import com.scudata.dm.ParamList;
 import io.nop.api.core.annotations.lang.EvalMethod;
 import io.nop.api.core.exceptions.NopException;
@@ -21,8 +22,10 @@ import javax.annotation.PostConstruct;
 import java.util.Iterator;
 import java.util.Map;
 
+import static io.nop.report.spl.SplErrors.ARG_PARAM_NAME;
 import static io.nop.report.spl.SplErrors.ARG_PATH;
 import static io.nop.report.spl.SplErrors.ERR_XPT_INVALID_SPL_MODEL_FILE_TYPE;
+import static io.nop.report.spl.SplErrors.ERR_XPT_UNKNOWN_SPL_PARAM;
 import static io.nop.report.spl.execute.SplHelper.spl2CellSet;
 
 public class SplExecutor {
@@ -43,33 +46,47 @@ public class SplExecutor {
     }
 
     @EvalMethod
-    public Object executeForPath(IEvalScope scope, String path) {
+    public Object executeForPath(IEvalScope scope, String path, Map<String, Object> params) {
         String fileType = StringHelper.fileType(path);
         if (!SplConstants.FILE_TYPES_SPL_MODEL.contains(fileType))
             throw new NopException(ERR_XPT_INVALID_SPL_MODEL_FILE_TYPE)
                     .param(ARG_PATH, path);
 
         SplModel model = (SplModel) ResourceComponentManager.instance().loadComponentModel(path);
-        return executeForModel(scope, model);
+        return executeForModel(scope, model, params);
     }
 
     @EvalMethod
-    public Object executeForModel(IEvalScope scope, SplModel model) {
-        return executeSPL(scope, model.getSource());
+    public Object executeForModel(IEvalScope scope, SplModel model, Map<String, Object> params) {
+        return executeSPL(scope, model.getSource(), params);
     }
 
     @EvalMethod
-    public Object executeSPL(IEvalScope scope, String source) {
+    public Object executeSPL(IEvalScope scope, String source, Map<String, Object> params) {
         PgmCellSet pgmCellSet = spl2CellSet(source);  // dfx, sqlx 二进制文件
         Context context = new Context(); //上下文,参数..设置
 
         try {
+            setParams(pgmCellSet, params);
             prepare(context);
             pgmCellSet.setContext(context);
             Object result = pgmCellSet.execute();
             return SplHelper.normalizeResult(result);
         } finally {
             close(context);
+        }
+    }
+
+    private void setParams(PgmCellSet pgmCellSet, Map<String, Object> params) {
+        if (params != null && !params.isEmpty()) {
+            ParamList list = pgmCellSet.getParamList();
+            params.forEach((name, value) -> {
+                Param param = list.get(name);
+                if (param == null)
+                    throw new NopException(ERR_XPT_UNKNOWN_SPL_PARAM).param(ARG_PARAM_NAME, name);
+
+                param.setValue(value);
+            });
         }
     }
 

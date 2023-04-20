@@ -252,4 +252,15 @@ public class XLangASTBuilder {
             return (BlockStatement) expr;
         return BlockStatement.valueOf(loc, Collections.singletonList(expr));
     }
+
+    public static Expression buildPropExpr(SourceLocation loc, String propName) {
+        int pos = propName.indexOf('.');
+        if (pos < 0)
+            return Identifier.valueOf(loc, propName);
+
+        Expression id = Identifier.valueOf(loc, propName.substring(0, pos));
+
+        Expression prop = buildPropExpr(loc, propName.substring(pos + 1));
+        return MemberExpression.valueOf(loc, id, prop, false, true);
+    }
 }

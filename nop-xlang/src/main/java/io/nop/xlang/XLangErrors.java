@@ -181,6 +181,8 @@ public interface XLangErrors {
 
     ErrorCode ERR_EXPR_NOT_CP_EXPR = define("nop.err.xlang.expr.not-cp-expr", "只允许编译期表达式");
 
+    ErrorCode ERR_EXPR_NOT_ALLOW_CP_EXPR = define("nop.err.xlang.expr.not-allow-cp-expr", "不支持编译期表达式");
+
     ErrorCode ERR_EXPR_NOT_LITERAL = define("nop.err.xlang.expr.not-literal", "表达式必须返回固定值");
 
     ErrorCode ERR_EXPR_UNEXPECTED_CHAR = define("nop.err.xlang.expr.unexpected-char", "非法的字符");

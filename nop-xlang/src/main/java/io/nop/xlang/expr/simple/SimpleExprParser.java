@@ -55,6 +55,7 @@ import java.util.List;
 
 import static io.nop.commons.CommonErrors.ERR_SCAN_UNEXPECTED_CHAR;
 import static io.nop.xlang.XLangErrors.ARG_EXPECTED;
+import static io.nop.xlang.XLangErrors.ERR_EXPR_NOT_ALLOW_CP_EXPR;
 import static io.nop.xlang.XLangErrors.ERR_EXPR_NOT_CP_EXPR;
 import static io.nop.xlang.XLangErrors.ERR_EXPR_NOT_SINGLE_EXPR;
 import static io.nop.xlang.XLangErrors.ERR_EXPR_UNEXPECTED_CHAR;
@@ -103,7 +104,9 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
     }
 
     public Expression parseExpr(TextScanner sc) {
-        return makeCompileResult(simpleExpr(sc));
+        Expression ret = makeCompileResult(simpleExpr(sc));
+        sc.checkEnd();
+        return ret;
     }
 
     public Expression parseTemplateExpr(SourceLocation loc, String source, boolean singleExpr, ExprPhase phase) {
@@ -124,6 +127,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
 
         while (isExprStart(sc, phase)) {
             boolean cpExpr = sc.cur == '#';
+            checkAllowMacroExpr(sc);
             sc.next(2);
             sc.skipBlank();
 
@@ -151,11 +155,18 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
             }
         }
 
+        sc.checkEnd();
+
         // 如果只包含一个元素，则要么是文本输出，要么是唯一的EL表达式
         if (list.size() == 1)
             return makeCompileResult(list.get(0));
 
         return makeCompileResult(newConcatExpr(loc, list));
+    }
+
+    protected void checkAllowMacroExpr(TextScanner sc) {
+        if (sc.cur == '#' && sc.peek() == '{' && !supportFeature(ExprFeatures.CP_EXPR))
+            throw sc.newError(ERR_EXPR_NOT_ALLOW_CP_EXPR);
     }
 
     protected Expression simpleExpr(TextScanner sc) {
@@ -362,10 +373,10 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
 
     protected Expression factorExpr(TextScanner sc) {
         if (sc.cur == '#') {
-            if (this.supportFeature(ExprFeatures.CP_EXPR)) {
-                if (sc.peek() == '{')
-                    return cpExpr(sc);
-            }
+            checkAllowMacroExpr(sc);
+            if (sc.peek() == '{')
+                return cpExpr(sc);
+
             // if (this.supportFeature(ExprFeatures.TAG_FUNC)) {
             // if (sc.peek() == '[')
             // return tagFuncExpr(sc);

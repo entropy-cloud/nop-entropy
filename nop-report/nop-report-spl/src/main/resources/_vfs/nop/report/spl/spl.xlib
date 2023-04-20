@@ -5,24 +5,26 @@
     <tags>
         <Execute>
             <attr name="src"/>
+            <attr name="params" optional="true"/>
 
             <source>
                 <c:script>
                     const splExecutor = inject('nopSplExecutor');
-                    const result = splExecutor.executeForPath(src);
+                    const result = splExecutor.executeForPath(src,params);
                     return result;
                 </c:script>
             </source>
         </Execute>
 
         <MakeDataSet>
-            <attr name="dsName" />
-            <attr name="src" />
-            <attr name="xptRt" implicit="true" />
+            <attr name="dsName"/>
+            <attr name="src"/>
+            <attr name="params" optional="true"/>
+            <attr name="xptRt" implicit="true"/>
 
             <source>
                 <c:script>
-                    const result = xpl('thisLib:Execute',src);
+                    const result = xpl('thisLib:Execute',src,params);
                     xptRt.makeDs(dsName,result);
                 </c:script>
             </source>

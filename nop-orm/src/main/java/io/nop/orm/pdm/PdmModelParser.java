@@ -45,7 +45,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -720,9 +722,13 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
         rel.setLocation(node.getLocation());
         rel.setQueryable(true);
         PdmElement elm = parseElement(node);
-        elm.setExtProps(elm.getExtProps());
-        elm.setComment(elm.getComment());
-        elm.setTagSet(elm.getTagSet());
+        rel.setExtProps(elm.getExtProps());
+        rel.setComment(elm.getComment());
+        rel.setTagSet(elm.getTagSet());
+
+        if (elm.getTagSet() == null || elm.getTagSet().isEmpty()) {
+            rel.setTagSet(new HashSet<>(Arrays.asList("pub")));
+        }
 
         references.put(elm.getId(), rel);
 
@@ -783,7 +789,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
         if (refInfo.childDesc.propName == null) {
             refInfo.childDesc.propName = oneToOne ? getTablePropName(parentTableInfo)
-                    : getRefColPropName(rel.getColumns().get(0),rel);
+                    : getRefColPropName(rel.getColumns().get(0), rel);
         }
         if (refInfo.childDesc.displayName == null) {
             refInfo.childDesc.displayName = oneToOne ? parentTableInfo.getDisplayName()
@@ -902,7 +908,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
     String getChildrenPropName(OrmEntityModel childTable, boolean oneToOne) {
         String code = childTable.getTableName();
-        if(StringHelper.startsWithIgnoreCase(code,"t_"))
+        if (StringHelper.startsWithIgnoreCase(code, "t_"))
             code = code.substring(2);
 
         // int pos = code.indexOf('_');
@@ -916,12 +922,12 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
     }
 
     // 根据外键列名猜测引用属性名
-    String getRefColPropName(OrmColumnModel col,OrmReferenceModel rel) {
+    String getRefColPropName(OrmColumnModel col, OrmReferenceModel rel) {
         if (col == null)
             return null;
 
         String name = col.getCode();
-        if(name.equalsIgnoreCase("id") || name.equalsIgnoreCase("sid")){
+        if (name.equalsIgnoreCase("id") || name.equalsIgnoreCase("sid")) {
             return getTablePropName(rel.getRefEntityModel());
         }
         String refName;
@@ -945,7 +951,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
             return null;
 
         String name = col.getDisplayName();
-        if(!name.equalsIgnoreCase("sid")) {
+        if (!name.equalsIgnoreCase("sid")) {
             if (StringHelper.endsWithIgnoreCase(name, ID_POSTFIX) && name.length() > ID_POSTFIX.length()) {
                 name = name.substring(0, name.length() - ID_POSTFIX.length());
             }
