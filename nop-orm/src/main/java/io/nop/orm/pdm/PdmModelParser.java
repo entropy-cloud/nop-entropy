@@ -527,7 +527,7 @@ public class PdmModelParser extends AbstractResourceParser<OrmModel> {
 
             col.setExtProps(elm.getExtProps());
             col.setCode(elm.getCode().toUpperCase());
-            col.setDisplayName(elm.getCode());
+            col.setDisplayName(elm.getName());
             col.setComment(elm.getComment());
             col.setTagSet(elm.getTagSet());
 
