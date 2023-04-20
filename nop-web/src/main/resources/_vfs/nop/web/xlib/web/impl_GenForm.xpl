@@ -18,7 +18,7 @@
         let formSelection = XuiHelper.getFormSelection(formModel, objMeta);
     </c:script>
 
-    <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FormDefaultAttrs',formModel)">
+    <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FormDefaultAttrs',formModel)"  xpl:skipIf="skipForm">
         <c:unit xpl:slot="default" xpl:slotArgs="{formModel,formSelection,objMeta}"/>
 
         <thisLib:GenFormBody formModel="${formModel}" objMeta="${objMeta}"/>

@@ -4,7 +4,7 @@
 包含表单定义，表格定义，以及页面框架组织
 -->
 <view bizObjName="string" x:schema="/nop/schema/xdef.xdef" xdef:check-ns="auth"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="xdef" xmlns:xui="xui">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="xdef">
     <!--
     meta是可选的信息
     -->
@@ -89,9 +89,9 @@
                 <saveOrderApi xdef:ref="api.xdef"/>
             </table>
 
-            <listActions xdef:ref="actions.xdef" />
+            <listActions xdef:ref="actions.xdef"/>
 
-            <rowActions xdef:ref="actions.xdef" />
+            <rowActions xdef:ref="actions.xdef"/>
 
             <!--
             点击单行触发的动作。开启 itemAction 后 checkOnItemClick 将会失效。
@@ -104,7 +104,7 @@
         <!--
          @size 对于picker弹出选择页面，控制弹出窗口的大小
         -->
-        <picker xdef:ref="UiCRUDModel" size="string" />
+        <picker xdef:ref="UiCRUDModel" size="string"/>
 
         <!--
         根据单个表单模型生成的页面
@@ -121,7 +121,7 @@
 
             <data xdef:value="xjson"/>
 
-            <actions xdef:ref="actions.xdef" />
+            <actions xdef:ref="actions.xdef"/>
         </simple>
 
         <!--
@@ -141,8 +141,33 @@
                  unmountOnExit="boolean" reload="boolean" className="string" disabled="boolean"/>
         </tabs>
 
-        <wizard name="!string" xdef:bean-tag-prop="type">
-            <page xdef:unique-attr="name" name="!string" label="string" lazyLoad="boolean"/>
+        <!--
+        @actionPrevLabel 上一步按钮文本
+        @actionNextLabel 下一步按钮文本
+        @actionNextSaveLabel 保存并下一步按钮文本
+        @actionFinishLabel 完成按钮文本
+        @actionClassName btn-sm btn-default	按钮 CSS 类名
+        @reload 操作完后刷新目标对象。请填写目标组件设置的 name 值，如果填写为 window 则让当前页面整体刷新。
+        @redirect 操作完后跳转。
+        @target 可以把数据提交给别的组件而不是自己保存。请填写目标组件设置的 name 值，如果填写为 window 则把数据同步到地址栏上，同时依赖这些数据的组件会自动重新刷新。
+        @startStep 起始默认值，从第几步开始。可支持模版，但是只有在组件创建时渲染模版并设置当前步数，在之后组件被刷新时，当前 step 不会根据 startStep 改变
+        @initFetch 当前步骤数据初始化接口是否初始拉取。
+        -->
+        <wizard name="!string" xdef:bean-tag-prop="type" mode="string" className="string"
+                actionClassName="string" initFetch="boolean"
+                actionPrevLabel="string" actionNextLabel="string" actionNextSaveLabel="string"
+                actionFinishLabel="string"
+                reload="string" redirect="string" target="string" startStep="string">
+            <api xdef:ref="api.xdef"/>
+            <initApi xdef:ref="api.xdef"/>
+
+            <!-- 初始是否拉取数据，通过表达式来配置 -->
+            <initFetchOn xdef:value="string"/>
+
+            <!--
+            @page 应该对应于一个表单页面
+            -->
+            <step xdef:unique-attr="name" name="!string" page="!string" title="!string"/>
         </wizard>
     </pages>
 </view>

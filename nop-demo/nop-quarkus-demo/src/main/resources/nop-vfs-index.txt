@@ -517,3 +517,4 @@
 /nop/web/xlib/web/page_picker.xpl
 /nop/web/xlib/web/page_simple.xpl
 /nop/web/xlib/web/page_tabs.xpl
+/nop/web/xlib/web/page_wizard.xpl

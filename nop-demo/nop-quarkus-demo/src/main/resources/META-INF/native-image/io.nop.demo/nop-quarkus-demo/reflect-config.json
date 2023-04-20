@@ -39454,7 +39454,30 @@
         ]
       },
       {
+        "name": "executeForModel",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.report.spl.model.SplModel",
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "executeForPath",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "executeForPath",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "executeSPL",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
           "java.lang.String"
@@ -39464,7 +39487,8 @@
         "name": "executeSPL",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
-          "java.lang.String"
+          "java.lang.String",
+          "java.util.Map"
         ]
       },
       {

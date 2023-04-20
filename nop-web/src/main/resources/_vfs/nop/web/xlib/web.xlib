@@ -15,6 +15,7 @@
         <GenForm outputMode="xjson">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="form" mandatory="true" type="string"/>
+            <attr name="skipForm" optional="true" type="boolean" />
 
             <slot name="default" outputMode="xjson">
                 <arg name="objMeta"/>
