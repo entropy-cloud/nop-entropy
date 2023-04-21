@@ -57,4 +57,8 @@ public interface NopAuthConfigs {
     @Description("数据权限配置文件对应的虚拟路径")
     IConfigReference<String> CFG_AUTH_DATA_AUTH_CONFIG_PATH =
             varRef("nop.auth.data-auth-config-path", String.class, "/nop/main/auth/main.data-auth.xml");
+
+    @Description("启用数据库数据权限配置")
+    IConfigReference<Boolean> CFG_AUTH_USE_DATA_AUTH_TABLE =
+            varRef("nop.auth.use-data-auth-table", Boolean.class, false);
 }

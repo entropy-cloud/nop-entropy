@@ -26,6 +26,7 @@ import java.util.List;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED;
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CONFIG_PATH;
+import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_USE_DATA_AUTH_TABLE;
 
 public class DefaultDataAuthChecker implements IDataAuthChecker {
 
@@ -50,8 +51,10 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
             authModel = new DataAuthModel();
         }
 
-        List<NopAuthRoleDataAuth> roleAuths = daoProvider.daoFor(NopAuthRoleDataAuth.class).findAll();
-        mergeRoleAuth(authModel, roleAuths);
+        if (CFG_AUTH_USE_DATA_AUTH_TABLE.get()) {
+            List<NopAuthRoleDataAuth> roleAuths = daoProvider.daoFor(NopAuthRoleDataAuth.class).findAll();
+            mergeRoleAuth(authModel, roleAuths);
+        }
         return authModel;
     }
 
