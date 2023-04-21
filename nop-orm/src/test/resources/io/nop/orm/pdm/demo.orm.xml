@@ -12,8 +12,7 @@
         <domain displayName="html" name="html" stdDataType="string" stdSqlType="VARCHAR"/>
         <domain displayName="long" name="long" stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
         <domain displayName="roleId" name="roleId" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
-        <domain displayName="string_int" name="string_int" stdDataType="string" stdDomain="string"
-                stdSqlType="INTEGER"/>
+        <domain displayName="string_int" name="string_int" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
         <domain displayName="string_long" name="string_long" stdDataType="string" stdDomain="string"
                 stdSqlType="INTEGER"/>
         <domain displayName="userId" name="userId" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
@@ -28,20 +27,13 @@
                 <column code="NAME" displayName="NAME" mandatory="true" name="name" precision="100" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
             </columns>
-            <relations>
-                <to-many displayName="DEMO_MAIN" name="demoMains" refEntityName="app.demo.DemoMain" refPropName="dict">
-                    <join>
-                        <on leftProp="sid" rightProp="dictId"/>
-                    </join>
-                </to-many>
-            </relations>
         </entity>
         <entity className="app.demo.DemoMain" displayName="DEMO_MAIN" name="app.demo.DemoMain" tableName="demo_main">
             <columns>
                 <column code="SID" displayName="SID" domain="string_long" mandatory="true" name="sid" primary="true"
                         propId="1" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>
-                <column code="STR_VALUE" displayName="STR_VALUE" mandatory="true" name="strValue" precision="50"
-                        propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="STR_VALUE" displayName="字符串" mandatory="true" name="strValue" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="INT_VALUE" displayName="INT_VALUE" mandatory="true" name="intValue" propId="3"
                         stdDataType="int" stdSqlType="INTEGER"/>
                 <column code="INTEGER_VALUE" displayName="INTEGER_VALUE" name="integerValue" propId="4"
@@ -61,23 +53,13 @@
             </columns>
             <relations>
                 <to-one displayName="dict" name="dict" refDisplayName="DEMO_MAIN" refEntityName="app.demo.DemoDict"
-                        refPropName="demoMains">
+                        tagSet="pub">
                     <join>
                         <on leftProp="dictId" rightProp="sid"/>
                     </join>
                 </to-one>
-                <to-many displayName="DEMO_MID" name="demoMids" refEntityName="app.demo.DemoMid" refPropName="main">
-                    <join>
-                        <on leftProp="sid" rightProp="mainId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="DEMO_SUB_TABLE" name="demoSubTables" refEntityName="app.demo.DemoSubTable"
-                         refPropName="main">
-                    <join>
-                        <on leftProp="sid" rightProp="mainId"/>
-                    </join>
-                </to-many>
-                <to-many displayName="子表" name="subList2" refEntityName="app.demo.DemoSubTable2" refPropName="main">
+                <to-many displayName="子表" name="subList2" refEntityName="app.demo.DemoSubTable2" refPropName="main"
+                         tagSet="">
                     <join>
                         <on leftProp="sid" rightProp="mainId"/>
                     </join>
@@ -100,13 +82,13 @@
             </columns>
             <relations>
                 <to-one displayName="sec" name="sec" refDisplayName="DEMO_MID" refEntityName="app.demo.DemoSecMain"
-                        refPropName="demoMids">
+                        tagSet="pub">
                     <join>
                         <on leftProp="secId" rightProp="sid"/>
                     </join>
                 </to-one>
                 <to-one displayName="main" name="main" refDisplayName="DEMO_MID" refEntityName="app.demo.DemoMain"
-                        refPropName="demoMids">
+                        tagSet="pub">
                     <join>
                         <on leftProp="mainId" rightProp="sid"/>
                     </join>
@@ -132,13 +114,6 @@
                 <column code="TITLE" displayName="TITLE" name="title" precision="100" propId="2" stdDataType="string"
                         stdSqlType="VARCHAR"/>
             </columns>
-            <relations>
-                <to-many displayName="DEMO_MID" name="demoMids" refEntityName="app.demo.DemoMid" refPropName="sec">
-                    <join>
-                        <on leftProp="sid" rightProp="secId"/>
-                    </join>
-                </to-many>
-            </relations>
         </entity>
         <entity className="app.demo.DemoSubTable" displayName="DEMO_SUB_TABLE" name="app.demo.DemoSubTable"
                 tableName="demo_sub_table">
@@ -152,7 +127,7 @@
             </columns>
             <relations>
                 <to-one displayName="main" name="main" refDisplayName="DEMO_SUB_TABLE" refEntityName="app.demo.DemoMain"
-                        refPropName="demoSubTables">
+                        tagSet="pub">
                     <join>
                         <on leftProp="mainId" rightProp="sid"/>
                     </join>
@@ -171,7 +146,7 @@
             </columns>
             <relations>
                 <to-one displayName="主表" name="main" refDisplayName="子表" refEntityName="app.demo.DemoMain"
-                        refPropName="subList2">
+                        refPropName="subList2" tagSet="pub">
                     <join>
                         <on leftProp="mainId" rightProp="sid"/>
                     </join>

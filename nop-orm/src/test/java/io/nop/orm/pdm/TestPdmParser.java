@@ -48,7 +48,7 @@ public class TestPdmParser extends BaseTestCase {
         IObjMeta objMeta = SchemaLoader.loadXMeta("/nop/schema/orm/orm.xdef");
         XNode node = new DslModelToXNodeTransformer(objMeta).transformToXNode(ormModel);
         node.dump();
-        assertEquals(attachmentXml("demo.orm.xml").xml(), node.xml());
+        assertEquals(normalizeCRLF(attachmentXml("demo.orm.xml").xml()), normalizeCRLF(node.xml()));
 
         String jsonText = JsonTool.stringify(ormModel, null, "  ");
         System.out.println(jsonText);
@@ -67,6 +67,7 @@ public class TestPdmParser extends BaseTestCase {
 
         XNode node = DslModelHelper.dslModelToXNode("/nop/schema/orm/orm.xdef",ormModel);
         node.dump();
-        assertEquals(attachmentXml("test-relation.orm.xml").xml(), node.xml());
+        assertEquals(normalizeCRLF(attachmentXml("test-relation.orm.xml").xml()),
+                normalizeCRLF(node.xml()));
     }
 }

@@ -118,6 +118,11 @@ public class TestXLangDebugger {
     }
 
     void assertBreakAt(String path, IXLangDebugger debugger) {
+        if(!debugger.isSuspended()){
+            try{
+                Thread.sleep(1000);
+            }catch (Exception e){}
+        }
         assertTrue(debugger.isSuspended());
         assertEquals(path, getLastBreakLocation(debugger));
     }

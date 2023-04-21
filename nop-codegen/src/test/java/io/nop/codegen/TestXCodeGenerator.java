@@ -54,10 +54,10 @@ public class TestXCodeGenerator extends BaseTestCase {
         assertTrue(!targetDir.getResource("child1/disabled.txt").exists());
         assertTrue(!targetDir.getResource("child2/disabled.txt").exists());
 
-        assertEquals("__XGEN_FORCE_OVERRIDE__\r\nenabled:child1",
-                strip(readText(targetDir.getResource("child1/enabled.txt"))));
-        assertEquals("__XGEN_FORCE_OVERRIDE__\r\nenabled:child2",
-                strip(readText(targetDir.getResource("child2/enabled.txt"))));
+        assertEquals("__XGEN_FORCE_OVERRIDE__\nenabled:child1",
+                normalizeCRLF(strip(readText(targetDir.getResource("child1/enabled.txt")))));
+        assertEquals("__XGEN_FORCE_OVERRIDE__\nenabled:child2",
+                normalizeCRLF(strip(readText(targetDir.getResource("child2/enabled.txt")))));
 
         assertEquals("data", readText(targetDir.getResource("child1/_gen/data.txt")));
         assertEquals(time, DateHelper.parseDataTime(readText(targetDir.getResource("child1/_gen/date.txt"))));
