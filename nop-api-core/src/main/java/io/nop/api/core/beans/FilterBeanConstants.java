@@ -102,4 +102,6 @@ public interface FilterBeanConstants {
     String FILTER_OP_NOT_FALSE = "notFalse";
 
     String FILTER_OP_SQL = "sql";
+
+    String FILTER_OP_EXPR = "expr";
 }

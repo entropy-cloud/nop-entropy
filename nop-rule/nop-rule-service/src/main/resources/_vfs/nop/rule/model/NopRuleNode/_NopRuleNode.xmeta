@@ -36,19 +36,19 @@
         </prop>
         <prop name="predicate" displayName="判断条件" i18n-en:displayName="PREDICATE" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="predicateComponent">
-            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="4000"/>
+            <schema stdDomain="json" domain="json-4k" type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="outputs" displayName="输出结果" i18n-en:displayName="Outputs" queryable="true" sortable="true"
               insertable="true" updatable="true" graphql:jsonComponentProp="outputsComponent">
-            <schema stdDomain="json" domain="json-4000" type="java.lang.String" precision="50"/>
+            <schema stdDomain="json" domain="json-4k" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="parentId" displayName="父ID" i18n-en:displayName="Parent ID" tagSet="parent" queryable="true"
               sortable="true" insertable="true" updatable="true" ext:control="tree-parent" ext:relation="parent">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="isLeaf" displayName="是否叶子节点" i18n-en:displayName="Is Leaf" tagSet="leaf" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
-            <schema domain="boolFlag" type="java.lang.Byte"/>
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">

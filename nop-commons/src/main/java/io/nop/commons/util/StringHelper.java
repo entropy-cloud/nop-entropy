@@ -1871,6 +1871,27 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static boolean isQuotedString(String str) {
+        if (isEmpty(str))
+            return false;
+
+        if (str.length() <= 1)
+            return false;
+
+        char c = str.charAt(0);
+        if (c != '\'' && c != '"')
+            return false;
+
+        if (str.charAt(str.length() - 1) != c)
+            return false;
+
+        if (str.indexOf(c, 1) != str.length() - 1)
+            return false;
+
+        return true;
+    }
+
+    @Deterministic
     public static boolean isValidPropName(String s) {
         return isValidJavaVarName(s);
     }
@@ -4206,11 +4227,11 @@ public class StringHelper extends ApiStringHelper {
             return 0;
         char c = str.charAt(str.length() - 1);
         if (c == 'M' || c == 'm') {
-            str = str.substring(0,str.length() - 1);
+            str = str.substring(0, str.length() - 1);
             long value = (long) (parseNumber(str).doubleValue() * 1024 * 1024);
             return value;
         } else if (c == 'K' || c == 'k') {
-            str = str.substring(0, str.length()-1);
+            str = str.substring(0, str.length() - 1);
             long value = (long) (parseNumber(str).doubleValue() * 1024);
             return value;
         } else {

@@ -68,6 +68,8 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
 
     private IGenericTypeParser typeParser = new GenericTypeParser();
 
+    private boolean subExpr;
+
     private boolean intern;
 
     public static SimpleExprParser newDefault() {
@@ -75,6 +77,11 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         parser.setUseEvalException(true);
         parser.enableFeatures(ExprFeatures.ALL);
         return parser;
+    }
+
+    public SimpleExprParser subExpr(boolean subExpr){
+        this.subExpr = subExpr;
+        return this;
     }
 
     public SimpleExprParser enableFeatures(int features) {
@@ -105,7 +112,9 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
 
     public Expression parseExpr(TextScanner sc) {
         Expression ret = makeCompileResult(simpleExpr(sc));
-        sc.checkEnd();
+
+        if(!subExpr)
+            sc.checkEnd();
         return ret;
     }
 

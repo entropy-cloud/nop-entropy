@@ -48,7 +48,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     public static final String PROP_NAME_parentId = "parentId";
     public static final int PROP_ID_parentId = 7;
     
-    /* 是否叶子节点: IS_LEAF TINYINT */
+    /* 是否叶子节点: IS_LEAF BOOLEAN */
     public static final String PROP_NAME_isLeaf = "isLeaf";
     public static final int PROP_ID_isLeaf = 8;
     
@@ -164,7 +164,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     private java.lang.String _parentId;
     
     /* 是否叶子节点: IS_LEAF */
-    private java.lang.Byte _isLeaf;
+    private java.lang.Boolean _isLeaf;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -378,9 +378,9 @@ public class _NopRuleNode extends DynamicOrmEntity{
             }
         
             case PROP_ID_isLeaf:{
-               java.lang.Byte typedValue = null;
+               java.lang.Boolean typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toByte(value,
+                   typedValue = ConvertHelper.toBoolean(value,
                        err-> newTypeConversionError(PROP_NAME_isLeaf));
                }
                setIsLeaf(typedValue);
@@ -507,7 +507,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
         
             case PROP_ID_isLeaf:{
                onInitProp(propId);
-               this._isLeaf = (java.lang.Byte)value;
+               this._isLeaf = (java.lang.Boolean)value;
                
                break;
             }
@@ -696,7 +696,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 是否叶子节点: IS_LEAF
      */
-    public java.lang.Byte getIsLeaf(){
+    public java.lang.Boolean getIsLeaf(){
          onPropGet(PROP_ID_isLeaf);
          return _isLeaf;
     }
@@ -704,7 +704,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 是否叶子节点: IS_LEAF
      */
-    public void setIsLeaf(java.lang.Byte value){
+    public void setIsLeaf(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isLeaf,value)){
             this._isLeaf = value;
             internalClearRefs(PROP_ID_isLeaf);

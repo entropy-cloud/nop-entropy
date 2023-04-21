@@ -468,4 +468,11 @@ public class TestStringHelper {
         assertEquals(digest, digest2);
         assertEquals(digest, StringHelper.hmacSha256(str, key));
     }
+
+    @Test
+    public void testQuotedString() {
+        assertTrue(StringHelper.isQuotedString("'sss'"));
+        assertTrue(StringHelper.isQuotedString("\"sss'\""));
+        assertFalse(StringHelper.isQuotedString("\"sss'"));
+    }
 }

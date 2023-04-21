@@ -954,4 +954,8 @@ public interface XLangErrors {
     ErrorCode ERR_SCHEMA_PROP_LENGTH_LESS_THAN_MIN_LENGTH =
             define("nop.err.schema.prop-length-less-than-min-length",
                     "属性[{propName}]的值[{value}]的长度小于最小值[{maxLength}]", ARG_PROP_NAME, ARG_VALUE, ARG_MIN_LENGTH);
+
+    ErrorCode ERR_XLANG_EXPR_NOT_JSON_VALUE =
+            define("nop.err.xlang.expr-not-json-value",
+                    "表达式不是JSON格式:{expr}", ARG_EXPR);
 }

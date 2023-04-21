@@ -1,8 +1,10 @@
 package io.nop.rule.core.expr;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.model.query.FilterOp;
 import io.nop.xlang.ast.AssertOpExpression;
 import io.nop.xlang.ast.CompareOpExpression;
@@ -25,6 +27,32 @@ public class RuleExprParser extends SimpleExprParser {
         this.varName = Guard.notEmpty(varName, "varName");
         setUseEvalException(true);
         enableFeatures(ExprFeatures.ALL);
+    }
+
+    @Override
+    public Expression parseExpr(SourceLocation loc, String text) {
+        String str = text.trim();
+        if (str.isEmpty() || str.equals("-")) {
+            return Literal.booleanValue(loc, true);
+        }
+
+        Expression valueExpr = null;
+
+        if (str.equals("true") || str.equals("false")) {
+            valueExpr = Literal.booleanValue(loc, ConvertHelper.toBoolean(str));
+        } else if (StringHelper.isNumber(str)) {
+            valueExpr = Literal.numberValue(loc, StringHelper.parseNumber(str));
+        } else if (StringHelper.isValidSimpleVarName(str)) {
+            valueExpr = Literal.stringValue(loc, str);
+        } else if (StringHelper.isQuotedString(str)) {
+            valueExpr = Literal.stringValue(loc, StringHelper.unquote(str));
+        }
+
+        if (valueExpr != null) {
+            return newBinaryExpr(loc, XLangOperator.EQ, XLangASTBuilder.buildPropExpr(loc, varName), valueExpr);
+        }
+
+        return super.parseExpr(loc, text);
     }
 
     @Override

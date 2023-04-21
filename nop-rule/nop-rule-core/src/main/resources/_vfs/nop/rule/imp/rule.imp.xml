@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" defaultStripText="true" xmlns:xpt="xpt">
+    <sheets>
+        <sheet name="Config">
+            <fields>
+                <field name="x:gen-extends" displayName="动态生成继承内容">
+                    <schema stdDomain="xpl-node"/>
+                </field>
+
+                <field name="x:extends" displayName="继承文件">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="beforeExecute" displayName="执行前">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="afterExecute" displayName="执行后">
+                    <schema stdDomain="xpl"/>
+                </field>
+
+                <field name="inputs" displayName="输入变量" list="true" keyProp="name">
+                    <fields>
+                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                value == 'M' || value == 'Y'
+                            </valueExpr>
+                        </field>
+
+                        <field name="name" displayName="名称" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="ext:show" displayName="显示">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名" mandatory="true"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+
+                        <field name="schema.type" displayName="类型">
+                            <schema stdDomain="generic-type" />
+                        </field>
+
+                        <field name="schema.stdDomain" displayName="标准数据域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+
+                        <field name="schema.domain" displayName="数据域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+
+                        <field name="schema.precision" displayName="长度">
+                            <schema stdDomain="int-size"/>
+                        </field>
+
+                        <field name="schema.scale" displayName="小数位数">
+                            <schema stdDomain="int-size"/>
+                        </field>
+
+                        <field name="schema.dict" displayName="字典">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+
+                        <field name="description" displayName="描述">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="defaultExpr" displayName="值表达式">
+                            <schema stdDomain="xpl"/>
+                        </field>
+                    </fields>
+                </field>
+
+                <field name="outputs" displayName="输出变量" x:prototype="inputs">
+                    <fields>
+                        <field name="aggregate" displayName="聚合方法">
+                            <schema stdDomain="string"/>
+                        </field>
+                    </fields>
+                </field>
+
+            </fields>
+        </sheet>
+
+    </sheets>
+</imp>

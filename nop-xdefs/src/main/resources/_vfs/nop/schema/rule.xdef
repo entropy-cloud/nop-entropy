@@ -14,16 +14,22 @@
     -->
     <afterExecute xdef:value="xpl"/>
 
-    <xdef:define xdef:name="RuleDeciderModel" name="!string" label="string" multiMatch="!boolean=false">
+    <!--
+    @label 对当前判断条件的描述信息
+    -->
+    <xdef:define xdef:name="RuleDeciderModel" id="!string" label="string" multiMatch="!boolean=false">
 
         <predicate xdef:ref="query/filter.xdef"/>
 
-        <children xdef:body-type="list" xdef:key-attr="name">
-            <child name="!string" xdef:ref="RuleDeciderModel"/>
+        <children xdef:body-type="list" xdef:key-attr="id">
+            <child id="!string" xdef:ref="RuleDeciderModel"/>
         </children>
 
+        <!-- 当前判断分支所对应的业务描述 -->
+        <description xdef:value="string"/>
+
         <outputs xdef:body-type="list" xdef:key-attr="name">
-            <output name="!string" xdef:ref="RuleOutputValueModel" />
+            <output name="!string" xdef:ref="RuleOutputValueModel"/>
         </outputs>
 
     </xdef:define>
@@ -35,8 +41,9 @@
     <outputs xdef:body-type="list" xdef:key-attr="name">
         <!--
         @aggregate 如果存在多个同名的输出时的汇总方式：max,min, sum等
+        @useWeight: 是否启用权重配置
         -->
-        <output name="!var-name" xdef:ref="schema/var-define.xdef" aggreate="string"
+        <output name="!var-name" xdef:ref="schema/var-define.xdef" aggreate="string" useWeight="!boolean"
                 xdef:name="RuleOutputDefineModel"/>
     </outputs>
 
@@ -47,7 +54,7 @@
         <cells xdef:body-type="list" xdef:key-attr="pos">
             <cell pos="!cell-pos" xdef:name="RuleTableCellModel">
                 <outputs xdef:body-type="list" xdef:key-attr="name">
-                    <output name="!string" value="string" xdef:name="RuleOutputValueModel">
+                    <output name="!string" xdef:name="RuleOutputValueModel">
                         <valueExpr xdef:value="xpl"/>
                     </output>
                 </outputs>
@@ -55,6 +62,6 @@
         </cells>
     </decisionTable>
 
-    <decisionTree xdef:ref="RuleDeciderModel" />
+    <decisionTree xdef:ref="RuleDeciderModel"/>
 
 </rule>

@@ -16,14 +16,17 @@
                 <!--名称-->
                 <col id="name" mandatory="true" sortable="true"/>
 
+                <!--非空-->
+                <col id="isMandatory" mandatory="true" sortable="true"/>
+
+                <!--汇总方式-->
+                <col id="aggMethod" mandatory="true" sortable="true"/>
+
                 <!--显示名称-->
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--缺省值-->
                 <col id="defaultValue" sortable="true"/>
-
-                <!--类型-->
-                <col id="type" mandatory="true" sortable="true"/>
 
                 <!--结构定义-->
                 <col id="schema" sortable="true"/>
@@ -54,12 +57,12 @@
         <form id="view" editMode="view" title="查看-规则输出变量" i18n-en:title="View Rule Output Variable">
             <layout>
  ruleId[规则ID] name[名称]
+ isMandatory[非空] aggMethod[汇总方式]
  displayName[显示名称] defaultValue[缺省值]
- type[类型] schema[结构定义]
- description[描述] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ schema[结构定义] description[描述]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-规则输出变量" i18n-en:title="Add Rule Output Variable" x:prototype="edit"/>
@@ -67,9 +70,10 @@
             <layout>
  ruleId[规则ID]
  name[名称]
+ isMandatory[非空]
+ aggMethod[汇总方式]
  displayName[显示名称]
  defaultValue[缺省值]
- type[类型]
  schema[结构定义]
  description[描述]
  remark[备注]

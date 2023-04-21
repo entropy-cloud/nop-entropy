@@ -32,52 +32,56 @@ public class _NopRuleInput extends DynamicOrmEntity{
     public static final String PROP_NAME_name = "name";
     public static final int PROP_ID_name = 3;
     
+    /* 非空: IS_MANDATORY BOOLEAN */
+    public static final String PROP_NAME_isMandatory = "isMandatory";
+    public static final int PROP_ID_isMandatory = 4;
+    
+    /* 自动计算: IS_COMPUTED BOOLEAN */
+    public static final String PROP_NAME_isComputed = "isComputed";
+    public static final int PROP_ID_isComputed = 5;
+    
     /* 显示名称: DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 4;
+    public static final int PROP_ID_displayName = 6;
     
     /* 缺省值: DEFAULT_VALUE VARCHAR */
     public static final String PROP_NAME_defaultValue = "defaultValue";
-    public static final int PROP_ID_defaultValue = 5;
-    
-    /* 类型: TYPE INTEGER */
-    public static final String PROP_NAME_type = "type";
-    public static final int PROP_ID_type = 6;
+    public static final int PROP_ID_defaultValue = 7;
     
     /* 结构定义: SCHEMA VARCHAR */
     public static final String PROP_NAME_schema = "schema";
-    public static final int PROP_ID_schema = 7;
+    public static final int PROP_ID_schema = 8;
     
     /* 描述: DESCRIPTION VARCHAR */
     public static final String PROP_NAME_description = "description";
-    public static final int PROP_ID_description = 8;
+    public static final int PROP_ID_description = 9;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 9;
+    public static final int PROP_ID_version = 10;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 10;
+    public static final int PROP_ID_createdBy = 11;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 11;
+    public static final int PROP_ID_createTime = 12;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 12;
+    public static final int PROP_ID_updatedBy = 13;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 13;
+    public static final int PROP_ID_updateTime = 14;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 14;
+    public static final int PROP_ID_remark = 15;
     
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 16;
 
     
     /* relation: 规则定义 */
@@ -87,7 +91,7 @@ public class _NopRuleInput extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -100,14 +104,17 @@ public class _NopRuleInput extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_name] = PROP_NAME_name;
           PROP_NAME_TO_ID.put(PROP_NAME_name, PROP_ID_name);
       
+          PROP_ID_TO_NAME[PROP_ID_isMandatory] = PROP_NAME_isMandatory;
+          PROP_NAME_TO_ID.put(PROP_NAME_isMandatory, PROP_ID_isMandatory);
+      
+          PROP_ID_TO_NAME[PROP_ID_isComputed] = PROP_NAME_isComputed;
+          PROP_NAME_TO_ID.put(PROP_NAME_isComputed, PROP_ID_isComputed);
+      
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
           PROP_ID_TO_NAME[PROP_ID_defaultValue] = PROP_NAME_defaultValue;
           PROP_NAME_TO_ID.put(PROP_NAME_defaultValue, PROP_ID_defaultValue);
-      
-          PROP_ID_TO_NAME[PROP_ID_type] = PROP_NAME_type;
-          PROP_NAME_TO_ID.put(PROP_NAME_type, PROP_ID_type);
       
           PROP_ID_TO_NAME[PROP_ID_schema] = PROP_NAME_schema;
           PROP_NAME_TO_ID.put(PROP_NAME_schema, PROP_ID_schema);
@@ -145,14 +152,17 @@ public class _NopRuleInput extends DynamicOrmEntity{
     /* 名称: NAME */
     private java.lang.String _name;
     
+    /* 非空: IS_MANDATORY */
+    private java.lang.Boolean _isMandatory;
+    
+    /* 自动计算: IS_COMPUTED */
+    private java.lang.Boolean _isComputed;
+    
     /* 显示名称: DISPLAY_NAME */
     private java.lang.String _displayName;
     
     /* 缺省值: DEFAULT_VALUE */
     private java.lang.String _defaultValue;
-    
-    /* 类型: TYPE */
-    private java.lang.Integer _type;
     
     /* 结构定义: SCHEMA */
     private java.lang.String _schema;
@@ -257,14 +267,17 @@ public class _NopRuleInput extends DynamicOrmEntity{
             case PROP_ID_name:
                return getName();
         
+            case PROP_ID_isMandatory:
+               return getIsMandatory();
+        
+            case PROP_ID_isComputed:
+               return getIsComputed();
+        
             case PROP_ID_displayName:
                return getDisplayName();
         
             case PROP_ID_defaultValue:
                return getDefaultValue();
-        
-            case PROP_ID_type:
-               return getType();
         
             case PROP_ID_schema:
                return getSchema();
@@ -331,6 +344,26 @@ public class _NopRuleInput extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_isMandatory:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_isMandatory));
+               }
+               setIsMandatory(typedValue);
+               break;
+            }
+        
+            case PROP_ID_isComputed:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_isComputed));
+               }
+               setIsComputed(typedValue);
+               break;
+            }
+        
             case PROP_ID_displayName:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -348,16 +381,6 @@ public class _NopRuleInput extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_defaultValue));
                }
                setDefaultValue(typedValue);
-               break;
-            }
-        
-            case PROP_ID_type:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_type));
-               }
-               setType(typedValue);
                break;
             }
         
@@ -471,6 +494,20 @@ public class _NopRuleInput extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_isMandatory:{
+               onInitProp(propId);
+               this._isMandatory = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_isComputed:{
+               onInitProp(propId);
+               this._isComputed = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
             case PROP_ID_displayName:{
                onInitProp(propId);
                this._displayName = (java.lang.String)value;
@@ -481,13 +518,6 @@ public class _NopRuleInput extends DynamicOrmEntity{
             case PROP_ID_defaultValue:{
                onInitProp(propId);
                this._defaultValue = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_type:{
-               onInitProp(propId);
-               this._type = (java.lang.Integer)value;
                
                break;
             }
@@ -612,6 +642,44 @@ public class _NopRuleInput extends DynamicOrmEntity{
     }
     
     /**
+     * 非空: IS_MANDATORY
+     */
+    public java.lang.Boolean getIsMandatory(){
+         onPropGet(PROP_ID_isMandatory);
+         return _isMandatory;
+    }
+
+    /**
+     * 非空: IS_MANDATORY
+     */
+    public void setIsMandatory(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_isMandatory,value)){
+            this._isMandatory = value;
+            internalClearRefs(PROP_ID_isMandatory);
+            
+        }
+    }
+    
+    /**
+     * 自动计算: IS_COMPUTED
+     */
+    public java.lang.Boolean getIsComputed(){
+         onPropGet(PROP_ID_isComputed);
+         return _isComputed;
+    }
+
+    /**
+     * 自动计算: IS_COMPUTED
+     */
+    public void setIsComputed(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_isComputed,value)){
+            this._isComputed = value;
+            internalClearRefs(PROP_ID_isComputed);
+            
+        }
+    }
+    
+    /**
      * 显示名称: DISPLAY_NAME
      */
     public java.lang.String getDisplayName(){
@@ -645,25 +713,6 @@ public class _NopRuleInput extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_defaultValue,value)){
             this._defaultValue = value;
             internalClearRefs(PROP_ID_defaultValue);
-            
-        }
-    }
-    
-    /**
-     * 类型: TYPE
-     */
-    public java.lang.Integer getType(){
-         onPropGet(PROP_ID_type);
-         return _type;
-    }
-
-    /**
-     * 类型: TYPE
-     */
-    public void setType(java.lang.Integer value){
-        if(onPropSet(PROP_ID_type,value)){
-            this._type = value;
-            internalClearRefs(PROP_ID_type);
             
         }
     }

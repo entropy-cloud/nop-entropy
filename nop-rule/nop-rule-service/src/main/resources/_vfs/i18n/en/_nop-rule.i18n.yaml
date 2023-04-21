@@ -33,9 +33,10 @@ prop:
       sid: SID
       ruleId: Rule ID
       name: Name
+      isMandatory: Is Mandatory
+      isComputed: Is Computed
       displayName: Display Name
       defaultValue: Default Value
-      type: Type
       schema: Schema
       description: Description
       version: Version
@@ -46,6 +47,7 @@ prop:
       remark: Remark
       ruleDefinition: Rule Definition
       ruleDefinition.displayName: Rule Definition
+      schemaComponent: null
     NopRuleLog:
       sid: SID
       ruleId: RULE ID
@@ -82,9 +84,10 @@ prop:
       sid: SID
       ruleId: Rule ID
       name: Name
+      isMandatory: Is Mandatory
+      aggMethod: Aggregate Method
       displayName: Display Name
       defaultValue: Default Value
-      type: Type
       schema: Schema
       description: Description
       version: Version
@@ -95,6 +98,7 @@ prop:
       remark: Remark
       ruleDefinition: Rule Definition
       ruleDefinition.displayName: Rule Definition
+      schemaComponent: null
     NopRuleRole:
       sid: SID
       ruleId: Rule ID

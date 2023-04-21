@@ -45,7 +45,7 @@ import static io.nop.xlang.XLangErrors.ERR_XPATH_UNKNOWN_OPERATOR;
 
 public class XPathSelectorParser<E> {
     private IXPathOperatorProvider operatorProvider = XPathOperatorRegistry.instance();
-    private SimpleExprParser exprParser = new XPathExprParser();
+    private SimpleExprParser exprParser = new XPathExprParser().subExpr(true);
     private XLangCompileTool tool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
 
     public XPathSelectorParser operatorProvider(IXPathOperatorProvider provider) {

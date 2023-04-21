@@ -86,6 +86,45 @@ AMIS的语法设计相对比较规整，转成XML之后很接近于普通的HTML
 
 > AMIS早期版本的DSL设计中也存在着大量不一致的地方，比如容器控件的内容部分，有时叫做children，有时叫做controls，有时叫做content，最近重构后才普遍改成了body。
 
+### XView模型中配置gen-control
+在XView模型的grid或者form配置中，如果根据数据类型和数据域自动推定的控件不满足要求，我们可以手工实现gen-control。例如
+
+````xml
+<form id="add">
+   <layout>fldA fldB</layout>
+   <cells>
+      <cell id="fldA">
+         <gen-control>
+            return { 这里写json格式的配置}
+         </gen-control>
+      </cell>
+   </cells>
+</form>
+````
+在json中可以通过x:extends来继承已有的页面。
+````
+ <gen-control>
+   // title会覆盖继承的页面中的title配置, 而initApi.url会覆盖对应的initApi对象中的url属性。依此类推，可以覆盖任意深度的属性
+   return { "x:extends": "/nop/xxx/pages/zzz.page.yaml", title:"xxx", initApi: {url: "xxx"} }
+ </gen-control>
+````
+
+在gen-control段中也可以采用XML格式输出
+
+`````xml
+<gen-control>
+   <input-text />
+</gen-control>
+`````
+XML格式将按照前面介绍的转换规则转换为对应的json. 在gen-control段中使用xml格式时，如果要用x:extends机制，则因为编译器解析XView时也要处理x:extends属性,
+所以我们必须回避这个名字，使用xdsl:extends来代替。例如
+
+````xml
+<gen-control>
+   <dialog xdsl:extends="/nop/xxx/pages/yyy.page.yaml" title="ss" />
+</gen-control>
+````
+
 ## 1.2 可逆计算分解
 
 Nop平台基于可逆计算理论针对JSON和XML实现了通用的分解合并机制，可以按照通用的规则将很大的JSON文件分解为多个小型文件，相当于是为AMIS补充了某种模块组织语法。最常用的是两个语法，x:extends用于表示继承外部的某个文件，x:gen-extends表示动态生成可以被继承的JSON对象。

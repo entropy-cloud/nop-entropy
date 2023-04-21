@@ -3,9 +3,10 @@ CREATE TABLE nop_rule_input(
   SID VARCHAR2(32) NOT NULL ,
   RULE_ID VARCHAR2(32) NOT NULL ,
   NAME VARCHAR2(50) NOT NULL ,
+  IS_MANDATORY CHAR(1) NOT NULL ,
+  IS_COMPUTED CHAR(1) NOT NULL ,
   DISPLAY_NAME VARCHAR2(200) NOT NULL ,
-  DEFAULT_VALUE VARCHAR2(200)  ,
-  TYPE INTEGER NOT NULL ,
+  DEFAULT_VALUE VARCHAR2(1000)  ,
   SCHEMA VARCHAR2(4000)  ,
   DESCRIPTION VARCHAR2(4000)  ,
   VERSION INTEGER NOT NULL ,
@@ -21,9 +22,10 @@ CREATE TABLE nop_rule_output(
   SID VARCHAR2(32) NOT NULL ,
   RULE_ID VARCHAR2(32) NOT NULL ,
   NAME VARCHAR2(50) NOT NULL ,
+  IS_MANDATORY CHAR(1) NOT NULL ,
+  AGG_METHOD VARCHAR2(10) NOT NULL ,
   DISPLAY_NAME VARCHAR2(200) NOT NULL ,
-  DEFAULT_VALUE VARCHAR2(200)  ,
-  TYPE INTEGER NOT NULL ,
+  DEFAULT_VALUE VARCHAR2(1000)  ,
   SCHEMA VARCHAR2(4000)  ,
   DESCRIPTION VARCHAR2(4000)  ,
   VERSION INTEGER NOT NULL ,
@@ -43,7 +45,7 @@ CREATE TABLE nop_rule_node(
   PREDICATE VARCHAR2(4000) NOT NULL ,
   OUTPUTS VARCHAR2(50)  ,
   PARENT_ID VARCHAR2(32)  ,
-  IS_LEAF SMALLINT NOT NULL ,
+  IS_LEAF CHAR(1) NOT NULL ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -105,11 +107,13 @@ CREATE TABLE nop_rule_definition(
                     
       COMMENT ON COLUMN nop_rule_input.NAME IS '名称';
                     
+      COMMENT ON COLUMN nop_rule_input.IS_MANDATORY IS '非空';
+                    
+      COMMENT ON COLUMN nop_rule_input.IS_COMPUTED IS '自动计算';
+                    
       COMMENT ON COLUMN nop_rule_input.DISPLAY_NAME IS '显示名称';
                     
       COMMENT ON COLUMN nop_rule_input.DEFAULT_VALUE IS '缺省值';
-                    
-      COMMENT ON COLUMN nop_rule_input.TYPE IS '类型';
                     
       COMMENT ON COLUMN nop_rule_input.SCHEMA IS '结构定义';
                     
@@ -135,11 +139,13 @@ CREATE TABLE nop_rule_definition(
                     
       COMMENT ON COLUMN nop_rule_output.NAME IS '名称';
                     
+      COMMENT ON COLUMN nop_rule_output.IS_MANDATORY IS '非空';
+                    
+      COMMENT ON COLUMN nop_rule_output.AGG_METHOD IS '汇总方式';
+                    
       COMMENT ON COLUMN nop_rule_output.DISPLAY_NAME IS '显示名称';
                     
       COMMENT ON COLUMN nop_rule_output.DEFAULT_VALUE IS '缺省值';
-                    
-      COMMENT ON COLUMN nop_rule_output.TYPE IS '类型';
                     
       COMMENT ON COLUMN nop_rule_output.SCHEMA IS '结构定义';
                     

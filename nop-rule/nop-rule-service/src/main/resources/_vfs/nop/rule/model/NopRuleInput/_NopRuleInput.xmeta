@@ -28,21 +28,25 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
+        <prop name="isMandatory" displayName="非空" i18n-en:displayName="Is Mandatory" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="isComputed" displayName="自动计算" i18n-en:displayName="Is Computed" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
         <prop name="displayName" displayName="显示名称" i18n-en:displayName="Display Name" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="defaultValue" displayName="缺省值" i18n-en:displayName="Default Value" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
-        </prop>
-        <prop name="type" displayName="类型" i18n-en:displayName="Type" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.Integer" precision="200"/>
+            <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="schema" displayName="结构定义" i18n-en:displayName="Schema" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema stdDomain="xml" domain="xml-4k" type="java.lang.String" precision="4000"/>
+              insertable="true" updatable="true" graphql:jsonComponentProp="schemaComponent">
+            <schema stdDomain="json" domain="json-4k" type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="description" displayName="描述" i18n-en:displayName="Description" queryable="true" sortable="true"
               insertable="true" updatable="true">
@@ -81,6 +85,10 @@
         <prop name="ruleDefinition.displayName" displayName="规则定义" i18n-en:displayName="Rule Definition" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="schemaComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.support.JsonOrmComponent"/>
         </prop>
     </props>
 </meta>

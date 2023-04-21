@@ -53,7 +53,7 @@ public class FilterBeans {
     /**
      * 对单个变量进行匹配
      */
-    public static TreeBean single(String op, String name, Object value) {
+    public static TreeBean compareOp(String op, String name, Object value) {
         return new TreeBean(op).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_VALUE, value);
     }
 
@@ -69,7 +69,7 @@ public class FilterBeans {
     }
 
     public static TreeBean in(String name, Collection<?> values) {
-        return single(FILTER_OP_IN, name, values);
+        return compareOp(FILTER_OP_IN, name, values);
     }
 
     public static TreeBean between(String name, Object min, Object max) {
@@ -101,7 +101,7 @@ public class FilterBeans {
     }
 
     public static TreeBean length(String name, int value) {
-        return single(FILTER_OP_LENGTH, name, value);
+        return compareOp(FILTER_OP_LENGTH, name, value);
     }
 
     public static TreeBean lengthBetween(String name, Integer min, Integer max) {
@@ -111,43 +111,43 @@ public class FilterBeans {
     }
 
     public static TreeBean eq(String name, Object value) {
-        return single(FILTER_OP_EQ, name, value);
+        return compareOp(FILTER_OP_EQ, name, value);
     }
 
     public static TreeBean ne(String name, Object value) {
-        return single(FILTER_OP_NE, name, value);
+        return compareOp(FILTER_OP_NE, name, value);
     }
 
     public static TreeBean gt(String name, Object value) {
-        return single(FILTER_OP_GT, name, value);
+        return compareOp(FILTER_OP_GT, name, value);
     }
 
     public static TreeBean ge(String name, Object value) {
-        return single(FILTER_OP_GE, name, value);
+        return compareOp(FILTER_OP_GE, name, value);
     }
 
     public static TreeBean lt(String name, Object value) {
-        return single(FILTER_OP_LT, name, value);
+        return compareOp(FILTER_OP_LT, name, value);
     }
 
     public static TreeBean le(String name, Object value) {
-        return single(FILTER_OP_LE, name, value);
+        return compareOp(FILTER_OP_LE, name, value);
     }
 
     public static TreeBean startsWith(String name, Object value) {
-        return single(FILTER_OP_STARTS_WITH, name, value);
+        return compareOp(FILTER_OP_STARTS_WITH, name, value);
     }
 
     public static TreeBean endsWith(String name, Object value) {
-        return single(FILTER_OP_ENDS_WITH, name, value);
+        return compareOp(FILTER_OP_ENDS_WITH, name, value);
     }
 
     public static TreeBean contains(String name, Object value) {
-        return single(FILTER_OP_CONTAINS, name, value);
+        return compareOp(FILTER_OP_CONTAINS, name, value);
     }
 
     public static TreeBean regex(String name, Object value) {
-        return single(FILTER_OP_REGEX, name, value);
+        return compareOp(FILTER_OP_REGEX, name, value);
     }
 
     public static TreeBean alwaysTrue() {

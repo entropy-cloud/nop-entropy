@@ -2,9 +2,10 @@
   "sid": "",
   "ruleId": "",
   "name": "",
+  "isMandatory": false,
+  "isComputed": false,
   "displayName": "",
   "defaultValue": "",
-  "type": 0,
   "schema": "",
   "description": "",
   "version": 0,
@@ -14,5 +15,6 @@
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
   "ruleDefinition": null,
-  "ruleDefinition.displayName": ""
+  "ruleDefinition.displayName": "",
+  "schemaComponent": null
 }
