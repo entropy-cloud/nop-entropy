@@ -2020,6 +2020,13 @@
         ]
       },
       {
+        "name": "pluckThenJoin",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "removeAllWhere",
         "parameterTypes": [
           "java.util.Collection",
@@ -3406,6 +3413,12 @@
         "parameterTypes": []
       },
       {
+        "name": "transformAttr",
+        "parameterTypes": [
+          "java.util.function.BiFunction"
+        ]
+      },
+      {
         "name": "transformChild",
         "parameterTypes": [
           "java.util.function.Predicate",
@@ -3621,6 +3634,10 @@
         ]
       },
       {
+        "name": "toMap",
+        "parameterTypes": []
+      },
+      {
         "name": "toString",
         "parameterTypes": []
       }
@@ -3712,6 +3729,16 @@
       }
     ],
     "name": "io.nop.core.module.ModuleModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.reflect.hook.IPropGetMissingHook",
     "unsafeAllocated": false
   },
   {
@@ -11326,6 +11353,29 @@
     "fields": [],
     "methods": [
       {
+        "name": "getRefManyPropInfo",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityRelationModel"
+        ]
+      },
+      {
+        "name": "getRefOnePropInfo",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityRelationModel"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.support.OrmManyToManyHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "AVERAGE",
         "parameterTypes": [
           "java.lang.Object"
@@ -11453,12 +11503,31 @@
         "parameterTypes": []
       },
       {
+        "name": "colChildSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getChildSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
         "name": "getCol",
         "parameterTypes": []
       },
       {
         "name": "getColChildren",
         "parameterTypes": []
+      },
+      {
+        "name": "getColClosest",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getColDescendants",
@@ -11483,6 +11552,13 @@
       {
         "name": "getComment",
         "parameterTypes": []
+      },
+      {
+        "name": "getComputed",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
       },
       {
         "name": "getDown",
@@ -11520,6 +11596,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getExportValue",
+        "parameterTypes": []
+      },
+      {
         "name": "getFormattedValue",
         "parameterTypes": []
       },
@@ -11548,6 +11628,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getNumberValue",
+        "parameterTypes": []
+      },
+      {
         "name": "getRealCell",
         "parameterTypes": []
       },
@@ -11562,6 +11646,12 @@
       {
         "name": "getRowChildren",
         "parameterTypes": []
+      },
+      {
+        "name": "getRowClosest",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getRowDescendants",
@@ -11665,6 +11755,12 @@
         "name": "removeRowChild",
         "parameterTypes": [
           "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "rowChildSet",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -11901,6 +11997,13 @@
     "fields": [],
     "methods": [
       {
+        "name": "IF",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
         "name": "assign",
         "parameterTypes": [
           "io.nop.xlang.api.IXLangCompileScope",
@@ -11913,6 +12016,10 @@
           "io.nop.xlang.api.IXLangCompileScope",
           "io.nop.xlang.ast.CallExpression"
         ]
+      },
+      {
+        "name": "currentDateTime",
+        "parameterTypes": []
       },
       {
         "name": "eval",

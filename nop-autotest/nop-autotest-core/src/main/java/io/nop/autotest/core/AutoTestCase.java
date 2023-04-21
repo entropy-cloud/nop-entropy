@@ -53,6 +53,7 @@ import java.util.Objects;
 import static io.nop.autotest.core.AutoTestErrors.ARG_ERROR_NAME;
 import static io.nop.autotest.core.AutoTestErrors.ARG_EXPECTED;
 import static io.nop.autotest.core.AutoTestErrors.ARG_FILE_NAME;
+import static io.nop.autotest.core.AutoTestErrors.ERR_AUTOTEST_CHECK_MATCH_FAIL;
 import static io.nop.autotest.core.AutoTestErrors.ERR_AUTOTEST_CHECK_OUTPUT_FAIL;
 import static io.nop.autotest.core.AutoTestErrors.ERR_AUTOTEST_EXPECT_ERROR;
 import static io.nop.autotest.core.AutoTestErrors.ERR_AUTOTEST_SNAPSHOT_FINISHED;
@@ -317,8 +318,8 @@ public class AutoTestCase extends BaseTestCase {
             caseData.writeText(path, text, null);
         } else {
             String expected = caseData.readText(path, null);
-            if (!Objects.equals(expected, text))
-                throw new AutoTestException(ERR_AUTOTEST_EXPECT_ERROR).param(ARG_FILE_NAME, fileName)
+            if (!Objects.equals(normalizeCRLF(expected), normalizeCRLF(text)))
+                throw new AutoTestException(ERR_AUTOTEST_CHECK_MATCH_FAIL).param(ARG_FILE_NAME, fileName)
                         .param(ARG_EXPECTED, expected).param(ARG_VALUE, text);
         }
     }

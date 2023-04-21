@@ -1,6 +1,9 @@
 /dict/core/active-status.dict.yaml
 /dict/core/bool-flag.dict.yaml
+/dict/core/enabled-locale.dict.yaml
 /dict/core/entity-relation-type.dict.yaml
+/dict/core/log-level.dict.yaml
+/dict/core/simple-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
 /i18n/en/nop-core.i18n.yaml
 /nop/aop/nop-api-core.annotations
@@ -55,6 +58,7 @@
 /nop/schema/biz/state-machine.xdef
 /nop/schema/biz/xbiz.xdef
 /nop/schema/conf.xdef
+/nop/schema/data-auth.xdef
 /nop/schema/designer/graph-designer.xdef
 /nop/schema/errors.xdef
 /nop/schema/excel/anchor.xdef
@@ -78,6 +82,7 @@
 /nop/schema/schema/obj-schema.xdef
 /nop/schema/schema/schema-node.xdef
 /nop/schema/schema/schema.xdef
+/nop/schema/schema/var-define.xdef
 /nop/schema/site.xdef
 /nop/schema/task/batch.xdef
 /nop/schema/task/task.xdef
@@ -160,6 +165,7 @@
 /nop/templates/orm/{appName}-app/src/main/resources/META-INF/native-image/{mavenGroupId}/{mavenArtifactId}-app/native-image.properties
 /nop/templates/orm/{appName}-app/src/main/resources/META-INF/native-image/{mavenGroupId}/{mavenArtifactId}-app/resource-config.json
 /nop/templates/orm/{appName}-app/src/main/resources/_vfs/{moduleId}/auth/app.action-auth.xml.xgen
+/nop/templates/orm/{appName}-app/src/main/resources/_vfs/{moduleId}/auth/app.data-auth.xml.xgen
 /nop/templates/orm/{appName}-app/src/main/resources/application.yaml.xgen
 /nop/templates/orm/{appName}-app/src/main/resources/bootstrap.yaml
 /nop/templates/orm/{appName}-codegen/pom.xml.xgen
@@ -184,6 +190,7 @@
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Constants.java.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Errors.java.xgen
 /nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/_module
+/nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/auth/{moduleName}.data-auth.xml.xgen
 /nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/beans/_service.beans.xml.xgen
 /nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/beans/app-service.beans.xml.xgen
 /nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/model/{entityModel.shortName}/_{entityModel.shortName}.xbiz.xgen

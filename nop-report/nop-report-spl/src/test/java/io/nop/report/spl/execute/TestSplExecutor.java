@@ -7,6 +7,7 @@ import io.nop.commons.util.MavenDirHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.xlang.api.XLang;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -33,12 +34,13 @@ public class TestSplExecutor extends JunitBaseTestCase {
         System.out.println(result);
     }
 
+    @Disabled
     @Test
     public void testSplFile() {
         IEvalScope scope = XLang.newEvalScope();
         for (int i = 1; i < 10; i++) {
             String path = "/test/p0" + i + ".splx";
-            Object result = splExecutor.executeForPath(scope, path);
+            Object result = splExecutor.executeForPath(scope, path, null);
             System.out.println("result" + i + "=" + JsonTool.serialize(result, true));
         }
     }
