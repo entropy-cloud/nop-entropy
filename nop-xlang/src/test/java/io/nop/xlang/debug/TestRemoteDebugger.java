@@ -118,6 +118,11 @@ public class TestRemoteDebugger {
     }
 
     void assertBreakAt(String path, IDebugger debugger) {
+        if(!debugger.isSuspended()){
+            try{
+                Thread.sleep(100);
+            }catch (Exception e){}
+        }
         assertTrue(debugger.isSuspended());
         assertEquals(path, getLastBreakLocation(debugger));
     }
