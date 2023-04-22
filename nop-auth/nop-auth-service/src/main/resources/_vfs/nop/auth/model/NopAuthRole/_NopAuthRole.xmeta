@@ -75,30 +75,33 @@
                     bizObjName="NopAuthRoleResource"/>
         </prop>
         <prop name="relatedUserList" displayName="用户列表" i18n-en:displayName="User List" ext:kind="to-many"
-              internal="true">
+              internal="true" lazy="true">
             <schema type="List&lt;io.nop.auth.dao.entity.NopAuthUser&gt;">
                 <item bizObjName="NopAuthUser"/>
             </schema>
         </prop>
         <prop name="relatedUserIdList" displayName="用户列表" i18n-en:displayName="User List" insertable="true"
-              updatable="true" ext:relation="relatedUserList" graphql:labelProp="relatedUserList_label" internal="true">
+              updatable="true" ext:relation="relatedUserList" graphql:labelProp="relatedUserList_label" lazy="true"
+              internal="true">
             <schema type="List&lt;java.lang.String&gt;"/>
         </prop>
-        <prop name="relatedUserList_label" displayName="用户列表" i18n-en:displayName="User List" internal="true">
+        <prop name="relatedUserList_label" displayName="用户列表" i18n-en:displayName="User List" lazy="true"
+              internal="true">
             <schema type="String"/>
         </prop>
         <prop name="relatedResourceList" displayName="资源列表" i18n-en:displayName="Resource List" ext:kind="to-many"
-              internal="true">
+              internal="true" lazy="true">
             <schema type="List&lt;io.nop.auth.dao.entity.NopAuthResource&gt;">
                 <item bizObjName="NopAuthResource"/>
             </schema>
         </prop>
         <prop name="relatedResourceIdList" displayName="资源列表" i18n-en:displayName="Resource List" insertable="true"
               updatable="true" ext:relation="relatedResourceList" graphql:labelProp="relatedResourceList_label"
-              internal="true">
+              lazy="true" internal="true">
             <schema type="List&lt;java.lang.String&gt;"/>
         </prop>
-        <prop name="relatedResourceList_label" displayName="资源列表" i18n-en:displayName="Resource List" internal="true">
+        <prop name="relatedResourceList_label" displayName="资源列表" i18n-en:displayName="Resource List" lazy="true"
+              internal="true">
             <schema type="String"/>
         </prop>
     </props>

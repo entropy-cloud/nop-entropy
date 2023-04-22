@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [39:10:0:0]/nop/schema/rule.xdef <p>
+ * generate from [46:10:0:0]/nop/schema/rule.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -20,6 +20,13 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
      * 
      */
     private java.lang.String _aggreate ;
+    
+    /**
+     *  
+     * xml name: useWeight
+     * 
+     */
+    private boolean _useWeight ;
     
     /**
      * 
@@ -40,6 +47,25 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
     }
 
     
+    /**
+     * 
+     * xml name: useWeight
+     *  
+     */
+    
+    public boolean isUseWeight(){
+      return _useWeight;
+    }
+
+    
+    public void setUseWeight(boolean value){
+        checkAllowChange();
+        
+        this._useWeight = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -54,6 +80,7 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
         super.outputJson(out);
         
         out.put("aggreate",this.getAggreate());
+        out.put("useWeight",this.isUseWeight());
     }
 }
  // resume CPD analysis - CPD-ON

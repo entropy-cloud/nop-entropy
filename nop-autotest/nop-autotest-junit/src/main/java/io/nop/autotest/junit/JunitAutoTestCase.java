@@ -10,6 +10,7 @@ package io.nop.autotest.junit;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.autotest.core.AutoTestCase;
 import io.nop.autotest.core.data.AutoTestDataHelper;
+import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
@@ -35,6 +36,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
         initCaseDataDir(caseDataDir);
         initBeans();
         initDao();
+        runLazyActions();
     }
 
     void initVariant(TestInfo testInfo) {

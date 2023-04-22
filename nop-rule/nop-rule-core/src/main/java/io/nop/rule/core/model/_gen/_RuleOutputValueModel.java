@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [50:22:0:0]/nop/schema/rule.xdef <p>
+ * generate from [57:22:0:0]/nop/schema/rule.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -20,13 +20,6 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
      * 
      */
     private java.lang.String _name ;
-    
-    /**
-     *  
-     * xml name: value
-     * 
-     */
-    private java.lang.String _value ;
     
     /**
      *  
@@ -50,25 +43,6 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._name = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: value
-     *  
-     */
-    
-    public java.lang.String getValue(){
-      return _value;
-    }
-
-    
-    public void setValue(java.lang.String value){
-        checkAllowChange();
-        
-        this._value = value;
            
     }
 
@@ -106,7 +80,6 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.put("name",this.getName());
-        out.put("value",this.getValue());
         out.put("valueExpr",this.getValueExpr());
     }
 }

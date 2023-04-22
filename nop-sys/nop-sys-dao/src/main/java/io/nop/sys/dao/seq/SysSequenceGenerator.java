@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.dao.DaoErrors;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
@@ -25,7 +26,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import static io.nop.sys.dao.NopSysConstants.SEQ_DEFAULT;
+import static io.nop.sys.dao.NopSysDaoConfigs.CFG_SYS_INIT_DEFAULT_SEQUENCE;
+import static io.nop.sys.dao.NopSysDaoConstants.SEQ_DEFAULT;
 import static io.nop.sys.dao.NopSysErrors.ARG_SEQ_NAME;
 import static io.nop.sys.dao.NopSysErrors.ERR_SYS_NO_SEQ;
 
@@ -78,10 +80,15 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         this.transactionTemplate = transactionTemplate;
     }
 
-    public void lazyInit(){
-//        if(BaseTestCase.isTestRunning())
-//            return;
-        addDefaultSequence();
+    public void lazyInit() {
+        if (!CFG_SYS_INIT_DEFAULT_SEQUENCE.get())
+            return;
+
+        if (BaseTestCase.isTestRunning()) {
+            BaseTestCase.addLazyAction(this::addDefaultSequence);
+        } else {
+            addDefaultSequence();
+        }
     }
 
     public void addDefaultSequence() {

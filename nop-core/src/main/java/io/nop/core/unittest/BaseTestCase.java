@@ -47,6 +47,8 @@ public class BaseTestCase {
     private static boolean g_testRunning;
     private static Map<String, CyclicBarrier> g_barriers = new ConcurrentHashMap<>();
 
+    private static List<Runnable> g_lazyActions = new ArrayList<>();
+
     private static boolean g_localDb = false;
 
     /**
@@ -64,8 +66,13 @@ public class BaseTestCase {
         return g_testRunning;
     }
 
-    public static void setTestRunning(boolean running) {
-        g_testRunning = running;
+    public static void beginTest() {
+        resetAll();
+        g_testRunning = true;
+    }
+
+    public static void endTest() {
+        resetAll();
     }
 
     public static Map<String, Object> getTestConfigs() {
@@ -75,6 +82,7 @@ public class BaseTestCase {
     public static void resetAll() {
         g_testConfigs.clear();
         g_barriers.clear();
+        g_lazyActions.clear();
         g_localDb = false;
         g_testRunning = false;
     }
@@ -87,6 +95,18 @@ public class BaseTestCase {
     public static <T> void setTestConfig(IConfigReference<T> var, T value) {
         g_testConfigs.put(var.getName(), value);
         AppConfig.getConfigProvider().updateConfigValue(var, value);
+    }
+
+    public static void addLazyAction(Runnable action) {
+        g_lazyActions.add(action);
+    }
+
+    public static void runLazyActions() {
+        List<Runnable> actions = new ArrayList<>(g_lazyActions);
+        g_lazyActions.clear();
+        for (Runnable action : actions) {
+            action.run();
+        }
     }
 
     public static void addBarrier(String name, CyclicBarrier barrier) {
@@ -283,6 +303,7 @@ public class BaseTestCase {
     public File getModuleDir() {
         return new File(getTargetDir(), "..");
     }
+
     public File getCasesDir() {
         File moduleDir = getModuleDir();
         File casesDir = new File(moduleDir, "cases");

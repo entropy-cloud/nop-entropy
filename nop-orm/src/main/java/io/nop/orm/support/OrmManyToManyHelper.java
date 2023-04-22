@@ -73,11 +73,15 @@ public class OrmManyToManyHelper {
         }
 
         public String getRelatedObjPropName_label() {
+            if(getDispColName() == null)
+                return null;
             String name = getRelatedObjPropName();
             return name == null ? null : name + "_label";
         }
 
         public String getRelatedObjListPropName_label(){
+            if(getDispColName() == null)
+                return null;
             String name = getRelatedObjListPropName();
             return name == null ? null : name + "_label";
         }

@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [17:6:0:0]/nop/schema/rule.xdef <p>
+ * generate from [20:6:0:0]/nop/schema/rule.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -23,8 +23,22 @@ public abstract class _RuleDeciderModel extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: label
+     * xml name: description
+     * 当前判断分支所对应的业务描述
+     */
+    private java.lang.String _description ;
+    
+    /**
+     *  
+     * xml name: id
      * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
+     * xml name: label
+     * 对当前判断条件的描述信息
      */
     private java.lang.String _label ;
     
@@ -34,13 +48,6 @@ public abstract class _RuleDeciderModel extends io.nop.core.resource.component.A
      * 
      */
     private boolean _multiMatch  = false;
-    
-    /**
-     *  
-     * xml name: name
-     * 
-     */
-    private java.lang.String _name ;
     
     /**
      *  
@@ -70,7 +77,7 @@ public abstract class _RuleDeciderModel extends io.nop.core.resource.component.A
     public void setChildren(java.util.List<io.nop.rule.core.model.RuleDeciderModel> value){
         checkAllowChange();
         
-        this._children = KeyedList.fromList(value, io.nop.rule.core.model.RuleDeciderModel::getName);
+        this._children = KeyedList.fromList(value, io.nop.rule.core.model.RuleDeciderModel::getId);
            
     }
 
@@ -87,7 +94,7 @@ public abstract class _RuleDeciderModel extends io.nop.core.resource.component.A
         checkAllowChange();
         java.util.List<io.nop.rule.core.model.RuleDeciderModel> list = this.getChildren();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.rule.core.model.RuleDeciderModel::getName);
+            list = new KeyedList<>(io.nop.rule.core.model.RuleDeciderModel::getId);
             setChildren(list);
         }
         list.add(item);
@@ -103,8 +110,46 @@ public abstract class _RuleDeciderModel extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: label
+     * xml name: description
+     *  当前判断分支所对应的业务描述
+     */
+    
+    public java.lang.String getDescription(){
+      return _description;
+    }
+
+    
+    public void setDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._description = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
      *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: label
+     *  对当前判断条件的描述信息
      */
     
     public java.lang.String getLabel(){
@@ -135,25 +180,6 @@ public abstract class _RuleDeciderModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._multiMatch = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: name
-     *  
-     */
-    
-    public java.lang.String getName(){
-      return _name;
-    }
-
-    
-    public void setName(java.lang.String value){
-        checkAllowChange();
-        
-        this._name = value;
            
     }
 
@@ -242,9 +268,10 @@ public abstract class _RuleDeciderModel extends io.nop.core.resource.component.A
         super.outputJson(out);
         
         out.put("children",this.getChildren());
+        out.put("description",this.getDescription());
+        out.put("id",this.getId());
         out.put("label",this.getLabel());
         out.put("multiMatch",this.isMultiMatch());
-        out.put("name",this.getName());
         out.put("outputs",this.getOutputs());
         out.put("predicate",this.getPredicate());
     }

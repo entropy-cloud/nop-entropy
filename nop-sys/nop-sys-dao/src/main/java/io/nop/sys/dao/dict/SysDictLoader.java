@@ -18,7 +18,7 @@ import io.nop.core.dict.IDictProvider;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.sys.dao.NopSysConstants;
+import io.nop.sys.dao.NopSysDaoConstants;
 import io.nop.sys.dao.entity.NopSysDict;
 import io.nop.sys.dao.entity.NopSysDictOption;
 
@@ -35,18 +35,18 @@ public class SysDictLoader implements IDictLoader {
     @PostConstruct
     public void init() {
         IDictProvider dictProvider = DictProvider.instance();
-        dictProvider.addDictLoader(NopSysConstants.SYS_DICT_PREFIX, this);
+        dictProvider.addDictLoader(NopSysDaoConstants.SYS_DICT_PREFIX, this);
     }
 
     @Override
     public boolean supportDict(String dictName) {
-        return dictName.startsWith(NopSysConstants.SYS_DICT_PREFIX);
+        return dictName.startsWith(NopSysDaoConstants.SYS_DICT_PREFIX);
     }
 
     @PreDestroy
     public void destroy() {
         IDictProvider dictProvider = DictProvider.instance();
-        dictProvider.removeDictLoader(NopSysConstants.SYS_DICT_PREFIX, this);
+        dictProvider.removeDictLoader(NopSysDaoConstants.SYS_DICT_PREFIX, this);
     }
 
     @Override

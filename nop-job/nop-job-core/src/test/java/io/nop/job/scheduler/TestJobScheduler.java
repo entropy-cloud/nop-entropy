@@ -90,6 +90,11 @@ public class TestJobScheduler {
         }
 
         long count = scheduler.getJobDetail("test").getTriggerState().getExecutionCount();
+        if(count <= 5){
+            try{
+                Thread.sleep(500);
+            }catch (Exception e){}
+        }
         assertTrue(count > 5);
         assertEquals(TriggerStatus.SCHEDULING, scheduler.getTriggerStatus("test"));
 

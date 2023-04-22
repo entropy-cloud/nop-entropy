@@ -173,16 +173,18 @@
             <schema type="io.nop.orm.support.JsonOrmComponent"/>
         </prop>
         <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
-              internal="true">
+              internal="true" lazy="true">
             <schema type="List&lt;io.nop.auth.dao.entity.NopAuthRole&gt;">
                 <item bizObjName="NopAuthRole"/>
             </schema>
         </prop>
         <prop name="relatedRoleIdList" displayName="角色列表" i18n-en:displayName="Role List" insertable="true"
-              updatable="true" ext:relation="relatedRoleList" graphql:labelProp="relatedRoleList_label" internal="true">
+              updatable="true" ext:relation="relatedRoleList" graphql:labelProp="relatedRoleList_label" lazy="true"
+              internal="true">
             <schema type="List&lt;java.lang.String&gt;"/>
         </prop>
-        <prop name="relatedRoleList_label" displayName="角色列表" i18n-en:displayName="Role List" internal="true">
+        <prop name="relatedRoleList_label" displayName="角色列表" i18n-en:displayName="Role List" lazy="true"
+              internal="true">
             <schema type="String"/>
         </prop>
     </props>

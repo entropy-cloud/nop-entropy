@@ -22,8 +22,7 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
 
     @Override
     public void beforeAll(ExtensionContext context) {
-        BaseTestCase.resetAll();
-        BaseTestCase.setTestRunning(true);
+        BaseTestCase.beginTest();
         processTestConfig(context);
         CoreInitialization.initialize();
     }
@@ -41,7 +40,6 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
     @Override
     public void afterAll(ExtensionContext context) {
         CoreInitialization.destroy();
-        BaseTestCase.resetAll();
-        BaseTestCase.setTestRunning(false);
+        BaseTestCase.endTest();
     }
 }
