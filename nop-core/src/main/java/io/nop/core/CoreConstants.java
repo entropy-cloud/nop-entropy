@@ -11,6 +11,12 @@ public interface CoreConstants extends ResourceConstants {
 
     String RESOURCE_CONTENT_CACHE_NAME = "resource-content-cache";
 
+    String CORE_REGISTRY_PATH = "/nop/core/registry";
+
+    String FILE_TYPE_REGISTER_MODEL = "register-model.xml";
+
+    String MAIN_REGISTRY_PATH = "/nop/main/registry/app.registry.xml";
+
     String ANNOTATION_REGISTRY_PATH = "/nop/aop";
     String FILE_POSTFIX_ANNOTATIONS = ".annotations";
 

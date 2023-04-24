@@ -12,7 +12,6 @@ import io.nop.core.resource.IResourceObjectLoader;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
 
 public class ComponentModelConfig {
     private String modelType;
@@ -28,7 +27,7 @@ public class ComponentModelConfig {
     private IComponentGenPathStrategy genPathStrategy;
     private IComponentGenerator generator;
 
-    private Map<String, Function<IComponentModel, IComponentModel>> transformers;
+    private Map<String, IComponentTransformer> transformers;
 
     public ComponentModelConfig modelType(String modelType) {
         this.setModelType(modelType);
@@ -42,7 +41,7 @@ public class ComponentModelConfig {
         return this;
     }
 
-    public ComponentModelConfig transformer(String name, Function<IComponentModel, IComponentModel> fn) {
+    public ComponentModelConfig transformer(String name, IComponentTransformer fn) {
         if (transformers == null)
             transformers = new HashMap<>();
         transformers.put(name, fn);
@@ -81,15 +80,15 @@ public class ComponentModelConfig {
         this.generator = generator;
     }
 
-    public Map<String, Function<IComponentModel, IComponentModel>> getTransformers() {
+    public Map<String, IComponentTransformer> getTransformers() {
         return transformers;
     }
 
-    public void setTransformers(Map<String, Function<IComponentModel, IComponentModel>> transformers) {
+    public void setTransformers(Map<String, IComponentTransformer> transformers) {
         this.transformers = transformers;
     }
 
-    public Function<IComponentModel, IComponentModel> getTransformer(String transform) {
+    public IComponentTransformer getTransformer(String transform) {
         if (transformers == null)
             return null;
         return transformers.get(transform);

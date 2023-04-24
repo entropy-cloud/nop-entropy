@@ -10,12 +10,6 @@ package io.nop.report.core.initialize;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.ICoreInitializer;
-import io.nop.core.resource.IResourceObjectLoader;
-import io.nop.core.resource.component.ComponentModelConfig;
-import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.excel.model.ExcelWorkbook;
-import io.nop.report.core.XptConstants;
-import io.nop.report.core.build.XptModelLoader;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 public class ReportCoreInitializer implements ICoreInitializer {
@@ -35,17 +29,17 @@ public class ReportCoreInitializer implements ICoreInitializer {
             StdDomainRegistry.instance().unregisterStdDomainHandler(TemplateReportExprStdDomainHandler.INSTANCE);
         });
 
-        registerXpt();
+       // registerXpt();
     }
 
-    private void registerXpt() {
-        ComponentModelConfig config = new ComponentModelConfig();
-        config.modelType(XptConstants.MODEL_TYPE_XPT);
-        IResourceObjectLoader<ExcelWorkbook> loader = XptModelLoader.instance()::loadModel;
-        config.loader(XptConstants.FILE_TYPE_XPT_XLSX, loader);
-        config.loader(XptConstants.FILE_TYPE_XPT_XML, loader);
-        cancellable.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
-    }
+//    private void registerXpt() {
+//        ComponentModelConfig config = new ComponentModelConfig();
+//        config.modelType(XptConstants.MODEL_TYPE_XPT);
+//        IResourceObjectLoader<ExcelWorkbook> loader = XptModelLoader.instance()::parseFromVirtualPath;
+//        config.loader(XptConstants.FILE_TYPE_XPT_XLSX, loader);
+//        config.loader(XptConstants.FILE_TYPE_XPT_XML, loader);
+//        cancellable.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
+//    }
 
     @Override
     public void destroy() {

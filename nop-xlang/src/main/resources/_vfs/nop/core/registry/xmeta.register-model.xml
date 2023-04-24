@@ -1,0 +1,15 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="xmeta">
+
+    <loaders>
+        <xdsl-loader fileType="xmeta" schemaPath="/nop/schema/xmeta.xdef"/>
+
+        <loader fileType="xjava" class="io.nop.xlang.xmeta.xjava.JavaObjMetaParser"/>
+
+    </loaders>
+
+    <transformers>
+        <transformer target="xdef" class="io.nop.xlang.xmeta.impl.ObjMetaToXDef"/>
+    </transformers>
+
+</model>

@@ -8,23 +8,28 @@
 package io.nop.core.dict;
 
 import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.util.ICancellable;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.type.GenericClassKind;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDictProvider {
+    private static ICancellable cancellable;
+
     @BeforeAll
     public static void init() {
         CoreInitialization.initialize();
+        cancellable = DictProvider.registerLoader();
     }
 
     @AfterAll
     public static void destroy() {
+        if (cancellable != null)
+            cancellable.cancel();
         CoreInitialization.destroy();
     }
 

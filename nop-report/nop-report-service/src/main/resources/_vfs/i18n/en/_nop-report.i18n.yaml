@@ -1,63 +1,6 @@
 entity:
-  label:
-    NopReportDataset: Dataset
-    NopReportDatasetAuth: Dataset Auth
-    NopReportDefinition: Report Definition
-    NopReportResultFile: Report Result File
+  label: {
+    }
 prop:
-  label:
-    NopReportDataset:
-      dsId: Dataset ID
-      dsName: Dataset Name
-      description: Description
-      dsType: Dataset Type
-      dsConfig: Dataset Text
-      dsText: Dataset Text
-      dsMeta: Dataset Meta
-      dsView: Dataset View
-      status: Status
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-    NopReportDatasetAuth:
-      dsId: Dataset ID
-      roleId: Role Id
-      permissions: Permissions
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-    NopReportDefinition:
-      rptId: Report ID
-      rptName: Report Name
-      description: Description
-      rptText: Report Text
-      status: Status
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
-    NopReportResultFile:
-      sid: SID
-      fileName: File Name
-      fileType: File Type
-      filePath: File Path
-      dsParams: Dataset Params
-      dsId: Dataset ID
-      bizDate: Biz Date
-      rptId: Report ID
-      status: Status
-      description: Description
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
+  label: {
+    }

@@ -1,0 +1,10 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="xpl">
+
+    <loaders>
+        <loader fileType="xpl" class="io.nop.xlang.xpl.loader.HtmlXplModelLoader"/>
+        <loader fileType="xgen" class="io.nop.xlang.xpl.loader.HtmlXplModelLoader"/>
+        <loader fileType="xrun" class="io.nop.xlang.xpl.loader.NoneXplModelLoader"/>
+    </loaders>
+
+</model>

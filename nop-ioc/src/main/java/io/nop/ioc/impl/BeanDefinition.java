@@ -8,7 +8,6 @@
 package io.nop.ioc.impl;
 
 import io.nop.api.core.ApiConstants;
-import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigChangeListener;
 import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.exceptions.NopException;
@@ -553,7 +552,7 @@ public class BeanDefinition implements IBeanDefinition {
     }
 
     private void subscribeConfigChange(Object bean, IBeanScope scope, IBeanContainerImplementor container) {
-        IConfigProvider configProvider = AppConfig.getConfigProvider();
+        IConfigProvider configProvider = container.getConfigProvider();
         boolean reactiveConfig = isSingleton() && configProvider != null;
 
         if (reactiveConfig) {

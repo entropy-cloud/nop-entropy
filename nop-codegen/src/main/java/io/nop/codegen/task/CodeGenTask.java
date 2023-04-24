@@ -26,6 +26,8 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nop.core.CoreConfigs.CFG_INCLUDE_CURRENT_PROJECT_RESOURCES;
+
 /**
  * 可以在ant脚本中配置执行或者通过exec-maven-plugin插件执行
  */
@@ -174,6 +176,7 @@ public class CodeGenTask {
 
             if ("precompile".equals(tplRoot)) {
                 maxLevel = CoreConstants.INITIALIZER_PRIORITY_PRECOMPILE;
+                AppConfig.getConfigProvider().updateConfigValue(CFG_INCLUDE_CURRENT_PROJECT_RESOURCES,false);
             }
             task.setMaxInitializeLevel(maxLevel);
 

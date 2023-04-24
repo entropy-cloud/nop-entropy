@@ -6,8 +6,8 @@ import io.nop.api.core.annotations.graphql.GraphQLObject;
 @GraphQLObject
 @DataBean
 public class __QueryIntrospectionMeta {
-    __Schema __schema;
-    __Type __type;
+    private __Schema __schema;
+    private __Type __type;
 
     public __Schema get__schema() {
         return __schema;

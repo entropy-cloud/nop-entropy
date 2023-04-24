@@ -720,10 +720,16 @@ public interface CoreErrors {
     ErrorCode ERR_TABLE_INVALID_CELL_POSITION = define("nop.err.core.table.invalid-cell-position",
             "单元格位置表达式不合法:rowIndex={},colIndex={}", ARG_ROW_INDEX, ARG_COL_INDEX);
 
+    ErrorCode ERR_TABLE_NULL_ROW =
+            define("nop.err.core.table.null-row","下标为[{rowIndex}]的行为null", ARG_ROW_INDEX);
+
     ErrorCode ERR_TABlE_INVALID_RANGE = define("nop.err.core.table.invalid-range", "表格区域表达式不合法");
 
     ErrorCode ERR_TABLE_ROW_NOT_BIND_TO_TABLE = define("nop.err.core.table.row-not-bind-to-table",
             "Row必须加入某个表格，然后才能执行此操作", ARG_ROW);
+
+    ErrorCode ERR_TABLE_NOT_TREE_CELL =
+            define("nop.err.core.table.not-tree-cell","单元格[{cellPos}]必须在父单元格的范围之内", ARG_CELL_POS);
 
     ErrorCode ERR_TABLE_NOT_PROXY_CELL = define("nop.err.core.table.not-proxy-cell",
             "位置在({rowIndex},{colIndex})的单元格不是ProxyCell", ARG_ROW_INDEX, ARG_COL_INDEX);

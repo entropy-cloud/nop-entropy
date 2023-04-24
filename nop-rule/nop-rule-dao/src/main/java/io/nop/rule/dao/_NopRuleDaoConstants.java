@@ -8,8 +8,8 @@ public interface _NopRuleDaoConstants {
     String RULE_TYPE_TREE = "TREE";
                     
     /**
-     * 规则类型: 决策表 
+     * 规则类型: 决策矩阵 
      */
-    String RULE_TYPE_TABL = "TABL";
+    String RULE_TYPE_MATX = "MATX";
                     
 }

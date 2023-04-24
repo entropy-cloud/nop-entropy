@@ -37,7 +37,7 @@ class JobExecution {
 
     public ITriggerAction createTriggerAction() {
         ResolvedJobSpec resolved = this.jobSpec;
-        return (state, cancelToken) -> resolved.getJobInvoker().invoke(resolved.getJobName(), resolved.getJobParams(),
+        return (state, cancelToken) -> resolved.getJobInvoker().invokeAsync(resolved.getJobName(), resolved.getJobParams(),
                 state, cancelToken);
     }
 

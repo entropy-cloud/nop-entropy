@@ -46,7 +46,7 @@
                         <field name="i18n-en:displayName" displayName="英文名"/>
 
                         <field name="schema.type" displayName="类型">
-                            <schema stdDomain="generic-type" />
+                            <schema stdDomain="generic-type"/>
                         </field>
 
                         <field name="schema.stdDomain" displayName="标准数据域">
@@ -94,5 +94,12 @@
             </fields>
         </sheet>
 
+        <sheet name="Rule">
+            <fields>
+                <field name="input" displayName="输入"/>
+                <field name="output" displayName="输出"/>
+                <field name="description" displayName="描述"/>
+            </fields>
+        </sheet>
     </sheets>
 </imp>

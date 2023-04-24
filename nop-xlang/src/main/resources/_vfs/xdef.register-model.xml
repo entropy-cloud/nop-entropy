@@ -1,0 +1,12 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="xdef">
+
+    <loaders>
+        <loader fileType="xdef" class="io.nop.xlang.xdef.parse.XDefinitionParser"/>
+    </loaders>
+
+    <transformers>
+        <transformer target="xmeta" class="io.nop.xlang.xdef.impl.XDefToObjMeta"/>
+    </transformers>
+
+</model>

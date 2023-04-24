@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
@@ -86,7 +85,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     private Map<String, ComponentModelLoader> fileTypeLoaders = new ConcurrentHashMap<>();
     private Map<String, List<ComponentModelConfig>> fileTypeToGenerators = new ConcurrentHashMap<>();
 
-    private Map<Pair<String, String>, Function<IComponentModel, IComponentModel>> modelTypeTransformers = new ConcurrentHashMap<>();
+    private Map<Pair<String, String>, IComponentTransformer> modelTypeTransformers = new ConcurrentHashMap<>();
 
     private ICache<String, Map<String, ResourceLoadingCache<ComponentCacheEntry>>> tenantModelCaches;
     private Map<String, ResourceLoadingCache<ComponentCacheEntry>> modelCaches = new ConcurrentHashMap<>();
@@ -243,7 +242,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
 
         if (config.getTransformers() != null) {
-            for (Map.Entry<String, Function<IComponentModel, IComponentModel>> entry : config.getTransformers()
+            for (Map.Entry<String, IComponentTransformer> entry : config.getTransformers()
                     .entrySet()) {
                 cancellable.appendOnCancelTask(registerComponentModelTransformer(config.getModelType(), entry.getKey(),
                         entry.getValue(), false));
@@ -283,7 +282,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public Runnable registerComponentModelTransformer(String fromModelType, String toModelType,
-                                                      Function<IComponentModel, IComponentModel> transformer, boolean replace) {
+                                                      IComponentTransformer transformer, boolean replace) {
         Guard.notEmpty(fromModelType, "fromModelType");
         Guard.notEmpty(toModelType, "toModelType");
         Guard.notEmpty(transformer, "transformer");
@@ -292,7 +291,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         if (replace) {
             modelTypeTransformers.put(key, transformer);
         } else {
-            Function<?, ?> old = modelTypeTransformers.putIfAbsent(Pair.of(fromModelType, toModelType), transformer);
+            IComponentTransformer old = modelTypeTransformers.putIfAbsent(Pair.of(fromModelType, toModelType), transformer);
             if (old != null && replace)
                 throw new NopException(ERR_COMPONENT_MODEL_TRANSFORMER_ALREADY_EXISTS)
                         .param(ARG_FROM_MODEL_TYPE, fromModelType).param(ARG_TO_MODEL_TYPE, toModelType);
@@ -351,20 +350,20 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     @Override
     public IComponentModel loadComponentModel(String resourcePath, String transform) {
         String modelType = findModelTypeFromPath(resourcePath);
-        Function<IComponentModel, IComponentModel> transformer = getTransformer(modelType, transform);
+        IComponentTransformer transformer = getTransformer(modelType, transform);
 
         ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
         ComponentCacheEntry entry = cache.require(resourcePath);
         if (StringHelper.isEmpty(transform) || modelType.equals(transform))
             return entry.model;
 
-        return entry.transformed.computeIfAbsent(transform, k -> transformer.apply(entry.model));
+        return entry.transformed.computeIfAbsent(transform, k -> transformer.transform(entry.model));
     }
 
-    private Function<IComponentModel, IComponentModel> getTransformer(String modelType, String transform) {
+    private IComponentTransformer getTransformer(String modelType, String transform) {
 
         if (!StringHelper.isEmpty(transform) && !modelType.equals(transform)) {
-            Function<IComponentModel, IComponentModel> transformer = modelTypeTransformers
+            IComponentTransformer transformer = modelTypeTransformers
                     .get(Pair.of(modelType, transform));
             if (transformer == null)
                 throw new NopException(ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM)

@@ -12,7 +12,7 @@
     <dicts>
         <dict label="规则类型" name="rule/rule-type" valueType="string" i18n-en:label="Rule Type">
             <option code="TREE" label="决策树" value="TREE"/>
-            <option code="TABL" label="决策表" value="TABL"/>
+            <option code="MATX" label="决策矩阵" value="MATX"/>
         </dict>
     </dicts>
 

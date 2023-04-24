@@ -47,6 +47,11 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
      */
     private int treeLevel;
 
+    /**
+     * 最底层的叶子节点的序号，从0开始
+     */
+    private int leafIndex;
+
     public TreeCell(Object value, TreeCellChildPosition pos) {
         this.value = value;
         this.childPos = pos;
@@ -83,13 +88,15 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
         ret.id = id;
         ret.model = model;
         ret.styleId = styleId;
-        ret.value = value;
+        ret.comment = comment;
         ret.bboxWidth = bboxWidth;
         ret.bboxHeight = bboxHeight;
         ret.mergeAcross = mergeAcross;
         ret.mergeDown = mergeDown;
         ret.rowIndex = rowIndex;
         ret.colIndex = colIndex;
+        ret.leafIndex = leafIndex;
+        ret.treeLevel = treeLevel;
         return ret;
     }
 
@@ -98,6 +105,14 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
      */
     public boolean isVirtual() {
         return childPos == TreeCellChildPosition.hor || childPos == TreeCellChildPosition.ver;
+    }
+
+    public int getLeafIndex() {
+        return leafIndex;
+    }
+
+    public void setLeafIndex(int leafIndex) {
+        this.leafIndex = leafIndex;
     }
 
     @Override
@@ -189,6 +204,14 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
 
     public void setColIndex(int colIndex) {
         this.colIndex = colIndex;
+    }
+
+    public int getEndColIndex() {
+        return colIndex + getColSpan();
+    }
+
+    public int getEndRowIndex() {
+        return rowIndex + getRowSpan();
     }
 
     public int getTreeLevel() {

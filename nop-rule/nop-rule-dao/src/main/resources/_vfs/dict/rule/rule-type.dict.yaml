@@ -9,7 +9,7 @@ options:
     value: TREE
     description: 
   
-  - label: 决策表
-    value: TABL
+  - label: 决策矩阵
+    value: MATX
     description: 
   

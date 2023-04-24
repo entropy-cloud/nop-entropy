@@ -30,17 +30,17 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     
     /**
      *  
-     * xml name: decisionTable
+     * xml name: decisionMatrix
      * 
      */
-    private io.nop.rule.core.model.RuleDecisionTableModel _decisionTable ;
+    private io.nop.rule.core.model.RuleDecisionMatrixModel _decisionMatrix ;
     
     /**
      *  
      * xml name: decisionTree
      * 
      */
-    private io.nop.rule.core.model.RuleDeciderModel _decisionTree ;
+    private io.nop.rule.core.model.RuleDecisionTreeModel _decisionTree ;
     
     /**
      *  
@@ -110,19 +110,19 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     
     /**
      * 
-     * xml name: decisionTable
+     * xml name: decisionMatrix
      *  
      */
     
-    public io.nop.rule.core.model.RuleDecisionTableModel getDecisionTable(){
-      return _decisionTable;
+    public io.nop.rule.core.model.RuleDecisionMatrixModel getDecisionMatrix(){
+      return _decisionMatrix;
     }
 
     
-    public void setDecisionTable(io.nop.rule.core.model.RuleDecisionTableModel value){
+    public void setDecisionMatrix(io.nop.rule.core.model.RuleDecisionMatrixModel value){
         checkAllowChange();
         
-        this._decisionTable = value;
+        this._decisionMatrix = value;
            
     }
 
@@ -133,12 +133,12 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
      *  
      */
     
-    public io.nop.rule.core.model.RuleDeciderModel getDecisionTree(){
+    public io.nop.rule.core.model.RuleDecisionTreeModel getDecisionTree(){
       return _decisionTree;
     }
 
     
-    public void setDecisionTree(io.nop.rule.core.model.RuleDeciderModel value){
+    public void setDecisionTree(io.nop.rule.core.model.RuleDecisionTreeModel value){
         checkAllowChange();
         
         this._decisionTree = value;
@@ -281,7 +281,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._decisionTable = io.nop.api.core.util.FreezeHelper.deepFreeze(this._decisionTable);
+           this._decisionMatrix = io.nop.api.core.util.FreezeHelper.deepFreeze(this._decisionMatrix);
             
            this._decisionTree = io.nop.api.core.util.FreezeHelper.deepFreeze(this._decisionTree);
             
@@ -297,7 +297,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         
         out.put("afterExecute",this.getAfterExecute());
         out.put("beforeExecute",this.getBeforeExecute());
-        out.put("decisionTable",this.getDecisionTable());
+        out.put("decisionMatrix",this.getDecisionMatrix());
         out.put("decisionTree",this.getDecisionTree());
         out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());

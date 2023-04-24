@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="imp">
+
+    <loaders>
+        <xdsl-loader fileType="imp.xml" schemaPath="/nop/schema/excel/imp.xdef"/>
+    </loaders>
+
+</model>

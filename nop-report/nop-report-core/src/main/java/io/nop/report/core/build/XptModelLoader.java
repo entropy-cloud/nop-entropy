@@ -33,7 +33,7 @@ public class XptModelLoader {
         return _instance;
     }
 
-    public ExcelWorkbook loadModel(String reportPath) {
+    public ExcelWorkbook parseFromVirtualPath(String reportPath) {
         IResource resource = VirtualFileSystem.instance().getResource(reportPath);
         return loadModelFromResource(resource);
     }

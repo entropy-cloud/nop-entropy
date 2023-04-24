@@ -64,7 +64,7 @@ public class DslNodeLoader implements IXDslNodeLoader {
     }
 
     private void dumpMergedResult(String path, XDslExtendResult result) {
-        if (AppConfig.isDebugMode()) {
+        if (AppConfig.isDebugMode() && path != null) {
             String dumpPath = ResourceHelper.getDumpPath(path);
             XNode node = result.getNodeForDump();
 

@@ -12,6 +12,7 @@ public interface GraphQLConstants {
     String XDSL_SCHEMA_API = "/nop/schema/api.xdef";
     String FILE_TYPE_API_XLSX = "api.xlsx";
     String DSL_TYPE_API = "api";
+    String FILE_TYPE_API_XML = "api.xml";
 
     String TYPE_QUERY = "Query";
     String TYPE_MUTATION = "Mutation";

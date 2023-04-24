@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.xmeta.impl;
 
+import io.nop.core.resource.component.IComponentTransformer;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.xdef.SchemaKind;
 import io.nop.xlang.xdef.XDefBodyType;
@@ -30,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ObjMetaToXDef {
+public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinition> {
     private final XDefKeys keys;
 
     public ObjMetaToXDef(XDefKeys keys) {
@@ -41,6 +42,7 @@ public class ObjMetaToXDef {
         this(XDefKeys.DEFAULT);
     }
 
+    @Override
     public XDefinition transform(IObjMeta objMeta) {
         XDefinition def = new XDefinition();
         def.setXdslSchema(XLangConstants.XDSL_SCHEMA_XDEF);

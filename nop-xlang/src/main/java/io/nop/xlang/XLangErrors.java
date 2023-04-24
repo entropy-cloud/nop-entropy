@@ -753,6 +753,9 @@ public interface XLangErrors {
     ErrorCode ERR_XDSL_NODE_UNEXPECTED_TAG_NAME = define("nop.err.xlang.xdsl.node-unexpected-tag-name",
             "节点名称为[{tagName}],期望的节点名称为[{expected}]", ARG_TAG_NAME, ARG_EXPECTED);
 
+    ErrorCode ERR_XDSL_MODEL_NO_NAME_ATTR =
+            define("nop.err.xlang.xdsl.model-no-name-attr", "模型对象没有name属性");
+
     ErrorCode ERR_XDEF_DUPLICATE_LOCAL_REF = define("nop.err.xlang.xdef.duplicate-local-ref", "xdef:name引用名称不能重复",
             ARG_REF_NAME);
 

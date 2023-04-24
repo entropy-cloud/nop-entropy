@@ -54,6 +54,8 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.PropNameSetType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.WordSetType());
 
+        registerStdDomainHandler(new SimpleStdDomainHandlers.FileTypeType());
+
         registerStdDomainHandler(new SimpleStdDomainHandlers.GenericTypeType());
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.JsonType());

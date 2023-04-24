@@ -12,11 +12,13 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ICancellable;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.core.i18n.II18nMessageManager;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +56,13 @@ public class DictProvider implements IDictProvider {
 
     public void removeDict(String name) {
         staticDicts.remove(name);
+    }
+
+    public static ICancellable registerLoader() {
+        ComponentModelConfig config = new ComponentModelConfig();
+        config.setModelType("dict");
+        config.loader("dict.yaml", path -> new DictModelParser().parseFromVirtualPath(path));
+        return ResourceComponentManager.instance().registerComponentModelConfig(config);
     }
 
     @Override

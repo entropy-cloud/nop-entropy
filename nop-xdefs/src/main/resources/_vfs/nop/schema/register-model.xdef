@@ -1,0 +1,11 @@
+<model name="!var-name" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <loaders xdef:body-type="list" xdef:key-attr="fileType">
+        <xlsx-loader fileType="!file-type" impPath="!v-path" xdef:bean-tag-prop="type"/>
+        <xdsl-loader fileType="!file-type" schemaPath="!v-path" xdef:bean-tag-prop="type"/>
+        <loader fileType="!file-type" class="!class-name" xdef:bean-tag-prop="type"/>
+    </loaders>
+
+    <transformers xdef:body-type="list" xdef:key-attr="target">
+        <transformer target="!var-name" class="!class-name"/>
+    </transformers>
+</model>

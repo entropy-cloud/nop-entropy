@@ -20,13 +20,13 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 * `<c:for>`
   循环语句。
-  varStatus对应LoopVarStatus类型，具有index,count等属性，以及hasNext()方法。
+  index对应循环下标
 
 ````
-<c:for items="${list}" var="item" varStatus="vs">
+<c:for items="${list}" var="item" index="index">
 </c:for>
 
-<c:for begin="0" end="2" var="index" varStatus="vs">
+<c:for begin="0" end="2" var="index" index="index">
 </c:for>
 ````
 
@@ -56,12 +56,12 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 ````
  <c:choose>
-   <c:when test="${cond}">
+   <when test="${cond}">
       当条件为true时执行
-   </c:when>
-   <c:otherwise>
+   </when>
+   <otherwise>
       当其他条件都不满足时执行
-   </c:otherwise>
+   </otherwise>
  </c:choose>
 ````   
 
@@ -75,19 +75,17 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 ````
 <c:try>
+  <body>
   需要执行的代码
+  </body>
   
-  <c:catch type="biz.BizException">
-     捕获特定类型的异常
-  </c:catch>
+  <catch>
+     捕获异常，上下文中$excetion对应异常对象
+  </catch>
   
-  <c:catch>
-     不区分类型捕获异常
-  </c:catch>
-  
-  <c:finally>
+  <finally>
      
-  </c:finally>
+  </finally>
 </c:try>
 ````
 
@@ -121,22 +119,25 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 <c:import class="a.b.c.MyConstants" />
 ````
 
+引入标签库的时候缺省名字空间根据标签库文件名推定，例如 a.xlib => a, a!ext.xlib => a。
+也可以直接指定名字空间，例如
+
+````xml
+
+<c:import from="xxx.xlib" as="yyy"/>
+<yyy:MyTag/>
+````
+
 * `<c:include>`
 
-* `<c:compile>`
-  编译指定内容, 返回Expression对象
-
-```
-   <c:compile src="${tagBody}" xpl:return="compiledExpr">
-     当src返回的结果是null时, 将把这里的内容作为缺省值。src返回的结果必须是XNode类型。
-   </c:compile>
-```
+* `<macro:script>`
+  编译指定内容, 并直接运行
 
 * `<macro:gen>`
   宏标签会在编译期被运行。
 
 ```
-  <macro:gen dump="true" >
+  <macro:gen xpl:dump="true" >
     这里的内容先被编译为Expression, 然后在编译期会立刻执行此xpl。
     xpl输出的XNode会再次被编译
   </macro:gen>
@@ -286,7 +287,7 @@ xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
    控制标签是否运行，相当于简化c:if调用
 
 ```
-  <div xpl:if="${selectors.contains('a')}">
+  <div xpl:if="selectors.contains('a')">
   </div>
   
   <!-- 如果使用编译期表达式，xpl引擎内部会实现自动优化 -->
@@ -298,7 +299,7 @@ xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
    如果为true, 则跳过本层标签，直接编译标签的body。相当于是控制跳过嵌套的层次
 
 ```
-  <my:MyTag xpl:skipIf="${true}">
+  <my:MyTag xpl:skipIf="true">
      <body/>
   </my:MyTag>
   

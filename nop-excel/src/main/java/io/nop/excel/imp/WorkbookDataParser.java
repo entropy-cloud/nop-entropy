@@ -50,7 +50,7 @@ public class WorkbookDataParser {
     static final Logger LOG = LoggerFactory.getLogger(WorkbookDataParser.class);
 
     private final ImportModel importModel;
-    private final XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+    private final XLangCompileTool compileTool;
     private final ICache<Object, Object> cache = LocalCache.newCache("dict-cache", newConfig(100));
 
     private boolean returnDynamicObject;
@@ -63,12 +63,17 @@ public class WorkbookDataParser {
         this.returnDynamicObject = returnDynamicObject;
     }
 
-    public WorkbookDataParser(ImportModel importModel) {
+    public WorkbookDataParser(ImportModel importModel, XLangCompileTool compileTool) {
         this.importModel = importModel;
+        this.compileTool = compileTool;
+    }
+
+    public WorkbookDataParser(ImportModel importModel) {
+        this(importModel, XLang.newCompileTool().allowUnregisteredScopeVar(true));
     }
 
     public WorkbookDataParser() {
-        this.importModel = null;
+        this(null, XLang.newCompileTool().allowUnregisteredScopeVar(true));
     }
 
     public Object parseFromWorkbook(ExcelWorkbook workbook) {

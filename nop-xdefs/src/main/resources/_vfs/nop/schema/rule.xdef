@@ -17,12 +17,12 @@
     <!--
     @label 对当前判断条件的描述信息
     -->
-    <xdef:define xdef:name="RuleDeciderModel" id="!string" label="string" multiMatch="!boolean=false">
+    <xdef:define xdef:name="RuleDecisionTreeModel" id="string" label="string" multiMatch="!boolean=false">
 
         <predicate xdef:ref="query/filter.xdef"/>
 
         <children xdef:body-type="list" xdef:key-attr="id">
-            <child id="!string" xdef:ref="RuleDeciderModel"/>
+            <child id="!string" xdef:ref="RuleDecisionTreeModel"/>
         </children>
 
         <!-- 当前判断分支所对应的业务描述 -->
@@ -47,9 +47,9 @@
                 xdef:name="RuleOutputDefineModel"/>
     </outputs>
 
-    <decisionTable xdef:name="RuleDecisionTableModel" resultStartPos="cell-pos">
-        <rowDecider xdef:ref="RuleDeciderModel" xdef:mandatory="true"/>
-        <colDecider xdef:ref="RuleDeciderModel"/>
+    <decisionMatrix xdef:name="RuleDecisionMatrixModel">
+        <rowDecider xdef:ref="RuleDecisionTreeModel" xdef:mandatory="true"/>
+        <colDecider xdef:ref="RuleDecisionTreeModel"/>
 
         <cells xdef:body-type="list" xdef:key-attr="pos">
             <cell pos="!cell-pos" xdef:name="RuleTableCellModel">
@@ -60,8 +60,8 @@
                 </outputs>
             </cell>
         </cells>
-    </decisionTable>
+    </decisionMatrix>
 
-    <decisionTree xdef:ref="RuleDeciderModel"/>
+    <decisionTree xdef:ref="RuleDecisionTreeModel"/>
 
 </rule>

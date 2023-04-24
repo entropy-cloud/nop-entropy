@@ -1,0 +1,9 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="xpt">
+
+    <loaders>
+        <loader fileType="xpt.xml" class="io.nop.report.core.build.XptModelLoader"/>
+        <loader fileType="xpt.xlsx" class="io.nop.report.core.build.XptModelLoader"/>
+    </loaders>
+
+</model>

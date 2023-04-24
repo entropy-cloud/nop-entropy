@@ -42,7 +42,7 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
                                           IResourceObjectLoader<? extends IComponentModel> loader, boolean replace);
 
     Runnable registerComponentModelTransformer(String fromModelType, String toModelType,
-                                               Function<IComponentModel, IComponentModel> transformer, boolean replace);
+                                               IComponentTransformer<?,?> transformer, boolean replace);
 
     ComponentModelConfig getModelConfigByModelPath(String path);
 

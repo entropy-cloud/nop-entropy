@@ -26,6 +26,10 @@ public class BaseCell extends AbstractCell {
         return comment;
     }
 
+    public void setComment(String comment){
+        this.comment = comment;
+    }
+
     @Override
     protected void outputJson(IJsonHandler out) {
         super.outputJson(out);

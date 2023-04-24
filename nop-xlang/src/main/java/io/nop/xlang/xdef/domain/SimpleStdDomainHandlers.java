@@ -307,6 +307,18 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class FileTypeType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_FILE_TYPE;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            return StringHelper.isValidFileType(text);
+        }
+    }
+
     public static abstract class AbstractStringSetType extends SimpleStdDomainHandler {
         @Override
         public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {

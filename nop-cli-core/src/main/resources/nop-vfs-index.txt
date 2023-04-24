@@ -15,6 +15,16 @@
 /nop/codegen/xlib/web-gen.xlib
 /nop/core/_module
 /nop/core/app.module.yaml
+/nop/core/registry/api.register-model.xml
+/nop/core/registry/dialect.register-model.xml
+/nop/core/registry/dict.register-model.xml
+/nop/core/registry/imp.register-model.xml
+/nop/core/registry/orm.register-model.xml
+/nop/core/registry/xlib.register-model.xml
+/nop/core/registry/xmeta.register-model.xml
+/nop/core/registry/xpl.register-model.xml
+/nop/core/registry/xpt.register-model.xml
+/nop/core/registry/xtask.register-model.xml
 /nop/dao/beans/dao-defaults.beans.xml
 /nop/dao/dialect/db2.dialect.xml
 /nop/dao/dialect/default.dialect.xml
@@ -77,6 +87,8 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
+/nop/schema/register-model.xdef
+/nop/schema/registry.xdef
 /nop/schema/rule.xdef
 /nop/schema/schema/auth.xdef
 /nop/schema/schema/obj-schema.xdef
@@ -204,3 +216,4 @@
 /nop/templates/xdsl/@lib/gen-xdsl.xlib
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/_gen/_{objSchema.simpleClassName}.java.xgen
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/{objSchema.simpleClassName}.java.xgen
+/xdef.register-model.xml

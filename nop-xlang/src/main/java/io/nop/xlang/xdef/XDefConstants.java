@@ -27,6 +27,7 @@ public interface XDefConstants {
     String STD_DOMAIN_PACKAGE_NAME = "package-name";
     String STD_DOMAIN_NUMBER = "number";
     String STD_DOMAIN_SQL_OBJ = "sql-obj";
+    String STD_DOMAIN_FILE_TYPE = "file-type";
     String STD_DOMAIN_URL = "url";
     String STD_DOMAIN_XPATH = "xpath";
     String STD_DOMAIN_JPATH = "jpath";

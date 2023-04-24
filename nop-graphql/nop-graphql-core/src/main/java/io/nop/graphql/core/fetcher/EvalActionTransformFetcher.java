@@ -13,7 +13,6 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
-import io.nop.xlang.api.XLang;
 
 import java.util.concurrent.CompletionStage;
 
@@ -32,15 +31,15 @@ public class EvalActionTransformFetcher implements IDataFetcher {
         if (value instanceof CompletionStage) {
             Object entity = env.getSource();
             return ((CompletionStage<?>) value).thenCompose(v -> {
-                return FutureHelper.toCompletionStage(transform(entity, v));
+                return FutureHelper.toCompletionStage(transform(entity, v, env));
             });
         } else {
-            return transform(env.getSource(), value);
+            return transform(env.getSource(), value, env);
         }
     }
 
-    Object transform(Object entity, Object value) {
-        IEvalScope scope = XLang.newEvalScope();
+    Object transform(Object entity, Object value, IDataFetchingEnvironment env) {
+        IEvalScope scope = env.getEvalScope().newChildScope();
         scope.setLocalValue(null, GraphQLConstants.VAR_ENTITY, entity);
         scope.setLocalValue(null, GraphQLConstants.VAR_VALUE, value);
         return transformAction.invoke(scope);

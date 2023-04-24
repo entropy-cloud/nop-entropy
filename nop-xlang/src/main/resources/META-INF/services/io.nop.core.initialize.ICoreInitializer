@@ -1,2 +1,3 @@
-io.nop.xlang.initialize.XLangInitializer
+io.nop.xlang.initialize.XLangCoreInitializer
 io.nop.xlang.initialize.XLangDebuggerInitializer
+io.nop.xlang.initialize.RegisterModelCoreInitializer

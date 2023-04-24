@@ -9,6 +9,8 @@ package io.nop.ioc.impl;
 
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.ApiErrors;
+import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.api.core.ioc.IBeanContainer;
@@ -63,6 +65,8 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     private final Map<Class<?>, BeanTypeMapping> beansByType = new ConcurrentHashMap<>();
     private final Map<Class<? extends Annotation>, List<BeanDefinition>> beansByAnnotation = new ConcurrentHashMap<>();
 
+    private IConfigProvider configProvider = AppConfig.getConfigProvider();
+
     private IClassLoader classLoader = ClassHelper.getSafeClassLoader();
     private IBeanClassIntrospection classIntrospection;
 
@@ -93,6 +97,10 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         }
     }
 
+    public void setConfigProvider(IConfigProvider configProvider) {
+        this.configProvider = configProvider;
+    }
+
     public void setClassLoader(IClassLoader classLoader) {
         this.classLoader = classLoader;
     }
@@ -106,6 +114,10 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             classIntrospection = new DefaultBeanClassIntrospection(classLoader);
         }
         return classIntrospection;
+    }
+
+    public void setClassIntrospection(IBeanClassIntrospection classIntrospection) {
+        this.classIntrospection = classIntrospection;
     }
 
     public String getId() {
@@ -358,6 +370,16 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
 
     public void setStartMode(BeanContainerStartMode startMode) {
         this.startMode = startMode;
+    }
+
+    @Override
+    public Object getConfigValue(String varName) {
+        return configProvider.getConfigValue(varName, null);
+    }
+
+    @Override
+    public IConfigProvider getConfigProvider() {
+        return configProvider;
     }
 
     @Override

@@ -18,14 +18,14 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.excel.imp.WorkbookDataParser;
+import io.nop.excel.imp.ImportModelHelper;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.excel.util.MultiLineConfigParser;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
@@ -52,7 +52,7 @@ import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CELL_MODEL_PROP;
 public class ExcelToXptModelTransformer {
 
     public void transform(ExcelWorkbook workbook) {
-        ImportModel importModel = (ImportModel) ResourceComponentManager.instance().loadComponentModel(XptConstants.XPT_IMP_MODEL_PATH);
+        ImportModel importModel = ImportModelHelper.getImportModel(XptConstants.XPT_IMP_MODEL_PATH);
         IXDefinition xptXDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_WORKBOOK);
         IXDefNode cellModelNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CELL).getChild(XptConstants.PROP_MODEL);
 
@@ -177,7 +177,6 @@ public class ExcelToXptModelTransformer {
     private <T> T importModel(ImportSheetModel impModel, ExcelSheet sheet, Class<T> clazz) {
         if (sheet == null)
             return null;
-        DynamicObject obj = new WorkbookDataParser().parseSheet(impModel, sheet, XLang.newEvalScope());
-        return BeanTool.buildBean(obj, clazz);
+        return ImportModelHelper.parseSheet(impModel, sheet, clazz);
     }
 }

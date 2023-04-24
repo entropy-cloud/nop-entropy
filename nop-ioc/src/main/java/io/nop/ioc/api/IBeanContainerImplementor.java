@@ -7,6 +7,7 @@
  */
 package io.nop.ioc.api;
 
+import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.commons.lang.IClassLoader;
@@ -24,6 +25,10 @@ public interface IBeanContainerImplementor extends IBeanContainer, ILifeCycle {
     void restart();
 
     BeanContainerStartMode getStartMode();
+
+    Object getConfigValue(String varName);
+
+    IConfigProvider getConfigProvider();
 
     void refreshConfig(String beanId);
 

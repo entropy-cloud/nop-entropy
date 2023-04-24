@@ -8,6 +8,8 @@
 
 ### [Api模型](model/api-model.md)
 
+### [自定义模型](model/custom-model.md)
+
 ## [代码生成](codegen.md)
 
 ## [配置管理](config.md)

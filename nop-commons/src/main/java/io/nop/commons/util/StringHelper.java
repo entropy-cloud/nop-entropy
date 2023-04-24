@@ -2790,6 +2790,20 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static boolean isValidFileType(String name) {
+        if (isEmpty(name))
+            return false;
+
+        if (!isValidFileName(name))
+            return false;
+
+        if (countChar(name, '.') > 2)
+            return false;
+
+        return true;
+    }
+
+    @Deterministic
     public static String removeFileType(String path) {
         if (path == null)
             return null;

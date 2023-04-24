@@ -8,15 +8,16 @@
 package io.nop.rule.api;
 
 import io.nop.api.core.util.IVariableScope;
-import io.nop.rule.api.support.DefaultRuleRuntime;
 
 public interface IRuleManager {
     String OUTPUT_RESULT = "result";
 
     IExecutableRule getRule(String ruleName);
 
+    IRuleRuntime newRuleRuntime(IVariableScope scope);
+
     default Object chooseByRule(String ruleName, IVariableScope scope) {
-        IRuleRuntime rt = new DefaultRuleRuntime(scope);
+        IRuleRuntime rt = newRuleRuntime(scope);
         IExecutableRule rule = getRule(ruleName);
         if (!rule.execute(rt))
             return null;

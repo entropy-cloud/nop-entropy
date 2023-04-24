@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="xtask">
+
+    <loaders>
+        <loader fileType="xtask" class="io.nop.xlang.xpl.impl.XplTaskLoader"/>
+    </loaders>
+
+</model>

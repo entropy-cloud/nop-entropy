@@ -35,4 +35,8 @@ public interface ICell extends ICellView, IFreezable {
     Object getValue();
 
     void setValue(Object value);
+
+    String getComment();
+
+    void setComment(String comment);
 }

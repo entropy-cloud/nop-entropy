@@ -68,7 +68,16 @@ public class DslModelHelper {
         return xdefPath;
     }
 
+    static Class<?> g_excelModelLoaderClass;
+
+    public static void registerExcelModelLoaderClass(Class<?> clazz) {
+        g_excelModelLoaderClass = clazz;
+    }
+
     public static boolean supportExcelModelLoader() {
+        if (g_excelModelLoaderClass != null)
+            return true;
+
         try {
             ReflectionManager.instance().loadClassModel(XDslConstants.EXCEL_MODEL_LOADER_CLASS);
             return true;
@@ -80,7 +89,12 @@ public class DslModelHelper {
     }
 
     public static IResourceObjectLoader<IComponentModel> newExcelModelLoader(String impModelPath) {
-        IClassModel classModel = ReflectionManager.instance().loadClassModel(XDslConstants.EXCEL_MODEL_LOADER_CLASS);
+        IClassModel classModel;
+        if (g_excelModelLoaderClass != null) {
+            classModel = ReflectionManager.instance().getClassModel(g_excelModelLoaderClass);
+        } else {
+            classModel = ReflectionManager.instance().loadClassModel(XDslConstants.EXCEL_MODEL_LOADER_CLASS);
+        }
         return (IResourceObjectLoader<IComponentModel>) classModel.getConstructor(new Class[]{String.class})
                 .invoke(null, new String[]{impModelPath}, DisabledEvalScope.INSTANCE);
     }

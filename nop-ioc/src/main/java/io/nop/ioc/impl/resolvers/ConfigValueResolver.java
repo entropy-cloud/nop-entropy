@@ -65,7 +65,7 @@ public class ConfigValueResolver implements IBeanPropValueResolver {
     @Override
     public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
         for (int i = 0, n = configVars.size(); i < n; i++) {
-            Object value = AppConfig.var(configVars.get(i));
+            Object value = container.getConfigValue(configVars.get(i));
             if (!StringHelper.isEmptyObject(value))
                 return value;
         }
