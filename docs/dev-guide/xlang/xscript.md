@@ -53,8 +53,8 @@ result = xpl('my:MyTag',1, x+3)
 在XScript中可以使用的全局变量和全局函数通过 EvalGlobalRegistry类进行管理。目前主要是注册了GlobalFunctions类中定义的方法。
 
 在调试模式下，通过前端REST请求可以获知当前系统中注册的所有全局变量和全局函数
-1. /r/DevDoc_globalFunctions
-2. /r/DevDoc_globalVars
+1. /r/DevDoc__globalFunctions
+2. /r/DevDoc__globalVars
 
 其他调试信息参见[debug.md](../debug.md)
 
