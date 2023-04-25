@@ -39,3 +39,25 @@ XScript是语法类似于TypeScript的脚本语言。在XPL中可以通过`<c:sc
   let y = xpl('my:MyTag',{a:1,b:x+3))
 </c:script>
 ````
+
+xpl是一个宏函数，它支持三种调用形式。
+
+````
+result = xpl `<my:MyTag a='${1}' b='${x+3}' />`
+result = xpl('my:MyTag',{a:1,b:x+3})
+result = xpl('my:MyTag',1, x+3)
+````
+第三种形式要求参数顺序和标签库中定义的参数顺序相同
+
+## 全局变量
+在XScript中可以使用的全局变量和全局函数通过 EvalGlobalRegistry类进行管理。目前主要是注册了GlobalFunctions类中定义的方法。
+
+在调试模式下，通过前端REST请求可以获知当前系统中注册的所有全局变量和全局函数
+1. /r/DevDoc_globalFunctions
+2. /r/DevDoc_globalVars
+
+其他调试信息参见[debug.md](../debug.md)
+
+## 特定上下文变量
+* codeGenerator: XCodeGenerator类型，precompile目录下的代码生成模板中可用
+* __dsl_root：XNode类型，在`x:gen-extends`和`x:post-extends`这样的元编程处理段中可用

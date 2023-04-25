@@ -7,6 +7,9 @@
  <c:script>
     let x = xpl('my:Add',3,4);
     $.checkEquals(7,x);
+    
+    x = xpl('my:Add',{a:3,b:4});
+    $.checkEquals(7,x);
  </c:script>
 
 </c:unit>

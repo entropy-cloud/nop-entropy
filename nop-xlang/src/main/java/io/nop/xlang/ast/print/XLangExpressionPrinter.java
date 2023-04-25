@@ -218,12 +218,22 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitObjectExpression(ObjectExpression node) {
-        super.visitObjectExpression(node);
+        print('{');
+        int i = 0;
+        for (XLangASTNode prop : node.getProperties()) {
+            if (i != 0)
+                print(',');
+            visit(prop);
+            i++;
+        }
+        print('}');
     }
 
     @Override
     public void visitPropertyAssignment(PropertyAssignment node) {
-        super.visitPropertyAssignment(node);
+        print(node.getKey());
+        print(" : ");
+        print(node.getValue());
     }
 
     @Override
@@ -302,7 +312,16 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitCallExpression(CallExpression node) {
-        super.visitCallExpression(node);
+        visit(node.getCallee());
+        if (node.getOptional())
+            print("?.");
+        print('(');
+        for (int i = 0, n = node.getArguments().size(); i < n; i++) {
+            if (i != 0)
+                print(',');
+            visit(node.getArgument(i));
+        }
+        print(')');
     }
 
     @Override
@@ -312,7 +331,8 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitSpreadElement(SpreadElement node) {
-        super.visitSpreadElement(node);
+        print("...");
+        visit(node.getArgument());
     }
 
     @Override
@@ -327,7 +347,9 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitBraceExpression(BraceExpression node) {
-        super.visitBraceExpression(node);
+        print("(");
+        visit(node.getExpr());
+        print(')');
     }
 
     @Override

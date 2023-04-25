@@ -20,4 +20,21 @@ public class ObjectExpression extends _ObjectExpression {
         node.setProperties(properties == null ? Collections.emptyList() : properties);
         return node;
     }
+
+    /**
+     * 是否是属性名固定的Map，例如 {a:1,b:f()}。
+     * 对于{[x]:1,...other}这种情况则返回false
+     */
+    public boolean isPropMap() {
+        for (XLangASTNode prop : this.getProperties()) {
+            if (prop.getASTKind() != XLangASTKind.PropertyAssignment) {
+                return false;
+            }
+
+            PropertyAssignment assign = (PropertyAssignment) prop;
+            if (assign.getKey().getASTKind() != XLangASTKind.Literal)
+                return false;
+        }
+        return true;
+    }
 }

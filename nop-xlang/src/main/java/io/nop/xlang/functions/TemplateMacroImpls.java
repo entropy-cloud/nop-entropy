@@ -20,8 +20,13 @@ import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.CallExpression;
 import io.nop.xlang.ast.Expression;
+import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.Literal;
+import io.nop.xlang.ast.ObjectExpression;
+import io.nop.xlang.ast.PropertyAssignment;
 import io.nop.xlang.ast.TemplateStringLiteral;
+import io.nop.xlang.ast.XLangASTKind;
+import io.nop.xlang.ast.XLangASTNode;
 import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xpath.XPathHelper;
 import io.nop.xlang.xpl.IXplTagCompiler;
@@ -88,12 +93,28 @@ public class TemplateMacroImpls {
     }
 
     private static XNode buildTagNode(XplTag tag, String tagName, CallExpression expr) {
+        XNode node = XNode.make(tagName);
+        node.setLocation(expr.getLocation());
+
+        if (expr.getArguments().size() == 2) {
+            Expression argExpr = expr.getArgument(1);
+            if (argExpr.getASTKind() == XLangASTKind.ObjectExpression) {
+                ObjectExpression objExpr = (ObjectExpression) argExpr;
+                if (objExpr.isPropMap()) {
+                    for (XLangASTNode prop : objExpr.getProperties()) {
+                        PropertyAssignment assign = (PropertyAssignment) prop;
+                        String name = ((Literal) assign.getKey()).getStringValue();
+                        node.setAttr(prop.getLocation(), name, assign.getValue());
+                    }
+                    return node;
+                }
+            }
+        }
+
         if (tag.getAttrs().size() < expr.getArguments().size() - 1) {
             throw new NopEvalException(ERR_XPL_TAG_FUNC_TOO_MAY_ARGS).source(expr).param(ARG_TAG_NAME, tagName)
                     .param(ARG_MAX_COUNT, tag.getAttrs().size());
         }
-        XNode node = XNode.make(tagName);
-        node.setLocation(expr.getLocation());
         for (int i = 1, n = expr.getArguments().size(); i < n; i++) {
             Expression argExpr = expr.getArgument(i);
             node.setAttr(argExpr.getLocation(), tag.getAttrs().get(i - 1).getName(), argExpr);
