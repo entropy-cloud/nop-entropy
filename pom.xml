@@ -328,7 +328,10 @@
 
                         <execution>
                             <id>postcompile</id>
-                            <phase>package</phase>
+                            <phase>generate-test-resources</phase>
+                            <goals>
+                                <goal>java</goal>
+                            </goals>
                             <configuration>
                                 <addResourcesToClasspath>true</addResourcesToClasspath>
                                 <addOutputToClasspath>true</addOutputToClasspath>

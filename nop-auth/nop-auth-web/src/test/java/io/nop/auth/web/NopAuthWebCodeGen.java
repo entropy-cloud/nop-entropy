@@ -24,8 +24,9 @@ public class NopAuthWebCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopAuthWebCodeGen.class);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-auth-codegen"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-auth-codegen"), "/", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-auth-service"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-auth-service"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
 
         } finally {

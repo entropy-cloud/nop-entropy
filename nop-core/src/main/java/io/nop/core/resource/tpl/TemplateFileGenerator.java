@@ -269,10 +269,12 @@ public class TemplateFileGenerator {
         if (resource.getName().endsWith(XRUN_FILE_SUFFIX)) {
             // xrun文件表示忽略其直接输出内容
             ITemplateOutput tpl = loader.getTemplate(resource);
-            try {
-                tpl.generateToStream(new DiscardOutputStream(), scope);
-            } catch (IOException e) {
-                throw NopException.adapt(e);
+            if(tpl != null) {
+                try {
+                    tpl.generateToStream(new DiscardOutputStream(), scope);
+                } catch (IOException e) {
+                    throw NopException.adapt(e);
+                }
             }
             return;
         }

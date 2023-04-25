@@ -18,7 +18,7 @@ public class ${moduleClassPrefix}CodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(${moduleClassPrefix}CodeGen.class);
-            XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPostcompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

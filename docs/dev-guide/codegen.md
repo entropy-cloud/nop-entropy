@@ -25,6 +25,8 @@ Nop平台提供了与Maven相集成的代码生成能力，但是并没有做成
 
 如果不使用pom的parent继承机制，则需要为exec-maven-plugin插件提供更多的参数配置，具体可以参见[nop-entropy/pom.xml](../../pom.xml)中的配置
 
+>  例如nop-auth-service模块中precompile阶段根据nop-auth-dao模块中的orm模型生成meta模型，而postcompile阶段根据当前工程中的meta模型生成i18n配置文件。
+
 ### 在Maven之外调用代码生成器
 
 CodeGenTask是一个普通的java类，可以在Maven外直接调用。例如
@@ -50,6 +52,9 @@ public class NopOrmCodeGen {
 
 Nop平台提供了XLang语言的Idea调试插件，可以在xgen文件中增加断点进行调试。参见[idea-plugin.md](../user-guide/idea/idea-plugin.md)
 
+根据Excel数据模型生成的代码工程中， xxx-codegen模块以及xxx-web模块中都包含了一个CodeGen.java类，例如NopAuthCodeGen和NopAuthWebCodeGen，
+使用它们可以在IDEA中直接执行代码生成逻辑，而不用通过Maven工具来执行。Maven工具执行时总是先执行Java编译过程，影响性能。
+
 ### 通过nop-cli命令行工具执行代码生成
 
 nop-cli工具的gen指令封装了CodeGenTask工具类的功能，将它包装为一个命令行调用。
@@ -59,6 +64,8 @@ nop-cli gen model/app-mall.orm.xlsx -t=/nop/templates/orm
 ```
 
 上面的例子表示读取app-mall.orm.xlsx模型，应用虚拟文件系统中的/nop/templates/orm目录下的模板文件，生成代码到当前工程目录下。
+
+
 
 ## 数据驱动的代码生成器
 

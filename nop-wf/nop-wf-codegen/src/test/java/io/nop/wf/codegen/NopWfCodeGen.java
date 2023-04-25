@@ -24,7 +24,7 @@ public class NopWfCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopWfCodeGen.class);
-            XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPostcompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

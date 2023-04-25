@@ -24,7 +24,7 @@ public class NopRuleCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopRuleCodeGen.class);
-            XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPostcompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

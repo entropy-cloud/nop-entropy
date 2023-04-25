@@ -120,6 +120,9 @@ public class _NopJobPlan extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 25;
 
     
+    /* component:  */
+    public static final String PROP_NAME_jobParamsComponent = "jobParamsComponent";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
@@ -1307,5 +1310,22 @@ public class _NopJobPlan extends DynamicOrmEntity{
         }
     }
     
+   private io.nop.orm.support.JsonOrmComponent _jobParamsComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_jobParamsComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_jobParamsComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_jobParams);
+      
+   }
+
+   public io.nop.orm.support.JsonOrmComponent getJobParamsComponent(){
+      if(_jobParamsComponent == null){
+          _jobParamsComponent = new io.nop.orm.support.JsonOrmComponent();
+          _jobParamsComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_jobParamsComponent);
+      }
+      return _jobParamsComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

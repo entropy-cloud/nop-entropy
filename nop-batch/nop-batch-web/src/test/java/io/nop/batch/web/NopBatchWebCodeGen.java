@@ -24,8 +24,9 @@ public class NopBatchWebCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopBatchWebCodeGen.class);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-batch-codegen"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-batch-codegen"), "/", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-batch-service"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-batch-service"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

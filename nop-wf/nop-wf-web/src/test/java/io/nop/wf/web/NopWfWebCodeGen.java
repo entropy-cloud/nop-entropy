@@ -24,8 +24,9 @@ public class NopWfWebCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopWfWebCodeGen.class);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-wf-codegen"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-wf-codegen"), "/", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-wf-service"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-wf-service"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

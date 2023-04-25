@@ -24,7 +24,7 @@ public class NopBatchCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopBatchCodeGen.class);
-            XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPostcompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }

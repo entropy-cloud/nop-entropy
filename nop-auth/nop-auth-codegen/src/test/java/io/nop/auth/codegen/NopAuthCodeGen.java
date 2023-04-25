@@ -24,7 +24,7 @@ public class NopAuthCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopAuthCodeGen.class);
-            XCodeGenerator.runPrecompile(projectDir, "/", false);
+            XCodeGenerator.runPostcompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();
         }
