@@ -1,4 +1,3 @@
 <c:script xpl:ignoreTag="true">
 codeGenerator.renderModel('/${moduleId}/orm/app.orm.xml','/nop/templates/meta', '/',$scope);
-codeGenerator.withTplDir('/nop/templates/i18n').execute("/",{ moduleId: "${moduleId}" },$scope);
 </c:script>

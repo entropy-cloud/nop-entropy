@@ -181,7 +181,7 @@
 /nop/templates/orm/{appName}-app/src/main/resources/application.yaml.xgen
 /nop/templates/orm/{appName}-app/src/main/resources/bootstrap.yaml
 /nop/templates/orm/{appName}-codegen/pom.xml.xgen
-/nop/templates/orm/{appName}-codegen/precompile/gen-orm.xgen.xgen
+/nop/templates/orm/{appName}-codegen/postcompile/gen-orm.xgen.xgen
 /nop/templates/orm/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
 /nop/templates/orm/{appName}-dao/pom.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/java/impl.xrun

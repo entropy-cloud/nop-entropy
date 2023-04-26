@@ -1,0 +1,3 @@
+<c:script xpl:ignoreTag="true">
+codeGenerator.withTplDir('/nop/templates/i18n').execute("/",{ moduleId: "${moduleId}" },$scope);
+</c:script>
