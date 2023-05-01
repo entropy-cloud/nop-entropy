@@ -61,7 +61,7 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
      * xml name: predicate
      * 
      */
-    private io.nop.api.core.beans.TreeBean _predicate ;
+    private io.nop.core.lang.xml.XNode _predicate ;
     
     /**
      * 
@@ -235,12 +235,12 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
      *  
      */
     
-    public io.nop.api.core.beans.TreeBean getPredicate(){
+    public io.nop.core.lang.xml.XNode getPredicate(){
       return _predicate;
     }
 
     
-    public void setPredicate(io.nop.api.core.beans.TreeBean value){
+    public void setPredicate(io.nop.core.lang.xml.XNode value){
         checkAllowChange();
         
         this._predicate = value;
@@ -258,8 +258,6 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
            this._children = io.nop.api.core.util.FreezeHelper.deepFreeze(this._children);
             
            this._outputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._outputs);
-            
-           this._predicate = io.nop.api.core.util.FreezeHelper.deepFreeze(this._predicate);
             
         }
     }

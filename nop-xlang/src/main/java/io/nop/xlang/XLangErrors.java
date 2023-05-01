@@ -961,4 +961,7 @@ public interface XLangErrors {
     ErrorCode ERR_XLANG_EXPR_NOT_JSON_VALUE =
             define("nop.err.xlang.expr-not-json-value",
                     "表达式不是JSON格式:{expr}", ARG_EXPR);
+
+    ErrorCode ERR_XLANG_EXPR_NOT_QUALIFIED_NAME =
+            define("nop.err.xlang.expr-not-qualified-name", "表达式不是合法的名称:{expr}", ARG_EXPR);
 }

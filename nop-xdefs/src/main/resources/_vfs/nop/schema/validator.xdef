@@ -16,8 +16,8 @@
            xdef:name="ValidatorCheckModel" severity="!int=0"
            xdef:bean-extends-type="io.nop.core.resource.component.AbstractSimpleComponentModel"
            xdef:unique-attr="id">
-        <condition xdef:ref="query/filter.xdef"/>
+        <condition xdef:value="filter-bean"/>
     </check>
 
-    <condition xdef:ref="query/filter.xdef"/>
+    <condition xdef:value="filter-bean"/>
 </validator>

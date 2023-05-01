@@ -38,7 +38,7 @@ public class ReportExprStdDomainHandler extends XplStdDomainHandlers.AbstractExp
         IFunctionProvider provider = cp.getScope().getFunctionProvider();
         try {
             cp.getScope().setFunctionProvider(ReportFunctionProvider.INSTANCE);
-            return cp.buildActionForExpr(expr);
+            return cp.buildEvalAction(expr);
         } catch (Exception e) {
             throw newPropError(loc, propName, source).cause(e);
         } finally {

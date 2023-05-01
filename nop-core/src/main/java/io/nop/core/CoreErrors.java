@@ -180,6 +180,9 @@ public interface CoreErrors {
     String ARG_ALLOWED_NS = "allowedNs";
     String ARG_XML_NAME = "xmlName";
 
+    ErrorCode ERR_JSON_VALUE_NOT_NODE =
+            define("nop.err.core.json-value-not-node", "值无法转换为XNode类型");
+
     ErrorCode ERR_JSON_FLATTEN_KEY_CONFLICT = define("nop.err.core.json.flatten-key-conflict",
             "将JSON按key嵌套展平时出现重名的key:[{key}]", ARG_KEY);
 
@@ -348,6 +351,10 @@ public interface CoreErrors {
     ErrorCode ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM = define(
             "nop.err.core.component.undefined-component-model-transform",
             "组件模型[{modelType}]没有定义转换类型[{transform}]，无法转换到指定类型", ARG_MODEL_TYPE, ARG_TRANSFORM);
+
+    ErrorCode ERR_COMPONENT_INVALID_MODEL_PATH =
+            define("nop.err.core.component.invalid-model-path",
+                    "模型路径格式不合法:{resourcePath}", ARG_RESOURCE_PATH);
 
     ErrorCode ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE = define(
             "nop.err.core.component.unknown-file-type-for-model-type", "模型[{modelType}]不支持文件类型[{fileType}]",
@@ -721,7 +728,7 @@ public interface CoreErrors {
             "单元格位置表达式不合法:rowIndex={},colIndex={}", ARG_ROW_INDEX, ARG_COL_INDEX);
 
     ErrorCode ERR_TABLE_NULL_ROW =
-            define("nop.err.core.table.null-row","下标为[{rowIndex}]的行为null", ARG_ROW_INDEX);
+            define("nop.err.core.table.null-row", "下标为[{rowIndex}]的行为null", ARG_ROW_INDEX);
 
     ErrorCode ERR_TABlE_INVALID_RANGE = define("nop.err.core.table.invalid-range", "表格区域表达式不合法");
 
@@ -729,7 +736,7 @@ public interface CoreErrors {
             "Row必须加入某个表格，然后才能执行此操作", ARG_ROW);
 
     ErrorCode ERR_TABLE_NOT_TREE_CELL =
-            define("nop.err.core.table.not-tree-cell","单元格[{cellPos}]必须在父单元格的范围之内", ARG_CELL_POS);
+            define("nop.err.core.table.not-tree-cell", "单元格[{cellPos}]必须在父单元格的范围之内", ARG_CELL_POS);
 
     ErrorCode ERR_TABLE_NOT_PROXY_CELL = define("nop.err.core.table.not-proxy-cell",
             "位置在({rowIndex},{colIndex})的单元格不是ProxyCell", ARG_ROW_INDEX, ARG_COL_INDEX);

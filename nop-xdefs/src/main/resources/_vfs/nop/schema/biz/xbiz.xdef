@@ -9,6 +9,11 @@
      xdef:bean-package="io.nop.biz.model" xdef:name="BizModel"
      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
 >
+    <!-- 可以强制禁用BizModel(包括Java中定义的方法)中的某些Action。缺省情况下平台会提供大量的操作，有可能从安全角度考虑需要缩小范围 -->
+    <disabledActions xdef:value="word-set" />
+
+    <!-- 如果非空，则只有明确允许的action才对外暴露 -->
+    <inheritActions xdef:value="word-set" />
 
     <actions xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="action"
              xdef:bean-body-type="List&lt;io.nop.biz.model.BizActionModel>">

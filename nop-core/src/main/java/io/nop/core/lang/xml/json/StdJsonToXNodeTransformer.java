@@ -7,6 +7,8 @@
  */
 package io.nop.core.lang.xml.json;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.xml.IObjectToXNodeTransformer;
 import io.nop.core.lang.xml.XNode;
@@ -16,17 +18,25 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.core.CoreErrors.ARG_VALUE;
+import static io.nop.core.CoreErrors.ERR_JSON_VALUE_NOT_NODE;
+
 public class StdJsonToXNodeTransformer implements IObjectToXNodeTransformer {
     public static final StdJsonToXNodeTransformer INSTANCE = new StdJsonToXNodeTransformer();
 
     @Override
     public XNode transformToXNode(Object value) {
+        if (StringHelper.isEmptyObject(value))
+            return null;
+
+        if (value instanceof XNode)
+            return (XNode) value;
+
         if (value instanceof Map) {
             return transformMap((Map<String, Object>) value);
         } else {
-            XNode node = XNode.makeTextNode();
-            node.content(value);
-            return node;
+            throw new NopException(ERR_JSON_VALUE_NOT_NODE)
+                    .param(ARG_VALUE, value);
         }
     }
 

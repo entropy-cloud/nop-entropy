@@ -62,6 +62,8 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.XmlType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.XmlBodyType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.XJsonNodeType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.FilterBeanType());
+
         registerStdDomainHandler(new XJsonListDomainHandler());
         registerStdDomainHandler(new SimpleStdDomainHandlers.BooleanOrNumberType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.IntOrStringType());

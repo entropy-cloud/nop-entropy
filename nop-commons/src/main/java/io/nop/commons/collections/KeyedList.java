@@ -16,6 +16,7 @@ import io.nop.commons.util.StringHelper;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -24,7 +25,9 @@ import java.util.RandomAccess;
 import java.util.Set;
 import java.util.function.Function;
 
+import static io.nop.commons.CommonErrors.ARG_KEY;
 import static io.nop.commons.CommonErrors.ERR_LIST_NOT_ALLOW_NULL_ELEMENT;
+import static io.nop.commons.CommonErrors.ERR_LIST_NOT_ALLOW__DUPLICATE_KEY;
 
 public class KeyedList<T> extends AbstractList<T> implements IKeyedList<T>, IFreezable, RandomAccess {
 
@@ -65,7 +68,8 @@ public class KeyedList<T> extends AbstractList<T> implements IKeyedList<T>, IFre
         if (list instanceof KeyedList)
             return ((KeyedList<T>) list);
         KeyedList<T> ret = new KeyedList<>(list.size(), keyFn);
-        ret.addAll(list);
+        ret.addAllUnique(list);
+
         return ret;
     }
 
@@ -132,6 +136,19 @@ public class KeyedList<T> extends AbstractList<T> implements IKeyedList<T>, IFre
     @Override
     public int size() {
         return list.size();
+    }
+
+    public void addAllUnique(Collection<T> list) {
+        if (list == null)
+            return;
+
+        int n = size();
+        for (T item : list) {
+            add(item);
+            n++;
+            if (n != size())
+                throw new NopException(ERR_LIST_NOT_ALLOW__DUPLICATE_KEY).param(ARG_KEY, getKey(item));
+        }
     }
 
     @Override

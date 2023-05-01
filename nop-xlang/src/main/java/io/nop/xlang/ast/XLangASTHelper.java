@@ -15,7 +15,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_EXPR_NOT_JSON_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_EXPR_NOT_QUALIFIED_NAME;
 
 public class XLangASTHelper {
     public static boolean allowMandatoryChain(Expression x) {
@@ -78,6 +80,33 @@ public class XLangASTHelper {
         return false;
     }
 
+    public static String getQualifiedName(Expression expr) {
+        StringBuilder sb = new StringBuilder();
+        _getQualifiedName(expr, sb);
+        return sb.toString();
+    }
+
+    static void _getQualifiedName(Expression expr, StringBuilder sb) {
+        XLangASTKind kind = expr.getASTKind();
+
+        if (sb.length() > 0)
+            sb.append('.');
+
+        if (kind == XLangASTKind.Identifier) {
+            sb.append(((Identifier) expr).getName());
+        }
+
+        if (kind == XLangASTKind.MemberExpression) {
+            MemberExpression member = (MemberExpression) expr;
+            if (member.getComputed())
+                throw new NopException(ERR_XLANG_EXPR_NOT_QUALIFIED_NAME).param(ARG_EXPR, expr);
+
+            _getQualifiedName(member.getObject(), sb);
+
+            _getQualifiedName(member.getProperty(), sb);
+        }
+    }
+
     public static boolean isJsonValue(XLangASTNode expr) {
         XLangASTKind kind = expr.getASTKind();
         if (kind == XLangASTKind.Literal)
@@ -128,7 +157,7 @@ public class XLangASTHelper {
         if (kind == XLangASTKind.UnaryExpression) {
             UnaryExpression unary = (UnaryExpression) expr;
             if (unary.getOperator() != XLangOperator.MINUS)
-                throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).source(expr);
+                throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).param(ARG_EXPR, expr);
 
             return MathHelper.neg(toJsonValue(unary.getArgument()));
         }
@@ -151,22 +180,22 @@ public class XLangASTHelper {
                 if (elm.getASTKind() == XLangASTKind.PropertyAssignment) {
                     PropertyAssignment prop = (PropertyAssignment) elm;
                     if (prop.getComputed())
-                        throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).source(prop);
+                        throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).param(ARG_EXPR, prop);
 
                     if (prop.getKey().getASTKind() != XLangASTKind.Literal) {
-                        throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).source(prop);
+                        throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).param(ARG_EXPR, prop);
                     }
 
                     String name = ((Literal) prop.getKey()).getStringValue();
                     Object value = toJsonValue(prop.getValue());
                     ret.put(name, value);
                 } else {
-                    throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).source(elm);
+                    throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).param(ARG_EXPR, elm);
                 }
             }
             return ret;
         }
 
-        throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).source(expr);
+        throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).param(ARG_EXPR, expr);
     }
 }

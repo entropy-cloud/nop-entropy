@@ -83,6 +83,8 @@ public interface XDefConstants {
     String STD_DOMAIN_XML_BODY = "xml-body";
     String STD_DOMAIN_XJSON_NODE = "xjson-node";
 
+    String STD_DOMAIN_FILTER_BEAN = "filter-bean";
+
     String STD_DOMAIN_XPL = "xpl";
     String STD_DOMAIN_XPL_PREDICATE = "xpl-predicate";
     String STD_DOMAIN_XPL_TEXT = "xpl-text";

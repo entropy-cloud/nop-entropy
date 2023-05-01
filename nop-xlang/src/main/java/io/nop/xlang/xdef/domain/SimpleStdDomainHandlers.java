@@ -28,6 +28,7 @@ import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XJsonNode;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XPathProvider;
+import io.nop.core.lang.xml.json.StdJsonToXNodeTransformer;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.query.QueryBeanHelper;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
@@ -40,6 +41,7 @@ import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.core.type.utils.TypeReference;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
@@ -174,7 +176,7 @@ public class SimpleStdDomainHandlers {
             return ByteString.decodeBase64((String) value);
         }
 
-        public String serialize(Object value) {
+        public String serializeToString(Object value) {
             if (value == null)
                 return null;
             ByteString bs = (ByteString) value;
@@ -200,7 +202,7 @@ public class SimpleStdDomainHandlers {
             return ByteString.parseEncodedString((String) value);
         }
 
-        public String serialize(Object value) {
+        public String serializeToString(Object value) {
             if (value == null)
                 return null;
             ByteString bs = (ByteString) value;
@@ -469,6 +471,11 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
+        public XNode transformToNode(Object value) {
+            return StdJsonToXNodeTransformer.INSTANCE.transformToXNode(value);
+        }
+
+        @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP).loc(loc).param(ARG_STD_DOMAIN, getName())
@@ -479,6 +486,7 @@ public class SimpleStdDomainHandlers {
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
+            // 保留节点属性
             // node.clearAttrs();
             node.freeze(true);
             return node;
@@ -501,6 +509,40 @@ public class SimpleStdDomainHandlers {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.clearAttrs();
+            node.freeze(true);
+            return node;
+        }
+    }
+
+    public static class FilterBeanType extends XmlType {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_FILTER_BEAN;
+        }
+
+        @Override
+        public boolean isFullXmlNode() {
+            return false;
+        }
+
+        @Override
+        public XNode transformToNode(Object value) {
+            XNode node = super.transformToNode(value);
+            if (node != null)
+                node.addJsonPrefix();
+            return node;
+        }
+
+        @Override
+        public String getXDefPath() {
+            return XLangConstants.XDSL_SCHEMA_QUERY_FILTER;
+        }
+
+        @Override
+        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+            XNode node = body.cloneInstance();
+            node.clearAttrs();
+            node.removeJsonPrefix();
             node.freeze(true);
             return node;
         }
@@ -537,6 +579,7 @@ public class SimpleStdDomainHandlers {
                 }
             }
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
+            node.removeJsonPrefix();
             node.freeze(true);
             return new XJsonNode(node);
         }
@@ -545,6 +588,7 @@ public class SimpleStdDomainHandlers {
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
+            node.removeJsonPrefix();
             node.freeze(true);
             return new XJsonNode(node);
         }

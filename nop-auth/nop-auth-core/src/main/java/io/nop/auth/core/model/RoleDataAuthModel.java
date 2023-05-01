@@ -16,7 +16,7 @@ public class RoleDataAuthModel extends _RoleDataAuthModel {
         if (this.getCheck() == null) {
             this.setCheck(checker);
         } else {
-            this.setCheck(getCheck().both(checker));
+            this.setCheck(getCheck().and(checker));
         }
     }
 

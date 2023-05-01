@@ -54,7 +54,7 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
      * xml name: filter
      * 过滤条件。会追加到GraphQL的query查询条件中
      */
-    private io.nop.api.core.beans.TreeBean _filter ;
+    private io.nop.core.lang.xml.XNode _filter ;
     
     /**
      *  
@@ -267,12 +267,12 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
      *  过滤条件。会追加到GraphQL的query查询条件中
      */
     
-    public io.nop.api.core.beans.TreeBean getFilter(){
+    public io.nop.core.lang.xml.XNode getFilter(){
       return _filter;
     }
 
     
-    public void setFilter(io.nop.api.core.beans.TreeBean value){
+    public void setFilter(io.nop.core.lang.xml.XNode value){
         checkAllowChange();
         
         this._filter = value;
@@ -594,8 +594,6 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
            this._defines = io.nop.api.core.util.FreezeHelper.deepFreeze(this._defines);
-            
-           this._filter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filter);
             
            this._keys = io.nop.api.core.util.FreezeHelper.deepFreeze(this._keys);
             

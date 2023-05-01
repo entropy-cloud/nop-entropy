@@ -64,6 +64,6 @@
     -->
     <selection xdef:value="field-selection"/>
 
-    <filter xdef:ref="/nop/schema/query/filter.xdef" />
+    <filter xdef:value="filter-bean" />
 
 </grid>

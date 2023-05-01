@@ -1,6 +1,63 @@
 entity:
-  label: {
-    }
+  label:
+    NopReportDataset: 数据集定义
+    NopReportDatasetAuth: 数据集权限
+    NopReportDefinition: 报表定义
+    NopReportResultFile: 报表结果文件
 prop:
-  label: {
-    }
+  label:
+    NopReportDataset:
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      dsConfig: 数据集配置
+      dsId: 主键
+      dsMeta: 数据集元数据
+      dsName: 数据集名称
+      dsText: 数据集文本
+      dsType: 数据集类型
+      dsView: 数据集显示配置
+      remark: 备注
+      status: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportDatasetAuth:
+      createTime: 创建时间
+      createdBy: 创建人
+      dsId: 主键
+      permissions: 许可权限
+      remark: 备注
+      roleId: 角色ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportDefinition:
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      remark: 备注
+      rptId: 主键
+      rptName: 报表名称
+      rptText: 报表文件
+      status: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportResultFile:
+      bizDate: 业务日期
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      dsId: 数据集ID
+      dsParams: 数据集参数
+      fileName: 文件名称
+      filePath: 文件路径
+      fileType: 文件类型
+      remark: 备注
+      rptId: 报表ID
+      sid: 主键
+      status: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本

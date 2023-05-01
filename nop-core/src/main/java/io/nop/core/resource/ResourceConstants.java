@@ -14,6 +14,8 @@ public interface ResourceConstants {
     String TENANT_PATH_PREFIX = "/_tenant/";
     String TEMPLATES_PATH_PREFIX = "/templates/";
 
+    String RESOLVE_PREFIX = "resolve-";
+
     String CP_NS = "cp";
     String CP_PATH_SUFFIX = "c";
 

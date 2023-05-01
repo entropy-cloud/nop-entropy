@@ -9,8 +9,10 @@ package io.nop.excel.util;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -18,6 +20,9 @@ public class MultiLineConfigParser {
     public static MultiLineConfigParser INSTANCE = new MultiLineConfigParser();
 
     public Map<String, ValueWithLocation> parseConfig(SourceLocation loc, String text) {
+        if (StringHelper.isEmpty(text))
+            return Collections.emptyMap();
+
         TextScanner sc = TextScanner.fromString(loc, text);
         Map<String, ValueWithLocation> ret = new LinkedHashMap<>();
         sc.skipBlank();

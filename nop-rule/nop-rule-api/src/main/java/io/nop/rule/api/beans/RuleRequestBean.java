@@ -1,27 +1,11 @@
 package io.nop.rule.api.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
-
-import java.util.Map;
+import io.nop.rule.api.beans._gen._RuleRequestBean;
 
 @DataBean
-public class RuleRequestBean {
-    private String ruleName;
-    private Map<String,Object> inputs;
-
-    public String getRuleName() {
-        return ruleName;
-    }
-
-    public void setRuleName(String ruleName) {
-        this.ruleName = ruleName;
-    }
-
-    public Map<String, Object> getInputs() {
-        return inputs;
-    }
-
-    public void setInputs(Map<String, Object> inputs) {
-        this.inputs = inputs;
+public class RuleRequestBean extends _RuleRequestBean {
+    public RuleRequestBean() {
+        
     }
 }

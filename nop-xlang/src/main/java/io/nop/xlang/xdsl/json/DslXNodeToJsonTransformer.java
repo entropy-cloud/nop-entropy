@@ -285,7 +285,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
             value = type.getDefaultValue();
             if (forEditor && value != null) {
                 if (!(value instanceof Number) && !(value instanceof Boolean)) {
-                    value = handler.serialize(value);
+                    value = handler.serializeToString(value);
                 }
             }
         } else {

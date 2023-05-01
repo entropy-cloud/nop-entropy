@@ -1,6 +1,114 @@
 entity:
-  label: {
-    }
+  label:
+    NopRuleDefinition: Rule Definition
+    NopRuleInput: Rule Input Variable
+    NopRuleLog: Rule Log
+    NopRuleNode: Rule Node
+    NopRuleOutput: Rule Output Variable
+    NopRuleRole: Rule Role
 prop:
-  label: {
-    }
+  label:
+    NopRuleDefinition:
+      ruleId: RULE ID
+      ruleName: Rule Name
+      ruleVersion: Rule Version
+      displayName: DisplayName
+      ruleGroup: Group Name
+      ruleType: Rule Type
+      ruleType_label: null
+      description: Description
+      modelText: Model Text
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      inputs: Input Variables
+      outputs: Output Variables
+      ruleNodes: Rule Nodes
+    NopRuleInput:
+      sid: SID
+      ruleId: Rule ID
+      name: Name
+      isMandatory: Is Mandatory
+      isComputed: Is Computed
+      displayName: Display Name
+      defaultValue: Default Value
+      schema: Schema
+      description: Description
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      ruleDefinition: Rule Definition
+      ruleDefinition.displayName: Rule Definition
+      schemaComponent: null
+    NopRuleLog:
+      sid: SID
+      ruleId: RULE ID
+      logLevel: Log Level
+      logLevel_label: null
+      logMsg: Log Message
+      createdBy: Created By
+      createTime: Create Time
+      ruleDefinition: Rule Definition
+      ruleDefinition.displayName: Rule Definition
+    NopRuleNode:
+      sid: SID
+      ruleId: Rule ID
+      label: Label
+      sortNo: Sort No
+      predicate: PREDICATE
+      outputs: Outputs
+      parentId: Parent ID
+      isLeaf: Is Leaf
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      parent: Parent Node
+      parent.label: Parent Node
+      ruleDefinition: Rule Definition
+      ruleDefinition.displayName: Rule Definition
+      children: Children
+      predicateComponent: null
+      outputsComponent: null
+    NopRuleOutput:
+      sid: SID
+      ruleId: Rule ID
+      name: Name
+      isMandatory: Is Mandatory
+      aggMethod: Aggregate Method
+      displayName: Display Name
+      defaultValue: Default Value
+      schema: Schema
+      description: Description
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      ruleDefinition: Rule Definition
+      ruleDefinition.displayName: Rule Definition
+      schemaComponent: null
+    NopRuleRole:
+      sid: SID
+      ruleId: Rule ID
+      roleId: Role ID
+      isAdmin: Is Admin
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      ruleDefinition: Rule Definition
+      ruleDefinition.displayName: Rule Definition

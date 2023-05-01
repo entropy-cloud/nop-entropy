@@ -1,6 +1,161 @@
 entity:
-  label: {
-    }
+  label:
+    NopSysCodeRule: 编码规则
+    NopSysDict: 字典表
+    NopSysDictOption: 字典明细
+    NopSysExtField: 扩展字段
+    NopSysI18n: 多语言消息
+    NopSysMakerCheckerRecord: MakerChecker审批记录
+    NopSysNoticeTemplate: 通知模板
+    NopSysSequence: 序列号
+    NopSysUserVariable: 用户变量
+    NopSysVariable: 系统变量
 prop:
-  label: {
-    }
+  label:
+    NopSysCodeRule:
+      codePattern: 编码模式
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      displayName: 显示名称
+      name: 名称
+      remark: 备注
+      seqName: 序列号名称
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysDict:
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      dictName: 字典名
+      dictOptions: null
+      displayName: 显示名
+      remark: 备注
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysDictOption:
+      codeValue: 内部编码
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      dict: 字典
+      dict.displayName: 字典
+      dictId: 字典ID
+      groupName: 分组名
+      isDeprecated: 是否已废弃
+      isInternal: 是否内部
+      label: 显示名
+      remark: 备注
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      value: 值
+      version: 数据版本
+    NopSysExtField:
+      createTime: 创建时间
+      createdBy: 创建人
+      dateValue: 日期值
+      decimalScale: 浮点精度
+      decimalValue: 浮点值
+      entityId: 实体ID
+      entityName: 实体名
+      fieldName: 字段名
+      fieldType: 字段类型
+      remark: 备注
+      stringValue: 字符串值
+      timestampValue: 时间点值
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysI18n:
+      createTime: 创建时间
+      createdBy: 创建人
+      i18nKey: 字符串Key
+      i18nLocale: 语言
+      i18nLocale_label: 语言
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      value: 值
+      version: 数据版本
+    NopSysMakerCheckerRecord:
+      bizObjId: 业务对象ID
+      bizObjName: 业务对象名
+      cancelAction: 取消方法
+      cbErrCode: 回调错误码
+      ceErrMsg: 回调错误消息
+      checkTime: 审批时间
+      checkerId: 审批人ID
+      checkerName: 审批人
+      createTime: 创建时间
+      createdBy: 创建人
+      inputPage: 输入页面
+      makerId: 请求发起人ID
+      makerName: 请求发起人
+      remark: 备注
+      requestAction: 请求操作
+      requestData: 请求数据
+      requestTime: 请求时间
+      sid: 主键
+      status: 审批状态
+      tryResult: 请求结果
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysNoticeTemplate:
+      content: 模板内容
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      extFields: null
+      name: 名称
+      remark: 备注
+      sid: 主键
+      tplType: 模板类型
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysSequence:
+      cacheSize: 缓存个数
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      isUuid: 是否UUID
+      maxValue: 最大值
+      nextValue: 下一个值
+      remark: 备注
+      resetType: 重置方式
+      seqName: 名称
+      seqType: 类型
+      stepSize: 步长
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopSysUserVariable:
+      createTime: 创建时间
+      createdBy: 创建人
+      remark: 备注
+      stdDomain: 变量域
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userId: 用户ID
+      varName: 变量名
+      varType: 变量类型
+      varType_label: 变量类型
+      varValue: 变量值
+      version: 数据版本
+    NopSysVariable:
+      createTime: 创建时间
+      createdBy: 创建人
+      remark: 备注
+      stdDomain: 变量域
+      updateTime: 修改时间
+      updatedBy: 修改人
+      varName: 变量名
+      varType: 变量类型
+      varValue: 变量值
+      version: 数据版本

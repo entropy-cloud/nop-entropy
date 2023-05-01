@@ -1,6 +1,84 @@
 entity:
-  label: {
-    }
+  label:
+    NopBatchFile: Batch File
+    NopBatchRecordResult: Batch Record Result
+    NopBatchTask: Batch Task
+    NopBatchTaskState: Batch Task State
 prop:
-  label: {
-    }
+  label:
+    NopBatchFile:
+      sid: SID
+      fileName: File Name
+      filePath: File Path
+      fileLength: File Length
+      fileCategory: File Category
+      fileSource: File Source
+      currentTaskId: Current Task
+      processState: Process State
+      processState_label: null
+      acceptDate: Accept Date
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopBatchRecordResult:
+      taskId: Task ID
+      recordKey: Record Key
+      resultStatus: Result Status
+      resultCode: Result Code
+      resultMsg: Result Message
+      errorStack: Error Stack
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      task: Batch Task
+    NopBatchTask:
+      sid: SID
+      taskName: Task Name
+      taskKey: Task Key
+      taskStatus: Task Status
+      taskStatus_label: null
+      startTime: Start Time
+      endTime: End Time
+      taskParams: Task Params
+      worker: Worker
+      inputFileId: Input File
+      retryCount: Restart Count
+      resultStatus: Result Status
+      resultCode: Result Code
+      resultMsg: Result Message
+      errorStack: Error Stack
+      completedIndex: Completed Index
+      readCount: Read Count
+      writeCount: Write Count
+      processCount: Process Count
+      skipCount: Skip Count
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      inputFile: Input File
+      taskStates: Task State Vars
+      taskParamsComponent: null
+    NopBatchTaskState:
+      taskId: TASK_ID
+      fieldName: Field Name
+      fieldType: Field Type
+      stringValue: String Value
+      decimalValue: Decimal Value
+      longValue: Long Value
+      dateValue: Date Value
+      timestampValue: Timestamp Value
+      timestampValue_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      task: Batch Task

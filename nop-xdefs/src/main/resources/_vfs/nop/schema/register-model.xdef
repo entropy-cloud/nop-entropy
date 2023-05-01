@@ -1,11 +1,26 @@
-<model name="!var-name" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<model name="!var-name" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+    xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <!--
+    配置如何根据resolve-rule:xxx这种类型的模型路径来加载模型。首先在resolveInDir路径下尝试不同的fileType，如果不存在对应的文件或者文件为空，
+    则使用defaultLoader来加载。
+
+    例如rule.register-model中配置resolveInDir=/nop/rule，同时配置了rule.xml和rule.xlsx等文件类型的加载器，
+    则调用ResourceComponentManager.instance().loadComponentPath("resolve-rule:xxx")对应于如下过程：
+    1. 尝试加载/nop/rule/xxx.rule.xml
+    2. 尝试加载/nop/rule/xxx.rule.xlsx
+    3. 尝试使用defaultLoader来加载
+    -->
+    <resolve-handler resolveInDir="!v-path" defaultLoaderClass="class-name"/>
+
     <loaders xdef:body-type="list" xdef:key-attr="fileType">
-        <xlsx-loader fileType="!file-type" impPath="!v-path" xdef:bean-tag-prop="type"/>
         <xdsl-loader fileType="!file-type" schemaPath="!v-path" xdef:bean-tag-prop="type"/>
+        <xlsx-loader fileType="!file-type" impPath="!v-path" xdef:bean-tag-prop="type"/>
         <loader fileType="!file-type" class="!class-name" xdef:bean-tag-prop="type"/>
     </loaders>
 
     <transformers xdef:body-type="list" xdef:key-attr="target">
         <transformer target="!var-name" class="!class-name"/>
     </transformers>
+
 </model>

@@ -8,7 +8,7 @@
 package io.nop.core.model.validator;
 
 import io.nop.api.core.beans.ErrorBean;
-import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.api.core.validate.IValidator;
@@ -61,7 +61,7 @@ public class ModelBasedValidator implements IValidator<IVariableScope> {
         }
     }
 
-    private boolean passCondition(TreeBean condition, IVariableScope scope) {
+    private boolean passCondition(ITreeBean condition, IVariableScope scope) {
         if (condition == null)
             return true;
 

@@ -204,7 +204,7 @@ public class XPathSelectorParser<E> {
             sc.match(":[");
             Expression expr = exprParser.parseExpr(sc);
             sc.match(']');
-            IEvalAction action = tool.buildActionForExpr(expr);
+            IEvalAction action = tool.buildEvalAction(expr);
             return new ExprOperator<>(action);
         } else {
             return null;
@@ -214,7 +214,7 @@ public class XPathSelectorParser<E> {
     private IMatchEvaluator<E, IXPathContext<E>> evaluator(TextScanner sc) {
         sc.match('[');
         Expression expr = exprParser.parseExpr(sc);
-        IEvalAction action = tool.buildActionForExpr(expr);
+        IEvalAction action = tool.buildEvalAction(expr);
         IMatchEvaluator<E, IXPathContext<E>> evaluator = new ExprEvaluator<>(action);
         sc.match(']');
         return evaluator;

@@ -110,12 +110,12 @@ public class XLangCompileTool {
 
     public ExprEvalAction compileFullExpr(SourceLocation loc, String source) {
         Expression expr = cp.parseFullExpr(loc, source, scope);
-        return buildActionForExpr(expr);
+        return buildEvalAction(expr);
     }
 
     public ExprEvalAction compileSimpleExpr(SourceLocation loc, String source) {
         Expression expr = cp.parseSimpleExpr(loc, source, scope);
-        return buildActionForExpr(expr);
+        return buildEvalAction(expr);
     }
 
     public Object getStaticValue(SourceLocation loc, String source) {
@@ -130,7 +130,7 @@ public class XLangCompileTool {
 
     public ExprEvalAction compileTemplateExpr(SourceLocation loc, String source, boolean singleExpr, ExprPhase phase) {
         Expression expr = cp.parseTemplateExpr(loc, source, singleExpr, phase, scope);
-        return buildActionForExpr(expr);
+        return buildEvalAction(expr);
     }
 
     public ExprEvalAction compileTag(XNode node) {
@@ -140,7 +140,7 @@ public class XLangCompileTool {
             Expression expr = cp.parseTag(node, scope);
             // 确保存在顶层变量作用域
             expr = toProgram(expr);
-            return buildActionForExpr(expr);
+            return buildEvalAction(expr);
         } finally {
             scope.restoreValueLocation(ExprConstants.SCOPE_VAR_XPL_NODE, vl);
         }
@@ -178,7 +178,7 @@ public class XLangCompileTool {
 
     public ExprEvalAction compileTagBody(XNode node) {
         Expression expr = parseTagBody(node, scope);
-        return buildActionForExpr(expr);
+        return buildEvalAction(expr);
     }
 
     public Expression parseTagBody(XNode node, IXLangCompileScope scope) {
@@ -251,11 +251,16 @@ public class XLangCompileTool {
         return compileTag(node);
     }
 
-    public ExprEvalAction buildActionForExpr(Expression expr) {
+    public ExprEvalAction buildEvalAction(Expression expr) {
         if (expr == null) {
             return null;
         }
         return buildAction(cp.buildExecutable(expr, optimize, scope));
+    }
+
+
+    public IExecutableExpression buildExecutable(Expression expr) {
+        return cp.buildExecutable(expr, optimize, scope);
     }
 
     private ExprEvalAction buildAction(IExecutableExpression expr) {

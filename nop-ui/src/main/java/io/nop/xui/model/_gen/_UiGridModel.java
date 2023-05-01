@@ -111,7 +111,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      * xml name: filter
      * 
      */
-    private io.nop.api.core.beans.TreeBean _filter ;
+    private io.nop.core.lang.xml.XNode _filter ;
     
     /**
      *  
@@ -523,12 +523,12 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      *  
      */
     
-    public io.nop.api.core.beans.TreeBean getFilter(){
+    public io.nop.core.lang.xml.XNode getFilter(){
       return _filter;
     }
 
     
-    public void setFilter(io.nop.api.core.beans.TreeBean value){
+    public void setFilter(io.nop.core.lang.xml.XNode value){
         checkAllowChange();
         
         this._filter = value;
@@ -892,8 +892,6 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
            this._api = io.nop.api.core.util.FreezeHelper.deepFreeze(this._api);
             
            this._cols = io.nop.api.core.util.FreezeHelper.deepFreeze(this._cols);
-            
-           this._filter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filter);
             
            this._saveOrderApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._saveOrderApi);
             

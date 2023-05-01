@@ -122,7 +122,9 @@ import io.nop.xlang.ast.definition.ImportClassDefinition;
 import io.nop.xlang.ast.definition.LocalVarDeclaration;
 import io.nop.xlang.ast.definition.ResolvedFuncDefinition;
 import io.nop.xlang.exec.ArrayBindingAssignExecutable;
+import io.nop.xlang.exec.AssertOpExecutable;
 import io.nop.xlang.exec.AssignIdentifier;
+import io.nop.xlang.exec.BetweenOpExecutable;
 import io.nop.xlang.exec.BinaryExecutable;
 import io.nop.xlang.exec.BitNotExecutable;
 import io.nop.xlang.exec.BlockExecutable;
@@ -1510,12 +1512,25 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
 
     @Override
     public IExecutableExpression processAssertOpExpression(AssertOpExpression node, IXLangCompileScope context) {
-        return super.processAssertOpExpression(node, context);
+        IExecutableExpression valueExpr = buildValueExpr(node.getValue(), context);
+        FilterOp filterOp = FilterOp.fromName(node.getOp());
+        if (filterOp == null)
+            throw new NopEvalException(ERR_XPL_UNKNOWN_FILTER_OP).param(ARG_OP, node.getOp()).source(node);
+
+        return new AssertOpExecutable(node.getLocation(), filterOp, valueExpr);
     }
 
     @Override
     public IExecutableExpression processBetweenOpExpression(BetweenOpExpression node, IXLangCompileScope context) {
-        return super.processBetweenOpExpression(node, context);
+        IExecutableExpression valueExpr = buildValueExpr(node.getValue(), context);
+        IExecutableExpression minExpr = buildValueExpr(node.getMin(), context);
+        IExecutableExpression maxExpr = buildValueExpr(node.getMax(), context);
+        FilterOp filterOp = FilterOp.fromName(node.getOp());
+        if (filterOp == null)
+            throw new NopEvalException(ERR_XPL_UNKNOWN_FILTER_OP).param(ARG_OP, node.getOp()).source(node);
+
+        return new BetweenOpExecutable(node.getLocation(), filterOp, valueExpr, minExpr, maxExpr,
+                node.getExcludeMin(), node.getExcludeMax());
     }
 
     @Override

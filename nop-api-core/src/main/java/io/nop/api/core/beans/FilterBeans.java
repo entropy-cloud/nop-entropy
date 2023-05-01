@@ -9,7 +9,6 @@ package io.nop.api.core.beans;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -196,7 +195,18 @@ public class FilterBeans {
             return filters[0];
 
         TreeBean ret = new TreeBean(FILTER_OP_AND);
-        ret.setChildren(Arrays.asList(filters));
+        for (int i = 0, n = filters.length; i < n; i++) {
+            TreeBean filter = filters[i];
+            if (filter.getTagName().equals(FILTER_OP_AND)) {
+                if (filter.getChildren() != null) {
+                    for (TreeBean child : filter.getChildren()) {
+                        ret.addChild(child);
+                    }
+                }
+            } else {
+                ret.addChild(filter);
+            }
+        }
         return ret;
     }
 
@@ -208,7 +218,18 @@ public class FilterBeans {
             return filters[0];
 
         TreeBean ret = new TreeBean(FILTER_OP_OR);
-        ret.setChildren(Arrays.asList(filters));
+        for (int i = 0, n = filters.length; i < n; i++) {
+            TreeBean filter = filters[i];
+            if (filter.getTagName().equals(FILTER_OP_OR)) {
+                if (filter.getChildren() != null) {
+                    for (TreeBean child : filter.getChildren()) {
+                        ret.addChild(child);
+                    }
+                }
+            } else {
+                ret.addChild(filter);
+            }
+        }
         return ret;
     }
 

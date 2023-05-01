@@ -3,11 +3,11 @@ package io.nop.rule.core;
 import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.exceptions.ErrorCode.define;
-import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
 
 public interface RuleErrors {
     String ARG_CELL_POS = "cellPos";
     String ARG_TEXT = "text";
+    String ARG_VAR_NAME = "varName";
 
     ErrorCode ERR_RULE_WORKBOOK_NO_RULE_SHEET =
             define("nop.err.rule.workbook-no-rule-sheet",
@@ -38,4 +38,7 @@ public interface RuleErrors {
 
     ErrorCode ERR_RULE_VAR_CELL_SPAN_MUST_BE_ONE =
             define("nop.err.rule.var-cell-span-must-be-one", "变量单元格的宽度只能是1，不允许合并单元格");
+
+    ErrorCode ERR_RULE_INPUT_NO_LABEL =
+            define("nop.err.rule.input-no-label", "输入变量显示标题不能为空");
 }

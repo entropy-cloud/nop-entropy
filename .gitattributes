@@ -14,3 +14,5 @@
 *.xbiz text eol=lf
 *.interp text eol=lf
 *.tokens text eol=lf
+*.xpl text eol=lf
+*.md text eol=lf

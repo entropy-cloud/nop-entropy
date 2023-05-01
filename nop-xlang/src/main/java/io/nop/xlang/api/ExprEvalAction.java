@@ -26,6 +26,10 @@ public class ExprEvalAction extends AbstractEvalAction implements ISourceLocatio
         return expr.toString();
     }
 
+    public IExecutableExpression getExpr() {
+        return expr;
+    }
+
     public XplModel toXplModel() {
         return new XplModel(expr);
     }

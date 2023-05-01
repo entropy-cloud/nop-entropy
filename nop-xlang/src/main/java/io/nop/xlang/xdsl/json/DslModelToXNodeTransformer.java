@@ -17,7 +17,6 @@ import io.nop.core.lang.json.JObject;
 import io.nop.core.lang.xml.IObjectToXNodeTransformer;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
-import io.nop.core.lang.xml.json.StdJsonToXNodeTransformer;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -164,7 +163,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         String stdDomain = propMeta.getStdDomain();
         if (stdDomain != null) {
             IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler(stdDomain);
-            value = handler.serialize(value);
+            value = handler.serializeToString(value);
         }
 
         return value.toString();
@@ -214,9 +213,9 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
             }
             case child: {
                 XNode valueNode = parseXmlBody(propMeta, loc, value);
-                if(valueNode != null){
+                if (valueNode != null) {
                     node.appendChild(valueNode);
-                }else {
+                } else {
                     addChild(node, propMeta, value);
                 }
                 break;
@@ -234,7 +233,21 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
             throw new NopException(ERR_XDEF_UNKNOWN_STD_DOMAIN).loc(loc).param(ARG_STD_DOMAIN, stdDomain);
 
         if (handler.supportXmlChild()) {
-            return StdJsonToXNodeTransformer.INSTANCE.transformToXNode(value);
+            XNode node = handler.transformToNode(value);
+            if (node != null) {
+                String xmlName = propMeta.getXmlName();
+                if (xmlName == null)
+                    xmlName = propMeta.getName();
+
+                if (node.isDummyNode() || node.getTagName().equals(XLangConstants.TAG_C_UNIT)) {
+                    node.setTagName(xmlName);
+                } else if (!node.getTagName().equals(xmlName)) {
+                    XNode parent = XNode.make(xmlName);
+                    parent.appendChild(node);
+                    return parent;
+                }
+            }
+            return node;
         }
         return null;
     }

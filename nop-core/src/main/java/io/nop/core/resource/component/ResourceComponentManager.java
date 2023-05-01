@@ -24,6 +24,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.ResourceLoadingCache;
@@ -55,6 +56,7 @@ import static io.nop.core.CoreErrors.ARG_MODEL_TYPE2;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ARG_TO_MODEL_TYPE;
 import static io.nop.core.CoreErrors.ARG_TRANSFORM;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_INVALID_MODEL_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_FILE_TYPE_CONFLICT;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_TRANSFORMER_ALREADY_EXISTS;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_COMPOSITE_COMPONENT;
@@ -124,8 +126,10 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
         @Override
         public ComponentCacheEntry loadObjectFromPath(String path) {
-            String fileType = StringHelper.fileType(path);
-            IResourceObjectLoader<? extends IComponentModel> loader = requireLoader(modelType, fileType);
+            IResourceObjectLoader<? extends IComponentModel> loader = resolveModelLoader(path, modelType);
+            if (loader == null)
+                return null;
+
             IComponentModel model;
             if (forceNoTenant) {
                 model = ContextProvider.runWithoutTenantId(() -> loader.loadObjectFromPath(path));
@@ -215,6 +219,31 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     public boolean isAnyDependsChange(Set<String> depends) {
         return dependsManager.isAnyDependsChange(depends, new HashSet<>(), dependsPersister, changeChecker);
+    }
+
+    IResourceObjectLoader<? extends IComponentModel> resolveModelLoader(String path, String modelType) {
+        if (path.startsWith(ResourceConstants.RESOLVE_PREFIX)) {
+            int pos = path.indexOf(':');
+            String subName = path.substring(pos + 1);
+            ComponentModelConfig config = modelTypeConfigs.get(modelType);
+            String dir = config.getResolveInDir();
+            String fullPath = StringHelper.appendPath(dir, subName);
+            for (Map.Entry<String, IResourceObjectLoader<? extends IComponentModel>> entry : config.getLoaders().entrySet()) {
+                String fileType = entry.getKey();
+                IResource resource = VirtualFileSystem.instance().getResource(fullPath + "." + fileType);
+                if (resource.exists())
+                    return entry.getValue();
+            }
+
+            if (config.getResolveDefaultLoader() != null) {
+                return config.getResolveDefaultLoader();
+            } else {
+                return null;
+            }
+        } else {
+            String fileType = StringHelper.fileType(path);
+            return requireLoader(modelType, fileType);
+        }
     }
 
     @Override
@@ -382,6 +411,14 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     protected String findModelTypeFromPath(String resourcePath) {
+        if (resourcePath.startsWith(ResourceConstants.RESOLVE_PREFIX)) {
+            int pos = resourcePath.indexOf(':');
+            if (pos < 0)
+                throw new NopException(ERR_COMPONENT_INVALID_MODEL_PATH)
+                        .param(ARG_RESOURCE_PATH, resourcePath);
+            return resourcePath.substring(ResourceConstants.RESOLVE_PREFIX.length(), pos);
+        }
+
         String fileType = StringHelper.fileType(resourcePath);
         ComponentModelLoader loader = findByFileType(fileTypeLoaders, fileType);
         if (loader != null)

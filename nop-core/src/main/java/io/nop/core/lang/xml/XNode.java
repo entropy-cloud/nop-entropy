@@ -29,6 +29,7 @@ import io.nop.core.lang.eval.WriterEvalOutput;
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.lang.json.IJsonSerializable;
 import io.nop.core.lang.json.JObject;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.handler.BuildJObjectJsonHandler;
 import io.nop.core.lang.json.handler.CollectTextJsonHandler;
 import io.nop.core.lang.xml.handler.CollectJObjectHandler;
@@ -2321,5 +2322,60 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         for (XNode child : children) {
             child.renameNsPrefix(oldNsPrefix, newNsPrefix);
         }
+    }
+
+    public void addJsonPrefix() {
+        checkNotReadOnly();
+
+        for (Map.Entry<String, ValueWithLocation> entry : attributes.entrySet()) {
+            ValueWithLocation vl = entry.getValue();
+            Object value = vl.getValue();
+            if (needAddJsonPrefix(value)) {
+                String str = "@:" + JsonTool.stringify(value);
+                entry.setValue(ValueWithLocation.of(vl.getLocation(), str));
+            }
+        }
+
+        Object value = content.getValue();
+        if (needAddJsonPrefix(value)) {
+            content = ValueWithLocation.of(content.getLocation(), value);
+        }
+
+        for (XNode child : children) {
+            child.addJsonPrefix();
+        }
+    }
+
+    public void removeJsonPrefix() {
+        checkNotReadOnly();
+
+        for (Map.Entry<String, ValueWithLocation> entry : attributes.entrySet()) {
+            ValueWithLocation vl = entry.getValue();
+            Object value = vl.getValue();
+            if (value instanceof String && value.toString().startsWith("@:")) {
+                Object json = JsonTool.parseNonStrict(value.toString().substring("@:".length()));
+                entry.setValue(ValueWithLocation.of(vl.getLocation(), json));
+            }
+        }
+
+        Object value = content.getValue();
+        if (value instanceof String && value.toString().startsWith("@:")) {
+            Object json = JsonTool.parseNonStrict(value.toString().substring("@:".length()));
+            content = ValueWithLocation.of(content.getLocation(), json);
+        }
+
+        for (XNode child : children) {
+            child.removeJsonPrefix();
+        }
+    }
+
+    static boolean needAddJsonPrefix(Object value) {
+        if (value == null)
+            return false;
+
+        if (value instanceof Number || value instanceof Boolean || value instanceof Collection || value instanceof Map)
+            return true;
+
+        return false;
     }
 }

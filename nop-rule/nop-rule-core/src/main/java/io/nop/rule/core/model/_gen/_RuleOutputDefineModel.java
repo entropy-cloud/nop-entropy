@@ -16,10 +16,10 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
     
     /**
      *  
-     * xml name: aggreate
-     * 
+     * xml name: aggregate
+     * 如果存在多个同名的输出时的汇总方式：max,min, sum等
      */
-    private java.lang.String _aggreate ;
+    private io.nop.rule.core.model.RuleAggregateMethod _aggregate ;
     
     /**
      *  
@@ -30,19 +30,19 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
     
     /**
      * 
-     * xml name: aggreate
-     *  
+     * xml name: aggregate
+     *  如果存在多个同名的输出时的汇总方式：max,min, sum等
      */
     
-    public java.lang.String getAggreate(){
-      return _aggreate;
+    public io.nop.rule.core.model.RuleAggregateMethod getAggregate(){
+      return _aggregate;
     }
 
     
-    public void setAggreate(java.lang.String value){
+    public void setAggregate(io.nop.rule.core.model.RuleAggregateMethod value){
         checkAllowChange();
         
-        this._aggreate = value;
+        this._aggregate = value;
            
     }
 
@@ -79,7 +79,7 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("aggreate",this.getAggreate());
+        out.put("aggregate",this.getAggregate());
         out.put("useWeight",this.isUseWeight());
     }
 }

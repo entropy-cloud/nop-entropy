@@ -1,0 +1,16 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="rule">
+
+    <resolve-handler resolveInDir="/nop/rule" />
+
+    <loaders>
+
+        <loader fileType="rule.xlsx" impPath="/nop/rule/imp/rule.imp.xml"
+                class="io.nop.rule.core.model.compile.RuleExcelModelLoader"/>
+
+        <loader fileType="rule.xml" schemaPath="/nop/schema/rule.xdef"
+                class="io.nop.rule.core.model.compile.RuleDslModelLoader"/>
+
+    </loaders>
+
+</model>

@@ -38,6 +38,10 @@ public interface IStdDomainHandler {
         return false;
     }
 
+    default String getXDefPath() {
+        return null;
+    }
+
     /**
      * 得到解析结果对应的GenericType类型
      */
@@ -48,12 +52,16 @@ public interface IStdDomainHandler {
      */
     Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text, XLangCompileTool cp);
 
-    default String serialize(Object value) {
+    default String serializeToString(Object value) {
         if (value == null)
             return null;
         if (value instanceof Collection)
             return StringHelper.join((Collection<?>) value, ",");
         return value.toString();
+    }
+
+    default XNode transformToNode(Object value) {
+        throw new UnsupportedOperationException("transformToNode");
     }
 
     default String getSerializeFunction() {

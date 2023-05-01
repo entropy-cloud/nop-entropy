@@ -19,7 +19,7 @@
     -->
     <xdef:define xdef:name="RuleDecisionTreeModel" id="string" label="string" multiMatch="!boolean=false">
 
-        <predicate xdef:ref="query/filter.xdef"/>
+        <predicate xdef:value="filter-bean"/>
 
         <children xdef:body-type="list" xdef:key-attr="id">
             <child id="!string" xdef:ref="RuleDecisionTreeModel"/>
@@ -41,9 +41,10 @@
     <outputs xdef:body-type="list" xdef:key-attr="name">
         <!--
         @aggregate 如果存在多个同名的输出时的汇总方式：max,min, sum等
-        @useWeight: 是否启用权重配置
+        @useWeight: 是否启用权重配置。如果启用，则存在变量名__weight的变量，类型为Double
         -->
-        <output name="!var-name" xdef:ref="schema/var-define.xdef" aggreate="string" useWeight="!boolean"
+        <output name="!var-name" xdef:ref="schema/var-define.xdef"
+                aggregate="enum:io.nop.rule.core.model.RuleAggregateMethod" useWeight="!boolean"
                 xdef:name="RuleOutputDefineModel"/>
     </outputs>
 

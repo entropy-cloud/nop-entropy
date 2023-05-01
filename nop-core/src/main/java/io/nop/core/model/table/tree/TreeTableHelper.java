@@ -31,7 +31,7 @@ public class TreeTableHelper {
             row.forEachCell(i, (cell, r, c) -> {
                 if (c < beginColIndex)
                     return ProcessResult.CONTINUE;
-                if (c > endColIndex)
+                if (c >= endColIndex)
                     return ProcessResult.STOP;
 
                 if (cell != null && cell.isProxyCell()) {
@@ -54,7 +54,7 @@ public class TreeTableHelper {
             });
         }
 
-        buildParentChildren(table, vertical);
+        buildParentChildren(ret, vertical);
         return ret;
     }
 
@@ -94,6 +94,8 @@ public class TreeTableHelper {
                     || prevCell.getEndColIndex() < cell.getEndColIndex())
                 throw new NopException(ERR_TABLE_NOT_TREE_CELL)
                         .param(ARG_CELL_POS, cell.getId());
+
+            prevCell.addChild(cell);
             buildParentChildren(table, prevCell, true);
 
             cell.setTreeLevel(prevCell.getTreeLevel() + 1);
@@ -106,6 +108,8 @@ public class TreeTableHelper {
                     || prevCell.getEndRowIndex() < cell.getEndRowIndex())
                 throw new NopException(ERR_TABLE_NOT_TREE_CELL)
                         .param(ARG_CELL_POS, cell.getId());
+
+            prevCell.addChild(cell);
 
             buildParentChildren(table, prevCell, false);
 

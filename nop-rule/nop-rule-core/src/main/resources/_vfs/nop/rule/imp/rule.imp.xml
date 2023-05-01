@@ -12,8 +12,24 @@
                     <schema stdDomain="csv-set"/>
                 </field>
 
+                <field name="name" displayName="名称">
+                    <schema stdDomain="string" />
+                </field>
+
+                <field name="displayName" displayName="中文名">
+                    <schema stdDomain="string" />
+                </field>
+
+                <field name="i18n-en:displayName" displayName="英文名">
+                    <schema stdDomain="string" />
+                </field>
+
                 <field name="description" displayName="描述">
                     <schema stdDomain="string"/>
+                </field>
+
+                <field name="tagSet" displayName="标签">
+                    <schema stdDomain="word-set"/>
                 </field>
 
                 <field name="beforeExecute" displayName="执行前">
@@ -24,12 +40,23 @@
                     <schema stdDomain="xpl"/>
                 </field>
 
+                <field name="extConfig" virtual="true" displayName="扩展配置">
+                    <schema stdDomain="json" />
+                </field>
+
                 <field name="inputs" displayName="输入变量" list="true" keyProp="name">
                     <fields>
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
                             <schema stdDomain="boolean"/>
                             <valueExpr>
                                 value == 'M' || value == 'Y'
+                            </valueExpr>
+                        </field>
+
+                        <field name="computed" displayName="计算">
+                            <schema stdDomain="boolean" />
+                            <valueExpr>
+                                value == 'Y'
                             </valueExpr>
                         </field>
 
@@ -77,16 +104,21 @@
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="defaultExpr" displayName="值表达式">
+                        <field name="defaultExpr" displayName="缺省值表达式">
                             <schema stdDomain="xpl"/>
+                        </field>
+
+                        <field name="extConfig" virtual="true" displayName="扩展配置">
+                            <schema stdDomain="json" />
                         </field>
                     </fields>
                 </field>
 
                 <field name="outputs" displayName="输出变量" x:prototype="inputs">
                     <fields>
-                        <field name="aggregate" displayName="聚合方法">
-                            <schema stdDomain="string"/>
+                        <field name="computed" x:prototype-override="remove" />
+                        <field name="aggregate" displayName="汇总">
+                            <schema dict="io.nop.rule.core.model.RuleAggregateMethod"/>
                         </field>
                     </fields>
                 </field>

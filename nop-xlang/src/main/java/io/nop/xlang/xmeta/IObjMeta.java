@@ -62,7 +62,7 @@ public interface IObjMeta extends IXDslModel, IObjSchema, ITagSetSupport, IExten
 
     ISchema getRootSchema();
 
-    TreeBean getFilter();
+    XNode getFilter();
 
     List<? extends ISchema> getDefines();
 

@@ -9,6 +9,8 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
@@ -16,7 +18,7 @@ import io.nop.core.model.query.FilterOp;
 
 import java.util.function.BiPredicate;
 
-public class CompareOpExecutable extends AbstractExecutable {
+public class CompareOpExecutable extends AbstractExecutable implements IEvalPredicate {
     private final FilterOp filterOp;
     protected final IExecutableExpression left;
     protected final IExecutableExpression right;
@@ -50,6 +52,15 @@ public class CompareOpExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+        Object v1 = executor.execute(left, scope);
+        Object v2 = executor.execute(right, scope);
+        return predicate.test(v1, v2);
+    }
+
+    @Override
+    public boolean passConditions(IEvalContext ctx) {
+        IEvalScope scope = ctx.getEvalScope();
+        IExpressionExecutor executor = scope.getExpressionExecutor();
         Object v1 = executor.execute(left, scope);
         Object v2 = executor.execute(right, scope);
         return predicate.test(v1, v2);

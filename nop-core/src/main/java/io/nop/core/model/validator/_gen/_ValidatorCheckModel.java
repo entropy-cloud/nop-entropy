@@ -19,7 +19,7 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
      * xml name: condition
      * 
      */
-    private io.nop.api.core.beans.TreeBean _condition ;
+    private io.nop.core.lang.xml.XNode _condition ;
     
     /**
      *  
@@ -56,12 +56,12 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
      *  
      */
     
-    public io.nop.api.core.beans.TreeBean getCondition(){
+    public io.nop.core.lang.xml.XNode getCondition(){
       return _condition;
     }
 
     
-    public void setCondition(io.nop.api.core.beans.TreeBean value){
+    public void setCondition(io.nop.core.lang.xml.XNode value){
         checkAllowChange();
         
         this._condition = value;
@@ -157,8 +157,6 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._condition = io.nop.api.core.util.FreezeHelper.deepFreeze(this._condition);
-            
         }
     }
 

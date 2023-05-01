@@ -9,6 +9,7 @@ import io.nop.xlang.ast.BinaryExpression;
 import io.nop.xlang.ast.CompareOpExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Literal;
+import io.nop.xlang.ast.LogicalExpression;
 import io.nop.xlang.ast.UnaryExpression;
 import io.nop.xlang.ast.XLangASTHelper;
 import io.nop.xlang.ast.XLangOperator;
@@ -39,6 +40,8 @@ public class ExpressionToFilterBeanTransformer {
                 return transformAssertOp((AssertOpExpression) expr);
             case CompareOpExpression:
                 return transformCompareOp((CompareOpExpression) expr);
+            case LogicalExpression:
+                return transformLogical((LogicalExpression) expr);
             default: {
                 return transformOtherExpr(expr);
             }
@@ -67,7 +70,7 @@ public class ExpressionToFilterBeanTransformer {
             default: {
                 if (XLangASTHelper.isQualifiedName(expr.getLeft())) {
                     if (XLangASTHelper.isJsonValue(expr.getRight())) {
-                        String name = expr.getLeft().toExprString();
+                        String name = XLangASTHelper.getQualifiedName(expr.getLeft());
                         Object value = XLangASTHelper.toJsonValue(expr.getRight());
 
                         switch (op) {
@@ -116,5 +119,17 @@ public class ExpressionToFilterBeanTransformer {
         ret.setTagName(FilterBeanConstants.FILTER_OP_EXPR);
         ret.setAttr(FilterBeanConstants.FILTER_ATTR_VALUE, expr);
         return ret;
+    }
+
+    TreeBean transformLogical(LogicalExpression expr) {
+        XLangOperator op = expr.getOperator();
+        switch (op) {
+            case AND:
+                return FilterBeans.and(transform(expr.getLeft()), transform(expr.getRight()));
+            case OR:
+                return FilterBeans.or(transform(expr.getLeft()), transform(expr.getRight()));
+            default:
+                throw new UnsupportedOperationException("operator:" + op);
+        }
     }
 }

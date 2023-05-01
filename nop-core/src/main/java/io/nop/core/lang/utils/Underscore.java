@@ -14,6 +14,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.SafeOrderedComparator;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.handler.BuildJObjectJsonHandler;
@@ -275,6 +276,34 @@ public class Underscore {
             }
         }
         return ret;
+    }
+
+    @Deterministic
+    public static <T> Number sum(Collection<T> c, Function<T, ?> fn) {
+        Number ret = 0;
+        for (T item : c) {
+            Object v = fn == null ? item : fn.apply(item);
+            ret = MathHelper.add(ret, v);
+        }
+        return ret;
+    }
+
+    @Deterministic
+    public static <T> Number sum(Collection<T> c) {
+        return sum(c, null);
+    }
+
+    @Deterministic
+    public static <T> Number avg(Collection<T> c, Function<T, ?> fn) {
+        Number value = sum(c, fn);
+        if (value == null)
+            return null;
+        return MathHelper.divide(value, c.size());
+    }
+
+    @Deterministic
+    public static <T> Number avg(Collection<T> c) {
+        return avg(c, null);
     }
 
     @Deterministic

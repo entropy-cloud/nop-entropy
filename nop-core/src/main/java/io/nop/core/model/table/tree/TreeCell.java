@@ -7,11 +7,13 @@
  */
 package io.nop.core.model.table.tree;
 
+import io.nop.api.core.util.Guard;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.IRow;
 import io.nop.core.model.tree.ITreeStructure;
 import io.nop.core.resource.component.AbstractFreezable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -113,6 +115,15 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
 
     public void setLeafIndex(int leafIndex) {
         this.leafIndex = leafIndex;
+    }
+
+    public void addChild(TreeCell cell) {
+        Guard.checkArgument(cell.getParent() == null);
+        if (this.children == null) {
+            this.children = new ArrayList<>();
+        }
+        cell.setParent(this);
+        this.children.add(cell);
     }
 
     @Override

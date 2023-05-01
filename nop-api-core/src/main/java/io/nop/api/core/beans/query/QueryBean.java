@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
 
 import java.io.Serializable;
@@ -98,13 +99,19 @@ public class QueryBean implements Serializable {
         this.filter = filter;
     }
 
-    public void addFilter(TreeBean filter) {
+    public void addFilter(ITreeBean filter) {
         if (filter == null)
             return;
-        if (this.filter == null) {
-            this.filter = filter;
+        TreeBean tree;
+        if (filter instanceof TreeBean) {
+            tree = (TreeBean) filter;
         } else {
-            this.filter = FilterBeans.and(this.filter, filter);
+            tree = filter.toTreeBean();
+        }
+        if (this.filter == null) {
+            this.filter = tree;
+        } else {
+            this.filter = FilterBeans.and(this.filter, tree);
         }
     }
 

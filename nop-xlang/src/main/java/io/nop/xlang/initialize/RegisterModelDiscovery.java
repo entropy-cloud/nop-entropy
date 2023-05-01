@@ -93,6 +93,10 @@ public class RegisterModelDiscovery {
             } else {
                 mergeChild(existing, modelNode, "loaders");
                 mergeChild(existing, modelNode, "transformers");
+                XNode resolveHandler = existing.childByTag("resolve-handler");
+                if (resolveHandler != null) {
+                    modelNode.makeChild("resolve-handler")._assignAttrs(resolveHandler.attrValueLocs());
+                }
             }
         }
         return node;

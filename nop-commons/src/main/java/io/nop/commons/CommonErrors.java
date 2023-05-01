@@ -257,6 +257,8 @@ public interface CommonErrors {
 
     ErrorCode ERR_LIST_NOT_ALLOW_NULL_ELEMENT = define("nop.err.commons.list-not-allow-null-element", "列表元素不允许为null");
 
+    ErrorCode ERR_LIST_NOT_ALLOW__DUPLICATE_KEY = define("nop.err.commons.list-not-allow-duplicate-key", "列表元素的唯一键不允许重复");
+
     ErrorCode ERR_UTILS_INVALID_URL = define("nop.err.commons.utils.invalid-url", "URL格式不合法:{url}", ARG_URL);
 
     ErrorCode ERR_UTILS_INVALID_QUOTED_STRING = define("nop.err.commons.utils.invalid-quoted-string",

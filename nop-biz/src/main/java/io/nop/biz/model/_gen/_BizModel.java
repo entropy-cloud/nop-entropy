@@ -23,6 +23,20 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: disabledActions
+     * 可以强制禁用BizModel(包括Java中定义的方法)中的某些Action。缺省情况下平台会提供大量的操作，有可能从安全角度考虑需要缩小范围
+     */
+    private java.util.Set<java.lang.String> _disabledActions ;
+    
+    /**
+     *  
+     * xml name: inheritActions
+     * 如果非空，则只有明确允许的action才对外暴露
+     */
+    private java.util.Set<java.lang.String> _inheritActions ;
+    
+    /**
+     *  
      * xml name: loaders
      * 
      */
@@ -100,6 +114,44 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
     public boolean hasActions(){
         return !this._actions.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: disabledActions
+     *  可以强制禁用BizModel(包括Java中定义的方法)中的某些Action。缺省情况下平台会提供大量的操作，有可能从安全角度考虑需要缩小范围
+     */
+    
+    public java.util.Set<java.lang.String> getDisabledActions(){
+      return _disabledActions;
+    }
+
+    
+    public void setDisabledActions(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._disabledActions = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: inheritActions
+     *  如果非空，则只有明确允许的action才对外暴露
+     */
+    
+    public java.util.Set<java.lang.String> getInheritActions(){
+      return _inheritActions;
+    }
+
+    
+    public void setInheritActions(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._inheritActions = value;
+           
+    }
+
     
     /**
      * 
@@ -270,6 +322,8 @@ public abstract class _BizModel extends io.nop.core.resource.component.AbstractC
         super.outputJson(out);
         
         out.put("actions",this.getActions());
+        out.put("disabledActions",this.getDisabledActions());
+        out.put("inheritActions",this.getInheritActions());
         out.put("loaders",this.getLoaders());
         out.put("metaDir",this.getMetaDir());
         out.put("observes",this.getObserves());

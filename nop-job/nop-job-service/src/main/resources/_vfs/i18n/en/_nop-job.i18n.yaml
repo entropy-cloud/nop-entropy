@@ -1,6 +1,32 @@
 entity:
-  label: {
-    }
+  label:
+    NopJobPlan: Job Plan
 prop:
-  label: {
-    }
+  label:
+    NopJobPlan:
+      sid: SID
+      displayName: Display Name
+      jobName: Job Name
+      jobGroup: Job Group
+      jobParams: Job Params
+      jobInvoker: Job Invoker
+      description: Description
+      status: Status
+      status_label: null
+      cronExpr: Cron Expr
+      repeatInterval: Repeat Interval
+      isFixedDelay: Is Fixed Delay
+      maxExecutionCount: Max Execution Count
+      minScheduleTime: Min Schedule Time
+      maxScheduleTime: Max Schedule Time
+      misfireThreshold: Misfire Threshold
+      maxFailedCount: Max Failed Count
+      isUseDefaultCalendar: Is Use Default Calendar
+      pauseCalendars: Pause Calendars
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      jobParamsComponent: null

@@ -1,12 +1,17 @@
 package io.nop.rule.core.excel;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.impl.BaseTable;
+import io.nop.core.model.table.tree.TreeCell;
 import io.nop.core.model.table.tree.TreeTableHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
@@ -20,16 +25,23 @@ import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.util.MultiLineConfigParser;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.rule.core.RuleConstants;
+import io.nop.rule.core.expr.RuleExprParser;
 import io.nop.rule.core.model.RuleDecisionTreeModel;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.ast.Expression;
+import io.nop.xlang.expr.filter.ExpressionToFilterBeanTransformer;
 import io.nop.xlang.xmeta.ObjVarDefineModel;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.rule.core.RuleErrors.ARG_CELL_POS;
 import static io.nop.rule.core.RuleErrors.ARG_TEXT;
+import static io.nop.rule.core.RuleErrors.ARG_VAR_NAME;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_DECISION_TREE_TABLE;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_INPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_INPUT_VAR;
@@ -39,7 +51,17 @@ import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_CONFIG_SHEET;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_RULE_SHEET;
 
 public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
-    private XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+    private final XLangCompileTool compileTool;
+
+    private final Map<String, RuleDecisionTreeModel> nodeIdMap = new HashMap<>();
+
+    public RuleExcelModelParser(XLangCompileTool compileTool) {
+        this.compileTool = compileTool;
+    }
+
+    public RuleExcelModelParser() {
+        this(XLang.newCompileTool().allowUnregisteredScopeVar(true));
+    }
 
     @Override
     protected RuleModel doParseResource(IResource resource) {
@@ -52,8 +74,8 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             throw new NopException(ERR_RULE_WORKBOOK_NO_RULE_SHEET)
                     .source(wk);
 
-        //RuleDecisionTableModel decisionTable = parseDecisionTree(model, ruleSheet);
-        //model.setDecisionTable(decisionTable);
+        RuleDecisionTreeModel decisionTable = parseDecisionTree(model, ruleSheet);
+        model.setDecisionTree(decisionTable);
         return model;
     }
 
@@ -96,7 +118,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
 
     private int getNonEmptyRowBound(ExcelTable table) {
         for (int i = 0, n = table.getRowCount(); i < n; i++) {
-            ICell cell = table.getCell(0, i);
+            ICell cell = table.getCell(i, 0);
             if (cell == null)
                 return i;
             String text = cell.getText();
@@ -110,7 +132,25 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
     private RuleDecisionTreeModel parseInputs(RuleModel ruleModel,
                                               ExcelSheet sheet, int beginRow, int beginCol, int endRow, int endCol) {
         BaseTable tree = TreeTableHelper.buildTreeTable(sheet.getTable(), beginRow, beginCol, endRow, endCol, false);
-        return null;
+        List<String> varNames = new ArrayList<>(endCol - beginCol);
+        for (int i = beginCol; i < endCol; i++) {
+            String varName = getInputVarName(ruleModel, sheet, beginRow - 1, i);
+            varNames.add(varName);
+        }
+
+        RuleDecisionTreeModel ret = new RuleDecisionTreeModel();
+        List<RuleDecisionTreeModel> rules = new ArrayList<>();
+
+        for (int i = 0, n = tree.getRowCount(); i < n; i++) {
+            TreeCell cell = (TreeCell) tree.getCell(i, 0);
+            RuleDecisionTreeModel rule = buildInputRule(cell, varNames, sheet.getName(),
+                    beginRow, beginCol);
+            rules.add(rule);
+            i += cell.getMergeDown();
+        }
+
+        ret.setChildren(rules);
+        return ret;
     }
 
     private String getInputVarName(RuleModel ruleModel, ExcelSheet sheet, int rowIndex, int colIndex) {
@@ -128,7 +168,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                     .source(table)
                     .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
 
-        ObjVarDefineModel var = ruleModel.getInput(text);
+        ObjVarDefineModel var = ruleModel.getInputVar(text);
         if (var != null)
             return var.getName();
 
@@ -143,7 +183,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         if (vl == null || vl.isEmpty())
             throw new NopException(ERR_RULE_UNKNOWN_INPUT_VAR)
                     .source(table)
-                    .param(ARG_TEXT, text)
+                    .param(ARG_VAR_NAME, text)
                     .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
 
         String varName = vl.asString();
@@ -164,17 +204,108 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         return varName;
     }
 
+    private RuleDecisionTreeModel buildInputRule(TreeCell cell, List<String> varNames,
+                                                 String sheetName, int beginRow, int beginCol) {
+        ExcelCell ec = (ExcelCell) cell.getValue();
+
+        int rowIndex = beginRow + cell.getRowIndex();
+        int colIndex = beginCol + cell.getColIndex();
+
+        Map<String, ValueWithLocation> commentVars = getCommentVars(ec, sheetName, rowIndex, colIndex);
+        String varName = varNames.get(cell.getTreeLevel());
+        SourceLocation loc = null;
+        String label = null;
+        String expr = null;
+
+        String id = null;
+
+        if (commentVars != null) {
+            ValueWithLocation vl = commentVars.get(RuleConstants.NAME_VALUE_EXPR);
+            if (vl != null) {
+                loc = vl.getLocation();
+                label = ec.getText();
+                expr = vl.asString();
+            }
+            id = getCommentVar(commentVars, RuleConstants.NAME_ID);
+        }
+
+        if (StringHelper.isEmpty(id))
+            id = CellPosition.toABString(rowIndex, colIndex);
+
+        if (expr == null) {
+            expr = StringHelper.strip(ec.getText());
+        }
+        if (StringHelper.isEmpty(label))
+            label = expr;
+
+        if (loc == null)
+            loc = getLocation(ec, sheetName, rowIndex, colIndex);
+
+        TreeBean predicate = parsePredicate(loc, varName, expr);
+        RuleDecisionTreeModel node = new RuleDecisionTreeModel();
+        node.setId(id);
+        node.setLocation(loc);
+        if (predicate != null) {
+            node.setPredicate(XNode.fromTreeBean(predicate));
+        }
+        node.setLabel(label);
+        node.setMultiMatch(getMultiMatch(commentVars, false));
+
+        List<TreeCell> children = cell.getChildren();
+        if (children != null) {
+            List<RuleDecisionTreeModel> ruleChildren = new ArrayList<>(children.size());
+            for (TreeCell child : children) {
+                RuleDecisionTreeModel ruleChild = buildInputRule(child, varNames, sheetName, beginRow, beginCol);
+                ruleChildren.add(ruleChild);
+            }
+            node.setChildren(ruleChildren);
+        }
+
+        return node;
+    }
+
+    private TreeBean parsePredicate(SourceLocation loc, String varName, String text) {
+        if ("-".equals(text) || StringHelper.isEmpty(text))
+            return FilterBeans.alwaysTrue();
+
+        Expression ruleExpr = new RuleExprParser(varName).parseExpr(loc, text);
+        if (ruleExpr == null)
+            return FilterBeans.alwaysTrue();
+
+        return new ExpressionToFilterBeanTransformer().transform(ruleExpr);
+    }
+
+    private boolean getMultiMatch(Map<String, ValueWithLocation> commentVars, boolean defaultValue) {
+        if (commentVars == null)
+            return defaultValue;
+
+        ValueWithLocation vl = commentVars.get(RuleConstants.NAME_MULTI_MATCH);
+        Boolean b = vl == null ? null : ConvertHelper.toBoolean(vl.getValue());
+        if (b == null)
+            return defaultValue;
+        return b;
+    }
+
     private Map<String, ValueWithLocation> getCommentVars(ExcelCell cell, String sheetName, int rowIndex, int colIndex) {
         if (cell == null)
             return null;
 
-        SourceLocation loc = getLocation(cell.resourcePath(), sheetName, rowIndex, colIndex);
-        return MultiLineConfigParser.INSTANCE.parseConfig(loc, cell.getText());
+        SourceLocation loc = getLocation(cell, sheetName, rowIndex, colIndex);
+        return MultiLineConfigParser.INSTANCE.parseConfig(loc, cell.getComment());
     }
 
-    private SourceLocation getLocation(String path, String sheetName, int rowIndex, int colIndex) {
-        if (path == null)
-            path = "<excel>";
+    private String getCommentVar(Map<String, ValueWithLocation> vars, String name) {
+        if (vars == null)
+            return null;
+
+        ValueWithLocation vl = vars.get(name);
+        return vl == null ? null : vl.asString();
+    }
+
+    private SourceLocation getLocation(ExcelCell cell, String sheetName, int rowIndex, int colIndex) {
+        if (cell.getLocation() != null)
+            return cell.getLocation();
+        String path = "<excel>";
         return new SourceLocation(path, 0, 0, 0, 0, sheetName, CellPosition.toABString(rowIndex, colIndex), null);
     }
 }

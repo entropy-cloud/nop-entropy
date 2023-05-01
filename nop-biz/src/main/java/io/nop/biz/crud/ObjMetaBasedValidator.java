@@ -11,7 +11,7 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeanConstants;
-import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.validate.IValidationErrorCollector;
@@ -94,11 +94,11 @@ public class ObjMetaBasedValidator {
 
     // 将objMeta的filter中定义的eq条件作为固定的属性值设置到对象中
     private void appendEqCondition(Map<String, Object> map) {
-        TreeBean filter = objMeta.getFilter();
+        ITreeBean filter = objMeta.getFilter();
         if (filter == null || filter.getChildCount() <= 0)
             return;
 
-        for (TreeBean child : filter.getChildren()) {
+        for (ITreeBean child : filter.getChildren()) {
             if (FilterBeanConstants.FILTER_OP_EQ.equals(child.getTagName())) {
                 String name = (String) child.getAttr(FilterBeanConstants.FILTER_ATTR_NAME);
                 Object value = child.getAttr(FilterBeanConstants.FILTER_ATTR_VALUE);

@@ -16,6 +16,9 @@ import java.util.Map;
 public class ComponentModelConfig {
     private String modelType;
 
+    private String resolveInDir;
+    private IResourceObjectLoader<? extends IComponentModel> resolveDefaultLoader;
+
     /**
      * 模型可以存在多种存储格式，每种格式对应一个文件类型，采用一种特定的加载器加载
      * <p>
@@ -46,6 +49,22 @@ public class ComponentModelConfig {
             transformers = new HashMap<>();
         transformers.put(name, fn);
         return this;
+    }
+
+    public String getResolveInDir() {
+        return resolveInDir;
+    }
+
+    public void setResolveInDir(String resolveInDir) {
+        this.resolveInDir = resolveInDir;
+    }
+
+    public IResourceObjectLoader<? extends IComponentModel> getResolveDefaultLoader() {
+        return resolveDefaultLoader;
+    }
+
+    public void setResolveDefaultLoader(IResourceObjectLoader<? extends IComponentModel> resolveDefaultLoader) {
+        this.resolveDefaultLoader = resolveDefaultLoader;
     }
 
     public String getModelType() {

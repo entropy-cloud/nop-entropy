@@ -9,4 +9,23 @@ public interface RuleConstants {
     String IMP_PATH_RULE = "/nop/rule/imp/rule.imp.xml";
 
     String NAME_VAR = "var";
+
+    String NAME_VALUE_EXPR = "valueExpr";
+
+    String NAME_MULTI_MATCH = "multiMatch";
+
+    String NAME_ID = "id";
+
+    String MESSAGE_MISMATCH = "MISMATCH";
+    String MESSAGE_MATCH = "MATCH";
+
+    String VAR_RULE_RT = "ruleRt";
+
+    String VAR_RESULT = "result";
+
+    String FILE_TYPE_RULE_XLSX = "rule.xlsx";
+
+    String FILE_TYPE_RULE_XML = "rule.xml";
+
+    String RESOLVE_RULE_NS_PREFIX = "resolve-rule:";
 }
