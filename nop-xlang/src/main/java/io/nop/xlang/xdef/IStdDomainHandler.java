@@ -61,7 +61,7 @@ public interface IStdDomainHandler {
     }
 
     default XNode transformToNode(Object value) {
-        throw new UnsupportedOperationException("transformToNode");
+        throw new UnsupportedOperationException("transformToNode:"+getName());
     }
 
     default String getSerializeFunction() {

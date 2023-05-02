@@ -134,6 +134,13 @@ public class RegisterModelDiscovery {
         String name = (String) BeanTool.getProperty(model, "name");
         config.setModelType(name);
 
+        Object resolveHandler = BeanTool.getProperty(model, "resolveHandler");
+        if (resolveHandler != null) {
+            String resolveInDir = (String) BeanTool.getProperty(resolveHandler, "resolveInDir");
+            config.setResolveInDir(resolveInDir);
+            config.setResolveDefaultLoader(buildDefaultResolveLoader(resolveHandler));
+        }
+
         List<Object> loaders = (List<Object>) BeanTool.getProperty(model, "loaders");
         if (loaders != null) {
             for (Object loader : loaders) {
@@ -168,6 +175,14 @@ public class RegisterModelDiscovery {
         }
 
         return config;
+    }
+
+    IResourceObjectLoader buildDefaultResolveLoader(Object resolveHandler) {
+        String className = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderClass");
+        if (StringHelper.isEmpty(className))
+            return null;
+
+        return newLoader(className);
     }
 
     IComponentTransformer newTransformer(String className) {

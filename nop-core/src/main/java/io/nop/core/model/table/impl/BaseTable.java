@@ -18,6 +18,7 @@ public class BaseTable extends AbstractTable<BaseRow> {
 
     private List<BaseRow> rows;
     private List<BaseColumnConfig> cols = new ArrayList<>();
+    private Object model;
 
     public BaseTable(int rowCount) {
         this.rows = new ArrayList<>(rowCount);
@@ -25,6 +26,14 @@ public class BaseTable extends AbstractTable<BaseRow> {
 
     public BaseTable() {
         this.rows = new ArrayList<>();
+    }
+
+    public Object getModel() {
+        return model;
+    }
+
+    public void setModel(Object model) {
+        this.model = model;
     }
 
     @Override

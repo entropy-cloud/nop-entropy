@@ -17,7 +17,7 @@
     <!--
     @label 对当前判断条件的描述信息
     -->
-    <xdef:define xdef:name="RuleDecisionTreeModel" id="string" label="string" multiMatch="!boolean=false">
+    <xdef:define xdef:name="RuleDecisionTreeModel" id="string" label="string" multiMatch="!boolean=false" leafIndex="!int=0">
 
         <predicate xdef:value="filter-bean"/>
 

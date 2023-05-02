@@ -81,7 +81,16 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
            
     }
 
-    
+    private int leafIndex;
+
+    public int getLeafIndex() {
+        return leafIndex;
+    }
+
+    public void setLeafIndex(int leafIndex) {
+        this.leafIndex = leafIndex;
+    }
+
     public io.nop.rule.core.model.RuleDecisionTreeModel getChild(String name){
         return this._children.getByKey(name);
     }

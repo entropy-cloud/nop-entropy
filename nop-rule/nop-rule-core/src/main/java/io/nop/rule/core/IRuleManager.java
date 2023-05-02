@@ -8,6 +8,10 @@ public interface IRuleManager {
 
     IRuleRuntime newRuntime(IEvalScope scope);
 
+    default IRuleRuntime newRuntime() {
+        return newRuntime(null);
+    }
+
     IExecutableRule getRule(String ruleName);
 
     Map<String, Object> executeRule(String ruleName, IRuleRuntime ruleRt);

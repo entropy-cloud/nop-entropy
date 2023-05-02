@@ -126,15 +126,15 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
         @Override
         public ComponentCacheEntry loadObjectFromPath(String path) {
-            IResourceObjectLoader<? extends IComponentModel> loader = resolveModelLoader(path, modelType);
-            if (loader == null)
+            Pair<String, IResourceObjectLoader<? extends IComponentModel>> pair = resolveModelLoader(path, modelType);
+            if (pair == null)
                 return null;
 
             IComponentModel model;
             if (forceNoTenant) {
-                model = ContextProvider.runWithoutTenantId(() -> loader.loadObjectFromPath(path));
+                model = ContextProvider.runWithoutTenantId(() -> pair.getValue().loadObjectFromPath(pair.getKey()));
             } else {
-                model = loader.loadObjectFromPath(path);
+                model = pair.getValue().loadObjectFromPath(pair.getKey());
             }
 
             if (model instanceof IFreezable) {
@@ -221,7 +221,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return dependsManager.isAnyDependsChange(depends, new HashSet<>(), dependsPersister, changeChecker);
     }
 
-    IResourceObjectLoader<? extends IComponentModel> resolveModelLoader(String path, String modelType) {
+    Pair<String, IResourceObjectLoader<? extends IComponentModel>> resolveModelLoader(String path, String modelType) {
         if (path.startsWith(ResourceConstants.RESOLVE_PREFIX)) {
             int pos = path.indexOf(':');
             String subName = path.substring(pos + 1);
@@ -232,17 +232,17 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 String fileType = entry.getKey();
                 IResource resource = VirtualFileSystem.instance().getResource(fullPath + "." + fileType);
                 if (resource.exists())
-                    return entry.getValue();
+                    return Pair.of(resource.getPath(), entry.getValue());
             }
 
             if (config.getResolveDefaultLoader() != null) {
-                return config.getResolveDefaultLoader();
+                return Pair.of(path, config.getResolveDefaultLoader());
             } else {
                 return null;
             }
         } else {
             String fileType = StringHelper.fileType(path);
-            return requireLoader(modelType, fileType);
+            return Pair.of(path, requireLoader(modelType, fileType));
         }
     }
 
@@ -411,14 +411,6 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     protected String findModelTypeFromPath(String resourcePath) {
-        if (resourcePath.startsWith(ResourceConstants.RESOLVE_PREFIX)) {
-            int pos = resourcePath.indexOf(':');
-            if (pos < 0)
-                throw new NopException(ERR_COMPONENT_INVALID_MODEL_PATH)
-                        .param(ARG_RESOURCE_PATH, resourcePath);
-            return resourcePath.substring(ResourceConstants.RESOLVE_PREFIX.length(), pos);
-        }
-
         String fileType = StringHelper.fileType(resourcePath);
         ComponentModelLoader loader = findByFileType(fileTypeLoaders, fileType);
         if (loader != null)
@@ -482,6 +474,15 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public ComponentModelConfig getModelConfigByModelPath(String path) {
+        if (path.startsWith(ResourceConstants.RESOLVE_PREFIX)) {
+            int pos = path.indexOf(':');
+            if (pos < 0)
+                throw new NopException(ERR_COMPONENT_INVALID_MODEL_PATH)
+                        .param(ARG_RESOURCE_PATH, path);
+            String modelType = path.substring(ResourceConstants.RESOLVE_PREFIX.length(), pos);
+            return modelTypeConfigs.get(modelType);
+        }
+
         ComponentModelLoader loader = findByFileType(fileTypeLoaders, StringHelper.fileType(path));
         return loader == null ? null : modelTypeConfigs.get(loader.getModelType());
     }

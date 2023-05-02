@@ -6,16 +6,16 @@ import io.nop.core.lang.utils.Underscore;
 import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.model.RuleAggregateMethod;
-import io.nop.rule.core.model.RuleOutputValueModel;
+import io.nop.rule.core.model.RuleOutputDefineModel;
 
 import java.util.List;
 
 public class AggregateExecutableRule implements IExecutableRule {
     private final IExecutableRule rule;
-    private final List<RuleOutputValueModel> outputs;
+    private final List<RuleOutputDefineModel> outputs;
 
     public AggregateExecutableRule(IExecutableRule rule,
-                                   List<RuleOutputValueModel> outputs) {
+                                   List<RuleOutputDefineModel> outputs) {
         this.rule = rule;
         this.outputs = outputs;
     }
@@ -24,16 +24,16 @@ public class AggregateExecutableRule implements IExecutableRule {
     public boolean execute(IRuleRuntime ruleRt) {
         boolean b = rule.execute(ruleRt);
         if (b) {
-            for (RuleOutputValueModel output : outputs) {
+            for (RuleOutputDefineModel output : outputs) {
                 aggOutput(output, ruleRt);
             }
         }
         return b;
     }
 
-    private void aggOutput(RuleOutputValueModel output, IRuleRuntime ruleRt) {
+    private void aggOutput(RuleOutputDefineModel output, IRuleRuntime ruleRt) {
         String name = output.getName();
-        RuleAggregateMethod aggMethod = output.getVarModel().getAggregate();
+        RuleAggregateMethod aggMethod = output.getAggregate();
         if (aggMethod == null) {
             aggMethod = RuleAggregateMethod.last;
         }
@@ -81,8 +81,8 @@ public class AggregateExecutableRule implements IExecutableRule {
         }
     }
 
-    private Object getDefaultValue(RuleOutputValueModel output, IRuleRuntime ruleRt) {
-        IEvalAction defaultExpr = output.getVarModel().getDefaultExpr();
+    private Object getDefaultValue(RuleOutputDefineModel output, IRuleRuntime ruleRt) {
+        IEvalAction defaultExpr = output.getDefaultExpr();
         if (defaultExpr == null) {
             return null;
         } else {

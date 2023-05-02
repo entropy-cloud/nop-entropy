@@ -13,12 +13,15 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.json.StdJsonToXNodeTransformer;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
@@ -28,6 +31,7 @@ import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
+import io.nop.xlang.xdef.source.IWithSourceCode;
 import io.nop.xlang.xdsl.XDslConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,6 +145,29 @@ public class XplStdDomainHandlers {
             } catch (Exception e) {
                 collector.addException(e);
             }
+        }
+
+        @Override
+        public XNode transformToNode(Object value) {
+            if (value instanceof IWithSourceCode) {
+                String source = ((IWithSourceCode) value).getSource();
+                if (StringHelper.maybeXml(source)) {
+                    XNode node = XNodeParser.instance().parseFromText(null, source);
+                    if (node.isDummyNode() || node.getTagName().equals(XLangConstants.TAG_C_UNIT)) {
+                        node.setTagName(CoreConstants.DUMMY_TAG_NAME);
+                    } else {
+                        XNode parent = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+                        parent.appendChild(node);
+                        node = parent;
+                    }
+                    return node;
+                } else {
+                    XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+                    node.content(source);
+                    return node;
+                }
+            }
+            return StdJsonToXNodeTransformer.INSTANCE.transformToXNode(value);
         }
     }
 

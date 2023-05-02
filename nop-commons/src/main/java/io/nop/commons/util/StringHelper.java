@@ -2527,7 +2527,7 @@ public class StringHelper extends ApiStringHelper {
         if (pos < 0)
             return isValidFilePath(path);
         String ns = path.substring(0, pos);
-        if (!isValidSimpleVarName(ns))
+        if (!isValidXmlName(ns))
             return false;
         if (path.length() <= pos + 1)
             return false;
@@ -4203,6 +4203,7 @@ public class StringHelper extends ApiStringHelper {
         return containsAnyChar(str, SPECIAL_CHARS);
     }
 
+    @Deterministic
     public static boolean pathStartsWith(String p1, String p2) {
         if (isEmpty(p1))
             return false;
@@ -4219,6 +4220,7 @@ public class StringHelper extends ApiStringHelper {
         return c == '/';
     }
 
+    @Deterministic
     public static boolean pathEndsWith(String p1, String p2) {
         if (isEmpty(p1))
             return false;
@@ -4236,6 +4238,7 @@ public class StringHelper extends ApiStringHelper {
         return c == '/';
     }
 
+    @Deterministic
     public static long parseSize(String str) {
         if (isEmpty(str))
             return 0;
@@ -4251,5 +4254,20 @@ public class StringHelper extends ApiStringHelper {
         } else {
             return ConvertHelper.toLong(str);
         }
+    }
+
+    @Deterministic
+    public static boolean maybeXml(String text) {
+        if (isEmpty(text))
+            return true;
+
+        int pos = CharSequenceHelper.skipWhitespace(text, 0);
+        if (pos >= text.length())
+            return false;
+
+        if (text.charAt(pos) == '<' && text.indexOf('>') >= 0) {
+            return true;
+        }
+        return false;
     }
 }

@@ -50,6 +50,16 @@ public class FilterBeanToPredicateTransformer extends FilterBeanVisitor<IEvalPre
         return new CompareOpExecutable(loc, filterOp, left, right);
     }
 
+    @Override
+    public IEvalPredicate visitAlwaysTrue(ITreeBean filter, IVariableScope scope) {
+        return IEvalPredicate.ALWAYS_TRUE;
+    }
+
+    @Override
+    public IEvalPredicate visitAlwaysFalse(ITreeBean filter, IVariableScope scope) {
+        return IEvalPredicate.ALWAYS_FALSE;
+    }
+
     protected IExecutableExpression compileNameExpr(SourceLocation loc, String name) {
         Expression expr = XLangASTBuilder.buildPropExpr(loc, name);
         return compileTool.buildExecutable(expr);

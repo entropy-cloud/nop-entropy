@@ -15,6 +15,7 @@ import io.nop.core.resource.component.AbstractFreezable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 描述节点以及子节点的相对位置，占据的单元格空间大小等
@@ -100,6 +101,16 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
         ret.leafIndex = leafIndex;
         ret.treeLevel = treeLevel;
         return ret;
+    }
+
+    public void forEachLeaf(Consumer<TreeCell> consumer) {
+        if (children == null || children.isEmpty()) {
+            consumer.accept(this);
+        } else {
+            for (TreeCell child : children) {
+                child.forEachLeaf(consumer);
+            }
+        }
     }
 
     /**

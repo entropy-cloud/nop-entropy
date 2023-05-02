@@ -5,6 +5,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.SeqEvalAction;
 import io.nop.rule.core.IExecutableRule;
+import io.nop.rule.core.execute.AggregateExecutableRule;
 import io.nop.rule.core.execute.ExecutableRule;
 import io.nop.rule.core.execute.RuleOutputAction;
 import io.nop.rule.core.model.RuleDecisionTreeModel;
@@ -34,6 +35,8 @@ public class RuleModelCompiler {
         } else {
             rule = null;
         }
+
+        rule = new AggregateExecutableRule(rule, ruleModel.getOutputs());
 
         ruleModel.setExecutableRule(rule);
         return rule;

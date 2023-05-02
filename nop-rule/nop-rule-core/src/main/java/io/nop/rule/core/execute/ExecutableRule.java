@@ -48,11 +48,13 @@ public class ExecutableRule implements IExecutableRule, ISourceLocationGetter {
     @Override
     public boolean execute(IRuleRuntime ruleRt) {
         if (predicate != null && !predicate.passConditions(ruleRt)) {
-            ruleRt.logMessage(RuleConstants.MESSAGE_MISMATCH, id, label);
+            if (id != null || label != null)
+                ruleRt.logMessage(RuleConstants.MESSAGE_MISMATCH, id, label);
             return false;
         }
 
-        ruleRt.logMessage(RuleConstants.MESSAGE_MATCH, id, label);
+        if (id != null || label != null)
+            ruleRt.logMessage(RuleConstants.MESSAGE_MATCH, id, label);
 
         if (action != null) {
             action.invoke(ruleRt);

@@ -399,6 +399,11 @@ public class BeanCopier implements IBeanCopier {
             options.makeObjMap().put(src, bean);
         }
 
+        // 对于ISchema这样的接口类型，实际返回的target对象是SchemaImpl
+        if (targetModel.isAbstract()) {
+            targetModel = options.getBeanModelManager().getBeanModelForClass(bean.getClass());
+        }
+
         _copyObj(src, bean, targetModel, propNames, targetType, true, selection, options);
         return bean;
     }
