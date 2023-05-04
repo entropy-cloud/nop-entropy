@@ -1747,6 +1747,21 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return sb.toString();
     }
 
+    public String bodyFullXml() {
+        StringBuilder sb = new StringBuilder();
+        CollectXmlHandler handler = new CollectXmlHandler(sb).indentRoot(false).indent(true);
+
+        handler.beginNode(this.sourceLocation, DUMMY_TAG_NAME, Collections.emptyMap());
+
+        if (hasChild()) {
+            handler.appendChildren(children);
+        } else {
+            handler.value(this.content.getLocation(), this.content.getValue());
+        }
+        handler.endNode(DUMMY_TAG_NAME);
+        return sb.toString();
+    }
+
     public String innerHtml() {
         return innerXml(true, true);
     }

@@ -41,4 +41,10 @@ public interface RuleErrors {
 
     ErrorCode ERR_RULE_INPUT_NO_LABEL =
             define("nop.err.rule.input-no-label", "输入变量显示标题不能为空");
+
+    ErrorCode ERR_RULE_NOT_ALLOW_MERGED_CELL =
+            define("nop.err.rule.not-allow-merge-cell", "不允许合并单元格：{cellPos}");
+
+    ErrorCode ERR_RULE_INVALID_OUTPUT_CELL =
+            define("nop.err.rule.invalid-output-cell", "输出单元格格式不正确：{cellPos}");
 }

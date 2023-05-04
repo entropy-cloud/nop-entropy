@@ -33,6 +33,8 @@ public interface IRuleRuntime extends IEvalContext {
 
     void setOutput(String name, Object value);
 
+    void clearOutputs();
+
     void logMessage(String message, String ruleId, String ruleLabel);
 
     List<RuleLogMessage> getLogMessages();

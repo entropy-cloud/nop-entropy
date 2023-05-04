@@ -33,6 +33,8 @@ public class RuleManager implements IRuleManager {
 
     @Override
     public Map<String, Object> executeRule(String ruleName, IRuleRuntime ruleRt) {
+        ruleRt.clearOutputs();
+
         IExecutableRule rule = getRule(ruleName);
         if (!rule.execute(ruleRt))
             return null;

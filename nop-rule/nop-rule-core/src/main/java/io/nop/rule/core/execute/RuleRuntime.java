@@ -53,6 +53,11 @@ public class RuleRuntime implements IRuleRuntime {
         outputs.put(name, value);
     }
 
+    public void clearOutputs() {
+        outputLists.clear();
+        outputs.clear();
+    }
+
     @Override
     public Map<String, Object> getOutputs() {
         return outputs;

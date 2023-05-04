@@ -8,6 +8,8 @@ public interface RuleConstants {
 
     String IMP_PATH_RULE = "/nop/rule/imp/rule.imp.xml";
 
+    String RULE_TYPE_MATRIX = "M";
+
     String NAME_VAR = "var";
 
     String NAME_VALUE_EXPR = "valueExpr";

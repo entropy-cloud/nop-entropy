@@ -11,6 +11,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
+import io.nop.core.model.table.ITable;
 import io.nop.core.model.table.impl.BaseTable;
 import io.nop.core.model.table.tree.TreeCell;
 import io.nop.core.model.table.tree.TreeTableHelper;
@@ -28,9 +29,11 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.execute.RuleOutputAction;
 import io.nop.rule.core.expr.RuleExprParser;
+import io.nop.rule.core.model.RuleDecisionMatrixModel;
 import io.nop.rule.core.model.RuleDecisionTreeModel;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.core.model.RuleOutputValueModel;
+import io.nop.rule.core.model.RuleTableCellModel;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
@@ -50,6 +53,8 @@ import static io.nop.rule.core.RuleErrors.ARG_TEXT;
 import static io.nop.rule.core.RuleErrors.ARG_VAR_NAME;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_DECISION_TREE_TABLE;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_INPUT_VAR;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_OUTPUT_CELL;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_NOT_ALLOW_MERGED_CELL;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_INPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_OUTPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_SPAN_MUST_BE_ONE;
@@ -81,8 +86,14 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             throw new NopException(ERR_RULE_WORKBOOK_NO_RULE_SHEET)
                     .source(wk);
 
-        RuleDecisionTreeModel decisionTable = parseDecisionTree(model, ruleSheet);
-        model.setDecisionTree(decisionTable);
+        String type = StringHelper.strip(ruleSheet.getTable().getCellText(0, 0));
+        if (RuleConstants.RULE_TYPE_MATRIX.equals(type)) {
+            RuleDecisionMatrixModel decisionMatrix = parseDecisionMatrix(model, ruleSheet);
+            model.setDecisionMatrix(decisionMatrix);
+        } else {
+            RuleDecisionTreeModel decisionTable = parseDecisionTree(model, ruleSheet);
+            model.setDecisionTree(decisionTable);
+        }
         return model;
     }
 
@@ -132,7 +143,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
 
         for (int i = 0, n = tree.getRowCount(); i < n; i++) {
             TreeCell cell = (TreeCell) tree.getCell(i, tree.getColCount() - 1).getRealCell();
-            parseOutputVars(cell, outputVarNames, model, ruleSheet, beginRow, beginCol, endCol);
+            parseOutputVars(cell, outputVarNames, model, ruleSheet, beginRow, endCol);
         }
 
         return ret;
@@ -167,7 +178,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         for (int i = 0, n = tree.getRowCount(); i < n; i++) {
             TreeCell cell = (TreeCell) tree.getCell(i, 0);
             RuleDecisionTreeModel rule = buildInputRule(cell, varNames, sheet.getName(),
-                    beginRow, beginCol);
+                    beginRow, beginCol, false);
             rules.add(rule);
             i += cell.getMergeDown();
         }
@@ -228,14 +239,31 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
     }
 
     private RuleDecisionTreeModel buildInputRule(TreeCell cell, List<String> varNames,
-                                                 String sheetName, int beginRow, int beginCol) {
-        ExcelCell ec = (ExcelCell) cell.getValue();
-
+                                                 String sheetName, int beginRow, int beginCol, boolean vertical) {
+        String varName = varNames.get(vertical ? cell.getRowIndex() : cell.getColIndex());
         int rowIndex = beginRow + cell.getRowIndex();
         int colIndex = beginCol + cell.getColIndex();
 
+        RuleDecisionTreeModel node = buildRuleNode(cell, varName, sheetName, rowIndex, colIndex);
+
+        List<TreeCell> children = cell.getChildren();
+        if (children != null) {
+            List<RuleDecisionTreeModel> ruleChildren = new ArrayList<>(children.size());
+            for (TreeCell child : children) {
+                RuleDecisionTreeModel ruleChild = buildInputRule(child, varNames, sheetName, beginRow, beginCol, vertical);
+                ruleChildren.add(ruleChild);
+            }
+            node.setChildren(ruleChildren);
+        }
+
+        return node;
+    }
+
+    private RuleDecisionTreeModel buildRuleNode(TreeCell cell, String varName, String sheetName, int rowIndex, int colIndex) {
+        ExcelCell ec = (ExcelCell) cell.getValue();
+
+
         Map<String, ValueWithLocation> commentVars = getCommentVars(ec, sheetName, rowIndex, colIndex);
-        String varName = varNames.get(cell.getTreeLevel());
         SourceLocation loc = null;
         String label = null;
         String expr = null;
@@ -275,17 +303,6 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         node.setMultiMatch(getMultiMatch(commentVars, false));
         node.setLeafIndex(cell.getLeafIndex());
         cell.setModel(node);
-
-        List<TreeCell> children = cell.getChildren();
-        if (children != null) {
-            List<RuleDecisionTreeModel> ruleChildren = new ArrayList<>(children.size());
-            for (TreeCell child : children) {
-                RuleDecisionTreeModel ruleChild = buildInputRule(child, varNames, sheetName, beginRow, beginCol);
-                ruleChildren.add(ruleChild);
-            }
-            node.setChildren(ruleChildren);
-        }
-
         return node;
     }
 
@@ -299,14 +316,14 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
     }
 
     private void parseOutputVars(TreeCell cell, List<String> outputVarNames, RuleModel ruleModel, ExcelSheet sheet,
-                                 int beginRow, int beginCol, int outputCol) {
+                                 int beginRow, int outputCol) {
         RuleDecisionTreeModel rule = (RuleDecisionTreeModel) cell.getModel();
         ExcelTable table = sheet.getTable();
         for (int i = 0, n = outputVarNames.size(); i < n; i++) {
             String varName = outputVarNames.get(i);
             int rowIndex = cell.getRowIndex() + beginRow;
             int colIndex = outputCol + i;
-            ExcelCell outputCell = getRealCell(table, rowIndex, colIndex);
+            ExcelCell outputCell = (ExcelCell) getRealCell(table, rowIndex, colIndex);
 
             RuleOutputValueModel outputModel = new RuleOutputValueModel();
             outputModel.setName(varName);
@@ -319,11 +336,21 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         }
     }
 
-    private ExcelCell getRealCell(ExcelTable table, int rowIndex, int colIndex) {
+    private ICell getRealCell(ITable table, int rowIndex, int colIndex) {
         ICell cell = table.getCell(rowIndex, colIndex);
         if (cell == null)
             return null;
-        return (ExcelCell) cell.getRealCell();
+        return cell.getRealCell();
+    }
+
+    private ExcelCell requireRealCell(ExcelTable table, int rowIndex, int colIndex) {
+        ICell cell = table.getCell(rowIndex, colIndex);
+        if (cell == null)
+            return null;
+        if (cell.isProxyCell())
+            throw new NopException(ERR_RULE_NOT_ALLOW_MERGED_CELL)
+                    .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
+        return (ExcelCell) cell;
     }
 
     private String getOutputVarName(RuleModel ruleModel, ExcelSheet sheet, int rowIndex, int colIndex) {
@@ -360,7 +387,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                     .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex));
 
         String varName = vl.asString();
-        var = ruleModel.getInput(varName);
+        var = ruleModel.getOutputVar(varName);
         if (var == null)
             throw new NopException(ERR_RULE_UNKNOWN_OUTPUT_VAR)
                     .source(table)
@@ -443,5 +470,192 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             return cell.getLocation();
         String path = "<excel>";
         return new SourceLocation(path, 0, 0, 0, 0, sheetName, CellPosition.toABString(rowIndex, colIndex), null);
+    }
+
+    private RuleDecisionMatrixModel parseDecisionMatrix(RuleModel ruleModel, ExcelSheet sheet) {
+        ExcelTable table = sheet.getTable();
+        ExcelCell cell0 = (ExcelCell) table.getCell(0, 0);
+
+        int outBeginRow = cell0.getRowSpan();
+        int outEndRow = getNonEmptyRowBound(table);
+        int outBeginCol = cell0.getColSpan();
+        int outEndCol = getNonEmptyColBound(table);
+
+        BaseTable top = TreeTableHelper.buildTreeTable(table,
+                0, outBeginCol, outBeginRow, outEndCol, true);
+
+        BaseTable left = TreeTableHelper.buildTreeTable(table,
+                outBeginRow, 0, outEndRow, outBeginCol, false);
+
+        String sheetName = sheet.getName();
+
+        RuleDecisionTreeModel rowDecider = buildRowDecider(top, outBeginRow, sheetName, ruleModel);
+        RuleDecisionTreeModel colDecider = buildColDecider(left, outBeginCol, sheetName, ruleModel);
+
+        RuleDecisionMatrixModel ret = new RuleDecisionMatrixModel();
+        ret.setRowDecider(rowDecider);
+        ret.setColDecider(colDecider);
+
+        parseMatrixOutputs(ret, sheet, outBeginRow, outBeginCol, outEndRow, outEndCol, ruleModel);
+        return ret;
+    }
+
+    private int getNonEmptyColBound(ExcelTable table) {
+        for (int i = 0, n = table.getColCount(); i < n; i++) {
+            ICell cell = table.getCell(0, i);
+            if (cell == null)
+                return i;
+            String text = cell.getText();
+            if (StringHelper.isEmpty(text))
+                return i;
+            i += cell.getMergeDown();
+        }
+        return table.getColCount();
+    }
+
+    private RuleDecisionTreeModel buildRowDecider(BaseTable table, int beginRow, String sheetName, RuleModel ruleModel) {
+        List<String> rowVarNames = getRowVarNames(table, sheetName, beginRow, ruleModel);
+
+        RuleDecisionTreeModel ret = new RuleDecisionTreeModel();
+        List<RuleDecisionTreeModel> children = new ArrayList<>();
+        for (int i = 0, n = table.getRowCount(); i < n; i++) {
+            TreeCell cell = (TreeCell) table.getCell(i, 0);
+            RuleDecisionTreeModel rule = buildInputRule(cell, rowVarNames, sheetName, beginRow, 0, false);
+            children.add(rule);
+            i += cell.getMergeDown();
+        }
+        ret.setChildren(children);
+        return ret;
+    }
+
+    private RuleDecisionTreeModel buildColDecider(BaseTable table, int beginCol, String sheetName, RuleModel ruleModel) {
+        List<String> rowVarNames = getColVarNames(table, sheetName, beginCol, ruleModel);
+
+        RuleDecisionTreeModel ret = new RuleDecisionTreeModel();
+        List<RuleDecisionTreeModel> children = new ArrayList<>();
+        for (int i = 0, n = table.getColCount(); i < n; i++) {
+            TreeCell cell = (TreeCell) table.getCell(0, i);
+            RuleDecisionTreeModel rule = buildInputRule(cell, rowVarNames, sheetName, 0, beginCol, true);
+            children.add(rule);
+            i += cell.getMergeDown();
+        }
+        ret.setChildren(children);
+        return ret;
+    }
+
+    private List<String> getRowVarNames(BaseTable table, String sheetName, int beginRow, RuleModel ruleModel) {
+        List<String> varNames = new ArrayList<>(table.getColCount());
+
+        for (int i = 0, n = table.getColCount(); i < n; i++) {
+            TreeCell cell = (TreeCell) getRealCell(table, 0, i);
+            String varName = getVarName(cell, sheetName, beginRow, i, ruleModel);
+            varNames.add(varName);
+        }
+        return varNames;
+    }
+
+    private List<String> getColVarNames(BaseTable table, String sheetName, int beginCol, RuleModel ruleModel) {
+        List<String> varNames = new ArrayList<>(table.getRowCount());
+
+        for (int i = 0, n = table.getRowCount(); i < n; i++) {
+            TreeCell cell = (TreeCell) getRealCell(table, i, 0);
+            String varName = getVarName(cell, sheetName, i, beginCol, ruleModel);
+            varNames.add(varName);
+        }
+        return varNames;
+    }
+
+    private String getVarName(TreeCell cell, String sheetName, int rowIndex, int colIndex, RuleModel ruleModel) {
+        if (cell == null) {
+            SourceLocation loc = getLocation(null, sheetName, rowIndex, colIndex);
+            throw new NopException(ERR_RULE_INVALID_INPUT_VAR)
+                    .loc(loc).param(ARG_VAR_NAME, null);
+        }
+
+        ExcelCell ec = (ExcelCell) cell.getValue();
+        Map<String, ValueWithLocation> commentVars = getCommentVars(ec, sheetName, rowIndex, colIndex);
+        String varName = getCommentVar(commentVars, RuleConstants.NAME_VAR);
+        ObjVarDefineModel varDef = ruleModel.getInputVar(varName);
+        if (varDef == null) {
+            SourceLocation loc = getLocation(ec, sheetName, rowIndex, colIndex);
+            throw new NopException(ERR_RULE_INVALID_INPUT_VAR)
+                    .loc(loc).param(ARG_VAR_NAME, varName);
+        }
+        return varDef.getName();
+    }
+
+    private void parseMatrixOutputs(RuleDecisionMatrixModel ret, ExcelSheet sheet,
+                                    int outBeginRow, int outBeginCol,
+                                    int outEndRow, int outEndCol, RuleModel ruleModel) {
+        ExcelTable table = sheet.getTable();
+        String sheetName = sheet.getName();
+
+        int rowLeafIndex = 0;
+        for (int i = outBeginRow; i < outEndRow; i++) {
+            ExcelCell leftCell = (ExcelCell) getRealCell(table, i, outBeginCol - 1);
+
+            int colLeafIndex = 0;
+            for (int j = outBeginCol; j < outEndCol; j++) {
+                ExcelCell topCell = (ExcelCell) getRealCell(table, outBeginRow - 1, j);
+
+                RuleTableCellModel cellModel = new RuleTableCellModel();
+                cellModel.setPos(CellPosition.of(rowLeafIndex, colLeafIndex));
+
+                ExcelCell cell = requireRealCell(table, i, j);
+                if (isSingleCell(leftCell, topCell, cell)) {
+                    // 单个值
+                    IEvalAction outAction = parseOutputAction(cell, sheetName, RuleConstants.VAR_RESULT, i, j);
+                    RuleOutputValueModel output = new RuleOutputValueModel();
+                    output.setName(RuleConstants.VAR_RESULT);
+                    output.setValueExpr(outAction);
+                    cellModel.addOutput(output);
+                } else {
+                    if (leftCell.getRowSpan() != 2) {
+                        throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
+                                .param(ARG_CELL_POS, CellPosition.toABString(i, j));
+                    }
+                    parseOutputCell(ruleModel, cellModel, sheet, topCell, i, j);
+                }
+
+                ret.addCell(cellModel);
+                colLeafIndex++;
+                j += topCell.getMergeAcross();
+            }
+            rowLeafIndex++;
+            i += leftCell.getMergeDown();
+        }
+    }
+
+    private void parseOutputCell(RuleModel ruleModel, RuleTableCellModel cellModel,
+                                 ExcelSheet sheet, ExcelCell topCell, int rowIndex, int colIndex) {
+        ExcelTable table = sheet.getTable();
+
+        for (int i = 0, n = topCell.getColSpan(); i < n; i++) {
+            ExcelCell cell = requireRealCell(table, rowIndex, colIndex + i);
+            if (cell == null || cell.getColSpan() != 1 || cell.getRowSpan() != 1)
+                throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
+                        .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, i + colIndex));
+
+            String outputVar = getOutputVarName(ruleModel, sheet, rowIndex, colIndex + i);
+            if (StringHelper.isEmpty(outputVar))
+                throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
+                        .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, i + colIndex));
+
+            ExcelCell valueCell = requireRealCell(table, rowIndex + 1, colIndex + i);
+            IEvalAction outAction = this.parseOutputAction(valueCell, sheet.getName(), outputVar, rowIndex + 1, colIndex + i);
+
+
+            RuleOutputValueModel output = new RuleOutputValueModel();
+            output.setName(outputVar);
+            output.setValueExpr(outAction);
+            cellModel.addOutput(output);
+        }
+    }
+
+    private boolean isSingleCell(ExcelCell leftCell, ExcelCell topCell, ExcelCell cell) {
+        if (cell == null) {
+            return leftCell.getRowSpan() == 1 && topCell.getColSpan() == 1;
+        }
+        return leftCell.getRowSpan() == cell.getRowSpan() && topCell.getColSpan() == cell.getColSpan();
     }
 }

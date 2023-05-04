@@ -4,24 +4,20 @@
     <sheets>
         <sheet name="Config">
             <fields>
-                <field name="x:gen-extends" displayName="动态生成继承内容">
-                    <schema stdDomain="xpl-node"/>
-                </field>
-
                 <field name="x:extends" displayName="继承文件">
-                    <schema stdDomain="csv-set"/>
+                    <schema stdDomain="string"/>
                 </field>
 
                 <field name="name" displayName="名称">
-                    <schema stdDomain="string" />
+                    <schema stdDomain="string"/>
                 </field>
 
                 <field name="displayName" displayName="中文名">
-                    <schema stdDomain="string" />
+                    <schema stdDomain="string"/>
                 </field>
 
                 <field name="i18n-en:displayName" displayName="英文名">
-                    <schema stdDomain="string" />
+                    <schema stdDomain="string"/>
                 </field>
 
                 <field name="description" displayName="描述">
@@ -41,7 +37,7 @@
                 </field>
 
                 <field name="extConfig" virtual="true" displayName="扩展配置">
-                    <schema stdDomain="json" />
+                    <schema stdDomain="json"/>
                 </field>
 
                 <field name="inputs" displayName="输入变量" list="true" keyProp="name">
@@ -54,7 +50,7 @@
                         </field>
 
                         <field name="computed" displayName="计算">
-                            <schema stdDomain="boolean" />
+                            <schema stdDomain="boolean"/>
                             <valueExpr>
                                 value == 'Y'
                             </valueExpr>
@@ -109,14 +105,14 @@
                         </field>
 
                         <field name="extConfig" virtual="true" displayName="扩展配置">
-                            <schema stdDomain="json" />
+                            <schema stdDomain="json"/>
                         </field>
                     </fields>
                 </field>
 
                 <field name="outputs" displayName="输出变量" x:prototype="inputs">
                     <fields>
-                        <field name="computed" x:prototype-override="remove" />
+                        <field name="computed" x:prototype-override="remove"/>
                         <field name="aggregate" displayName="汇总">
                             <schema dict="io.nop.rule.core.model.RuleAggregateMethod"/>
                         </field>

@@ -50,7 +50,7 @@
 
     <decisionMatrix xdef:name="RuleDecisionMatrixModel">
         <rowDecider xdef:ref="RuleDecisionTreeModel" xdef:mandatory="true"/>
-        <colDecider xdef:ref="RuleDecisionTreeModel"/>
+        <colDecider xdef:ref="RuleDecisionTreeModel" xdef:mandatory="true"/>
 
         <cells xdef:body-type="list" xdef:key-attr="pos">
             <cell pos="!cell-pos" xdef:name="RuleTableCellModel">

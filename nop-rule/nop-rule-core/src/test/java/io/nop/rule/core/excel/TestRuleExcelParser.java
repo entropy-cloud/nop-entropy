@@ -35,7 +35,7 @@ public class TestRuleExcelParser extends BaseTestCase {
     }
 
     @Test
-    public void testParse() {
+    public void testParseDecisionTree() {
         IResource resource = VirtualFileSystem.instance().getResource("/nop/rule/test/test-table.rule.xlsx");
         RuleModel ruleModel = new RuleExcelModelParser().parseFromResource(resource);
         XNode node = DslModelHelper.dslModelToXNode(RuleConstants.XDSL_SCHEMA_RULE, ruleModel);
@@ -43,7 +43,7 @@ public class TestRuleExcelParser extends BaseTestCase {
     }
 
     @Test
-    public void testExecute() {
+    public void testExecuteDecisionTree() {
         IRuleManager ruleManager = getRuleManager();
         IRuleRuntime ruleRt = ruleManager.newRuntime();
         ruleRt.getEvalScope().setLocalValue("season", "Winter");
@@ -51,6 +51,12 @@ public class TestRuleExcelParser extends BaseTestCase {
         Map<String, Object> output = ruleManager.executeRule("test/test-table", ruleRt);
         System.out.println(JsonTool.serialize(ruleRt.getLogMessages(),true));
         assertEquals("Roastbeef", output.get("dish"));
+
+        ruleRt = ruleManager.newRuntime();
+        ruleRt.getEvalScope().setLocalValue("season", "Summer");
+        ruleRt.getEvalScope().setLocalValue("guestCount", 4);
+        output = ruleManager.executeRule("test/test-table", ruleRt);
+        assertEquals("Light Salad and nice Steak",output.get("dish"));
     }
 
     private IRuleManager getRuleManager() {

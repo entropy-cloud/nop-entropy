@@ -322,9 +322,9 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         IStdDomainHandler handler = getHandler(node.getLocation(), type);
         Object value;
 
-        // 为编辑器提供数据时按照标准格式将xml转换为json
+        // 为编辑器提供数据时返回xml
         if (forEditor)
-            return node.toJsonObject();
+            return node.bodyFullXml();
 
         value = handler.parseXmlChild(type.getOptions(), node, getCompileTool());
         return value;
