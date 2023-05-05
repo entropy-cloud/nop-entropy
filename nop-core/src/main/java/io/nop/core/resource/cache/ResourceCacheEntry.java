@@ -30,7 +30,6 @@ public class ResourceCacheEntry<T> implements IDestroyable {
     static final Logger LOG = LoggerFactory.getLogger(ResourceCacheEntry.class);
 
     private final String path;
-    private final IResourceObjectLoader<T> loader;
     private final ICreationListener<T> listener;
 
     // 值为null表示尚未加载，如果为占位对象NULL，则表示加载过，但是加载得到的结果是null
@@ -41,21 +40,20 @@ public class ResourceCacheEntry<T> implements IDestroyable {
 
     private long lastLoadTime;
 
-    public ResourceCacheEntry(String path, IResourceObjectLoader<T> loader, ICreationListener<T> listener) {
-        this.loader = loader;
+    public ResourceCacheEntry(String path, ICreationListener<T> listener) {
         this.path = path;
         this.listener = listener;
     }
 
-    public ResourceCacheEntry(String path, IResourceObjectLoader<T> loader) {
-        this(path, loader, null);
+    public ResourceCacheEntry(String path) {
+        this(path, null);
     }
 
     /**
      * 缓存预热的时候内部使用
      */
-    ResourceCacheEntry(CacheEntryState<T> state, IResourceObjectLoader<T> loader, ICreationListener<T> listener) {
-        this(state.path, loader, listener);
+    ResourceCacheEntry(CacheEntryState<T> state, ICreationListener<T> listener) {
+        this(state.path, listener);
         this.object = state.object;
         if (state.object != null && listener != null) {
             listener.onCreated(state.object);
@@ -144,13 +142,13 @@ public class ResourceCacheEntry<T> implements IDestroyable {
      * @param forceRefresh 是否不进行依赖检查，直接强制重新加载
      * @return 是否重新加载
      */
-    public boolean checkRefresh(boolean forceRefresh) {
+    public boolean checkRefresh(boolean forceRefresh, IResourceObjectLoader<T> loader) {
         boolean refresh = forceRefresh;
         if (!refresh) {
             refresh = this.isChanged();
         }
         if (refresh) {
-            reloadObject();
+            reloadObject(loader);
         }
         return refresh;
     }
@@ -172,7 +170,7 @@ public class ResourceCacheEntry<T> implements IDestroyable {
         return ResourceComponentManager.instance().isAnyDependsChange(deps.getDepends());
     }
 
-    public T getObject(boolean checkChanged) {
+    public T getObject(boolean checkChanged, IResourceObjectLoader<T> loader) {
         Object value = object;
         if (value == null || checkChanged && isChanged()) {
             synchronized (this) {
@@ -182,7 +180,7 @@ public class ResourceCacheEntry<T> implements IDestroyable {
                     value = current;
                 } else {
                     try {
-                        value = loadObject();
+                        value = loadObject(loader);
                     } catch (Exception e) {
                         // 装载失败，则原先的结果也清空，这样下次会继续执行装载
                         object = null;
@@ -212,7 +210,7 @@ public class ResourceCacheEntry<T> implements IDestroyable {
             ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
     }
 
-    private Object loadObject() {
+    private Object loadObject(IResourceObjectLoader<T> loader) {
         LOG.debug("nop.core.resource.cache-load-object:path={}", path);
 
         ResourceDependencySet deps = new ResourceDependencySet(path, CoreMetrics.currentTimeMillis());
@@ -222,10 +220,10 @@ public class ResourceCacheEntry<T> implements IDestroyable {
         return result;
     }
 
-    private synchronized void reloadObject() {
+    private synchronized void reloadObject(IResourceObjectLoader<T> loader) {
         Object oldObj = normalizeObject(this.object);
 
-        Object obj = loadObject();
+        Object obj = loadObject(loader);
         if (obj != oldObj) {
             if (listener != null) {
                 listener.onCreated((T) obj);

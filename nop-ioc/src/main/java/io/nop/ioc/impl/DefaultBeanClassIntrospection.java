@@ -61,7 +61,15 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
         if (springBeanSupport.isDisposableBean(classModel.getRawClass())) {
             return classModel.getMethod(SpringBeanSupport.METHOD_DESTROY, 0);
         }
-        return classModel.getMethodWithAnnotation(PreDestroy.class, 0);
+
+        IFunctionModel fn = classModel.getMethodWithAnnotation(PreDestroy.class, 0);
+        if (fn == null) {
+            // Spring和Quarkus都会自动调用AutoCloseable接口上的close方法
+            if (AutoCloseable.class.isAssignableFrom(classModel.getRawClass())) {
+                fn = classModel.getMethod("close", 0);
+            }
+        }
+        return fn;
     }
 
     @Override

@@ -43,6 +43,9 @@ public class CoreInitialization {
     private static boolean initialized;
     private static Map<String, Object> bootstrapConfig;
 
+    private static final Object lock = new Object();
+    private static List<Runnable> cleanups;
+
     public static boolean isInitialized() {
         return initialized;
     }
@@ -110,6 +113,14 @@ public class CoreInitialization {
         return initializationLevel;
     }
 
+    public static void registerCleanup(Runnable task) {
+        synchronized (lock) {
+            if (cleanups == null)
+                cleanups = new ArrayList<>();
+            cleanups.add(task);
+        }
+    }
+
     public static synchronized void destroy() {
         List<ICoreInitializer> list = initializers;
         if (list == null)
@@ -128,6 +139,22 @@ public class CoreInitialization {
                 LOG.error("nop.core.destroy-initializer-fail", e);
             }
         }
+        List<Runnable> tasks;
+        synchronized (lock) {
+            tasks = cleanups;
+            cleanups = null;
+        }
+
+        if (tasks != null) {
+            for (Runnable task : tasks) {
+                try {
+                    task.run();
+                } catch (Throwable e) {
+                    LOG.error("nop.core.run-cleanup-fail", e);
+                }
+            }
+        }
+
         LOG.info("nop.core.destroy");
         initializers = null;
         initializationLevel = -1;

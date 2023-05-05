@@ -18,7 +18,7 @@ import picocli.CommandLine;
                 CliReverseDbCommand.class,
                 CliWatchCommand.class,
                 CliRunCommand.class,
-                CliGenOrmExcelDbCommand.class,
+                CliGenOrmExcelCommand.class,
                 CliExtractCommand.class
         })
 public class MainCommand {

@@ -9,8 +9,10 @@ import io.nop.commons.util.StringHelper;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
@@ -20,6 +22,7 @@ public class FileWatcher {
     private final NioFileWatchService watchService;
     private final BlockingQueue<FileChangeEvent> queue = new LinkedBlockingQueue<>();
     private final IScheduledExecutor executor;
+    private volatile boolean processing;
 
     public FileWatcher(NioFileWatchService watchService, IScheduledExecutor executor) {
         this.watchService = watchService;
@@ -37,7 +40,7 @@ public class FileWatcher {
 
     public ICancellable watch(List<String> paths, List<String> fileNamePatterns,
                               int debounce,
-                              Consumer<List<FileChangeEvent>> handler) {
+                              Consumer<Collection<FileChangeEvent>> handler) {
 
         List<Path> watchPaths = paths.stream().map(str -> new File(str).toPath()).collect(Collectors.toList());
 
@@ -52,7 +55,10 @@ public class FileWatcher {
                     this.triggerChange(handler);
                 }
 
-                private void triggerChange(Consumer<List<FileChangeEvent>> handler) {
+                private void triggerChange(Consumer<Collection<FileChangeEvent>> handler) {
+                    if (processing)
+                        return;
+
                     executor.debounce("process", debounce, () -> processChangeEvent(handler));
                 }
 
@@ -89,15 +95,21 @@ public class FileWatcher {
         }
     }
 
-    private void processChangeEvent(Consumer<List<FileChangeEvent>> handler) {
-        List<FileChangeEvent> events = new ArrayList<>();
+    private void processChangeEvent(Consumer<Collection<FileChangeEvent>> handler) {
+        Set<FileChangeEvent> events = new LinkedHashSet<>();
         do {
             events.clear();
             queue.drainTo(events);
-            if (events.isEmpty())
+            if (events.isEmpty()) {
                 break;
+            }
 
-            handler.accept(events);
+            this.processing = true;
+            try {
+                handler.accept(events);
+            } finally {
+                processing = false;
+            }
         } while (true);
     }
 }

@@ -21,6 +21,26 @@ public class FileChangeEvent {
         this.path = path;
     }
 
+    public int hashCode() {
+        return 31 * changeType + path.hashCode();
+    }
+
+    public boolean equals(Object o) {
+        if (o == this)
+            return true;
+
+        if (!(o instanceof FileChangeEvent)) {
+            return false;
+        }
+
+        FileChangeEvent other = (FileChangeEvent) o;
+        return changeType == other.changeType && path.equals(other.path);
+    }
+
+    public String toString() {
+        return "Change[path=" + path + ",changeType=" + changeType + "]";
+    }
+
     public boolean isAdd() {
         return changeType == CHANGE_TYPE_ADD;
     }

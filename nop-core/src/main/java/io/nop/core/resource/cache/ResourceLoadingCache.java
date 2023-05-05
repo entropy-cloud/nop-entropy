@@ -88,12 +88,11 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
     LocalCache<String, ResourceCacheEntry<V>> createCache() {
         CacheConfig config = new CacheConfig();
         config.setMaximumSize(cacheMaxSize.get());
-        return LocalCache.newCache(getName(), config, this::loadObject);
+        return LocalCache.newCache(getName(), config, this::newCacheEntry);
     }
 
-    ResourceCacheEntry<V> loadObject(String path) {
-        ResourceCacheEntry<V> entry = new ResourceCacheEntry<>(path, loader, listener);
-        // entry.get();
+    ResourceCacheEntry<V> newCacheEntry(String path) {
+        ResourceCacheEntry<V> entry = new ResourceCacheEntry<>(path, listener);
         return entry;
     }
 
@@ -148,7 +147,7 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
     public boolean checkRefresh(String key, boolean forceRefresh) {
         ResourceCacheEntry<V> entry = forceRefresh ? cache.get(key) : cache.getIfPresent(key);
         if (entry != null) {
-            return entry.checkRefresh(forceRefresh);
+            return entry.checkRefresh(forceRefresh, loader);
         }
         return true;
     }
@@ -162,7 +161,7 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
 
     public V get(String path) {
         ResourceCacheEntry<V> entry = cache.get(path);
-        V value = entry.getObject(checkChanged.get() && entry.isRefreshEnabled(cacheRefreshMinInterval.get()));
+        V value = entry.getObject(checkChanged.get() && entry.isRefreshEnabled(cacheRefreshMinInterval.get()), loader);
         if (value == null && !cacheNull.get()) {
             cache.remove(path, entry);
         }
@@ -200,7 +199,7 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
 
         List<CacheEntryState<V>> states = (List<CacheEntryState<V>>) in.readObject();
         for (CacheEntryState<V> state : states) {
-            ResourceCacheEntry<V> entry = new ResourceCacheEntry<V>(state, loader, listener);
+            ResourceCacheEntry<V> entry = new ResourceCacheEntry<V>(state, listener);
             if (!cache.putIfAbsent(state.getPath(), entry))
                 entry.clear();
         }

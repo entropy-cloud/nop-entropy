@@ -29,7 +29,7 @@ import java.util.concurrent.Callable;
         mixinStandardHelpOptions = true,
         description = "读取pdm模型或者pdma.json模型，生成Excel数据模型"
 )
-public class CliGenOrmExcelDbCommand implements Callable<Integer> {
+public class CliGenOrmExcelCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件（缺省输出到命令行窗口中）")
     File outputFile;
@@ -43,8 +43,8 @@ public class CliGenOrmExcelDbCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        OrmModel model = null;
-        String type = null;
+        OrmModel model;
+        String type;
         if (file.getName().endsWith(".pdm")) {
             type = "pdm";
             model = new PdmModelParser().parseFromResource(new FileResource(file));
@@ -78,7 +78,7 @@ public class CliGenOrmExcelDbCommand implements Callable<Integer> {
             outputFile = new File(fileName + ".orm.xlsx");
         }
 
-        GenOrmHelper.saveOrmToExcel(model, outputFile,dump);
+        GenOrmHelper.saveOrmToExcel(model, outputFile, dump);
         return 0;
     }
 }

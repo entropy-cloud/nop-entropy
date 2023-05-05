@@ -109,6 +109,10 @@ public class BaseTestCase {
         }
     }
 
+    public static void clearLazyActions() {
+        g_lazyActions.clear();
+    }
+
     public static void addBarrier(String name, CyclicBarrier barrier) {
         g_barriers.put(name, barrier);
     }
