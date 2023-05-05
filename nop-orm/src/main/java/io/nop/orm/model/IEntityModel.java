@@ -15,6 +15,7 @@ import io.nop.orm.OrmConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public interface IEntityModel extends IPdmElement, IOrmDataType {
 
@@ -143,6 +144,14 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     List<? extends IComputePropModel> getComputes();
 
     List<? extends IEntityRelationModel> getRelations();
+
+    default List<? extends IEntityRelationModel> getToOneRelations() {
+        return getRelations().stream().filter(rel -> rel.getKind().isToOneRelation()).collect(Collectors.toList());
+    }
+
+    default List<? extends IEntityRelationModel> getToManyRelations() {
+        return getRelations().stream().filter(rel -> rel.getKind().isToManyRelation()).collect(Collectors.toList());
+    }
 
     IEntityRelationModel getRelation(String name, boolean ignoreUnknown);
 

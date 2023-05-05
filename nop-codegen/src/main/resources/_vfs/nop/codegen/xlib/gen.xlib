@@ -112,6 +112,8 @@
                         builder.defineGlobalVar('basePackagePath', pkgPath);
 
                         builder.defineLoopVar("entityModel","ormModel", model => model.entityModels);
+                        builder.defineLoopVar("toManyRelation","entityModel",entityModel=> entityModel.toOneRelations);
+                        builder.defineLoopVar("toOneRelation", "entityModel", entityModel=> entityModel.toManyRelations);
 
                         builder.defineLoopVar("dialect","ormModel",model=> model["ext:dialect"].$toCsvSet());
                         builder.defineLoopVar("dict","ormModel", model=> model.dicts);
