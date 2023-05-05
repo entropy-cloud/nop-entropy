@@ -258,12 +258,6 @@ public class XLangASTProcessor<T,C>{
             case OutputXmlExtAttrsExpression:
                 return processOutputXmlExtAttrsExpression((OutputXmlExtAttrsExpression)node,context);
         
-            case SwitchExpression:
-                return processSwitchExpression((SwitchExpression)node,context);
-        
-            case SwitchCaseExpression:
-                return processSwitchCaseExpression((SwitchCaseExpression)node,context);
-        
             case TypeOfExpression:
                 return processTypeOfExpression((TypeOfExpression)node,context);
         
@@ -659,14 +653,6 @@ public class XLangASTProcessor<T,C>{
 	}
     
 	public T processOutputXmlExtAttrsExpression(OutputXmlExtAttrsExpression node, C context){
-        return defaultProcess(node, context);
-	}
-    
-	public T processSwitchExpression(SwitchExpression node, C context){
-        return defaultProcess(node, context);
-	}
-    
-	public T processSwitchCaseExpression(SwitchCaseExpression node, C context){
         return defaultProcess(node, context);
 	}
     

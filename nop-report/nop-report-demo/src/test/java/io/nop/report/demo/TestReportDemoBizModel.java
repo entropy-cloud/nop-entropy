@@ -5,6 +5,7 @@ import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.beans.TreeResultBean;
 import io.nop.api.core.beans.WebContentBean;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.commons.util.FileHelper;
 import io.nop.report.core.XptConstants;
@@ -24,6 +25,7 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testReport() {
+        CoreMetrics.today();
         List<TreeResultBean> reports = reportDemo.getDemoReports();
         for (TreeResultBean group : reports) {
             for (TreeResultBean report : group.getChildren()) {

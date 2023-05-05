@@ -518,16 +518,6 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
     }
 
     @Override
-    public void visitSwitchExpression(SwitchExpression node) {
-        super.visitSwitchExpression(node);
-    }
-
-    @Override
-    public void visitSwitchCaseExpression(SwitchCaseExpression node) {
-        super.visitSwitchCaseExpression(node);
-    }
-
-    @Override
     public void visitTypeOfExpression(TypeOfExpression node) {
         super.visitTypeOfExpression(node);
     }

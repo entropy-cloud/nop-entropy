@@ -62,5 +62,5 @@ public interface XDslConstants {
 
     String OUTPUT_MODE_NAME = "outputMode";
 
-    String EXCEL_MODEL_LOADER_CLASS = "io.nop.ooxml.xlsx.imp.XlsxBeanParser";
+    String EXCEL_MODEL_LOADER_CLASS = "io.nop.ooxml.xlsx.imp.XlsxObjectLoader";
 }

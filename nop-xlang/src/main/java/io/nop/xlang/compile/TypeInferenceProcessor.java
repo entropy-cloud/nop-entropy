@@ -61,9 +61,6 @@ import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
 import io.nop.xlang.ast.SwitchCase;
-import io.nop.xlang.ast.SwitchCaseExpression;
-import io.nop.xlang.ast.SwitchExpression;
-import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.TemplateStringLiteral;
 import io.nop.xlang.ast.TextOutputExpression;
@@ -171,11 +168,6 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
     @Override
     public ReturnTypeInfo processContinueStatement(ContinueStatement node, TypeInferenceState context) {
         return super.processContinueStatement(node, context);
-    }
-
-    @Override
-    public ReturnTypeInfo processSwitchStatement(SwitchStatement node, TypeInferenceState context) {
-        return super.processSwitchStatement(node, context);
     }
 
     @Override
@@ -438,15 +430,6 @@ public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, Ty
         return super.processGenNodeAttrExpression(node, context);
     }
 
-    @Override
-    public ReturnTypeInfo processSwitchExpression(SwitchExpression node, TypeInferenceState context) {
-        return super.processSwitchExpression(node, context);
-    }
-
-    @Override
-    public ReturnTypeInfo processSwitchCaseExpression(SwitchCaseExpression node, TypeInferenceState context) {
-        return super.processSwitchCaseExpression(node, context);
-    }
 
     @Override
     public ReturnTypeInfo processTypeOfExpression(TypeOfExpression node, TypeInferenceState context) {

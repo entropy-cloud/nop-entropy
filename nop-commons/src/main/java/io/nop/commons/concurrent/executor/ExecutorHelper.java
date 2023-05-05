@@ -13,6 +13,8 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.StringHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
@@ -30,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ExecutorHelper {
     static Executor SYNC_EXECUTOR = task -> task.run();
+    static final Logger LOG = LoggerFactory.getLogger(ExecutorHelper.class);
 
     public static Executor syncExecutor() {
         return SYNC_EXECUTOR;
@@ -128,6 +131,7 @@ public class ExecutorHelper {
                     future.complete(result);
                     return result;
                 } catch (Throwable e) {
+                    LOG.error("nop.executor.execute-fail", e);
                     future.completeExceptionally(e);
                     throw e;
                 }
@@ -142,12 +146,13 @@ public class ExecutorHelper {
         CompletableFuture<T> future = new CompletableFuture<>();
         Future<?> f = executor.submit(new Callable<Object>() {
             @Override
-            public Object call() throws Exception {
+            public Object call() {
                 try {
                     task.run();
                     future.complete(result);
                     return result;
                 } catch (Throwable e) {
+                    LOG.error("nop.executor.execute-fail", e);
                     future.completeExceptionally(e);
                     throw e;
                 }
@@ -169,6 +174,7 @@ public class ExecutorHelper {
                     future.complete(result);
                     return result;
                 } catch (Throwable e) {
+                    LOG.error("nop.executor.execute-fail", e);
                     future.completeExceptionally(e);
                     throw e;
                 }

@@ -21,7 +21,7 @@ import io.nop.commons.crypto.HashHelper;
 import io.nop.commons.text.FormatCheckers;
 import io.nop.commons.text.RawText;
 import io.nop.commons.text.XMLChar;
-import io.nop.commons.text.tokenizer.SimpleTokenizer;
+import io.nop.commons.text.tokenizer.SimpleTextReader;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.random.IRandom;
 import org.slf4j.Logger;
@@ -961,7 +961,7 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
-    public static boolean isWhitespace(char ch) {
+    public static boolean isWhitespace(int ch) {
         // 专门调整了判断顺序
         return ch <= ' ' && (ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t' || ch == '\f' || ch == '\b');
     }
@@ -2230,7 +2230,7 @@ public class StringHelper extends ApiStringHelper {
             return Collections.singletonList(str);
 
         List<String> ret = new ArrayList<>();
-        SimpleTokenizer tk = new SimpleTokenizer(str);
+        SimpleTextReader tk = new SimpleTextReader(str);
         do {
             String sub = tk.nextDupEscape(sep);
             ret.add(sub);

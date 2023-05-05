@@ -789,6 +789,12 @@
         ]
       },
       {
+        "name": "addAllUnique",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
         "name": "clear",
         "parameterTypes": []
       },
@@ -1834,6 +1840,19 @@
     "fields": [],
     "methods": [
       {
+        "name": "avg",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "avg",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.util.function.Function"
+        ]
+      },
+      {
         "name": "chunk",
         "parameterTypes": [
           "java.util.Collection",
@@ -2082,6 +2101,19 @@
         ]
       },
       {
+        "name": "sum",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "sum",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.util.function.Function"
+        ]
+      },
+      {
         "name": "toJObject",
         "parameterTypes": [
           "java.lang.Object"
@@ -2213,6 +2245,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "addJsonPrefix",
+        "parameterTypes": []
       },
       {
         "name": "after",
@@ -2402,6 +2438,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "bodyFullXml",
+        "parameterTypes": []
       },
       {
         "name": "bodyToXJson",
@@ -2977,6 +3017,12 @@
         ]
       },
       {
+        "name": "needAddJsonPrefix",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "newAttrError",
         "parameterTypes": [
           "io.nop.api.core.exceptions.ErrorCode",
@@ -3165,6 +3211,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "removeJsonPrefix",
+        "parameterTypes": []
       },
       {
         "name": "removeNextSiblings",
@@ -8570,6 +8620,49 @@
     "fields": [],
     "methods": [
       {
+        "name": "getImportModel",
+        "parameterTypes": []
+      },
+      {
+        "name": "isReturnDynamicObject",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadObjectFromPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseFromResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "setImportModel",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportModel"
+        ]
+      },
+      {
+        "name": "setReturnDynamicObject",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.ooxml.xlsx.imp.XlsxObjectLoader",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "createTable",
         "parameterTypes": [
           "io.nop.orm.model.IEntityModel"
@@ -12507,6 +12600,13 @@
     "methods": [
       {
         "name": "IF",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
+        "name": "SWITCH",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
           "io.nop.xlang.ast.CallExpression"

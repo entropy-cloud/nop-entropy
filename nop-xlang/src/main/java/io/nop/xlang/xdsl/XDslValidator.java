@@ -81,7 +81,7 @@ public class XDslValidator {
                     n--;
                 } else {
                     // 如果checkNs中指定名字空间需要校验，则不使用unknownAttr来匹配
-                    if (!checkNs.isEmpty() && defNode.getXdefUnknownTag() != null
+                    if (!checkNs.isEmpty()
                             && StringHelper.hasNamespace(child.getTagName())) {
                         String ns = StringHelper.getNamespace(child.getTagName());
                         if (checkNs.contains(ns))
@@ -263,7 +263,7 @@ public class XDslValidator {
             if (node.uniqueAttr() != null)
                 return;
 
-           // IXDefAttribute defAttr = defNode.getAttribute(uniqueAttr);
+            // IXDefAttribute defAttr = defNode.getAttribute(uniqueAttr);
             XNode parent = node.getParent();
             if (parent != null) {
                 checkUniqueAttr(parent.getChildren(), defNode.getTagName(), uniqueAttr);

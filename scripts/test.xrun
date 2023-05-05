@@ -1,0 +1,5 @@
+<c:unit>
+    <c:script>
+        logInfo("test:{}",changeEvents);
+    </c:script>
+</c:unit>

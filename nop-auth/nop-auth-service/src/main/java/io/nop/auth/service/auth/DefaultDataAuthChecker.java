@@ -31,7 +31,7 @@ import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_USE_DATA_AUTH_TABLE;
 public class DefaultDataAuthChecker implements IDataAuthChecker {
 
     private final ResourceCacheEntry<DataAuthModel> modelCache =
-            new ResourceCacheEntry<>("data-auth", this::loadDataAuthModel);
+            new ResourceCacheEntry<>("data-auth");
 
     private IDaoProvider daoProvider;
 
@@ -88,7 +88,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
     }
 
     private ObjDataAuthModel getObjAuth(String bizObj) {
-        return modelCache.getObject(CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED.get()).getObj(bizObj);
+        return modelCache.getObject(CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED.get(), this::loadDataAuthModel).getObj(bizObj);
     }
 
     @Override

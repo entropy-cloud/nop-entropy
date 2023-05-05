@@ -169,48 +169,44 @@ public enum XLangASTKind{
         
             OutputXmlExtAttrsExpression, // ordinal: 82
         
-            SwitchExpression, // ordinal: 83
+            TypeOfExpression, // ordinal: 83
         
-            SwitchCaseExpression, // ordinal: 84
+            InstanceOfExpression, // ordinal: 84
         
-            TypeOfExpression, // ordinal: 85
+            CastExpression, // ordinal: 85
         
-            InstanceOfExpression, // ordinal: 86
+            ArrayTypeNode, // ordinal: 86
         
-            CastExpression, // ordinal: 87
+            ParameterizedTypeNode, // ordinal: 87
         
-            ArrayTypeNode, // ordinal: 88
+            TypeNameNode, // ordinal: 88
         
-            ParameterizedTypeNode, // ordinal: 89
+            UnionTypeDef, // ordinal: 89
         
-            TypeNameNode, // ordinal: 90
+            IntersectionTypeDef, // ordinal: 90
         
-            UnionTypeDef, // ordinal: 91
+            ObjectTypeDef, // ordinal: 91
         
-            IntersectionTypeDef, // ordinal: 92
+            PropertyTypeDef, // ordinal: 92
         
-            ObjectTypeDef, // ordinal: 93
+            TupleTypeDef, // ordinal: 93
         
-            PropertyTypeDef, // ordinal: 94
+            TypeParameterNode, // ordinal: 94
         
-            TupleTypeDef, // ordinal: 95
+            TypeAliasDeclaration, // ordinal: 95
         
-            TypeParameterNode, // ordinal: 96
+            FunctionTypeDef, // ordinal: 96
         
-            TypeAliasDeclaration, // ordinal: 97
+            FunctionArgTypeDef, // ordinal: 97
         
-            FunctionTypeDef, // ordinal: 98
+            EnumDeclaration, // ordinal: 98
         
-            FunctionArgTypeDef, // ordinal: 99
+            EnumMember, // ordinal: 99
         
-            EnumDeclaration, // ordinal: 100
+            ClassDefinition, // ordinal: 100
         
-            EnumMember, // ordinal: 101
+            FieldDeclaration, // ordinal: 101
         
-            ClassDefinition, // ordinal: 102
-        
-            FieldDeclaration, // ordinal: 103
-        
-            CustomExpression, // ordinal: 104
+            CustomExpression, // ordinal: 102
         
 }

@@ -11,7 +11,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.util.StringHelper;
 
-public class SimpleTokenizer {
+public class SimpleTextReader {
     private final SourceLocation baseLoc;
     private final String str;
     private int pos;
@@ -19,7 +19,7 @@ public class SimpleTokenizer {
     private StringBuilder sb = new StringBuilder();
     private MutableIntArray lineFeedPos;
 
-    public SimpleTokenizer(SourceLocation baseLoc, String str) {
+    public SimpleTextReader(SourceLocation baseLoc, String str) {
         this.baseLoc = baseLoc;
         this.str = str;
     }
@@ -28,7 +28,7 @@ public class SimpleTokenizer {
         return "SimpleTokenizer[len=" + str.length() + ",current=" + StringHelper.shortText(str, pos, 30);
     }
 
-    public SimpleTokenizer(String str) {
+    public SimpleTextReader(String str) {
         this(null, str);
     }
 

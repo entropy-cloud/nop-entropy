@@ -11,4 +11,6 @@ public interface IToken {
     default boolean isOperator(){
         return false;
     }
+
+    String getText();
 }

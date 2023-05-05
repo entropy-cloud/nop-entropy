@@ -41,6 +41,8 @@ import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.IdentifierKind;
 import io.nop.xlang.ast.IfStatement;
 import io.nop.xlang.ast.Literal;
+import io.nop.xlang.ast.SwitchCase;
+import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.XLangASTKind;
 import io.nop.xlang.ast.XLangOperator;
 import io.nop.xlang.ast.definition.ScopeVarDefinition;
@@ -60,10 +62,12 @@ import static io.nop.xlang.XLangErrors.ARG_EXPECTED_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ARG_INJECT_PARAM;
 import static io.nop.xlang.XLangErrors.ARG_MAX_COUNT;
+import static io.nop.xlang.XLangErrors.ARG_MIN_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INJECT_PARAM_NOT_NAME_OR_TYPE;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INVALID_ARG_COUNT;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_LITERAL_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_TOO_FEW_ARGS;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_TOO_MANY_ARGS;
 import static io.nop.xlang.XLangErrors.ERR_MACRO_INVALID_ARG_AST;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_INVALID_VAR_NAME;
@@ -280,6 +284,41 @@ public class GlobalFunctions {
         stm.setTest(expr.getArgument(0));
         stm.setConsequent(expr.getArgument(1));
         stm.setAlternate(expr.getArgument(2));
+        return stm;
+    }
+
+    @Description("类似于Excel的SWITCH函数")
+    @Macro
+    public static Expression SWITCH(@Name("scope") IEvalScope scope, @Name("expr") CallExpression expr) {
+        if (expr.getArguments().size() < 3)
+            throw new NopEvalException(ERR_EXEC_TOO_FEW_ARGS).param(ARG_EXPR, expr).param(ARG_MIN_COUNT, 3);
+
+        for (Expression arg : expr.getArguments()) {
+            arg.setASTParent(null);
+        }
+
+        List<Expression> args = expr.getArguments();
+        SwitchStatement stm = new SwitchStatement();
+        stm.setLocation(expr.getLocation());
+        stm.setAsExpr(true);
+        stm.setDiscriminant(args.get(0));
+
+        int i, n = args.size();
+
+        List<SwitchCase> cases = new ArrayList<>(n / 2);
+
+        for (i = 1; i < n - 1; i += 2) {
+            SwitchCase caseExpr = new SwitchCase();
+            caseExpr.setLocation(args.get(i).getLocation());
+            caseExpr.setTest(args.get(i));
+            caseExpr.setConsequent(args.get(i + 1));
+            cases.add(caseExpr);
+        }
+        stm.setCases(cases);
+
+        if (i == n - 1) {
+            stm.setDefaultCase(args.get(n - 1));
+        }
         return stm;
     }
 

@@ -8,9 +8,9 @@
 package io.nop.autotest.junit;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.autotest.core.AutoTestCase;
 import io.nop.autotest.core.data.AutoTestDataHelper;
-import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import java.io.File;
 
 import static io.nop.autotest.core.AutoTestConfigs.CFG_AUTOTEST_FORCE_SAVE_OUTPUT;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith({NopJunitExtension.class, NopJunitParameterResolver.class})
 public abstract class JunitAutoTestCase extends AutoTestCase {
@@ -88,5 +89,9 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
 
     protected String getCaseDataPath(TestInfo testInfo) {
         return AutoTestDataHelper.getTestDataPath(testInfo.getTestClass().get(), testInfo.getTestMethod().get());
+    }
+
+    protected void checkEquals(ErrorCode errorCode, String fileName, Object expected, Object value) {
+        assertEquals(expected, value, "fileName=" + fileName);
     }
 }

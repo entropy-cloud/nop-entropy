@@ -342,14 +342,6 @@ public class XLangASTVisitor extends AbstractVisitor<XLangASTNode>{
                     visitOutputXmlExtAttrsExpression((OutputXmlExtAttrsExpression)node);
                     return;
             
-                case SwitchExpression:
-                    visitSwitchExpression((SwitchExpression)node);
-                    return;
-            
-                case SwitchCaseExpression:
-                    visitSwitchCaseExpression((SwitchCaseExpression)node);
-                    return;
-            
                 case TypeOfExpression:
                     visitTypeOfExpression((TypeOfExpression)node);
                     return;
@@ -903,19 +895,6 @@ public class XLangASTVisitor extends AbstractVisitor<XLangASTNode>{
             public void visitOutputXmlExtAttrsExpression(OutputXmlExtAttrsExpression node){
             
                     this.visitChild(node.getExtAttrs());
-            }
-        
-            public void visitSwitchExpression(SwitchExpression node){
-            
-                    this.visitChild(node.getDiscriminant());
-                    this.visitChildren(node.getCases());         
-                    this.visitChild(node.getDefaultCase());
-            }
-        
-            public void visitSwitchCaseExpression(SwitchCaseExpression node){
-            
-                    this.visitChild(node.getCaseValue());
-                    this.visitChild(node.getConsequence());
             }
         
             public void visitTypeOfExpression(TypeOfExpression node){

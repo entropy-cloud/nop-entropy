@@ -44,6 +44,13 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: leafIndex
+     * 
+     */
+    private int _leafIndex  = 0;
+    
+    /**
+     *  
      * xml name: multiMatch
      * 
      */
@@ -81,16 +88,7 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
            
     }
 
-    private int leafIndex;
-
-    public int getLeafIndex() {
-        return leafIndex;
-    }
-
-    public void setLeafIndex(int leafIndex) {
-        this.leafIndex = leafIndex;
-    }
-
+    
     public io.nop.rule.core.model.RuleDecisionTreeModel getChild(String name){
         return this._children.getByKey(name);
     }
@@ -170,6 +168,25 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._label = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: leafIndex
+     *  
+     */
+    
+    public int getLeafIndex(){
+      return _leafIndex;
+    }
+
+    
+    public void setLeafIndex(int value){
+        checkAllowChange();
+        
+        this._leafIndex = value;
            
     }
 
@@ -278,6 +295,7 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
         out.put("description",this.getDescription());
         out.put("id",this.getId());
         out.put("label",this.getLabel());
+        out.put("leafIndex",this.getLeafIndex());
         out.put("multiMatch",this.isMultiMatch());
         out.put("outputs",this.getOutputs());
         out.put("predicate",this.getPredicate());

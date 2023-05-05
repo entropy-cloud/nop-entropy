@@ -480,5 +480,6 @@
         <module>nop-record</module>
         <module>nop-orm-graphql</module>
         <module>nop-codec</module>
+        <module>nop-tool</module>
     </modules>
 </project>

@@ -94,8 +94,6 @@ import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
 import io.nop.xlang.ast.SwitchCase;
-import io.nop.xlang.ast.SwitchCaseExpression;
-import io.nop.xlang.ast.SwitchExpression;
 import io.nop.xlang.ast.SwitchStatement;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.TemplateStringLiteral;
@@ -204,6 +202,7 @@ import io.nop.xlang.exec.SlotAssignExecutable;
 import io.nop.xlang.exec.SlotIdentifierExecutable;
 import io.nop.xlang.exec.StaticFunctionExecutable;
 import io.nop.xlang.exec.StaticGetterGetPropertyExecutable;
+import io.nop.xlang.exec.SwitchExecutable;
 import io.nop.xlang.exec.ThrowExceptionExecutable;
 import io.nop.xlang.exec.TypeOfExecutable;
 import io.nop.xlang.exec.VarFunctionExecutable;
@@ -566,12 +565,25 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
 
     @Override
     public IExecutableExpression processSwitchStatement(SwitchStatement node, IXLangCompileScope context) {
-        return super.processSwitchStatement(node, context);
-    }
+        IExecutableExpression discriminant = buildValueExpr(node.getDiscriminant(), context);
+        int n = node.getCases().size();
+        IExecutableExpression[] tests = new IExecutableExpression[n];
+        IExecutableExpression[] consequences = new IExecutableExpression[n];
+        boolean[] fallthroughs = new boolean[n];
 
-    @Override
-    public IExecutableExpression processSwitchCase(SwitchCase node, IXLangCompileScope context) {
-        return super.processSwitchCase(node, context);
+        for (int i = 0; i < n; i++) {
+            SwitchCase caseExpr = node.getCases().get(i);
+            fallthroughs[i] = caseExpr.getFallthrough();
+            tests[i] = buildValueExpr(caseExpr.getTest(), context);
+            consequences[i] = processNotNullAST(caseExpr.getConsequent(), context);
+        }
+
+        IExecutableExpression defaultCase = null;
+        if (node.getDefaultCase() != null) {
+            defaultCase = processAST(node.getDefaultCase(), context);
+        }
+        return new SwitchExecutable(node.getLocation(), node.getAsExpr(),
+                discriminant, tests, consequences, fallthroughs, defaultCase);
     }
 
     @Override
@@ -1560,16 +1572,6 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
             attrs[i] = new GenNodeAttrExecutable(attrExpr.getName(), buildValueExpr(attrExpr.getValue(), context));
         }
         return attrs;
-    }
-
-    @Override
-    public IExecutableExpression processSwitchExpression(SwitchExpression node, IXLangCompileScope context) {
-        return super.processSwitchExpression(node, context);
-    }
-
-    @Override
-    public IExecutableExpression processSwitchCaseExpression(SwitchCaseExpression node, IXLangCompileScope context) {
-        return super.processSwitchCaseExpression(node, context);
     }
 
     @Override

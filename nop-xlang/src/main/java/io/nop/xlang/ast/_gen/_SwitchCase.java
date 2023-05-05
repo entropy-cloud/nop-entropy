@@ -18,6 +18,8 @@ public abstract class _SwitchCase extends XLangASTNode {
     
     protected io.nop.xlang.ast.Expression consequent;
     
+    protected boolean fallthrough;
+    
     protected io.nop.xlang.ast.Expression test;
     
 
@@ -34,6 +36,16 @@ public abstract class _SwitchCase extends XLangASTNode {
         if(value != null) value.setASTParent(this);
         
         this.consequent = value;
+    }
+    
+    public boolean getFallthrough(){
+        return fallthrough;
+    }
+
+    public void setFallthrough(boolean value){
+        checkAllowChange();
+        
+        this.fallthrough = value;
     }
     
     public io.nop.xlang.ast.Expression getTest(){
@@ -79,6 +91,8 @@ public abstract class _SwitchCase extends XLangASTNode {
                           ret.setConsequent(consequent.deepClone());
                       
                 }
+            
+                ret.setFallthrough(fallthrough);
             
        return ret;
     }
@@ -152,6 +166,10 @@ public abstract class _SwitchCase extends XLangASTNode {
                return false;
             }
         
+                if(!isValueEquivalent(this.fallthrough,other.getFallthrough())){
+                   return false;
+                }
+            
         return true;
     }
 
@@ -173,6 +191,8 @@ public abstract class _SwitchCase extends XLangASTNode {
                               json.put("consequent", consequent);
                           
                     }
+                
+                   json.put("fallthrough", fallthrough);
                 
     }
 

@@ -112,6 +112,8 @@ public class XLangAST {
         @PropMeta(mandatory = true)
         Expression discriminant;
 
+        boolean asExpr;
+
         List<SwitchCase> cases;
         Expression defaultCase;
     }
@@ -120,6 +122,8 @@ public class XLangAST {
         @PropMeta(mandatory = true)
         Expression test;
         Expression consequent;
+
+        boolean fallthrough;
     }
 
     class ThrowStatement extends Statement {
@@ -746,22 +750,6 @@ public class XLangAST {
 
         @PropMeta(mandatory = true)
         Expression extAttrs;
-    }
-
-    class SwitchExpression extends Statement {
-        @PropMeta(mandatory = true)
-        Expression discriminant;
-
-        List<SwitchCaseExpression> cases;
-        Expression defaultCase;
-    }
-
-    class SwitchCaseExpression extends Expression {
-        @PropMeta(mandatory = true)
-        Expression caseValue;
-
-        @PropMeta(mandatory = true)
-        Expression consequence;
     }
 
     class TypeOfExpression extends Expression {

@@ -27,15 +27,7 @@
           "mandatory": false
         }
       ],
-      "source": {
-        "$type": "source",
-        "$body": [
-          {
-            "$type": "c:script",
-            "$body": "\n                    a + b\n                "
-          }
-        ]
-      }
+      "source": "<_>\n    <c:script>\n                    a + b\n                </c:script>\n</_>"
     },
     "Nested": {
       "tagName": "Nested",
@@ -55,26 +47,7 @@
           "mandatory": false
         }
       ],
-      "source": {
-        "$type": "source",
-        "$body": [
-          {
-            "$type": "c:unit",
-            "$body": "${parent.name},"
-          },
-          {
-            "$type": "c:for",
-            "var": "child",
-            "items": "${parent.children}",
-            "$body": [
-              {
-                "$type": "thisLib:Nested",
-                "parent": "${child}"
-              }
-            ]
-          }
-        ]
-      }
+      "source": "<_>\n    <c:unit>${parent.name},</c:unit>\n    <c:for var=\"child\" items=\"${parent.children}\">\n        <thisLib:Nested parent=\"${child}\"/>\n    </c:for>\n</_>"
     }
   }
 }

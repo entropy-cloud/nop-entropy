@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestXlsxBeanParser extends BaseTestCase {
+public class TestXlsxObjectLoader extends BaseTestCase {
     @BeforeAll
     public static void init() {
         CoreInitialization.initialize();
@@ -41,7 +41,9 @@ public class TestXlsxBeanParser extends BaseTestCase {
         ImportModel importModel = (ImportModel) new DslModelParser()
                 .parseFromResource(attachmentResource("test.imp.xml"));
 
-        XlsxBeanParser parser = new XlsxBeanParser(importModel);
+        XlsxObjectLoader parser = new XlsxObjectLoader();
+        parser.setImportModel(importModel);
+
         DynamicObject bean = (DynamicObject) parser.parseFromResource(new ClassPathResource("classpath:xlsx/test-imp.xlsx"));
         System.out.println(JsonTool.stringify(bean, null, "  "));
         assertEquals("/nop/schema/orm/orm.xdef", bean.prop_get(XDslKeys.DEFAULT.SCHEMA));

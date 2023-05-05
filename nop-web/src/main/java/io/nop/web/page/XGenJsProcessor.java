@@ -10,7 +10,7 @@ package io.nop.web.page;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.MutableString;
-import io.nop.commons.text.tokenizer.SimpleTokenizer;
+import io.nop.commons.text.tokenizer.SimpleTextReader;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -27,7 +27,7 @@ public class XGenJsProcessor {
     public String process(SourceLocation loc, String text) {
         MutableString ret = new MutableString();
 
-        SimpleTokenizer tokenizer = new SimpleTokenizer(loc, text);
+        SimpleTextReader tokenizer = new SimpleTextReader(loc, text);
         do {
             tokenizer.skipBlank();
             if (tokenizer.startsWith("//")) {

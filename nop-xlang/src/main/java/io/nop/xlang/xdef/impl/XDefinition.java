@@ -76,12 +76,12 @@ public class XDefinition extends _XDefinition implements IXDefinition {
         }
 
         if (this.defaultsDsl == null) {
-            this.defaultsDsl = new ResourceCacheEntry<>(defaultExtends, path -> {
-                return XModelInclude.instance().loadActiveNodeFromResource(resource);
-            });
+            this.defaultsDsl = new ResourceCacheEntry<>(defaultExtends);
         }
 
-        return this.defaultsDsl.getObject(true);
+        return this.defaultsDsl.getObject(true,path -> {
+            return XModelInclude.instance().loadActiveNodeFromResource(resource);
+        });
     }
 
     @Override

@@ -22,7 +22,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.impl.FunctionArgument;
 import io.nop.core.reflect.impl.FunctionModel;
 import io.nop.core.resource.cache.IObjectChangeDetectable;
-import io.nop.core.resource.cache.ResourceCacheEntry;
+import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -94,13 +94,13 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     /**
      * 实现代码发生变化时将会重新编译
      */
-    private final ResourceCacheEntry<CompiledTag> cachedCompiledTag = new ResourceCacheEntry<>("XplLibTagCompiler",
+    private final ResourceCacheEntryWithLoader<CompiledTag> cachedCompiledTag = new ResourceCacheEntryWithLoader<>("XplLibTagCompiler",
             path -> this.buildCompiledTag(null));
 
     /**
      * 强制按照node输出模式编译.当输出模式为xml的标签被用在x:exp-extends段中时会使用这里的编译结果
      */
-    private final ResourceCacheEntry<CompiledTag> cachedCompiledTagForNodeNode = new ResourceCacheEntry<>(
+    private final ResourceCacheEntryWithLoader<CompiledTag> cachedCompiledTagForNodeNode = new ResourceCacheEntryWithLoader<>(
             "XplLibTagCompilerForNodeMode", path -> this.buildCompiledTag(XLangOutputMode.node));
 
     public XplLibTagCompiler(XplTagLib lib, XplTag tag) {

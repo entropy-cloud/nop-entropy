@@ -10,6 +10,7 @@ package io.nop.autotest.core;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
@@ -318,11 +319,16 @@ public class AutoTestCase extends BaseTestCase {
             caseData.writeText(path, text, null);
         } else {
             String expected = caseData.readText(path, null);
-            if (!Objects.equals(normalizeCRLF(expected), normalizeCRLF(text)))
-                throw new AutoTestException(ERR_AUTOTEST_CHECK_MATCH_FAIL).param(ARG_FILE_NAME, fileName)
-                        .param(ARG_EXPECTED, expected).param(ARG_VALUE, text);
+            checkEquals(ERR_AUTOTEST_CHECK_MATCH_FAIL, fileName, normalizeCRLF(expected), normalizeCRLF(text));
         }
     }
+
+    protected void checkEquals(ErrorCode errorCode, String fileName, Object expected, Object value) {
+        if (!Objects.equals(expected, value))
+            throw new AutoTestException(errorCode).param(ARG_FILE_NAME, fileName)
+                    .param(ARG_EXPECTED, expected).param(ARG_VALUE, value);
+    }
+
 
     public ByteString inputHex(String fileName) {
         return caseData.readHex(caseData.getInputFileName(fileName, variant));

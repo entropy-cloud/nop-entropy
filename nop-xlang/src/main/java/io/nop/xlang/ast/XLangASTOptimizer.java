@@ -259,12 +259,6 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                 case OutputXmlExtAttrsExpression:
                 return optimizeOutputXmlExtAttrsExpression((OutputXmlExtAttrsExpression)node,context);
             
-                case SwitchExpression:
-                return optimizeSwitchExpression((SwitchExpression)node,context);
-            
-                case SwitchCaseExpression:
-                return optimizeSwitchCaseExpression((SwitchCaseExpression)node,context);
-            
                 case TypeOfExpression:
                 return optimizeTypeOfExpression((TypeOfExpression)node,context);
             
@@ -2412,75 +2406,6 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                                incChangeCount();
                                if(shouldClone(ret,node))  ret = node.deepClone();
                                ret.setExtAttrs(extAttrsOpt);
-                            }
-                        
-                    }
-                
-		return ret;
-	}
-    
-	public XLangASTNode optimizeSwitchExpression(SwitchExpression node, C context){
-        SwitchExpression ret = node;
-
-        
-                    if(node.getDiscriminant() != null){
-                    
-                            io.nop.xlang.ast.Expression discriminantOpt = (io.nop.xlang.ast.Expression)optimize(node.getDiscriminant(),context);
-                            if(discriminantOpt != node.getDiscriminant()){
-                               incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
-                               ret.setDiscriminant(discriminantOpt);
-                            }
-                        
-                    }
-                
-                    if(node.getCases() != null){
-                    
-                            java.util.List<io.nop.xlang.ast.SwitchCaseExpression> casesOpt = optimizeList(node.getCases(),true, context);
-                            if(casesOpt != node.getCases()){
-                                incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
-                                ret.setCases(casesOpt);
-                            }
-                        
-                    }
-                
-                    if(node.getDefaultCase() != null){
-                    
-                            io.nop.xlang.ast.Expression defaultCaseOpt = (io.nop.xlang.ast.Expression)optimize(node.getDefaultCase(),context);
-                            if(defaultCaseOpt != node.getDefaultCase()){
-                               incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
-                               ret.setDefaultCase(defaultCaseOpt);
-                            }
-                        
-                    }
-                
-		return ret;
-	}
-    
-	public XLangASTNode optimizeSwitchCaseExpression(SwitchCaseExpression node, C context){
-        SwitchCaseExpression ret = node;
-
-        
-                    if(node.getCaseValue() != null){
-                    
-                            io.nop.xlang.ast.Expression caseValueOpt = (io.nop.xlang.ast.Expression)optimize(node.getCaseValue(),context);
-                            if(caseValueOpt != node.getCaseValue()){
-                               incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
-                               ret.setCaseValue(caseValueOpt);
-                            }
-                        
-                    }
-                
-                    if(node.getConsequence() != null){
-                    
-                            io.nop.xlang.ast.Expression consequenceOpt = (io.nop.xlang.ast.Expression)optimize(node.getConsequence(),context);
-                            if(consequenceOpt != node.getConsequence()){
-                               incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
-                               ret.setConsequence(consequenceOpt);
                             }
                         
                     }

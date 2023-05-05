@@ -16,6 +16,8 @@ import java.util.function.Consumer;
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
     
+    protected boolean asExpr;
+    
     protected java.util.List<io.nop.xlang.ast.SwitchCase> cases;
     
     protected io.nop.xlang.ast.Expression defaultCase;
@@ -26,6 +28,16 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
     public _SwitchStatement(){
     }
 
+    
+    public boolean getAsExpr(){
+        return asExpr;
+    }
+
+    public void setAsExpr(boolean value){
+        checkAllowChange();
+        
+        this.asExpr = value;
+    }
     
     public java.util.List<io.nop.xlang.ast.SwitchCase> getCases(){
         return cases;
@@ -98,6 +110,8 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                           ret.setDiscriminant(discriminant.deepClone());
                       
                 }
+            
+                ret.setAsExpr(asExpr);
             
                 if(cases != null){
                   
@@ -210,6 +224,10 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                return false;
             }
         
+                if(!isValueEquivalent(this.asExpr,other.getAsExpr())){
+                   return false;
+                }
+            
             if(isListEquivalent(this.cases,other.getCases())){
                return false;
             }
@@ -232,6 +250,8 @@ public abstract class _SwitchStatement extends io.nop.xlang.ast.Statement {
                               json.put("discriminant", discriminant);
                           
                     }
+                
+                   json.put("asExpr", asExpr);
                 
                     if(cases != null){
                       
