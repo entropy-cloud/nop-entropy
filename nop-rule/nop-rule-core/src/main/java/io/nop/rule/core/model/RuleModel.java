@@ -1,15 +1,15 @@
 package io.nop.rule.core.model;
 
+import io.nop.api.core.util.INeedInit;
 import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.model._gen._RuleModel;
-import io.nop.xlang.xmeta.ObjVarDefineModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RuleModel extends _RuleModel {
-    private final Map<String, ObjVarDefineModel> inputVars = new HashMap<>();
+public class RuleModel extends _RuleModel implements INeedInit {
+    private final Map<String, RuleInputDefineModel> inputVars = new HashMap<>();
     private final Map<String, RuleOutputDefineModel> outputVars = new HashMap<>();
 
     private IExecutableRule executableRule;
@@ -34,7 +34,7 @@ public class RuleModel extends _RuleModel {
      *
      * @param varName 变量名或者变量显示名
      */
-    public ObjVarDefineModel getInputVar(String varName) {
+    public RuleInputDefineModel getInputVar(String varName) {
         return inputVars.get(varName);
     }
 
@@ -49,7 +49,7 @@ public class RuleModel extends _RuleModel {
         if (getOutputs() == null)
             setOutputs(new ArrayList<>());
 
-        for (ObjVarDefineModel var : getInputs()) {
+        for (RuleInputDefineModel var : getInputs()) {
             inputVars.put(var.getName(), var);
             if (var.getDisplayName() != null) {
                 inputVars.put(var.getDisplayName(), var);
@@ -61,6 +61,20 @@ public class RuleModel extends _RuleModel {
             if (var.getDisplayName() != null) {
                 outputVars.put(var.getDisplayName(), var);
             }
+        }
+    }
+
+    @Override
+    public void init() {
+        RuleDecisionTreeModel tree = getDecisionTree();
+        if (tree != null) {
+            tree.calcLeafIndex(0);
+        }
+
+        RuleDecisionMatrixModel matrix = getDecisionMatrix();
+        if (matrix != null) {
+            matrix.getRowDecider().calcLeafIndex(0);
+            matrix.getColDecider().calcLeafIndex(0);
         }
     }
 }

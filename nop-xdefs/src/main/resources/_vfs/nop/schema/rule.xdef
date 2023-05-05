@@ -35,7 +35,7 @@
     </xdef:define>
 
     <inputs xdef:body-type="list" xdef:key-attr="name">
-        <input name="!var-name" xdef:ref="schema/var-define.xdef"/>
+        <input name="!var-name" xdef:ref="schema/var-define.xdef" computed="!boolean" xdef:name="RuleInputDefineModel"/>
     </inputs>
 
     <outputs xdef:body-type="list" xdef:key-attr="name">

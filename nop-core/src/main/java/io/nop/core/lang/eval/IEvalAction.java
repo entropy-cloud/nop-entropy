@@ -11,5 +11,7 @@ import io.nop.core.context.IEvalContext;
 
 @FunctionalInterface
 public interface IEvalAction {
+    IEvalAction NULL_ACTION = ctx -> null;
+
     Object invoke(IEvalContext ctx);
 }

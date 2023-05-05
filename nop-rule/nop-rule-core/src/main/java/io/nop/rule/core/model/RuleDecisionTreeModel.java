@@ -19,4 +19,16 @@ public class RuleDecisionTreeModel extends _RuleDecisionTreeModel {
             }
         }
     }
+
+    public int calcLeafIndex(int startIndex) {
+        if (getChildren() == null || getChildren().isEmpty()) {
+            setLeafIndex(startIndex);
+            return startIndex + 1;
+        } else {
+            for (RuleDecisionTreeModel child : getChildren()) {
+                startIndex = child.calcLeafIndex(startIndex);
+            }
+            return startIndex;
+        }
+    }
 }

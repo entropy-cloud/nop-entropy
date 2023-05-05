@@ -64,7 +64,7 @@
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名" mandatory="true"/>
+                        <field name="displayName" displayName="中文名" />
 
                         <field name="i18n-en:displayName" displayName="英文名"/>
 

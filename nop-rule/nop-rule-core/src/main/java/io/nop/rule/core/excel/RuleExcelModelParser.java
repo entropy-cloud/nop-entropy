@@ -126,7 +126,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             throw new NopException(ERR_RULE_INVALID_DECISION_TREE_TABLE)
                     .source(ruleSheet);
 
-        int endRow = getNonEmptyRowBound(ruleSheet.getTable());
+        int endRow = getNonEmptyRowBound(ruleSheet.getTable(), cell0.getRowSpan());
 
         int beginRow = cell0.getRowSpan();
         int beginCol = cell0.getColSpan();
@@ -149,7 +149,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         return ret;
     }
 
-    private int getNonEmptyRowBound(ExcelTable table) {
+    private int getNonEmptyRowBound(ExcelTable table, int start) {
         for (int i = 0, n = table.getRowCount(); i < n; i++) {
             ICell cell = table.getCell(i, 0);
             if (cell == null)
@@ -278,6 +278,12 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                 expr = vl.asString();
             }
             id = getCommentVar(commentVars, RuleConstants.NAME_ID);
+
+            // 如果单元格上明确设置了var，则以明确设置的值为准
+            String localVar = getCommentVar(commentVars, RuleConstants.NAME_VAR);
+            if (!StringHelper.isEmpty(localVar)) {
+                varName = localVar;
+            }
         }
 
         if (StringHelper.isEmpty(id))
@@ -477,9 +483,9 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         ExcelCell cell0 = (ExcelCell) table.getCell(0, 0);
 
         int outBeginRow = cell0.getRowSpan();
-        int outEndRow = getNonEmptyRowBound(table);
+        int outEndRow = getNonEmptyRowBound(table, outBeginRow);
         int outBeginCol = cell0.getColSpan();
-        int outEndCol = getNonEmptyColBound(table);
+        int outEndCol = getNonEmptyColBound(table, outBeginCol);
 
         BaseTable top = TreeTableHelper.buildTreeTable(table,
                 0, outBeginCol, outBeginRow, outEndCol, true);
@@ -489,8 +495,8 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
 
         String sheetName = sheet.getName();
 
-        RuleDecisionTreeModel rowDecider = buildRowDecider(top, outBeginRow, sheetName, ruleModel);
-        RuleDecisionTreeModel colDecider = buildColDecider(left, outBeginCol, sheetName, ruleModel);
+        RuleDecisionTreeModel rowDecider = buildRowDecider(left, outBeginRow, sheetName, ruleModel);
+        RuleDecisionTreeModel colDecider = buildColDecider(top, outBeginCol, sheetName, ruleModel);
 
         RuleDecisionMatrixModel ret = new RuleDecisionMatrixModel();
         ret.setRowDecider(rowDecider);
@@ -500,15 +506,15 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         return ret;
     }
 
-    private int getNonEmptyColBound(ExcelTable table) {
-        for (int i = 0, n = table.getColCount(); i < n; i++) {
+    private int getNonEmptyColBound(ExcelTable table, int start) {
+        for (int i = start, n = table.getColCount(); i < n; i++) {
             ICell cell = table.getCell(0, i);
             if (cell == null)
                 return i;
             String text = cell.getText();
             if (StringHelper.isEmpty(text))
                 return i;
-            i += cell.getMergeDown();
+            i += cell.getMergeAcross();
         }
         return table.getColCount();
     }
@@ -537,7 +543,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             TreeCell cell = (TreeCell) table.getCell(0, i);
             RuleDecisionTreeModel rule = buildInputRule(cell, rowVarNames, sheetName, 0, beginCol, true);
             children.add(rule);
-            i += cell.getMergeDown();
+            i += cell.getMergeAcross();
         }
         ret.setChildren(children);
         return ret;
@@ -575,13 +581,16 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         ExcelCell ec = (ExcelCell) cell.getValue();
         Map<String, ValueWithLocation> commentVars = getCommentVars(ec, sheetName, rowIndex, colIndex);
         String varName = getCommentVar(commentVars, RuleConstants.NAME_VAR);
-        ObjVarDefineModel varDef = ruleModel.getInputVar(varName);
+        String objName = StringHelper.firstPart(varName, '.');
+
+        ObjVarDefineModel varDef = ruleModel.getInputVar(objName);
         if (varDef == null) {
             SourceLocation loc = getLocation(ec, sheetName, rowIndex, colIndex);
             throw new NopException(ERR_RULE_INVALID_INPUT_VAR)
-                    .loc(loc).param(ARG_VAR_NAME, varName);
+                    .loc(loc).param(ARG_VAR_NAME, objName);
         }
-        return varDef.getName();
+
+        return objName.equals(varName) ? varDef.getName() : varName;
     }
 
     private void parseMatrixOutputs(RuleDecisionMatrixModel ret, ExcelSheet sheet,

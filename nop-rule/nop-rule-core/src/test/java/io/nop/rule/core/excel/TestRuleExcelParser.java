@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,14 +50,37 @@ public class TestRuleExcelParser extends BaseTestCase {
         ruleRt.getEvalScope().setLocalValue("season", "Winter");
         ruleRt.getEvalScope().setLocalValue("guestCount", 4);
         Map<String, Object> output = ruleManager.executeRule("test/test-table", ruleRt);
-        System.out.println(JsonTool.serialize(ruleRt.getLogMessages(),true));
+        System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
         assertEquals("Roastbeef", output.get("dish"));
 
         ruleRt = ruleManager.newRuntime();
         ruleRt.getEvalScope().setLocalValue("season", "Summer");
         ruleRt.getEvalScope().setLocalValue("guestCount", 4);
         output = ruleManager.executeRule("test/test-table", ruleRt);
-        assertEquals("Light Salad and nice Steak",output.get("dish"));
+        assertEquals("Light Salad and nice Steak", output.get("dish"));
+    }
+
+    @Test
+    public void testExecuteDecisionMatrix() {
+        IRuleManager ruleManager = getRuleManager();
+        IRuleRuntime ruleRt = ruleManager.newRuntime();
+        ruleRt.getEvalScope().setLocalValue("是否有房", "有房");
+        ruleRt.getEvalScope().setLocalValue("是否已婚", "已婚");
+        Map<String, Object> baseInfo = new HashMap<>();
+        baseInfo.put("age", 25);
+        baseInfo.put("gender", "男");
+
+        ruleRt.getEvalScope().setLocalValue("baseInfo", baseInfo);
+
+        Map<String, Object> output = ruleManager.executeRule("test/test-matrix", ruleRt);
+        System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
+        assertEquals(9, output.get("result"));
+
+        baseInfo.put("age", 50);
+        ruleRt.getEvalScope().setLocalValue("是否已婚","未婚");
+        output = ruleManager.executeRule("test/test-matrix", ruleRt);
+        assertEquals("A", output.get("type"));
+        assertEquals(14, output.get("result"));
     }
 
     private IRuleManager getRuleManager() {

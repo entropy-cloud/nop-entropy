@@ -61,7 +61,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
      * xml name: inputs
      * 
      */
-    private KeyedList<io.nop.xlang.xmeta.ObjVarDefineModel> _inputs = KeyedList.emptyList();
+    private KeyedList<io.nop.rule.core.model.RuleInputDefineModel> _inputs = KeyedList.emptyList();
     
     /**
      *  
@@ -190,20 +190,20 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
      *  
      */
     
-    public java.util.List<io.nop.xlang.xmeta.ObjVarDefineModel> getInputs(){
+    public java.util.List<io.nop.rule.core.model.RuleInputDefineModel> getInputs(){
       return _inputs;
     }
 
     
-    public void setInputs(java.util.List<io.nop.xlang.xmeta.ObjVarDefineModel> value){
+    public void setInputs(java.util.List<io.nop.rule.core.model.RuleInputDefineModel> value){
         checkAllowChange();
         
-        this._inputs = KeyedList.fromList(value, io.nop.xlang.xmeta.ObjVarDefineModel::getName);
+        this._inputs = KeyedList.fromList(value, io.nop.rule.core.model.RuleInputDefineModel::getName);
            
     }
 
     
-    public io.nop.xlang.xmeta.ObjVarDefineModel getInput(String name){
+    public io.nop.rule.core.model.RuleInputDefineModel getInput(String name){
         return this._inputs.getByKey(name);
     }
 
@@ -211,11 +211,11 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         return this._inputs.containsKey(name);
     }
 
-    public void addInput(io.nop.xlang.xmeta.ObjVarDefineModel item) {
+    public void addInput(io.nop.rule.core.model.RuleInputDefineModel item) {
         checkAllowChange();
-        java.util.List<io.nop.xlang.xmeta.ObjVarDefineModel> list = this.getInputs();
+        java.util.List<io.nop.rule.core.model.RuleInputDefineModel> list = this.getInputs();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.xlang.xmeta.ObjVarDefineModel::getName);
+            list = new KeyedList<>(io.nop.rule.core.model.RuleInputDefineModel::getName);
             setInputs(list);
         }
         list.add(item);
