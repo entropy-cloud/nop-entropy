@@ -144,12 +144,6 @@
                         record.name = record.tableName.$camelCase(true).$fullClassName(rootRecord['ext:entityPackageName']);
                     }
 
-                    if(!record.className){
-                        const className = record.tableName.$camelCase(true).$fullClassName(rootRecord['ext:entityPackageName']);
-                        if(record.name != className)
-                           record.className = className;
-                    }
-
                     if(record.tagSet?.contains('cache'))
                         record.useGlobalCache = true;
 
@@ -203,6 +197,9 @@
 
                 <field name="className" displayName="类名">
                     <schema stdDomain="class-name" />
+                    <valueExpr>
+                        value?.$fullClassName(rootRecord['ext:entityPackageName'])
+                    </valueExpr>
                 </field>
 
                 <field name="ext:baseClass" displayName="基类">

@@ -122,6 +122,8 @@ public class TemplateFileGenerator {
     }
 
     public void executeWithLoop(String tplPath, INestedLoop loop, IEvalScope scope) {
+        Guard.notNull(loop,"loop");
+
         // 找到根目录
         IResource resource = getTplResource("");
         if (!resource.exists()) {

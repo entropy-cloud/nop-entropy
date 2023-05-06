@@ -33,6 +33,19 @@
             </source>
         </Render>
 
+        <RenderWithLoop>
+            <attr name="template"/>
+            <attr name="targetDir"/>
+            <attr name="codeGenerator" implicit="true"/>
+            <attr name="codeGenLoop" implicit="true" />
+
+            <source>
+                <c:script>
+                    codeGenerator.withTplDir(template).withTargetDir(targetDir).executeWithLoop("",codeGenLoop,$scope);
+                </c:script>
+            </source>
+        </RenderWithLoop>
+
         <MergeXml outputMode="xml">
             <attr name="resource" type="io.nop.core.resource.IResource"/>
 

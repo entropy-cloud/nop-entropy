@@ -265,7 +265,7 @@ public class XDslExtender {
 
     private XDslSource loadSource(IXDefinition def, String path, IEvalScope genScope) {
         XNode node = XModelInclude.instance().loadActiveNode(path);
-        return buildSource(def, node, path, genScope);
+        return buildSource(def, node, node.resourcePath(), genScope);
     }
 
     private List<XDslSource> genCpExtends(IXDefinition def, XNode root, XNode node, String currentPath,
@@ -382,6 +382,7 @@ public class XDslExtender {
         SourceLocation newLoc = xb.getLocation();
 
         merger.merge(xa, xb, defNode, forPrototype);
+        xa.setLocation(xb.getLocation());
 
         boolean dump = XplParseHelper.getAttrBool(xa, keys.DUMP, false);
         if (dump) {

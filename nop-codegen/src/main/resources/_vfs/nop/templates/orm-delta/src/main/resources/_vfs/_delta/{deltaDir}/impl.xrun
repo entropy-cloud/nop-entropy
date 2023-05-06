@@ -1,2 +1,2 @@
-<gen:Render template="/nop/templates/orm/{appName}-dao/src/main/resources/_vfs" targetDir="${targetResource.path.$filePath()}"
+<gen:RenderWithLoop template="/nop/templates/orm/{appName}-dao/src/main/resources/_vfs" targetDir="${targetResource.path.$filePath()}"
             xpl:lib="/nop/codegen/xlib/gen.xlib"/>

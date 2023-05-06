@@ -8,14 +8,17 @@
 package io.nop.orm.model.loader;
 
 import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.config.AppConfig;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.OrmDomainModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmModel;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
@@ -49,6 +52,12 @@ public class OrmModelLoader {
 
         model.init();
         model.freeze(true);
+
+        if (AppConfig.isDebugMode()) {
+            String dumpPath = ResourceHelper.getDumpPath("/nop/main/orm/merged-app.orm.xml");
+            IResource resource = VirtualFileSystem.instance().getResource(dumpPath);
+            DslModelHelper.saveDslModel(OrmConstants.XDSL_SCHEMA_ORM, model, resource);
+        }
         return model;
     }
 
@@ -74,12 +83,14 @@ public class OrmModelLoader {
             } else if (baseEntity.isNotGenCode()) {
                 baseModel.addEntity(entityModel);
             } else {
-                if (replace) {
-                    baseModel.addEntity(entityModel);
-                } else {
-                    throw new OrmException(ERR_ORM_MODEL_ENTITY_NAME_CONFLICTED).source(entityModel)
-                            .param(ARG_OTHER_LOC, baseEntity.getLocation())
-                            .param(ARG_ENTITY_NAME, entityModel.getName());
+                if (!entityModel.isNotGenCode()) {
+                    if (replace) {
+                        baseModel.addEntity(entityModel);
+                    } else {
+                        throw new OrmException(ERR_ORM_MODEL_ENTITY_NAME_CONFLICTED).source(entityModel)
+                                .param(ARG_OTHER_LOC, baseEntity.getLocation())
+                                .param(ARG_ENTITY_NAME, entityModel.getName());
+                    }
                 }
             }
         }

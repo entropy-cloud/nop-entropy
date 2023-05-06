@@ -99,7 +99,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             // 如果sequence表为空，则初始化一条缺省记录
             try {
                 runLocal(session -> {
-                    NopSysSequence entity = new NopSysSequence();
+                    NopSysSequence entity = (NopSysSequence) ormTemplate.newEntity(NopSysSequence.class.getName());
                     entity.setCacheSize(100);
                     entity.setStepSize(1);
                     entity.setNextValue(1L);

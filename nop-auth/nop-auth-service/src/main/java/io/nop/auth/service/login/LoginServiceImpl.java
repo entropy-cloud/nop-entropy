@@ -105,7 +105,7 @@ public class LoginServiceImpl extends AbstractLoginService {
             IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
             // 用户表为空，插入缺省用户
             if (dao.isEmpty()) {
-                NopAuthUser user = new NopAuthUser();
+                NopAuthUser user = dao.newEntity();
                 user.setUserName("nop");
                 String salt = passwordEncoder.generateSalt();
                 user.setPassword(passwordEncoder.encodePassword(salt, "123"));
