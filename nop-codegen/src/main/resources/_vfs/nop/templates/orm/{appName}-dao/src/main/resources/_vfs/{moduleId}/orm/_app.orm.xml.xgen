@@ -5,12 +5,14 @@
 
 <gen:DslModelToXNode  model="${ormModel}" defaultXdefPath="/nop/schema/orm/orm.xdef" xpl:return="ormNode" />
 <c:script><![CDATA[
+ormNode.removeAttr('ext:extends');
+ormNode.setAttr('x:extends',ormModel['ext:extends']);
 ormNode.setAttr('xmlns:i18n-en','i18n-en');
 ormNode.setAttr('xmlns:ref-i18n-en','ref-i18n-en');
 ormNode.setAttr('xmlns:ext','ext');
 ormNode.setAttr('xmlns:orm-gen','orm-gen');
 ormNode.setAttr('xmlns:xpl','xpl');
-ormNode.prepend(`<x:post-extends><orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib" /></x:post-extends>`);
+ormNode.prepend(`<x:post-extends x:override="replace"><orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib" /></x:post-extends>`);
 ]]></c:script>
 ${ormNode.outerXml(false,false)}
 </c:unit>

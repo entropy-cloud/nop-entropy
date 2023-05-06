@@ -25,17 +25,17 @@ import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
-import io.nop.excel.util.MultiLineConfigParser;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
+import io.nop.excel.util.MultiLineConfigParser;
 import io.nop.report.core.XptConstants;
+import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
-import io.nop.xlang.xdef.source.SourceEvalAction;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -169,7 +169,7 @@ public class ExcelToXptModelTransformer {
 
     private Object addSource(ValueWithLocation vl, Object value) {
         if (value instanceof IEvalAction && vl.getValue() instanceof String) {
-            return new SourceEvalAction((String) vl.getValue(), (IEvalAction) value);
+            return new EvalCode(vl.getLocation(), (String) vl.getValue(), (IEvalAction) value);
         }
         return value;
     }

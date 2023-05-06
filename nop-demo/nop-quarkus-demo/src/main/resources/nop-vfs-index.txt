@@ -455,10 +455,12 @@
 /nop/templates/meta/@init.xrun
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{entityModel.shortName}/_{entityModel.shortName}.xmeta.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
+/nop/templates/orm-delta/src/main/java/impl.xrun
+/nop/templates/orm-delta/src/main/resources/_vfs/_delta/{deltaDir}/impl.xrun
 /nop/templates/orm-entity/@init.xrun
-/nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.packagePath}/_gen/_{entityModel.shortName}.java.xgen
-/nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.packagePath}/_gen/{entityModel.compositePk}{entityModel.shortName}PkBuilder.java.xgen
-/nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.packagePath}/{entityModel.shortName}.java.xgen
+/nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/_gen/_{entityModel.simpleClassName}.java.xgen
+/nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/_gen/{entityModel.compositePk}{entityModel.simpleClassName}PkBuilder.java.xgen
+/nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/{entityModel.simpleClassName}.java.xgen
 /nop/templates/orm-web/@init.xrun
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/_{moduleName}.action-auth.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/{moduleName}.action-auth.xml.xgen
@@ -482,7 +484,7 @@
 /nop/templates/orm/{appName}-app/src/main/resources/application.yaml.xgen
 /nop/templates/orm/{appName}-app/src/main/resources/bootstrap.yaml
 /nop/templates/orm/{appName}-codegen/pom.xml.xgen
-/nop/templates/orm/{appName}-codegen/precompile/gen-orm.xgen.xgen
+/nop/templates/orm/{appName}-codegen/postcompile/gen-orm.xgen.xgen
 /nop/templates/orm/{appName}-codegen/src/test/java/{basePackagePath}/codegen/{moduleClassPrefix}CodeGen.java.xgen
 /nop/templates/orm/{appName}-dao/pom.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/java/impl.xrun
@@ -497,6 +499,7 @@
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/sql/{!!entityModel.tagSet.@mapper}{entityModel.shortName}.sql-lib.xml.xgen
 /nop/templates/orm/{appName}-service/impl.xrun
 /nop/templates/orm/{appName}-service/pom.xml.xgen
+/nop/templates/orm/{appName}-service/postcompile/gen-i18n.xgen.xgen
 /nop/templates/orm/{appName}-service/precompile/gen-meta.xgen.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/entity/{entityModel.shortName}BizModel.java.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Configs.java.xgen

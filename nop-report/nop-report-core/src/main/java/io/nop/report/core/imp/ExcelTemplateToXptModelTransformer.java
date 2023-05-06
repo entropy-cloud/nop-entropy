@@ -29,9 +29,9 @@ import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.IXptRuntime;
+import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
-import io.nop.xlang.xdef.source.SourceEvalAction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -136,7 +136,7 @@ public class ExcelTemplateToXptModelTransformer {
 
         private static IEvalAction getSheetNameExpr(String sheetVarName, String name) {
             String field = sheetVarName + '.' + name;
-            return new SourceEvalAction(field, ctx -> {
+            return new EvalCode(null, field, ctx -> {
                 return ctx.getEvalScope().getValueByPropPath(field);
             });
         }
@@ -263,18 +263,18 @@ public class ExcelTemplateToXptModelTransformer {
             IEvalAction expr = compileTool.compileFullExpr(loc, formatExpr);
             if (expr == null)
                 return null;
-            return new SourceEvalAction(formatExpr, expr);
+            return new EvalCode(loc, formatExpr, expr);
         }
     }
 
     private static IEvalAction getExpandIndexAction() {
-        return new SourceEvalAction("cell.expandIndex+1", ctx -> {
+        return new EvalCode(null, "cell.expandIndex+1", ctx -> {
             return ((IXptRuntime) ctx).getCell().getExpandIndex() + 1;
         });
     }
 
     private static IEvalAction getExpandFieldAction(String name) {
-        return new SourceEvalAction("cell.getExpandField('" + name + "')", ctx -> {
+        return new EvalCode(null, "cell.getExpandField('" + name + "')", ctx -> {
             return ((IXptRuntime) ctx).getCell().getExpandField(ctx.getEvalScope(), name);
         });
     }

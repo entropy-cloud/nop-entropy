@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.xlang.xdef.source;
+package io.nop.xlang.api.source;
 
 public interface IWithSourceCode {
     String getSource();

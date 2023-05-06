@@ -7,6 +7,10 @@
         <sheet name="目录" ignore="true"/>
         <sheet name="配置">
             <fields>
+                <field name="ext:extends" displayName="extends">
+                    <schema stdDomain="string" />
+                </field>
+
                 <field name="ext:registerShortName" displayName="registerShortName">
                     <schema stdDomain="boolean"/>
                 </field>
@@ -45,6 +49,10 @@
 
                 <field name="ext:moduleId" displayName="moduleId">
                     <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:deltaDir" displayName="deltaDir" >
+                    <schema stdDomain="xml-name" />
                 </field>
 
             </fields>
@@ -132,8 +140,15 @@
                     if(rootRecord['ext:registerShortName'])
                         record.registerShortName = true;
 
-                    if(!record.name)
+                    if(!record.name){
                         record.name = record.tableName.$camelCase(true).$fullClassName(rootRecord['ext:entityPackageName']);
+                    }
+
+                    if(!record.className){
+                        const className = record.tableName.$camelCase(true).$fullClassName(rootRecord['ext:entityPackageName']);
+                        if(record.name != className)
+                           record.className = className;
+                    }
 
                     if(record.tagSet?.contains('cache'))
                         record.useGlobalCache = true;
@@ -141,7 +156,13 @@
                     if(record.tagSet?.contains('kv-table'))
                         record.kvTable = true;
 
+                    if(record.tagSet?.contains('not-gen'))
+                        record.notGenCode = true;
+
                     record.columns.forEach(col=>{
+                        if(col.tagSet?.contains('not-gen'))
+                           col.notGenCode = true;
+
                         const domain = col.domain;
                         if(!domain) return;
                         if(domain == 'version'){
@@ -180,6 +201,17 @@
                     </valueExpr>
                 </field>
 
+                <field name="className" displayName="类名">
+                    <schema stdDomain="class-name" />
+                </field>
+
+                <field name="ext:baseClass" displayName="基类">
+                    <schema stdDomain="class-name"/>
+                    <valueExpr>
+                        value?.$fullClassName(rootRecord['ext:entityPackageName'])
+                    </valueExpr>
+                </field>
+
                 <field name="displayName" displayName="中文名" mandatory="true">
                     <schema stdDomain="string"/>
                 </field>
@@ -194,6 +226,10 @@
 
                 <field name="comment" displayName="备注">
                     <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:minPropId" displayName="propId的起始值">
+                    <schema stdDomain="int" />
                 </field>
 
                 <field name="columns" displayName="字段列表" list="true" keyProp="name">
@@ -272,7 +308,7 @@
                         </field>
 
                         <field name="ext:rootLevel" displayName="根节点级别">
-                            <schema stdDomain="string" />
+                            <schema stdDomain="string"/>
                         </field>
 
                     </fields>

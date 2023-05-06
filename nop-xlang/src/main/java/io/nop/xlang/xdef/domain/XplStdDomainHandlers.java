@@ -31,7 +31,7 @@ import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
-import io.nop.xlang.xdef.source.IWithSourceCode;
+import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.xdsl.XDslConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

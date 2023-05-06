@@ -27,7 +27,7 @@ fileType比文件扩展名(fileExt)要复杂一些，它可能会取文件名按
 
 ## 2. 加载模型
 
-Nop平台的CoreInitializer会在框架启动的时候自动收集所有的`/_vfs/nop/core/registry/xxx.register-model.xml`文件，把它们合并为一个完整的registry文件，
+Nop平台的RegisterModelCoreInitializer会在框架启动的时候自动收集所有的`/_vfs/nop/core/registry/xxx.register-model.xml`文件，把它们合并为一个完整的registry文件，
 然后再解析为配置对象，注册到ResourceComponentManager中。
 
 注册完毕后，可以通过如下方式获取模型对象

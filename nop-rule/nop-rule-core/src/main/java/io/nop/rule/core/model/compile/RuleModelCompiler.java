@@ -10,6 +10,7 @@ import io.nop.core.model.table.CellPosition;
 import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.execute.AggregateExecutableRule;
 import io.nop.rule.core.execute.ComputedInputRule;
+import io.nop.rule.core.execute.DecoratedExecutableRule;
 import io.nop.rule.core.execute.ExecutableMatrixRule;
 import io.nop.rule.core.execute.ExecutableRule;
 import io.nop.rule.core.execute.RuleDecider;
@@ -53,6 +54,11 @@ public class RuleModelCompiler {
 
         if (!computedVars.isEmpty()) {
             rule = new ComputedInputRule(computedVars, rule);
+        }
+
+        if (ruleModel.getBeforeExecute() != null || ruleModel.getAfterExecute() != null) {
+            rule = new DecoratedExecutableRule(ruleModel.getBeforeExecute(),
+                    rule, ruleModel.getAfterExecute());
         }
 
         ruleModel.setExecutableRule(rule);

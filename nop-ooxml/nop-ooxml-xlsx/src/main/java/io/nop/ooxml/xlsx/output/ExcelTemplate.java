@@ -47,6 +47,10 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         this(ExcelOfficePackage.loadEmpty(), workbook, sheetGenerator);
     }
 
+    public ExcelTemplate(ExcelWorkbook workbook) {
+        this(workbook, null);
+    }
+
     @Override
     public void generateToDir(File dir, IEvalContext context) {
         ExcelOfficePackage pkg = this.pkg.copy();

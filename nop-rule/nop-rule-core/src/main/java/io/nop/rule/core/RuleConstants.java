@@ -25,6 +25,8 @@ public interface RuleConstants {
 
     String VAR_RESULT = "result";
 
+    String VAR_RULE_MATCH = "ruleMatch";
+
     String FILE_TYPE_RULE_XLSX = "rule.xlsx";
 
     String FILE_TYPE_RULE_XML = "rule.xml";

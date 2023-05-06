@@ -7,6 +7,7 @@
  */
 package io.nop.orm.model;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.CaseInsensitiveMap;
 import io.nop.commons.collections.IntHashMap;
@@ -130,7 +131,9 @@ public class OrmEntityModelInitializer {
      */
     private void initPropIds() {
         IntHashMap<OrmColumnModel> cols = new IntHashMap<>();
-        int maxPropId = 0;
+
+        // 如果是delta模型，则可能设置minPropId，避免与基类中已有的属性冲突
+        int maxPropId = ConvertHelper.toPrimitiveInt(entityModel.prop_get(OrmConstants.EXT_PROP_MIN_PROP_ID), 0, NopException::new);
 
         for (OrmColumnModel col : entityModel.getColumns()) {
             col.setOwnerEntityModel(entityModel);

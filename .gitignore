@@ -16,3 +16,6 @@ target/
 /nop_log
 _dump
 /db
+/nop-antlr4/gen
+/nop-antlr4/nop-antlr4-xlang/src/main/antlr4/imports/gen
+/nop-antlr4/nop-antlr4-xpath/src/main/antlr4/imports/gen

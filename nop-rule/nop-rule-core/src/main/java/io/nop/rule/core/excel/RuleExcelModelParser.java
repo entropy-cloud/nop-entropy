@@ -34,13 +34,13 @@ import io.nop.rule.core.model.RuleDecisionTreeModel;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.core.model.RuleOutputValueModel;
 import io.nop.rule.core.model.RuleTableCellModel;
+import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.exec.NullExecutable;
 import io.nop.xlang.expr.filter.ExpressionToFilterBeanTransformer;
-import io.nop.xlang.xdef.source.SourceEvalAction;
 import io.nop.xlang.xmeta.ObjVarDefineModel;
 
 import java.util.ArrayList;
@@ -438,10 +438,10 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
 
     private IEvalAction parseOutputAction(SourceLocation loc, String varName, String text) {
         if (StringHelper.isBlank(text) || "-".equals(text.trim())) {
-            return new SourceEvalAction("", new RuleOutputAction(varName, new ExprEvalAction(NullExecutable.NULL)));
+            return new EvalCode(loc, "", new RuleOutputAction(varName, new ExprEvalAction(NullExecutable.NULL)));
         }
 
-        return new SourceEvalAction(text, new RuleOutputAction(varName, compileTool.compileSimpleExpr(loc, text)));
+        return new EvalCode(loc, text, new RuleOutputAction(varName, compileTool.compileSimpleExpr(loc, text)));
     }
 
     private boolean getMultiMatch(Map<String, ValueWithLocation> commentVars, boolean defaultValue) {

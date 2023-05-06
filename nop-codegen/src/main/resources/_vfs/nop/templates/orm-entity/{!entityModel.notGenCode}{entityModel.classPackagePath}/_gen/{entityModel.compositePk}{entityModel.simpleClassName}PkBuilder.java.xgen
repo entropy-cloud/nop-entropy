@@ -1,24 +1,24 @@
-<c:unit xpl:outputMode="text">package ${entityModel.packageName}._gen;
+<c:unit xpl:outputMode="text">package ${entityModel.classPackageName}._gen;
 
 import io.nop.orm.support.OrmCompositePk;
-import ${entityModel.packageName}.${entityModel.shortName};
+import ${entityModel.classPackageName}.${entityModel.simpleClassName};
 
 /**
  * 用于生成复合主键的帮助类
  */
 @SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
-public class ${entityModel.shortName}PkBuilder{
+public class ${entityModel.simpleClassName}PkBuilder{
     private Object[] values = new Object[${entityModel.pkColumns.size()}];
 
    <c:for var="col" items="${entityModel.pkColumns}" index="index">
-    public ${entityModel.shortName}PkBuilder ${col.name.$methodSet()}(${col.javaClassName} value){
+    public ${entityModel.simpleClassName}PkBuilder ${col.name.$methodSet()}(${col.javaClassName} value){
         this.values[${index}] = value;
         return this;
     }
    </c:for>
 
     public OrmCompositePk build(){
-        return OrmCompositePk.buildNotNull(${entityModel.shortName}.PK_PROP_NAMES,values);
+        return OrmCompositePk.buildNotNull(${entityModel.simpleClassName}.PK_PROP_NAMES,values);
     }
 }
 </c:unit>

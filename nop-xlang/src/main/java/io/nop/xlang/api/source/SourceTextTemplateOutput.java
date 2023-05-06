@@ -5,20 +5,20 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.xlang.xdef.source;
+package io.nop.xlang.api.source;
 
 import io.nop.api.core.json.IJsonString;
 import io.nop.core.context.IEvalContext;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.resource.tpl.ITextTemplateOutput;
 
-/**
- * 记录action所对应的源码
- */
-public class SourceEvalAction implements IEvalAction, IJsonString, IWithSourceCode {
+import java.io.IOException;
+import java.io.Writer;
+
+public class SourceTextTemplateOutput implements ITextTemplateOutput, IJsonString, IWithSourceCode {
     private final String source;
-    private final IEvalAction action;
+    private final ITextTemplateOutput action;
 
-    public SourceEvalAction(String source, IEvalAction action) {
+    public SourceTextTemplateOutput(String source, ITextTemplateOutput action) {
         this.source = source;
         this.action = action;
     }
@@ -32,7 +32,7 @@ public class SourceEvalAction implements IEvalAction, IJsonString, IWithSourceCo
     }
 
     @Override
-    public Object invoke(IEvalContext ctx) {
-        return action.invoke(ctx);
+    public void generateToWriter(Writer out, IEvalContext context) throws IOException {
+        action.generateToWriter(out, context);
     }
 }

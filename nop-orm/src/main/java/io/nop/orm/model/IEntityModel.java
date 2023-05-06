@@ -25,6 +25,18 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     String getClassName();
 
+    default String getSimpleClassName() {
+        return StringHelper.simpleClassName(getClassName());
+    }
+
+    default String getClassPackageName() {
+        return StringHelper.packageName(getClassName());
+    }
+
+    default String getClassPackagePath() {
+        return getClassPackageName().replace('.', '/');
+    }
+
     boolean isRegisterShortName();
 
     default String getShortName() {

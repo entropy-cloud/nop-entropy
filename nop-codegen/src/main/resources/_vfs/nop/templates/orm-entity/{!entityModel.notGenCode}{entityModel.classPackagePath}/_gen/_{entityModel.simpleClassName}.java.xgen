@@ -1,4 +1,4 @@
-<c:unit xpl:outputMode="text">package ${entityModel.packageName}._gen;
+<c:unit xpl:outputMode="text">package ${entityModel.classPackageName}._gen;
 
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.${entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity'};
@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import ${entityModel.packageName}.${entityModel.shortName};
+import ${entityModel.classPackageName}.${entityModel.simpleClassName};
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
@@ -18,7 +18,7 @@ import ${entityModel.packageName}.${entityModel.shortName};
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public class _${entityModel.shortName} extends ${entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity'}{
+public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClass'] ||  (entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity')}{
     <c:for var="col" items="${entityModel.columns}">
         <c:script> if(col.notGenCode) continue</c:script>
     /* ${col.displayName}: ${col.code} ${col.stdSqlType} */
@@ -71,16 +71,16 @@ public class _${entityModel.shortName} extends ${entityModel.kvTable ? 'Abstract
     private ${col.javaClassName} _${col.name};
     </c:for>
 
-    public _${entityModel.shortName}(){
+    public _${entityModel.simpleClassName}(){
     }
 
-    protected ${entityModel.shortName} newInstance(){
-       return new ${entityModel.shortName}();
+    protected ${entityModel.simpleClassName} newInstance(){
+       return new ${entityModel.simpleClassName}();
     }
 
     @Override
-    public ${entityModel.shortName} cloneInstance() {
-        ${entityModel.shortName} entity = newInstance();
+    public ${entityModel.simpleClassName} cloneInstance() {
+        ${entityModel.simpleClassName} entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
