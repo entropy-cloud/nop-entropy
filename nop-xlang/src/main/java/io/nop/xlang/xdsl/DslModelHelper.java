@@ -7,12 +7,14 @@
  */
 package io.nop.xlang.xdsl;
 
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
@@ -95,7 +97,8 @@ public class DslModelHelper {
         } else {
             classModel = ReflectionManager.instance().loadClassModel(XDslConstants.EXCEL_MODEL_LOADER_CLASS);
         }
-        return (IResourceObjectLoader<IComponentModel>) classModel.getConstructor(new Class[]{String.class})
-                .invoke(null, new String[]{impModelPath}, DisabledEvalScope.INSTANCE);
+        IFunctionModel fn = classModel.getConstructor(new Class[]{String.class});
+        Guard.checkEquals(1, fn.getArgCount());
+        return (IResourceObjectLoader<IComponentModel>) fn.invoke(null, new String[]{impModelPath}, DisabledEvalScope.INSTANCE);
     }
 }
