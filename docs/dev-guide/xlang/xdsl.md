@@ -153,7 +153,7 @@ DSL = Delta x-extends Generator<DSLx>
 ### 可执行语义
 XDSL中通过XLang语言来实现可执行语义。只要在xdef元模型中标注某个属性为EL表达式，或者某个节点内容为XPL模板语言，则该属性就会被自动解析为IEvalAction可执行函数接口。具体示例可以参见[wf.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/wf/wf.xdef)
 ```xml
- <action name="!string" ...>
+ <action name="!string" >
     <when xdef:value="xpl-predicate"/>
 
     <arg name="!var-name" xdef:ref="WfArgVarModel" xdef:unique-attr="name"/>

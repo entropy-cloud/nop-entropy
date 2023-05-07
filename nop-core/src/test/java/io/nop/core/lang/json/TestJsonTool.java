@@ -70,7 +70,7 @@ public class TestJsonTool {
         JObject obj = new JObject();
         obj.put("a", null);
         obj.put("b", "null");
-        String yaml = JsonTool.toYaml(obj);
+        String yaml = JsonTool.serializeToYaml(obj);
         assertEquals("a: null\nb: 'null'\n", yaml);
 
         Map<String, Object> map = (Map<String, Object>) JsonTool.parseYaml(null, yaml);

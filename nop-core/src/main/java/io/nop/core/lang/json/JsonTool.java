@@ -187,7 +187,7 @@ public class JsonTool {
         return str;
     }
 
-    public static String toYaml(Object value) {
+    public static String serializeToYaml(Object value) {
         if (value == null)
             return null;
         DumperOptions options = new DumperOptions();

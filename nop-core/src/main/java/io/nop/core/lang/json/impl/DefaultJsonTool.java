@@ -179,7 +179,7 @@ public class DefaultJsonTool implements IJsonTool {
         String fileName = resource.getName();
         String text;
         if (fileName.endsWith(CoreConstants.FILE_POSTFIX_YAML) || fileName.endsWith(CoreConstants.FILE_POSTFIX_YML)) {
-            text = JsonTool.toYaml(json);
+            text = JsonTool.serializeToYaml(json);
         } else {
             text = JsonTool.serialize(json, options.isPretty());
         }
