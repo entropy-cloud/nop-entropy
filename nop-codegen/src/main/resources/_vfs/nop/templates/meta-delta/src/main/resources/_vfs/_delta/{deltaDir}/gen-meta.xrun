@@ -1,0 +1,2 @@
+<gen:RenderWithLoop template="/nop/templates/meta/src/main/resources/_vfs" targetDir="${targetResource.path.$filePath()}"
+                    xpl:lib="/nop/codegen/xlib/gen.xlib"/>

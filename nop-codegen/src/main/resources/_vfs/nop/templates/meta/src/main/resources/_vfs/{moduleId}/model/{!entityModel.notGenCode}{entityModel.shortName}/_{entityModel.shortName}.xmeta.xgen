@@ -1,10 +1,11 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-   xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql"
+   xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" x:extends="${deltaDir?'super':null}"
     displayName="${entityModel.displayName}" i18n-en:displayName="${entityModel['i18n-en:displayName']}" tagSet="${_.join(entityModel.tagSet,',')}">
     <entityName>${entityModel.name}</entityName>
 
     <primaryKey>${_.join(entityModel.pkColumnNames,',')}</primaryKey>
-    <displayProp>${entityModel.getColumnByTag('disp')?.name}</displayProp>
+    <c:script> const dispCol = entityModel.getColumnByTag('disp') </c:script>
+    <displayProp xpl:if="dispCol">${dispCol.name}</displayProp>
 
      <c:print>
       <x:post-extends>
@@ -52,6 +53,7 @@
     <props>
         <c:for var="col" items="${entityModel.columns}">
             <c:script><![CDATA[
+                if(col.notGenCode) continue;
                 // 是否是数据库列对应的增强对象
                 let colComp = entityModel.getComponent(col.name + "Component");
                 let jsonCol = colComp != null && colComp.className.$simpleClassName() == 'JsonOrmComponent'
@@ -71,6 +73,7 @@
         </c:for>
 
         <c:for var="rel" items="${entityModel.relations}">
+            <c:script>if(rel.tagSet?.contains('not-gen')) continue;</c:script>
             <prop name="${rel.name}" displayName="${rel.displayName}" i18n-en:displayName="${rel['i18n-en:displayName']}" tagSet="${_.join(rel.tagSet,',')}"
                   ext:kind="${rel.toOneRelation?'to-one':'to-many'}" internal="true" queryable="${rel.toOneRelation?true:null}"
                   ext:control="${rel['ext:control']}"  defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
@@ -90,6 +93,7 @@
 
         <c:for var="comp" items="${entityModel.components}">
             <c:script><![CDATA[
+                if(comp.tagSet?.contains('not-gen')) continue;
                 // 是否是数据库列对应的增强对象
                 let compCol = null;
                 if(comp.name.endsWith("Component")){
@@ -105,6 +109,7 @@
         </c:for>
 
         <c:for var="alias" items="${entityModel.aliases}">
+            <c:script>if(rel.alias?.contains('not-gen')) continue;</c:script>
             <prop name="${alias.name}" displayName="${alias.displayName}" i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
                     ext:kind="alias"  internal="true" ext:control="${alias['ext:control']}"
                     insertable="false" updatable="false"
@@ -116,6 +121,8 @@
         <c:for var="rel" items="${entityModel.relations}">
             <c:script><![CDATA[
                 import io.nop.orm.support.OrmManyToManyHelper;
+
+                if(rel.tagSet?.contains('not-gen')) continue;
 
                 const refOnePropInfo = OrmManyToManyHelper.getRefOnePropInfo(rel);
                 const refManyPropInfo = OrmManyToManyHelper.getRefManyPropInfo(rel);
