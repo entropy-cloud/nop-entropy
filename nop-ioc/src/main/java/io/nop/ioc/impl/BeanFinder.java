@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,12 +23,13 @@ public class BeanFinder {
     static final Logger LOG = LoggerFactory.getLogger(BeanFinder.class);
 
     public static List<BeanDefinition> collectBeans(Map<Class<?>, BeanTypeMapping> typeMappings,
-                                                    Map<Class<? extends Annotation>, List<BeanDefinition>> annMappings, Map<String, BeanDefinition> allBeans,
+                                                    Map<Class<? extends Annotation>, List<BeanDefinition>> annMappings,
+                                                    Collection<BeanDefinition> allBeans,
                                                     Class<?> beanType, Class<? extends Annotation> annType) {
         List<BeanDefinition> ret = new ArrayList<>();
         if (beanType != null) {
             if (beanType == Object.class) {
-                ret.addAll(allBeans.values());
+                ret.addAll(allBeans);
             } else {
                 BeanTypeMapping mapping = getBeansByType(typeMappings, allBeans, beanType);
                 ret.addAll(mapping.getBeans());
@@ -47,16 +49,16 @@ public class BeanFinder {
     }
 
     public static BeanTypeMapping getBeansByType(Map<Class<?>, BeanTypeMapping> mappings,
-                                                 Map<String, BeanDefinition> allBeans, Class<?> beanType) {
+                                                 Collection<BeanDefinition> allBeans, Class<?> beanType) {
         return mappings.computeIfAbsent(beanType, k -> findByType(allBeans, beanType));
     }
 
-    public static BeanTypeMapping findByType(Map<String, BeanDefinition> allBeans, Class<?> beanType) {
+    public static BeanTypeMapping findByType(Collection<BeanDefinition> allBeans, Class<?> beanType) {
         Set<BeanDefinition> beans = new HashSet<>();
         BeanDefinition primary = null;
         BeanDefinition otherPrimary = null;
 
-        for (BeanDefinition bean : allBeans.values()) {
+        for (BeanDefinition bean : allBeans) {
             if (bean.isAbstract() || bean.isDisabled() || bean.isEmbedded())
                 continue;
 
@@ -101,16 +103,16 @@ public class BeanFinder {
     }
 
     public static List<BeanDefinition> getBeansByAnnotation(
-            Map<Class<? extends Annotation>, List<BeanDefinition>> mappings, Map<String, BeanDefinition> allBeans,
+            Map<Class<? extends Annotation>, List<BeanDefinition>> mappings, Collection<BeanDefinition> allBeans,
             Class<? extends Annotation> annType) {
         return mappings.computeIfAbsent(annType, k -> findByAnnotation(allBeans, annType));
     }
 
-    public static List<BeanDefinition> findByAnnotation(Map<String, BeanDefinition> allBeans,
+    public static List<BeanDefinition> findByAnnotation(Collection<BeanDefinition> allBeans,
                                                         Class<? extends Annotation> annType) {
         List<BeanDefinition> beans = new ArrayList<>();
 
-        for (BeanDefinition bean : allBeans.values()) {
+        for (BeanDefinition bean : allBeans) {
             if (bean.isAbstract() || bean.isDisabled() || bean.isEmbedded())
                 continue;
 

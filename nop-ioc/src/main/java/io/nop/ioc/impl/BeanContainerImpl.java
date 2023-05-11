@@ -163,7 +163,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     public <T> Map<String, T> getBeansOfType(Class<T> clazz) {
         checkStarted();
 
-        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, enabledBeans, clazz);
+        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, orderedBeans, clazz);
         Map<String, T> ret = new HashMap<>();
         if (parentContainer != null) {
             ret.putAll(parentContainer.getBeansOfType(clazz));
@@ -189,7 +189,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     @Override
     public Map<String, Object> getBeansWithAnnotation(Class<? extends Annotation> annClass) {
         checkStarted();
-        List<BeanDefinition> annBeans = BeanFinder.getBeansByAnnotation(beansByAnnotation, enabledBeans, annClass);
+        List<BeanDefinition> annBeans = BeanFinder.getBeansByAnnotation(beansByAnnotation, orderedBeans, annClass);
         Map<String, Object> ret = new HashMap<>();
         if (parentContainer != null) {
             ret.putAll(parentContainer.getBeansWithAnnotation(annClass));
@@ -216,7 +216,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
 
     @Override
     public boolean containsBeanType(Class<?> clazz) {
-        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, enabledBeans, clazz);
+        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, orderedBeans, clazz);
         boolean b = !mapping.isEmpty();
         if (!b) {
             if (parentContainer != null)
@@ -275,7 +275,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }
 
     private BeanDefinition findBeanByType(Class<?> beanType) {
-        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, enabledBeans, beanType);
+        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, orderedBeans, beanType);
         if (mapping.isEmpty())
             return null;
         if (mapping.getOtherPrimaryBean() != null)
@@ -479,7 +479,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     public Map<String, IBeanDefinition> getBeanDefinitionsByType(Class<?> clazz) {
         checkStarted();
 
-        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, enabledBeans, clazz);
+        BeanTypeMapping mapping = BeanFinder.getBeansByType(beansByType, orderedBeans, clazz);
         Map<String, IBeanDefinition> ret = new HashMap<>();
         if (parentContainer instanceof IBeanContainerImplementor) {
             ret.putAll(((IBeanContainerImplementor) parentContainer).getBeanDefinitionsByType(clazz));
@@ -493,7 +493,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     @Override
     public Map<String, IBeanDefinition> getBeanDefinitionsByAnnotation(Class<? extends Annotation> annClass) {
         checkStarted();
-        List<BeanDefinition> annBeans = BeanFinder.getBeansByAnnotation(beansByAnnotation, enabledBeans, annClass);
+        List<BeanDefinition> annBeans = BeanFinder.getBeansByAnnotation(beansByAnnotation, orderedBeans, annClass);
         Map<String, IBeanDefinition> ret = new HashMap<>();
         if (parentContainer instanceof IBeanContainerImplementor) {
             ret.putAll(((IBeanContainerImplementor) parentContainer).getBeanDefinitionsByAnnotation(annClass));

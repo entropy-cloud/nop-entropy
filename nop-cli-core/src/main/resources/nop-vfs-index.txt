@@ -105,6 +105,7 @@
 /nop/schema/xdsl.xdef
 /nop/schema/xjson.xdef
 /nop/schema/xlib.xdef
+/nop/schema/xmeta-ext.xdef
 /nop/schema/xmeta.xdef
 /nop/schema/xpl.xdef
 /nop/schema/xt.xdef
@@ -154,7 +155,7 @@
 /nop/templates/meta-delta/@init.xrun
 /nop/templates/meta-delta/src/main/resources/_vfs/_delta/{deltaDir}/gen-meta.xrun
 /nop/templates/meta/@init.xrun
-/nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/_{entityModel.shortName}.xmeta.xgen
+/nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{deltaDir}/_{entityModel.shortName}.xmeta.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/orm-delta/@init.xrun
 /nop/templates/orm-delta/src/main/java/impl.xrun
@@ -196,8 +197,8 @@
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/_module
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/beans/_dao.beans.xml.xgen
-/nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/_app.orm.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/app.orm.xml.xgen
+/nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/{deltaDir}/_app.orm.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/sql/{!!entityModel.tagSet.@mapper}{entityModel.shortName}.sql-lib.xml.xgen
 /nop/templates/orm/{appName}-service/impl.xrun
 /nop/templates/orm/{appName}-service/pom.xml.xgen

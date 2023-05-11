@@ -77,6 +77,17 @@ class BeansDefinition {
     void addBean(BeanDefinition bean) {
         BeanDefinition old = beans.put(bean.getId(), bean);
         if (old != null) {
+            old.setRemoved(true);
+//            if (old.isIocDefault()) {
+//                if (!bean.isIocDefault())
+//                    return;
+//            } else {
+//                if (bean.isIocDefault()) {
+//                    beans.put(old.getId(), old);
+//                    return;
+//                }
+//            }
+
             if (!bean.isIocAllowOverride()) {
                 throw new NopException(ERR_IOC_DUPLICATE_BEAN_DEFINITION).source(bean)
                         .param(ARG_BEAN_NAME, bean.getId()).param(ARG_LOC_A, old.getLocation())
@@ -90,6 +101,7 @@ class BeansDefinition {
     void replaceBean(BeanDefinition bean) {
         BeanDefinition old = beans.put(bean.getId(), bean);
         if (old != null) {
+            old.setRemoved(true);
             LOG.info("nop.bean.replace-bean:id={},locA={},locB={},trace={}", bean.getId(), old.getLocation(),
                     bean.getLocation(), bean.getTrace());
         }

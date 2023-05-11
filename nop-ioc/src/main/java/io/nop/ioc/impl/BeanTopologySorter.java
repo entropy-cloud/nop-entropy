@@ -35,10 +35,14 @@ public class BeanTopologySorter {
 
     public List<BeanDefinition> sort(Map<String, BeanDefinition> beans) {
         // 先按照名称排序
-        beans = new TreeMap<>(beans);
+        TreeMap<String,BeanDefinition> map = new TreeMap<>();
+        for(BeanDefinition bean: beans.values()){
+            // beans中可能存在多个名称指向同一个bean，只保留id
+            map.put(bean.getId(),bean);
+        }
 
         MapOfInt<List<BeanDefinition>> orderMap = new IntHashMap<>();
-        for (BeanDefinition bean : beans.values()) {
+        for (BeanDefinition bean : map.values()) {
             if (bean.isAbstract() || bean.isDisabled())
                 continue;
 

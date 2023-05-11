@@ -182,6 +182,7 @@ public class AutoTestCase extends BaseTestCase {
         if (!BeanContainer.isInitialized())
             return;
 
+        clearLazyActions();
         IBeanContainer container = BeanContainer.instance();
         container.restart();
 

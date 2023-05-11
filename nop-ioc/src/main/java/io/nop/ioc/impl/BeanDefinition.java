@@ -85,6 +85,7 @@ public class BeanDefinition implements IBeanDefinition {
     private Cancellable subscriptionCleanup;
 
     private boolean intercepted;
+    private boolean removed;
 
     private Set<String> nextBeans = Collections.emptySet();
 
@@ -126,6 +127,20 @@ public class BeanDefinition implements IBeanDefinition {
 
     public void setConstructorAutowired(boolean constructorAutowired) {
         this.constructorAutowired = constructorAutowired;
+    }
+
+    public boolean isRemoved(){
+        return removed;
+    }
+
+    public void setRemoved(boolean removed){
+        this.removed = removed;
+    }
+
+    public boolean isIocDefault(){
+        if(beanModel instanceof BeanModel)
+            return ((BeanModel) beanModel).isIocDefault();
+        return false;
     }
 
     public Set<String> getNextBeans() {

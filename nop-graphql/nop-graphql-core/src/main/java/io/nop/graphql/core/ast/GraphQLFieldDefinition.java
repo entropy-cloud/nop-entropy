@@ -10,6 +10,7 @@ package io.nop.graphql.core.ast;
 import io.nop.api.core.annotations.biz.BizMakerCheckerMeta;
 import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.core.context.action.IServiceAction;
+import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.ast._gen._GraphQLFieldDefinition;
@@ -36,12 +37,22 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
 
     private String operationName;
 
+    private IClassModel sourceClassModel;
+
     /**
      * 如果开启maker checker机制，则在执行mutation操作之前，会先尝试执行tryAction。 如果要求审批，则会插入审批记录，并抛出异常，从而中断实际修改动作
      */
     private IServiceAction tryAction;
 
     private BizMakerCheckerMeta makerCheckerMeta;
+
+    public IClassModel getSourceClassModel() {
+        return sourceClassModel;
+    }
+
+    public void setSourceClassModel(IClassModel sourceClassModel) {
+        this.sourceClassModel = sourceClassModel;
+    }
 
     public BizMakerCheckerMeta getMakerCheckerMeta() {
         return makerCheckerMeta;

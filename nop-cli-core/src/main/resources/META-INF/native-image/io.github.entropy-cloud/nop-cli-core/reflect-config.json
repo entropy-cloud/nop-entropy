@@ -2241,6 +2241,13 @@
         ]
       },
       {
+        "name": "addAttrCsvSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "addChild",
         "parameterTypes": [
           "java.lang.String"
@@ -3167,6 +3174,13 @@
       {
         "name": "removeAttr",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeAttrCsvSet",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String"
         ]
       },

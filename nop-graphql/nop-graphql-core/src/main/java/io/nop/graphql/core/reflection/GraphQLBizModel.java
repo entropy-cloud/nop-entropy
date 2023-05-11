@@ -23,8 +23,10 @@ import java.util.Map;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ACTION_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_CLASS;
 import static io.nop.graphql.core.GraphQLErrors.ARG_LOADER_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_METHOD;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OLD_CLASS;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OLD_METHOD;
 import static io.nop.graphql.core.GraphQLErrors.ARG_PATH_A;
 import static io.nop.graphql.core.GraphQLErrors.ARG_PATH_B;
@@ -147,7 +149,9 @@ public class GraphQLBizModel {
 
         throw new NopException(ERR_GRAPHQL_DUPLICATE_ACTION).param(ARG_BIZ_OBJ_NAME, bizObjName)
                 .param(ARG_ACTION_NAME, action).param(ARG_METHOD, field.getFunctionModel())
-                .param(ARG_OLD_METHOD, old.getFunctionModel());
+                .param(ARG_CLASS, field.getSourceClassModel())
+                .param(ARG_OLD_METHOD, old.getFunctionModel())
+                .param(ARG_OLD_CLASS, old.getSourceClassModel());
     }
 
     public void addMutationAction(String action, GraphQLFieldDefinition field) {
@@ -165,7 +169,9 @@ public class GraphQLBizModel {
         }
         throw new NopException(ERR_GRAPHQL_DUPLICATE_ACTION).param(ARG_BIZ_OBJ_NAME, bizObjName)
                 .param(ARG_ACTION_NAME, action).param(ARG_METHOD, field.getFunctionModel())
-                .param(ARG_OLD_METHOD, old.getFunctionModel());
+                .param(ARG_CLASS, field.getSourceClassModel())
+                .param(ARG_OLD_METHOD, old.getFunctionModel())
+                .param(ARG_OLD_CLASS, old.getSourceClassModel());
     }
 
     public void addBizAction(String action, BeanMethodAction fn) {
@@ -182,7 +188,9 @@ public class GraphQLBizModel {
         }
 
         throw new NopException(ERR_GRAPHQL_DUPLICATE_ACTION).param(ARG_BIZ_OBJ_NAME, bizObjName)
-                .param(ARG_ACTION_NAME, action).param(ARG_METHOD, fn).param(ARG_OLD_METHOD, old);
+                .param(ARG_ACTION_NAME, action).param(ARG_METHOD, fn).param(ARG_OLD_METHOD, old)
+                .param(ARG_CLASS, fn.getSourceClassModel())
+                .param(ARG_OLD_CLASS, old.getSourceClassModel());
     }
 
     int comparePriority(GraphQLFieldDefinition old, GraphQLFieldDefinition field) {
@@ -223,7 +231,9 @@ public class GraphQLBizModel {
 
         throw new NopException(ERR_GRAPHQL_DUPLICATED_LOADER).param(ARG_BIZ_OBJ_NAME, bizObjName)
                 .param(ARG_LOADER_NAME, loaderName).param(ARG_METHOD, field.getFunctionModel())
-                .param(ARG_OLD_METHOD, old.getFunctionModel());
+                .param(ARG_OLD_METHOD, old.getFunctionModel())
+                .param(ARG_CLASS, field.getSourceClassModel())
+                .param(ARG_OLD_CLASS, old.getSourceClassModel());
     }
 
     public void merge(GraphQLBizModel bizModel) {

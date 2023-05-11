@@ -33,25 +33,27 @@ public class OverrideHelper {
         d(null, REMOVE, REMOVE);
         d(null, REPLACE, REPLACE);
 
+        // 结果为null表示不允许执行这种合并
+
         // APPEND
         d(REMOVE, APPEND, REPLACE);
         d(REPLACE, APPEND, REPLACE);
         d(APPEND, APPEND, APPEND);
         d(PREPEND, APPEND, MERGE_SUPER);
-        d(MERGE, APPEND, null); // 结果为null表示不允许执行这种合并
+        d(MERGE, APPEND, REPLACE); // 存在问题
         d(MERGE_SUPER, APPEND, MERGE_SUPER);
         d(MERGE_REPLACE, APPEND, MERGE_REPLACE);
-        d(BOUNDED_MERGE, APPEND, null);
+        d(BOUNDED_MERGE, APPEND, REPLACE); // 存在问题
 
         // PREPEND
         d(REMOVE, PREPEND, REPLACE);
         d(REPLACE, PREPEND, REPLACE);
         d(APPEND, PREPEND, MERGE_SUPER);
         d(PREPEND, PREPEND, PREPEND);
-        d(MERGE, PREPEND, null); // 结果为null表示不允许执行这种合并
+        d(MERGE, PREPEND, REPLACE); // 存在问题
         d(MERGE_SUPER, PREPEND, MERGE_SUPER);
         d(MERGE_REPLACE, PREPEND, MERGE_REPLACE);
-        d(BOUNDED_MERGE, PREPEND, null);
+        d(BOUNDED_MERGE, PREPEND, REPLACE); // 存在问题
 
         // MERGE
         d(REMOVE, MERGE, REPLACE);

@@ -62,6 +62,7 @@ public class XDefKeys implements Serializable {
     public final String NAME;
     public final String REF;
     public final String REF_RESOLVED;
+    public final String BASE;
     public final String ALLOW_MULTIPLE;
     public final String MANDATORY;
     public final String VALUE;
@@ -121,6 +122,7 @@ public class XDefKeys implements Serializable {
         NAME = getFullName(ns, "name");
         REF = getFullName(ns, "ref");
         REF_RESOLVED = getFullName(ns, "ref-resolved");
+        BASE = getFullName(ns,"base");
         ALLOW_MULTIPLE = getFullName(ns, "allow-multiple");
         MANDATORY = getFullName(ns, "mandatory");
         VALUE = getFullName(ns, "value");
@@ -150,7 +152,7 @@ public class XDefKeys implements Serializable {
                 UNKNOWN_ATTR, DEFAULT_OVERRIDE, INTERNAL, DEPRECATED);
 
         List<String> rootAttrs = new ArrayList<>(Arrays.asList(VERSION, PARSE_KEEP_COMMENT, PARSE_FOR_HTML,
-                PARSER_CLASS, DEFAULT_EXTENDS, BEAN_PACKAGE, CHECK_NS, PROP_NS));
+                PARSER_CLASS, DEFAULT_EXTENDS, BEAN_PACKAGE, CHECK_NS, PROP_NS, BASE));
         rootAttrs.addAll(ATTR_NAMES);
 
         ROOT_ATTR_NAMES = CollectionHelper.immutableSet(rootAttrs);

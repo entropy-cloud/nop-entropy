@@ -78,6 +78,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import static io.nop.ioc.IocErrors.ARG_BEAN;
@@ -125,7 +126,8 @@ public class BeanDefinitionBuilder {
     private final IClassLoader classLoader;
     private final IBeanClassIntrospection introspection;
 
-    private Map<String, BeanDefinition> beans;
+    private Map<String, BeanDefinition> allBeans;
+    private Map<String, BeanDefinition> uniqueBeans;
     private Map<String, AliasName> aliases;
 
     private final Map<Class<?>, BeanTypeMapping> beanTypeMappings = new HashMap<>();
@@ -141,18 +143,20 @@ public class BeanDefinitionBuilder {
     }
 
     public BeanDefinitionBuilder useBeans(Map<String, BeanDefinition> beans) {
-        this.beans = beans;
+        this.allBeans = beans;
+        this.uniqueBeans = toUniqueMap(beans);
         return this;
     }
 
     public void buildAll(Map<String, BeanDefinition> beans, Map<String, AliasName> aliases) {
-        this.beans = beans;
+        this.allBeans = beans;
+        this.uniqueBeans = toUniqueMap(beans);
         this.aliases = aliases;
 
         initBeanTypes();
         initFactoryBeans();
 
-        for (BeanDefinition bean : beans.values()) {
+        for (BeanDefinition bean : uniqueBeans.values()) {
             if (bean.isAbstract() || bean.isDisabled())
                 continue;
 
@@ -174,8 +178,17 @@ public class BeanDefinitionBuilder {
         }
     }
 
-    private void initBeanTypes() {
+    private Map<String, BeanDefinition> toUniqueMap(Map<String, BeanDefinition> beans) {
+        TreeMap<String, BeanDefinition> map = new TreeMap<>();
         for (BeanDefinition bean : beans.values()) {
+            // beans中可能存在多个名称指向同一个bean，只保留id
+            map.put(bean.getId(), bean);
+        }
+        return map;
+    }
+
+    private void initBeanTypes() {
+        for (BeanDefinition bean : uniqueBeans.values()) {
             if (bean.isAbstract() || bean.isDisabled())
                 continue;
 
@@ -219,7 +232,7 @@ public class BeanDefinitionBuilder {
     }
 
     private void initFactoryBeans() {
-        for (BeanDefinition bean : beans.values()) {
+        for (BeanDefinition bean : uniqueBeans.values()) {
             if (bean.isAbstract() || bean.isDisabled())
                 continue;
 
@@ -232,7 +245,7 @@ public class BeanDefinitionBuilder {
                 throw new NopException(ERR_IOC_FACTORY_BEAN_MUST_BE_USED_WITH_FACTORY_METHOD).source(bean)
                         .param(ARG_BEAN_NAME, bean.getId()).param(ARG_BEAN, bean).param(ARG_FACTORY_BEAN, factoryBean);
 
-            BeanDefinition factoryBeanDef = beans.get(factoryBean);
+            BeanDefinition factoryBeanDef = allBeans.get(factoryBean);
             if (factoryBeanDef == null || factoryBeanDef.isAbstract())
                 throw new NopException(ERR_IOC_UNKNOWN_CONCRETE_BEAN_REF).source(bean).param(ARG_BEAN_REF, factoryBean)
                         .param(ARG_BEAN_NAME, bean.getId()).param(ARG_BEAN, bean);
@@ -296,7 +309,7 @@ public class BeanDefinitionBuilder {
     }
 
     boolean containsBean(String ref) {
-        if (beans.containsKey(ref))
+        if (allBeans.containsKey(ref))
             return true;
         if (parentContainer != null && parentContainer.containsBean(ref))
             return true;
@@ -803,12 +816,12 @@ public class BeanDefinitionBuilder {
             beanType = loadBeanClass(bean, model.getLocation(), type);
         }
 
-        List<BeanDefinition> matched = BeanFinder.collectBeans(beanTypeMappings, annMappings, beans, beanType, annType);
+        List<BeanDefinition> matched = BeanFinder.collectBeans(beanTypeMappings, annMappings, uniqueBeans.values(), beanType, annType);
         Map<String, BeanDefinition> namedMatched = null;
         boolean useNamePrefix = !StringHelper.isEmpty(model.getNamePrefix());
         if (useNamePrefix) {
             namedMatched = new LinkedHashMap<>();
-            for (Map.Entry<String, BeanDefinition> entry : beans.entrySet()) {
+            for (Map.Entry<String, BeanDefinition> entry : allBeans.entrySet()) {
                 if (entry.getKey().startsWith(model.getNamePrefix())) {
                     namedMatched.put(entry.getKey().substring(model.getNamePrefix().length()), entry.getValue());
                 }
@@ -976,7 +989,7 @@ public class BeanDefinitionBuilder {
             }
         }
 
-        BeanDefinition resolvedBean = beans.get(ref);
+        BeanDefinition resolvedBean = allBeans.get(ref);
         if (resolvedBean == null) {
             if (parentContainer != null && parentContainer.containsBean(ref))
                 return new InjectRefValueResolver(ref, optional, ignoreDepends, null);
@@ -999,7 +1012,7 @@ public class BeanDefinitionBuilder {
 
     String resolveBeanByType(BeanDefinition bean, SourceLocation loc, IGenericType beanType, boolean optional,
                              String propName) {
-        BeanTypeMapping mapping = BeanFinder.getBeansByType(beanTypeMappings, beans, beanType.getRawClass());
+        BeanTypeMapping mapping = BeanFinder.getBeansByType(beanTypeMappings, uniqueBeans.values(), beanType.getRawClass());
         if (mapping.isEmpty()) {
             if (parentContainer != null) {
                 String beanId = parentContainer.findAutowireCandidate(beanType.getRawClass());

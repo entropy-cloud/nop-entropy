@@ -98,6 +98,7 @@ public class ReflectionBizModelBuilder {
                     continue;
                 GraphQLFieldDefinition field = buildActionField(bizObjName, bean, GraphQLOperationType.mutation,
                         loc, action, func, registry);
+                field.setSourceClassModel(classModel);
                 field.setOperationName(GraphQLNameHelper.getOperationName(bizObjName, action));
                 if (field.getAuth() == null) {
                     String permission = GraphQLNameHelper.getPermission(bizObjName, action);
@@ -114,6 +115,7 @@ public class ReflectionBizModelBuilder {
                     continue;
                 GraphQLFieldDefinition field = buildActionField(bizObjName, bean, GraphQLOperationType.query,
                         loc, action, func, registry);
+                field.setSourceClassModel(classModel);
                 field.setOperationName(GraphQLNameHelper.getOperationName(bizObjName, action));
                 if (field.getAuth() == null) {
                     String permission = GraphQLNameHelper.getPermission(bizObjName, action);
@@ -129,7 +131,9 @@ public class ReflectionBizModelBuilder {
                 String action = getBizActionName(bizAction, func);
                 if (!isLocalMethod(classModel, func) && !isAllowed(action, disabledActions, inheritActions))
                     continue;
-                ret.addBizAction(action, buildAction(bean, loc, action, func));
+                BeanMethodAction gqlAction = buildAction(bean, loc, action, func);
+                gqlAction.setSourceClassModel(classModel);
+                ret.addBizAction(action, gqlAction);
                 continue;
             }
 
@@ -140,6 +144,7 @@ public class ReflectionBizModelBuilder {
                     continue;
 
                 GraphQLFieldDefinition field = buildFetcherField(bean, loc, name, func, registry);
+                field.setSourceClassModel(classModel);
 
                 IGenericType returnType = func.getReturnType();
                 if (field.getFetcher() instanceof BeanMethodBatchFetcher) {

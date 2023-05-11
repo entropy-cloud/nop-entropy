@@ -1,12 +1,13 @@
 <!--
 在xmeta.xdef的基础上增加了一些扩展字段。明确校验这些扩展字段
 -->
-<meta xdef:base="xmeta.xdef" x:extends="xmeta.xdef" xdef:check-ds="gen,ui,orm,graphql"
+<meta xdef:base="xmeta.xdef" x:extends="xmeta.xdef" xdef:check-ns="gen,ui,orm,graphql"
       xmlns:ui="ui" xmlns:orm="orm" xmlns:graphql="graphql"
+      x:schema="/nop/schema/xdef.xdef"
       xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
 
-    <props>
-        <prop ui:show="string" graphql:type="string" />
-    </props>
+<!--    <props>-->
+<!--        <prop ui:show="string" graphql:type="string" />-->
+<!--    </props>-->
 
 </meta>

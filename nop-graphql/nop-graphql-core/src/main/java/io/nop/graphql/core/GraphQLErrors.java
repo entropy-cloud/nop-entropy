@@ -69,6 +69,7 @@ public interface GraphQLErrors {
     String ARG_BIZ_OBJ_NAME = "bizObjName";
     String ARG_CLASS = "class";
     String ARG_OTHER_CLASS = "otherClass";
+    String ARG_OLD_CLASS = "oldClass";
 
     String ARG_PATH_A = "pathA";
     String ARG_PATH_B = "pathB";

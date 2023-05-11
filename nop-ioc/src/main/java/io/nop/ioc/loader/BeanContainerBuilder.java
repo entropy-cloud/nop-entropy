@@ -216,6 +216,10 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
         }
     }
 
+    /**
+     * 条件构建的bean的id可能和default bean相同，为了最后能融合在一个全局bean配置文件中，自动为default bean的id增加一个前缀。
+     *
+     */
     void normalizeDefaultBean(BeanModel beanModel) {
         if (!beanModel.isIocDefault())
             return;

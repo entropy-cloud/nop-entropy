@@ -85,12 +85,14 @@ class PersistEnvBuilder {
                             .param(ARG_ENTITY_PROP_NAME, colName).param(ARG_PROP_ID, i);
             }
 
-            String name = entity.orm_propName(i);
-            if (name != null && col == null) {
-                throw new OrmException(ERR_ORM_ENTITY_PROP_ID_NOT_MATCH_DEF_IN_MODEL)
-                        .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, null)
-                        .param(ARG_ENTITY_PROP_NAME, name).param(ARG_PROP_ID, i);
-            }
+            // 如果是通过配置删除字段，则返回的name不为null，但是没有具体column对应
+//
+//            String name = entity.orm_propName(i);
+//            if (name != null && col == null) {
+//                throw new OrmException(ERR_ORM_ENTITY_PROP_ID_NOT_MATCH_DEF_IN_MODEL)
+//                        .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, null)
+//                        .param(ARG_ENTITY_PROP_NAME, name).param(ARG_PROP_ID, i);
+//            }
         }
     }
 

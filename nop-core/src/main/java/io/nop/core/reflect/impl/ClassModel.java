@@ -65,6 +65,10 @@ public class ClassModel extends AnnotatedElement implements IClassModel {
         FreezeHelper.freezeItems(declaredStaticFields.values(), true);
     }
 
+    public String toString() {
+        return className;
+    }
+
     public IGenericType getType() {
         return type;
     }

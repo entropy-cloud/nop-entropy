@@ -318,11 +318,25 @@ Nop平台中的所有模型，包括工作流模型、报表模型、规则模�
    <spl:MakeDataSet xpl:lib="/nop/report/spl/spl.xlib" dsName="ds1" src="/nop/report/demo/spl/test-data.splx" />
 </beforeExecute>   
 ```
+> 只需要查看XDef元模型我们就可以很容易的发现哪些节点是Xpl模板配置节点，无需定义或者理解特殊的插件接口。
 
 标签调用既是一种函数调用，又可以看作是一种很容易被解析的XML配置，可以通过补充一个XView模型文件来自动生成beforeExecute段的可视化编辑器。
 如果平台已经提供了模型的可视化设计器，也可以很容易的通过定制设计器所对应的模型文件实现自定义扩展。
 
-> 只需要查看XDef元模型我们就可以很容易的发现哪些节点是Xpl模板配置节点，无需定义或者理解特殊的插件接口。
+另外一种做法是利用XDSL内置的扩展属性配置。Nop平台所有的模型文件都自动支持扩展属性，除了XDef元模型中定义的属性和节点之外，所有带名字空间的属性和节点在缺省情况下都不会参与格式校验，会作为扩展属性被存储（这一机制类似于允许在Java类中增加任意的Annotation注解）。我们引入扩展属性节点来保存配置，然后利用`x:post-extends`元编程机制在编译期解析扩展配置，动态生成beforeExecute段。这种做法不需要在报表模型中内置引入数据源配置这样的概念，也不需要报表引擎在运行时有任何特殊的接口支持，仅仅通过局部的编译期变换即可实现任意外部数据源的集成。
+
+```xml
+<x:post-extends>
+   <xpt-gen:DataSetSupport/> <!-- 负责解析ext:dataSets扩展配置，动态生成代码，追加到beforeExecute段 -->
+</x:post-extends>
+
+<ext:dataSets>
+   <spl name="ds1" src="/nop/report/demo/spl/test-data.splx" />
+</ext:dataSets>
+
+<beforeExecute> 这里还可以写其他初始化代码 </beforeExecute>
+```
+
 
 ## 3.8 编译期的特性开关
 
