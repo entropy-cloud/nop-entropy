@@ -13,6 +13,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.reflect.bean.IBeanPropertyModel;
 import io.nop.core.type.IGenericType;
+import io.nop.ioc.IocConstants;
 import io.nop.ioc.impl.IBeanClassIntrospection;
 import io.nop.ioc.impl.IBeanPropValueResolver;
 import io.nop.ioc.impl.resolvers.BeanValueResolver;
@@ -60,5 +61,11 @@ public class ConfigPropHelper {
         if (configVarName == null)
             configVarName = StringHelper.camelCaseToHyphen(propModel.getName());
         return configPrefix + '.' + configVarName;
+    }
+
+    public static String getNormalizedId(String id) {
+        if (id.startsWith(IocConstants.DEFAULT_ID_PREFIX))
+            return id.substring(IocConstants.DEFAULT_ID_PREFIX.length());
+        return id;
     }
 }

@@ -7,8 +7,6 @@
 
     <primaryKey>i18nKey,i18nLocale</primaryKey>
 
-    <displayProp/>
-
     <x:post-extends>
         <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
     </x:post-extends>

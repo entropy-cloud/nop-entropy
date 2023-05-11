@@ -105,7 +105,14 @@ public class TestJobScheduler {
         }
         assertEquals(count, scheduler.getJobDetail("test").getTriggerState().getExecutionCount());
 
+        assertEquals(TriggerStatus.SCHEDULING, scheduler.getTriggerStatus("test"));
         scheduler.cancelJob("test");
+        if (scheduler.getTriggerStatus("test") != TriggerStatus.CANCELLED) {
+            try {
+                Thread.sleep(200);
+            } catch (Exception e) {
+            }
+        }
         assertEquals(TriggerStatus.CANCELLED, scheduler.getTriggerStatus("test"));
 
         scheduler.deactivate();

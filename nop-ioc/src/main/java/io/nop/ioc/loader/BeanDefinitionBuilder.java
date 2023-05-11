@@ -210,10 +210,7 @@ public class BeanDefinitionBuilder {
         if (types != null && types.contains(IocConstants.CONFIG_BEAN_ID)) {
             types = types.stream().map(type -> {
                 if (IocConstants.CONFIG_BEAN_ID.equals(type)) {
-                    String id = bean.getId();
-                    if (IocConstants.DEFAULT_ID_PREFIX.startsWith(id))
-                        id = id.substring(IocConstants.DEFAULT_ID_PREFIX.length());
-                    return id;
+                    return ConfigPropHelper.getNormalizedId(bean.getId());
                 }
                 return type;
             }).collect(Collectors.toSet());

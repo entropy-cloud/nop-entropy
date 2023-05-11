@@ -7,22 +7,13 @@
  */
 package io.nop.commons.collections;
 
-import io.nop.commons.util.StringHelper;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * 提供Javascript的Array相关函数
  */
-public class ListFunctions {
+public class ListFunctions extends SetFunctions {
     /**
      * forEach(callbackfn: (value: T, index: number, array: readonly T[]) => void, thisArg?: any): void;
      * <p>
@@ -34,92 +25,6 @@ public class ListFunctions {
     // fn.accept(value, i++);
     // }
     // }
-
-    /**
-     * concat(...array: (T || T[])): T[];
-     */
-    public static <T> List<T> concat(Collection<T> list, Object source) {
-        if (source instanceof Collection) {
-            Collection<T> c = (Collection<T>) source;
-            List<T> ret = new ArrayList<>(list.size() + c.size());
-            list.addAll(list);
-            ret.addAll(c);
-            return ret;
-        } else {
-            List<T> ret = new ArrayList<>(list.size() + 1);
-            ret.add((T) source);
-            return ret;
-        }
-    }
-
-    public static <T> List<T> concat(Collection<T> list, Object sourceItem, Object... sources) {
-
-        List<T> ret = new ArrayList<>();
-        ret.addAll(list);
-        if (sourceItem instanceof Collection) {
-            ret.addAll((Collection<T>) sourceItem);
-        } else {
-            ret.add((T) sourceItem);
-        }
-        for (Object source : sources) {
-            if (source instanceof Collection) {
-                ret.addAll((Collection<T>) source);
-            } else {
-                ret.add((T) source);
-            }
-
-        }
-        return ret;
-    }
-
-    /**
-     * every( callbackfn:(value: T) => boolean): boolean
-     */
-    public static <T> boolean every(Iterable<T> list, Predicate<T> fn) {
-        for (T item : list) {
-            if (!fn.test(item))
-                return false;
-        }
-        return true;
-    }
-
-    /**
-     * filter( callbackfn:(value: T) => boolean): T[]
-     */
-    public static <T> List<T> filter(Iterable<T> list, Predicate<T> fn) {
-        List<T> ret = new ArrayList<>();
-        for (T item : list) {
-            if (fn.test(item))
-                ret.add(item);
-        }
-        return ret;
-    }
-
-    // /**
-    // * indexOf(item: T): number
-    // */
-    // public static <T> int indexOf(List<T> list, T item) {
-    // return list.indexOf(item);
-    // }
-    //
-    // /**
-    // * lastIndexOf(item: T): number
-    // */
-    // public static <T> int lastIndexOf(List<T> list, T item) {
-    // return list.lastIndexOf(item);
-    // }
-
-    /**
-     * map(callbackfn:(value: T, index: number) => K): K[]
-     */
-    public static <T, K> List<K> map(Collection<T> list, Function<T, K> fn) {
-
-        List<K> ret = new ArrayList<>(list.size());
-        for (T item : list) {
-            ret.add(fn.apply(item));
-        }
-        return ret;
-    }
 
     /**
      * pop(): T
@@ -142,25 +47,6 @@ public class ListFunctions {
         list.add(item);
         Collections.addAll(list, items);
         return list.size();
-    }
-
-    public static <T> String join(Collection<T> list, String sep) {
-        return StringHelper.join(list, sep);
-    }
-
-    /**
-     * reduce(callbackfn:(item: T , anotherItem: T) => T): T
-     */
-    public static <R, T> R reduce(Collection<T> list, BiFunction<R, T, R> fnc, R initialValue) {
-        if (list == null || list.size() == 0)
-            return initialValue;
-        Iterator<T> it = list.iterator();
-        R ret = initialValue;
-        while (it.hasNext()) {
-            T item = it.next();
-            ret = fnc.apply(ret, item);
-        }
-        return ret;
     }
 
     /**
@@ -216,16 +102,6 @@ public class ListFunctions {
         return new ArrayList<>(list.subList(startIndex, endIndex));
     }
 
-    /**
-     * some( callbackfn:(value: T) => boolean): boolean
-     */
-    public static <T> boolean some(Collection<T> list, Predicate<T> fn) {
-        for (T item : list) {
-            if (fn.test(item))
-                return true;
-        }
-        return false;
-    }
 
     /**
      * sort( callbackfn:(item: T , anotherItem: item) => number): T[]
@@ -272,22 +148,6 @@ public class ListFunctions {
         for (int i = c.size(); i < index; i++) {
             c.add(null);
         }
-    }
-
-    /**
-     * toString(): string
-     */
-    public static String toString(Collection<?> list) {
-        StringBuilder sb = new StringBuilder();
-        Iterator it = list.iterator();
-        while (it.hasNext()) {
-            Object item = it.next();
-            sb.append(item);
-            if (it.hasNext()) {
-                sb.append(",");
-            }
-        }
-        return sb.toString();
     }
 
     /**

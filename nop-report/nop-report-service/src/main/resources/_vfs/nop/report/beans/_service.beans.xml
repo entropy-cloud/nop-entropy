@@ -4,11 +4,11 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.report.service.entity.NopReportDatasetBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.report.service.entity.NopReportDatasetBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.report.service.entity.NopReportDatasetAuthBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.report.service.entity.NopReportDatasetAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.report.service.entity.NopReportDefinitionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.report.service.entity.NopReportDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.report.service.entity.NopReportResultFileBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.report.service.entity.NopReportResultFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

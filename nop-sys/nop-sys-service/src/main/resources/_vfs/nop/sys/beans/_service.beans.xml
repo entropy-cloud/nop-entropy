@@ -4,23 +4,23 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.sys.service.entity.NopSysCodeRuleBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysCodeRuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysDictBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysDictBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysDictOptionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysDictOptionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysExtFieldBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysExtFieldBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysI18nBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysI18nBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysMakerCheckerRecordBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysMakerCheckerRecordBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysNoticeTemplateBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysNoticeTemplateBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysSequenceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysSequenceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysUserVariableBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysUserVariableBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.sys.service.entity.NopSysVariableBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.sys.service.entity.NopSysVariableBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

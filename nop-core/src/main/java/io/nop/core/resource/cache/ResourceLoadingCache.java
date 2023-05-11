@@ -29,16 +29,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_CHECK_CHANGED;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_CACHE_NULL;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_RELOADABLE;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_SIZE;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_NULL;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL;
-import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE;
+import static io.nop.core.CoreConfigs.*;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL;
 
@@ -144,7 +135,11 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
         }
     }
 
-    public boolean checkRefresh(String key, boolean forceRefresh) {
+    public boolean checkRefresh(String key, boolean forceRefresh){
+        return checkRefresh(key, forceRefresh, loader);
+    }
+
+    public boolean checkRefresh(String key, boolean forceRefresh, IResourceObjectLoader<V> loader) {
         ResourceCacheEntry<V> entry = forceRefresh ? cache.get(key) : cache.getIfPresent(key);
         if (entry != null) {
             return entry.checkRefresh(forceRefresh, loader);
@@ -159,7 +154,7 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
         return entry.getDeps();
     }
 
-    public V get(String path) {
+    public V get(String path, IResourceObjectLoader<V> loader) {
         ResourceCacheEntry<V> entry = cache.get(path);
         V value = entry.getObject(checkChanged.get() && entry.isRefreshEnabled(cacheRefreshMinInterval.get()), loader);
         if (value == null && !cacheNull.get()) {
@@ -168,8 +163,16 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
         return value;
     }
 
-    public V require(String path) {
-        V v = get(path);
+    public V get(String path){
+        return get(path, loader);
+    }
+
+    public V require(String path){
+        return require(path, loader);
+    }
+
+    public V require(String path, IResourceObjectLoader<V> loader) {
+        V v = get(path,loader);
         if (v == null)
             throw new NopException(ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL).param(ARG_RESOURCE_PATH, path);
         return v;

@@ -2,6 +2,7 @@
 package io.nop.core.type;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.exceptions.NopScriptError;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.type.StdDataType;
 
@@ -59,7 +60,7 @@ import static io.nop.core.CoreErrors.ERR_TYPE_NOT_PREDEFINED_TYPE;
                "io.nop.api.core.rpc.IRpcService","io.nop.api.core.context.IContext",
                "io.nop.commons.collections.IKeyedList","io.nop.commons.collections.IKeyedElement",
                "io.nop.commons.type.StdDataType",
-               "io.nop.api.core.exceptions.NopException"
+               "io.nop.api.core.exceptions.NopException", "io.nop.api.core.exceptions.NopScriptError"
                ];
 </c:script>
 

@@ -10,16 +10,13 @@ package io.nop.core.resource.component;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.IComponentModel;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.deps.ResourceDependencySet;
 
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.nop.core.CoreErrors.ARG_FILE_TYPE;
-import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
 
 /**
@@ -42,7 +39,7 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
                                           IResourceObjectLoader<? extends IComponentModel> loader, boolean replace);
 
     Runnable registerComponentModelTransformer(String fromModelType, String toModelType,
-                                               IComponentTransformer<?,?> transformer, boolean replace);
+                                               IComponentTransformer<?, ?> transformer, boolean replace);
 
     ComponentModelConfig getModelConfigByModelPath(String path);
 
@@ -50,7 +47,7 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     default ComponentModelLoader requireComponentModelLoader(String fileType) {
         ComponentModelLoader loader = getComponentModelLoader(fileType);
-        if(loader == null)
+        if (loader == null)
             throw new NopException(ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE)
                     .param(ARG_FILE_TYPE, fileType);
         return loader;

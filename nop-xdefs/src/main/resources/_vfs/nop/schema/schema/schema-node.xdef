@@ -12,7 +12,7 @@ schema节点的基类
 -->
 <schema xdef:name="SchemaNodeImpl" xdef:bean-package="io.nop.xlang.xmeta.impl"
         id="~string" name="var-name" displayName="string" type="generic-type"
-        domain="xml-name" stdDomain="xml-name" ref="string" refResolved="~boolean"
+        domain="xml-name" stdDomain="xml-name" ref="xdef-ref" refResolved="~boolean"
         bizObjName="string"
         x:schema="/nop/schema/xdef.xdef"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"

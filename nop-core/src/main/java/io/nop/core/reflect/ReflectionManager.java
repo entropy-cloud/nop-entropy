@@ -21,6 +21,7 @@ import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.collections.ListFunctions;
+import io.nop.commons.collections.SetFunctions;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.CollectionHelper;
@@ -32,12 +33,7 @@ import io.nop.core.reflect.bean.BeanModel;
 import io.nop.core.reflect.bean.BeanPropertyModel;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.reflect.bean.IBeanModelManager;
-import io.nop.core.reflect.converter.ArrayTypeConverter;
-import io.nop.core.reflect.converter.DataBeanTypeConverter;
-import io.nop.core.reflect.converter.EnumTypeConverter;
-import io.nop.core.reflect.converter.FunctionalInterfaceConverter;
-import io.nop.core.reflect.converter.TreeBeanTypeConverter;
-import io.nop.core.reflect.converter.XNodeTypeConverter;
+import io.nop.core.reflect.converter.*;
 import io.nop.core.reflect.enhancer.StringBeanModelEnhancer;
 import io.nop.core.reflect.impl.ClassExtension;
 import io.nop.core.reflect.impl.ClassModelBuilder;
@@ -56,19 +52,12 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static io.nop.core.CoreConfigs.CFG_REFLECT_MODEL_CACHE_SIZE;
-import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
-import static io.nop.core.CoreErrors.ERR_REFLECT_CLASS_MODEL_ALREADY_REGISTERED;
-import static io.nop.core.CoreErrors.ERR_REFLECT_NOT_SUPPORT_ARRAY_CLASS_MODEL;
+import static io.nop.core.CoreErrors.*;
 
 /**
  * 获取反射模型的Facade入口
@@ -81,6 +70,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
 
     static {
         _instance.registerHelperMethods(List.class, ListFunctions.class, null);
+        _instance.registerHelperMethods(Set.class, SetFunctions.class, null);
         _instance.registerHelperMethods(String.class, StringHelper.class, "$");
         _instance.registerHelperMethods(LocalDate.class, DateHelper.class, "$");
         _instance.registerBeanModelEnhancer(new StringBeanModelEnhancer());

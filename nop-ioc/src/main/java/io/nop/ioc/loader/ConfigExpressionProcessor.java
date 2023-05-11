@@ -123,7 +123,7 @@ public class ConfigExpressionProcessor {
                                                          IGenericType expectedType) {
         if (value.startsWith(IocConstants.PREFIX_BEAN)) {
             if (value.equals(IocConstants.CONFIG_BEAN_ID)) {
-                return new FixedValueResolver(bean.getId());
+                return new FixedValueResolver(ConfigPropHelper.getNormalizedId(bean.getId()));
             }
             if (value.equals(IocConstants.CONFIG_BEAN_CONTAINER)) {
                 return BeanContainerValueResolver.INSTANCE;

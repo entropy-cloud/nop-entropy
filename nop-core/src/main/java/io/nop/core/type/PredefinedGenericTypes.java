@@ -2,6 +2,7 @@
 package io.nop.core.type;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.exceptions.NopScriptError;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.type.StdDataType;
 
@@ -431,6 +432,8 @@ public class PredefinedGenericTypes {
     public static final PredefinedRawType STD_DATA_TYPE_TYPE = javaType(io.nop.commons.type.StdDataType.class,"STD_DATA_TYPE_TYPE");
 
     public static final PredefinedRawType NOP_EXCEPTION_TYPE = javaType(io.nop.api.core.exceptions.NopException.class,"NOP_EXCEPTION_TYPE");
+
+    public static final PredefinedRawType NOP_SCRIPT_ERROR_TYPE = javaType(io.nop.api.core.exceptions.NopScriptError.class,"NOP_SCRIPT_ERROR_TYPE");
 
       public static final PredefinedGenericType ARRAY_ANY_TYPE =
           arrayType(ANY_TYPE,java.lang.Object[].class);
@@ -1227,6 +1230,8 @@ public class PredefinedGenericTypes {
             Pair.of(STD_DATA_TYPE_TYPE.getTypeName(), STD_DATA_TYPE_TYPE),
             
             Pair.of(NOP_EXCEPTION_TYPE.getTypeName(), NOP_EXCEPTION_TYPE),
+            
+            Pair.of(NOP_SCRIPT_ERROR_TYPE.getTypeName(), NOP_SCRIPT_ERROR_TYPE),
             
                   Pair.of("Object",ANY_TYPE),
                

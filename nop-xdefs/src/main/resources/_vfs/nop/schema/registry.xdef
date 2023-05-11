@@ -1,7 +1,7 @@
 <registry x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <models xdef:body-type="list" xdef:key-attr="name">
-        <model name="!var-name" xdef:ref="register-model.xdef"/>
+        <model name="!xml-name" xdef:ref="register-model.xdef"/>
     </models>
 
 </registry>

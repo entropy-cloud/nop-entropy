@@ -22,17 +22,10 @@ import io.nop.commons.cache.LocalCache;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.IResourceObjectLoader;
-import io.nop.core.resource.ResourceConstants;
-import io.nop.core.resource.ResourceHelper;
-import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.*;
+import io.nop.core.resource.cache.IObjectChangeDetectable;
 import io.nop.core.resource.cache.ResourceLoadingCache;
-import io.nop.core.resource.deps.DefaultResourceChangeChecker;
-import io.nop.core.resource.deps.IResourceChangeChecker;
-import io.nop.core.resource.deps.IResourceDependsPersister;
-import io.nop.core.resource.deps.ResourceDependencySet;
-import io.nop.core.resource.deps.ResourceDependsManager;
+import io.nop.core.resource.deps.*;
 import io.nop.core.resource.impl.UnknownResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,24 +41,7 @@ import java.util.function.Supplier;
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
 import static io.nop.core.CoreConfigs.CFG_RESOURCE_STORE_ENABLE_TENANT_DELTA;
-import static io.nop.core.CoreErrors.ARG_COMPONENT_PATH;
-import static io.nop.core.CoreErrors.ARG_FILE_TYPE;
-import static io.nop.core.CoreErrors.ARG_FROM_MODEL_TYPE;
-import static io.nop.core.CoreErrors.ARG_MODEL_TYPE;
-import static io.nop.core.CoreErrors.ARG_MODEL_TYPE2;
-import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
-import static io.nop.core.CoreErrors.ARG_TO_MODEL_TYPE;
-import static io.nop.core.CoreErrors.ARG_TRANSFORM;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_INVALID_MODEL_PATH;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_FILE_TYPE_CONFLICT;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_MODEL_TRANSFORMER_ALREADY_EXISTS;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_COMPOSITE_COMPONENT;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_NO_COMPONENT_GENERATOR;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_NO_GEN_PATH_STRATEGY;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE;
-import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
+import static io.nop.core.CoreErrors.*;
 
 @GlobalInstance
 public class ResourceComponentManager implements IResourceComponentManager, IConfigRefreshable {
@@ -384,9 +360,9 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
         ComponentCacheEntry entry = cache.require(resourcePath);
         if (StringHelper.isEmpty(transform) || modelType.equals(transform))
-            return entry.model;
+            return (IComponentModel) entry.model;
 
-        return entry.transformed.computeIfAbsent(transform, k -> transformer.transform(entry.model));
+        return entry.transformed.computeIfAbsent(transform, k -> transformer.transform((IComponentModel) entry.model));
     }
 
     private IComponentTransformer getTransformer(String modelType, String transform) {
@@ -424,12 +400,19 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     public IComponentModel loadComponentModel(String resourcePath) {
         String modelType = findModelTypeFromPath(resourcePath);
         ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
-        return cache.require(resourcePath).model;
+        return (IComponentModel) cache.require(resourcePath).model;
     }
 
-    static class ComponentCacheEntry {
-        IComponentModel model;
+    static class ComponentCacheEntry implements IObjectChangeDetectable {
+        Object model;
         Map<String, IComponentModel> transformed = new ConcurrentHashMap<>();
+
+        @Override
+        public boolean isObjectChanged() {
+            if (model instanceof IObjectChangeDetectable)
+                return ((IObjectChangeDetectable) model).isObjectChanged();
+            return false;
+        }
     }
 
     private boolean useTenantCache() {
@@ -640,5 +623,18 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     public String dumpDependsSet(ResourceDependencySet deps) {
         String info = dependsManager.dumpDependsSet(deps);
         return info;
+    }
+
+    @Override
+    public <T> T runWhenDependsChanged(String path, Supplier<T> loader) {
+        String modelType = "__runWithCache__";
+        ResourceLoadingCache<ComponentCacheEntry> cache = getModelCache(modelType);
+        ComponentCacheEntry result = cache.get(path, p -> {
+            T value = loader.get();
+            ComponentCacheEntry entry = new ComponentCacheEntry();
+            entry.model = value;
+            return entry;
+        });
+        return (T) result.model;
     }
 }

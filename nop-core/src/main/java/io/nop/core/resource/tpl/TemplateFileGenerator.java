@@ -245,7 +245,7 @@ public class TemplateFileGenerator {
             }
 
             if (dependencyManager != null) {
-                dependencyManager.collectDepends(targetFile.getPath(), () -> {
+                dependencyManager.runWhenDependsChanged(targetFile.getPath(), () -> {
                     dependencyManager.traceDepends(resource.getPath());
                     renderTemplate(resource, targetFile, scope);
                     return null;

@@ -53,21 +53,11 @@ import io.nop.xlang.xmeta.layout.LayoutModel;
 import io.nop.xlang.xmeta.layout.parse.LayoutModelParser;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static io.nop.core.type.PredefinedGenericTypes.I_GENERIC_TYPE_TYPE;
 import static io.nop.core.type.PredefinedGenericTypes.X_NODE_TYPE;
-import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
-import static io.nop.xlang.XLangErrors.ARG_ITEM_VALUE;
-import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
-import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
-import static io.nop.xlang.XLangErrors.ARG_VALUE;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP;
+import static io.nop.xlang.XLangErrors.*;
 
 public class SimpleStdDomainHandlers {
     public static class VPathType extends StringStdDomainHandler {
@@ -79,6 +69,27 @@ public class SimpleStdDomainHandlers {
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             String text = value.toString();
+            if (!StringHelper.isValidVPath(text))
+                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
+                        .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text).param(ARG_PROP_NAME, propName);
+
+            String resourcePath = loc.getPath();
+            return StringHelper.absolutePath(resourcePath, text);
+        }
+    }
+
+    public static class XDefRefType extends StringStdDomainHandler {
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_XDEF_REF;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+                                XLangCompileTool cp) {
+            String text = value.toString();
+            if (text.indexOf('.') < 0 || text.startsWith("/") || text.startsWith("@"))
+                return text;
+
             if (!StringHelper.isValidVPath(text))
                 throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
                         .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text).param(ARG_PROP_NAME, propName);

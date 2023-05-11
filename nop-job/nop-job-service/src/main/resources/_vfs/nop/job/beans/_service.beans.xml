@@ -4,5 +4,5 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.job.service.entity.NopJobPlanBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.job.service.entity.NopJobPlanBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

@@ -4,15 +4,15 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.rule.service.entity.NopRuleDefinitionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.rule.service.entity.NopRuleDefinitionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.rule.service.entity.NopRuleInputBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.rule.service.entity.NopRuleInputBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.rule.service.entity.NopRuleLogBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.rule.service.entity.NopRuleLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.rule.service.entity.NopRuleNodeBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.rule.service.entity.NopRuleNodeBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.rule.service.entity.NopRuleOutputBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.rule.service.entity.NopRuleOutputBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.rule.service.entity.NopRuleRoleBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.rule.service.entity.NopRuleRoleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

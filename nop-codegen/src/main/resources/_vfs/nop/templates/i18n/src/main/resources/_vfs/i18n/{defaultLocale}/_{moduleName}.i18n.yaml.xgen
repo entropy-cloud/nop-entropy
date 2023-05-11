@@ -22,6 +22,6 @@
     }
 </c:script>
 
-<c:unit>${JsonTool.toYaml(root)}</c:unit>
+<c:unit>${JsonTool.serializeToYaml(root)}</c:unit>
 
 </c:unit>

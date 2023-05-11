@@ -4,31 +4,31 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.auth.service.entity.NopAuthDeptBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthDeptBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthExtLoginBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthExtLoginBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthOpLogBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthOpLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthPositionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthPositionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthResourceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthResourceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthRoleBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthRoleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthRoleDataAuthBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthRoleDataAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthRoleResourceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthSessionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthSessionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthSiteBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthSiteBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthTenantBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthTenantBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthUserBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthUserBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthUserRoleBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthUserRoleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.auth.service.entity.NopAuthUserSubstitutionBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>

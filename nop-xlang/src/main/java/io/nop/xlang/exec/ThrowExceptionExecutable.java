@@ -13,9 +13,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
 
-import static io.nop.xlang.XLangErrors.ARG_VALUE;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_THROW_EXCEPTION;
-import static io.nop.xlang.XLangErrors.ERR_EXEC_THROW_NULL_EXCEPTION;
+import static io.nop.xlang.XLangErrors.*;
 
 public class ThrowExceptionExecutable extends AbstractExecutable {
     private final IExecutableExpression expr;
@@ -37,7 +35,10 @@ public class ThrowExceptionExecutable extends AbstractExecutable {
         if (value == null)
             throw newError(ERR_EXEC_THROW_NULL_EXCEPTION);
         if (value instanceof NopException) {
-            throw (NopException) value;
+            NopException e = (NopException) value;
+            if (e.getErrorLocation() == null)
+                e.loc(getLocation());
+            throw e;
         } else if (value instanceof Throwable) {
             throw newError(ERR_EXEC_THROW_EXCEPTION, (Throwable) value).forWrap();
         }

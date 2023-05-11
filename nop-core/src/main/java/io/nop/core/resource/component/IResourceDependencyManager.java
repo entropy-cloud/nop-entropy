@@ -33,4 +33,6 @@ public interface IResourceDependencyManager {
      * @param depResourcePath 被依赖的文件
      */
     void traceDepends(String depResourcePath);
+
+    <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task);
 }

@@ -4,11 +4,11 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="io.nop.batch.service.entity.NopBatchFileBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.batch.service.entity.NopBatchFileBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.batch.service.entity.NopBatchRecordResultBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.batch.service.entity.NopBatchRecordResultBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.batch.service.entity.NopBatchTaskBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.batch.service.entity.NopBatchTaskBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.batch.service.entity.NopBatchTaskStateBizModel" ioc:type="@bean:id" ioc:tags="impl"/>
+    <bean id="io.nop.batch.service.entity.NopBatchTaskStateBizModel" ioc:type="@bean:id" ioc:default="true"/>
 </beans>
