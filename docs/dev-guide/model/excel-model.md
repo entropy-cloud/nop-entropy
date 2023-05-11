@@ -19,7 +19,7 @@ imp导入规范对于Excel格式的要求相对比较灵活，并不依赖于字
 * maven.version	： 主工程以及所有子模块的版本号
 * platformVersion: Nop平台的版本号
 * dialect: 生成对应数据库的建表语句，可以是逗号分隔的多个名称，例如 mysql,oracle,postgresql	
-
+* delta: 仅在差量化数据模型中使用，用于指定生成到哪个delta定制目录下
 
 # 数据域
 数据域(domain)的概念类似于PowerDesigner设计工具中的domain概念，它可以为反复出现的、具有一定业务含义的字段定义提供一个可以被复用的名称。
@@ -72,6 +72,7 @@ Nop平台内置的表名都具有前缀`nop_`。
 * kv-table: 标记当前实体需要实现IOrmKeyValueTable接口。这个接口要求表中必须具有fieldName,fieldType, stringValue等字段，具体参考nop_sys_ext_field表的字段设计。
 * use-ext-field: 为当前实体增加扩展字段支持，将扩展字段值以数据行的形式保存到nop_sys_ext_field表中。关于扩展字段详细介绍参见[ext-field.md](../orm/ext-field.md)
 * many-to-many: 标注是多对多关联的中间表，根据此标签会在Java实体上生成多个帮助函数，用于自动处理多对多关联。参见[many-to-many.md](../orm/many-to-many.md)
+* not-gen: 表示是其他模型中定义的表，当本模型生成代码的时候不需要针对此表生成实体定义
 
 ## 字段标签
 * seq： 利用SequenceGenerator来自动生成主键。缺省使用nop_sys_sequence表来记录sequence。
@@ -81,6 +82,8 @@ Nop平台内置的表名都具有前缀`nop_`。
 * masked： 表示打印到log中时需要掩码
 * not-pub： 表示不会返回到前台。
 * sort： 表示列表的缺省排序字段, sort-desc表示缺省按照此字段的降序排序。生成meta的时候对应于orderBy段。
+* not-gen: 仅在差量化模型中使用，表示会从基类中继承字段定义，不会为此字段生成Java属性
+* del: 仅在差量化模型中使用，表示在ORM模型中删除字段定义，从而访问数据库时不会使用此字段，生成的建表语句也不包含此字段。
 
 ## 字段显示
 代码生成的时候会在view.xml页面结构文件中自动生成列表和表单布局定义。列表缺省按照模型中的字段顺序显示。表单布局如果字段个数超过10个，则按照两列显示，否则按照一列显示。

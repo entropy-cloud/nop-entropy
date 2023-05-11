@@ -17,7 +17,7 @@ public class InternalTagCompilers {
 
     static {
         registerTagCompiler("c:break", BreakTagCompiler.INSTANCE);
-        registerTagCompiler("c:check", CheckTagCompiler.INSTANCE);
+        registerTagCompiler("c:predicate", PredicateTagCompiler.INSTANCE);
         registerTagCompiler("c:choose", ChooseTagCompiler.INSTANCE);
         registerTagCompiler("c:collect", CollectTagCompiler.INSTANCE);
         registerTagCompiler("c:continue", ContinueTagCompiler.INSTANCE);

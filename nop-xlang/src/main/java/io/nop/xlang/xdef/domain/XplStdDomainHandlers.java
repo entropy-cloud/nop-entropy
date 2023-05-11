@@ -26,13 +26,15 @@ import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.api.source.IWithSourceCode;
+import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
-import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.xdsl.XDslConstants;
+import io.nop.xlang.xpl.tags.FilterBeanExpressionCompiler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +105,7 @@ public class XplStdDomainHandlers {
                 XLangOutputMode oldMode = cp.getOutputMode();
                 cp.outputMode(outputMode);
                 try {
-                    return cp.compileTagBody(node, outputMode);
+                    return doCompileBody(cp, node, outputMode);
                 } catch (Exception e) {
                     throw newBodyError(node).cause(e);
                 } finally {
@@ -126,6 +128,10 @@ public class XplStdDomainHandlers {
                     cp.outputMode(oldMode);
                 }
             }
+        }
+
+        protected ExprEvalAction doCompileBody(XLangCompileTool cp, XNode node, XLangOutputMode outputMode) {
+            return cp.compileTagBody(node, outputMode);
         }
 
         @Override
@@ -248,10 +254,27 @@ public class XplStdDomainHandlers {
         }
     }
 
+    public static class XplPredicateType extends XplType {
+        public XplPredicateType() {
+            super(XDefConstants.STD_DOMAIN_XPL_PREDICATE, PredefinedGenericTypes.I_EVAL_PREDICATE_TYPE, XLangOutputMode.none);
+        }
+
+        @Override
+        public String getXDefPath() {
+            return XLangConstants.XDSL_SCHEMA_QUERY_FILTER;
+        }
+
+        @Override
+        public ExprEvalAction doCompileBody(XLangCompileTool cp, XNode node, XLangOutputMode outputMode) {
+            cp.outputMode(outputMode);
+            Expression expr = new FilterBeanExpressionCompiler(cp).compilePredicate(node);
+            return cp.buildEvalAction(expr);
+        }
+    }
+
     public static IStdDomainHandler XPL_TYPE = new XplNoneType();
 
-    public static IStdDomainHandler XPL_PREDICATE_TYPE = new XplType(XDefConstants.STD_DOMAIN_XPL_PREDICATE,
-            PredefinedGenericTypes.I_EVAL_PREDICATE_TYPE, XLangOutputMode.none);
+    public static IStdDomainHandler XPL_PREDICATE_TYPE = new XplPredicateType();
 
     public static IStdDomainHandler XPL_XML_TYPE = new XplType(XDefConstants.STD_DOMAIN_XPL_XML,
             PredefinedGenericTypes.I_TEXT_TEMPLATE_OUTPUT_TYPE, XLangOutputMode.xml);

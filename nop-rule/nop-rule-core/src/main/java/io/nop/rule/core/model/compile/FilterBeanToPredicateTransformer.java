@@ -1,6 +1,7 @@
 package io.nop.rule.core.model.compile;
 
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalPredicate;

@@ -35,6 +35,7 @@ import static io.nop.core.CoreErrors.ARG_VALUE;
 import static io.nop.core.CoreErrors.ERR_FILTER_INVALID_VALUE_FORMAT;
 import static io.nop.core.CoreErrors.ERR_FILTER_NO_NAME_ARG;
 import static io.nop.core.CoreErrors.ERR_FILTER_OP_IS_NULL;
+import static io.nop.core.CoreErrors.ERR_FILTER_OP_NOT_ALLOW_CONTENT;
 import static io.nop.core.CoreErrors.ERR_FILTER_UNKNOWN_OP;
 
 public class FilterBeanVisitor<T> {
@@ -60,6 +61,7 @@ public class FilterBeanVisitor<T> {
 
         switch (filterOp.getType()) {
             case GROUP_OP:
+                checkNotAllowContent(filter);
                 if (filterOp == FilterOp.AND)
                     return visitAnd(filter, scope);
                 if (filterOp == FilterOp.OR)
@@ -68,19 +70,32 @@ public class FilterBeanVisitor<T> {
                     return visitNot(filter, scope);
                 // 不应该执行到这里，
                 return visitUnknown(op, filter, scope);
-            case ASSERT_OP:
+            case ASSERT_OP: {
+                checkNotAllowContent(filter);
                 return visitAssertOp(filterOp, filter, scope);
-            case COMPARE_OP:
+            }
+            case COMPARE_OP: {
+                checkNotAllowContent(filter);
                 return visitCompareOp(filterOp, filter, scope);
-            case BETWEEN_OP:
+            }
+            case BETWEEN_OP: {
+                checkNotAllowContent(filter);
                 return visitBetweenOp(filterOp, filter, scope);
-            case FIXED_VALUE:
+            }
+            case FIXED_VALUE: {
+                checkNotAllowContent(filter);
                 return visitFixedValue(filterOp, filter, scope);
+            }
             case OTHER:
                 return visitOther(filterOp, filter, scope);
             default:
                 return visitUnknown(op, filter, scope);
         }
+    }
+
+    protected void checkNotAllowContent(ITreeBean filter) {
+        if (filter.getContentValue() != null)
+            throw new NopException(ERR_FILTER_OP_NOT_ALLOW_CONTENT).source(filter);
     }
 
     protected FilterOp getFilterOp(String op) {
@@ -160,7 +175,7 @@ public class FilterBeanVisitor<T> {
     }
 
     protected String getName(ITreeBean filter) {
-        String name = ConvertHelper.toString(filter.getAttr(FILTER_ATTR_NAME));
+        String name = getNameAttr(filter, FILTER_ATTR_NAME);
         if (StringHelper.isEmpty(name))
             throw new NopException(ERR_FILTER_NO_NAME_ARG).param(ARG_OP, filter.getTagName()).source(filter);
         return name;
@@ -199,12 +214,15 @@ public class FilterBeanVisitor<T> {
     }
 
     protected String getMinName(ITreeBean filter) {
-        String name = ConvertHelper.toString(filter.getAttr(FILTER_ATTR_MIN_NAME));
-        return StringHelper.emptyAsNull(name);
+        return getNameAttr(filter, FILTER_ATTR_MIN_NAME);
     }
 
     protected String getMaxName(ITreeBean filter) {
-        String name = ConvertHelper.toString(filter.getAttr(FILTER_ATTR_MAX_NAME));
+        return getNameAttr(filter, FILTER_ATTR_MAX_NAME);
+    }
+
+    protected String getNameAttr(ITreeBean filter, String attrName) {
+        String name = ConvertHelper.toString(filter.getAttr(attrName));
         return StringHelper.emptyAsNull(name);
     }
 
@@ -217,8 +235,7 @@ public class FilterBeanVisitor<T> {
     }
 
     protected String getValueName(ITreeBean filter) {
-        String name = ConvertHelper.toString(filter.getAttr(FILTER_ATTR_VALUE_NAME));
-        return StringHelper.emptyAsNull(name);
+        return getNameAttr(filter, FILTER_ATTR_VALUE_NAME);
     }
 
     protected String getOwner(ITreeBean filter, String defaultOwner) {

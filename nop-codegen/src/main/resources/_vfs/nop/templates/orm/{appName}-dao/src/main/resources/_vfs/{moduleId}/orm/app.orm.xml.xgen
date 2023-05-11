@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <orm x:schema="/nop/schema/orm/orm.xdef"
-     x:extends="${deltaDir? 'super' : '_app.orm.xml'}"
+     x:extends="${deltaDir? 'super,' + deltaDir+'/' : ''}_app.orm.xml"
      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="/nop/schema/xpl.xdef">
 
     <entities>

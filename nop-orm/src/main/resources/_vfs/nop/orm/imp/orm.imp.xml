@@ -150,7 +150,7 @@
                     if(record.tagSet?.contains('kv-table'))
                         record.kvTable = true;
 
-                    if(record.tagSet?.contains('not-gen'))
+                    if(record.tagSet?.contains('not-gen') || record.tagSet?.contains('del'))
                         record.notGenCode = true;
 
                     record.columns.forEach(col=>{

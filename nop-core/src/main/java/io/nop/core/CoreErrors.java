@@ -705,6 +705,9 @@ public interface CoreErrors {
 
     ErrorCode ERR_FILTER_OP_IS_NULL = define("nop.err.core.filter.op-is-null", "判断条件没有指定类型");
 
+    ErrorCode ERR_FILTER_OP_NOT_ALLOW_CONTENT = define("nop.err.core.filter.op-not-allow-content",
+            "判断节点只允许包含子节点，不允许文本内容");
+
     ErrorCode ERR_FILTER_UNKNOWN_OP = define("nop.err.core.filter.unknown-op", "不支持的判断条件类型:{op}", ARG_OP);
 
     ErrorCode ERR_FILTER_NO_NAME_ARG = define("nop.err.core.filter.no-name-arg", "类型为[{op}]的判断条件没有指定变量名参数", ARG_OP);

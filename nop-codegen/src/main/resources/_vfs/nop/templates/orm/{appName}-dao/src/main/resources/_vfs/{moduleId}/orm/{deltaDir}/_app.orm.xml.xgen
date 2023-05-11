@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<c:unit xpl:outputMode="text">
+    <c:import from="/nop/codegen/xlib/gen.xlib"/>
+
+    <gen:DslModelToXNode model="${ormModel}" defaultXdefPath="/nop/schema/orm/orm.xdef" xpl:return="ormNode"/>
+    <c:script><![CDATA[
+ormNode.removeAttr('ext:extends');
+ormNode.setAttr('xmlns:i18n-en','i18n-en');
+ormNode.setAttr('xmlns:ref-i18n-en','ref-i18n-en');
+ormNode.setAttr('xmlns:ext','ext');
+ormNode.setAttr('xmlns:orm-gen','orm-gen');
+ormNode.setAttr('xmlns:xpl','xpl');
+ormNode.prepend(`<x:post-extends x:override="replace"><orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib" /></x:post-extends>`);
+ormNode.childByTag('entities').children.forEach(entity=>{
+  entity.childByTag('columns').children.forEach(col=>{
+     if(col.attrCsvSet('tagSet')?.contains('del')){
+        col.removeAttr('propId');
+        col.setAttr('x:override','remove');
+     }
+  });
+});
+
+]]></c:script>${ormNode.outerXml(false,false)}
+</c:unit>

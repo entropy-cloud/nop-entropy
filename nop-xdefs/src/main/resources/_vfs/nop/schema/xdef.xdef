@@ -15,6 +15,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
   缺省情况下是作为扩展属性存在，并不会生成对应的java属性。
   如果名字空间在prop-ns范围之内，则会把字符:替换为-之后，再经过camelCase变换作为java对象的属性名。
 @xdef:transform 完成x:extends合并操作之后，如果配置了xdef:transform则按照xdef:transform指定的规则变换到新的schema格式下。
+@xdef:base 本文件所对应的基础约束，用于识别当前xdef文件是否从某个基础元模型衍生得到
 -->
 <meta:unknown-tag x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
                   xmlns:meta="/nop/schema/xdef.xdef" meta:check-ns="xdef"
@@ -27,7 +28,8 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
                   xdef:parse-for-html="boolean" xdef:parse-keep-comment="boolean"
                   xdef:bean-package="string"
                   xdef:parser-class="class-name"
-                  xdef:check-ns="csv-set" xdef:prop-ns="csv-set"
+                  xdef:check-ns="word-set" xdef:prop-ns="word-set"
+                  xdef:base="v-path"
                   xmlns:xdef="xdef">
     <!--
     @xdef:name 将本节点注册为xdef片段，其他节点可以通过xdef:ref来引用该片段。一般对应于Java类名，会根据它和根节点上的xdef:bean-package设置

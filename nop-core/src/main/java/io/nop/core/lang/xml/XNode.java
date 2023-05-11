@@ -20,6 +20,7 @@ import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.functional.IEqualsChecker;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -58,6 +59,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -496,6 +498,36 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     public Set<String> attrCsvSet(String name) {
         Set<String> value = ConvertHelper.toCsvSet(getAttr(name), err -> newAttrError(err, name));
         return value;
+    }
+
+    public void addAttrCsvSet(String attrName, String newSet) {
+        if (StringHelper.isEmpty(newSet))
+            return;
+
+        Set<String> set = attrCsvSet(attrName);
+        if (set == null || set.isEmpty()) {
+            setAttr(attrName, newSet);
+        } else {
+            set = CollectionHelper.mergeSet(set, ConvertHelper.toCsvSet(newSet));
+            setAttr(attrName, StringHelper.join(set, ","));
+        }
+    }
+
+    public void removeAttrCsvSet(String attrName, String set) {
+        if (StringHelper.isEmpty(set))
+            return;
+
+        Set<String> curSet = attrCsvSet(attrName);
+        if (curSet == null || curSet.isEmpty())
+            return;
+
+        Set<String> newSet = ConvertHelper.toCsvSet(set);
+        if (newSet == null || newSet.isEmpty())
+            return;
+
+        Set<String> result = new LinkedHashSet<>(curSet);
+        result.removeAll(newSet);
+        setAttr(attrName, StringHelper.join(result, ","));
     }
 
     public Set<String> requireAttrCsvSet(String name) {

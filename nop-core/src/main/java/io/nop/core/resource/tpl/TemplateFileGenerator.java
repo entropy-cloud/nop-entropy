@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -61,6 +63,8 @@ public class TemplateFileGenerator {
     protected IResourceDependencyManager dependencyManager;
 
     private boolean forceOverride;
+
+    private Map<String, Boolean> tplForceOverrides = new ConcurrentHashMap<>();
 
     public TemplateFileGenerator(ITemplateLoader loader, String tplRootPath, String targetRootPath) {
         this.loader = loader;
@@ -122,7 +126,7 @@ public class TemplateFileGenerator {
     }
 
     public void executeWithLoop(String tplPath, INestedLoop loop, IEvalScope scope) {
-        Guard.notNull(loop,"loop");
+        Guard.notNull(loop, "loop");
 
         // 找到根目录
         IResource resource = getTplResource("");
@@ -271,7 +275,7 @@ public class TemplateFileGenerator {
         if (resource.getName().endsWith(XRUN_FILE_SUFFIX)) {
             // xrun文件表示忽略其直接输出内容
             ITemplateOutput tpl = loader.getTemplate(resource);
-            if(tpl != null) {
+            if (tpl != null) {
                 try {
                     tpl.generateToStream(new DiscardOutputStream(), scope);
                 } catch (IOException e) {
@@ -306,7 +310,7 @@ public class TemplateFileGenerator {
                 }
             }
         } else {
-            if(tpl != null) {
+            if (tpl != null) {
                 try {
                     tpl.generateToResource(targetFile, scope);
                 } catch (Exception e) {
@@ -446,8 +450,15 @@ public class TemplateFileGenerator {
             if (targetText.indexOf(XGEN_MARK_FORCE_OVERRIDE) >= 0)
                 return true;
 
-            String srcText = readTextHeader(tplFile);
-            if (srcText.indexOf(XGEN_MARK_TPL_FORCE_OVERRIDE) >= 0)
+            // 模板本身可以指定需要强制覆盖
+            boolean tplOverride = tplForceOverrides.computeIfAbsent(tplFile.getPath(), p -> {
+                String srcText = readTextHeader(tplFile);
+                if (srcText.indexOf(XGEN_MARK_TPL_FORCE_OVERRIDE) >= 0)
+                    return true;
+                return false;
+            });
+
+            if (tplOverride)
                 return true;
         }
 

@@ -13,11 +13,11 @@ import io.nop.xlang.ast.Expression;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTagCompiler;
 
-public class CheckTagCompiler implements IXplTagCompiler {
-    public static final CheckTagCompiler INSTANCE = new CheckTagCompiler();
+public class PredicateTagCompiler implements IXplTagCompiler {
+    public static final PredicateTagCompiler INSTANCE = new PredicateTagCompiler();
 
     @Override
     public Expression parseTag(XNode node, IXplCompiler cp, IXLangCompileScope scope) {
-        return null;
+        return new FilterBeanExpressionCompiler(cp, scope).compilePredicate(node);
     }
 }
