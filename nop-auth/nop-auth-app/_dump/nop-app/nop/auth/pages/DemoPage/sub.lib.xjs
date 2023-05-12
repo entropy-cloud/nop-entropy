@@ -1,3 +1,0 @@
-export function myAction(options, page){
-page.env.alert("in sub lib");
-}

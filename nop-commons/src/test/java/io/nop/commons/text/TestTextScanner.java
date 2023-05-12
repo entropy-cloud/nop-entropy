@@ -99,4 +99,11 @@ public class TestTextScanner {
         line = sc.nextLine().toString();
         assertEquals("123", line);
     }
+
+    @Test
+    public void testConfigVar(){
+        String text = "nop.test.a-b and x";
+        TextScanner sc = TextScanner.fromString(null,text);
+        assertEquals("nop.test.a-b",sc.nextConfigVar());
+    }
 }

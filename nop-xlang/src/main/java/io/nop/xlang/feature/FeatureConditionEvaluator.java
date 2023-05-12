@@ -68,6 +68,8 @@ public class FeatureConditionEvaluator implements IPredicateEvaluator {
 
         @Override
         protected Object newLiteralExpr(SourceLocation loc, Object value) {
+            if(value == null)
+                value = "";
             return value;
         }
 
@@ -78,8 +80,9 @@ public class FeatureConditionEvaluator implements IPredicateEvaluator {
 
         @Override
         protected Object tokenExpr(TextScanner sc) {
-            String name = sc.nextJavaPropPath();
-            return AppConfig.var(name);
+            String name = sc.nextConfigVar();
+            // 作为表达式返回，因此不能为null
+            return AppConfig.var(name,"");
         }
     }
 }

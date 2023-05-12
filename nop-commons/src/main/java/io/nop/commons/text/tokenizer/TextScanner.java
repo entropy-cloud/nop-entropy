@@ -683,7 +683,7 @@ public class TextScanner {
                 if (state == 1)
                     throw newError(ERR_SCAN_INVALID_PROP_PATH).param(ARG_VALUE, buf.toString());
                 state = 1;
-            }else{
+            } else {
                 state = 0;
             }
         }
@@ -698,16 +698,18 @@ public class TextScanner {
         MutableString buf = useBuf();
 
         if (!StringHelper.isJavaIdentifierStart(cur)) {
-            consumeToBuf(buf);
             throw newError(ERR_SCAN_INVALID_PROP_PATH).param(ARG_VALUE, buf.toString());
         }
 
+        consumeToBuf(buf);
         int state = 0;
         while (StringHelper.isJavaIdentifierPart(cur) || cur == '.' || cur == '-') {
             consumeToBuf(buf);
-            if (cur == '.') {
+            if (cur == '.' || cur == '-') {
                 if (state == 1)
                     throw newError(ERR_SCAN_INVALID_PROP_PATH).param(ARG_VALUE, buf.toString());
+                state = 1;
+            } else {
                 state = 0;
             }
         }
@@ -772,7 +774,6 @@ public class TextScanner {
                 if (state == 1)
                     throw newError(ERR_SCAN_NOT_ALLOW_TWO_SEPARATOR_IN_XML_NAME).param(ARG_VALUE, buf.toString());
                 state = 1;
-                continue;
             } else {
                 state = 0;
             }

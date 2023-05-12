@@ -187,7 +187,7 @@ public interface XLangErrors {
 
     ErrorCode ERR_EXPR_UNEXPECTED_CHAR = define("nop.err.xlang.expr.unexpected-char", "非法的字符");
 
-    ErrorCode ERR_EXPR_UNARY_OP_NO_EXPR = define("nop.err.xlang.expr.unary-op-no-expr", "运算符[op]后没有合法的表达式", ARG_OP);
+    ErrorCode ERR_EXPR_UNARY_OP_NO_EXPR = define("nop.err.xlang.expr.unary-op-no-expr", "运算符[{op}]后没有合法的表达式", ARG_OP);
 
     ErrorCode ERR_EXPR_JSON_LITERAL_NOT_ALLOW_PROP_ACCESS = define(
             "nop.err.xlang.expr.json-literal-not-allow-prop-access", "JSON字面量不允许直接直接访问属性");
