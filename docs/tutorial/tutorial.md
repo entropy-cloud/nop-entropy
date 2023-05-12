@@ -174,7 +174,6 @@ app-mall-app使用内置的H2内存数据库启动，并且启动的时候会自
 
 菜单结构采用jeecgboot项目的设计，顶层菜单配置resourceType=TOPM，component=layouts/default/index，而具体页面配置resourceType=SUBM，component=AMIS，url配置为页面文件的虚拟路径。
 
-> 目前后台引擎已经支持操作权限和数据权限的配置，但是具体权限验证接口尚未完全实现。
 
 ## 四. 完善后端服务
 

@@ -23,13 +23,10 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
     public XlsxObjectLoader(String impModelPath) {
         this.impPath = impModelPath;
     }
-
-    public XlsxObjectLoader() {
+    
+    public XlsxObjectLoader(ImportModel importModel) {
+        this.importModel = importModel;
     }
-
-//    public XlsxBeanParser(ImportModel importModel) {
-//        this.importModel = importModel;
-//    }
 
     public void setImportModel(ImportModel importModel) {
         this.importModel = importModel;

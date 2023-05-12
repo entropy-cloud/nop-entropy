@@ -45,8 +45,7 @@ public class TestXlsxObjectLoader extends BaseTestCase {
         ImportModel importModel = (ImportModel) new DslModelParser()
                 .parseFromResource(attachmentResource("test.imp.xml"));
 
-        XlsxObjectLoader parser = new XlsxObjectLoader();
-        parser.setImportModel(importModel);
+        XlsxObjectLoader parser = new XlsxObjectLoader(importModel);
 
         DynamicObject bean = (DynamicObject) parser.parseFromResource(new ClassPathResource("classpath:xlsx/test-imp.xlsx"));
         System.out.println(JsonTool.stringify(bean, null, "  "));

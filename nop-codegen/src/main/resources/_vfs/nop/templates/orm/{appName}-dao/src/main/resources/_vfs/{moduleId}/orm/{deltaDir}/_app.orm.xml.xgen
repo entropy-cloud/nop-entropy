@@ -17,6 +17,7 @@ ormNode.childByTag('entities').children.forEach(entity=>{
      if(col.attrCsvSet('tagSet')?.contains('del')){
         col.removeAttr('propId');
         col.setAttr('x:override','remove');
+        col.setAttr('notGenCode',true);
      }
   });
 });

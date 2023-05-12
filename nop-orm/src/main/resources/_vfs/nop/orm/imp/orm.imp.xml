@@ -154,7 +154,7 @@
                         record.notGenCode = true;
 
                     record.columns.forEach(col=>{
-                        if(col.tagSet?.contains('not-gen'))
+                        if(col.tagSet?.contains('not-gen') || col.tagSet?.contains('del'))
                            col.notGenCode = true;
 
                         const domain = col.domain;

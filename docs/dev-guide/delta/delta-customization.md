@@ -83,22 +83,18 @@ Nop平台是可逆计算理论的一个参考实现，基于Nop平台的Delta定
 
 使用Nop平台开发的所有应用都自动支持Delta定制。这里以一个电商应用为例，具体演示在系统的各个层面如何在不修改基础产品源码的情况下增加功能，以及如何修改、删除已有功能。具体示例代码参见 [nop-app-mall/app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta)
 
-
 ## 3.1 专用的Delta模块
 
 所有差量定制代码可以集中存放在一个专用的Delta模块中，例如[app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta)。
-
 
 在app-mall-codegen模块的[gen-orm.xgen](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-codegen/postcompile/gen-orm.xgen)文件中，增加如下调用，表示将差量化定制代码生成到app-mall-delta模块下。
 
 ```javascript
 codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx','/nop/templates/orm-delta', '/',$scope);
 codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx','/nop/templates/meta-delta', '/',$scope);
-
 ```
 
 在其他模块中，例如app-mall-app模块中，只要依赖app-mall-delta模块即可实现对Nop平台内置功能的定制。
-
 
 ## 3.2 数据模型的Delta定制
 
@@ -122,15 +118,13 @@ nop-auth模块是Nop平台缺省提供的一个权限管理模块，Nop平台基
 
 因为不需要为这些外部表生成代码，所以我们在LitemallUser表的【标签】配置中增加not-gen标签，且表的字段定义只保留主键定义，用于模型解析时的完整性校验。
 
-
 ![delta-config](delta-config.png)
 
 在数据模型配置中，我们指定deltaDir=default，这样模型文件生成的路径为 `/_vfs/_delta/{deltaDir}/{originalPath}`。模型装载的时候会优先装载delta目录下的模型文件，从而覆盖基础产品中的模型定义。
 
-
 实际生成ORM模型文件结构为
-```xml
 
+```xml
 <orm x:extends="super,default/nop-auth.orm.xml">
   <entities>
      <entity className="app.mall.delta.dao.entity.NopAuthUserEx" displayName="用户"
@@ -152,6 +146,7 @@ nop-auth模块是Nop平台缺省提供的一个权限管理模块，Nop平台基
 ```
 
 实体类生成的代码结构为
+
 ```java
 class NopAuthUserEx extends _NopAuthUserEx{
 
@@ -188,7 +183,7 @@ class _NopAuthUserEx extends NopAuthUser{
 Nop平台内置了一个兼容Spring1.0配置语法的IoC容器[NopIoC](https://zhuanlan.zhihu.com/p/579847124)。
 
 1. 条件开关
-NopIoC在Spring1.0的XML语法的基础之上补充了类似SpringBoot的条件装配能力。我们可以采用配置变量开关来启用或者禁用参与装配的bean
+   NopIoC在Spring1.0的XML语法的基础之上补充了类似SpringBoot的条件装配能力。我们可以采用配置变量开关来启用或者禁用参与装配的bean
 
 ```xml
     <bean id="nopAuthHttpServerFilter" class="io.nop.auth.core.filter.AuthHttpServerFilter">
@@ -200,13 +195,14 @@ NopIoC在Spring1.0的XML语法的基础之上补充了类似SpringBoot的条件�
 ```
 
 2. 缺省实现
-NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中存在其他同名的bean，则缺省实现会被自动忽略，这一点类似于SpringBoot中的ConditionOnMissingBean机制。
-```xml
+   NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中存在其他同名的bean，则缺省实现会被自动忽略，这一点类似于SpringBoot中的ConditionOnMissingBean机制。
+   
+   ```xml
     <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
-
+   
     <!-- 标记了ioc:default="true"的bean 会被其他文件中定义的同名的bean覆盖 -->
     <bean id="nopActionAuthChecker" class="com.ruoyi.framework.web.service.PermissionService" />
-```
+   ```
 
 也可以为新增的bean增加primary=true配置，它的优先级会高于所有没有标记为primary的bean的定义。
 
@@ -215,7 +211,6 @@ NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中�
 NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。我们可以在delta目录下增加同名的beans.xml配置文件来覆盖基础产品中已有的配置文件。例如app-mall-delta模块中`/_vfs/_delta/default/nop/auth/auth-service.beans.xml`
 
 ```xml
-
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        x:extends="super">
 
@@ -233,11 +228,12 @@ NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。�
 上面的配置表示继承已有的模型（`x:extends="true"`），然后修改nopAuthFilterConfig这个bean的authPaths属性的配置，为它增加一个条目。
 
 除了覆盖bean的配置之外，我们可以通过delta定制来删除bean的配置。例如Nop平台与Ruoyi框架集成的时候需要删除内置的dataSource配置
+
 ```
     <bean id="nopDataSource" x:override="remove" />
-``` 
-具体配置参见[delta目录下的dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml)
+```
 
+具体配置参见[delta目录下的dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml)
 
 Delta定制非常更加简单直观，**适用于所有模型文件而且可以定制到最细粒度的单个属性**。如果对比一下SpringBoot的等价实现，我们会发现SpringBoot的定制功能存在很大的限制：首先，为了实现Bean exclusion和 Bean Override，Spring需要在引擎内部增加大量相关的处理代码，同时也引入很多特殊的使用语法。第二，Spring的定制机制只针对单个Bean的配置，比如我们可以禁用某个bean，缺乏合适的针对单个属性的定制手段。如果事前规划的不好，我们很难通过简单的方式来覆盖系统中已有的Bean的定义。
 
@@ -265,12 +261,13 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 ```
 
 2. 在beans.xml中覆盖原有的bean定义。
-```xml
+   
+   ```xml
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel"
           class="app.mall.delta.biz.NopAuthUserExBizModel"/>
-```
-自动生成的bean定义上标记了`ioc:default="true"`，所以只要重新按照同样的id注册，就会覆盖缺省的定义。
-
+   ```
+   
+   自动生成的bean定义上标记了`ioc:default="true"`，所以只要重新按照同样的id注册，就会覆盖缺省的定义。
 
 除了扩展已有的BizModel类之外，我们可以通过XBiz模型来覆盖Java对象中定义的服务方法。例如定制NopAuthUser.xbiz文件，在其中增加方法定义
 
@@ -285,11 +282,9 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
         </query>
     </actions>
 </biz>
-
 ```
 
 NopGraphQL引擎会自动收集所有biz文件以及标注了@BizModel的bean，并按照bizObjName把它们分组汇总为最终的服务对象。这种做法有些类似于游戏开发领域的[ECS架构(Entity-Component-System)](https://zhuanlan.zhihu.com/p/30538626)。在这种架构中，具有唯一标识的对象是由多个对象切片堆叠而成，因此定制的时候我们不一定需要修改原有的对象切片，而是可以选择堆叠一个新的切片覆盖此前的功能即可。XBiz文件中定义的函数优先级最高，它会覆盖BizModel中定义的函数。
-
 
 ## 3.5 前端页面的Delta定制
 
@@ -297,33 +292,32 @@ Nop平台的前端页面主要在view.xml和page.yaml这两种模型文件中定
 
 通过定制这两种模型文件，我们可以调整表单的布局、设置单个字段的显示控件、在页面上增加按钮、删除按钮，甚至完全覆盖基础产品中的页面内容。
 
-
 ## 3.6 标签函数的Delta定制
 
 Nop平台的代码生成以及元编程机制中大量使用Xpl模板语言，而且工作流模型等可执行模型中所有涉及脚本执行的地方使用的都是Xpl模板语言。Xpl模板语言内置了标签库机制来实现函数级别的封装（每一个标签相当于是一个静态函数）。标签库xlib文件可以通过Delta定制机制来实现定制。
 例如我们可以定制[control.xlib](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-app/src/main/resources/_vfs/_delta/default/nop/web/xlib/control.xlib)来调整字段类型所对应的缺省展示控件，也可以定制[ddl.xlib](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/main/resources/_vfs/nop/orm/xlib/ddl/ddl_mysql.xlib)来修复针对某个数据库版本的建表语句的语法。
 
-
-## 3.7 规则模型和报表模型等的Delta定制 
+## 3.7 规则模型和报表模型等的Delta定制
 
 Nop平台中的所有模型，包括工作流模型、报表模型、规则模型等都是采用XDef元模型来约束，它们都满足XDSL领域语法规则(具体介绍参见[XDSL:通用领域特定语言设计](https://zhuanlan.zhihu.com/p/612512300))。因此，所有的模型也自动具有Delta定制能力，可以在`_vfs/_delta/{deltaDir}`目录下增加对应路径的模型文件来定制基础产品内置的模型文件。
-
 
 与一般的报表引擎、工作流引擎不同，Nop平台中的引擎大量使用了Xpl模板语言作为可执行脚本，因此可以引入自定义标签库来实现定制扩展。例如，
 一般的报表引擎会内置几种数据加载机制:JDBC/CSV/JSON/Excel等。如果我们希望增加新的加载方式，一般需要实现引擎内置的特殊接口，并且使用特殊的注册机制将接口实现注册到引擎中，而修改可视化设计器，使其支持自定义配置一般也不是一项很简单的工作。
 
 而在NopReport报表模型中，提供了名为beforeExecute的Xpl模板配置，它可以看作是一个基于通用接口（[IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)）的扩展点。在beforeExecute段中我们可以采用如下方式引入新的数据加载机制：
+
 ```xml
 <beforeExecute>
    <spl:MakeDataSet xpl:lib="/nop/report/spl/spl.xlib" dsName="ds1" src="/nop/report/demo/spl/test-data.splx" />
 </beforeExecute>   
 ```
+
 > 只需要查看XDef元模型我们就可以很容易的发现哪些节点是Xpl模板配置节点，无需定义或者理解特殊的插件接口。
 
 标签调用既是一种函数调用，又可以看作是一种很容易被解析的XML配置，可以通过补充一个XView模型文件来自动生成beforeExecute段的可视化编辑器。
 如果平台已经提供了模型的可视化设计器，也可以很容易的通过定制设计器所对应的模型文件实现自定义扩展。
 
-另外一种做法是利用XDSL内置的扩展属性配置。Nop平台所有的模型文件都自动支持扩展属性，除了XDef元模型中定义的属性和节点之外，所有带名字空间的属性和节点在缺省情况下都不会参与格式校验，会作为扩展属性被存储（这一机制类似于允许在Java类中增加任意的Annotation注解）。我们引入扩展属性节点来保存配置，然后利用`x:post-extends`元编程机制在编译期解析扩展配置，动态生成beforeExecute段。这种做法不需要在报表模型中内置引入数据源配置这样的概念，也不需要报表引擎在运行时有任何特殊的接口支持，仅仅通过局部的编译期变换即可实现任意外部数据源的集成。
+另外一种做法是利用XDSL内置的扩展属性配置。Nop平台所有的模型文件都自动支持扩展属性，除了XDef元模型中定义的属性和节点之外，所有带名字空间的属性和节点在缺省情况下都不会参与格式校验，会作为扩展属性被存储（这一机制类似于允许在Java类中增加任意的Annotation注解）。我们引入扩展属性节点来保存配置，然后利用`x:post-extends`元编程机制在编译期解析扩展配置，动态生成beforeExecute段。这种做法不需要在报表模型中内置引入数据源配置这样的概念，也不需要报表引擎在运行时有任何特殊的接口支持，仅仅通过**局部的编译期变换**即可实现任意外部数据源的集成。
 
 ```xml
 <x:post-extends>
@@ -337,7 +331,6 @@ Nop平台中的所有模型，包括工作流模型、报表模型、规则模�
 <beforeExecute> 这里还可以写其他初始化代码 </beforeExecute>
 ```
 
-
 ## 3.8 编译期的特性开关
 
 一个高度可配置的产品如果希望保持运行时性能，那么它应该尽量在编译期执行各类特性开关，这样最终生成的代码可以得到简化。在Nop平台中，所有的XDSL领域模型文件都支持feture:on和feature:off特性开关机制。例如
@@ -350,11 +343,9 @@ Nop平台中的所有模型，包括工作流模型、报表模型、规则模�
 
 可以和SpringBoot中的条件开关机制做一个对比：Nop平台内置的feature开关可以作用于任何模型文件的任何节点，模型本身并不需要针对条件开关做任何针对性设计，也不需要在运行时引擎增加任何相关代码，特性过滤是在XML加载时实现的。而SpringBoot的条件开关则需要专门编写相关代码，也无法应用于其他模型文件。
 
-
 # 四. 总结
 
 Nop平台基于可逆计算原理实现了所谓的Delta定制机制，通过它可以在完全不修改基础产品的情况下，实现对于前后端功能的全面定制。
-
 
 Nop平台的开源地址：
 
