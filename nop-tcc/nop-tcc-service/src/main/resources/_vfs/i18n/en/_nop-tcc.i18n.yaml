@@ -1,0 +1,47 @@
+entity:
+  label:
+    NopTccBranchRecord: TCC Branch Record
+    NopTccRecord: TCC Transaction
+prop:
+  label:
+    NopTccBranchRecord:
+      branchId: Branch ID
+      txnId: Transaction ID
+      branchNo: Branch No
+      parentBranchId: Parent Branch ID
+      status: Status
+      status_label: null
+      expireTime: Expire Time
+      serviceName: Service Name
+      serviceMethod: Service Method
+      confirmMethod: Confirm Method
+      cancelMethod: Cancel Method
+      requestData: Request Data
+      errorCode: Error Code
+      errorMessage: Error Message
+      beginTime: Begin Time
+      endTime: End Time
+      commitErrorCode: Commit Error Code
+      commitErrorMessage: Commit Error Message
+      retryTimes: Retry Times
+      maxRetryTimes: Max Retry Times
+      nextRetryTime: Next Retry Time
+      version: Version
+      createTime: Create Time
+      updateTime: Update Time
+      tccRecord: TCC Record
+    NopTccRecord:
+      txnId: Transaction ID
+      txnGroup: Transaction Group
+      txnName: Transaction Name
+      status: Status
+      status_label: null
+      expireTime: Expire Time
+      appId: App ID
+      appData: App Data
+      beginTime: BEGIN Time
+      endTime: End Time
+      version: Version
+      createTime: Create Time
+      updateTime: Update Time
+      branchRecords: TCC Branch Records

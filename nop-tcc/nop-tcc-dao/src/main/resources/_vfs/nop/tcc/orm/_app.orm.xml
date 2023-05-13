@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:mavenArtifactId="nop-tcc" ext:entityPackageName="io.nop.tcc.dao.entity" ext:registerShortName="true"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.tcc" ext:appName="nop-tcc"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
+
+    <x:post-extends x:override="replace">
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <domains>
+        <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="email" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="phone" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="roleId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="userId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="deptId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="json-1000" precision="1" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="remark" precision="1" stdSqlType="VARCHAR"/>
+        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
+    </domains>
+
+    <entities>
+        <entity className="io.nop.tcc.dao.entity.NopTccRecord" createTimeProp="createTime" displayName="TCC事务记录"
+                name="io.nop.tcc.dao.entity.NopTccRecord" registerShortName="true" tableName="nop_tcc_record"
+                updateTimeProp="updateTime" versionProp="version" i18n-en:displayName="TCC Transaction">
+            <columns>
+                <column code="TXN_ID" displayName="事务ID" mandatory="true" name="txnId" precision="50" primary="true"
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Transaction ID"/>
+                <column code="TXN_GROUP" displayName="事务分组" mandatory="true" name="txnGroup" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Transaction Group"/>
+                <column code="TXN_NAME" displayName="事务名" name="txnName" precision="128" propId="3" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Transaction Name"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="4" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="io.nop.tcc.api.TccStatus"/>
+                <column code="EXPIRE_TIME" displayName="过期时间" mandatory="true" name="expireTime" propId="5"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Expire Time"/>
+                <column code="APP_ID" displayName="应用ID" mandatory="true" name="appId" precision="200" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="App ID"/>
+                <column code="APP_DATA" comment="事务的附加信息" displayName="应用数据" name="appData" precision="2000" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="App Data"/>
+                <column code="BEGIN_TIME" displayName="开始时间" mandatory="true" name="beginTime" propId="8"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="BEGIN Time"/>
+                <column code="END_TIME" displayName="结束时间" name="endTime" propId="9" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="End Time"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+            </columns>
+            <relations>
+                <to-many displayName="分支事务记录" name="branchRecords"
+                         refEntityName="io.nop.tcc.dao.entity.NopTccBranchRecord" refPropName="tccRecord"
+                         tagSet="pub,cascade-delete,insertable,updatable" i18n-en:displayName="TCC Branch Records">
+                    <join>
+                        <on leftProp="txnId" rightProp="txnId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+        <entity className="io.nop.tcc.dao.entity.NopTccBranchRecord" createTimeProp="createTime" displayName="TCC事务分支记录"
+                name="io.nop.tcc.dao.entity.NopTccBranchRecord" registerShortName="true"
+                tableName="nop_tcc_branch_record" updateTimeProp="updateTime" versionProp="version"
+                i18n-en:displayName="TCC Branch Record">
+            <columns>
+                <column code="BRANCH_ID" displayName="事务分支ID" mandatory="true" name="branchId" precision="50"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Branch ID"/>
+                <column code="TXN_ID" displayName="事务ID" mandatory="true" name="txnId" precision="50" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Transaction ID"/>
+                <column code="BRANCH_NO" displayName="事务分支序号" mandatory="true" name="branchNo" propId="3"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Branch No"/>
+                <column code="PARENT_BRANCH_ID" displayName="父分支ID" name="parentBranchId" precision="50" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Branch ID"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="5" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="io.nop.tcc.api.TccStatus"/>
+                <column code="EXPIRE_TIME" displayName="过期时间" mandatory="true" name="expireTime" propId="6"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Expire Time"/>
+                <column code="SERVICE_NAME" displayName="服务名" mandatory="true" name="serviceName" precision="200"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Service Name"/>
+                <column code="SERVICE_METHOD" displayName="服务方法" name="serviceMethod" precision="200" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Service Method"/>
+                <column code="CONFIRM_METHOD" displayName="确认方法" name="confirmMethod" precision="200" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Confirm Method"/>
+                <column code="CANCEL_METHOD" displayName="取消方法" name="cancelMethod" precision="200" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cancel Method"/>
+                <column code="REQUEST_DATA" displayName="请求数据" name="requestData" precision="2097152" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Request Data"/>
+                <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="200" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
+                <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="200" propId="13"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
+                <column code="BEGIN_TIME" displayName="开始时间" mandatory="true" name="beginTime" propId="14"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Begin Time"/>
+                <column code="END_TIME" displayName="结束时间" name="endTime" propId="15" stdDataType="timestamp"
+                        stdSqlType="TIMESTAMP" i18n-en:displayName="End Time"/>
+                <column code="COMMIT_ERROR_CODE" displayName="提交阶段错误码" name="commitErrorCode" precision="200"
+                        propId="16" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Commit Error Code"/>
+                <column code="COMMIT_ERROR_MESSAGE" displayName="提交阶段错误消息" name="commitErrorMessage" precision="200"
+                        propId="17" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Commit Error Message"/>
+                <column code="RETRY_TIMES" displayName="重试次数" name="retryTimes" propId="18" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Retry Times"/>
+                <column code="MAX_RETRY_TIMES" displayName="最大重试次数" mandatory="true" name="maxRetryTimes" propId="19"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Max Retry Times"/>
+                <column code="NEXT_RETRY_TIME" displayName="下次重试时间" name="nextRetryTime" propId="20"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Next Retry Time"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="21"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="22" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+            </columns>
+            <relations>
+                <to-one displayName="事务记录" name="tccRecord" refEntityName="io.nop.tcc.dao.entity.NopTccRecord"
+                        refPropName="branchRecords" tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        i18n-en:displayName="TCC Record" ref-i18n-en:displayName="TCC Branch Records">
+                    <join>
+                        <on leftProp="txnId" rightProp="txnId"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

@@ -1,0 +1,47 @@
+entity:
+  label:
+    NopTccBranchRecord: TCC事务分支记录
+    NopTccRecord: TCC事务记录
+prop:
+  label:
+    NopTccBranchRecord:
+      beginTime: 开始时间
+      branchId: 事务分支ID
+      branchNo: 事务分支序号
+      cancelMethod: 取消方法
+      commitErrorCode: 提交阶段错误码
+      commitErrorMessage: 提交阶段错误消息
+      confirmMethod: 确认方法
+      createTime: 创建时间
+      endTime: 结束时间
+      errorCode: 错误码
+      errorMessage: 错误消息
+      expireTime: 过期时间
+      maxRetryTimes: 最大重试次数
+      nextRetryTime: 下次重试时间
+      parentBranchId: 父分支ID
+      requestData: 请求数据
+      retryTimes: 重试次数
+      serviceMethod: 服务方法
+      serviceName: 服务名
+      status: 状态
+      status_label: 状态
+      tccRecord: 事务记录
+      txnId: 事务ID
+      updateTime: 修改时间
+      version: 数据版本
+    NopTccRecord:
+      appData: 应用数据
+      appId: 应用ID
+      beginTime: 开始时间
+      branchRecords: 分支事务记录
+      createTime: 创建时间
+      endTime: 结束时间
+      expireTime: 过期时间
+      status: 状态
+      status_label: 状态
+      txnGroup: 事务分组
+      txnId: 事务ID
+      txnName: 事务名
+      updateTime: 修改时间
+      version: 数据版本

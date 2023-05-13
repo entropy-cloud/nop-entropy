@@ -1,0 +1,53 @@
+
+nop:
+  debug: true
+  auth:
+    login:
+      allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
+
+    site-map:
+      static-config-path: /nop/tcc/auth/app.action-auth.xml
+      cache-timeout: 1s
+      support-debug: true
+
+    data-auth-config-path: /nop/tcc/auth/app.data-auth.xml
+
+  web:
+    validate-page-model: true
+
+  orm:
+    init-database-schema: true
+
+    jwt:
+      enc-key: 168fde018c2b46d4bd1eaaeea3dcd7f6
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:./db/test
+    username: sa
+    password:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    jdbc-url: jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+#    username: nop
+#    password: nop-test
+
+# 支持graphql __schema查询，
+  graphql:
+    schema-introspection:
+      enabled: true
+
+# devservices 会启用testcontainers来管理测试数据库
+quarkus:
+  devservices:
+    enabled: false
+
+  datasource:
+    devservices:
+      enabled: false
+
+  log:
+    level: INFO
+
+    category:
+      "io.nop":
+        level: DEBUG

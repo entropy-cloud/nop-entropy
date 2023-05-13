@@ -24,7 +24,7 @@ import static io.nop.core.CoreConstants.XGEN_MARK_IGNORE;
 /**
  * 递归遍历模板目录时维护的生成路径堆栈
  */
-class TemplateGenPath {
+public class TemplateGenPath {
     /**
      * 每个元素为目录名
      */
@@ -107,6 +107,7 @@ class TemplateGenPath {
                 return "";
             return value;
         });
+
         targetPath.set(targetPath.size() - 1, resolved);
 
         if (resolved.indexOf(XGEN_MARK_IGNORE) >= 0)

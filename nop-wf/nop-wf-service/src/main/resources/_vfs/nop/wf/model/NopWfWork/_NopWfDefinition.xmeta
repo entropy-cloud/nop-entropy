@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="工作流模型定义"
+      i18n-en:displayName="Worflow Definition">
+
+    <entityName>io.nop.wf.dao.entity.NopWfDefinition</entityName>
+
+    <primaryKey>wfDefId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="wfDefId" displayName="主键" i18n-en:displayName="Definition ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="wfName" displayName="工作流名称" i18n-en:displayName="Workflow Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="displayName" displayName="显示名称" i18n-en:displayName="DisplayName" tagSet="disp" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="description" displayName="描述" i18n-en:displayName="Description" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="modelText" displayName="模型文本" i18n-en:displayName="Model Text" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="mediumtext" type="java.lang.String" precision="16777215"/>
+        </prop>
+        <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="wf/wf-def-status">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+    </props>
+</meta>

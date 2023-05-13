@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql"
+      displayName="TCC事务分支记录" i18n-en:displayName="TCC Branch Record">
+
+    <entityName>io.nop.tcc.dao.entity.NopTccBranchRecord</entityName>
+
+    <primaryKey>branchId</primaryKey>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="branchId" displayName="事务分支ID" i18n-en:displayName="Branch ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="txnId" displayName="事务ID" i18n-en:displayName="Transaction ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="tccRecord">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="branchNo" displayName="事务分支序号" i18n-en:displayName="Branch No" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="parentBranchId" displayName="父分支ID" i18n-en:displayName="Parent Branch ID" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="io.nop.tcc.api.TccStatus"/>
+        </prop>
+        <prop name="expireTime" displayName="过期时间" i18n-en:displayName="Expire Time" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="serviceName" displayName="服务名" i18n-en:displayName="Service Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="serviceMethod" displayName="服务方法" i18n-en:displayName="Service Method" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="confirmMethod" displayName="确认方法" i18n-en:displayName="Confirm Method" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="cancelMethod" displayName="取消方法" i18n-en:displayName="Cancel Method" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="requestData" displayName="请求数据" i18n-en:displayName="Request Data" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="2097152"/>
+        </prop>
+        <prop name="errorCode" displayName="错误码" i18n-en:displayName="Error Code" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="errorMessage" displayName="错误消息" i18n-en:displayName="Error Message" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="beginTime" displayName="开始时间" i18n-en:displayName="Begin Time" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="endTime" displayName="结束时间" i18n-en:displayName="End Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="commitErrorCode" displayName="提交阶段错误码" i18n-en:displayName="Commit Error Code" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="commitErrorMessage" displayName="提交阶段错误消息" i18n-en:displayName="Commit Error Message"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="retryTimes" displayName="重试次数" i18n-en:displayName="Retry Times" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="maxRetryTimes" displayName="最大重试次数" i18n-en:displayName="Max Retry Times" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="nextRetryTime" displayName="下次重试时间" i18n-en:displayName="Next Retry Time" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="tccRecord" displayName="事务记录" i18n-en:displayName="TCC Record"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="txnId" ext:joinRightProp="txnId" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
+            <schema type="io.nop.tcc.dao.entity.NopTccRecord" bizObjName="NopTccRecord"/>
+        </prop>
+    </props>
+</meta>

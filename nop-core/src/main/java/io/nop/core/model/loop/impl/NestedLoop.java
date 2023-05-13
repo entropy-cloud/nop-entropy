@@ -170,7 +170,7 @@ public class NestedLoop implements INestedLoop {
         // 如果是全局变量
         Object value = globalVars.get(varName);
         if (StringHelper.isEmptyObject(value))
-            return Stream.empty();
+            return Stream.of(new LoopVar(varName,null,null));
 
         Stream<Object> stream = CollectionHelper.toStream(value, true, false);
         return stream.map(v -> new LoopVar(varName, v, p));

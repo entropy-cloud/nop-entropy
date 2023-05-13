@@ -7,6 +7,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IFile;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.tpl.TemplateGenPath;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.AfterAll;
@@ -100,5 +101,19 @@ public class TestXCodeGenerator extends BaseTestCase {
                 "\"x:extends\": _aa-web.i18n.yaml\n" +
                 "\n" +
                 "# key: \"value\"\n", normalizeCRLF(text));
+    }
+
+    @Test
+    public void testGenPath() {
+        TemplateGenPath genPath = new TemplateGenPath();
+        IEvalScope scope = XLang.newEvalScope();
+        genPath.push("a");
+        genPath.resolveTop(scope);
+        genPath.push("{deltaDir}");
+        genPath.resolveTop(scope);
+        genPath.push("test");
+        genPath.resolveTop(scope);
+        String path = genPath.getTargetPath();
+        assertEquals("a/test", path);
     }
 }

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="角色"
+      i18n-en:displayName="Role" tagSet="mapper">
+
+    <entityName>io.nop.auth.dao.entity.NopAuthRole</entityName>
+
+    <primaryKey>roleId</primaryKey>
+
+    <displayProp>roleName</displayProp>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="roleNameKey" props="roleName"/>
+    </keys>
+
+    <props>
+        <prop name="roleId" displayName="角色ID" i18n-en:displayName="Role ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="roleName" displayName="角色名" i18n-en:displayName="Role Name" tagSet="disp" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="childRoleIds" displayName="子角色" i18n-en:displayName="Child Role IDs" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="isPrimary" displayName="是否主角色" i18n-en:displayName="Is Primary" queryable="true" sortable="true"
+              insertable="true" updatable="true" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ext:show="X" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="R">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="R">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="R">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="R">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="userMappings" displayName="用户映射" i18n-en:displayName="UserMappings"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserRole&gt;"
+                    bizObjName="NopAuthUserRole"/>
+        </prop>
+        <prop name="resourceMappings" displayName="资源映射" i18n-en:displayName="Resources"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthRoleResource&gt;"
+                    bizObjName="NopAuthRoleResource"/>
+        </prop>
+        <prop name="relatedUserList" displayName="用户列表" i18n-en:displayName="User List" ext:kind="to-many"
+              internal="true" lazy="true">
+            <schema type="List&lt;io.nop.auth.dao.entity.NopAuthUser&gt;">
+                <item bizObjName="NopAuthUser"/>
+            </schema>
+        </prop>
+        <prop name="relatedUserIdList" displayName="用户列表" i18n-en:displayName="User List" insertable="true"
+              updatable="true" ext:relation="relatedUserList" graphql:labelProp="relatedUserList_label" lazy="true"
+              internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedUserList_label" displayName="用户列表" i18n-en:displayName="User List" lazy="true"
+              internal="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="relatedResourceList" displayName="资源列表" i18n-en:displayName="Resource List" ext:kind="to-many"
+              internal="true" lazy="true">
+            <schema type="List&lt;io.nop.auth.dao.entity.NopAuthResource&gt;">
+                <item bizObjName="NopAuthResource"/>
+            </schema>
+        </prop>
+        <prop name="relatedResourceIdList" displayName="资源列表" i18n-en:displayName="Resource List" insertable="true"
+              updatable="true" ext:relation="relatedResourceList" graphql:labelProp="relatedResourceList_label"
+              lazy="true" internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedResourceList_label" displayName="资源列表" i18n-en:displayName="Resource List" lazy="true"
+              internal="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

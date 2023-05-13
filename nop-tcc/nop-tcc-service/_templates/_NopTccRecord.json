@@ -1,0 +1,16 @@
+{
+  "txnId": "",
+  "txnGroup": "",
+  "txnName": "",
+  "status": 0,
+  "status_label": "",
+  "expireTime": "2000-01-01 14:00:00",
+  "appId": "",
+  "appData": "",
+  "beginTime": "2000-01-01 14:00:00",
+  "endTime": "2000-01-01 14:00:00",
+  "version": 0,
+  "createTime": "2000-01-01 14:00:00",
+  "updateTime": "2000-01-01 14:00:00",
+  "branchRecords": null
+}
