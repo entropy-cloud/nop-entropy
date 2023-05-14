@@ -21,7 +21,6 @@ public interface OrmConstants {
 
     char COMPOSITE_PK_SEPARATOR = '~';
 
-    String FUNC_COUNT = "count";
 
     String SQL_TYPE_SQL = "sql";
     String SQL_TYPE_EQL = "eql";
@@ -38,16 +37,8 @@ public interface OrmConstants {
 
     String FOR_ADD = "_forAdd";
 
-    String PROP_NAME_nopRevType = "nopRevType";
-    String PROP_NAME_nopRevBeginVer = "nopRevBeginVer";
-    String PROP_NAME_nopRevEndVer = "nopRevEndVer";
-    String PROP_NAME_nopRevExtChange = "nopRevExtChange";
-    String PROP_NAME_nopShard = "nopShard";
-    String PROP_NAME_nopTenant = "nopTenant";
-    String PROP_NAME_nopFlowId = "nopFlowId";
-    String PROP_NAME_nopFlowStatus = "nopFlowStatus";
 
-    String MARKER_TENANT_ID = "tenantId";
+
 
     /**
      * 标记字段需要加密存储
@@ -97,45 +88,11 @@ public interface OrmConstants {
 
     long NOP_VER_MAX_VALUE = Long.MAX_VALUE;
 
-    int MAX_PROP_ID = 2000;
-
     String PERSIST_DRIVER_JDBC = "jdbc";
 
     String ENTITY_PERSIST_DRIVER_PREFIX = "entityPersistDriver_";
     String COLLECTION_PERSIST_DRIVER_PREFIX = "collectionPersistDriver";
 
-    /**
-     * 在to-one关联的tagSet可以通过ref-xxx来为一对多一侧的关联对象指定tagSet。在orm模型中，可以只在to-one一侧定义关联对象，在OrmModel
-     * 的初始化过程中会自动生成一对多依次的关联对象，因此这里有可能需要为一对多一侧的对象指定tagSet。
-     */
-    String TAG_PREFIX_REF = "ref-";
-
-    String PREFIX_PLACEHOLDER = "{prefix}";
-
-    String PROP_NAME_fieldName = "fieldName";
-    String PROP_NAME_entityName = "entityName";
-    String PROP_NAME_entityId = "entityId";
-    String PROP_NAME_fieldType = "fieldType";
-    String PROP_NAME_value = "value";
-
-    String PROP_NAME_booleanValue = "booleanValue";
-    String PROP_NAME_byteValue = "byteValue";
-    String PROP_NAME_charValue = "charValue";
-    String PROP_NAME_shortValue = "shortValue";
-    String PROP_NAME_intValue = "intValue";
-    String PROP_NAME_longValue = "longValue";
-    String PROP_NAME_floatValue = "floatValue";
-    String PROP_NAME_doubleValue = "doubleValue";
-    String PROP_NAME_decimalValue = "decimalValue";
-    String PROP_NAME_decimalScale = "decimalScale";
-    String PROP_NAME_bigIntValue = "bigIntValue";
-    String PROP_NAME_dateValue = "dateValue";
-    String PROP_NAME_dateTimeValue = "dateTimeValue";
-    String PROP_NAME_timestampValue = "timestampValue";
-    String PROP_NAME_stringValue = "stringValue";
-
-    String DECORATOR_DUMP = "dump";
-    String DECORATOR_QUERY_SPACE = "querySpace";
 
     String PARAM_DIALECT = "dialect";
     String PARAM_SQL_ITEM_MODEL = "sqlItemModel";
@@ -158,11 +115,7 @@ public interface OrmConstants {
     String EXT_PROP_DICT_VALUE_TYPE = "dict:valueType";
     String EXT_PROP_DICT_NORMALIZED = "dict:normalized";
 
-    String EXT_PROP_MIN_PROP_ID = "ext:minPropId";
-
     String SQL_ARG_LOCALE = "locale";
 
     String USER_NAME_SYS = "sys";
-
-    String DOMAIN_BOOL_FLAG = "boolFlag";
 }

@@ -8,7 +8,7 @@
 package io.nop.dao.dialect;
 
 import io.nop.core.lang.sql.SqlExprList;
-import io.nop.core.lang.sql.StdSqlType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.function.TemplateSQLFunction;
 import io.nop.dao.dialect.model.SqlTemplateModel;
 import org.junit.jupiter.api.Test;

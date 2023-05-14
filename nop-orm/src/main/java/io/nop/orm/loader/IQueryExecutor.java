@@ -10,8 +10,8 @@ package io.nop.orm.loader;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dao.dataset.IComplexDataSet;
-import io.nop.dao.dataset.IDataSet;
+import io.nop.dataset.IComplexDataSet;
+import io.nop.dataset.IDataSet;
 import io.nop.orm.session.IOrmSessionImplementor;
 
 import javax.annotation.Nonnull;

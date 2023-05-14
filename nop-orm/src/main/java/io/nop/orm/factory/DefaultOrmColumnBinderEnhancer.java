@@ -9,9 +9,9 @@ package io.nop.orm.factory;
 
 import io.nop.commons.crypto.ITextCipher;
 import io.nop.commons.crypto.impl.AESTextCipher;
-import io.nop.core.lang.sql.binder.EncodedDataParameterBinder;
-import io.nop.core.lang.sql.binder.IDataParameterBinder;
-import io.nop.orm.IOrmColumnBinderEnhancer;
+import io.nop.dataset.binder.EncodedDataParameterBinder;
+import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;

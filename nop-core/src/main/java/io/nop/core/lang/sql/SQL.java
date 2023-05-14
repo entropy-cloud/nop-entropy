@@ -22,7 +22,7 @@ import io.nop.commons.text.marker.Markers.ValueMarker;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
 import io.nop.core.lang.sql.SyntaxMarker.SyntaxMarkerType;
-import io.nop.core.lang.sql.binder.IDataParameterBinder;
+import io.nop.dataset.binder.IDataParameterBinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

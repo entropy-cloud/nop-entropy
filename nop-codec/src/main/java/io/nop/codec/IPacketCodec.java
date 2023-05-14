@@ -25,7 +25,11 @@ public interface IPacketCodec<T> {
      */
     int determinePacketLength(ByteBuf buf);
 
-    T decodeFromBuf(ByteBuf buf);
+    T decodeFromBuf(ByteBuf buf, Class<?> targetType);
+
+    default T decodeFromBuf(ByteBuf buf){
+        return decodeFromBuf(buf, null);
+    }
 
     void encodeToBuf(T message, ByteBuf buf);
 

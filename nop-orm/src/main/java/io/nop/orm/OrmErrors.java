@@ -157,17 +157,6 @@ public interface OrmErrors {
                     + "在模型中对应属性[{propName}]。可能需要重新生成代码。",
             ARG_ENTITY_NAME, ARG_PROP_ID, ARG_PROP_NAME, ARG_ENTITY_PROP_NAME);
 
-    ErrorCode ERR_ORM_TENANT_ID_NOT_ALLOW_CHANGE = define("nop.err.orm.tenant-id-not-allow-change", "租户ID不允许被改变",
-            ARG_ENTITY_NAME, ARG_ENTITY_ID, ARG_TENANT_ID);
-
-    ErrorCode ERR_ORM_UNKNOWN_ENTITY_NAME = define("nop.err.orm.entity.unknown-entity-name", "未定义的对象名:{entityName}",
-            ARG_ENTITY_NAME);
-
-    ErrorCode ERR_ORM_UNKNOWN_ENTITY_MODEL_FOR_TABLE = define("nop.err.orm.entity.unknown-entity-model-for-table",
-            "没有定义实体模型对应于数据库表:{tableName}", ARG_TABLE_NAME);
-
-    ErrorCode ERR_ORM_UNKNOWN_COLLECTION_NAME = define("nop.err.orm.entity.unknown-collection-name",
-            "未定义的对象集合:{collectionName}", ARG_COLLECTION_NAME);
 
     ErrorCode ERR_ORM_DAO_ENTITY_NAME_NOT_FOR_DAO = define("nop.err.orm.dao.entity-name-not-for-dao",
             "[{entityName}]不是OrmEntityDao所管理的对象类[{daoEntityName}]", ARG_ENTITY_NAME, ARG_DAO_ENTITY_NAME);
@@ -304,24 +293,6 @@ public interface OrmErrors {
             "nop.err.orm.not-support-multiple-query-space-in-one-sql", "一条SQL语句只允许访问一个数据源:sql={},querySpace={}",
             ARG_SQL, ARG_QUERY_SPACE);
 
-    ErrorCode ERR_ORM_UNKNOWN_COLUMN_PROP_ID = define("nop.err.orm.unknown-column-prop-id",
-            "实体[{entityName}]上没有定义编号为[{propId}]的列", ARG_ENTITY_NAME, ARG_PROP_ID);
-
-    ErrorCode ERR_ORM_UNKNOWN_COLUMN = define("nop.err.orm.unknown-column", "实体[{entityName}]上没有定义列[{colName}]",
-            ARG_ENTITY_NAME, ARG_COL_NAME);
-
-    ErrorCode ERR_ORM_UNKNOWN_COLUMN_CODE = define("nop.err.orm.unknown-column-code",
-            "实体[{entityName}]上没有代码为[{colCode}]的列", ARG_ENTITY_NAME, ARG_COL_CODE);
-
-    ErrorCode ERR_ORM_UNKNOWN_PROP = define("nop.err.orm.unknown-column", "实体[{entityName}]上没有定义属性[{propName}]",
-            ARG_ENTITY_NAME, ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_UNKNOWN_PROP_ID = define("nop.err.orm.unknown-prop-id", "实体[{entityName}]上没有定义编号为[{propId}]的列",
-            ARG_ENTITY_NAME, ARG_PROP_ID);
-
-    ErrorCode ERR_ORM_NULL_BINDER_FOR_COLUMN = define("nop.err.orm.null-binder-for-column",
-            "对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口", ARG_ENTITY_NAME, ARG_COL_NAME, ARG_SQL_TYPE,
-            ARG_DATA_TYPE);
 
     ErrorCode ERR_ORM_UNSUPPORTED_DATA_TYPE = define("nop.err.orm.unsupported-data-type", "不支持的数据类型:{dataType}",
             ARG_DATA_TYPE);
@@ -332,100 +303,9 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_ENTITY_SET_ELEMENT_NOT_KV_TABLE = define("nop.err.orm.entity-set-element-not-kv-table",
             "集合[{collectionName}]的元素不是IOrmKeyValueTable类型，不支持设置动态属性");
 
-    ErrorCode ERR_EQL_UNSUPPORTED_OP = define("nop.err.eql.unsupported-op", "不支持的运算符:{op}", ARG_OP);
 
     ErrorCode ERR_ORM_ENTITY_NOT_DETACHED = define("nop.err.orm.entity-not-detached",
             "执行attache函数之前，实体对象[{entityName}]已经先从原先的session中evict");
-
-    ErrorCode ERR_EQL_PRECISION_NOT_POSITIVE_INT = define("nop.err.eql.precision-not-positive-int",
-            "数据精度的设置值[{value}]不是正整数", ARG_VALUE);
-
-    ErrorCode ERR_EQL_SCALE_NOT_NON_NEGATIVE_INT = define("nop.err.eql.scale-not-non-negative-int",
-            "数据小数位数的值[{value}]不是非负整数", ARG_VALUE);
-
-    ErrorCode ERR_EQL_INVALID_DATETIME_TYPE = define("nop.err.eql.invalid-datetime-type", "时间日期类型只能是t,s,或者ts",
-            ARG_VALUE);
-
-    ErrorCode ERR_EQL_INVALID_INTERVAL_UNIT = define("nop.err.eql.invalid-interval-unit",
-            "时间区间类型只能是MICROSECOND/SECOND/MINUTE/HOUR/DAY/WEEK/MONTH/QUARTER/YEAR", ARG_VALUE);
-
-    ErrorCode ERR_EQL_DUPLICATE_TABLE_ALIAS = define("nop.err.eql.duplicate-table-alias",
-            "数据源[{table1}]和[{table2}]的别名[{alias}]相同", ARG_TABLE1, ARG_TABLE2, ARG_ALIAS);
-
-    ErrorCode ERR_EQL_JOIN_NO_CONDITION = define("nop.err.eql.join-no-condition", "表关联没有指定连接条件");
-
-    ErrorCode ERR_EQL_UNKNOWN_ENTITY_NAME = define("nop.err.eql.unknown-entity-name", "未知的实体名[{entityName}]",
-            ARG_ENTITY_NAME);
-
-    ErrorCode ERR_EQL_UNKNOWN_ALIAS = define("nop.err.eql.unknown-alias", "未知的实体别名[{alias}]", ARG_ALIAS, ARG_PROP_PATH);
-
-    ErrorCode ERR_EQL_OWNER_NOT_REF_TO_ENTITY = define("nop.err.eql.owner-not-ref-to-entity", "属性表达式的owner必须是实体对象");
-
-    ErrorCode ERR_EQL_JOIN_RIGHT_SOURCE_MUST_BE_PROP_PATH_OF_LEFT_SOURCE = define(
-            "nop.err.eql.join-right-source-must-be-prop-path-of-left-source",
-            "关联关系的右侧如果不是实体对象，则必须是左侧对象的关联属性，例如UserInfo u left join u.dept", ARG_LEFT_SOURCE, ARG_RIGHT_SOURCE);
-
-    ErrorCode ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE = define("nop.err.eql.prop-path-not-valid-to-one-reference",
-            "关联属性表达式[{propPath}]不是[{entityName}]对象的多对一关联属性", ARG_PROP_PATH, ARG_ENTITY_NAME);
-
-    ErrorCode ERR_EQL_INVALID_SQL_TYPE = define("nop.err.eql.invalid-sql-type",
-            "未定义的SQL数据类型[{sqlType}]。只允许StdSqlType中定义的常量:{allowedNames}", ARG_SQL_TYPE, ARG_ALLOWED_NAMES);
-
-    ErrorCode ERR_EQL_SELECT_NO_PROJECTIONS = define("nop.err.eql.select-no-projections", "select语句没有指定选择字段列表");
-
-    ErrorCode ERR_EQL_FIELD_NOT_IN_SUBQUERY = define("nop.err.eql.field-not-in-subquery",
-            "查询语句的返回结果中没有包含字段:{fieldName}", ARG_FIELD_NAME);
-
-    ErrorCode ERR_EQL_PROP_PATH_JOIN_NOT_ALLOW_CONDITION = define("nop.err.eql.prop-path-join-not-allow-condition",
-            "关联属性表达式[{propPath}]时不允许指定关联条件，具体关联条件应根据实体模型的属性定义来自动推定", ARG_PROP_PATH);
-
-    ErrorCode ERR_EQL_JOIN_PROP_PATH_IS_DUPLICATED = define("nop.err.eql.join-prop-path-is-duplicated",
-            "同一关联属性表达式[{propPath}]不能在join语句中多次定义", ARG_PROP_PATH);
-
-    ErrorCode ERR_EQL_TABLE_SOURCE_MUST_HAS_ALIAS = define("nop.err.eql.table-source-must-has-alias", "数据源必须具有别名");
-
-    ErrorCode ERR_EQL_QUERY_NO_FROM_CLAUSE = define("nop.err.eql.query-no-from-clause", "sql语句缺乏from子句");
-
-    ErrorCode ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE = define("nop.err.eql.only-support-single-table-source",
-            "只支持实体表数据源", ARG_TABLE_SOURCE);
-
-    ErrorCode ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE = define("nop.err.eql.not-allow-multiple-query-space",
-            "一条sql语句中的所有表对应的querySpace都必须相同");
-
-    ErrorCode ERR_EQL_NOT_SUPPORT_MULTIPLE_STATEMENT = define("nop.err.eql.not-support-multiple-statement",
-            "一次调用只允许执行一条SQL语句");
-
-    ErrorCode ERR_EQL_UNKNOWN_QUERY_SPACE = define("nop.err.eql.unknown-query-space",
-            "sql语句使用了未知的querySpace[{querySpace}]", ARG_QUERY_SPACE);
-
-    ErrorCode ERR_EQL_UNKNOWN_COLUMN_NAME = define("nop.err.eql.unknown-column-name", "sql语句使用了未知的列名[{colName}]",
-            ARG_COL_NAME);
-
-    ErrorCode ERR_EQL_TABLE_SOURCE_NOT_RESOLVED = define("nop.err.eql.table-source-not-resolved",
-            "tableSource没有被成功解析，无法确定它的具体来源");
-
-    ErrorCode ERR_EQL_PARAM_NOT_COMPONENT = define("nop.err.eql.param-not-component",
-            "参数[{paramIndex}]不是IOrmComponent类型[{expected}]");
-
-    ErrorCode ERR_EQL_PARAM_NOT_EXPECTED_ENTITY = define("nop.err.eql.param-not-expected-entity",
-            "参数[{paramIndex}]不是期待的实体类型[{expected}]");
-
-    ErrorCode ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED = define("nop.err.eql.decorator-arg-count-is-not-expected",
-            "注解[{decorator}]的参数必须为{expectedCount}", ARG_DECORATOR, ARG_EXPECTED_COUNT);
-
-    ErrorCode ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED = define("nop.err.eql.decorator-arg-type-is-not-expected",
-            "注解[{decorator}]的参数[{argIndex}]的类型不是期待的数据类型:{expected}", ARG_DECORATOR, ARG_ARG_INDEX, ARG_EXPECTED);
-
-    ErrorCode ERR_EQL_FUNC_TOO_FEW_ARGS = define("nop.err.eql.func-too-few-args", "函数[{funcName]的参数个数不足",
-            ARG_FUNC_NAME);
-
-    ErrorCode ERR_EQL_FUNC_TOO_MANY_ARGS = define("nop.err.eql.func-too-many-args", "函数[{funcName]的参数个数过多",
-            ARG_FUNC_NAME);
-
-    ErrorCode ERR_EQL_UNKNOWN_FUNCTION = define("nop.err.eql.unknown-function", "未知的函数[{funcName]", ARG_FUNC_NAME);
-
-    ErrorCode ERR_EQL_NOT_SUPPORT_ILIKE = define("nop.err.eql.not-support-ilike-operator", "数据库不支持ilike运算符", ARG_FUNC_NAME);
-
 
     ErrorCode ERR_SQL_UNKNOWN_LIB_PATH = define("nop.err.sql.unknown-lib-path", "sql库文件不存在:{path}", ARG_PATH);
 
@@ -441,98 +321,8 @@ public interface OrmErrors {
     ErrorCode ERR_DAO_PROP_NOT_TO_ONE_RELATION = define("nop.err.orm.dao.prop-not-to-one-relation",
             "实体上的[{entityName}]的属性[{propName}]不是对象引用");
 
-    ErrorCode ERR_ORM_MODEL_DUPLICATE_PROP_ID = define("nop.err.orm.model.duplicate-prop-id",
-            "对象模型[{entityName}]的列[{propName}]和[{otherPropName}]的编号都是[{propId}]", ARG_ENTITY_NAME, ARG_PROP_NAME,
-            ARG_OTHER_PROP_NAME, ARG_PROP_ID);
-
-    ErrorCode ERR_ORM_MODEL_DUPLICATE_COL_CODE = define("nop.err.orm.model.duplicate-col-code",
-            "对象模型[{entityName}]的列[{propName}]和[{otherPropName}]的代码都是[{colCode}]", ARG_ENTITY_NAME, ARG_PROP_NAME,
-            ARG_OTHER_PROP_NAME, ARG_COL_CODE);
-
-    ErrorCode ERR_ORM_MODEL_DUPLICATE_PROP = define("nop.err.orm.model.duplicate-prop",
-            "对象模型[{entityName}]的属性[{propName}]重复", ARG_ENTITY_NAME, ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_PROP_ID_IS_RESERVED = define("nop.err.orm.prop-id-is-reserved",
-            "对象模型[{entityName}]的属性名不能为id，id为系统保留名称");
-
-    ErrorCode ERR_ORM_MODEL_INVALID_PROP_ID = define("nop.err.orm.model.invalid-prop-id",
-            "对象模型[{entityName}]的列[{propName}]的编号必须大于0，小于2000", ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_PROP_ID);
-
-    ErrorCode ERR_ORM_ALIAS_MUST_REF_TO_COLUMN_OR_REFERENCE = define(
-            "nop.err.orm.alias-must-ref-to-column-or-reference", "别名[{propName}]必须引用对象模型[{entityName}]中的列或者关联对象",
-            ARG_ENTITY_NAME, ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP = define("nop.err.orm.model.ref-depends-contains-loop",
-            "对象模型的依赖关系不能包含循环依赖", ARG_LOOP_ENTITY_NAMES);
-
-    ErrorCode ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME = define("nop.err.orm.model.duplicate-entity-short-name",
-            "实体[{entityName}]的短名称和实体[{otherEntityName}]的短名称冲突", ARG_ENTITY_NAME, ARG_OTHER_ENTITY_NAME);
-
-    ErrorCode ERR_ORM_MODEL_REF_UNKNOWN_ENTITY = define("nop.err.orm.model.ref-unknown-entity",
-            "对象模型[{entityName}]的属性[{refName}]引用了未知的对象[{refEntityName}]", ARG_ENTITY_NAME, ARG_REF_NAME,
-            ARG_REF_ENTITY_NAME);
-
-    ErrorCode ERR_ORM_MODEL_REF_ENTITY_NO_PROP = define("nop.err.orm.model.ref-entity-no-prop",
-            "引用对象[{refEntityName}]上未定义属性[{propName}]", ARG_REF_ENTITY_NAME, ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_REF_ENTITY_PROP_NOT_PRIMARY_KEY = define(
-            "nop.err.orm.model.ref-entity-prop-not-primary-key",
-            "关联引用的属性[{propName}]不是引用对象[{refEntityName}]的主键，只支持主外键关联", ARG_REF_ENTITY_NAME, ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT = define(
-            "nop.err.orm.model.join-column-count-less-than-pk-column-count",
-            "实体[{entityName}]的关联引用属性[{propName}]的关联条件个数小于关联实体主键字段的个数，只支持主外键关联", ARG_ENTITY_NAME, ARG_REF_ENTITY_NAME,
-            ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_REF_PROP_NOT_COLUMN = define("nop.err.orm.model.ref-prop-not-column",
-            "实体[{entityName}]的关联属性[{propName}]不是数据库中的列，只支持主外键关联", ARG_ENTITY_NAME, ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_RELATION_JOIN_IS_EMPTY = define("nop.err.orm.model.relation-join-is-empty",
-            "对象[{entityName]的属性[{refName}]所对应的关联条件为空", ARG_ENTITY_NAME, ARG_REF_NAME);
-
-    ErrorCode ERR_ORM_ENTITY_MODEL_NO_PK = define("nop.err.orm.model.entity-model-no-pk", "对象模型[{entityName}]没有定义主键");
-
-    ErrorCode ERR_ORM_MODEL_REF_JOIN_MUST_ON_COLUMNS_OR_ID = define(
-            "nop.err.orm.model.ref-join-must-be-on-columns-or-id", "关联属性[{refName}]的关联条件必须定义在数据列或者主键属性上",
-            ARG_ENTITY_NAME, ARG_REF_NAME);
-
-    ErrorCode ERR_ORM_MODEL_REF_JOIN_NO_CONDITION = define("nop.err.orm.model.ref-join-no-condition",
-            "对象[{entityName}]上的关联属性[{refName}]的关联条件为空", ARG_ENTITY_NAME, ARG_REF_NAME);
-
-    ErrorCode ERR_ORM_MODEL_ENTITY_NAME_CONFLICTED = define("nop.err.orm.model.entity-name-conflicted",
-            "实体名称不能重复:{entityName}", ARG_ENTITY_NAME);
-
-    ErrorCode ERR_ORM_MODEL_MULTIPLE_STATE_PROP = define("nop.err.orm.model.multiple-state-prop",
-            "实体[{entityName}]上存在多个字段被标记为状态字段:{propName},{otherPropName}", ARG_ENTITY_NAME, ARG_PROP_NAME,
-            ARG_OTHER_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_INVALID_PROP_NAME = define("nop.err.orm.model.invalid-prop-name",
-            "实体[{entityName}]的属性名称[{propName}]格式不正确", ARG_ENTITY_NAME, ARG_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_MULTIPLE_VERSION_PROP = define("nop.err.orm.model.multiple-version-prop",
-            "实体[{entityName}]上存在多个字段被标记为乐观锁字段:{propName},{otherPropName}", ARG_ENTITY_NAME, ARG_PROP_NAME,
-            ARG_OTHER_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_MULTIPLE_LABEL_PROP = define("nop.err.orm.model.multiple-label-prop",
-            "实体[{entityName}]上存在多个字段被标记为文本名称字段:{propName},{otherPropName}", ARG_ENTITY_NAME, ARG_PROP_NAME,
-            ARG_OTHER_PROP_NAME);
-
-    ErrorCode ERR_ORM_MODEL_INVALID_COLUMN_DOMAIN = define("nop.err.orm.model.invalid-column-domain",
-            "实体[{entityName}]上的列[{colName}]上设置的数据域[{domain}]未在模型中定义", ARG_ENTITY_NAME, ARG_COL_NAME, ARG_DOMAIN);
-
-    ErrorCode ERR_ORM_MODEL_COL_NO_STD_SQL_TYPE = define("nop.err.orm.model.col-no-std-sql-type",
-            "实体[{entityName}]上的列[{colName}]上没有设置sql数据类型也没有指定数据域");
-
-    ErrorCode ERR_ORM_MODEL_COL_DATA_TYPE_NOT_MATCH_DOMAIN_DEFINITION = define(
-            "nop.err.orm.model.col-data-type-not-match-domain-definition",
-            "实体[{entityName}]上的列[{colName}]的数据类型定义[{dataType}]与数据域上的类型定义[domainDataType]不一致");
-
-    ErrorCode ERR_ORM_MODEL_UNKNOWN_COMPONENT_PROP = define("nop.err.orm.model.unknown-component-prop",
-            "组件对象[{componentClass}]上没有定义属性[{propName}]", ARG_COMPONENT_CLASS, ARG_PROP_NAME);
-
     ErrorCode ERR_SQL_LIB_CONVERT_RETURN_TYPE_FAIL = define("nop.err.orm.sql-lib.convert-return-type-fail", "结果类型转换错误");
 
-    ErrorCode ERR_ORM_INVALID_DATA_TYPE = define("nop.err.orm.invalid-sql-type", "SQL数据类型格式不正确");
 
     ErrorCode ERR_ORM_INVALID_FIELD_NAME = define("nop.err.orm.invalid-field-name", "非法的字段名称:{fieldName}",
             ARG_FIELD_NAME);

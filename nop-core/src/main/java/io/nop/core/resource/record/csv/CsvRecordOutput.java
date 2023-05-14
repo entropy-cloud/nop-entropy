@@ -8,11 +8,11 @@
 package io.nop.core.resource.record.csv;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.record.IRecordOutput;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.dataset.record.IRecordOutput;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 

@@ -13,8 +13,8 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.cache.ICache;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dao.dataset.IComplexDataSet;
-import io.nop.dao.dataset.IDataSet;
+import io.nop.dataset.IComplexDataSet;
+import io.nop.dataset.IDataSet;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;

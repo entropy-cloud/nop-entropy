@@ -10,7 +10,7 @@ package io.nop.dao.dialect.function;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.sql.ISqlExpr;
 import io.nop.core.lang.sql.SqlExprList;
-import io.nop.core.lang.sql.StdSqlType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.IDialect;
 
 import java.util.List;

@@ -8,7 +8,7 @@
 package io.nop.dao.dialect.impl;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.core.lang.sql.StdSqlType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.model.SqlDataTypeModel;
 

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.nop.auth.dao.entity._gen._NopAuthResource.PROP_NAME_children;
-import static io.nop.orm.support.OrmEntityHelper.buildCollectionName;
+import static io.nop.orm.model.utils.OrmModelHelper.buildCollectionName;
 
 @BizModel("NopAuthResource")
 public class NopAuthResourceBizModel extends CrudBizModel<NopAuthResource> {

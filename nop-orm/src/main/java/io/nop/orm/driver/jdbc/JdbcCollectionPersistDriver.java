@@ -11,8 +11,8 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.collections.IntArray;
 import io.nop.core.lang.sql.SQL;
-import io.nop.core.lang.sql.binder.IDataParameterBinder;
-import io.nop.dao.dataset.IDataRow;
+import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.dataset.IDataRow;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.shard.ShardSelection;
@@ -20,6 +20,7 @@ import io.nop.dao.utils.DaoHelper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.driver.ICollectionPersistDriver;
+import io.nop.orm.eql.binder.OrmBinderHelper;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.persister.IPersistEnv;
@@ -59,7 +60,7 @@ public class JdbcCollectionPersistDriver implements ICollectionPersistDriver {
         this.refEntityModel = relation.getRefEntityModel();
         this.querySpace = DaoHelper.normalizeQuerySpace(refEntityModel.getQuerySpace());
         this.dialect = env.getDialectForQuerySpace(querySpace);
-        this.binders = OrmAssembly.buildBinders(dialect, refEntityModel, env.getColumnBinderEnhancer());
+        this.binders = OrmBinderHelper.buildBinders(dialect, refEntityModel, env.getColumnBinderEnhancer());
         this.loadSql = GenSqlHelper.genCollectionLoadSql(dialect, relation, binders,
                 refEntityModel.getEagerLoadProps());
         this.batchLoadSqlPart = GenSqlHelper.genCollectionBatchLoadSqlPart(dialect, relation,

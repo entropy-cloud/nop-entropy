@@ -28,4 +28,7 @@ public interface IDaoEntity extends IWithIdentifier {
 
     Map<String, Object> orm_initedValues();
 
+    Object orm_propValueByName(String name);
+
+    void orm_propValueByName(String name, Object value);
 }

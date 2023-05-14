@@ -10,7 +10,7 @@ package io.nop.core.lang.sql;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.text.marker.Markers;
 import io.nop.commons.type.StdDataType;
-import io.nop.core.lang.sql.binder.IDataParameterBinder;
+import io.nop.dataset.binder.IDataParameterBinder;
 
 public class TypedValueMarker extends Markers.ValueMarker {
     private final IDataParameterBinder binder;

@@ -7,14 +7,14 @@
  */
 package io.nop.core.resource.record.csv;
 
-import io.nop.commons.record.IRecordInput;
-import io.nop.commons.record.IRecordOutput;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordIO;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.dataset.record.IRecordInput;
+import io.nop.dataset.record.IRecordOutput;
 import org.apache.commons.csv.CSVFormat;
 
 import java.lang.reflect.Type;

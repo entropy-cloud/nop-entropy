@@ -9,8 +9,8 @@ package io.nop.dao.api;
 
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dao.dataset.IRowMapper;
-import io.nop.dao.dataset.rowmapper.RowMapperFirstExtractor;
+import io.nop.dataset.IRowMapper;
+import io.nop.dataset.rowmapper.RowMapperFirstExtractor;
 
 public abstract class AbstractSqlExecutor implements ISqlExecutor {
     /**

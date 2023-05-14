@@ -16,6 +16,7 @@ import io.nop.orm.OrmErrors;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.support.OrmEntityHelper;
 
 import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
@@ -38,17 +39,17 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             if (col.getPropId() == entityModel.getTenantPropId()) {
                 initTenantId(col, entity);
             } else if (col.containsTag(OrmConstants.TAG_SEQ)) {
-                Object value = col.getPropValue(entity);
+                Object value = OrmEntityHelper.getPropValue(col, entity);
                 if (value == null) {
                     if (col.getStdDataType().isNumericType()) {
                         value = sequenceGenerator.generateLong(entityModel.getName(), true);
                     } else {
                         value = sequenceGenerator.generateString(entityModel.getName(), true);
                     }
-                    col.setPropValue(entity, value);
+                    OrmEntityHelper.setPropValue(col, entity, value);
                 }
             } else {
-                Object value = col.getPropValue(entity);
+                Object value = OrmEntityHelper.getPropValue(col, entity);
                 if (value == null)
                     throw new OrmException(ERR_ORM_ENTITY_ID_NOT_SET).param(ARG_ENTITY_NAME, entityModel.getName())
                             .param(ARG_PROP_NAME, col.getName());
@@ -62,9 +63,9 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             throw new OrmException(OrmErrors.ERR_ORM_MISSING_TENANT_ID).param(ARG_ENTITY_NAME, entity.orm_entityName())
                     .param(ARG_ENTITY_ID, entity.orm_id());
 
-        String tenantId = (String) col.getPropValue(entity);
+        String tenantId = (String) OrmEntityHelper.getPropValue(col, entity);
         if (StringHelper.isEmpty(tenantId)) {
-            col.setPropValue(entity, tenantId);
+            OrmEntityHelper.setPropValue(col, entity, tenantId);
         } else {
             if (!current.equals(tenantId))
                 throw new OrmException(OrmErrors.ERR_ORM_NOT_ALLOW_PROCESS_ENTITY_IN_OTHER_TENANT)

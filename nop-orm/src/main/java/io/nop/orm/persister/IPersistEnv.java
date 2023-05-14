@@ -13,7 +13,7 @@ import io.nop.core.reflect.bean.IBeanConstructor;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.ITransactionTemplate;
-import io.nop.orm.IOrmColumnBinderEnhancer;
+import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmSessionFactory;

@@ -15,28 +15,28 @@ import io.nop.commons.collections.ImmutableIntArray;
 import io.nop.commons.collections.IntArray;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.mutable.MutableInt;
-import io.nop.commons.text.CharacterCase;
 import io.nop.commons.text.marker.MarkedString;
 import io.nop.commons.text.marker.Markers;
 import io.nop.commons.type.StdDataType;
-import io.nop.commons.util.StringHelper;
+import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.SQL;
-import io.nop.core.lang.sql.StdSqlType;
 import io.nop.core.lang.sql.SyntaxMarker;
 import io.nop.core.lang.sql.TypedValueMarker;
-import io.nop.core.lang.sql.binder.IDataParameterBinder;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.lock.LockOption;
 import io.nop.dao.shard.ShardSelection;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmConstants;
+import io.nop.orm.eql.OrmEqlConstants;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.support.OrmEntityHelper;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,6 +47,7 @@ import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_PROP_NOT_UPDATABLE;
+import static io.nop.orm.eql.utils.EqlHelper.appendCol;
 
 public class GenSqlHelper {
 
@@ -431,7 +432,7 @@ public class GenSqlHelper {
                 sb.and();
             appendCol(sb, dialect, owner, tenantCol);
             sb.append('=');
-            sb.markWithProvider("?", OrmConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId());
+            sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId());
             append = true;
             needAnd = true;
         }
@@ -449,14 +450,6 @@ public class GenSqlHelper {
             sb.appendMarker(new Markers.NameMarker(startPos, endPos, "logicalDelete"));
         }
         return append;
-    }
-
-    public static Object getBooleanValue(StdSqlType sqlType, IDialect dialect, boolean value) {
-        if (sqlType == StdSqlType.BOOLEAN)
-            return value;
-        if (sqlType == StdSqlType.VARCHAR)
-            return value ? "1" : "0";
-        return value ? 1 : 0;
     }
 
     public static String getBooleanLiteral(StdSqlType sqlType, IDialect dialect, boolean value) {
@@ -498,7 +491,7 @@ public class GenSqlHelper {
                 if (i != 0)
                     sb.append(',');
                 IOrmEntity entity = coll.orm_owner();
-                sb.param(cast(entity, ownerJoin.getLeftProp(), ownerJoin.getLeftValue(entity),
+                sb.param(cast(entity, ownerJoin.getLeftProp(), OrmEntityHelper.getLeftValue(ownerJoin, entity),
                         ownerJoin.getRightType()));
                 i++;
             }
@@ -515,7 +508,7 @@ public class GenSqlHelper {
                     if (k != 0)
                         sb.append(',');
                     IEntityJoinConditionModel ownerJoin = ownerJoins.get(k);
-                    sb.param(cast(entity, ownerJoin.getLeftProp(), ownerJoin.getLeftValue(entity),
+                    sb.param(cast(entity, ownerJoin.getLeftProp(), OrmEntityHelper.getLeftValue(ownerJoin, entity),
                             ownerJoin.getRightType()));
                 }
                 sb.append(')');
@@ -644,19 +637,6 @@ public class GenSqlHelper {
         }
     }
 
-    public static void appendCol(SQL.SqlBuilder sb, IDialect dialect, String owner, IColumnModel col) {
-        String sqlText = col.getSqlText();
-        if (sqlText != null) {
-            sqlText = replaceOwner(owner, sqlText);
-            sb.append(sqlText);
-        } else {
-            String code = col.getCode();
-            sb.owner(owner);
-            code = dialect.escapeSQLName(code);
-            sb.append(code);
-        }
-    }
-
     public static void appendEq(SQL.SqlBuilder sb, IDialect dialect, String owner, IColumnModel col,
                                 IDataParameterBinder binder, Object value) {
         appendCol(sb, dialect, owner, col);
@@ -669,7 +649,7 @@ public class GenSqlHelper {
     }
 
     public static Object castProp(IOrmEntity entity, IEntityPropModel propModel, StdDataType targetType) {
-        Object value = propModel.getPropValue(entity);
+        Object value = OrmEntityHelper.getPropValue(propModel, entity);
         return cast(entity, propModel.getName(), value, targetType);
     }
 
@@ -787,55 +767,4 @@ public class GenSqlHelper {
         }
     }
 
-    public static String replaceOwner(String owner, String sqlText) {
-        // 如果指定了sqlText，则以sqlText为准，有可能是函数调用之类的。例如 my_func({prefix}colA,{prefix}colB)
-        if (sqlText.indexOf(OrmConstants.PREFIX_PLACEHOLDER) >= 0) {
-            if (owner == null) {
-                sqlText = StringHelper.replace(sqlText, OrmConstants.PREFIX_PLACEHOLDER, "");
-            } else {
-                sqlText = StringHelper.replace(sqlText, OrmConstants.PREFIX_PLACEHOLDER, owner + ".");
-            }
-        }
-        return sqlText;
-    }
-
-    public static String getColumnName(IDialect dialect, IColumnModel col) {
-        String sqlText = col.getSqlText();
-        if (sqlText != null)
-            return "@" + sqlText;
-        sqlText = dialect.escapeSQLName(col.getCode());
-        return sqlText;
-    }
-
-    public static void genColumnNames(IDialect dialect, IEntityPropModel propModel, List<String> colNames) {
-        for (IColumnModel col : propModel.getColumns()) {
-            String colName = getColumnName(dialect, col);
-            colNames.add(colName);
-        }
-    }
-
-    public static List<String> getPropColumnNames(IDialect dialect, IEntityPropModel propModel) {
-        List<? extends IColumnModel> cols = propModel.getColumns();
-        List<String> ret = new ArrayList<>(cols.size());
-        for (IColumnModel col : cols) {
-            ret.add(getColumnName(dialect, col));
-        }
-        return ret;
-    }
-
-    public static String normalizeTableName(IDialect dialect, String tableName) {
-        CharacterCase characterCase = dialect.getTableNameCase();
-        if (characterCase != null) {
-            tableName = characterCase.normalize(tableName);
-        }
-        return dialect.escapeSQLName(tableName);
-    }
-
-    public static String normalizeColName(IDialect dialect, String tableName) {
-        CharacterCase characterCase = dialect.getColumnNameCase();
-        if (characterCase != null) {
-            tableName = characterCase.normalize(tableName);
-        }
-        return dialect.escapeSQLName(tableName);
-    }
 }

@@ -21,11 +21,12 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-antlr4-common</artifactId>
+            <artifactId>nop-orm-eql</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-codegen</artifactId>
+            <artifactId>nop-orm-model</artifactId>
         </dependency>
 
         <dependency>

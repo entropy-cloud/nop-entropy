@@ -23,7 +23,7 @@ import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.IJsonContainer;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.jpath.JPath;
-import io.nop.core.lang.sql.StdSqlType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XJsonNode;
 import io.nop.core.lang.xml.XNode;

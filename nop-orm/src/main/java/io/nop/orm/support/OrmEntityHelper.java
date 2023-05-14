@@ -13,7 +13,6 @@ import io.nop.orm.IOrmCompositePk;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.exceptions.OrmException;
-import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -35,9 +34,6 @@ import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ERR_ORM_NOT_SINGLETON_SET;
 
 public class OrmEntityHelper {
-    public static String buildCollectionName(String entityName, String propName) {
-        return entityName + '@' + propName;
-    }
 
     public static void copyRefProps(IOrmEntity entity, IEntityRelationModel rel, IOrmEntity relatedEntity) {
         for (IEntityJoinConditionModel cond : rel.getJoin()) {
@@ -45,8 +41,8 @@ public class OrmEntityHelper {
             if (leftCol == null)
                 continue;
 
-            Object rightValue = cond.getRightValue(relatedEntity);
-            leftCol.setPropValue(entity, rightValue);
+            Object rightValue = getRightValue(cond, relatedEntity);
+            setPropValue(leftCol, entity, rightValue);
         }
     }
 
@@ -73,6 +69,28 @@ public class OrmEntityHelper {
                 return false;
         }
         return true;
+    }
+
+    public static Object getPropValue(IEntityPropModel propModel, IOrmEntity entity) {
+        if (propModel.isColumnModel()) {
+            return entity.orm_propValue(propModel.getColumnPropId());
+        }else if(propModel.isCompositePk()){
+            return entity.orm_idString();
+        }else {
+            return entity.orm_propValueByName(propModel.getName());
+        }
+    }
+
+    public static void setPropValue(IEntityPropModel propModel, IOrmEntity entity, Object value) {
+        if (propModel.isColumnModel()) {
+            entity.orm_propValue(propModel.getColumnPropId(), value);
+        }else if(propModel.isCompositePk()){
+            IEntityModel entityModel = propModel.getOwnerEntityModel();
+            Object id = OrmEntityHelper.castId(entityModel, value);
+            OrmEntityHelper.setId(entityModel, entity, id);
+        } else {
+            entity.orm_propValueByName(propModel.getName(), value);
+        }
     }
 
     public static boolean isAnyPropNull(IOrmEntity entity, int[] propIds) {
@@ -143,14 +161,14 @@ public class OrmEntityHelper {
     public static Object getOwnerKey(IEntityRelationModel collectionModel, IOrmEntity refEntity) {
         IEntityJoinConditionModel ownerIdJoin = collectionModel.getSingleColumnJoin();
         if (ownerIdJoin != null) {
-            Object value = ownerIdJoin.getRightValue(refEntity);
+            Object value = getRightValue(ownerIdJoin, refEntity);
             return value;
         } else {
             List<Object> list = new ArrayList<>(collectionModel.getJoin().size());
             for (IEntityJoinConditionModel join : collectionModel.getJoin()) {
                 if (join.getRightProp() == null)
                     continue;
-                Object value = join.getRightValue(refEntity);
+                Object value = getRightValue(join, refEntity);
                 list.add(value);
             }
             return list;
@@ -160,7 +178,7 @@ public class OrmEntityHelper {
     public static Object getOwnerKey(IEntityRelationModel relModel, IOrmEntitySet coll) {
         IEntityJoinConditionModel singleJoin = relModel.getSingleColumnJoin();
         if (singleJoin != null) {
-            Object value = singleJoin.getLeftValue(coll.orm_owner());
+            Object value = getLeftValue(singleJoin, coll.orm_owner());
             value = singleJoin.getRightType().convert(value, NopEvalException::new);
             return value;
         } else {
@@ -169,12 +187,26 @@ public class OrmEntityHelper {
                 if (join.getRightProp() == null)
                     continue;
 
-                Object value = join.getLeftValue(coll.orm_owner());
+                Object value = getLeftValue(join, coll.orm_owner());
                 value = join.getRightType().convert(value, NopEvalException::new);
                 list.add(value);
             }
             return list;
         }
+    }
+
+    public static Object getLeftValue(IEntityJoinConditionModel join, IOrmEntity owner) {
+        IEntityPropModel propModel = join.getLeftPropModel();
+        if (propModel != null)
+            return getPropValue(propModel, owner);
+        return join.getLeftValue();
+    }
+
+    public static Object getRightValue(IEntityJoinConditionModel join, IOrmEntity entity) {
+        IEntityPropModel propModel = join.getRightPropModel();
+        if (propModel != null)
+            return getPropValue(propModel, entity);
+        return join.getRightValue();
     }
 
     /**
@@ -194,14 +226,6 @@ public class OrmEntityHelper {
             change.add(oldValue);
             change.add(entity.orm_propValue(propId));
         });
-        return ret;
-    }
-
-    public static int[] getPropIds(List<? extends IColumnModel> cols) {
-        int[] ret = new int[cols.size()];
-        for (int i = 0, n = cols.size(); i < n; i++) {
-            ret[i] = cols.get(i).getPropId();
-        }
         return ret;
     }
 

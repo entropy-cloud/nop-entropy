@@ -16,7 +16,7 @@ import java.util.Map;
 
 import static io.nop.orm.OrmErrors.ARG_COMPONENT_CLASS;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
-import static io.nop.orm.OrmErrors.ERR_ORM_MODEL_UNKNOWN_COMPONENT_PROP;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_MODEL_UNKNOWN_COMPONENT_PROP;
 
 public abstract class AbstractOrmComponent implements IOrmComponent {
     private IOrmEntity owner;

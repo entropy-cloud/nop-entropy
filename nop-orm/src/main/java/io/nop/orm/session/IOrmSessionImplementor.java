@@ -13,6 +13,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmSession;
+import io.nop.orm.eql.IEqlQueryContext;
 import io.nop.orm.loader.IOrmBatchLoadQueueImplementor;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
@@ -26,7 +27,7 @@ import java.util.concurrent.CompletionStage;
  * <p>
  * session.flush(entity) --> session.flushSave(entity) --> persister.save(entity) --> session.persisterPostSave(entity)
  */
-public interface IOrmSessionImplementor extends IOrmSession, IOrmEntityEnhancer {
+public interface IOrmSessionImplementor extends IOrmSession, IOrmEntityEnhancer, IEqlQueryContext {
 
     IOrmBatchLoadQueueImplementor getBatchLoadQueue();
 

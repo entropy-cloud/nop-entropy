@@ -10,7 +10,7 @@ package io.nop.dbtool.core.discovery.jdbc;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
-import io.nop.core.lang.sql.StdSqlType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.SQLDataType;

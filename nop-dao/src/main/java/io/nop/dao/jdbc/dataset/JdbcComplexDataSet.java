@@ -8,8 +8,8 @@
 package io.nop.dao.jdbc.dataset;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.dao.dataset.IComplexDataSet;
-import io.nop.dao.dataset.IDataSet;
+import io.nop.dataset.IComplexDataSet;
+import io.nop.dataset.IDataSet;
 import io.nop.dao.dialect.IDialect;
 
 import java.sql.PreparedStatement;

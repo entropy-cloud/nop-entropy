@@ -349,8 +349,8 @@ public class CascadeFlusher {
                 for (IEntityJoinConditionModel join : relModel.getJoin()) {
                     IEntityPropModel rightProp = join.getRightPropModel();
                     if (rightProp != null) {
-                        Object leftValue = join.getLeftValue(owner);
-                        rightProp.setPropValue(entity, leftValue);
+                        Object leftValue = OrmEntityHelper.getLeftValue(join, owner);
+                        OrmEntityHelper.setPropValue(rightProp, entity, leftValue);
                     }
                 }
             }

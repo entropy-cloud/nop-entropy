@@ -8,9 +8,6 @@
 package io.nop.core.resource.record.csv;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.record.IRecordInput;
-import io.nop.commons.record.IRecordResourceMeta;
-import io.nop.commons.record.RecordResourceMeta;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
@@ -18,6 +15,9 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.dataset.record.IRecordInput;
+import io.nop.dataset.record.IRecordResourceMeta;
+import io.nop.dataset.record.RecordResourceMeta;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;

@@ -9,14 +9,10 @@ package io.nop.orm.persister;
 
 import io.nop.commons.collections.IntArray;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.lang.sql.binder.IDataParameterBinder;
-import io.nop.core.lang.sql.binder.IDataParameters;
-import io.nop.dao.dialect.IDialect;
-import io.nop.orm.IOrmColumnBinderEnhancer;
+import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.dataset.binder.IDataParameters;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
-import io.nop.orm.exceptions.OrmException;
-import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
@@ -27,11 +23,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.orm.OrmErrors.ARG_COL_NAME;
-import static io.nop.orm.OrmErrors.ARG_DATA_TYPE;
-import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
-import static io.nop.orm.OrmErrors.ARG_SQL_TYPE;
-import static io.nop.orm.OrmErrors.ERR_ORM_NULL_BINDER_FOR_COLUMN;
 import static io.nop.orm.support.OrmEntityHelper.getOwnerKey;
 
 public class OrmAssembly {
@@ -155,24 +146,6 @@ public class OrmAssembly {
         Object[] ids = new Object[n];
         System.arraycopy(values, fromIndex, ids, 0, n);
         return new OrmCompositePk(entityModel.getPkColumnNames(), ids);
-    }
-
-    public static IDataParameterBinder[] buildBinders(IDialect dialect, IEntityModel entityModel,
-                                                      IOrmColumnBinderEnhancer binderEnhancer) {
-        List<? extends IColumnModel> cols = entityModel.getColumns();
-        IDataParameterBinder[] binders = new IDataParameterBinder[entityModel.getPropIdBound()];
-        for (int i = 0, n = cols.size(); i < n; i++) {
-            IColumnModel col = cols.get(i);
-            IDataParameterBinder binder = dialect.getDataParameterBinder(col.getStdDataType(), col.getStdSqlType());
-            if (binder == null)
-                throw new OrmException(ERR_ORM_NULL_BINDER_FOR_COLUMN).source(col)
-                        .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_COL_NAME, col.getName())
-                        .param(ARG_DATA_TYPE, col.getStdDataType()).param(ARG_SQL_TYPE, col.getStdSqlType());
-            if (binderEnhancer != null)
-                binder = binderEnhancer.enhanceBinder(entityModel, col, binder);
-            binders[col.getPropId()] = binder;
-        }
-        return binders;
     }
 
     public static Object readId(IEntityModel entityModel, IDataParameters params, IDataParameterBinder[] binders,

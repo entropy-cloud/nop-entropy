@@ -7,6 +7,8 @@
  */
 package io.nop.core.lang.sql;
 
+import io.nop.commons.type.StdSqlType;
+
 /**
  * 对SQL文本片段的简单封装，用于组装函数表达式
  *

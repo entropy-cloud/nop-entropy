@@ -12,7 +12,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.sql.ISqlExpr;
 import io.nop.core.lang.sql.SqlExprList;
-import io.nop.core.lang.sql.StdSqlType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.StringSqlExpr;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.model.SqlNativeFunctionModel;

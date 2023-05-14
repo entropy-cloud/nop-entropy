@@ -19,6 +19,7 @@
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
 /nop/core/registry/imp.register-model.xml
+/nop/core/registry/orm-pdm.register-model.xml
 /nop/core/registry/orm.register-model.xml
 /nop/core/registry/xlib.register-model.xml
 /nop/core/registry/xmeta.register-model.xml

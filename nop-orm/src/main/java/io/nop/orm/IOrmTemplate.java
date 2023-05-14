@@ -12,7 +12,7 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.commons.cache.ICache;
 import io.nop.dao.api.ISqlExecutor;
-import io.nop.dao.dataset.IRowMapper;
+import io.nop.dataset.IRowMapper;
 import io.nop.orm.model.IOrmModel;
 
 import javax.annotation.Nonnull;

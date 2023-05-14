@@ -18,7 +18,7 @@ import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.seq.UuidSequenceGenerator;
 import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
-import io.nop.orm.IOrmColumnBinderEnhancer;
+import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.eql.IEqlAstTransformer;
 import io.nop.orm.loader.IQueryExecutor;

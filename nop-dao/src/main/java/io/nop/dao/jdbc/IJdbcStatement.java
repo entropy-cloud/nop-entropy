@@ -7,7 +7,7 @@
  */
 package io.nop.dao.jdbc;
 
-import io.nop.core.lang.sql.binder.IDataParameters;
+import io.nop.dataset.binder.IDataParameters;
 
 public interface IJdbcStatement extends IDataParameters, AutoCloseable {
     long executeUpdate();

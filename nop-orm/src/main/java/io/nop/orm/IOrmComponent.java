@@ -7,9 +7,11 @@
  */
 package io.nop.orm;
 
+import io.nop.dao.api.IDaoComponent;
+
 import java.util.Map;
 
-public interface IOrmComponent {
+public interface IOrmComponent extends IDaoComponent {
     Object orm_propValueByName(String propName);
 
     void orm_propValueByName(String propName, Object value);

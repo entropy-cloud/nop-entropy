@@ -54,10 +54,7 @@ public interface DaoErrors {
     String ARG_TS = "ts";
     String ARG_LAST_TS = "lastTs";
 
-    ErrorCode ERR_DATASET_IS_READONLY = define("nop.err.dao.dataset.is-read-only", "只读数据集不允许修改");
 
-    ErrorCode ERR_DATASET_UNKNOWN_COLUMN = define("nop.err.dao.dataset.unknown-column", "未知的数据列:{colName}",
-            ARG_COL_NAME);
 
     ErrorCode ERR_TXN_NOT_IN_TRANSACTION = define("nop.err.dao.txn.not-in-transaction",
             "要求上下文环境必须存在已经启动的事务:{querySpace}", ARG_QUERY_SPACE);

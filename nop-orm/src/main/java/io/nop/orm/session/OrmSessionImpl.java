@@ -21,8 +21,9 @@ import io.nop.commons.collections.IntArray;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dao.dataset.IComplexDataSet;
-import io.nop.dao.dataset.IDataSet;
+import io.nop.dao.api.IDaoEntity;
+import io.nop.dataset.IComplexDataSet;
+import io.nop.dataset.IDataSet;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
@@ -41,6 +42,7 @@ import io.nop.orm.persister.IBatchActionQueue;
 import io.nop.orm.persister.ICollectionPersister;
 import io.nop.orm.persister.IEntityPersister;
 import io.nop.orm.persister.IPersistEnv;
+import io.nop.orm.persister.OrmAssembly;
 import io.nop.orm.support.OrmCompositePk;
 import io.nop.orm.support.OrmEntityHelper;
 import org.slf4j.Logger;
@@ -1029,7 +1031,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         Object id;
         if (join.size() == 1) {
             IEntityJoinConditionModel cond = join.get(0);
-            Object value = cond.getLeftValue(entity);
+            Object value = OrmEntityHelper.getLeftValue(cond, entity);
             if (value == null)
                 return null;
             id = OrmEntityHelper.castId(refEntityModel, value);
@@ -1037,7 +1039,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             Object[] values = new Object[join.size()];
             for (int i = 0, n = values.length; i < n; i++) {
                 IEntityJoinConditionModel cond = join.get(i);
-                Object value = cond.getLeftValue(entity);
+                Object value = OrmEntityHelper.getLeftValue(cond, entity);
                 // 如果复合主键中存在字段的值为null，则直接返回null。这里假设了主键字段都不为null
                 if (value == null)
                     return null;
@@ -1207,4 +1209,20 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         this.entityMode = entityMode;
     }
 
+    @Override
+    public Object internalReadId(Object[] values, int fromIndex, IEntityModel entityModel) {
+        return OrmAssembly.readId(values, fromIndex, entityModel);
+    }
+
+    @Override
+    public Object castId(IEntityModel entityModel, Object id) {
+        return OrmEntityHelper.castId(entityModel, id);
+    }
+
+    @Override
+    public IDaoEntity internalMakeEntity(String entityName, Object id, Object[] propValues, IntArray propIds) {
+        IOrmEntity entity = internalLoad(entityName, id);
+        internalAssemble(entity, propValues, propIds);
+        return entity;
+    }
 }

@@ -19,7 +19,7 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
      * xml name: argTypes
      * 
      */
-    private java.util.List<io.nop.core.lang.sql.StdSqlType> _argTypes ;
+    private java.util.List<io.nop.commons.type.StdSqlType> _argTypes ;
     
     /**
      *  
@@ -40,7 +40,7 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
      * xml name: returnType
      * 
      */
-    private io.nop.core.lang.sql.StdSqlType _returnType ;
+    private io.nop.commons.type.StdSqlType _returnType ;
     
     /**
      *  
@@ -69,12 +69,12 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public java.util.List<io.nop.core.lang.sql.StdSqlType> getArgTypes(){
+    public java.util.List<io.nop.commons.type.StdSqlType> getArgTypes(){
       return _argTypes;
     }
 
     
-    public void setArgTypes(java.util.List<io.nop.core.lang.sql.StdSqlType> value){
+    public void setArgTypes(java.util.List<io.nop.commons.type.StdSqlType> value){
         checkAllowChange();
         
         this._argTypes = value;
@@ -126,12 +126,12 @@ public abstract class _SqlTemplateModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public io.nop.core.lang.sql.StdSqlType getReturnType(){
+    public io.nop.commons.type.StdSqlType getReturnType(){
       return _returnType;
     }
 
     
-    public void setReturnType(io.nop.core.lang.sql.StdSqlType value){
+    public void setReturnType(io.nop.commons.type.StdSqlType value){
         checkAllowChange();
         
         this._returnType = value;

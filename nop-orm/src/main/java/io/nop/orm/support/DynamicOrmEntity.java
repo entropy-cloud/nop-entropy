@@ -301,7 +301,7 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
             } else {
                 for (IEntityJoinConditionModel join : refModel.getJoin()) {
                     if (join.getLeftProp() != null) {
-                        Object value = join.getRightValue(refEntity);
+                        Object value = OrmEntityHelper.getRightValue(join, refEntity);
                         orm_propValue(join.getLeftPropModel().getColumnPropId(), value);
                     }
                 }

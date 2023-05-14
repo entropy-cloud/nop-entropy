@@ -7,6 +7,8 @@
  */
 package io.nop.core.lang.sql;
 
+import io.nop.commons.type.StdSqlType;
+
 import java.io.Serializable;
 
 /**

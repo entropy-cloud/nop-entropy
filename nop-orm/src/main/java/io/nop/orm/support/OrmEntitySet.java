@@ -17,6 +17,7 @@ import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmKeyValueTable;
 import io.nop.orm.OrmEntityState;
 import io.nop.orm.exceptions.OrmException;
+import io.nop.orm.model.utils.OrmModelHelper;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -84,7 +85,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp,
                         Class<? extends IOrmEntity> refEntityClass) {
         this.owner = owner;
-        this.collectionName = OrmEntityHelper.buildCollectionName(owner.orm_entityName(), propName);
+        this.collectionName = OrmModelHelper.buildCollectionName(owner.orm_entityName(), propName);
         this.propName = propName;
         this.refPropName = refPropName;
         this.keyProp = keyProp;

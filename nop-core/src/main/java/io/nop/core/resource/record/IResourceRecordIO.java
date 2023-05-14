@@ -7,9 +7,9 @@
  */
 package io.nop.core.resource.record;
 
-import io.nop.commons.record.IRecordInput;
-import io.nop.commons.record.IRecordOutput;
 import io.nop.core.resource.IResource;
+import io.nop.dataset.record.IRecordInput;
+import io.nop.dataset.record.IRecordOutput;
 
 public interface IResourceRecordIO<T> {
     IRecordInput<T> openInput(IResource resource, String encoding);

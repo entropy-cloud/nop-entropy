@@ -481,5 +481,10 @@
         <module>nop-orm-graphql</module>
         <module>nop-codec</module>
         <module>nop-tool</module>
+        <module>nop-stream</module>
+        <module>nop-dataset</module>
+        <module>nop-orm-model</module>
+        <module>nop-orm-eql</module>
+        <module>nop-orm-pdm</module>
     </modules>
 </project>

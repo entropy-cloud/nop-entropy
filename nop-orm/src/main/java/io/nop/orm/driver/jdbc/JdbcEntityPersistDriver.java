@@ -12,8 +12,8 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.collections.IntArray;
 import io.nop.core.lang.sql.SQL;
-import io.nop.core.lang.sql.binder.IDataParameterBinder;
-import io.nop.dao.dataset.IDataRow;
+import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.dataset.IDataRow;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.lock.LockOption;
 import io.nop.dao.jdbc.IJdbcTemplate;
@@ -25,6 +25,7 @@ import io.nop.dao.utils.DaoHelper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmErrors;
 import io.nop.orm.driver.IEntityPersistDriver;
+import io.nop.orm.eql.binder.OrmBinderHelper;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.persister.IBatchAction;
@@ -79,7 +80,7 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
         this.jdbcTemplate = env.jdbc();
         this.querySpace = DaoHelper.normalizeQuerySpace(entityModel.getQuerySpace());
         this.dialect = env.getDialectForQuerySpace(querySpace);
-        this.binders = OrmAssembly.buildBinders(dialect, entityModel, env.getColumnBinderEnhancer());
+        this.binders = OrmBinderHelper.buildBinders(dialect, entityModel, env.getColumnBinderEnhancer());
 
         this.findLatestSql = entityModel.getNopRevEndVarPropId() > 0
                 ? GenSqlHelper.genFindLatestSql(dialect, entityModel, binders, entityModel.getEagerLoadProps()) : null;

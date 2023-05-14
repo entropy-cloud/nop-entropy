@@ -50,8 +50,8 @@ import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_UNKNOWN_PROP;
 import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_PROP_ID;
 import static io.nop.orm.OrmErrors.ERR_ORM_NULL_ENTITY_MODEL;
 import static io.nop.orm.OrmErrors.ERR_ORM_SESSION_CLOSED;
-import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_COLUMN_PROP_ID;
-import static io.nop.orm.OrmErrors.ERR_ORM_UNKNOWN_PROP;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN_PROP_ID;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_PROP;
 
 public abstract class OrmEntity implements IOrmEntity {
     private IOrmEntityEnhancer enhancer;

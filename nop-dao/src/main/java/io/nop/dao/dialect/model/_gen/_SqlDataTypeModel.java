@@ -84,7 +84,7 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
      * xml name: stdSqlType
      * 
      */
-    private io.nop.core.lang.sql.StdSqlType _stdSqlType ;
+    private io.nop.commons.type.StdSqlType _stdSqlType ;
     
     /**
      * 
@@ -265,12 +265,12 @@ public abstract class _SqlDataTypeModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public io.nop.core.lang.sql.StdSqlType getStdSqlType(){
+    public io.nop.commons.type.StdSqlType getStdSqlType(){
       return _stdSqlType;
     }
 
     
-    public void setStdSqlType(io.nop.core.lang.sql.StdSqlType value){
+    public void setStdSqlType(io.nop.commons.type.StdSqlType value){
         checkAllowChange();
         
         this._stdSqlType = value;
