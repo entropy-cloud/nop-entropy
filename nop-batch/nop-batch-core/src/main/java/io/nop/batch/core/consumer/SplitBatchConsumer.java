@@ -13,7 +13,7 @@ import io.nop.batch.core.IBatchConsumer;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskListener;
 import io.nop.commons.collections.MultiMapCollector;
-import io.nop.commons.record.IRecordSplitter;
+import io.nop.dataset.record.IRecordSplitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

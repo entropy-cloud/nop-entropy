@@ -15,7 +15,7 @@ import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskListener;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.batch.core.exceptions.BatchCancelException;
-import io.nop.commons.record.IRecordOutput;
+import io.nop.dataset.record.IRecordOutput;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordIO;

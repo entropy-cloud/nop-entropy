@@ -22,6 +22,9 @@ public class ResourceChildrenAdapter implements ITreeChildrenAdapter<IResource> 
 
     @Override
     public Collection<? extends IResource> getChildren(IResource resource) {
+        if (resource.getPath().startsWith("file:") && resource instanceof FileResource) {
+            return ((FileResource) resource).getChildren();
+        }
         return store.getChildren(resource.getPath());
     }
 }

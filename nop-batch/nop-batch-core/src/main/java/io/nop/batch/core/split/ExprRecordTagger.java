@@ -8,7 +8,7 @@
 package io.nop.batch.core.split;
 
 import io.nop.batch.core.BatchConstants;
-import io.nop.commons.record.IRecordTagger;
+import io.nop.dataset.record.IRecordTagger;
 import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
