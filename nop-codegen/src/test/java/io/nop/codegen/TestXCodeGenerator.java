@@ -66,6 +66,9 @@ public class TestXCodeGenerator extends BaseTestCase {
         assertTrue(!targetDir.getResource("child1/date2.txt").exists());
         assertEquals(time, DateHelper.parseDataTime(readText(targetDir.getResource("child1/date1.txt"))));
         assertEquals(time, DateHelper.parseDataTime(readText(targetDir.getResource("child2/date1.txt"))));
+
+        assertTrue(!targetDir.getResource("child1/child2-sub2.txt").exists());
+        assertTrue(targetDir.getResource("child1/child1-sub2.txt").exists());
     }
 
     @Test

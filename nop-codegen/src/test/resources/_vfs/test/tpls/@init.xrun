@@ -4,8 +4,10 @@
     let builder = new NestedLoopBuilder();
     builder.defineGlobalVar("root","root");
     builder.defineLoopVar("child", "root", root=> ["child1","child2"]);
+    builder.defineLoopVar("sub","child",child=>[child+"-sub1",child+"-sub2"]);
     builder.defineGlobalVar("enabled",true);
     builder.defineGlobalVar("disabled",false);
+    builder.defineGlobalVar("deltaDir",null);
 
     assign("codeGenLoop", builder.build());
 
