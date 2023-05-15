@@ -22,7 +22,7 @@ import java.util.concurrent.CompletionStage;
 
 import static io.nop.api.core.context.ContextProvider.thenOnContext;
 
-public class TccInterceptor implements IRpcServiceInterceptor {
+public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
 
     private final ITccEngine tccEngine;
     private final ITccServiceMeta serviceMeta;
@@ -31,7 +31,7 @@ public class TccInterceptor implements IRpcServiceInterceptor {
         return ApiConstants.INTERCEPTOR_PRIORITY_TCC;
     }
 
-    public TccInterceptor(ITccEngine engine, ITccServiceMeta serviceMeta) {
+    public TccRpcServiceInterceptor(ITccEngine engine, ITccServiceMeta serviceMeta) {
         this.tccEngine = engine;
         this.serviceMeta = serviceMeta;
     }

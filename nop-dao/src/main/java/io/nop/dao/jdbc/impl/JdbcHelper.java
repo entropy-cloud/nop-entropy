@@ -141,7 +141,7 @@ public class JdbcHelper {
         tableName = normalize(tableName, tableNameLowerCase);
         StdSqlType sqlType = StdSqlType.fromJdbcType(metadata.getColumnType(column));
         StdDataType dataType = sqlType == null ? StdDataType.ANY : sqlType.getStdDataType();
-        return new BaseDataFieldMeta(name, sourceName, tableName, dataType);
+        return new BaseDataFieldMeta(name, sourceName, tableName, dataType,false);
     }
 
     public static CallableStatement prepareCallableStatement(IDialect dialect, Connection conn, SQL sql)

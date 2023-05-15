@@ -22,4 +22,8 @@ public interface IDataFieldMeta extends Serializable {
     String getFieldOwnerEntityName();
 
     StdDataType getFieldStdType();
+
+    default boolean isComputed(){
+        return false;
+    }
 }

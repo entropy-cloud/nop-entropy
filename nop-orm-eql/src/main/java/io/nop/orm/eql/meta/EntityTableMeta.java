@@ -9,13 +9,13 @@ package io.nop.orm.eql.meta;
 
 import io.nop.commons.collections.IntArray;
 import io.nop.commons.type.StdDataType;
-import io.nop.commons.util.objects.PropPath;
 import io.nop.commons.type.StdSqlType;
-import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.commons.util.objects.PropPath;
 import io.nop.dao.dialect.IDialect;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.eql.binder.OrmBinderHelper;
-import io.nop.orm.model.OrmModelConstants;
+import io.nop.orm.eql.utils.EqlHelper;
 import io.nop.orm.model.ExprOrmDataType;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityComponentModel;
@@ -23,6 +23,7 @@ import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmModelConstants;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.orm.eql.utils.EqlHelper.getColumnName;
-import io.nop.orm.eql.utils.EqlHelper;
 
 public class EntityTableMeta implements ISqlTableMeta {
     private final EntityExprMeta entityExprMeta;
@@ -75,6 +75,29 @@ public class EntityTableMeta implements ISqlTableMeta {
         } else {
             valueExprMetas = Collections.emptyMap();
         }
+    }
+
+    @Override
+    public String getEntityName() {
+        return this.entityExprMeta.getEntityName();
+    }
+
+    public boolean isUseLogicalDelete() {
+        return entityExprMeta.getEntityModel().isUseLogicalDelete();
+    }
+
+//    public ISqlExprMeta getDeleteFlagPropMeta() {
+//        return propExprMetas.get(getEntityModel().getDeleteFlagProp());
+//    }
+
+    public String getDeleteFlagPropName() {
+        return getEntityModel().getDeleteFlagProp();
+    }
+
+    public Object getDeleteFlagValue(boolean b, IDialect dialect) {
+        IEntityModel entityModel = getEntityModel();
+        IColumnModel delFlagCol = entityModel.getColumnByPropId(entityModel.getDeleteFlagPropId(), false);
+        return EqlHelper.getBooleanValue(delFlagCol.getStdSqlType(), dialect, false);
     }
 
     private void addKvTableFields(IDialect dialect) {
@@ -206,7 +229,7 @@ public class EntityTableMeta implements ISqlTableMeta {
         return entityExprMeta.getEntityModel().getAliasPropPath(name);
     }
 
-    public EntityExprMeta getEntityExprMeta() {
+    public ISqlExprMeta getEntityExprMeta() {
         return entityExprMeta;
     }
 

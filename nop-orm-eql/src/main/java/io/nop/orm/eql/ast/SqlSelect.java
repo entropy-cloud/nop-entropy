@@ -14,7 +14,7 @@ import io.nop.orm.eql.ast._gen._SqlSelect;
 import io.nop.orm.eql.compile.ISqlSelect;
 import io.nop.orm.eql.compile.SqlTableScope;
 import io.nop.orm.eql.meta.ISqlExprMeta;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 import java.util.List;
 
@@ -22,13 +22,13 @@ public abstract class SqlSelect extends _SqlSelect implements ISqlExpr, ISqlSele
     private StdSqlType sqlType;
     private SqlTableScope tableScope;
 
-    private ISqlTableMeta resolvedTableMeta;
+    private ISqlSelectionMeta resolvedTableMeta;
 
-    public ISqlTableMeta getResolvedTableMeta() {
+    public ISqlSelectionMeta getResolvedTableMeta() {
         return resolvedTableMeta;
     }
 
-    public void setResolvedTableMeta(ISqlTableMeta resolvedTableMeta) {
+    public void setResolvedTableMeta(ISqlSelectionMeta resolvedTableMeta) {
         this.resolvedTableMeta = resolvedTableMeta;
     }
 

@@ -23,15 +23,18 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
     private final String sourceFieldName;
     private final String fieldOwnerEntityName;
     private final StdDataType fieldStdType;
+    private final boolean computed;
 
     public BaseDataFieldMeta(@JsonProperty("fieldName") String fieldName,
                              @JsonProperty("sourceFieldName") String sourceFieldName,
                              @JsonProperty("fieldOwnerEntityName") String fieldOwnerEntityName,
-                             @JsonProperty("fieldStdType") StdDataType fieldStdType) {
+                             @JsonProperty("fieldStdType") StdDataType fieldStdType,
+                             @JsonProperty("computed") boolean computed) {
         this.fieldName = fieldName;
         this.sourceFieldName = sourceFieldName;
         this.fieldOwnerEntityName = fieldOwnerEntityName;
         this.fieldStdType = fieldStdType;
+        this.computed = computed;
     }
 
     public static BaseDataFieldMeta fromColumnMeta(IDataFieldMeta columnMeta) {
@@ -39,12 +42,17 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
             return (BaseDataFieldMeta) columnMeta;
 
         return new BaseDataFieldMeta(columnMeta.getFieldName(), columnMeta.getSourceFieldName(),
-                columnMeta.getFieldOwnerEntityName(), columnMeta.getFieldStdType());
+                columnMeta.getFieldOwnerEntityName(), columnMeta.getFieldStdType(), columnMeta.isComputed());
     }
 
     @Override
     public String getFieldName() {
         return fieldName;
+    }
+
+    @Override
+    public boolean isComputed() {
+        return computed;
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)

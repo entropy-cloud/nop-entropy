@@ -29,24 +29,24 @@ public class CompiledSql implements ICompiledSql {
     private List<ISqlExprMeta> fieldMetas;
     private List<ISqlParamBuilder> paramBuilders = Collections.emptyList();
     private SQL sql;
-    private List<IEntityModel> readEntityModels = Collections.emptyList();
-    private IEntityModel writeEntityModel;
+    private List<String> readEntityModels = Collections.emptyList();
+    private String writeEntityModel;
 
     @Override
-    public List<IEntityModel> getReadEntityModels() {
+    public List<String> getReadEntityNames() {
         return readEntityModels;
     }
 
-    public void setReadEntityModels(List<IEntityModel> readEntityModels) {
+    public void setReadEntityModels(List<String> readEntityModels) {
         this.readEntityModels = readEntityModels;
     }
 
     @Override
-    public IEntityModel getWriteEntityModel() {
+    public String getWriteEntityName() {
         return writeEntityModel;
     }
 
-    public void setWriteEntityModel(IEntityModel writeEntityModel) {
+    public void setWriteEntityModel(String writeEntityModel) {
         this.writeEntityModel = writeEntityModel;
     }
 

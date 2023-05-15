@@ -15,6 +15,7 @@ import io.nop.dataset.impl.BaseDataFieldMeta;
 import io.nop.dataset.impl.BaseDataSetMeta;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.IEqlAstTransformer;
+import io.nop.orm.eql.OrmEqlConstants;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.ast.SqlProjection;
@@ -26,7 +27,6 @@ import io.nop.orm.eql.meta.ISqlExprMeta;
 import io.nop.orm.eql.parse.EqlASTParser;
 import io.nop.orm.eql.sql.AstToSqlGenerator;
 import io.nop.orm.eql.utils.EqlHelper;
-import io.nop.orm.eql.OrmEqlConstants;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IOrmDataType;
 
@@ -109,7 +109,7 @@ public class EqlCompiler implements ISqlCompiler {
                     ownerEntityName = propModel.getOwnerEntityModel().getName();
                 }
                 BaseDataFieldMeta field = new BaseDataFieldMeta(fieldName, sourceFieldName, ownerEntityName,
-                        exprMeta.getStdDataType());
+                        exprMeta.getStdDataType(), false);
                 fields.add(field);
             }
             BaseDataSetMeta meta = new BaseDataSetMeta(fields);

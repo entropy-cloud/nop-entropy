@@ -7,7 +7,6 @@
  */
 package io.nop.tcc.api;
 
-import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 
@@ -30,14 +29,14 @@ public interface ITccEngine {
 
     CompletionStage<List<ITccBranchTransaction>> loadBranchTransactionsAsync(ITccTransaction txn);
 
-    <T extends ApiResponse<?>> CompletionStage<T> runInTransactionAsync(String txnGroup,
-                                                                        Function<ITccTransaction, CompletionStage<T>> task);
+    <T> CompletionStage<T> runInTransactionAsync(String txnGroup,
+                                                 Function<ITccTransaction, CompletionStage<T>> task);
 
-    <T extends ApiResponse<?>> CompletionStage<T> runInTransactionAsync(String txnGroup, String txnId,
-                                                                        Function<ITccTransaction, CompletionStage<T>> task);
+    <T> CompletionStage<T> runInTransactionAsync(String txnGroup, String txnId,
+                                                 Function<ITccTransaction, CompletionStage<T>> task);
 
-    <T extends ApiResponse<?>> CompletionStage<T> runBranchTransactionAsync(ITccTransaction txn,
-                                                                            TccBranchRequest branchRequest, Function<ITccBranchTransaction, CompletionStage<T>> task);
+    <T> CompletionStage<T> runBranchTransactionAsync(ITccTransaction txn,
+                                                     TccBranchRequest branchRequest, Function<ITccBranchTransaction, CompletionStage<T>> task);
 
     /**
      * 检查
@@ -64,10 +63,10 @@ public interface ITccEngine {
         return FutureHelper.syncGet(loadBranchTransactionsAsync(txn));
     }
 
-    <T extends ApiResponse<?>> T runInTransaction(String txnGroup, Function<ITccTransaction, T> task);
+    <T> T runInTransaction(String txnGroup, Function<ITccTransaction, T> task);
 
-    <T extends ApiResponse<?>> T runInTransaction(String txnGroup, String txnId, Function<ITccTransaction, T> task);
+    <T> T runInTransaction(String txnGroup, String txnId, Function<ITccTransaction, T> task);
 
-    <T extends ApiResponse<?>> T runBranchTransaction(ITccTransaction txn, TccBranchRequest branchRequest,
-                                                      Function<ITccBranchTransaction, T> task);
+    <T> T runBranchTransaction(ITccTransaction txn, TccBranchRequest branchRequest,
+                               Function<ITccBranchTransaction, T> task);
 }

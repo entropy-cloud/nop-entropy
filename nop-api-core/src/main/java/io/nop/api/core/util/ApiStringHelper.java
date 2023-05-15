@@ -10,6 +10,10 @@ package io.nop.api.core.util;
 import io.nop.api.core.annotations.lang.Deterministic;
 import io.nop.api.core.exceptions.NopException;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +29,10 @@ import static io.nop.api.core.ApiErrors.ERR_UTILS_TEMPLATE_VAR_NOT_ALLOW_NULL;
 public class ApiStringHelper {
     public static LocalDate INVALID_DATE = LocalDate.of(0, 1, 1);
     public static LocalDate FUTURE_DATE = LocalDate.of(3000, 1, 1);
+
+    public static final String ENCODING_UTF8 = "UTF-8";
+    public static final Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
+    public static final Charset CHARSET_ISO_8859_1 = StandardCharsets.ISO_8859_1;
 
     @Deterministic
     public static boolean isEmpty(CharSequence o) {
@@ -247,7 +255,7 @@ public class ApiStringHelper {
             String name = message.substring(pos, pos2).trim();
             // 增加非空判断，可用于调试诊断
             if (name.endsWith("!")) {
-                name = name.substring(0,name.length() - 1);
+                name = name.substring(0, name.length() - 1);
                 Object result = transformer.apply(name);
                 if (result == null)
                     throw new NopException(ERR_UTILS_TEMPLATE_VAR_NOT_ALLOW_NULL)
@@ -329,6 +337,57 @@ public class ApiStringHelper {
             sb.append(itemSepChar);
         }
         return sb.toString();
+    }
+
+
+    @Deterministic
+    public static String encodeURL(String str) {
+        return encodeURL(str, ENCODING_UTF8);
+    }
+
+    @Deterministic
+    public static String decodeURL(String str) {
+        return decodeURL(str, ENCODING_UTF8);
+    }
+
+    @Deterministic
+    public static String encodeURL(String str, String encoding) {
+        if (str == null || str.isEmpty())
+            return str;
+
+        try {
+            return URLEncoder.encode(str, encoding == null ? ENCODING_UTF8 : encoding);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    @Deterministic
+    public static String decodeURL(String str, String encoding) {
+        if (str == null || str.isEmpty())
+            return str;
+
+        try {
+            return URLDecoder.decode(str, encoding == null ? ENCODING_UTF8 : encoding);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    @Deterministic
+    public static String appendQuery(String url, String query) {
+        if (url == null)
+            return null;
+
+        if (query == null || query.length() <= 0)
+            return url;
+
+        int pos = url.indexOf('?');
+        if (pos < 0)
+            return url += "?" + query;
+        if (url.endsWith("?"))
+            return url + query;
+        return url + "&" + query;
     }
 
 }

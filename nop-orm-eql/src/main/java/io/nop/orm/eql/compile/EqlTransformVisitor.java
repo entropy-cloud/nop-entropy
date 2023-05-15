@@ -9,9 +9,9 @@ package io.nop.orm.eql.compile;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.PropPath;
-import io.nop.commons.type.StdSqlType;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.function.ISQLFunction;
@@ -51,8 +51,8 @@ import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
-import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.ISqlExprMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 import io.nop.orm.eql.meta.ISqlTableMeta;
 import io.nop.orm.eql.meta.RenamedSqlExprMeta;
 import io.nop.orm.eql.meta.SelectResultTableMeta;
@@ -67,7 +67,6 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.IOrmDataType;
-import io.nop.orm.eql.utils.EqlHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -140,8 +139,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
     private List<ISqlParamBuilder> params;
 
-    private Set<IEntityModel> readEntityModels = new LinkedHashSet<>();
-    private IEntityModel writeEntityModel;
+    private Set<String> readEntityModels = new LinkedHashSet<>();
+    private String writeEntityModel;
 
     /**
      * 判断是否正在处理order by子句。如果仅在order by语句中通过a.b.c这种属性表达式引用关联表上的字段，且关联字段允许为空， 则使用left join来实现隐式关联。
@@ -153,11 +152,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         this.aliasGenerator = context.newAliasGenerator();
     }
 
-    public List<IEntityModel> getReadEntityModels() {
+    public List<String> getReadEntityModels() {
         return new ArrayList<>(readEntityModels);
     }
 
-    public IEntityModel getWriteEntityModel() {
+    public String getWriteEntityModel() {
         return writeEntityModel;
     }
 
@@ -286,9 +285,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         for (SqlSingleTableSource table : from.getEntitySources()) {
             String alias = table.getAliasName();
-            EntityTableMeta tableMeta = (EntityTableMeta) table.getResolvedTableMeta();
-            IEntityModel entityModel = tableMeta.getEntityModel();
-            if (entityModel.isUseLogicalDelete()) {
+            ISqlTableMeta tableMeta = (ISqlTableMeta) table.getResolvedTableMeta();
+            if (tableMeta.isUseLogicalDelete()) {
                 SqlWhere where = node.getWhere();
                 if (where == null) {
                     where = new SqlWhere();
@@ -296,11 +294,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 }
 
                 SqlBinaryExpr expr = new SqlBinaryExpr();
-                expr.setLeft(EqlASTBuilder.colName(alias, entityModel.getDeleteFlagProp()));
+                expr.setLeft(EqlASTBuilder.colName(alias, tableMeta.getDeleteFlagPropName()));
                 expr.setOperator(SqlOperator.EQ);
 
-                IColumnModel delFlagCol = entityModel.getColumnByPropId(entityModel.getDeleteFlagPropId(), false);
-                expr.setRight(EqlASTBuilder.literal(EqlHelper.getBooleanValue(delFlagCol.getStdSqlType(), dialect, false)));
+                Object value = tableMeta.getDeleteFlagValue(false, dialect);
+                expr.setRight(EqlASTBuilder.literal(value));
                 where.appendFilter(expr);
             }
         }
@@ -389,7 +387,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
             SqlTableName tableName = table.getTableName();
             String fullName = tableName.getFullName();
-            EntityTableMeta entityMeta = context.resolveEntityTableMeta(fullName);
+            ISqlTableMeta entityMeta = context.resolveEntityTableMeta(fullName);
             if (entityMeta != null) {
                 addResolvedEntity(source.getLocation(), entityMeta);
                 // 对应全类名或者简单类名
@@ -454,7 +452,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
             SqlTableName tableName = table.getTableName();
             String fullName = tableName.getFullName();
-            EntityTableMeta entityMeta = context.resolveEntityTableMeta(fullName);
+            ISqlTableMeta entityMeta = context.resolveEntityTableMeta(fullName);
             if (entityMeta != null) {
                 // 对应全类名或者简单类名
                 tableName.setResolvedTableMeta(entityMeta);
@@ -504,14 +502,14 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
     }
 
-    void addResolvedEntity(SourceLocation loc, EntityTableMeta tableMeta) {
-        readEntityModels.add(tableMeta.getEntityModel());
+    void addResolvedEntity(SourceLocation loc, ISqlTableMeta tableMeta) {
+        readEntityModels.add(tableMeta.getEntityName());
 
         String querySpace = tableMeta.getQuerySpace();
-        querySpaceToEntityNames.put(querySpace, tableMeta.getName());
+        querySpaceToEntityNames.put(querySpace, tableMeta.getEntityName());
         if (querySpaceToEntityNames.size() > 1)
             throw new NopException(ERR_EQL_NOT_ALLOW_MULTIPLE_QUERY_SPACE).loc(loc)
-                    .param(ARG_ENTITY_NAME, tableMeta.getName()).param(ARG_QUERY_SPACE_MAP, querySpaceToEntityNames);
+                    .param(ARG_ENTITY_NAME, tableMeta.getEntityName()).param(ARG_QUERY_SPACE_MAP, querySpaceToEntityNames);
 
         this.querySpace = querySpace;
 
@@ -520,7 +518,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
             if (dialect == null)
                 throw new NopException(ERR_EQL_UNKNOWN_QUERY_SPACE).loc(loc).param(ARG_QUERY_SPACE, querySpace)
-                        .param(ARG_ENTITY_NAME, tableMeta.getName());
+                        .param(ARG_ENTITY_NAME, tableMeta.getEntityName());
         }
     }
 
@@ -544,20 +542,20 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (join != null) {
             join.incRef();
         } else {
-            ISqlTableMeta table = source.getTableName().getResolvedTableMeta();
-            if (table == null || !(table instanceof EntityTableMeta)) {
+            ISqlSelectionMeta table = source.getTableName().getResolvedTableMeta();
+            if (table == null || !(table instanceof ISqlTableMeta)) {
                 throw new NopException(ERR_EQL_OWNER_NOT_REF_TO_ENTITY).source(source).param(ARG_TABLE,
                         source.getTableName().getFullName());
             }
 
-            EntityTableMeta tableMeta = (EntityTableMeta) table;
+            ISqlTableMeta tableMeta = (ISqlTableMeta) table;
 
             ISqlExprMeta fieldExpr = table.getFieldExprMeta(propPath.getName());
             if (fieldExpr != null) {
                 IOrmDataType dataType = fieldExpr.getOrmDataType();
                 if (!dataType.getKind().isRelation())
                     throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
-                            .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getName());
+                            .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
                 IEntityRelationModel ref = (IEntityRelationModel) dataType;
                 if (ref.isToOneRelation()) {
@@ -565,11 +563,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 } else {
                     if (ref.getKeyProp() == null)
                         throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
-                                .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getName());
+                                .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
                     if (propPath.getNext() == null)
                         throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
-                                .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getName());
+                                .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
                     String propJoinName = propPath.getName() + '.' + propPath.getNext().getName();
                     join = source.getPropJoin(propJoinName);
@@ -588,7 +586,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     join = resolvePropPath(source, aliasPath);
                 } else {
                     throw new NopException(ERR_EQL_PROP_PATH_NOT_VALID_TO_ONE_REFERENCE).source(source)
-                            .param(ARG_PROP_PATH, propPath).param(ARG_ENTITY_NAME, tableMeta.getName());
+                            .param(ARG_PROP_PATH, propPath).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
                 }
             }
         }
@@ -661,12 +659,12 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     }
 
     SqlSingleTableSource makeTableSource(SourceLocation loc, IEntityModel entityModel, SqlAlias alias) {
-        readEntityModels.add(entityModel);
+        readEntityModels.add(entityModel.getName());
 
         SqlSingleTableSource table = new SqlSingleTableSource();
         table.setLocation(loc);
         SqlTableName tableName = new SqlTableName();
-        ISqlTableMeta tableMeta = context.resolveEntityTableMeta(entityModel.getName());
+        ISqlSelectionMeta tableMeta = context.resolveEntityTableMeta(entityModel.getName());
         tableName.setResolvedTableMeta(tableMeta);
 
         tableName.setName(entityModel.getName());
@@ -752,7 +750,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     void resolveEntity(SqlSingleTableSource table) {
         SqlTableName tableName = table.getTableName();
         String fullName = tableName.getFullName();
-        EntityTableMeta tableMeta = context.resolveEntityTableMeta(fullName);
+        ISqlTableMeta tableMeta = context.resolveEntityTableMeta(fullName);
         if (tableMeta != null) {
             table.setAlias(makeTableAlias(table.getAlias()));
             addResolvedEntity(tableName.getLocation(), tableMeta);
@@ -870,7 +868,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     }
 
     List<SqlProjection> buildSelectItems(SqlTableSource source, boolean onlyColumn) {
-        ISqlTableMeta tableMeta = source.getResolvedTableMeta();
+        ISqlSelectionMeta tableMeta = source.getResolvedTableMeta();
         Map<String, ISqlExprMeta> fieldMetas = tableMeta.getFieldExprMetas();
         List<SqlProjection> ret = new ArrayList<>(fieldMetas.size());
         for (Map.Entry<String, ISqlExprMeta> entry : fieldMetas.entrySet()) {
@@ -946,7 +944,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlTableSource source = currentScope.getTableByAlias(node.getName());
         if (source != null) {
             node.setTableSource(source);
-            EntityTableMeta tableMeta = getTableMeta(source);
+            ISqlTableMeta tableMeta = getTableMeta(source);
             node.setResolvedExprMeta(tableMeta.getEntityExprMeta());
             return;
         }
@@ -959,12 +957,12 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         resolveColName(source, node);
     }
 
-    EntityTableMeta getTableMeta(SqlTableSource source) {
+    ISqlTableMeta getTableMeta(SqlTableSource source) {
         if (source instanceof SqlSingleTableSource) {
             SqlSingleTableSource single = (SqlSingleTableSource) source;
-            ISqlTableMeta tableMeta = single.getTableName().getResolvedTableMeta();
-            if (tableMeta instanceof EntityTableMeta)
-                return (EntityTableMeta) tableMeta;
+            ISqlSelectionMeta tableMeta = single.getTableName().getResolvedTableMeta();
+            if (tableMeta instanceof ISqlTableMeta)
+                return (ISqlTableMeta) tableMeta;
         }
         throw new NopException(ERR_EQL_ONLY_SUPPORT_SINGLE_TABLE_SOURCE).source(source).param(ARG_TABLE_SOURCE,
                 source.getDisplayString());
@@ -975,7 +973,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     }
 
     void resolveColName(SqlTableSource source, SqlColumnName node, String propName) {
-        ISqlTableMeta model = source.getResolvedTableMeta();
+        ISqlSelectionMeta model = source.getResolvedTableMeta();
         if (model == null)
             throw new NopException(ERR_EQL_TABLE_SOURCE_NOT_RESOLVED).source(node)
                     .param(ARG_TABLE_SOURCE, source.toSQL().getText()).param(ARG_COL_NAME, propName);
@@ -999,9 +997,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         } else {
             PropPath propPath = model.getAliasPropPath(node.getName());
             if (propPath == null) {
-                if (model instanceof EntityTableMeta) {
+                if (model instanceof ISqlTableMeta) {
                     throw new NopException(ERR_EQL_UNKNOWN_COLUMN_NAME).source(node)
-                            .param(ARG_ENTITY_NAME, ((EntityTableMeta) model).getName())
+                            .param(ARG_ENTITY_NAME, ((ISqlTableMeta) model).getEntityName())
                             .param(ARG_COL_NAME, node.getName());
                 } else {
                     throw new NopException(ERR_EQL_FIELD_NOT_IN_SUBQUERY).source(node).param(ARG_FIELD_NAME,
@@ -1060,12 +1058,12 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlTableName table = node.getTableName();
 
         currentScope = new SqlTableScope(node, currentScope);
-        EntityTableMeta tableMeta = resolveEntity(table);
+        ISqlTableMeta tableMeta = resolveEntity(table);
 
         SqlSingleTableSource source = newSingleTableSource(table, null);
         node.setResolvedTableSource(source);
 
-        writeEntityModel = tableMeta.getEntityModel();
+        writeEntityModel = tableMeta.getEntityName();
 
         visitChildren(node.getColumns());
 
@@ -1080,10 +1078,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         currentScope = currentScope.getParent();
     }
 
-    EntityTableMeta resolveEntity(SqlTableName table) {
+    ISqlTableMeta resolveEntity(SqlTableName table) {
         String fullName = table.getFullName();
 
-        EntityTableMeta tableMeta = context.resolveEntityTableMeta(fullName);
+        ISqlTableMeta tableMeta = context.resolveEntityTableMeta(fullName);
 
         if (tableMeta != null) {
             addResolvedEntity(table.getLocation(), tableMeta);
@@ -1101,12 +1099,12 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         node.setAlias(makeTableAlias(node.getAlias()));
 
         currentScope = new SqlTableScope(node, currentScope);
-        EntityTableMeta tableMeta = resolveEntity(table);
+        ISqlTableMeta tableMeta = resolveEntity(table);
 
         SqlSingleTableSource source = newSingleTableSource(table, node.getAlias().getAlias());
         node.setResolvedTableSource(source);
 
-        writeEntityModel = tableMeta.getEntityModel();
+        writeEntityModel = tableMeta.getEntityName();
 
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
@@ -1130,8 +1128,8 @@ public class EqlTransformVisitor extends EqlASTVisitor {
 
         currentScope = new SqlTableScope(node, currentScope);
 
-        EntityTableMeta tableMeta = resolveEntity(table);
-        writeEntityModel = tableMeta.getEntityModel();
+        ISqlTableMeta tableMeta = resolveEntity(table);
+        writeEntityModel = tableMeta.getEntityName();
 
         SqlSingleTableSource source = newSingleTableSource(table, node.getAlias().getAlias());
         node.setResolvedTableSource(source);

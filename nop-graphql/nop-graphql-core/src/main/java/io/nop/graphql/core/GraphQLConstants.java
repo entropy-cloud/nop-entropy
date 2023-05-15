@@ -7,6 +7,8 @@
  */
 package io.nop.graphql.core;
 
+import io.nop.api.core.ApiConstants;
+
 public interface GraphQLConstants {
     String API_IMP_MODEL_PATH = "/nop/graphql/imp/api.imp.xml";
     String XDSL_SCHEMA_API = "/nop/schema/api.xdef";
@@ -96,7 +98,7 @@ public interface GraphQLConstants {
      */
     String SYS_PARAM_PREFIX = "@";
 
-    String SYS_PARAM_SELECTION = "@selection";
+    String SYS_PARAM_SELECTION = ApiConstants.SYS_PARAM_SELECTION;
     String SYS_PARAM_ARGS = "@args";
 
     String PARAM_PATH = "path";

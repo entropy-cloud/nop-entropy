@@ -167,6 +167,8 @@ public interface ApiConstants extends FilterBeanConstants {
      */
     String HEADER_BIZ_FAIL = "nop-biz-fail";
 
+    String SYS_PARAM_SELECTION = "@selection";
+
     int BEAN_PROP_INCLUDE_JSON_IGNORE = 1;
     int BEAN_PROP_INCLUDE_WRITABLE = 2;
     int BEAN_PROP_INCLUDE_READABLE = 4;
@@ -214,6 +216,7 @@ public interface ApiConstants extends FilterBeanConstants {
     String GRAPHQL_EXTENSION_ERROR_CODE = "nop-error-code";
     String GRAPHQL_EXTENSION_STATUS = "nop-status";
     String GRAPHQL_EXTENSION_MSG = "nop-msg";
+    String GRAPHQL_EXTENSION_BIZ_FATAL = "nop-biz-fatal";
 
     /**
      * 用于表示不选择

@@ -10,17 +10,17 @@ package io.nop.orm.eql.ast;
 import io.nop.commons.util.objects.PropPath;
 import io.nop.core.lang.ast.ASTNode;
 import io.nop.orm.eql.ast._gen._SqlTableName;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 public class SqlTableName extends _SqlTableName {
-    private ISqlTableMeta resolvedTableMeta;
+    private ISqlSelectionMeta resolvedTableMeta;
     private SqlSelect resolvedCte;
 
-    public ISqlTableMeta getResolvedTableMeta() {
+    public ISqlSelectionMeta getResolvedTableMeta() {
         return resolvedTableMeta;
     }
 
-    public void setResolvedTableMeta(ISqlTableMeta resolvedTableMeta) {
+    public void setResolvedTableMeta(ISqlSelectionMeta resolvedTableMeta) {
         this.resolvedTableMeta = resolvedTableMeta;
     }
 

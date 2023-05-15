@@ -17,7 +17,7 @@ import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
-import io.nop.core.lang.sql.FilterToSQLTransformer;
+import io.nop.core.lang.sql.FilterBeanToSQLTransformer;
 import io.nop.core.lang.sql.SQL;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.model.IColumnModel;
@@ -168,7 +168,7 @@ public class DaoQueryHelper {
     }
 
     public static void appendFilter(SQL.SqlBuilder sb, String defaultOwner, ITreeBean filter) {
-        new FilterToSQLTransformer(sb, true, defaultOwner).visit(filter, DisabledEvalScope.INSTANCE);
+        new FilterBeanToSQLTransformer(sb, true, defaultOwner).visit(filter, DisabledEvalScope.INSTANCE);
     }
 
     public static void appendOrderBy(SQL.SqlBuilder sb, String defaultOwner, List<OrderFieldBean> orderBy) {

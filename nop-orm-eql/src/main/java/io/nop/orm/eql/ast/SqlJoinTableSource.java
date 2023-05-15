@@ -8,11 +8,11 @@
 package io.nop.orm.eql.ast;
 
 import io.nop.orm.eql.ast._gen._SqlJoinTableSource;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 public class SqlJoinTableSource extends _SqlJoinTableSource {
     @Override
-    public ISqlTableMeta getResolvedTableMeta() {
+    public ISqlSelectionMeta getResolvedTableMeta() {
         return getLeft().getResolvedTableMeta();
     }
 

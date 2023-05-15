@@ -47,6 +47,11 @@ public final class ApiResponse<T> extends ApiMessage {
      */
     private Object tryResponse;
 
+    /**
+     * 标记response的data才是实际返回的数据，ApiResponse完全是为了满足接口要求创造的一个包装对象
+     */
+    private boolean wrapper;
+
     public static <T> ApiResponse<T> buildSuccess(T data) {
         ApiResponse<T> ret = new ApiResponse<>();
         ret.setStatus(ApiConstants.API_STATUS_OK);
@@ -219,5 +224,14 @@ public final class ApiResponse<T> extends ApiMessage {
 
     public void setTryResponse(Object tryResponse) {
         this.tryResponse = tryResponse;
+    }
+
+    @JsonIgnore
+    public boolean isWrapper(){
+        return wrapper;
+    }
+
+    public void setWrapper(boolean wrapper){
+        this.wrapper = wrapper;
     }
 }

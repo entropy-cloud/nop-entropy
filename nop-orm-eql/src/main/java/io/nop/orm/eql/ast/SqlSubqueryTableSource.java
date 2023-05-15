@@ -8,7 +8,7 @@
 package io.nop.orm.eql.ast;
 
 import io.nop.orm.eql.ast._gen._SqlSubqueryTableSource;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 public class SqlSubqueryTableSource extends _SqlSubqueryTableSource {
     public boolean isGeneratedAlias() {
@@ -21,7 +21,7 @@ public class SqlSubqueryTableSource extends _SqlSubqueryTableSource {
     }
 
     @Override
-    public ISqlTableMeta getResolvedTableMeta() {
+    public ISqlSelectionMeta getResolvedTableMeta() {
         return getQuery().getResolvedTableMeta();
     }
 }

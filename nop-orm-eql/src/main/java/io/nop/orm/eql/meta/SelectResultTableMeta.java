@@ -11,7 +11,7 @@ import io.nop.commons.util.objects.PropPath;
 
 import java.util.Map;
 
-public class SelectResultTableMeta implements ISqlTableMeta {
+public class SelectResultTableMeta implements ISqlSelectionMeta {
     private final Map<String, ISqlExprMeta> fieldExprMetas;
 
     public SelectResultTableMeta(Map<String, ISqlExprMeta> fieldExprMetas) {

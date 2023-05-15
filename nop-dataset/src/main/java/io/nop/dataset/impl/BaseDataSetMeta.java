@@ -73,7 +73,8 @@ public class BaseDataSetMeta implements IDataSetMeta {
     public static BaseDataSetMeta fromColNames(String[] columnNames) {
         List<BaseDataFieldMeta> colMetas = new ArrayList<>(columnNames.length);
         for (int i = 0, n = columnNames.length; i < n; i++) {
-            BaseDataFieldMeta colMeta = new BaseDataFieldMeta(columnNames[i], null, null, StdDataType.ANY);
+            BaseDataFieldMeta colMeta = new BaseDataFieldMeta(
+                    columnNames[i], null, null, StdDataType.ANY,false);
             colMetas.add(colMeta);
         }
         return new BaseDataSetMeta(colMetas);

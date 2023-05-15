@@ -11,7 +11,7 @@ import io.nop.core.lang.ast.ASTNode;
 import io.nop.orm.eql.ast._gen._SqlTableSource;
 import io.nop.orm.eql.compile.SqlPropJoin;
 import io.nop.orm.eql.meta.EntityTableMeta;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -60,7 +60,7 @@ public abstract class SqlTableSource extends _SqlTableSource {
         return propJoins;
     }
 
-    public abstract ISqlTableMeta getResolvedTableMeta();
+    public abstract ISqlSelectionMeta getResolvedTableMeta();
 
     public void forEachTableSource(Consumer<SqlTableSource> consumer) {
         consumer.accept(this);

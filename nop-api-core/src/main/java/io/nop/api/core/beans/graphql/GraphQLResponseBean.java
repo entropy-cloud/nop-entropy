@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -53,7 +54,8 @@ public final class GraphQLResponseBean implements Serializable {
     public int getStatus() {
         if (extensions == null)
             return 0;
-        return ConvertHelper.toPrimitiveInt(extensions.get(GRAPHQL_EXTENSION_STATUS), 0, NopException::new);
+        int defaultStatus = hasError() ? -1 : 0;
+        return ConvertHelper.toPrimitiveInt(extensions.get(GRAPHQL_EXTENSION_STATUS), defaultStatus, NopException::new);
     }
 
     public void setStatus(int status) {
@@ -76,7 +78,20 @@ public final class GraphQLResponseBean implements Serializable {
     public void setExtension(String name, Object value) {
         if (extensions == null)
             extensions = new LinkedHashMap<>();
-        extensions.put(name, value);
+        if (value == null) {
+            extensions.remove(name);
+        } else {
+            extensions.put(name, value);
+        }
+    }
+
+    @JsonIgnore
+    public Boolean getBizFatal() {
+        return ConvertHelper.toBoolean(getExtension(ApiConstants.GRAPHQL_EXTENSION_BIZ_FATAL));
+    }
+
+    public void setBizFatal(Boolean value) {
+        setExtension(ApiConstants.GRAPHQL_EXTENSION_BIZ_FATAL, value);
     }
 
     @JsonIgnore
@@ -105,6 +120,7 @@ public final class GraphQLResponseBean implements Serializable {
             msg = errors.get(0).getMessage();
         }
         error.setDescription(msg);
+        error.setBizFatal(getBizFatal());
         return error;
     }
 
@@ -114,6 +130,8 @@ public final class GraphQLResponseBean implements Serializable {
 
         setErrorCode(error.getErrorCode());
         setStatus(error.getStatus());
+        if (error.isBizFatal())
+            setBizFatal(error.isBizFatal());
 
         GraphQLErrorBean errorBean = new GraphQLErrorBean();
         GraphQLSourceLocation loc = buildLoc(error.getSourceLocation());
@@ -153,5 +171,16 @@ public final class GraphQLResponseBean implements Serializable {
 
     public void setExtensions(Map<String, Object> extensions) {
         this.extensions = extensions;
+    }
+
+    public ApiResponse<Object> toApiResponse() {
+        ApiResponse<Object> res = new ApiResponse<>();
+        res.setData(this);
+        res.setStatus(getStatus());
+        res.setMsg(getMsg());
+        res.setCode(getErrorCode());
+        res.setBizFatal(getBizFatal());
+        res.setWrapper(true);
+        return res;
     }
 }

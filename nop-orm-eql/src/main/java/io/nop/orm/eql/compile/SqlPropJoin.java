@@ -10,7 +10,7 @@ package io.nop.orm.eql.compile;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.enums.SqlJoinType;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 public class SqlPropJoin {
     private SqlSingleTableSource left;
@@ -76,11 +76,11 @@ public class SqlPropJoin {
         refCount++;
     }
 
-    public ISqlTableMeta getLeftTable() {
+    public ISqlSelectionMeta getLeftTable() {
         return left.getTableName().getResolvedTableMeta();
     }
 
-    public ISqlTableMeta getRightTable() {
+    public ISqlSelectionMeta getRightTable() {
         return right.getTableName().getResolvedTableMeta();
     }
 }

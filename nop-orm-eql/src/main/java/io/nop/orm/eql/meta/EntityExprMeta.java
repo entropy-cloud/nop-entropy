@@ -44,6 +44,10 @@ public class EntityExprMeta implements ISqlExprMeta {
         return ret;
     }
 
+    public String getEntityName(){
+        return entityModel.getName();
+    }
+
     @Override
     public List<String> getColumnNames() {
         return columnNames;

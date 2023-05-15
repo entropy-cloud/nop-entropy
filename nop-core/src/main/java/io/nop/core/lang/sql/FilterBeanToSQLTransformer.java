@@ -49,22 +49,22 @@ import static io.nop.core.CoreErrors.ERR_FILTER_SQL_OP_INVALID_VALUE_TYPE;
 import static io.nop.core.CoreErrors.ERR_FILTER_UNKNOWN_OP;
 import static io.nop.core.CoreErrors.ERR_SQL_FILTER_INVALID_FIELD_NAME;
 
-public class FilterToSQLTransformer extends FilterBeanVisitor<Void> {
+public class FilterBeanToSQLTransformer extends FilterBeanVisitor<Void> {
     private final SQL.SqlBuilder sb;
     private final boolean checkVarName;
     private final String defaultOwner;
 
-    public FilterToSQLTransformer(SQL.SqlBuilder sb, boolean checkVarName, String defaultOwner) {
+    public FilterBeanToSQLTransformer(SQL.SqlBuilder sb, boolean checkVarName, String defaultOwner) {
         this.sb = sb;
         this.checkVarName = checkVarName;
         this.defaultOwner = defaultOwner;
     }
 
-    public FilterToSQLTransformer(SQL.SqlBuilder sb) {
+    public FilterBeanToSQLTransformer(SQL.SqlBuilder sb) {
         this(sb, true, "o");
     }
 
-    public FilterToSQLTransformer() {
+    public FilterBeanToSQLTransformer() {
         this(SQL.begin(), true, "o");
     }
 

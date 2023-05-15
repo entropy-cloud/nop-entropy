@@ -8,7 +8,7 @@
 package io.nop.orm.eql.compile;
 
 import io.nop.dao.dialect.IDialect;
-import io.nop.orm.eql.meta.EntityTableMeta;
+import io.nop.orm.eql.meta.ISqlTableMeta;
 import io.nop.orm.eql.sql.IAliasGenerator;
 
 public interface ISqlCompileContext {
@@ -16,7 +16,7 @@ public interface ISqlCompileContext {
 
     IDialect getDialectForQuerySpace(String querySpace);
 
-    EntityTableMeta resolveEntityTableMeta(String entityName);
+    ISqlTableMeta resolveEntityTableMeta(String entityName);
 
     IAliasGenerator newAliasGenerator();
 }

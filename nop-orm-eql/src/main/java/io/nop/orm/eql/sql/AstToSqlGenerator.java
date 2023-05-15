@@ -40,10 +40,9 @@ import io.nop.orm.eql.compile.SqlPropJoin;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.eql.meta.ISqlExprMeta;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 import io.nop.orm.eql.utils.EqlHelper;
 import io.nop.orm.model.IEntityModel;
-import io.nop.orm.eql.utils.EqlHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -239,7 +238,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
 
     @Override
     public void visitSqlTableName(SqlTableName node) {
-        ISqlTableMeta table = node.getResolvedTableMeta();
+        ISqlSelectionMeta table = node.getResolvedTableMeta();
         String alias = getTableAlias(node);
         if (table instanceof EntityTableMeta) {
             IEntityModel entityModel = ((EntityTableMeta) table).getEntityModel();

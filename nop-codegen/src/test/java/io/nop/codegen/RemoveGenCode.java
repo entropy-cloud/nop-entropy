@@ -12,7 +12,7 @@ import java.io.File;
 public class RemoveGenCode {
     public static void main(String[] args) {
         File dir = MavenDirHelper.projectDir(RemoveGenCode.class);
-        dir = new File(dir, "..");
+        dir = new File(dir, "../../nop-app-mall");
 
         new FileResource(dir).visitResource("", new ITreeStateVisitor<ResourceTreeVisitState>() {
             @Override

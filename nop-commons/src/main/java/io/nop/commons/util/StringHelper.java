@@ -32,10 +32,7 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -75,10 +72,6 @@ import static io.nop.commons.CommonErrors.ERR_UTILS_INVALID_QUOTED_STRING;
  */
 public class StringHelper extends ApiStringHelper {
     static final Logger LOG = LoggerFactory.getLogger(StringHelper.class);
-
-    public static final String ENCODING_UTF8 = "UTF-8";
-    public static final Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
-    public static final Charset CHARSET_ISO_8859_1 = StandardCharsets.ISO_8859_1;
 
     /**
      * Eclipse的缺省编码。
@@ -2242,44 +2235,6 @@ public class StringHelper extends ApiStringHelper {
         return ret;
     }
 
-    @Deterministic
-    public static String encodeURL(String str) {
-        return encodeURL(str, ENCODING_UTF8);
-    }
-
-    @Deterministic
-    public static String decodeURL(String str) {
-        return decodeURL(str, ENCODING_UTF8);
-    }
-
-    @Deterministic
-    public static String encodeUriPath(String str) {
-        return UriEncodeHelper.encodeUriComponent(str, CHARSET_UTF8, UriEncodeHelper.Type.PATH);
-    }
-
-    @Deterministic
-    public static String encodeURL(String str, String encoding) {
-        if (str == null || str.isEmpty())
-            return str;
-
-        try {
-            return URLEncoder.encode(str, encoding == null ? ENCODING_UTF8 : encoding);
-        } catch (Exception e) {
-            throw NopException.adapt(e);
-        }
-    }
-
-    @Deterministic
-    public static String decodeURL(String str, String encoding) {
-        if (str == null || str.isEmpty())
-            return str;
-
-        try {
-            return URLDecoder.decode(str, encoding == null ? ENCODING_UTF8 : encoding);
-        } catch (Exception e) {
-            throw NopException.adapt(e);
-        }
-    }
 
     @Deterministic
     public static Map<String, Object> parseQuery(String query, String encoding) {
@@ -2409,20 +2364,10 @@ public class StringHelper extends ApiStringHelper {
         return sb.toString();
     }
 
+
     @Deterministic
-    public static String appendQuery(String url, String query) {
-        if (url == null)
-            return null;
-
-        if (query == null || query.length() <= 0)
-            return url;
-
-        int pos = url.indexOf('?');
-        if (pos < 0)
-            return url += "?" + query;
-        if (url.endsWith("?"))
-            return url + query;
-        return url + "&" + query;
+    public static String encodeUriPath(String str) {
+        return UriEncodeHelper.encodeUriComponent(str, CHARSET_UTF8, UriEncodeHelper.Type.PATH);
     }
 
     @Deterministic

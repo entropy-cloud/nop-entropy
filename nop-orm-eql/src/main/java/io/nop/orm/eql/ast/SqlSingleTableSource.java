@@ -9,7 +9,7 @@ package io.nop.orm.eql.ast;
 
 import io.nop.core.lang.ast.ASTNode;
 import io.nop.orm.eql.ast._gen._SqlSingleTableSource;
-import io.nop.orm.eql.meta.ISqlTableMeta;
+import io.nop.orm.eql.meta.ISqlSelectionMeta;
 
 public class SqlSingleTableSource extends _SqlSingleTableSource {
     private boolean forPropJoin;
@@ -38,7 +38,7 @@ public class SqlSingleTableSource extends _SqlSingleTableSource {
         source.forPropJoin = forPropJoin;
     }
 
-    public ISqlTableMeta getResolvedTableMeta() {
+    public ISqlSelectionMeta getResolvedTableMeta() {
         return getTableName().getResolvedTableMeta();
     }
 

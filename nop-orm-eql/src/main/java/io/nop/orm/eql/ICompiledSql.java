@@ -12,7 +12,6 @@ import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.IDataSetMeta;
 import io.nop.orm.eql.ast.SqlStatementKind;
 import io.nop.orm.eql.meta.ISqlExprMeta;
-import io.nop.orm.model.IEntityModel;
 
 import java.util.List;
 
@@ -37,12 +36,12 @@ public interface ICompiledSql {
     /**
      * eql语句中涉及到的所有实体对象
      */
-    List<IEntityModel> getReadEntityModels();
+    List<String> getReadEntityNames();
 
     /**
      * 对应update/delete/insert语句，返回被修改的实体对象。如果是查询语句，则返回null
      */
-    IEntityModel getWriteEntityModel();
+    String getWriteEntityName();
 
     List<IDataParameterBinder> getColumnBinders();
 

@@ -10,6 +10,7 @@ package io.nop.orm.loader;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSet;
@@ -17,7 +18,6 @@ import io.nop.dataset.impl.BaseDataRow;
 import io.nop.dataset.impl.SingleColumnRow;
 import io.nop.dataset.impl.TransformedComplexDataSet;
 import io.nop.dataset.impl.TransformedDataSet;
-import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.eql.meta.ISqlExprMeta;
@@ -93,12 +93,14 @@ public class JdbcQueryExecutor implements IQueryExecutor {
     void invokeListener(ICompiledSql sql) {
         IOrmDaoListener daoListener = env.getDaoListener();
         if (daoListener != null) {
-            for (IEntityModel entityModel : sql.getReadEntityModels()) {
+            for (String entityModelName : sql.getReadEntityNames()) {
+                IEntityModel entityModel = env.getOrmModel().requireEntityModel(entityModelName);
                 daoListener.onRead(entityModel);
             }
 
-            IEntityModel entityModel = sql.getWriteEntityModel();
-            if (entityModel != null) {
+            String entityModelName = sql.getWriteEntityName();
+            if (entityModelName != null) {
+                IEntityModel entityModel = env.getOrmModel().requireEntityModel(entityModelName);
                 switch (sql.getStatementKind()) {
                     case DELETE: {
                         daoListener.onDelete(entityModel);

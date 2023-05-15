@@ -9,6 +9,7 @@ package io.nop.tcc.core.impl;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.rpc.IApiResponseNormalizer;
 import io.nop.api.core.rpc.IRpcService;
 import io.nop.api.core.rpc.IRpcServiceLocator;
 import io.nop.api.core.util.ApiHeaders;
@@ -28,8 +29,8 @@ import java.util.function.Function;
  */
 public class TccRunner {
 
-    public static <T extends ApiResponse<?>> CompletionStage<T> runBranchTryAsync(ITccBranchTransaction branchTxn,
-                                                                                  Function<ITccBranchTransaction, CompletionStage<T>> task) {
+    public static <T> CompletionStage<T> runBranchTryAsync(ITccBranchTransaction branchTxn, IApiResponseNormalizer normalizer,
+                                                           Function<ITccBranchTransaction, CompletionStage<T>> task) {
         ITccBranchRecord branchRecord = branchTxn.getBranchRecord();
 
         // 如果标记状态失败，则不会去执行服务函数
@@ -45,7 +46,7 @@ public class TccRunner {
             // 如果执行失败，则需要更新txn状态
             CompletableFuture<T> future = new CompletableFuture<>();
             task.apply(branchTxn).whenComplete((ret, ex) -> {
-                branchTxn.finishTryAsync(ret, ex).whenComplete((ret2, ex2) -> {
+                branchTxn.finishTryAsync(normalizer.toApiResponse(ret), ex).whenComplete((ret2, ex2) -> {
                     if (ex != null) {
                         future.completeExceptionally(ex);
                     } else if (ex2 != null) {
