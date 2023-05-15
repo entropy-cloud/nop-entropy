@@ -33,6 +33,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -49,7 +50,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+
+import static io.nop.http.api.HttpApiErrors.ERR_HTTP_CONNECT_FAIL;
 
 public class JdkHttpClient implements IHttpClient {
     private final HttpClientConfig config;
@@ -172,13 +176,22 @@ public class JdkHttpClient implements IHttpClient {
         builder.uri(toURI(request.getUrl()));
 
         CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
-                HttpResponse.BodyHandlers.ofByteArray());
+                HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
         if (cancelTokens != null) {
             cancelTokens.appendOnCancel(reason -> {
                 future.cancel(false);
             });
         }
         return future.thenApply(this::toHttpResponse);
+    }
+
+    public HttpResponse<byte[]> wrapError(Throwable e) {
+        if (e instanceof CompletionException) {
+            e = e.getCause();
+        }
+        if (e instanceof ConnectException)
+            throw new NopException(ERR_HTTP_CONNECT_FAIL);
+        throw NopException.adapt(e);
     }
 
     URI toURI(String url) {

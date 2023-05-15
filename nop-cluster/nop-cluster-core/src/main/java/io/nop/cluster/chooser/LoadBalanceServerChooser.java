@@ -20,11 +20,17 @@ import java.util.concurrent.CompletionStage;
  * @param <R>
  */
 public class LoadBalanceServerChooser<R> extends ServiceServerChooser<R> implements IServerChooser<R> {
-    private final ILoadBalance<ServiceInstance, R> loadBalance;
+    private ILoadBalance<ServiceInstance, R> loadBalance;
 
     public LoadBalanceServerChooser(IDiscoveryClient discoveryClient, List<IRequestServiceInstanceFilter<R>> filters,
                                     ILoadBalance<ServiceInstance, R> loadBalance) {
         super(discoveryClient, filters);
+        this.loadBalance = loadBalance;
+    }
+
+    public LoadBalanceServerChooser(){}
+
+    public void setLoadBalance(ILoadBalance<ServiceInstance, R> loadBalance) {
         this.loadBalance = loadBalance;
     }
 

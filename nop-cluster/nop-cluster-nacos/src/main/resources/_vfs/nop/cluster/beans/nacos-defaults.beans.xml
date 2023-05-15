@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="nopNamingService" class="io.nop.cluster.nacos.NacosNamingService">
+        <ioc:condition>
+            <if-property name="nop.cluster.discovery.nacos.enabled"/>
+        </ioc:condition>
+
+        <property name="groupName" value="@cfg:nop.cluster.discovery.group|DEFAULT"/>
+    </bean>
+</beans>

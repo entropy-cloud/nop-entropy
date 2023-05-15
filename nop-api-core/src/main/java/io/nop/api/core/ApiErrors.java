@@ -164,7 +164,10 @@ public interface ApiErrors {
             define("nop.err.api.template-var-not-allow-null",
                     "模板字符串[{message}]中的变量[{varName}]的值不允许为空", ARG_MESSAGE, ARG_VAR_NAME);
 
-    ErrorCode ERR_RPC_TIMEOUT_EXPIRED =
+    ErrorCode ERR_API_TIMEOUT_EXPIRED =
             define("nop.err.api.timeout-expired",
                     "服务调用已超时");
+
+    ErrorCode ERR_API_NO_SERVICE_NAME_HEADER =
+            define("nop.err.api.no-service-name-header","请求头中没有包含nop-svc-name设置");
 }

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -226,7 +227,7 @@ public class FutureHelper {
             return future.get();
         } catch (InterruptedException e) {
             throw NopException.adapt(e);
-        } catch (ExecutionException e) {
+        } catch (ExecutionException | CompletionException e) {
             // 记录调用堆栈
             if (LOG.isDebugEnabled()) {
                 LOG.debug("nop.err.api.async.get-return-exception", e);
@@ -418,8 +419,8 @@ public class FutureHelper {
         return false;
     }
 
-    public static boolean isError(CompletionStage<?> f){
-        if(f instanceof ResolvedPromise)
+    public static boolean isError(CompletionStage<?> f) {
+        if (f instanceof ResolvedPromise)
             return ((ResolvedPromise<?>) f).getException() != null;
         return true;
     }

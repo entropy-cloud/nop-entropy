@@ -1,16 +1,18 @@
-package io.nop.api.core.rpc;
+package io.nop.rpc.interceptors;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.rpc.IRpcServiceInvocation;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
 
 import java.util.concurrent.CompletionStage;
 
-import static io.nop.api.core.ApiErrors.ERR_RPC_TIMEOUT_EXPIRED;
+import static io.nop.api.core.ApiErrors.ERR_API_TIMEOUT_EXPIRED;
 
 public class ClientContextRpcServiceInterceptor implements IRpcServiceInterceptor {
     private boolean transferTimeout = true;
@@ -109,7 +111,7 @@ public class ClientContextRpcServiceInterceptor implements IRpcServiceIntercepto
             if (expireTime > 0) {
                 long timeout = expireTime - CoreMetrics.currentTimeMillis();
                 if (timeout <= 0)
-                    throw new NopException(ERR_RPC_TIMEOUT_EXPIRED);
+                    throw new NopException(ERR_API_TIMEOUT_EXPIRED);
                 ApiHeaders.setTimeout(request, timeout);
             }
         }

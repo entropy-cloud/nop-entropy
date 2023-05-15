@@ -10,16 +10,29 @@ package io.nop.cluster.chooser;
 import io.nop.cluster.discovery.IDiscoveryClient;
 import io.nop.cluster.discovery.ServiceInstance;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 public class ServiceServerChooser<R> {
-    private final IDiscoveryClient discoveryClient;
-    private final List<IRequestServiceInstanceFilter<R>> filters;
+    private IDiscoveryClient discoveryClient;
+    private List<IRequestServiceInstanceFilter<R>> filters;
 
     public ServiceServerChooser(IDiscoveryClient discoveryClient, List<IRequestServiceInstanceFilter<R>> filters) {
         this.discoveryClient = discoveryClient;
+        this.filters = filters;
+    }
+
+    public ServiceServerChooser() {
+    }
+
+    @Inject
+    public void setDiscoveryClient(IDiscoveryClient discoveryClient) {
+        this.discoveryClient = discoveryClient;
+    }
+
+    public void setFilters(List<IRequestServiceInstanceFilter<R>> filters) {
         this.filters = filters;
     }
 

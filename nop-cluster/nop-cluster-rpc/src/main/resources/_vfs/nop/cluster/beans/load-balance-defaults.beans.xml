@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+
+    <bean id="nopLoadBalance_first"
+          class="io.nop.cluster.lb.impl.FirstLoadBalance"/>
+
+    <bean id="nopLoadBalance_leastActive"
+          class="io.nop.cluster.lb.impl.LeastActiveLoadBalance">
+        <constructor-arg index="0">
+            <ref bean="nopServiceLoadBalanceAdapter"/>
+        </constructor-arg>
+    </bean>
+
+    <bean id="nopLoadBalance_random"
+          class="io.nop.cluster.lb.impl.RandomLoadBalance">
+    </bean>
+
+    <bean id="nopLoadBalance_roundRobin"
+          class="io.nop.cluster.lb.impl.RoundRobinLoadBalance"/>
+
+    <bean id="nopLoadBalance_weightedRandom"
+          class="io.nop.cluster.lb.impl.WeightedRandomLoadBalance">
+        <constructor-arg index="0">
+            <ref bean="nopServiceLoadBalanceAdapter"/>
+        </constructor-arg>
+    </bean>
+
+    <bean id="nopServiceLoadBalanceAdapter" class="io.nop.cluster.lb.impl.ServiceLoadBalanceAdapter"/>
+
+</beans>
