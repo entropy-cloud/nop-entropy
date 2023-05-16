@@ -16,16 +16,15 @@ import io.nop.api.core.rpc.IRpcService;
 import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.api.core.rpc.IRpcServiceInvocation;
 import io.nop.commons.util.DestroyHelper;
-import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.aop.AopProxyHelper;
-import io.nop.core.type.IGenericType;
-import io.nop.core.type.utils.JavaGenericTypeHelper;
+import io.nop.core.reflect.impl.MethodModelBuilder;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RpcInvocationHandler implements InvocationHandler {
     // static final Logger LOG = LoggerFactory.getLogger(RpcInvocationHandler.class);
@@ -34,8 +33,11 @@ public class RpcInvocationHandler implements InvocationHandler {
     private final IRpcService rpcService;
     private final List<IRpcServiceInterceptor> interceptors;
     private final IRpcMessageTransformer transformer;
+    private final Map<Method, IFunctionModel> methods = new ConcurrentHashMap<>();
 
-    public RpcInvocationHandler(String serviceName, IRpcService rpcService, List<IRpcServiceInterceptor> interceptors,
+
+    public RpcInvocationHandler(String serviceName, IRpcService rpcService,
+                                List<IRpcServiceInterceptor> interceptors,
                                 IRpcMessageTransformer transformer) {
         this.serviceName = serviceName;
         this.rpcService = rpcService;
@@ -54,9 +56,11 @@ public class RpcInvocationHandler implements InvocationHandler {
             return null;
         }
 
-        String methodName = AopProxyHelper.getServiceMethod(method);
+        IFunctionModel methodModel = methods.computeIfAbsent(method, mtd -> MethodModelBuilder.from(mtd.getDeclaringClass(), mtd));
 
-        ApiRequest<?> req = transformer.toRequest(serviceName, methodName, args);
+        String methodName = transformer.getMethodName(methodModel);
+
+        ApiRequest<?> req = transformer.toRequest(serviceName, methodModel, args);
         IRpcServiceInvocation inv = new DefaultRpcServiceInvocation(serviceName, methodName, req, null, false,
                 rpcService);
 
@@ -64,18 +68,13 @@ public class RpcInvocationHandler implements InvocationHandler {
             inv = new AopRpcServiceInvocation(inv, interceptors);
         }
 
-        Class<?> resultType = method.getReturnType();
-        if (CompletionStage.class.isAssignableFrom(resultType)) {
+        if (methodModel.isAsync()) {
             // async
-            Type paramType = JavaGenericTypeHelper.getSuperParamType(method.getGenericReturnType(), resultType,
-                    CompletionStage.class);
-            IGenericType resType = ReflectionManager.instance().buildGenericType(paramType);
-            return inv.proceedAsync().thenApply(res -> transformer.fromResponse(serviceName, methodName, resType, res));
+            return inv.proceedAsync().thenApply(res -> transformer.fromResponse(serviceName, methodModel, res));
         } else {
             // sync
             ApiResponse<?> result = inv.proceed();
-            IGenericType resType = ReflectionManager.instance().buildGenericType(method.getGenericReturnType());
-            return transformer.fromResponse(serviceName, methodName, resType, result);
+            return transformer.fromResponse(serviceName, methodModel, result);
         }
     }
 }

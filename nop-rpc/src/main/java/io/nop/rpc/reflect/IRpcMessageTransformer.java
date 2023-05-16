@@ -9,20 +9,18 @@ package io.nop.rpc.reflect;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.core.reflect.IFunctionArgument;
-import io.nop.core.type.IGenericType;
-
-import java.util.List;
+import io.nop.core.reflect.IFunctionModel;
 
 public interface IRpcMessageTransformer {
-    ApiRequest<?> toRequest(String serviceName, String methodName, Object[] args);
+    String getMethodName(IFunctionModel method);
 
-    Object fromResponse(String serviceName, String methodName, IGenericType returnType, ApiResponse<?> res);
+    ApiRequest<?> toRequest(String serviceName, IFunctionModel method, Object[] args);
 
-    Object[] fromRequest(String serviceName, String methodName, List<? extends IFunctionArgument> argModels,
-                         ApiRequest<?> request);
+    Object fromResponse(String serviceName, IFunctionModel method, ApiResponse<?> res);
 
-    ApiResponse<?> toResponse(String serviceName, String methodName, Object result);
+    Object[] fromRequest(String serviceName, IFunctionModel method, ApiRequest<?> request);
+
+    ApiResponse<?> toResponse(String serviceName, IFunctionModel method, Object result);
 
     void enrichResponse(ApiRequest<?> request, ApiResponse<?> response);
 }

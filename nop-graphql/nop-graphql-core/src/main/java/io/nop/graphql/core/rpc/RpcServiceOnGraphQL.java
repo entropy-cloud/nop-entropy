@@ -24,7 +24,7 @@ import io.nop.core.reflect.aop.AopProxyHelper;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
-import io.nop.rpc.reflect.DefaultRpcMessageTransformer;
+import io.nop.rpc.reflect.HttpRpcMessageTransformer;
 import io.nop.rpc.reflect.RpcInvocationHandler;
 
 import java.util.Collections;
@@ -44,7 +44,7 @@ public class RpcServiceOnGraphQL implements IRpcService {
 
     public <T> T asProxy(Class<T> clazz) {
         RpcInvocationHandler handler = new RpcInvocationHandler(serviceName, this, Collections.emptyList(),
-                DefaultRpcMessageTransformer.INSTANCE);
+                HttpRpcMessageTransformer.INSTANCE);
         Class[] inf = new Class[]{clazz};
         return (T) ReflectionManager.instance().newProxyInstance(inf, handler);
     }

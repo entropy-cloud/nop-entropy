@@ -92,7 +92,7 @@ public class TestJobScheduler {
         long count = scheduler.getJobDetail("test").getTriggerState().getExecutionCount();
         if (count <= 5) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(1000);
             } catch (Exception e) {
             }
         }

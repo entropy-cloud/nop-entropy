@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 public class NacosNamingService implements INamingService {
     static final Logger LOG = LoggerFactory.getLogger(NacosNamingService.class);
 
-    private Properties properties;
+    private Properties properties = new Properties();
     private String groupName;
     private volatile NamingService namingService;
     private volatile NamingMaintainService namingMaintainService;
@@ -53,11 +53,11 @@ public class NacosNamingService implements INamingService {
         return properties;
     }
 
-    public String getGroupName(){
+    public String getGroupName() {
         return groupName;
     }
 
-    public void setGroupName(String groupName){
+    public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
 
@@ -221,9 +221,7 @@ public class NacosNamingService implements INamingService {
         }
 
         synchronized void initInstances(List<Instance> instances) {
-            if (this.serviceInfo.getServiceInstances().isEmpty()) {
-                updateInstances(instances);
-            }
+            updateInstances(instances);
         }
 
         // 更新ServiceInfo中的instances信息

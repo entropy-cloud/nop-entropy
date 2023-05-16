@@ -3,17 +3,18 @@ package io.nop.http.api.client.rpc;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiStringHelper;
 
-import static io.nop.api.core.ApiErrors.ERR_API_NO_SERVICE_NAME_HEADER;
+import java.util.function.BiFunction;
 
-public class DefaultApiUrlBuilder implements IApiUrlBuilder {
+public class DefaultRpcUrlBuilder implements IRpcUrlBuilder {
     private final String baseUrl;
+    private final BiFunction<ApiRequest<?>, String, Object> paramGetter;
 
-    public DefaultApiUrlBuilder(String baseUrl) {
+    public DefaultRpcUrlBuilder(String baseUrl, BiFunction<ApiRequest<?>, String, Object> paramGetter) {
         this.baseUrl = normalize(baseUrl);
+        this.paramGetter = paramGetter;
     }
 
     static String normalize(String baseUrl) {
@@ -25,16 +26,31 @@ public class DefaultApiUrlBuilder implements IApiUrlBuilder {
     }
 
     @Override
+    public String toHttpHeader(String name) {
+        if (ApiConstants.HEADER_HTTP_METHOD.equals(name))
+            return null;
+        if (ApiConstants.HEADER_HTTP_URL.equals(name))
+            return null;
+        return name;
+    }
+
+    @Override
     public String buildUrl(ApiRequest<?> req, String serviceMethod) {
+        String url = ApiHeaders.getHttpUrl(req);
+        if (url != null) {
+            url = ApiStringHelper.renderTemplate(url, key -> {
+                return paramGetter.apply(req, key);
+            });
+            return url;
+        }
+
+        if (serviceMethod.startsWith("/"))
+            return baseUrl + serviceMethod;
 
         if (req.getData() instanceof GraphQLRequestBean) {
             return baseUrl + "/graphql";
         } else {
-            String svcName = ApiHeaders.getSvcName(req);
-            if (ApiStringHelper.isEmpty(svcName))
-                throw new NopException(ERR_API_NO_SERVICE_NAME_HEADER);
-
-            String url = baseUrl + "/r/" + svcName + "__" + serviceMethod;
+            url = baseUrl + "/r/" + serviceMethod;
             if (req.getFieldSelection() != null) {
                 String selection = req.getFieldSelection().toString();
                 if (!ApiStringHelper.isEmpty(selection)) {

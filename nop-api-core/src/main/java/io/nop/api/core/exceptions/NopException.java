@@ -12,6 +12,7 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +45,8 @@ public class NopException extends RuntimeException implements IException {
 
     private Map<String, ErrorBean> details;
 
+    private boolean alreadyTraced;
+
     public NopException(ErrorCode errorCode, Throwable cause) {
         super(errorCode.getErrorCode(), cause);
         this.description(errorCode.getDescription());
@@ -58,6 +61,24 @@ public class NopException extends RuntimeException implements IException {
 
     public NopException(String errorCode, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(errorCode, cause, enableSuppression, writableStackTrace);
+    }
+
+    public boolean isAlreadyTraced() {
+        return alreadyTraced;
+    }
+
+    public void setAlreadyTraced(boolean alreadyTraced) {
+        this.alreadyTraced = alreadyTraced;
+    }
+
+    public static void logIfNotTraced(Logger logger, String message, Throwable e) {
+        if (e instanceof NopException) {
+            NopException ne = (NopException) e;
+            if (ne.isAlreadyTraced())
+                return;
+            ne.setAlreadyTraced(true);
+        }
+        logger.error(message, e);
     }
 
     /**

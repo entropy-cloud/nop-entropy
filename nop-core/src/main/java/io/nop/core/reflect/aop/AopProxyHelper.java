@@ -14,7 +14,6 @@ import io.nop.core.exceptions.ErrorMessageManager;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.concurrent.CompletionStage;
 
 public class AopProxyHelper {
 
@@ -42,14 +41,6 @@ public class AopProxyHelper {
             return sb.toString();
         }
         return method.invoke(proxy, args);
-    }
-
-    public static String getServiceMethod(Method method) {
-        boolean async = CompletionStage.class.isAssignableFrom(method.getReturnType());
-        String methodName = method.getName();
-        if (async && methodName.endsWith("Async"))
-            return methodName.substring(0, methodName.length() - "Async".length());
-        return methodName;
     }
 
     public static ApiResponse<?> buildResponse(Object ret, Throwable e, IServiceContext ctx) {

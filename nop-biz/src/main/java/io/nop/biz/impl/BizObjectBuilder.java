@@ -24,13 +24,13 @@ import io.nop.core.context.action.IServiceActionDecorator;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.dao.api.IDaoProvider;
 import io.nop.fsm.execution.StateMachine;
 import io.nop.fsm.model.StateMachineModel;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.fetcher.BeanMethodAction;
 import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
@@ -39,8 +39,6 @@ import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.schema.meta.ObjMetaToGraphQLDefinition;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
-import io.nop.graphql.orm.OrmFetcherBuilder;
-import io.nop.orm.IOrmTemplate;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -68,18 +66,17 @@ public class BizObjectBuilder {
 
     private final List<IActionDecoratorCollector> collectors;
 
-    private final IOrmTemplate ormTemplate;
-    private final IDaoProvider daoProvider;
+    private final List<IGraphQLBizInitializer> bizInitializers;
     private final IMakerCheckerProvider makerCheckerProvider;
 
     public BizObjectBuilder(GraphQLBizModels bizModels, TypeRegistry typeRegistry,
-                            List<IActionDecoratorCollector> collectors, IOrmTemplate ormTemplate, IDaoProvider daoProvider,
+                            List<IActionDecoratorCollector> collectors,
+                            List<IGraphQLBizInitializer> bizInitializers,
                             IMakerCheckerProvider makerCheckerProvider) {
         this.bizModels = bizModels;
         this.typeRegistry = typeRegistry;
         this.collectors = collectors;
-        this.ormTemplate = ormTemplate;
-        this.daoProvider = daoProvider;
+        this.bizInitializers = bizInitializers;
         this.makerCheckerProvider = makerCheckerProvider;
     }
 
@@ -128,9 +125,10 @@ public class BizObjectBuilder {
         if (bizObj.getObjMeta() != null)
             entityName = bizObj.getObjMeta().getEntityName();
 
-        // 单元测试中ormTemplate可能是null
-        if (ormTemplate != null) {
-            new OrmFetcherBuilder(ormTemplate, daoProvider,this::resolveBizExpr).initFetchers(objDef, entityName);
+        if (bizInitializers != null) {
+            for (IGraphQLBizInitializer initializer : bizInitializers) {
+                initializer.initialize(objDef, entityName, this::resolveBizExpr);
+            }
         }
 
         ObjectDefinitionExtProcessor.provideFetchers(objDef);

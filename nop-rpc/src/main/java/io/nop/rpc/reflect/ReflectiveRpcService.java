@@ -63,14 +63,14 @@ public class ReflectiveRpcService implements IRpcService {
         }
 
         String serviceName = ApiHeaders.getSvcName(request);
-        Object[] args = transformer.fromRequest(serviceName, serviceMethod, method.getArgs(), request);
+        Object[] args = transformer.fromRequest(serviceName, method, request);
         try {
             Object result = method.invoke(serviceImpl, args, DisabledEvalScope.INSTANCE);
             if (result instanceof CompletionStage) {
                 return ((CompletionStage<?>) result)
-                        .thenApply(v -> transformer.toResponse(serviceName, serviceMethod, v));
+                        .thenApply(v -> transformer.toResponse(serviceName, method, v));
             } else {
-                return FutureHelper.success(transformer.toResponse(serviceName, serviceMethod, result));
+                return FutureHelper.success(transformer.toResponse(serviceName, method, result));
             }
         } catch (Exception e) {
             String locale = ApiHeaders.getLocale(request);

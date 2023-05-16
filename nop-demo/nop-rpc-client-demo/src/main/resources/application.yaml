@@ -1,0 +1,18 @@
+nop:
+  debug: true
+
+
+  server:
+    port: 9092
+
+  cluster:
+    registration:
+      enabled: true
+
+  graphql:
+    schema-introspection:
+      enabled: true
+
+quarkus:
+  http:
+    port: 9092

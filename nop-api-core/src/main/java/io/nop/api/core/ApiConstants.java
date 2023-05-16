@@ -57,6 +57,9 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String HEADER_TRACE = "nop-trace";
 
+    String HEADER_HTTP_METHOD = "http-method";
+    String HEADER_HTTP_URL = "http-url";
+
     /**
      * 身份认证token
      */

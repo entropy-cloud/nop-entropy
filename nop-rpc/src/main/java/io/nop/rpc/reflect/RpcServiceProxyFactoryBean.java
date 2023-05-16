@@ -2,6 +2,7 @@ package io.nop.rpc.reflect;
 
 import io.nop.api.core.rpc.IRpcService;
 import io.nop.api.core.rpc.IRpcServiceInterceptor;
+import io.nop.api.core.util.Guard;
 import io.nop.core.reflect.ReflectionManager;
 
 import javax.annotation.PostConstruct;
@@ -13,7 +14,7 @@ public class RpcServiceProxyFactoryBean {
     private Class<?> serviceClass;
     private List<IRpcServiceInterceptor> interceptors;
     private IRpcService rpcService;
-    private IRpcMessageTransformer messageTransformer = DefaultRpcMessageTransformer.INSTANCE;
+    private IRpcMessageTransformer messageTransformer = HttpRpcMessageTransformer.INSTANCE;
 
     private Object serviceBean;
 
@@ -38,10 +39,6 @@ public class RpcServiceProxyFactoryBean {
     }
 
     public String getServiceName() {
-        if (serviceName == null) {
-            if (serviceClass != null)
-                return serviceClass.getSimpleName();
-        }
         return serviceName;
     }
 
@@ -67,6 +64,9 @@ public class RpcServiceProxyFactoryBean {
 
     @PostConstruct
     public void init() {
+        Guard.notEmpty(getServiceName(), "serviceName");
+        Guard.notNull(serviceClass, "serviceClass");
+
         if (interceptors == null)
             interceptors = Collections.emptyList();
 

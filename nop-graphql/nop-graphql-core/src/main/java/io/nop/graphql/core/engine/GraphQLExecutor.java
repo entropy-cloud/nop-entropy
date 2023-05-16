@@ -24,6 +24,8 @@ import io.nop.graphql.core.ast.GraphQLFragmentSelection;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +38,8 @@ import java.util.function.Supplier;
 import static io.nop.api.core.util.FutureHelper.tryResolve;
 
 public class GraphQLExecutor implements IGraphQLExecutor {
+    static Logger LOG = LoggerFactory.getLogger(GraphQLExecutor.class);
+
     private final IAsyncFunctionInvoker operationInvoker;
     private final IGraphQLHook graphQLHook;
     private final IGraphQLEngine engine;
@@ -44,6 +48,9 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         this.operationInvoker = operationInvoker;
         this.graphQLHook = graphQLHook;
         this.engine = engine;
+        if (operationInvoker == null) {
+            LOG.info("nop.graphql.executor_operation_invoker_is_null");
+        }
     }
 
     @Override

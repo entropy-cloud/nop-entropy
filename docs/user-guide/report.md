@@ -250,3 +250,22 @@ class ExpandedCell{
 ## 五. 多Sheet支持和循环生成
 
 NopReport的设计支持多Sheet页，可以在Excel中增加多个Sheet页，每个Sheet页都可以有自己对应的配置。此外可以配置【循环变量】，从而动态确定具体生成多少个Sheet页，每个Sheet页的名称是什么。利用这个机制，可以更容易的生成档案式报表
+
+
+## 六. 在Java中调用
+具体使用实例参见[TestReportFile.java](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-report/nop-report-core/src/test/java/io/nop/report/core/TestReportFile.java)
+
+````javascript
+IReportEngine reportEngine = newReportEngine();
+File xptFile = attachmentFile("test.xpt.xlsx");
+ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(new FileResource(xptFile));
+ITemplateOutput output = reportEngine.getRendererForXptModel(xptModel, "xlsx");
+
+IEvalScope scope = XLang.newEvalScope();
+scope.setLocalValue("title", "测试报表，标题显示在右上角");
+
+File outputFile = getTargetFile("output.xlsx");
+output.generateToFile(outputFile, scope);
+````
+
+可以通过scope对象向报表中传递变量。在报表表达式中即可使用这些变量，并且可以在【展开前】等处理阶段对这些变量进行进一步的加工、计算等。

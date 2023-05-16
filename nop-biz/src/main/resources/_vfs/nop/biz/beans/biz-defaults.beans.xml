@@ -7,16 +7,23 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="nopGraphQLEngine" class="io.nop.graphql.core.engine.GraphQLEngine">
-        <property name="executionInvoker" ref="nopSingleSessionFunctionInvoker"/>
-        <property name="operationInvoker">
-            <bean class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
-                <!--                <property name="singleSessionInvoker" ref="nopSingleSessionFunctionInvoker" />-->
-                <property name="transactionalInvoker" ref="nopTransactionalFunctionInvoker"/>
-            </bean>
+        <property name="executionInvoker">
+            <ref bean="nopSingleSessionFunctionInvoker" ioc:optional="true"/>
         </property>
-
+        <property name="operationInvoker">
+            <ref bean="nopGraphQLOperationInvoker" ioc:optional="true"/>
+        </property>
         <property name="enableActionAuth" value="@cfg:nop.auth.enable-action-auth|false"/>
         <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|true"/>
+    </bean>
+
+    <bean id="nopGraphQLOperationInvoker" class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
+        <ioc:condition>
+            <on-bean>nopTransactionalFunctionInvoker</on-bean>
+        </ioc:condition>
+
+        <!--                <property name="singleSessionInvoker" ref="nopSingleSessionFunctionInvoker" />-->
+        <property name="transactionalInvoker" ref="nopTransactionalFunctionInvoker"/>
     </bean>
 
     <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager" ioc:delay-method="delayInit">
@@ -24,6 +31,15 @@
             <ioc:collect-beans by-annotation="io.nop.api.core.annotations.biz.BizModel"
                                only-concrete-classes="true"/>
         </property>
+        <property name="bizInitializers">
+            <ioc:collect-beans only-concrete-classes="true" by-type="io.nop.graphql.core.biz.IGraphQLBizInitializer"/>
+        </property>
+    </bean>
+
+    <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer" >
+        <ioc:condition>
+            <on-bean>nopOrmTemplate</on-bean>
+        </ioc:condition>
     </bean>
 
     <bean id="io.nop.biz.dict.DictProviderBizModel" ioc:type="@bean:id"/>

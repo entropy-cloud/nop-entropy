@@ -9,10 +9,12 @@ package io.nop.cluster.naming;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.ServiceInstance;
-import io.nop.commons.util.NetHelper;
+import io.nop.commons.io.net.IServerAddrFinder;
+import io.nop.commons.util.StringHelper;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.inject.Inject;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,13 +23,15 @@ import java.util.Set;
  */
 public class AutoRegistration {
 
-    private final INamingService namingService;
+    private INamingService namingService;
 
     private String serviceName;
     private String clusterName = "DEFAULT";
     private String addr;
     private int port = 9001;
     private int weight = 100;
+
+    private IServerAddrFinder addrFinder;
 
     private Set<String> tags;
     private Map<String, String> metadata;
@@ -36,6 +40,27 @@ public class AutoRegistration {
 
     public AutoRegistration(INamingService namingService) {
         this.namingService = namingService;
+    }
+
+    public AutoRegistration() {
+    }
+
+    @Inject
+    public void setNamingService(INamingService namingService) {
+        this.namingService = namingService;
+    }
+
+    @Inject
+    public void setAddrFinder(IServerAddrFinder addrFinder) {
+        this.addrFinder = addrFinder;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
     }
 
     public String getClusterName() {
@@ -99,8 +124,8 @@ public class AutoRegistration {
         instance.setHealthy(true);
         instance.setClusterName(this.clusterName);
         String addr = this.addr;
-        if (addr == null)
-            addr = NetHelper.findLocalIp();
+        if (StringHelper.isEmpty(addr))
+            addr = addrFinder.findAddr();
 
         instance.setAddr(addr);
         instance.setPort(port);

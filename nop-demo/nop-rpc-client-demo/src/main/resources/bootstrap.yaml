@@ -1,0 +1,9 @@
+nop.cluster.discovery.nacos.enabled: true
+nop.cluster.discovery.nacos.server-addr: localhost:8848
+
+nop:
+  application:
+    name: rpc-demo-consumer
+  datasource:
+    disabled: true
+

@@ -9,7 +9,6 @@ package io.nop.api.core.util;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.api.core.rpc.IRpcProxy;
 
 import java.util.concurrent.CompletionStage;
@@ -26,10 +25,7 @@ public class ApiInvokeHelper {
     public static <T> T getResponseData(ApiResponse<T> res) {
         if (res == null)
             return null;
-        if (res.isOk())
-            return res.getData();
-
-        throw NopRebuildException.rebuild(res);
+        return res.get();
     }
 
     public static Void ignoreResult(ApiResponse res) {

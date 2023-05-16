@@ -25,7 +25,12 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-orm</artifactId>
+            <artifactId>nop-graphql-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-graphql-orm</artifactId>
         </dependency>
 
         <dependency>
@@ -41,11 +46,6 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-fsm</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-graphql-orm</artifactId>
         </dependency>
 
         <dependency>

@@ -129,7 +129,8 @@ public class DefaultConfigProvider implements IConfigProvider {
 
     @Override
     public void assignConfigValue(String name, Object value) {
-        DefaultConfigReference df = getConfigRef(name, value.getClass(), null);
+        Class<?> valueClass = value == null ? Object.class : value.getClass();
+        DefaultConfigReference df = getConfigRef(name, valueClass, null);
         value = ConvertHelper.convertTo(df.getValueType(), value, err -> new NopException(err).param(ARG_VAR, name));
         df.updateValue(null, StaticValue.valueOf(value));
     }

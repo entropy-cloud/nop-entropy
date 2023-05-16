@@ -9,6 +9,7 @@ package io.nop.rpc.simple;
 
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.core.reflect.impl.FunctionModel;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.rpc.reflect.DefaultRpcMessageTransformer;
 import org.junit.jupiter.api.Test;
@@ -28,8 +29,9 @@ public class TestSimpleRpcClient {
 
         CompletableFuture<Object> future = new CompletableFuture<>();
         future.complete(res);
-        future = future.thenApply(ret -> DefaultRpcMessageTransformer.INSTANCE.fromResponse("a", "b",
-                PredefinedGenericTypes.ANY_TYPE, res));
+        FunctionModel fn = new FunctionModel();
+        fn.setReturnType(PredefinedGenericTypes.ANY_TYPE);
+        future = future.thenApply(ret -> DefaultRpcMessageTransformer.INSTANCE.fromResponse("a", fn, res));
         future.whenComplete((ret, err) -> {
             ref.set(err);
         });

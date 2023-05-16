@@ -21,7 +21,6 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.ResourceLoadingCache;
-import io.nop.dao.api.IDaoProvider;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
@@ -30,11 +29,11 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
-import io.nop.orm.IOrmTemplate;
 
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
@@ -68,9 +67,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private List<IActionDecoratorCollector> actionDecoratorCollectors;
 
-    private IOrmTemplate ormTemplate;
-
-    private IDaoProvider daoProvider;
+    private List<IGraphQLBizInitializer> bizInitializers;
 
     private IMakerCheckerProvider makerCheckerProvider;
 
@@ -81,14 +78,8 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         this.bizModelBeans = bizModelBeans;
     }
 
-    @Inject
-    public void setOrmTemplate(IOrmTemplate ormTemplate) {
-        this.ormTemplate = ormTemplate;
-    }
-
-    @Inject
-    public void setDaoProvider(IDaoProvider daoProvider) {
-        this.daoProvider = daoProvider;
+    public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
+        this.bizInitializers = bizInitializers;
     }
 
     public void setActionDecoratorCollectors(List<IActionDecoratorCollector> actionDecoratorCollectors) {
@@ -138,7 +129,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     private IBizObject buildBizObject(String bizObjName) {
-        return new BizObjectBuilder(bizModels, typeRegistry, actionDecoratorCollectors, ormTemplate, daoProvider,
+        return new BizObjectBuilder(bizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
                 makerCheckerProvider).buildBizObject(bizObjName);
     }
 

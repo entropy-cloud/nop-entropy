@@ -19,6 +19,16 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-core</artifactId>
         </dependency>
 
@@ -72,6 +82,10 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-graphql-orm</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.quarkus</groupId>

@@ -288,7 +288,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
     private Pair<ErrorBean, ErrorCodeMapping> _buildErrorMessage(String locale, Throwable e, boolean includeStack,
                                                                  boolean onlyPublic, boolean logError) {
         if (logError)
-            LOG.error("nop.build-error-message", e);
+            NopException.logIfNotTraced(LOG, "nop.build-error-message", e);
 
         ErrorBean errorBean;
         if (errorMessageBuilder == null) {

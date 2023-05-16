@@ -80,6 +80,9 @@ public interface IFunctionModel
         return getReturnType().isAssignableTo(CompletionStage.class);
     }
 
+    /**
+     * 如果是async调用，则返回的是实际类型。如果是普通调用，则和returnType相同
+     */
     IGenericType getAsyncReturnType();
 
     int getMinArgCount();

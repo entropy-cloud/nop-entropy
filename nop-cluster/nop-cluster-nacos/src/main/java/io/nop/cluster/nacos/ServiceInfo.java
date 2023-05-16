@@ -22,7 +22,7 @@ public class ServiceInfo {
     }
 
     public void setServiceInstances(List<ServiceInstance> instances) {
-        this.serviceInstances = serviceInstances;
+        this.serviceInstances = instances;
     }
 
     public NacosNamingService.ServiceInfoListener getListener() {

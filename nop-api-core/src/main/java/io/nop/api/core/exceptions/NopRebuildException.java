@@ -81,7 +81,7 @@ public class NopRebuildException extends NopException {
 //        }
 
         return new NopRebuildException(errorCode, null, false, true).forPublic(true)
-                .bizFatal(Boolean.TRUE.equals(error.getBizFatal()))
+                .bizFatal(Boolean.TRUE.equals(error.getBizFatal())).status(error.getStatus())
                 .description(description).params(params);
     }
 }

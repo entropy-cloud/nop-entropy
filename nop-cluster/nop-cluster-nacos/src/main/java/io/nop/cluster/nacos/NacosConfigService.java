@@ -146,7 +146,10 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
 
         try {
             String content = configService.getConfigAndSignListener(dataId, group, timeout, nacosListener);
-            return new ConfigInfo(content, () -> configService.removeListener(dataId, group, nacosListener));
+            return new ConfigInfo(content, () -> {
+                if (configService != null)
+                    configService.removeListener(dataId, group, nacosListener);
+            });
         } catch (NacosException e) {
             throw newError(e);
         }

@@ -7,12 +7,14 @@
  */
 package io.nop.rpc.reflect;
 
+import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiInvokeHelper;
 import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 
@@ -29,27 +31,47 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
     public static final DefaultRpcMessageTransformer INSTANCE = new DefaultRpcMessageTransformer();
 
     @Override
-    public ApiRequest<Object> toRequest(String serviceName, String methodName, Object[] args) {
+    public String getMethodName(IFunctionModel method) {
+        String methodName = method.getName();
+        if (methodName.endsWith("Async") && method.isAsync())
+            return methodName.substring(0, methodName.length() - "Async".length());
+        return methodName;
+    }
+
+    @Override
+    public ApiRequest<Object> toRequest(String serviceName, IFunctionModel method, Object[] args) {
+        String methodName = getMethodName(method);
+
         if (args != null) {
             // 只有一个参数，且参数类型为ApiRequest时，直接传递request
-            if (args.length == 1 && args[0] instanceof ApiRequest) {
-                ApiRequest<Object> req = (ApiRequest<Object>) args[0];
-                ApiHeaders.setSvcName(req, serviceName);
-                ApiHeaders.setSvcAction(req, methodName);
-                return req;
+            if (args.length == 1) {
+                if (args[0] instanceof ApiRequest) {
+                    ApiRequest<Object> req = (ApiRequest<Object>) args[0];
+                    ApiHeaders.setSvcName(req, serviceName);
+                    ApiHeaders.setSvcAction(req, methodName);
+                    return req;
+                } else if (method.getArgs().get(0).isAnnotationPresent(RequestBean.class)) {
+                    ApiRequest<Object> req = ApiRequest.build(args[0]);
+                    ApiHeaders.setSvcName(req, serviceName);
+                    ApiHeaders.setSvcAction(req, methodName);
+                    return req;
+                }
             }
         }
 
         ApiRequest<Object> req = new ApiRequest<>();
         ApiHeaders.setSvcName(req, serviceName);
         ApiHeaders.setSvcAction(req, methodName);
-        req.setData(args);
+        if (args != null && args.length > 0)
+            req.setData(args);
         return req;
     }
 
     @Override
-    public Object fromResponse(String serviceName, String methodName, IGenericType returnType, ApiResponse<?> res) {
+    public Object fromResponse(String serviceName, IFunctionModel method, ApiResponse<?> res) {
         ApiResponse<Object> response = (ApiResponse<Object>) res;
+
+        IGenericType returnType = method.getAsyncReturnType();
 
         if (ApiResponse.class == returnType.getRawClass()) {
             IGenericType bodyType = returnType.getTypeParameters().get(0);
@@ -72,14 +94,19 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
     }
 
     @Override
-    public Object[] fromRequest(String serviceName, String methodName, List<? extends IFunctionArgument> argModels,
+    public Object[] fromRequest(String serviceName, IFunctionModel method,
                                 ApiRequest<?> request) {
+        List<? extends IFunctionArgument> argModels = method.getArgs();
         if (argModels.size() == 1) {
-            IGenericType type = argModels.get(0).getType();
+            IFunctionArgument argModel = argModels.get(0);
+            IGenericType type = argModel.getType();
             if (type.getRawClass() == ApiRequest.class) {
                 IGenericType bodyType = type.getTypeParameters().get(0);
                 ((ApiRequest<Object>) request).setData(normalizeType(bodyType, request.getData()));
                 return new Object[]{request};
+            } else if (argModel.isAnnotationPresent(RequestBean.class)) {
+                ((ApiRequest) request).setData(normalizeType(type, request.getData()));
+                return new Object[]{request.getData()};
             }
         }
 
@@ -103,7 +130,7 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
 
         List<?> list = (List<?>) data;
         if (list.size() != argModels.size())
-            throw new NopException(ERR_RPC_REQUEST_ARGS_COUNT_MISMATCH).param(ARG_SERVICE_METHOD, methodName)
+            throw new NopException(ERR_RPC_REQUEST_ARGS_COUNT_MISMATCH).param(ARG_SERVICE_METHOD, method.getName())
                     .param(ARG_COUNT, list.size()).param(ARG_EXPECTED_COUNT, argModels.size());
 
         Object[] ret = new Object[list.size()];
@@ -114,7 +141,7 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
     }
 
     @Override
-    public ApiResponse<?> toResponse(String serviceName, String methodName, Object result) {
+    public ApiResponse<?> toResponse(String serviceName, IFunctionModel method, Object result) {
         if (result instanceof ApiResponse)
             return (ApiResponse<?>) result;
         return ApiResponse.buildSuccess(result);

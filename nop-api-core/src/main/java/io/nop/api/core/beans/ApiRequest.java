@@ -7,8 +7,10 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.rpc.IApiResponseNormalizer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,10 +25,21 @@ public final class ApiRequest<T> extends ApiMessage {
     private FieldSelectionBean fieldSelection;
     private T data;
 
+    private IApiResponseNormalizer responseNormalizer;
+
     public static <T> ApiRequest<T> build(T data) {
         ApiRequest<T> request = new ApiRequest<>();
         request.setData(data);
         return request;
+    }
+
+    @JsonIgnore
+    public IApiResponseNormalizer getResponseNormalizer() {
+        return responseNormalizer;
+    }
+
+    public void setResponseNormalizer(IApiResponseNormalizer responseNormalizer) {
+        this.responseNormalizer = responseNormalizer;
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)

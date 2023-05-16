@@ -262,6 +262,22 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_ACTOR, value);
     }
 
+    public static String getHttpMethod(ApiMessage message) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_HTTP_METHOD);
+    }
+
+    public static void setHttpMethod(ApiMessage message, String method) {
+        message.setHeader(ApiConstants.HEADER_HTTP_METHOD, method);
+    }
+
+    public static String getHttpUrl(ApiMessage message) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_HTTP_URL);
+    }
+
+    public static void setHttpUrl(ApiMessage message, String url) {
+        message.setHeader(ApiConstants.HEADER_HTTP_URL, url);
+    }
+
     public static String getSvcName(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_SVC_NAME);
     }

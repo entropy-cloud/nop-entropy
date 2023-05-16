@@ -81,7 +81,7 @@ public class DynamicTextConfigSourceLoader implements IConfigSourceLoader {
 
     private Map<String, ValueWithLocation> loadFromLocalFile() {
         IResource resource = new ClassPathResource(CFG_PATH_PREFIX + dataId);
-        if (resource.exists()) {
+        if (!resource.exists()) {
             return Collections.emptyMap();
         }
         String configInfo = ResourceHelper.readText(resource);
