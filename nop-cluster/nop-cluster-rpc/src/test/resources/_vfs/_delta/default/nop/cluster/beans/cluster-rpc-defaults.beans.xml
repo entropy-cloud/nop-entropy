@@ -12,6 +12,6 @@
 
     <bean id="testRpcClient" parent="AbstractHttpRpcProxyFactoryBean"
           ioc:type="io.nop.cluster.rpc.ServiceA">
-
+        <property name="serviceName" value="ServiceA" />
     </bean>
 </beans>
