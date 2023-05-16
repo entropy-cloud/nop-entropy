@@ -16,6 +16,8 @@ import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.lang.json.IJsonSerializable;
 import io.nop.core.reflect.hook.SerializableExtensibleObject;
 
+import java.util.Set;
+
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_ALLOW_CHANGE;
 
@@ -64,5 +66,10 @@ public abstract class AbstractComponentModel extends SerializableExtensibleObjec
     protected void outputJson(IJsonHandler handler) {
         if (location != null)
             handler.put("location", location);
+
+        Set<String> names = prop_names();
+        for (String name : names) {
+            handler.put(name, getExtProp(name));
+        }
     }
 }
