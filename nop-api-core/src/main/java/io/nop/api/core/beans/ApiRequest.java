@@ -22,7 +22,7 @@ public final class ApiRequest<T> extends ApiMessage {
     /**
      * GraphQL所支持的返回结果过滤能力
      */
-    private FieldSelectionBean fieldSelection;
+    private FieldSelectionBean selection;
     private T data;
 
     private IApiResponseNormalizer responseNormalizer;
@@ -43,12 +43,12 @@ public final class ApiRequest<T> extends ApiMessage {
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    public FieldSelectionBean getFieldSelection() {
-        return fieldSelection;
+    public FieldSelectionBean getSelection() {
+        return selection;
     }
 
-    public void setFieldSelection(FieldSelectionBean fieldSelection) {
-        this.fieldSelection = fieldSelection;
+    public void setSelection(FieldSelectionBean selection) {
+        this.selection = selection;
     }
 
     public T getData() {

@@ -64,7 +64,7 @@ public class BizActionInvocation implements IRpcServiceInvocation {
                 ctx.setRequestHeaders(request.getHeaders());
                 ctx.setRequest(request.getData());
             }
-            Object result = bizObj.invoke(action, request.getData(), request.getFieldSelection(), ctx);
+            Object result = bizObj.invoke(action, request.getData(), request.getSelection(), ctx);
             if (result instanceof CompletionStage)
                 return ((CompletionStage<?>) result).thenApply(this::toResponse);
             return FutureHelper.success(toResponse(result));

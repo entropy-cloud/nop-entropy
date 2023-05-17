@@ -67,7 +67,7 @@ public class MakerCheckerTryServiceAction implements IServiceAction {
             return (ApiRequest<?>) request;
 
         ApiRequest<Object> ret = new ApiRequest<>();
-        ret.setFieldSelection(selection);
+        ret.setSelection(selection);
         ret.setData(request);
         ret.setHeaders(context.getRequestHeaders());
         return ret;

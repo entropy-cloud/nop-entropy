@@ -45,12 +45,13 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
         if (args != null) {
             // 只有一个参数，且参数类型为ApiRequest时，直接传递request
             if (args.length == 1) {
+                IFunctionArgument argModel = method.getArgs().get(0);
                 if (args[0] instanceof ApiRequest) {
                     ApiRequest<Object> req = (ApiRequest<Object>) args[0];
                     ApiHeaders.setSvcName(req, serviceName);
                     ApiHeaders.setSvcAction(req, methodName);
                     return req;
-                } else if (method.getArgs().get(0).isAnnotationPresent(RequestBean.class)) {
+                } else if (argModel.isAnnotationPresent(RequestBean.class)) {
                     ApiRequest<Object> req = ApiRequest.build(args[0]);
                     ApiHeaders.setSvcName(req, serviceName);
                     ApiHeaders.setSvcAction(req, methodName);

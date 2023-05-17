@@ -300,7 +300,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         GraphQLFieldSelection selection = doc.addOperation(action.getOperationType(), operationName, request.getData());
 
         GraphQLSelectionSet selectionSet = new RpcSelectionSetBuilder(this.builtinSchema, schemaLoader,
-                CFG_GRAPHQL_QUERY_MAX_DEPTH.get()).buildForType(action.getType(), request.getFieldSelection());
+                CFG_GRAPHQL_QUERY_MAX_DEPTH.get()).buildForType(action.getType(), request.getSelection());
         selection.setSelectionSet(selectionSet);
         selection.setFieldDefinition(action);
 

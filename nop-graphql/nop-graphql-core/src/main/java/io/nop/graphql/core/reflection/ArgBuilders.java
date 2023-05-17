@@ -56,7 +56,7 @@ public class ArgBuilders {
                     IGenericType bodyType = type.getTypeParameters().get(0);
                     Object data = JsonTool.parseBeanFromText(req.toString(), bodyType);
                     ApiRequest<Object> ret = new ApiRequest<>();
-                    ret.setFieldSelection(selection);
+                    ret.setSelection(selection);
                     ret.setHeaders(ctx.getRequestHeaders());
                     ret.setData(data);
                     return ret;
@@ -68,7 +68,7 @@ public class ArgBuilders {
                 IGenericType bodyType = type.getTypeParameters().get(0);
                 Object data = BeanTool.castBeanToType(req, bodyType);
                 ApiRequest<Object> ret = new ApiRequest<>();
-                ret.setFieldSelection(selection);
+                ret.setSelection(selection);
                 ret.setHeaders(ctx.getRequestHeaders());
                 ret.setData(data);
                 return ret;
@@ -82,7 +82,7 @@ public class ArgBuilders {
             Object args = env.getArgs();
             Object data = BeanTool.castBeanToType(args, requestBodyType);
             ApiRequest<Object> req = new ApiRequest<>();
-            req.setFieldSelection(env.getSelectionBean());
+            req.setSelection(env.getSelectionBean());
             req.setHeaders(env.getExecutionContext().getResponseHeaders());
             req.setData(data);
             return req;

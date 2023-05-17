@@ -162,7 +162,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
         IServiceContext context = null;
         if (request instanceof ApiRequest<?>) {
             ApiRequest<?> req = (ApiRequest<?>) request;
-            selection = req.getFieldSelection();
+            selection = req.getSelection();
             request = req.getData();
 
             if (args.length > 1) {

@@ -8,11 +8,14 @@
 package io.nop.core.lang.json;
 
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.json.JSON;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
+import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.core.type.utils.GenericTypeHelper;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -78,10 +81,24 @@ public class TestJsonTool {
     }
 
     @Test
-    public void testFilterBean(){
+    public void testFilterBean() {
         TreeBean filter = new TreeBean();
         filter.setTagName("filter");
-        filter.addChild(FilterBeans.eq("status",1));
-        assertEquals("{\"$body\":[{\"$type\":\"eq\",\"name\":\"status\",\"value\":1}],\"$type\":\"filter\"}", JsonTool.serialize(filter,false));
+        filter.addChild(FilterBeans.eq("status", 1));
+        assertEquals("{\"$body\":[{\"$type\":\"eq\",\"name\":\"status\",\"value\":1}],\"$type\":\"filter\"}", JsonTool.serialize(filter, false));
+    }
+
+    @Test
+    public void testApiRequest() {
+        FieldSelectionBean selection = FieldSelectionBean.fromProp("a", "b");
+        ApiRequest<String> req = new ApiRequest<>();
+        req.setSelection(selection);
+        req.setData("s");
+        String str = JsonTool.stringify(req);
+        System.out.println(str);
+
+        ApiRequest<String> req2 = (ApiRequest<String>) JsonTool.parseBeanFromText(str, GenericTypeHelper.buildRequestType(PredefinedGenericTypes.STRING_TYPE));
+        assertEquals("s", req2.getData());
+        assertEquals(2, req.getSelection().getFields().size());
     }
 }

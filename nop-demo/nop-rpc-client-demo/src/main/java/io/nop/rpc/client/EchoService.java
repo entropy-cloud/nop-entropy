@@ -1,8 +1,10 @@
 package io.nop.rpc.client;
 
-import io.nop.api.core.beans.ApiRequest;
-import io.nop.api.core.beans.ApiResponse;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 
 public interface EchoService {
-    ApiResponse<String> echo(ApiRequest<String> request);
+    @Path("/echo/{id}")
+    String echo(@QueryParam("msg") String msg, @PathParam("id") String id);
 }

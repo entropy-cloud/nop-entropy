@@ -57,7 +57,7 @@ public class GraphQLWebService {
 
     @POST
     @Path("/graphql")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
     public CompletionStage<Response> graphql(String body) {
         return runGraphQL(body, this::buildJaxrsGraphQLResponse);
     }
@@ -109,7 +109,7 @@ public class GraphQLWebService {
 
     @POST
     @Path("/r/{operationName}")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
     public CompletionStage<Response> rest(@PathParam("operationName") String operationName,
                                           @QueryParam(SYS_PARAM_SELECTION) String selection, String body) {
         return runRest(null, operationName, () -> {
@@ -151,7 +151,7 @@ public class GraphQLWebService {
 
     @GET
     @Path("/r/{operationName}")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
     public CompletionStage<Response> restQuery(@PathParam("operationName") String operationName,
                                                @QueryParam(SYS_PARAM_SELECTION) String selection, @QueryParam(SYS_PARAM_ARGS) String args) {
         return runRest(GraphQLOperationType.query, operationName, () -> {
@@ -203,7 +203,7 @@ public class GraphQLWebService {
 
         request.setData(map);
         if (!StringHelper.isEmpty(selection)) {
-            request.setFieldSelection(new FieldSelectionBeanParser().parseFromText(null, selection));
+            request.setSelection(new FieldSelectionBeanParser().parseFromText(null, selection));
         }
         return request;
     }
@@ -289,7 +289,7 @@ public class GraphQLWebService {
     }
 
     private void buildJson(Response.ResponseBuilder builder, ApiResponse<?> res) {
-        builder.header(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_JSON);
+        builder.header(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_JSON + ";charset=UTF-8");
         String str;
         if (res.isOk()) {
             str = JSON.stringify(res.getData());

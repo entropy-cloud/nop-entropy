@@ -224,6 +224,8 @@ public class JdkHttpClient implements IHttpClient {
             ContentType parsed = ContentType.parse(contentType.get());
             if (parsed.getCharset() != null) {
                 ret.setCharset(parsed.getCharset().name());
+            }else{
+                ret.setCharset("UTF-8");
             }
             ret.setContentType(parsed.getMimeType());
         }
