@@ -5,12 +5,12 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
 
-    <bean id="testEchoService" parent="AbstractHttpRpcProxyFactoryBean"
+    <bean id="testEchoService" parent="AbstractClusterRpcProxyFactoryBean"
           ioc:type="io.nop.rpc.client.EchoService">
         <property name="serviceName" value="rpc-demo-producer"/>
     </bean>
 
-    <bean id="testGraphQLRpc" parent="AbstractHttpRpcProxyFactoryBean"
+    <bean id="testGraphQLRpc" parent="AbstractClusterRpcProxyFactoryBean"
           ioc:type="io.nop.rpc.client.TestRpc">
         <property name="serviceName" value="rpc-demo-consumer"/>
     </bean>

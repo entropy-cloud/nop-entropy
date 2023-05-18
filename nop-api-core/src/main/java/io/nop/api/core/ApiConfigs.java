@@ -42,7 +42,7 @@ public interface ApiConfigs {
 
     @Description("本应用程序的版本号")
     IConfigReference<String> CFG_APPLICATION_VERSION =
-            varRef("nop.application.version", String.class, "default");
+            varRef("nop.application.version", String.class, "");
 
 
     @Description("应用程序的多语言设置")

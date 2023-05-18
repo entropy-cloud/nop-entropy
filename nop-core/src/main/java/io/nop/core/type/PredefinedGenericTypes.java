@@ -421,7 +421,7 @@ public class PredefinedGenericTypes {
 
     public static final PredefinedRawType API_RESPONSE_TYPE = javaType(io.nop.api.core.beans.ApiResponse.class,"API_RESPONSE_TYPE");
 
-    public static final PredefinedRawType I_RPC_SERVICE_TYPE = javaType(io.nop.api.core.rpc.IRpcService.class,"I_RPC_SERVICE_TYPE");
+    public static final PredefinedRawType I_RPC_SERVICE_TYPE = javaType(io.nop.rpc.api.IRpcService.class,"I_RPC_SERVICE_TYPE");
 
     public static final PredefinedRawType I_CONTEXT_TYPE = javaType(io.nop.api.core.context.IContext.class,"I_CONTEXT_TYPE");
 

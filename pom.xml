@@ -486,8 +486,5 @@
         <module>nop-orm-model</module>
         <module>nop-orm-eql</module>
         <module>nop-orm-pdm</module>
-        <module>nop-cluster/nop-cluster-rpc</module>
-        <module>nop-demo/nop-rpc-client-demo</module>
-        <module>nop-demo/nop-rpc-server-demo</module>
     </modules>
 </project>

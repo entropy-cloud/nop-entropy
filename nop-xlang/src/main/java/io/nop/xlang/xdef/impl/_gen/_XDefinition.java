@@ -7,13 +7,20 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [19:2:0:0]/nop/schema/xdef.xdef <p>
+ * generate from [20:2:0:0]/nop/schema/xdef.xdef <p>
  * xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即使用xdef来定义xdef本身。
  * 本文件定义了一般的xdef元模型定义文件中允许使用的xdef属性和标签的具体位置和格式。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
+    
+    /**
+     *  
+     * xml name: xdef:base
+     * 本文件所对应的基础约束，用于识别当前xdef文件是否从某个基础元模型衍生得到
+     */
+    private java.lang.String _xdefBase ;
     
     /**
      *  
@@ -88,6 +95,25 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
      * 
      */
     private java.lang.String _xdefVersion ;
+    
+    /**
+     * 
+     * xml name: xdef:base
+     *  本文件所对应的基础约束，用于识别当前xdef文件是否从某个基础元模型衍生得到
+     */
+    
+    public java.lang.String getXdefBase(){
+      return _xdefBase;
+    }
+
+    
+    public void setXdefBase(java.lang.String value){
+        checkAllowChange();
+        
+        this._xdefBase = value;
+           
+    }
+
     
     /**
      * 
@@ -296,6 +322,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("xdefBase",this.getXdefBase());
         out.put("xdefBeanPackage",this.getXdefBeanPackage());
         out.put("xdefCheckNs",this.getXdefCheckNs());
         out.put("xdefDefaultExtends",this.getXdefDefaultExtends());

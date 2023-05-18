@@ -11,8 +11,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.cluster.chooser.IRequestServiceInstanceFilter;
 import io.nop.cluster.discovery.ServiceInstance;
-
-import java.util.Objects;
+import io.nop.commons.util.StringHelper;
 
 /**
  * 如果启用组隔离机制，则限制服务的消费者和生产者属于同一个group。
@@ -29,11 +28,14 @@ public class GroupIsolationServiceInstanceFilter implements IRequestServiceInsta
     }
 
     @Override
-    public boolean accept(ServiceInstance serviceInstance, ApiRequest<?> request) {
+    public boolean accept(ServiceInstance serviceInstance, ApiRequest<?> request, boolean onlyPreferred) {
         if (!isEnabled())
             return true;
 
         String reqGroup = ApiHeaders.getSvcGroup(request);
-        return Objects.equals(reqGroup, serviceInstance.getMetadata(ServiceInstance.META_GROUP));
+        if (StringHelper.isEmpty(reqGroup))
+            return true;
+
+        return reqGroup.equals(serviceInstance.getMetadata(ServiceInstance.META_GROUP));
     }
 }

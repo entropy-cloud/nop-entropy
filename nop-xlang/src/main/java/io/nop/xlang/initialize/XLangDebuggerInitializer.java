@@ -17,7 +17,7 @@ import io.nop.core.initialize.ICoreInitializer;
 import io.nop.core.lang.eval.DefaultExpressionExecutor;
 import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.rpc.RpcConstants;
+import io.nop.rpc.core.RpcConstants;
 import io.nop.rpc.simple.SimpleRpcServer;
 import io.nop.socket.ServerConfig;
 import io.nop.xlang.debug.DebugExpressionExecutor;

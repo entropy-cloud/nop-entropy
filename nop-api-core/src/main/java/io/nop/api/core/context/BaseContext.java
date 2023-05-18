@@ -39,6 +39,7 @@ public class BaseContext implements IContext {
     private long expireTime;
     private String userRefNo;
     private String callIp;
+    private Map<String,String> svcRoute;
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
     protected final ContextTaskQueue taskQueue = new ContextTaskQueue();
@@ -117,6 +118,16 @@ public class BaseContext implements IContext {
     public void setLocale(String locale) {
         checkClosed();
         this.locale = locale;
+    }
+
+    @Override
+    public Map<String, String> getSvcRoute() {
+        return svcRoute;
+    }
+
+    public void setSvcRoute(Map<String, String> svcRoute) {
+        checkClosed();
+        this.svcRoute = svcRoute;
     }
 
     @Override

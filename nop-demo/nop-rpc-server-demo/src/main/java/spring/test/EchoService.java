@@ -1,6 +1,5 @@
 package spring.test;
 
-import io.nop.api.core.beans.ApiResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 

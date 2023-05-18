@@ -11,12 +11,12 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.context.ContextProvider;
-import io.nop.api.core.rpc.IRpcServiceInvocation;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.biz.api.IBizObject;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.rpc.api.IRpcServiceInvocation;
 
 import java.util.concurrent.CompletionStage;
 

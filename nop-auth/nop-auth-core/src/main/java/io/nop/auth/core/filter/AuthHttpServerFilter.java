@@ -237,9 +237,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     }
 
     protected String getAuthTokenFromHeader(IHttpServerContext context) {
-        String token = (String) context.getRequestHeader(IHttpServerContext.HEADER_AUTHORIZATION);
+        String token = context.getRequestStringHeader(IHttpServerContext.HEADER_AUTHORIZATION);
         if (StringHelper.isEmpty(token)) {
-            token = (String) context.getRequestHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN);
+            token = context.getRequestStringHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN);
         }
         if (StringHelper.isEmpty(token))
             return null;
@@ -321,7 +321,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     protected IContext initUserContext(IUserContext userContext, IHttpServerContext context) {
 
-        String locale = (String) context.getRequestHeader(ApiConstants.HEADER_LOCALE);
+        String locale = context.getRequestStringHeader(ApiConstants.HEADER_LOCALE);
         if (locale == null) {
             locale = userContext.getLocale();
         }

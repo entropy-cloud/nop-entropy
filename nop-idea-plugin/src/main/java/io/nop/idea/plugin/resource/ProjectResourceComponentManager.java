@@ -12,13 +12,13 @@ import io.nop.api.core.util.IComponentModel;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ComponentModelLoader;
+import io.nop.core.resource.component.IComponentTransformer;
 import io.nop.core.resource.component.IGeneratedComponent;
 import io.nop.core.resource.component.IResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.idea.plugin.services.NopProjectService;
 
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ProjectResourceComponentManager implements IResourceComponentManager {
@@ -38,7 +38,7 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public Runnable registerComponentModelTransformer(String fromModelType, String toModelType, Function<IComponentModel, IComponentModel> transformer, boolean replace) {
+    public Runnable registerComponentModelTransformer(String fromModelType, String toModelType, IComponentTransformer<?, ?> transformer, boolean replace) {
         return getImpl().registerComponentModelTransformer(fromModelType, toModelType, transformer, replace);
     }
 
@@ -115,6 +115,11 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     @Override
     public void traceDepends(String depResourcePath) {
         getImpl().traceDepends(depResourcePath);
+    }
+
+    @Override
+    public <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task) {
+        return null;
     }
 
     @Override

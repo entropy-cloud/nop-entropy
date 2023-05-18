@@ -50,7 +50,7 @@ public class RouteServiceInstanceFilter implements IRequestServiceInstanceFilter
      * 判断服务实例的版本号是否满足路由要求
      */
     @Override
-    public boolean accept(ServiceInstance serviceInstance, ApiRequest<?> request) {
+    public boolean accept(ServiceInstance serviceInstance, ApiRequest<?> request, boolean onlyPreferred) {
         String svcRoute = getSvcRoute(serviceInstance.getServiceName(), request);
         if (svcRoute == null)
             return true;

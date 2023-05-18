@@ -12,6 +12,9 @@ import java.util.Iterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+/**
+ * 将文本切分为多个token，然后应用转换器逐个对token进行替换。
+ */
 public class SourceRefactor {
     private final ITextTokenizer tokenizer;
     private final Function<IToken, IToken> transformer;

@@ -81,6 +81,10 @@ public interface IContext extends Executor, AutoCloseable {
 
     void setCallIp(String callIp);
 
+    Map<String, String> getSvcRoute();
+
+    void setSvcRoute(Map<String,String> svcRoute);
+
     @JsonAnyGetter
     Map<String, Object> getAttrs();
 

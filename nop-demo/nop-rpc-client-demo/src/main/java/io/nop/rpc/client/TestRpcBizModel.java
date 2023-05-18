@@ -19,6 +19,9 @@ public class TestRpcBizModel {
     @Inject
     TestRpc rpc;
 
+    /**
+     * 调用Spring实现的REST服务
+     */
     @BizQuery
     public String test(@Name("myArg") String myArg) {
         return echoService.echo(myArg, "aa");
@@ -38,6 +41,9 @@ public class TestRpcBizModel {
         return res;
     }
 
+    /**
+     * 调用Nop平台实现的服务（实际会调用到上面的myMethod函数）
+     */
     @BizMutation
     public MyResponse invokeRpc(@RequestBean MyRequest req, FieldSelectionBean selection) {
         ApiRequest<MyRequest> request = ApiRequest.build(req);

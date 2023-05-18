@@ -9,8 +9,8 @@ package io.nop.graphql.core.rpc;
 
 import io.nop.api.core.annotations.ioc.BeanMethod;
 import io.nop.api.core.annotations.ioc.InjectValue;
-import io.nop.api.core.rpc.IRpcServiceInterceptor;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.rpc.api.IRpcServiceInterceptor;
 
 import javax.inject.Inject;
 import java.util.Collections;

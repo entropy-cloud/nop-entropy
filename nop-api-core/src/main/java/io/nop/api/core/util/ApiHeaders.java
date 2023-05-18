@@ -16,6 +16,7 @@ import io.nop.api.core.exceptions.NopException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.api.core.ApiErrors.ARG_HEADER;
 
@@ -278,6 +279,15 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_HTTP_URL, url);
     }
 
+
+    public static String getAppZone(ApiMessage message) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_APP_ZONE);
+    }
+
+    public static void setAppZone(ApiMessage message, String value) {
+        message.setHeader(ApiConstants.HEADER_APP_ZONE, value);
+    }
+
     public static String getSvcName(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_SVC_NAME);
     }
@@ -330,6 +340,16 @@ public class ApiHeaders {
     public static void setSvcGroup(ApiMessage message, String group) {
         message.setHeader(ApiConstants.HEADER_SVC_GROUP, group);
     }
+
+    public static Set<String> getSvcTags(ApiMessage message) {
+        String tags = getStringHeader(message.getHeaders(), ApiConstants.HEADER_SVC_TAGS);
+        return ConvertHelper.toCsvSet(tags);
+    }
+
+    public static void setSvcTags(ApiMessage message, Set<String> tags) {
+        message.setHeader(ApiConstants.HEADER_SVC_TAGS, ApiStringHelper.join(tags, ","));
+    }
+
 
     public static String getBizKey(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_BIZ_KEY);

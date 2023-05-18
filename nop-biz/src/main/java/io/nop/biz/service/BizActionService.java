@@ -13,7 +13,6 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.biz.IBizActionService;
 import io.nop.api.core.biz.IBizHashFunction;
 import io.nop.api.core.ioc.IBeanContainer;
-import io.nop.api.core.rpc.IRpcServiceInvocation;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizActionModel;
@@ -22,6 +21,7 @@ import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.concurrent.executor.IPartitionedExecutor;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.rpc.api.IRpcServiceInvocation;
 
 import javax.inject.Inject;
 import java.util.concurrent.CompletableFuture;

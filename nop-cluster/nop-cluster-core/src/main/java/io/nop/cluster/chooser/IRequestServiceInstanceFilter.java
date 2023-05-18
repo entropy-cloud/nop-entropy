@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 public interface IRequestServiceInstanceFilter<R> {
     boolean isEnabled();
 
-    boolean accept(ServiceInstance serviceInstance, R request);
+    boolean accept(ServiceInstance serviceInstance, R request, boolean onlyPreferred);
 
-    default List<ServiceInstance> filter(List<ServiceInstance> instances, R request) {
-        return instances.stream().filter(instance -> accept(instance, request)).collect(Collectors.toList());
+    default List<ServiceInstance> filter(List<ServiceInstance> instances, R request, boolean onlyPreferred) {
+        return instances.stream().filter(instance -> accept(instance, request, onlyPreferred)).collect(Collectors.toList());
     }
 }

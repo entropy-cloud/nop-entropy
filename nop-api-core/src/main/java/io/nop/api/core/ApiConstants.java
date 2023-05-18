@@ -111,6 +111,7 @@ public interface ApiConstants extends FilterBeanConstants {
      */
     String HEADER_SVC_ACTION = "nop-svc-action";
 
+    String HEADER_APP_ZONE = "nop-app-zone";
 
     String HEADER_ONE_WAY = "nop-one-way";
 
@@ -123,6 +124,8 @@ public interface ApiConstants extends FilterBeanConstants {
      * 服务路由，格式为 a:1.1;b:1.2这种形式，表示对服务a使用版本1.1，而对服务2使用版本1.2
      */
     String HEADER_SVC_ROUTE = "nop-svc-route";
+
+    String HEADER_SVC_TAGS = "nop-svc-tags";
 
     /**
      * 服务端的域名和端口

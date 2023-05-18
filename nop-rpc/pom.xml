@@ -11,32 +11,14 @@
 
     <artifactId>nop-rpc</artifactId>
 
-    <dependencies>
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-api-core</artifactId>
-        </dependency>
+    <packaging>pom</packaging>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-socket</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-        </dependency>
-
-    </dependencies>
+    <modules>
+        <module>nop-rpc-api</module>
+        <module>nop-rpc-core</module>
+        <module>nop-rpc-simple</module>
+        <module>nop-rpc-http</module>
+        <module>nop-rpc-cluster</module>
+    </modules>
 
 </project>

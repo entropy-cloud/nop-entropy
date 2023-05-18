@@ -46,7 +46,7 @@ public interface IHttpServerContext {
 
     Object getRequestHeader(String headerName);
 
-    default String getRequestStringHelper(String headerName) {
+    default String getRequestStringHeader(String headerName) {
         return (String) getRequestHeader(headerName);
     }
 

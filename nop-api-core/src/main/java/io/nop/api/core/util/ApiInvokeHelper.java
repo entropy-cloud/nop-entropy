@@ -9,7 +9,6 @@ package io.nop.api.core.util;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.rpc.IRpcProxy;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -47,9 +46,9 @@ public class ApiInvokeHelper {
         return fn.apply(req).thenApply(ApiInvokeHelper::getResponseData);
     }
 
-    public static void destroyProxy(Object o) {
-        if (o instanceof IRpcProxy) {
-            ((IRpcProxy) o).proxy_destroy();
-        }
-    }
+//    public static void destroyProxy(Object o) {
+//        if (o instanceof IRpcProxy) {
+//            ((IRpcProxy) o).proxy_destroy();
+//        }
+//    }
 }

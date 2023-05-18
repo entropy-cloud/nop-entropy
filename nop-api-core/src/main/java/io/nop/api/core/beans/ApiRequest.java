@@ -10,7 +10,7 @@ package io.nop.api.core.beans;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.api.core.rpc.IApiResponseNormalizer;
+import io.nop.api.core.util.IApiResponseNormalizer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

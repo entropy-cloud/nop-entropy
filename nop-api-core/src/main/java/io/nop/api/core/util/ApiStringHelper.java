@@ -16,6 +16,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -379,15 +380,47 @@ public class ApiStringHelper {
         if (url == null)
             return null;
 
-        if (query == null || query.length() <= 0)
+        if (query == null || query.length() == 0)
             return url;
 
         int pos = url.indexOf('?');
         if (pos < 0)
-            return url += "?" + query;
+            return url + "?" + query;
         if (url.endsWith("?"))
             return url + query;
         return url + "&" + query;
+    }
+
+
+    @Deterministic
+    public static String join(Iterable<?> list, String sep) {
+        return join(list, sep, false);
+    }
+
+    @Deterministic
+    public static String join(Iterable<?> list, String sep, boolean ignoreEmpty) {
+        if (list == null)
+            return null;
+
+        if (list instanceof Collection) {
+            if (((Collection<?>) list).isEmpty()) {
+                return "";
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Object o : list) {
+            if (ignoreEmpty && isEmptyObject(o))
+                continue;
+            if (!first) {
+                sb.append(sep);
+            } else {
+                first = false;
+            }
+            sb.append(o);
+        }
+        return sb.toString();
     }
 
 }

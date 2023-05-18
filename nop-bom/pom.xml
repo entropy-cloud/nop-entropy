@@ -138,7 +138,32 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-rpc</artifactId>
+                <artifactId>nop-rpc-api</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-rpc-core</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-rpc-http</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-rpc-simple</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-rpc-cluster</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
@@ -200,12 +225,6 @@
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-cluster-core</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-cluster-rpc</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 

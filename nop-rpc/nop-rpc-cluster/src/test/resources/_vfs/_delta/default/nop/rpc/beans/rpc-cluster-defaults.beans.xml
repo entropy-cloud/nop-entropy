@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       x:extends="super"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="mockDiscoveryClient"
+          class="io.nop.rpc.cluster.MockDiscoveryClient"/>
+
+    <bean id="testRpcClient" parent="AbstractClusterRpcProxyFactoryBean"
+          ioc:type="io.nop.rpc.cluster.ServiceA">
+        <property name="serviceName" value="ServiceA" />
+    </bean>
+</beans>

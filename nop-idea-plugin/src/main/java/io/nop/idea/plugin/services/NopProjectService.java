@@ -17,7 +17,7 @@ import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.idea.plugin.resource.ProjectDictProvider;
 import io.nop.idea.plugin.resource.ProjectEnv;
-import io.nop.xlang.initialize.XLangInitializer;
+import io.nop.xlang.initialize.XLangCoreInitializer;
 
 @Service
 public class NopProjectService implements Disposable {
@@ -43,7 +43,7 @@ public class NopProjectService implements Disposable {
         inited = true;
 
         ProjectEnv.withProject(project, () -> {
-            XLangInitializer xlang = new XLangInitializer();
+            XLangCoreInitializer xlang = new XLangCoreInitializer();
             xlang.initialize();
             cleanup.appendOnCancelTask(xlang::destroy);
             return null;

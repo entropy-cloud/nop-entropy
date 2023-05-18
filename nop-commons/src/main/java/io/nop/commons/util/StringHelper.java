@@ -686,37 +686,6 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
-    public static String join(Iterable<?> list, String sep) {
-        return join(list, sep, false);
-    }
-
-    @Deterministic
-    public static String join(Iterable<?> list, String sep, boolean ignoreEmpty) {
-        if (list == null)
-            return null;
-
-        if (list instanceof Collection) {
-            if (((Collection<?>) list).isEmpty()) {
-                return "";
-            }
-        }
-
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (Object o : list) {
-            if (ignoreEmpty && isEmptyObject(o))
-                continue;
-            if (!first) {
-                sb.append(sep);
-            } else {
-                first = false;
-            }
-            sb.append(o);
-        }
-        return sb.toString();
-    }
-
-    @Deterministic
     public static String joinArray(Object list, String sep) {
         if (list == null)
             return null;
