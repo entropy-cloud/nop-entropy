@@ -14,7 +14,9 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Context;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 @Path("")
 @ApplicationScoped
@@ -28,6 +30,18 @@ public class QuarkusGraphQLWebService extends GraphQLWebService {
     protected Map<String, String> getParams() {
         Map<String, String> ret = new HashMap<>();
         req.params().forEach((name, value) -> {
+            ret.put(name, value);
+        });
+        return ret;
+    }
+
+    @Override
+    protected Map<String, Object> getHeaders() {
+        Map<String, Object> ret = new TreeMap<>();
+        req.headers().forEach((name, value) -> {
+            name = name.toLowerCase(Locale.ENGLISH);
+            if (shouldIgnoreHeader(name))
+                return;
             ret.put(name, value);
         });
         return ret;

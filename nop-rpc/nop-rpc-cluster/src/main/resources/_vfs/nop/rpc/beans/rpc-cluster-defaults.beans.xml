@@ -18,7 +18,7 @@
         <property name="tags" value="@cfg:nop.cluster.registration.tags|"/>
         <property name="metadata">
             <map>
-                <entry key="version" value="@cfg:nop.application.version|1.0"/>
+                <entry key="version" value="@cfg:nop.application.version|1.0.0"/>
                 <entry key="group" value="@cfg:nop.application.group|default"/>
                 <entry key="zone" value="@cfg:nop.application.zone|"/>
             </map>

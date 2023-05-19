@@ -51,7 +51,7 @@ public class RouteServiceInstanceFilter implements IRequestServiceInstanceFilter
      */
     @Override
     public boolean accept(ServiceInstance serviceInstance, ApiRequest<?> request, boolean onlyPreferred) {
-        String svcRoute = getSvcRoute(serviceInstance.getServiceName(), request);
+        String svcRoute = getSvcRoute(serviceInstance.getNormalizedServiceName(), request);
         if (svcRoute == null)
             return true;
 

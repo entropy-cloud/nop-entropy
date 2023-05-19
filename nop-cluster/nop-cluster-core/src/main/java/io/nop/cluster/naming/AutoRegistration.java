@@ -7,7 +7,9 @@
  */
 package io.nop.cluster.naming;
 
+import com.vdurmont.semver4j.Requirement;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.commons.io.net.IServerAddrFinder;
 import io.nop.commons.util.StringHelper;
@@ -17,6 +19,9 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import java.util.Map;
 import java.util.Set;
+
+import static io.nop.cluster.ClusterErrors.ARG_VERSION;
+import static io.nop.cluster.ClusterErrors.ERR_CLUSTER_APP_VERSION_MUST_BE_NPM_LIKE;
 
 /**
  * 启动时自动把本服务注册到NamingService上，并在停止时自动注销注册
@@ -139,6 +144,17 @@ public class AutoRegistration {
 
     @PostConstruct
     public void start() {
+        if (metadata != null) {
+            String version = metadata.get("version");
+            if (version != null) {
+                try {
+                    Requirement.buildNPM(version);
+                } catch (Exception e) {
+                    throw new NopException(ERR_CLUSTER_APP_VERSION_MUST_BE_NPM_LIKE)
+                            .param(ARG_VERSION, version);
+                }
+            }
+        }
         namingService.registerInstance(getServiceInstance());
     }
 

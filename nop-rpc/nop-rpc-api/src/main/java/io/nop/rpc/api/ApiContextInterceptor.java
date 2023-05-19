@@ -10,10 +10,6 @@ package io.nop.rpc.api;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
-import io.nop.api.core.context.ContextProvider;
-import io.nop.api.core.context.IContext;
-import io.nop.api.core.time.CoreMetrics;
-import io.nop.api.core.util.ApiHeaders;
 
 import java.util.concurrent.CompletionStage;
 
@@ -30,14 +26,12 @@ public class ApiContextInterceptor implements IRpcServiceInterceptor {
     public CompletionStage<ApiResponse<?>> interceptAsync(
             IRpcServiceInvocation inv) {
 
-        IContext context = ContextProvider.newContext();
-
         ApiRequest<?> request = inv.getRequest();
-        initContext(context, request);
+        ContextBinder binder = new ContextBinder(request);
 
         return inv.proceedAsync().whenComplete(
                 (ret, err) -> {
-                    context.close();
+                    binder.close();
                 });
     }
 
@@ -45,31 +39,13 @@ public class ApiContextInterceptor implements IRpcServiceInterceptor {
     public ApiResponse<?> intercept(
             IRpcServiceInvocation inv) {
 
-        IContext context = ContextProvider.newContext();
-
         ApiRequest<?> request = inv.getRequest();
-        initContext(context, request);
+        ContextBinder binder = new ContextBinder(request);
 
         try {
             return inv.proceed();
         } finally {
-            context.close();
-        }
-    }
-
-    void initContext(IContext context, ApiRequest<?> request) {
-        String timezone = ApiHeaders.getTimeZone(request);
-        String locale = ApiHeaders.getLocale(request);
-        String tenantId = ApiHeaders.getTenant(request);
-        long timeout = ApiHeaders.getTimeout(request, -1);
-
-        context.setLocale(locale);
-        context.setTenantId(tenantId);
-        context.setTimezone(timezone);
-        context.setSvcRoute(ApiHeaders.getSvcRoute(request));
-
-        if (timeout > 0) {
-            context.setCallExpireTime(CoreMetrics.currentTimeMillis() + timeout);
+            binder.close();
         }
     }
 }

@@ -45,9 +45,12 @@ import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_ARGS;
@@ -68,6 +71,22 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         }
         return ret;
     }
+
+    @Override
+    protected Map<String, Object> getHeaders() {
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        HttpServletRequest request = attrs.getRequest();
+        Map<String, Object> ret = new TreeMap<>();
+        Enumeration<String> it = request.getHeaderNames();
+        while (it.hasMoreElements()) {
+            String name = it.nextElement().toLowerCase(Locale.ENGLISH);
+            if (shouldIgnoreHeader(name))
+                continue;
+            ret.put(name, request.getHeader(name));
+        }
+        return ret;
+    }
+
 
     @POST
     @Path("/graphql")
@@ -95,7 +114,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Produces(MediaType.APPLICATION_JSON)
     @PostMapping(path = "/r/{operationName}", produces = MediaType.APPLICATION_JSON)
     public CompletionStage<ResponseEntity<Object>> restSpring(@PathVariable("operationName") String operationName,
-                                                              @RequestParam(value=SYS_PARAM_SELECTION,required = false) String selection,
+                                                              @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
                                                               @RequestBody(required = false) String body) {
         return runRest(null, operationName, () -> {
             return (ApiRequest<?>) buildRequest(body, selection, true);
@@ -107,8 +126,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Produces(MediaType.APPLICATION_JSON)
     @GetMapping(path = "/r/{operationName}", produces = MediaType.APPLICATION_JSON)
     public CompletionStage<ResponseEntity<Object>> restQuerySpring(@PathVariable("operationName") String operationName,
-                                                                   @RequestParam(value=SYS_PARAM_SELECTION,required = false) String selection,
-                                                                   @RequestParam(value=SYS_PARAM_ARGS,required = false) String args) {
+                                                                   @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
+                                                                   @RequestParam(value = SYS_PARAM_ARGS, required = false) String args) {
         return runRest(GraphQLOperationType.query, operationName, () -> {
             return buildRequest(args, selection, true);
         }, this::transformRestResponse);
@@ -136,8 +155,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @GetMapping("/p/{query: [a-zA-Z].*}")
     @PostMapping("/p/{query: [a-zA-Z].*}")
     public CompletionStage<ResponseEntity<Object>> pageQuerySpring(@PathVariable("query") String query,
-                                                                   @RequestParam(value=SYS_PARAM_SELECTION,required = false) String selection,
-                                                                   @RequestParam(value=SYS_PARAM_ARGS,required = false) String args) {
+                                                                   @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
+                                                                   @RequestParam(value = SYS_PARAM_ARGS, required = false) String args) {
         int pos = query.indexOf('/');
         String operationName = query;
         String path = pos > 0 ? query.substring(pos) : null;

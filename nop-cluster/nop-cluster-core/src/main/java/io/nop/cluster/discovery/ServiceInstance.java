@@ -160,6 +160,16 @@ public class ServiceInstance implements Serializable {
         return serviceName;
     }
 
+    /**
+     * 除去group部分
+     */
+    public String getNormalizedServiceName() {
+        int pos = serviceName.indexOf("@@");
+        if (pos > 0)
+            return serviceName.substring(pos + 2);
+        return serviceName;
+    }
+
     public void setServiceName(String serviceName) {
         this.serviceName = serviceName;
     }

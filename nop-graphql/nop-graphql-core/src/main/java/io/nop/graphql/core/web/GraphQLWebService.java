@@ -18,12 +18,14 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.rpc.api.ContextBinder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +42,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -67,6 +70,7 @@ public class GraphQLWebService {
         IGraphQLEngine engine = BeanContainer.instance().getBeanByType(IGraphQLEngine.class);
         long beginTime = CoreMetrics.currentTimeMillis();
 
+        ContextBinder binder = new ContextBinder();
         IGraphQLExecutionContext context = null;
         try {
             context = newGraphQLContext(engine);
@@ -76,7 +80,12 @@ public class GraphQLWebService {
 
             context = engine.newGraphQLContext(request);
             context.setMakerCheckerEnabled(CFG_GRAPHQL_MAKER_CHECKER_ENABLED.get());
+            context.setRequestHeaders(getHeaders());
             prepareContext(context);
+
+            ApiRequest<GraphQLRequestBean> req = ApiRequest.build(request);
+            req.setHeaders(context.getRequestHeaders());
+            binder.init(req);
 
             IGraphQLExecutionContext ctx = context;
             return engine.executeGraphQLAsync(context).thenApply(res -> {
@@ -84,11 +93,15 @@ public class GraphQLWebService {
                         CoreMetrics.currentTimeMillis() - beginTime, request.getQuery(), res.getErrorCode(),
                         res.getMsg());
                 return responseBuilder.apply(res, ctx);
-            }).exceptionally(e->{
+            }).exceptionally(e -> {
                 return responseBuilder.apply(engine.buildGraphQLResponse(null, e, ctx), ctx);
-            });
+            }).whenComplete((v, e) -> binder.close());
         } catch (Exception e) {
-            return FutureHelper.success(responseBuilder.apply(engine.buildGraphQLResponse(null, e, context), context));
+            try {
+                return FutureHelper.success(responseBuilder.apply(engine.buildGraphQLResponse(null, e, context), context));
+            } finally {
+                binder.close();
+            }
         }
     }
 
@@ -128,10 +141,12 @@ public class GraphQLWebService {
 
         long beginTime = CoreMetrics.currentTimeMillis();
 
+        ContextBinder binder = new ContextBinder();
         IGraphQLExecutionContext context = null;
         try {
             context = newGraphQLContext(engine);
             ApiRequest<?> request = requestBuilder.get();
+
             if (LOG.isDebugEnabled()) {
                 LOG.debug("nop.graphql.rpc-request:operationName={},request={}", operationName,
                         JSON.serialize(request, true));
@@ -140,16 +155,22 @@ public class GraphQLWebService {
             context.setMakerCheckerEnabled(CFG_GRAPHQL_MAKER_CHECKER_ENABLED.get());
             prepareContext(context);
 
+            binder.init(request);
+
             IGraphQLExecutionContext ctx = context;
             return engine.executeRpcAsync(context).thenApply(res -> {
                 LOG.info("nop.graphql.end-rpc-request:usedTime={},operationName={},errorCode={},msg={}",
                         CoreMetrics.currentTimeMillis() - beginTime, operationName, res.getCode(), res.getMsg());
                 return responseBuilder.apply(res, ctx);
-            }).exceptionally(e->{
+            }).exceptionally(e -> {
                 return responseBuilder.apply(engine.buildRpcResponse(null, e, ctx), ctx);
-            });
+            }).whenComplete((r, e) -> binder.close());
         } catch (Exception e) {
-            return FutureHelper.success(responseBuilder.apply(engine.buildRpcResponse(null, e, context), context));
+            try {
+                return FutureHelper.success(responseBuilder.apply(engine.buildRpcResponse(null, e, context), context));
+            } finally {
+                binder.close();
+            }
         }
     }
 
@@ -187,6 +208,17 @@ public class GraphQLWebService {
         return Collections.emptyMap();
     }
 
+    protected Map<String, Object> getHeaders() {
+        return Collections.emptyMap();
+    }
+
+    static final Set<String> IGNORE_HEADERS = CollectionHelper.buildImmutableSet("connection",
+            "accept", "accept-encoding", "content-length");
+
+    protected boolean shouldIgnoreHeader(String name) {
+        return IGNORE_HEADERS.contains(name);
+    }
+
     protected ApiRequest<Map<String, Object>> buildRequest(String body, String selection, boolean addParams) {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
         Map<String, Object> map = null;
@@ -204,6 +236,8 @@ public class GraphQLWebService {
                 map.put(name, params.get(name));
             }
         }
+
+        request.setHeaders(getHeaders());
 
         request.setData(map);
         if (!StringHelper.isEmpty(selection)) {
