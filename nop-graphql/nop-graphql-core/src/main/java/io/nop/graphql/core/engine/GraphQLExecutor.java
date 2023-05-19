@@ -24,6 +24,7 @@ import io.nop.graphql.core.ast.GraphQLFragmentSelection;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
+import io.nop.rpc.api.flowcontrol.IFlowControlRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,11 +44,15 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     private final IAsyncFunctionInvoker operationInvoker;
     private final IGraphQLHook graphQLHook;
     private final IGraphQLEngine engine;
+    private final IFlowControlRunner runner;
 
-    public GraphQLExecutor(IAsyncFunctionInvoker operationInvoker, IGraphQLHook graphQLHook, IGraphQLEngine engine) {
+    public GraphQLExecutor(IAsyncFunctionInvoker operationInvoker, IGraphQLHook graphQLHook,
+                           IFlowControlRunner runner,
+                           IGraphQLEngine engine) {
         this.operationInvoker = operationInvoker;
         this.graphQLHook = graphQLHook;
         this.engine = engine;
+        this.runner = runner;
         if (operationInvoker == null) {
             LOG.info("nop.graphql.executor_operation_invoker_is_null");
         }
@@ -189,7 +194,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                 Object request = env.getOpRequest();
                 FieldSelectionBean selection = env.getSelectionBean();
                 future = FutureHelper.futureCall(() -> {
-                    return fieldDef.getTryAction().invoke(request, selection, env.getExecutionContext());
+                    return withFlowControl(v -> fieldDef.getTryAction().invoke(request, selection, env.getExecutionContext())).get(env);
                 }).thenApply(v -> {
                     return new OperationResult(v, true);
                 });
@@ -203,7 +208,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
             if (fetcher == null)
                 throw new IllegalStateException("nop.graphql.null-operation-fetcher:" + fieldDef.getName());
 
-            future = FutureHelper.toCompletionStage(fetcher.get(env)).thenApply(v -> {
+            future = FutureHelper.toCompletionStage(withFlowControl(fetcher).get(env)).thenApply(v -> {
                 return new OperationResult(v, false);
             });
         }
@@ -214,6 +219,12 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         });
 
         return opFuture;
+    }
+
+    private IDataFetcher withFlowControl(IDataFetcher fetcher) {
+        if (runner == null)
+            return fetcher;
+        return new FlowControlFetcher(runner, fetcher);
     }
 
     private CompletionStage<Void> _invokeOperations(DataFetchingEnvironment baseEnv, Map<String, Object> result,

@@ -8,6 +8,9 @@
 package io.nop.core.lang.json;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 
 import java.util.Collections;
 import java.util.Set;
@@ -18,9 +21,40 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @GlobalInstance
 public class JsonWhitelist {
-    public static final Set<String> DEFAULTS = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Set<String> whitelistClasses = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private static final Set<String> whitelistPrefixes = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    public static void addDefault(String className) {
-        DEFAULTS.add(className);
+    public static void addResource(IResource resource) {
+        String text = ResourceHelper.readText(resource);
+        String[] lines = StringHelper.splitToLines(text);
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("#") || line.isEmpty())
+                continue;
+            add(line);
+        }
+    }
+
+    /**
+     * 可以是a.b.c全类名，或者a.b.*这种包前缀匹配表达式
+     *
+     * @param className 类名或者包前缀匹配
+     */
+    public static void add(String className) {
+        if (className.endsWith(".*")) {
+            whitelistPrefixes.add(className.substring(className.length() - 1));
+        } else {
+            whitelistClasses.add(className);
+        }
+    }
+
+    public static boolean contains(String className) {
+        if (whitelistClasses.contains(className))
+            return true;
+        for (String packagePrefix : whitelistPrefixes) {
+            if (className.startsWith(packagePrefix))
+                return true;
+        }
+        return false;
     }
 }

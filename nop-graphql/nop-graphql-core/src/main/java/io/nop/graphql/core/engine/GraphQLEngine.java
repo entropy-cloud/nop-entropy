@@ -41,6 +41,7 @@ import io.nop.graphql.core.parse.GraphQLDocumentParser;
 import io.nop.graphql.core.schema.BuiltinSchemaLoader;
 import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
+import io.nop.rpc.api.flowcontrol.IFlowControlRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +83,8 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     private IActionAuthChecker actionAuthChecker;
 
+    private IFlowControlRunner flowControlRunner;
+
     private boolean enableActionAuth;
     private boolean enableDataAuth;
 
@@ -106,6 +109,12 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Nullable
     public void setActionAuthChecker(IActionAuthChecker actionAuthChecker) {
         this.actionAuthChecker = actionAuthChecker;
+    }
+
+    @Inject
+    @Nullable
+    public void setFlowControlRunner(IFlowControlRunner flowControlRunner) {
+        this.flowControlRunner = flowControlRunner;
     }
 
     public LocalCache<String, GraphQLDocument> getDocumentCache() {
@@ -316,7 +325,8 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext context) {
-        IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, this);
+        IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
+        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker();
         if (executionInvoker != null)
             return executionInvoker.invokeAsync(executor::executeOneAsync, context);
 
@@ -325,7 +335,8 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext context) {
-        IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, this);
+        IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
+        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker();
         if (executionInvoker != null)
             return executionInvoker.invokeAsync(executor::executeAsync, context);
         return executor.executeAsync(context);
@@ -354,7 +365,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     public ApiResponse<?> buildRpcResponse(Object result, Throwable err, IGraphQLExecutionContext context) {
         ApiResponse<?> res;
         if (err != null) {
-            LOG.error("nop.graphql.rest-execute-fail", err);
+            NopException.logIfNotTraced(LOG, "nop.graphql.rest-execute-fail", err);
             String locale = ContextProvider.currentLocale();
             res = ErrorMessageManager.instance().buildResponse(locale, err);
         } else if (result instanceof ApiResponse<?>) {
@@ -367,5 +378,11 @@ public class GraphQLEngine implements IGraphQLEngine {
             context.getResponseHeaders().forEach(res::setHeader);
         }
         return res;
+    }
+
+    protected IAsyncFunctionInvoker getExecutionInvoker() {
+        if (flowControlRunner == null)
+            return executionInvoker;
+        return new GraphQLFlowControlInvoker(flowControlRunner, executionInvoker);
     }
 }

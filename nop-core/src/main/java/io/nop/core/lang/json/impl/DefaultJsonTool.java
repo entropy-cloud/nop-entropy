@@ -11,6 +11,7 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.json.JsonParseOptions;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.DisabledEvalScope;
@@ -42,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Writer;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -83,6 +85,22 @@ public class DefaultJsonTool implements IJsonTool {
             return ((Class<?>) type).isInstance(obj);
         }
         if (type instanceof IGenericType) {
+            IGenericType gt = (IGenericType) type;
+            if (!gt.isInstance(obj))
+                return false;
+            if (gt.isCollectionLike()) {
+                Collection<?> c = (Collection<?>) obj;
+                if (c.isEmpty())
+                    return true;
+                Object first = CollectionHelper.first(c);
+                return gt.getComponentType().isInstance(first);
+            } else if (gt.isMapLike()) {
+                Map<String, Object> m = (Map<String, Object>) obj;
+                if (m.isEmpty())
+                    return true;
+                Object first = CollectionHelper.first(m.values());
+                return gt.getMapValueType().isInstance(first);
+            }
             return ((IGenericType) type).isInstance(obj);
         }
         return false;

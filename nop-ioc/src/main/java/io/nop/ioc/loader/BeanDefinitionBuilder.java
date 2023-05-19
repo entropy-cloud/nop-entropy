@@ -355,6 +355,8 @@ public class BeanDefinitionBuilder {
                 resolver = buildValueResolver(bean, argModel.getLocation(), String.valueOf(argModel.getIndex()),
                         argModel.getValue(), type);
             }
+            if (resolver == null)
+                resolver = NullValueResolver.INSTANCE;
             args.add(resolver);
         }
         bean.setConstructorArgs(args);
@@ -522,6 +524,8 @@ public class BeanDefinitionBuilder {
                     BeanInjectInfo injectInfo = introspection.getArgumentInject(argModel);
                     IBeanPropValueResolver resolver = buildInjectResolver(bean, bean.getLocation(), "constructor",
                             injectInfo, false);
+                    if (resolver == null)
+                        resolver = NullValueResolver.INSTANCE;
                     args.add(resolver);
                 }
                 bean.setConstructorArgs(args);
@@ -548,6 +552,9 @@ public class BeanDefinitionBuilder {
             } else {
                 resolver = buildResolver(bean, propModel.getName(), body, setter.getRight());
             }
+
+            if (resolver == null)
+                continue;
             bean.addProp(propModel.getName(), new BeanProperty(propModel.getLocation(), setter.getLeft(),
                     setter.getRight().getRawClass(), resolver, false, propModel.isIocSkipIfEmpty()));
         }
@@ -783,6 +790,9 @@ public class BeanDefinitionBuilder {
                 } else {
                     resolver = buildResolver(bean, propName, entry.getBody(), null);
                 }
+
+                if (resolver == null)
+                    continue;
                 map.put(entry.getKey(), resolver);
             }
         }
@@ -912,6 +922,8 @@ public class BeanDefinitionBuilder {
         List<IBeanPropValueResolver> ret = new ArrayList<>(items.size());
         for (IBeanPropValue item : items) {
             IBeanPropValueResolver resolver = buildResolver(bean, propName, item, null);
+            if (resolver == null)
+                continue;
             ret.add(resolver);
         }
         return ret;
@@ -996,7 +1008,7 @@ public class BeanDefinitionBuilder {
 
             if (optional) {
                 LOG.info("nop.ioc.ignore-optional-ref-bean:ref={},propName={},bean={}", ref, propName, bean);
-                return NullValueResolver.INSTANCE;
+                return null;
             } else {
                 throw new NopException(ERR_IOC_UNKNOWN_BEAN_REF).loc(loc).param(ARG_BEAN_NAME, bean.getId())
                         .param(ARG_BEAN_REF, ref).param(ARG_PROP_NAME, propName).param(ARG_BEAN, bean);

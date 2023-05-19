@@ -24,6 +24,7 @@ public class JsonWhitelistChecker {
     public boolean isAllowSerialize(boolean onlyDataBean, Object bean, IBeanModel beanModel) {
         if (!onlyDataBean)
             return true;
-        return beanModel.isDataBean() && !JsonWhitelist.DEFAULTS.contains(beanModel.getClassName());
+
+        return beanModel.isDataBean() || JsonWhitelist.contains(beanModel.getClassName());
     }
 }

@@ -9,6 +9,15 @@ nop:
     registration:
       enabled: true
 
+    sentinel:
+      flow-rules: |
+        [{
+          resource: "/graphql",
+          grade: 1,
+          count: 3
+        }]
+        
+
   graphql:
     schema-introspection:
       enabled: true

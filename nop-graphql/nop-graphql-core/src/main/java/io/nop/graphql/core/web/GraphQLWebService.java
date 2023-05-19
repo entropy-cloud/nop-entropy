@@ -84,6 +84,8 @@ public class GraphQLWebService {
                         CoreMetrics.currentTimeMillis() - beginTime, request.getQuery(), res.getErrorCode(),
                         res.getMsg());
                 return responseBuilder.apply(res, ctx);
+            }).exceptionally(e->{
+                return responseBuilder.apply(engine.buildGraphQLResponse(null, e, ctx), ctx);
             });
         } catch (Exception e) {
             return FutureHelper.success(responseBuilder.apply(engine.buildGraphQLResponse(null, e, context), context));
@@ -143,6 +145,8 @@ public class GraphQLWebService {
                 LOG.info("nop.graphql.end-rpc-request:usedTime={},operationName={},errorCode={},msg={}",
                         CoreMetrics.currentTimeMillis() - beginTime, operationName, res.getCode(), res.getMsg());
                 return responseBuilder.apply(res, ctx);
+            }).exceptionally(e->{
+                return responseBuilder.apply(engine.buildRpcResponse(null, e, ctx), ctx);
             });
         } catch (Exception e) {
             return FutureHelper.success(responseBuilder.apply(engine.buildRpcResponse(null, e, context), context));

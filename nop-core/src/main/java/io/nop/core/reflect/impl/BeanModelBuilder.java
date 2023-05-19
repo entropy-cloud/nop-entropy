@@ -280,7 +280,7 @@ public class BeanModelBuilder {
         }
         initExtProperties(classModel, props);
 
-        ReflectionManager.instance().enhanceBeanModel(beanModel, classModel, props,propAliases);
+        ReflectionManager.instance().enhanceBeanModel(beanModel, classModel, props, propAliases);
 
         beanModel.setPropertyModels((Map) CollectionHelper.immutableSortedMap(props));
         beanModel.setPropAliases(CollectionHelper.immutableMap(propAliases));
@@ -532,10 +532,18 @@ public class BeanModelBuilder {
     private boolean isSetter(IFunctionModel method) {
         if (method.isAnnotationPresent(PropertySetter.class))
             return true;
-        if (!method.getReturnType().isVoidType())
+
+        if (!method.getName().startsWith("set") || method.getName().length() <= 3)
             return false;
 
-        return method.getName().startsWith("set") && method.getName().length() > 3;
+        if (method.getReturnType().isVoidType() || isSelfReturn(method))
+            return true;
+
+        return false;
+    }
+
+    private boolean isSelfReturn(IFunctionModel method) {
+        return method.getReturnClass().isAssignableFrom(method.getDeclaringClass());
     }
 
     private boolean isGetter(IFunctionModel method) {

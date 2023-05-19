@@ -33,7 +33,7 @@ public class TestRpcBizModel {
         String value2 = value1 + "|2";
         if (selection != null) {
             value1 = "selection=" + selection + ":" + value1;
-            value2 = "selection=" + selection + ":" + value2;
+            value2 = "selection=" + selection + ":" + echoService.echo(req.getName(),"bb");
         }
         MyResponse res = new MyResponse();
         res.setValue1(value1);

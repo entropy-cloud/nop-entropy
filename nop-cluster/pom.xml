@@ -18,7 +18,7 @@
 
     <modules>
         <module>nop-cluster-core</module>
-        <!--        <module>nop-cluster-sentinel</module>-->
+        <module>nop-cluster-sentinel</module>
         <module>nop-cluster-nacos</module>
     </modules>
 
