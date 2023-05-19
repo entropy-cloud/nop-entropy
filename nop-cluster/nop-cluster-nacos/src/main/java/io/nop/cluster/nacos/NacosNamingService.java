@@ -13,6 +13,7 @@ import com.alibaba.nacos.api.naming.NamingMaintainService;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.listener.Event;
 import com.alibaba.nacos.api.naming.listener.EventListener;
+import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.alibaba.nacos.client.naming.event.InstancesChangeEvent;
 import io.nop.api.core.exceptions.NopException;
@@ -209,6 +210,8 @@ public class NacosNamingService implements INamingService {
         public void onEvent(Event event) {
             if (event instanceof InstancesChangeEvent) {
                 updateInstances(((InstancesChangeEvent) event).getHosts());
+            } else if (event instanceof NamingEvent) {
+                updateInstances(((NamingEvent) event).getInstances());
             }
         }
 
