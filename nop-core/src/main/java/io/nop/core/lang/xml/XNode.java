@@ -741,6 +741,13 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         }
     }
 
+    public void renameChild(String srcName, String targetName) {
+        checkNotReadOnly();
+        XNode child = childByTag(srcName);
+        if (child != null)
+            child.setTagName(targetName);
+    }
+
     public final boolean hasChild() {
         return !children.isEmpty();
     }

@@ -12,7 +12,7 @@
         minProperties="int" maxProperties="int" supportExtends="boolean"
         uniqueProp="string"
 
-        x:schema="/nop/schema/xdef.xdef"
+        x:schema="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:graphql="graphql"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
     <props xdef:body-type="list" xdef:key-attr="name">
@@ -36,17 +36,17 @@
               name="!prop-path" displayName="string"
               mandatory="!boolean=false" internal="!boolean=false" allowCpExpr="boolean"
               deprecated="!boolean=false" defaultValue="any"
-              mapTo="prop-path" propId="int" depends="csv-set"
+              mapToProp="prop-path" propId="int" depends="csv-set"
               xmlName="xml-name" childXmlName="xml-name" xmlPos="enum:io.nop.core.lang.xml.XNodeValuePosition"
               childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
               tagSet="tag-set" lazy="!boolean=false"
               insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false" sortable="!boolean=false"
               readable="!boolean=true"
-              published="!boolean=true" allowFilterOp="word-set"
+              published="!boolean=true" allowFilterOp="word-set" kind="string"
+              ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
+              graphql:type="string" graphql:jsonComponentProp="string"
         >
             <description xdef:value="string"/>
-
-            <objMeta xdef:value="v-path" />
 
             <schema xdef:ref="schema.xdef"/>
 

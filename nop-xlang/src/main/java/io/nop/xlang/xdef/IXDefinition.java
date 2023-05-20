@@ -23,12 +23,14 @@ public interface IXDefinition extends IXDefNode, IXDslModel {
 
     String getXdefParserClass();
 
+    String getXdefBase();
+
     /**
      * 包含所有refSchema以及当前schema的路径。可以用于判断xdef文件是否从特定的基础xdef继承而来。
      *
      * @return
      */
-    List<String> getAllRefSchemas();
+    Set<String> getAllRefSchemas();
 
     default boolean isRefTo(String schemaPath) {
         return getAllRefSchemas().contains(schemaPath);

@@ -8,6 +8,7 @@
 package io.nop.xlang.xdef.parse;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.xml.XNode;
@@ -262,9 +263,16 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         }
 
         String ref = node.attrText(keys.REF);
-        if (ref != null && ref.startsWith("@")) {
-            if (node.getAttrs().size() != 1)
-                throw new NopException(ERR_XDEF_INTERNAL_REF_NODE_NOT_ALLOW_ATTRS).param(ARG_NODE, node);
+        if (ref != null) {
+            if (ref.startsWith("@")) {
+                if (node.getAttrs().size() != 1)
+                    throw new NopException(ERR_XDEF_INTERNAL_REF_NODE_NOT_ALLOW_ATTRS).param(ARG_NODE, node);
+            } else if (!ref.startsWith("#") && ref.indexOf('.') > 0) {
+                SourceLocation loc = node.attrLoc(keys.REF);
+                if (loc != null) {
+                    ref = StringHelper.absolutePath(loc.getPath(), ref);
+                }
+            }
         }
 
         String beanClass = parseAttrClassName(node, keys.BEAN_CLASS);

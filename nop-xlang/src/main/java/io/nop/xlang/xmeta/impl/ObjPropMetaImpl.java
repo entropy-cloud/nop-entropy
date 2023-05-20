@@ -70,8 +70,8 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
             node.setAttr(getLocation(), "defaultValue", getDefaultValue());
         if (this.getXmlPos() != null && this.getXmlPos() != XNodeValuePosition.attr)
             node.setAttr(getLocation(), "xmlPos", this.getXmlPos());
-        if (getMapTo() != null)
-            node.setAttr(getLocation(), "mapTo", getMapTo());
+        if (getMapToProp() != null)
+            node.setAttr(getLocation(), "mapToProp", getMapToProp());
 
         if (getSchema() != null) {
             XNode schemaN = getSchema().toNode(nodeRefs);

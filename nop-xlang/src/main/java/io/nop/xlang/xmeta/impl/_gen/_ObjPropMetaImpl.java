@@ -129,6 +129,13 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: kind
+     * 
+     */
+    private java.lang.String _kind ;
+    
+    /**
+     *  
      * xml name: lazy
      * 
      */
@@ -143,10 +150,10 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      *  
-     * xml name: mapTo
+     * xml name: mapToProp
      * 
      */
-    private java.lang.String _mapTo ;
+    private java.lang.String _mapToProp ;
     
     /**
      *  
@@ -154,13 +161,6 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * 
      */
     private java.lang.String _name ;
-    
-    /**
-     *  
-     * xml name: objMeta
-     * 
-     */
-    private java.lang.String _objMeta ;
     
     /**
      *  
@@ -587,6 +587,25 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: kind
+     *  
+     */
+    
+    public java.lang.String getKind(){
+      return _kind;
+    }
+
+    
+    public void setKind(java.lang.String value){
+        checkAllowChange();
+        
+        this._kind = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: lazy
      *  
      */
@@ -625,19 +644,19 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      * 
-     * xml name: mapTo
+     * xml name: mapToProp
      *  
      */
     
-    public java.lang.String getMapTo(){
-      return _mapTo;
+    public java.lang.String getMapToProp(){
+      return _mapToProp;
     }
 
     
-    public void setMapTo(java.lang.String value){
+    public void setMapToProp(java.lang.String value){
         checkAllowChange();
         
-        this._mapTo = value;
+        this._mapToProp = value;
            
     }
 
@@ -657,25 +676,6 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._name = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: objMeta
-     *  
-     */
-    
-    public java.lang.String getObjMeta(){
-      return _objMeta;
-    }
-
-    
-    public void setObjMeta(java.lang.String value){
-        checkAllowChange();
-        
-        this._objMeta = value;
            
     }
 
@@ -965,11 +965,11 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.put("getter",this.getGetter());
         out.put("insertable",this.isInsertable());
         out.put("internal",this.isInternal());
+        out.put("kind",this.getKind());
         out.put("lazy",this.isLazy());
         out.put("mandatory",this.isMandatory());
-        out.put("mapTo",this.getMapTo());
+        out.put("mapToProp",this.getMapToProp());
         out.put("name",this.getName());
-        out.put("objMeta",this.getObjMeta());
         out.put("propId",this.getPropId());
         out.put("published",this.isPublished());
         out.put("queryable",this.isQueryable());

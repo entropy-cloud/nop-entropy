@@ -17,10 +17,9 @@ import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xmeta.SchemaLoader;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,11 +27,9 @@ import static io.nop.xlang.XLangErrors.ARG_ATTR_NAME;
 import static io.nop.xlang.XLangErrors.ARG_LOC_A;
 import static io.nop.xlang.XLangErrors.ARG_LOC_B;
 import static io.nop.xlang.XLangErrors.ARG_REF_NAME;
-import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
 import static io.nop.xlang.XLangErrors.ARG_TYPE_A;
 import static io.nop.xlang.XLangErrors.ARG_TYPE_B;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ATTR_NOT_ALLOW_OVERRIDE_REF;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_CHILD_NOT_ALLOW_OVERRIDE_REF;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_REF_NOT_ALLOW_CIRCULAR_REFERENCE;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_DEFINITION_REF;
 
@@ -41,6 +38,7 @@ public class XDefRefResolver {
     private Set<String> propNs;
 
     // tell cpd to start ignoring code - CPD-OFF
+
     /**
      * 在resolve过程中通过上下文缓存识别循环引用
      */
@@ -105,7 +103,7 @@ public class XDefRefResolver {
 
             resolveChildren(def);
 
-            List<String> refPaths = new ArrayList<>();
+            LinkedHashSet<String> refPaths = new LinkedHashSet<>();
             collectRefPaths(def, refPaths);
             def.setAllRefSchemas(refPaths);
 
@@ -115,14 +113,14 @@ public class XDefRefResolver {
         }
     }
 
-    void collectRefPaths(IXDefNode node, List<String> refPaths) {
+    void collectRefPaths(IXDefNode node, Set<String> refPaths) {
         if (node.getRefNode() != null) {
             collectRefPaths(node.getRefNode(), refPaths);
         }
         refPaths.add(node.resourcePath());
     }
 
-    private void mergeRefNode(IXDefNode def, XDefNode ret) {
+    private void mergeRefNodeProps(IXDefNode def, XDefNode ret) {
         // ret.setTagName(def.getTagName());
 
         ret.mergeExtPropsIfAbsent((SerializableExtensibleObject) def);
@@ -215,8 +213,11 @@ public class XDefRefResolver {
 
         defNode.setRefNode(refNode);
         defNode.setRefResolved(true);
-        mergeRefNode(refNode, defNode);
+        mergeRefNodeProps(refNode, defNode);
+        mergeAttrs(refNode, defNode);
+    }
 
+    void mergeAttrs(IXDefNode refNode, XDefNode defNode) {
         if (defNode.getXdefUnknownAttr() == null)
             defNode.setXdefUnknownAttr(refNode.getXdefUnknownAttr());
 
@@ -254,6 +255,10 @@ public class XDefRefResolver {
             return;
         }
 
+        mergeChildren(refNode, defNode);
+    }
+
+    void mergeChildren(IXDefNode refNode, XDefNode defNode) {
         if (defNode.getXdefUnknownTag() == null)
             defNode.setXdefUnknownTag((XDefNode) refNode.getXdefUnknownTag());
 
@@ -265,14 +270,21 @@ public class XDefRefResolver {
             for (Map.Entry<String, ? extends IXDefNode> entry : defNode.getChildren().entrySet()) {
                 String tagName = entry.getKey();
                 IXDefNode child = entry.getValue();
-                if (children.containsKey(tagName))
-                    throw new NopException(ERR_XDEF_CHILD_NOT_ALLOW_OVERRIDE_REF).param(ARG_TAG_NAME, tagName)
-                            .param(ARG_LOC_A, child.getLocation())
-                            .param(ARG_LOC_B, children.get(tagName).getLocation());
+                IXDefNode refChild = children.get(tagName);
+                if (refChild != null) {
+                    mergeNode(refChild, (XDefNode) child);
+                }
+
                 children.put(tagName, child);
             }
             defNode.setChildren((Map) children);
         }
+    }
+
+    private void mergeNode(IXDefNode refNode, XDefNode defNode) {
+        mergeRefNodeProps(refNode, defNode);
+        mergeAttrs(refNode, defNode);
+        mergeChildren(refNode, defNode);
     }
 
     private void resolveRef(IXDefNode defNode) {

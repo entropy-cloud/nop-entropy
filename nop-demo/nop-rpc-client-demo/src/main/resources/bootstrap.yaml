@@ -7,3 +7,6 @@ nop:
   datasource:
     disabled: true
 
+quarkus:
+  application:
+    name: ${nop.application.name}

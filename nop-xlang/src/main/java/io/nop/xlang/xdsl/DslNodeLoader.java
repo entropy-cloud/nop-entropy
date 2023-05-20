@@ -45,9 +45,12 @@ public class DslNodeLoader implements IXDslNodeLoader {
             throw new NopException(ERR_XDSL_NO_SCHEMA).param(ARG_NODE, node);
         IXDefinition def = SchemaLoader.loadXDefinition(schemaPath);
 
-        if (requiredSchema != null && !def.getAllRefSchemas().contains(requiredSchema))
-            throw new NopException(ERR_XDSL_NOT_REQUIRED_SCHEMA).param(ARG_REQUIRED_SCHEMA, requiredSchema)
-                    .param(ARG_SCHEMA_PATH, schemaPath);
+        if (requiredSchema != null) {
+            if (!requiredSchema.equals(def.getXdefBase()) && !def.getAllRefSchemas().contains(requiredSchema)) {
+                throw new NopException(ERR_XDSL_NOT_REQUIRED_SCHEMA).param(ARG_REQUIRED_SCHEMA, requiredSchema)
+                        .param(ARG_SCHEMA_PATH, schemaPath);
+            }
+        }
 
         IEvalScope scope = XLang.newEvalScope();
         XDslExtendResult result = new XDslExtender(keys).xtend(def, def.getRootNode(), node, phase, scope);

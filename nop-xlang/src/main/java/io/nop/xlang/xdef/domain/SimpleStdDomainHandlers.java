@@ -18,12 +18,12 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.regex.RegexHelper;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.IJsonContainer;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.jpath.JPath;
-import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XJsonNode;
 import io.nop.core.lang.xml.XNode;
@@ -53,11 +53,21 @@ import io.nop.xlang.xmeta.layout.LayoutModel;
 import io.nop.xlang.xmeta.layout.parse.LayoutModelParser;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import static io.nop.core.type.PredefinedGenericTypes.I_GENERIC_TYPE_TYPE;
 import static io.nop.core.type.PredefinedGenericTypes.X_NODE_TYPE;
-import static io.nop.xlang.XLangErrors.*;
+import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
+import static io.nop.xlang.XLangErrors.ARG_ITEM_VALUE;
+import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
+import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
+import static io.nop.xlang.XLangErrors.ARG_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP;
 
 public class SimpleStdDomainHandlers {
     public static class VPathType extends StringStdDomainHandler {
@@ -72,6 +82,9 @@ public class SimpleStdDomainHandlers {
             if (!StringHelper.isValidVPath(text))
                 throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
                         .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text).param(ARG_PROP_NAME, propName);
+
+            if (loc == null)
+                return text;
 
             String resourcePath = loc.getPath();
             return StringHelper.absolutePath(resourcePath, text);
@@ -94,6 +107,8 @@ public class SimpleStdDomainHandlers {
                 throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
                         .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text).param(ARG_PROP_NAME, propName);
 
+            if (loc == null)
+                return text;
             String resourcePath = loc.getPath();
             return StringHelper.absolutePath(resourcePath, text);
         }
@@ -1426,7 +1441,7 @@ public class SimpleStdDomainHandlers {
         @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
-            return new LayoutModelParser().parseFromText(loc, (String) text);
+            return new LayoutModelParser().parseFromText(loc, ConvertHelper.toString(text));
         }
     }
 }

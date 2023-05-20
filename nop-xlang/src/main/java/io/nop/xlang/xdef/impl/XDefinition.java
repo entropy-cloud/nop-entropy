@@ -33,17 +33,17 @@ public class XDefinition extends _XDefinition implements IXDefinition {
 
     private String xdslSchema;
     private String xdslTransform;
-    private List<String> refSchemas = Collections.emptyList();
+    private Set<String> refSchemas = Collections.emptySet();
 
     private XDefKeys defKeys;
 
     private ResourceCacheEntry<XNode> defaultsDsl;
 
-    public List<String> getAllRefSchemas() {
+    public Set<String> getAllRefSchemas() {
         return refSchemas;
     }
 
-    public void setAllRefSchemas(List<String> refSchemas) {
+    public void setAllRefSchemas(Set<String> refSchemas) {
         checkAllowChange();
         this.refSchemas = refSchemas;
     }

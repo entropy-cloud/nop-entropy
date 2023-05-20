@@ -87,6 +87,7 @@ public class XDslValidator {
                         if (checkNs.contains(ns))
                             if (defNode.getChildren().get(child.getTagName()) == null)
                                 throw new NopException(ERR_XDSL_UNDEFINED_CHILD_NODE).param(ARG_NODE, child)
+                                        .param(ARG_XDEF_NODE_NAME, defNode.getTagName())
                                         .param(ARG_TAG_NAME, child.getTagName())
                                         .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
                     }
@@ -107,6 +108,7 @@ public class XDslValidator {
                                 && defNode.getXdefBodyType() != XDefBodyType.list) {
                             if (node.countChildByTag(child.getTagName()) > 1)
                                 throw new NopException(ERR_XDSL_NODE_DUPLICATE_CHILD)
+                                        .param(ARG_XDEF_NODE_NAME, defNode.getTagName())
                                         .param(ARG_NODES, node.childrenByTag(child.getTagName()).subList(0, 2))
                                         .param(ARG_TAG_NAME, child.getTagName());
                         }
@@ -135,6 +137,7 @@ public class XDslValidator {
             // 因为node现在没有子节点，所以只要def定义中有必须存在的子节点就抛出异常。
             if (childDef.isMandatory() && !hasChild(childDef, node)) {
                 throw new NopException(ERR_XDSL_MISSING_MANDATORY_CHILD).param(ARG_TAG_NAME, childDef.getTagName())
+                        .param(ARG_XDEF_NODE_NAME, defNode.getTagName())
                         .param(ARG_NODE, node);
             }
         }
@@ -203,7 +206,7 @@ public class XDslValidator {
                 ValueWithLocation vl = entry.getValue();
 
                 // 如果checkNs中指定名字空间需要校验，则不使用unknownAttr来匹配
-                if (!checkNs.isEmpty() && defNode.getXdefUnknownAttr() != null && StringHelper.hasNamespace(name)) {
+                if (!checkNs.isEmpty() && StringHelper.hasNamespace(name)) {
                     String ns = StringHelper.getNamespace(name);
                     if (checkNs.contains(ns))
                         if (defNode.getAttributes().get(name) == null)

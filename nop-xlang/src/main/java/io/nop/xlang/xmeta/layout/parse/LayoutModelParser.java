@@ -114,7 +114,8 @@ public class LayoutModelParser {
             sc.skipBlankInLine();
         }
 
-        if (sc.cur == '^') {
+        // 兼容此前的写法。^不需要进行XML转义，使用更方便一些
+        if (sc.cur == '^' || sc.cur == '<') {
             sc.next();
             foldable = true;
             folded = true;

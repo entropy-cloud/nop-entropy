@@ -23,6 +23,13 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     
     /**
      *  
+     * xml name: mandatory
+     * 
+     */
+    private java.lang.Boolean _mandatory ;
+    
+    /**
+     *  
      * xml name: notSubmit
      * 仅用于前台控制，不提交到后台
      */
@@ -64,6 +71,25 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         checkAllowChange();
         
         this._collapseTitle = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: mandatory
+     *  
+     */
+    
+    public java.lang.Boolean getMandatory(){
+      return _mandatory;
+    }
+
+    
+    public void setMandatory(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._mandatory = value;
            
     }
 
@@ -158,6 +184,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         super.outputJson(out);
         
         out.put("collapseTitle",this.getCollapseTitle());
+        out.put("mandatory",this.getMandatory());
         out.put("notSubmit",this.isNotSubmit());
         out.put("readonly",this.getReadonly());
         out.put("submitOnChange",this.getSubmitOnChange());

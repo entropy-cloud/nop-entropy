@@ -101,7 +101,7 @@ public class OrmFetcherBuilder {
             Set<String> dependsOn = null;
             String mapToProp = null;
             if (propMeta != null) {
-                mapToProp = propMeta.getMapTo();
+                mapToProp = propMeta.getMapToProp();
                 dependsOn = propMeta.getDepends();
             }
 

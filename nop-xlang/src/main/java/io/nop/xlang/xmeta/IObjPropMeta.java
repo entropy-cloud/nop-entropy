@@ -125,7 +125,7 @@ public interface IObjPropMeta
      */
     Set<String> getDepends();
 
-    String getMapTo();
+    String getMapToProp();
 
     /**
      * 编辑页面上的提示信息
@@ -230,7 +230,7 @@ public interface IObjPropMeta
 
     IEvalAction getSetter();
 
-    String getObjMeta();
+    //String getObjMeta();
 
     XNode toNode(Map<ISchemaNode, XNode> nodeRefs);
 }

@@ -91,13 +91,13 @@ public class MarkdownTestFile {
         try {
             result = action.apply(section);
         } catch (NopException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
             failed = true;
             if (!section.matchErrorCode(e.getErrorCode())) {
                 throw e;
             }
         } catch (RuntimeException e) {
-            e.printStackTrace();
+           // e.printStackTrace();
             failed = true;
             String msg = e.getMessage();
             if (!section.matchMessage(msg)) {

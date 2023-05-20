@@ -1,0 +1,9 @@
+<meta x:schema="/test/xmeta-ext.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <forms>
+        <form id="a" ui:invalid-attr="true">
+            <layout>
+                a b
+            </layout>
+        </form>
+    </forms>
+</meta>

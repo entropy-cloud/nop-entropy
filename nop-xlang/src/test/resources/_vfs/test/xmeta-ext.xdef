@@ -1,0 +1,8 @@
+<meta x:extends="/nop/schema/xmeta.xdef" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef"
+      xdef:check-ns="ui"
+>
+    <forms xdef:body-type="list" xdef:key-attr="id">
+        <form id="!xml-name" xdef:ref="/nop/schema/xui/form.xdef"/>
+    </forms>
+</meta>

@@ -78,7 +78,7 @@
         -->
         <cell id="!string" notSubmit="!boolean=false" custom="!boolean=false"
               collapseTitle="string" titlePosition="string" submitOnChange="boolean"
-              readonly="boolean"
+              readonly="boolean" mandatory="boolean"
               xdef:name="UiFormCellModel" xdef:ref="disp.xdef"
         >
         </cell>

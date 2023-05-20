@@ -23,7 +23,7 @@ public class BizObjHelper {
             return getter.invoke(scope);
         }
 
-        String mapTo = propMeta.getMapTo();
+        String mapTo = propMeta.getMapToProp();
         if (mapTo != null)
             return BeanTool.instance().getProperty(entity, mapTo);
         return BeanTool.instance().getProperty(entity, propMeta.getName());
