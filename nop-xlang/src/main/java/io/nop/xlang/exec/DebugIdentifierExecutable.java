@@ -11,7 +11,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExpressionExecutor;
-import io.nop.xlang.debug.DebugValueHelper;
+import io.nop.xlang.expr.ExprExecHelper;
 
 /**
  * 在Debugger中执行调试表达式时，需要从堆栈上下文以及scope中查找变量
@@ -31,7 +31,7 @@ public class DebugIdentifierExecutable extends AbstractExecutable {
 
     @Override
     public Object execute(IExpressionExecutor executor, IEvalScope scope) {
-        return DebugValueHelper.getVar(scope, varName);
+        return ExprExecHelper.getVar(scope, varName);
     }
 
     @Override

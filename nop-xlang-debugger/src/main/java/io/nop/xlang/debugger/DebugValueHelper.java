@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.xlang.debug;
+package io.nop.xlang.debugger;
 
 import io.nop.api.debugger.DebugValueKey;
 import io.nop.api.debugger.DebugVariable;
@@ -13,9 +13,6 @@ import io.nop.api.debugger.LineLocation;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.ReflectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.EvalFrame;
-import io.nop.core.lang.eval.EvalReference;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -29,22 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.xlang.debug.XLangDebugger.LOG;
-
 public class DebugValueHelper {
-    public static Object getVar(IEvalScope scope, String varName) {
-        EvalFrame frame = scope.getCurrentFrame();
-
-        if (frame != null) {
-            int stackSize = frame.getStackSize();
-            for (int i = 0; i < stackSize; i++) {
-                if (varName.equals(frame.getVarName(i))) {
-                    return EvalReference.deRef(frame.getVar(i));
-                }
-            }
-        }
-        return scope.getValue(varName);
-    }
 
     public static List<DebugVariable> getExpandValue(Object value, List<DebugValueKey> keys) {
         if (keys != null) {
@@ -101,7 +83,7 @@ public class DebugValueHelper {
                 try {
                     return BeanTool.instance().getProperty(value, key.getName());
                 } catch (Exception e2) {
-                    LOG.error("nop.err.debugger.get-field-fail", e);
+                    XLangDebugger.LOG.error("nop.err.debugger.get-field-fail", e);
                     return null;
                 }
             }

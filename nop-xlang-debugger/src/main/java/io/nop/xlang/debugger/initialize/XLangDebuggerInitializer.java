@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.xlang.initialize;
+package io.nop.xlang.debugger.initialize;
 
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.SourceLocation;
@@ -20,10 +20,10 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.rpc.core.RpcConstants;
 import io.nop.rpc.simple.SimpleRpcServer;
 import io.nop.socket.ServerConfig;
-import io.nop.xlang.debug.DebugExpressionExecutor;
-import io.nop.xlang.debug.IDebugNotifier;
-import io.nop.xlang.debug.SuspendedThread;
-import io.nop.xlang.debug.XLangDebugger;
+import io.nop.xlang.debugger.DebugExpressionExecutor;
+import io.nop.xlang.debugger.IDebugNotifier;
+import io.nop.xlang.debugger.SuspendedThread;
+import io.nop.xlang.debugger.XLangDebugger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

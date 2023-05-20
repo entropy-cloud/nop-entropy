@@ -57,7 +57,7 @@ import static io.nop.core.CoreErrors.ERR_TYPE_NOT_PREDEFINED_TYPE;
                "io.nop.api.core.util.IFreezable","io.nop.api.core.util.SourceLocation",
                "io.nop.api.core.util.ICancellable","io.nop.api.core.util.ICancelToken",
                "io.nop.api.core.beans.ApiRequest","io.nop.api.core.beans.ApiResponse",
-               "io.nop.rpc.api.IRpcService","io.nop.api.core.context.IContext",
+               "io.nop.api.core.context.IContext",
                "io.nop.commons.collections.IKeyedList","io.nop.commons.collections.IKeyedElement",
                "io.nop.commons.type.StdDataType",
                "io.nop.api.core.exceptions.NopException", "io.nop.api.core.exceptions.NopScriptError"

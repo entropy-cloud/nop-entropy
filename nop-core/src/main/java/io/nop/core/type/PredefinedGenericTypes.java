@@ -421,8 +421,6 @@ public class PredefinedGenericTypes {
 
     public static final PredefinedRawType API_RESPONSE_TYPE = javaType(io.nop.api.core.beans.ApiResponse.class,"API_RESPONSE_TYPE");
 
-    public static final PredefinedRawType I_RPC_SERVICE_TYPE = javaType(io.nop.rpc.api.IRpcService.class,"I_RPC_SERVICE_TYPE");
-
     public static final PredefinedRawType I_CONTEXT_TYPE = javaType(io.nop.api.core.context.IContext.class,"I_CONTEXT_TYPE");
 
     public static final PredefinedRawType I_KEYED_LIST_TYPE = javaType(io.nop.commons.collections.IKeyedList.class,"I_KEYED_LIST_TYPE");
@@ -1218,8 +1216,6 @@ public class PredefinedGenericTypes {
             Pair.of(API_REQUEST_TYPE.getTypeName(), API_REQUEST_TYPE),
             
             Pair.of(API_RESPONSE_TYPE.getTypeName(), API_RESPONSE_TYPE),
-            
-            Pair.of(I_RPC_SERVICE_TYPE.getTypeName(), I_RPC_SERVICE_TYPE),
             
             Pair.of(I_CONTEXT_TYPE.getTypeName(), I_CONTEXT_TYPE),
             

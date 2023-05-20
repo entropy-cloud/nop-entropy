@@ -3417,6 +3417,13 @@
         ]
       },
       {
+        "name": "renameChild",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "renameNsPrefix",
         "parameterTypes": [
           "java.lang.String",
@@ -12838,6 +12845,16 @@
       }
     ],
     "name": "io.nop.xlang.ast.XLangOutputMode",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.debugger.initialize.XLangDebuggerInitializer",
     "unsafeAllocated": false
   },
   {

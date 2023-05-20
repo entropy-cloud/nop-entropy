@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.xlang.debug;
+package io.nop.xlang.debugger;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.IDebugger;

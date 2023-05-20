@@ -3,26 +3,23 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
         <artifactId>nop-entropy</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>io.github.entropy-cloud</groupId>
-    <artifactId>nop-xlang</artifactId>
+    <artifactId>nop-xlang-debugger</artifactId>
 
     <dependencies>
-
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-commons</artifactId>
+            <artifactId>nop-xlang</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-core</artifactId>
+            <artifactId>nop-api-debugger</artifactId>
         </dependency>
 
         <dependency>
@@ -31,34 +28,8 @@
         </dependency>
 
         <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-xdefs</artifactId>
-        </dependency>
-
-
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-antlr4-common</artifactId>
-        </dependency>
-
-        <!--        <dependency>-->
-        <!--            <groupId>io.github.entropy-cloud</groupId>-->
-        <!--            <artifactId>nop-antlr4-xlang</artifactId>-->
-        <!--        </dependency>-->
-
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
         </dependency>
-
     </dependencies>
-
-    <build>
-
-    </build>
 </project>

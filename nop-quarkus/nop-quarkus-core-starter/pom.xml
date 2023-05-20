@@ -69,6 +69,11 @@
             <artifactId>nop-boot</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-xlang-debugger</artifactId>
+        </dependency>
+
         <!--
         quarkus不支持HikariCP连接池
         -->
