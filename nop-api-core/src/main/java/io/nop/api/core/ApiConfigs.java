@@ -61,4 +61,8 @@ public interface ApiConfigs {
     IConfigReference<String> CFG_APPLICATION_NAMESPACE =
             varRef("nop.application.namespace", String.class, "default");
 
+    @Description("RPC调用时自动传播的header的名称，采用逗号分隔，例如nop-svc-route")
+    IConfigReference<String> CFG_RPC_PROPAGATE_HEADERS =
+            varRef("nop.rpc.propagate-headers", String.class, ApiConstants.HEADER_SVC_ROUTE);
+
 }

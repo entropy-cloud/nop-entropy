@@ -61,6 +61,11 @@ public interface ApiConstants extends FilterBeanConstants {
     String HEADER_HTTP_URL = "http-url";
 
     /**
+     * 内部使用的header名前缀，一般情况下它们用于保存本地使用的临时变量，不会被发送到远端
+     */
+    String TEMP_HEADER_PREFIX = "__";
+
+    /**
      * 身份认证token
      */
     String HEADER_ACCESS_TOKEN = "x-access-token";

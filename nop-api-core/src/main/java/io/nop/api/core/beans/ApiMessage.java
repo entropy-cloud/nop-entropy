@@ -13,6 +13,7 @@ import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ICloneable;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -37,6 +38,16 @@ public abstract class ApiMessage implements Serializable, ICloneable {
         if (headers == null)
             headers = new TreeMap<>();
         ApiHeaders.setHeader(headers, name, value);
+    }
+
+    public void addHeaders(Map<String, Object> headers) {
+        if (headers != null) {
+            headers.forEach(this::setHeader);
+        }
+    }
+
+    public Map<String, Object> getSelectedHeaders(Collection<String> headerNames) {
+        return ApiHeaders.getHeaders(headers, headerNames);
     }
 
     public void removeHeader(String name) {

@@ -65,6 +65,7 @@
         <property name="serverChooser" ref="nopServerChooser_random"/>
         <property name="interceptors" ref="nopRpcServiceInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
+        <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
     </bean>
 
     <bean id="AbstractBroadcastRpcProxyFactoryBean" abstract="true" ioc:default="true"

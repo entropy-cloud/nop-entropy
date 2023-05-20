@@ -13,7 +13,9 @@ import io.nop.api.core.beans.ApiMessage;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +33,21 @@ public class ApiHeaders {
         } else {
             headers.put(name, value);
         }
+    }
+
+    public static Map<String, Object> getHeaders(Map<String, Object> headers, Collection<String> headerNames) {
+        if (headerNames == null || headerNames.isEmpty())
+            return null;
+        if (headers == null || headers.isEmpty())
+            return null;
+
+        Map<String, Object> ret = new HashMap<>();
+        for (String headerName : headerNames) {
+            Object value = headers.get(headerName);
+            if (value != null)
+                ret.put(headerName, value);
+        }
+        return ret;
     }
 
     public static Object getHeader(Map<String, Object> headers, String name) {

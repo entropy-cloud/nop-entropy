@@ -25,8 +25,20 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     @Override
     @PostConstruct
     public void init() {
-        IRpcService rpcService = new ClusterRpcClient(getServiceName(), serverChooser, clientProvider);
+        ClusterRpcClient rpcService = new ClusterRpcClient(getServiceName(), serverChooser, clientProvider);
+        rpcService.setRetryCount(getRetryCount());
         setRpcService(rpcService);
         super.init();
+    }
+
+    @Override
+    public void setRetryCount(int retryCount) {
+        super.setRetryCount(retryCount);
+
+        // 动态更新retryCount
+        IRpcService service = getRpcService();
+        if (service instanceof ClusterRpcClient) {
+            ((ClusterRpcClient) service).setRetryCount(retryCount);
+        }
     }
 }

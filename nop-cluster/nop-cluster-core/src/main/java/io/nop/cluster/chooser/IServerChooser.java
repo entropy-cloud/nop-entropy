@@ -7,18 +7,21 @@
  */
 package io.nop.cluster.chooser;
 
-import io.nop.api.core.util.FutureHelper;
 import io.nop.cluster.discovery.ServiceInstance;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 public interface IServerChooser<R> {
-    ServiceInstance chooseServer(String serviceName, R request);
+    default ServiceInstance chooseServer(String serviceName, R request) {
+        return chooseFromCandidates(getServers(serviceName, request), request);
+    }
 
     default CompletionStage<ServiceInstance> chooseServerAsync(String serviceName, R request) {
-        return FutureHelper.futureCall(() -> chooseServer(serviceName, request));
+        return getServersAsync(serviceName, request).thenApply(candidates -> chooseFromCandidates(candidates, request));
     }
+
+    ServiceInstance chooseFromCandidates(List<ServiceInstance> candidates, R request);
 
     CompletionStage<List<ServiceInstance>> getServersAsync(String serviceName, R request);
 

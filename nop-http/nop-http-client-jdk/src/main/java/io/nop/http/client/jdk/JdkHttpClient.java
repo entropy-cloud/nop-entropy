@@ -7,6 +7,7 @@
  */
 package io.nop.http.client.jdk;
 
+import io.nop.api.core.exceptions.NopConnectException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.ICancelToken;
@@ -190,7 +191,7 @@ public class JdkHttpClient implements IHttpClient {
             e = e.getCause();
         }
         if (e instanceof ConnectException)
-            throw new NopException(ERR_HTTP_CONNECT_FAIL);
+            throw new NopConnectException(ERR_HTTP_CONNECT_FAIL);
         throw NopException.adapt(e);
     }
 
@@ -224,7 +225,7 @@ public class JdkHttpClient implements IHttpClient {
             ContentType parsed = ContentType.parse(contentType.get());
             if (parsed.getCharset() != null) {
                 ret.setCharset(parsed.getCharset().name());
-            }else{
+            } else {
                 ret.setCharset("UTF-8");
             }
             ret.setContentType(parsed.getMimeType());

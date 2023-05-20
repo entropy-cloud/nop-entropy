@@ -3,13 +3,18 @@ package io.nop.http.api.server;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiStringHelper;
 import org.slf4j.MDC;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
+
+import static io.nop.api.core.ApiConfigs.CFG_RPC_PROPAGATE_HEADERS;
 
 public class ContextHttpServerFilter implements IHttpServerFilter {
 
@@ -20,6 +25,20 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
 
     @Override
     public CompletionStage<Void> filterAsync(IHttpServerContext context, Supplier<CompletionStage<Void>> next) {
+        IContext ctx = ContextProvider.newContext();
+        initContext(ctx, context);
+
+        MDC.put(ApiConstants.MDC_NOP_TRACE, ctx.getTraceId());
+        try {
+            return next.get().whenComplete((r, e) -> {
+                ctx.close();
+            });
+        } finally {
+            MDC.remove(ApiConstants.MDC_NOP_TRACE);
+        }
+    }
+
+    protected void initContext(IContext ctx, IHttpServerContext context) {
         String traceId = context.getRequestStringHeader(ApiConstants.MDC_NOP_TRACE);
         String tenantId = context.getRequestStringHeader(ApiConstants.HEADER_TENANT);
 
@@ -29,13 +48,11 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
         // 前台主动要求限制服务超时时间
         long expireTime = context.getRequestLongHeader(ApiConstants.HEADER_TIMEOUT, -1L);
 
-        String svcRoute = context.getRequestStringHeader(ApiConstants.HEADER_SVC_ROUTE);
-
-        IContext ctx = ContextProvider.newContext();
         ctx.setTimezone(timezone);
         ctx.setLocale(locale);
         ctx.setTenantId(tenantId);
-        ctx.setSvcRoute(ApiHeaders.parseRoute(svcRoute));
+
+        ctx.setPropagateRpcHeaders(getPropagateHeaders(context));
 
         if (ApiStringHelper.isEmpty(traceId)) {
             traceId = UUID.randomUUID().toString();
@@ -45,13 +62,10 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
         if (expireTime > 0)
             ctx.setCallExpireTime(expireTime);
 
-        MDC.put(ApiConstants.MDC_NOP_TRACE, traceId);
-        try {
-            return next.get().whenComplete((r, e) -> {
-                ctx.close();
-            });
-        } finally {
-            MDC.remove(ApiConstants.MDC_NOP_TRACE);
-        }
+    }
+
+    protected Map<String, Object> getPropagateHeaders(IHttpServerContext context) {
+        Collection<String> headers = ConvertHelper.toCsvSet(CFG_RPC_PROPAGATE_HEADERS.get());
+        return ApiHeaders.getHeaders(context.getRequestHeaders(), headers);
     }
 }

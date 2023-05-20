@@ -18,6 +18,16 @@ public class RpcServiceProxyFactoryBean {
 
     private Object serviceBean;
 
+    private int retryCount;
+
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+    }
+
     public void setServiceName(String serviceName) {
         this.serviceName = serviceName;
     }

@@ -20,6 +20,8 @@ public class DefaultRpcUrlBuilder implements IRpcUrlBuilder {
 
     @Override
     public String toHttpHeader(String name) {
+        if (name.startsWith(ApiConstants.TEMP_HEADER_PREFIX))
+            return null;
         if (ApiConstants.HEADER_HTTP_METHOD.equals(name)) return null;
         if (ApiConstants.HEADER_HTTP_URL.equals(name)) return null;
         return name;

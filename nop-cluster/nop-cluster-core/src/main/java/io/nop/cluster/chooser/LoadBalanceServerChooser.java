@@ -12,7 +12,6 @@ import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.lb.ILoadBalance;
 
 import java.util.List;
-import java.util.concurrent.CompletionStage;
 
 /**
  * 先利用服务发现机制获取服务提供者的列表，然后再通过负载均衡策略选择得到唯一的一个实例。
@@ -28,24 +27,14 @@ public class LoadBalanceServerChooser<R> extends ServiceServerChooser<R> impleme
         this.loadBalance = loadBalance;
     }
 
-    public LoadBalanceServerChooser(){}
+    public LoadBalanceServerChooser() {
+    }
 
     public void setLoadBalance(ILoadBalance<ServiceInstance, R> loadBalance) {
         this.loadBalance = loadBalance;
     }
 
-    @Override
-    public ServiceInstance chooseServer(String serviceName, R request) {
-        List<ServiceInstance> instances = getServers(serviceName, request);
-        return chooseFrom(instances, request);
-    }
-
-    @Override
-    public CompletionStage<ServiceInstance> chooseServerAsync(String serviceName, R request) {
-        return getServersAsync(serviceName, request).thenApply(instances -> chooseFrom(instances, request));
-    }
-
-    private ServiceInstance chooseFrom(List<ServiceInstance> instances, R request) {
+    public ServiceInstance chooseFromCandidates(List<ServiceInstance> instances, R request) {
         if (instances.isEmpty())
             return null;
 

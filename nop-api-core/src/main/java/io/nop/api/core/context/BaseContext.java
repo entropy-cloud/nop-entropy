@@ -39,7 +39,7 @@ public class BaseContext implements IContext {
     private long expireTime;
     private String userRefNo;
     private String callIp;
-    private Map<String,String> svcRoute;
+    private Map<String, Object> propagateHeaders;
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
     protected final ContextTaskQueue taskQueue = new ContextTaskQueue();
@@ -121,13 +121,13 @@ public class BaseContext implements IContext {
     }
 
     @Override
-    public Map<String, String> getSvcRoute() {
-        return svcRoute;
+    public Map<String, Object> getPropagateRpcHeaders() {
+        return propagateHeaders;
     }
 
-    public void setSvcRoute(Map<String, String> svcRoute) {
+    public void setPropagateRpcHeaders(Map<String, Object> propagateHeaders) {
         checkClosed();
-        this.svcRoute = svcRoute;
+        this.propagateHeaders = propagateHeaders;
     }
 
     @Override

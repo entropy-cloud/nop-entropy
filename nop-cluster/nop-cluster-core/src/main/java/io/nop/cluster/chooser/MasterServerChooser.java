@@ -25,17 +25,6 @@ public class MasterServerChooser<R> implements IServerChooser<R> {
     }
 
     @Override
-    public ServiceInstance chooseServer(String serviceName, R request) {
-        List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
-        return chooseMaster(instances);
-    }
-
-    @Override
-    public CompletionStage<ServiceInstance> chooseServerAsync(String serviceName, R request) {
-        return discoveryClient.getInstancesAsync(serviceName).thenApply(this::chooseMaster);
-    }
-
-    @Override
     public CompletionStage<List<ServiceInstance>> getServersAsync(String serviceName, R request) {
         return discoveryClient.getInstancesAsync(serviceName);
     }
@@ -45,7 +34,8 @@ public class MasterServerChooser<R> implements IServerChooser<R> {
         return discoveryClient.getInstances(serviceName);
     }
 
-    ServiceInstance chooseMaster(List<ServiceInstance> instances) {
+    @Override
+    public ServiceInstance chooseFromCandidates(List<ServiceInstance> instances, R request) {
         String leaderId = leaderObserver.getLeaderId();
         if (StringHelper.isEmpty(leaderId))
             return null;

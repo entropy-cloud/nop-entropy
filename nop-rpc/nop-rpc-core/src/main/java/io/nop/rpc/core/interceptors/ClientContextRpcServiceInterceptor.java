@@ -22,14 +22,14 @@ public class ClientContextRpcServiceInterceptor implements IRpcServiceIntercepto
     private boolean transferTrace = true;
     private boolean transferLocale = true;
     private boolean transferTimezone = true;
-    private boolean transferSvcRoute = true;
+    private boolean transferPropagateHeaders = true;
 
-    public boolean isTransferSvcRoute() {
-        return transferSvcRoute;
+    public boolean isTransferPropagateHeaders() {
+        return transferPropagateHeaders;
     }
 
-    public void setTransferSvcRoute(boolean transferSvcRoute) {
-        this.transferSvcRoute = transferSvcRoute;
+    public void setTransferPropagateHeaders(boolean transferPropagateHeaders) {
+        this.transferPropagateHeaders = transferPropagateHeaders;
     }
 
     public boolean isTransferTimezone() {
@@ -126,9 +126,11 @@ public class ClientContextRpcServiceInterceptor implements IRpcServiceIntercepto
             }
         }
 
-        if (transferSvcRoute) {
-            Map<String, String> route = context.getSvcRoute();
-            ApiHeaders.setSvcRoute(request, route);
+        if (transferPropagateHeaders) {
+            Map<String, Object> headers = context.getPropagateRpcHeaders();
+            if(headers != null){
+                request.addHeaders(headers);
+            }
         }
     }
 }

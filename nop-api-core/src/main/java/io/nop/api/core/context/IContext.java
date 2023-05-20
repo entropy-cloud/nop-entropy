@@ -81,9 +81,9 @@ public interface IContext extends Executor, AutoCloseable {
 
     void setCallIp(String callIp);
 
-    Map<String, String> getSvcRoute();
+    Map<String, Object> getPropagateRpcHeaders();
 
-    void setSvcRoute(Map<String,String> svcRoute);
+    void setPropagateRpcHeaders(Map<String, Object> propagateHeaders);
 
     @JsonAnyGetter
     Map<String, Object> getAttrs();
