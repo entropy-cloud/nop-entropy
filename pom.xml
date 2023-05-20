@@ -487,5 +487,6 @@
         <module>nop-orm-eql</module>
         <module>nop-orm-pdm</module>
         <module>nop-xlang-debugger</module>
+        <module>nop-orm-geo</module>
     </modules>
 </project>
