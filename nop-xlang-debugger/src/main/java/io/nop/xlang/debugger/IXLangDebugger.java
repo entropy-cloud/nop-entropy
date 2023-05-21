@@ -7,10 +7,11 @@
  */
 package io.nop.xlang.debugger;
 
+import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.IDebugger;
 import io.nop.core.lang.eval.IEvalScope;
 
 public interface IXLangDebugger extends IDebugger {
-    void checkBreakpoint(SourceLocation loc, IEvalScope scope);
+    void checkBreakpoint(@Name("loc") SourceLocation loc, IEvalScope scope);
 }

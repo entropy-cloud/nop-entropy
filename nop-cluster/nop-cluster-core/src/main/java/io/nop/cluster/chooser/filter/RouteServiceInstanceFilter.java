@@ -16,6 +16,7 @@ import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,20 +51,23 @@ public class RouteServiceInstanceFilter implements IRequestServiceInstanceFilter
      * 判断服务实例的版本号是否满足路由要求
      */
     @Override
-    public boolean accept(ServiceInstance serviceInstance, ApiRequest<?> request, boolean onlyPreferred) {
-        String svcRoute = getSvcRoute(serviceInstance.getNormalizedServiceName(), request);
+    public void filter(List<ServiceInstance> serviceInstances, ApiRequest<?> request, boolean onlyPreferred) {
+        String serviceName = serviceInstances.get(0).getNormalizedServiceName();
+        String svcRoute = getSvcRoute(serviceName, request);
         if (svcRoute == null)
-            return true;
+            return;
 
-        String ver = serviceInstance.getMetadata(ServiceInstance.META_VERSION);
-        if (StringHelper.isEmpty(ver))
-            ver = "1.0";
+        serviceInstances.removeIf(instance -> {
+            String ver = instance.getMetadata(ServiceInstance.META_VERSION);
+            if (StringHelper.isEmpty(ver))
+                ver = "1.0.0";
 
-        Requirement requirement = Requirement.buildNPM(svcRoute);
-        boolean b = requirement.isSatisfiedBy(ver);
+            Requirement requirement = Requirement.buildNPM(svcRoute);
+            boolean b = requirement.isSatisfiedBy(ver);
 
-        LOG.info("nop.cluster.check-svc-route:route={},ver={},result={}", svcRoute, ver, b);
-        return b;
+            LOG.info("nop.cluster.check-svc-route:route={},ver={},result={}", svcRoute, ver, b);
+            return b;
+        });
     }
 
     private String getSvcRoute(String serviceName, ApiRequest<?> request) {

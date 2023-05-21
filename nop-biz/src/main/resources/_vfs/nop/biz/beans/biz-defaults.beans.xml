@@ -36,13 +36,15 @@
         </property>
     </bean>
 
-    <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer" >
+    <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer">
         <ioc:condition>
             <on-bean>nopOrmTemplate</on-bean>
         </ioc:condition>
     </bean>
 
     <bean id="io.nop.biz.dict.DictProviderBizModel" ioc:type="@bean:id"/>
+
+    <bean id="io.nop.graphql.core.web.SysBizModel" ioc:type="@bean:id"/>
 
     <!--
     BizModel模型初始化时需要校验obj字典是否有效，因此需要注册对应的DictLoader

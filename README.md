@@ -65,8 +65,8 @@ nop-entropy项目目前主要包含如下模块:
 3. nop-core: 虚拟文件系统，反射系统，基本的树、图、表格模型，数据驱动的代码生成器框架，XML和JSON解析器
 4. nop-xlang: XPL模板语言，类TypeScript的脚本语言，类XPath的通用Tree路径访问语言,
    类XSLT的通用Tree变换语言，XDefinition元模型定义语言，XDelta差量合并运算。
-5. nop-config: 配置管理
-6. nop-ioc: 依赖注入容器
+5. nop-config: 动态配置管理
+6. nop-ioc: 支持条件装配的依赖注入容器
 7. nop-dao: SQL管理、事务、JDBC访问、数据库方言
 8. nop-orm: 支持EQL对象查询语言的ORM引擎
 9. nop-ooxml: Excel和Word模板文件的解析和生成
@@ -75,19 +75,20 @@ nop-entropy项目目前主要包含如下模块:
 12. nop-ui: 视图层模型
 13. nop-js: 对graalvm-js的封装，用于在Java端执行JS打包工作，摆脱对Vite/Webpack等前端打包工具的依赖
 14. nop-web: 动态执行Js打包工作，动态生成前端所需的JSON页面文件
-15. nop-report: 报表引擎
-16. nop-wf: 工作流引擎
-17. nop-rule: 规则引擎
-18. nop-batch: 批处理引擎
-19. nop-job: 分布式任务调度引擎
-20. nop-tcc: 分布式事务引擎
-21. nop-cluster: 分布式集群支持
-22. nop-auth: 用户权限管理
-23. nop-sys: 系统配置管理
-24. nop-cli: 将代码生成器封装为命令行工具
-25. nop-autotest: 自动化测试框架
-26. nop-demo: quarkus和spring框架的集成演示程序
-27. nop-idea-plugin: IDEA插件，支持对自定义DSL的语法提示、链接跳转、断点调试等
+15. nop-rpc: 分布式RPC框架，支持灰度发布，集成Nacos、Sentinel
+16. nop-report: 采用Excel作为可视化设计器的中国式报表引擎
+17. nop-wf: 工作流引擎
+18. nop-rule: 采用Excel作为可视化设计器的规则引擎
+19. nop-batch: 批处理引擎 
+20. nop-job: 分布式任务调度引擎
+21. nop-tcc: 分布式事务引擎
+22. nop-cluster: 分布式集群支持 
+23. nop-auth: 用户权限管理
+24. nop-sys: 系统配置管理
+25. nop-cli: 将代码生成器封装为命令行工具
+26. nop-autotest: 自动化测试框架
+27. nop-demo: quarkus和spring框架的集成演示程序
+28. nop-idea-plugin: IDEA插件，支持对自定义DSL的语法提示、链接跳转、断点调试等
 
 Nop平台的前端代码在[nop-chaos项目](https://gitee.com/canonical-entropy/nop-chaos)中，nop-chaos的打包结果被包装为以下Java模块。
 

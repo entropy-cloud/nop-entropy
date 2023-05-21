@@ -9,6 +9,7 @@ package io.nop.rpc.core.reflect;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.DestroyHelper;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.aop.AopProxyHelper;
@@ -61,7 +62,9 @@ public class RpcInvocationHandler implements InvocationHandler {
         String methodName = transformer.getMethodName(methodModel);
 
         ApiRequest<?> req = transformer.toRequest(serviceName, methodModel, args);
-        IRpcServiceInvocation inv = new DefaultRpcServiceInvocation(serviceName, methodName, req, null, false,
+        ICancelToken cancelToken = getCancelToken(args);
+
+        IRpcServiceInvocation inv = new DefaultRpcServiceInvocation(serviceName, methodName, req, cancelToken, false,
                 rpcService);
 
         if (interceptors != null && !interceptors.isEmpty()) {
@@ -76,5 +79,13 @@ public class RpcInvocationHandler implements InvocationHandler {
             ApiResponse<?> result = inv.proceed();
             return transformer.fromResponse(serviceName, methodModel, result);
         }
+    }
+
+    protected ICancelToken getCancelToken(Object[] args) {
+        for (Object arg : args) {
+            if (arg instanceof ICancelToken)
+                return (ICancelToken) arg;
+        }
+        return null;
     }
 }

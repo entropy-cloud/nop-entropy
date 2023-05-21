@@ -10,6 +10,7 @@ package io.nop.api.core.util;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.ApiErrors;
 import io.nop.api.core.beans.ApiMessage;
+import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 
@@ -153,7 +154,11 @@ public class ApiHeaders {
     }
 
     public static void setOneWay(ApiMessage message) {
-        setHeader(message.getHeaders(), ApiConstants.HEADER_ONE_WAY, "1");
+        message.setHeader(ApiConstants.HEADER_ONE_WAY, "1");
+    }
+
+    public static String getIdFromHeaders(Map<String, Object> headers) {
+        return getStringHeader(headers, ApiConstants.HEADER_ID);
     }
 
     public static String getId(ApiMessage message) {
@@ -280,22 +285,6 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_ACTOR, value);
     }
 
-    public static String getHttpMethod(ApiMessage message) {
-        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_HTTP_METHOD);
-    }
-
-    public static void setHttpMethod(ApiMessage message, String method) {
-        message.setHeader(ApiConstants.HEADER_HTTP_METHOD, method);
-    }
-
-    public static String getHttpUrl(ApiMessage message) {
-        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_HTTP_URL);
-    }
-
-    public static void setHttpUrl(ApiMessage message, String url) {
-        message.setHeader(ApiConstants.HEADER_HTTP_URL, url);
-    }
-
 
     public static String getAppZone(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_APP_ZONE);
@@ -348,14 +337,6 @@ public class ApiHeaders {
 
     public static void setTimeout(ApiMessage message, Long timeout) {
         message.setHeader(ApiConstants.HEADER_TIMEOUT, timeout);
-    }
-
-    public static String getSvcGroup(ApiMessage message) {
-        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_SVC_GROUP);
-    }
-
-    public static void setSvcGroup(ApiMessage message, String group) {
-        message.setHeader(ApiConstants.HEADER_SVC_GROUP, group);
     }
 
     public static Set<String> getSvcTags(ApiMessage message) {

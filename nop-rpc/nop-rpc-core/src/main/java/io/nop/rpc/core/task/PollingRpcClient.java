@@ -16,7 +16,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.api.IRpcService;
-import io.nop.rpc.core.utils.RpcTaskHelper;
+import io.nop.rpc.core.utils.RpcHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,7 +112,7 @@ public class PollingRpcClient implements IRpcService {
     }
 
     protected boolean isCompleted(ApiResponse<?> ret) {
-        ApiResponse<TaskStatusBean> res = RpcTaskHelper.toTaskStatusResponse(ret);
+        ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
         return res.getData() != null && res.getData().isCompleted();
     }
 }

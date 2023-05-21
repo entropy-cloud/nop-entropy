@@ -7,6 +7,8 @@
  */
 package io.nop.api.debugger;
 
+import io.nop.api.core.annotations.core.Name;
+
 import java.util.List;
 
 /**
@@ -33,9 +35,9 @@ public interface IDebugger extends IBreakpointManager {
     /**
      * 暂时忽略所有断点
      */
-    void muteBreakpoints(boolean muted);
+    void muteBreakpoints(@Name("muted") boolean muted);
 
-    void updateBreakpoints(List<Breakpoint> bps, boolean muted);
+    void updateBreakpoints(@Name("bps") List<Breakpoint> bps, @Name("muted") boolean muted);
 
     boolean isSuspended();
 
@@ -45,9 +47,9 @@ public interface IDebugger extends IBreakpointManager {
 
     // IBreakpointManager getBreakpointManager();
 
-    void runToPosition(Breakpoint bp);
+    void runToPosition(@Name("bp") Breakpoint bp);
 
-    DebugVariable getExprValue(long threadId, int frameIndex, String expr);
+    DebugVariable getExprValue(@Name("threadId") long threadId, @Name("frameIndex") int frameIndex, @Name("expr") String expr);
 
     /**
      * 查看对象的属性值
@@ -55,16 +57,17 @@ public interface IDebugger extends IBreakpointManager {
      * @param expr 对象表达式，它的执行结果返回一个对象
      * @return 返回对象的属性列表
      */
-    List<DebugVariable> expandExprValue(long threadId, int frameIndex, String expr, List<DebugValueKey> keys);
+    List<DebugVariable> expandExprValue(@Name("threadId") long threadId, @Name("frameIndex") int frameIndex,
+                                        @Name("expr") String expr, @Name("keys") List<DebugValueKey> keys);
 
-    StackInfo getStackInfo(long threadId);
+    StackInfo getStackInfo(@Name("threadId") long threadId);
 
     /**
      * 返回IEvalScope中保存的全局变量
      *
      * @param threadId 当前调试线程
      */
-    List<DebugVariable> getScopeVariables(long threadId);
+    List<DebugVariable> getScopeVariables(@Name("threadId") long threadId);
 
-    List<DebugVariable> getFrameVariables(long threadId, int frameIndex);
+    List<DebugVariable> getFrameVariables(@Name("threadId") long threadId, @Name("frameIndex") int frameIndex);
 }

@@ -2,6 +2,8 @@ package io.nop.rpc.cluster;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.cluster.chooser.IServerChooser;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.api.IRpcService;
 import io.nop.rpc.core.reflect.RpcServiceProxyFactoryBean;
 
@@ -11,6 +13,7 @@ import javax.inject.Inject;
 public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     private IServerChooser<ApiRequest<?>> serverChooser;
     private IRpcClientInstanceProvider clientProvider;
+    private IScheduledExecutor timer;
 
     @Inject
     public void setServerChooser(IServerChooser<ApiRequest<?>> serverChooser) {
@@ -22,10 +25,17 @@ public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
         this.clientProvider = clientProvider;
     }
 
+    public void setTimer(IScheduledExecutor timer) {
+        this.timer = timer;
+    }
+
     @Override
     @PostConstruct
     public void init() {
-        ClusterRpcClient rpcService = new ClusterRpcClient(getServiceName(), serverChooser, clientProvider);
+        if (timer == null)
+            timer = GlobalExecutors.globalTimer();
+
+        ClusterRpcClient rpcService = new ClusterRpcClient(getServiceName(), serverChooser, clientProvider, timer);
         rpcService.setRetryCount(getRetryCount());
         setRpcService(rpcService);
         super.init();

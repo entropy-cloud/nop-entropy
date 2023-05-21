@@ -26,6 +26,12 @@ public abstract class ApiMessage implements Serializable, ICloneable {
         return headers;
     }
 
+    public Map<String, Object> copyHeaders() {
+        if (headers == null)
+            return null;
+        return new TreeMap<>(headers);
+    }
+
     public void setHeaders(Map<String, Object> headers) {
         this.headers = headers;
     }

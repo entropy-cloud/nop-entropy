@@ -85,12 +85,22 @@ public class ServiceInstance implements Serializable {
 
     private List<Runnable> cleanupTasks;
 
+    private String _host;
+
     /**
      * 本地维护的临时信息。从NamingService获取的信息中不包含这些属性
      */
     private Map<String, Object> attrs = new ConcurrentHashMap<>();
 
     private long modifyIndex;
+
+    @JsonIgnore
+    public String getHost() {
+        if (_host == null) {
+            _host = getAddr() + ':' + getPort();
+        }
+        return _host;
+    }
 
     public String getInstanceId() {
         return instanceId;

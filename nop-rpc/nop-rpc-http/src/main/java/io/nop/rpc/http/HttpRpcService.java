@@ -21,6 +21,7 @@ import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
 import io.nop.rpc.api.IRpcService;
+import io.nop.rpc.core.utils.RpcHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,7 @@ public class HttpRpcService implements IRpcService {
         }
         headers.put(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
 
-        String method = ApiHeaders.getHttpMethod(request);
+        String method = RpcHelper.getHttpMethod(request);
         if (method == null)
             method = HttpApiConstants.METHOD_POST;
         req.setMethod(method);
@@ -81,7 +82,7 @@ public class HttpRpcService implements IRpcService {
         int status = response.getHttpStatus();
         String text = response.getBodyAsText();
 
-        IApiResponseNormalizer responseNormalizer = request.getResponseNormalizer();
+        IApiResponseNormalizer responseNormalizer = RpcHelper.getResponseNormalizer(request);
 
         ApiResponse<?> ret = null;
         if (responseNormalizer != null) {

@@ -1,10 +1,10 @@
 package io.nop.rpc.core.reflect;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.rpc.RpcMethod;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.util.ApiHeaders;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.IFunctionArgument;
@@ -12,6 +12,7 @@ import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.rpc.core.utils.RpcHelper;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -33,17 +34,44 @@ public class HttpRpcMessageTransformer extends DefaultRpcMessageTransformer {
         if (path != null) {
             req = buildRestRequest(method, path, args);
         } else {
+            String bizObjName = getBizObjName(method);
+
             req = super.toRequest(serviceName, method, args);
-            ApiHeaders.setHttpUrl(req, "/r/" + getBizObjName(method) + "__" + method.getName());
+            RpcHelper.setHttpUrl(req, "/r/" + bizObjName + "__" + method.getName());
+            initRpcMethod(req, method, bizObjName);
         }
 
         String httpMethod = getHttpMethod(method);
         if (httpMethod != null) {
-            ApiHeaders.setHttpMethod(req, httpMethod);
+            RpcHelper.setHttpMethod(req, httpMethod);
         }
 
-        req.setResponseNormalizer(res -> buildResponse(method, res));
+        RpcHelper.setResponseNormalizer(req, res -> buildResponse(method, res));
         return req;
+    }
+
+    private void initRpcMethod(ApiRequest<?> req, IFunctionModel method, String bizObjName) {
+        RpcMethod rpcMethod = method.getAnnotation(RpcMethod.class);
+        if (rpcMethod != null) {
+            String cancelMethod = rpcMethod.cancelMethod();
+            if (!cancelMethod.isEmpty()) {
+                if (cancelMethod.indexOf("__") < 0)
+                    cancelMethod = bizObjName + "__" + cancelMethod;
+                RpcHelper.setCancelMethod(req, cancelMethod);
+            }
+
+            String pollMethod = rpcMethod.pollingMethod();
+            if (!pollMethod.isEmpty()) {
+                if (pollMethod.indexOf("__") < 0) {
+                    pollMethod = bizObjName + "__" + pollMethod;
+                }
+                RpcHelper.setPollingMethod(req, pollMethod);
+            }
+
+            if (rpcMethod.pollInterval() > 0) {
+                RpcHelper.setPollInterval(req, rpcMethod.pollInterval());
+            }
+        }
     }
 
     ApiRequest<Object> buildRestRequest(IFunctionModel method, String path, Object[] args) {
@@ -83,7 +111,7 @@ public class HttpRpcMessageTransformer extends DefaultRpcMessageTransformer {
             url = StringHelper.appendQuery(url, StringHelper.encodeQuery(params));
         }
 
-        ApiHeaders.setHttpUrl(req, url);
+        RpcHelper.setHttpUrl(req, url);
         return req;
     }
 

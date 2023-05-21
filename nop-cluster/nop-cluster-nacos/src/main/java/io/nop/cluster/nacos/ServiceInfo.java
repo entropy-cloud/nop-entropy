@@ -9,6 +9,7 @@ package io.nop.cluster.nacos;
 
 import io.nop.cluster.discovery.ServiceInstance;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,6 +20,10 @@ public class ServiceInfo {
 
     public List<ServiceInstance> getServiceInstances() {
         return serviceInstances;
+    }
+
+    public List<ServiceInstance> copyServiceInstances(){
+        return new ArrayList<>(serviceInstances);
     }
 
     public void setServiceInstances(List<ServiceInstance> instances) {

@@ -13,6 +13,7 @@ import io.nop.cluster.chooser.IRequestServiceInstanceFilter;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.commons.util.TagsHelper;
 
+import java.util.List;
 import java.util.Set;
 
 public class TagServiceInstanceFilter implements IRequestServiceInstanceFilter<ApiRequest<?>> {
@@ -37,17 +38,18 @@ public class TagServiceInstanceFilter implements IRequestServiceInstanceFilter<A
     }
 
     @Override
-    public boolean accept(ServiceInstance serviceInstance, ApiRequest<?> request, boolean onlyPreferred) {
-        if (!isEnabled())
-            return true;
+    public void filter(List<ServiceInstance> serviceInstances, ApiRequest<?> request, boolean onlyPreferred) {
+        Set<String> tags = getTags(request);
 
+        if (tags == null || tags.isEmpty())
+            return;
+        serviceInstances.removeIf(instance -> TagsHelper.containsAll(instance.getTags(), tags));
+    }
+
+    private Set<String> getTags(ApiRequest<?> request) {
         Set<String> tags = this.tags;
         if (tags == null || tags.isEmpty())
             tags = ApiHeaders.getSvcTags(request);
-
-        if (tags == null || tags.isEmpty())
-            return true;
-
-        return TagsHelper.containsAll(serviceInstance.getTags(), tags);
+        return tags;
     }
 }

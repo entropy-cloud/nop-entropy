@@ -19,4 +19,15 @@ public interface RpcConstants {
 
     // 服务器处理Request失败返回的错误信息
     short CMD_ERROR = 5;
+
+    String PROP_CANCEL_METHOD = "cancelMethod";
+
+    String PROP_POLLING_METHOD = "pollingMethod";
+
+    String PROP_POLL_INTERVAL = "pollInterval";
+
+    String PROP_RESPONSE_NORMALIZER = "responseNormalizer";
+
+    String PROP_HTTP_METHOD = "httpMethod";
+    String PROP_HTTP_URL = "httpUrl";
 }

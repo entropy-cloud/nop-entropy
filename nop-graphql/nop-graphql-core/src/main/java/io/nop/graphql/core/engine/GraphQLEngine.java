@@ -85,6 +85,8 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     private IFlowControlRunner flowControlRunner;
 
+    private final CancelTokenManager cancelTokenManager = new CancelTokenManager();
+
     private boolean enableActionAuth;
     private boolean enableDataAuth;
 
@@ -326,7 +328,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Override
     public CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext context) {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
-        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker();
+        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(context);
         if (executionInvoker != null)
             return executionInvoker.invokeAsync(executor::executeOneAsync, context);
 
@@ -336,7 +338,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Override
     public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext context) {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
-        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker();
+        IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(context);
         if (executionInvoker != null)
             return executionInvoker.invokeAsync(executor::executeAsync, context);
         return executor.executeAsync(context);
@@ -380,9 +382,15 @@ public class GraphQLEngine implements IGraphQLEngine {
         return res;
     }
 
-    protected IAsyncFunctionInvoker getExecutionInvoker() {
+    protected IAsyncFunctionInvoker getExecutionInvoker(IGraphQLExecutionContext context) {
+        IAsyncFunctionInvoker executionInvoker = cancelTokenManager.wrap(this.executionInvoker, context);
         if (flowControlRunner == null)
             return executionInvoker;
         return new GraphQLFlowControlInvoker(flowControlRunner, executionInvoker);
+    }
+
+    @Override
+    public boolean cancel(String requestId) {
+        return cancelTokenManager.cancel(requestId);
     }
 }

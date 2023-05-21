@@ -7,25 +7,26 @@
  */
 package io.nop.api.debugger;
 
+import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.util.SourceLocation;
 
 import java.util.List;
 
 public interface IBreakpointManager {
-    void addBreakpoint(Breakpoint bp);
+    void addBreakpoint(@Name("bp") Breakpoint bp);
 
-    void removeBreakpoint(Breakpoint bp);
+    void removeBreakpoint(@Name("bp") Breakpoint bp);
 
     /**
      * 清除当前所有断点，然后设置新的断点
      *
      * @param bps 断点集合
      */
-    void setBreakpoints(List<Breakpoint> bps);
+    void setBreakpoints(@Name("bps") List<Breakpoint> bps);
 
     List<Breakpoint> getBreakpoints();
 
     void clearBreakpoints();
 
-    Breakpoint getBreakpointAt(SourceLocation loc);
+    Breakpoint getBreakpointAt(@Name("loc") SourceLocation loc);
 }

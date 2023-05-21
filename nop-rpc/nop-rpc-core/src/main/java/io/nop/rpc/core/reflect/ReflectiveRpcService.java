@@ -63,7 +63,7 @@ public class ReflectiveRpcService implements IRpcService {
         }
 
         String serviceName = ApiHeaders.getSvcName(request);
-        Object[] args = transformer.fromRequest(serviceName, method, request);
+        Object[] args = transformer.fromRequest(serviceName, method, request, cancelToken);
         try {
             Object result = method.invoke(serviceImpl, args, DisabledEvalScope.INSTANCE);
             if (result instanceof CompletionStage) {

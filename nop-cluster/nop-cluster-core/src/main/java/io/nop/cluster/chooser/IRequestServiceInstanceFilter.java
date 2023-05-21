@@ -10,14 +10,9 @@ package io.nop.cluster.chooser;
 import io.nop.cluster.discovery.ServiceInstance;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 public interface IRequestServiceInstanceFilter<R> {
     boolean isEnabled();
 
-    boolean accept(ServiceInstance serviceInstance, R request, boolean onlyPreferred);
-
-    default List<ServiceInstance> filter(List<ServiceInstance> instances, R request, boolean onlyPreferred) {
-        return instances.stream().filter(instance -> accept(instance, request, onlyPreferred)).collect(Collectors.toList());
-    }
+    void filter(List<ServiceInstance> instances, R request, boolean onlyPreferred);
 }

@@ -7,28 +7,29 @@
  */
 package io.nop.api.debugger;
 
+import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.util.SourceLocation;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 public interface IDebuggerAsync extends IDebugger {
-    CompletionStage<Void> addBreakpointAsync(Breakpoint bp);
+    CompletionStage<Void> addBreakpointAsync(@Name("bp") Breakpoint bp);
 
-    CompletionStage<Void> removeBreakpointAsync(Breakpoint bp);
+    CompletionStage<Void> removeBreakpointAsync(@Name("bp") Breakpoint bp);
 
     /**
      * 清除当前所有断点，然后设置新的断点
      *
      * @param bps 断点集合
      */
-    CompletionStage<Void> setBreakpointsAsync(List<Breakpoint> bps);
+    CompletionStage<Void> setBreakpointsAsync(@Name("bps") List<Breakpoint> bps);
 
     CompletionStage<List<Breakpoint>> getBreakpointsAsync();
 
     CompletionStage<Void> clearBreakpointsAsync();
 
-    CompletionStage<Breakpoint> getBreakpointAtAsync(SourceLocation loc);
+    CompletionStage<Breakpoint> getBreakpointAtAsync(@Name("loc") SourceLocation loc);
 
     CompletionStage<Void> stepIntoAsync();
 
@@ -50,9 +51,9 @@ public interface IDebuggerAsync extends IDebugger {
     /**
      * 暂时忽略所有断点
      */
-    CompletionStage<Void> muteBreakpointsAsync(boolean muted);
+    CompletionStage<Void> muteBreakpointsAsync(@Name("muted") boolean muted);
 
-    CompletionStage<Void> updateBreakpointsAsync(List<Breakpoint> bps, boolean muted);
+    CompletionStage<Void> updateBreakpointsAsync(@Name("bps") List<Breakpoint> bps, @Name("muted") boolean muted);
 
     CompletionStage<Boolean> isSuspendedAsync();
 
@@ -62,9 +63,10 @@ public interface IDebuggerAsync extends IDebugger {
 
     // IBreakpointManager getBreakpointManager();
 
-    CompletionStage<Void> runToPositionAsync(Breakpoint bp);
+    CompletionStage<Void> runToPositionAsync(@Name("bp") Breakpoint bp);
 
-    CompletionStage<DebugVariable> getExprValueAsync(long threadId, int frameIndex, String expr);
+    CompletionStage<DebugVariable> getExprValueAsync(@Name("threadId") long threadId, @Name("frameIndex") int frameIndex,
+                                                     @Name("expr") String expr);
 
     /**
      * 查看对象的属性值
@@ -72,17 +74,18 @@ public interface IDebuggerAsync extends IDebugger {
      * @param expr 对象表达式，它的执行结果返回一个对象
      * @return 返回对象的属性列表
      */
-    CompletionStage<List<DebugVariable>> expandExprValueAsync(long threadId, int frameIndex, String expr,
-                                                              List<DebugValueKey> keys);
+    CompletionStage<List<DebugVariable>> expandExprValueAsync(@Name("threadId") long threadId,
+                                                              @Name("frameIndex") int frameIndex, @Name("expr") String expr,
+                                                              @Name("keys") List<DebugValueKey> keys);
 
-    CompletionStage<StackInfo> getStackInfoAsync(long threadId);
+    CompletionStage<StackInfo> getStackInfoAsync(@Name("threadId") long threadId);
 
     /**
      * 返回IEvalScope中保存的全局变量
      *
      * @param threadId 当前调试线程
      */
-    CompletionStage<List<DebugVariable>> getScopeVariablesAsync(long threadId);
+    CompletionStage<List<DebugVariable>> getScopeVariablesAsync(@Name("threadId") long threadId);
 
-    CompletionStage<List<DebugVariable>> getFrameVariablesAsync(long threadId, int frameIndex);
+    CompletionStage<List<DebugVariable>> getFrameVariablesAsync(@Name("threadId") long threadId, @Name("frameIndex") int frameIndex);
 }

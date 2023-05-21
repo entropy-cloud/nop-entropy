@@ -10,6 +10,8 @@ package io.nop.cluster.chooser.filter;
 import io.nop.cluster.chooser.IRequestServiceInstanceFilter;
 import io.nop.cluster.discovery.ServiceInstance;
 
+import java.util.List;
+
 public class HealthyServiceInstanceFilter<R> implements IRequestServiceInstanceFilter<R> {
     private boolean enabled = true;
 
@@ -21,8 +23,7 @@ public class HealthyServiceInstanceFilter<R> implements IRequestServiceInstanceF
         return enabled;
     }
 
-    @Override
-    public boolean accept(ServiceInstance instance, R request, boolean onlyPreferred) {
-        return instance.isHealthy() && instance.isEnabled();
+    public void filter(List<ServiceInstance> instances, R request, boolean onlyPreferred) {
+        instances.removeIf(instance -> instance.isHealthy() && instance.isEnabled());
     }
 }

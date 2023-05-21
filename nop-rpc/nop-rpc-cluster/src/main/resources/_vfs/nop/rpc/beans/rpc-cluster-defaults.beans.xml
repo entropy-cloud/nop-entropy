@@ -33,14 +33,28 @@
     </bean>
 
     <util:list id="nopRequestServiceInstanceFilters">
-        <bean class="io.nop.cluster.chooser.filter.HealthyServiceInstanceFilter"/>
-        <bean class="io.nop.cluster.chooser.filter.ZoneServiceInstanceFilter">
-            <property name="zone" value="@cfg:nop.rpc.cluster.prefer-zone|"/>
-            <property name="force" value="@cfg:nop.rpc.cluster.force-zone|false"/>
-        </bean>
-        <bean class="io.nop.cluster.chooser.filter.GroupIsolationServiceInstanceFilter"/>
-        <bean class="io.nop.cluster.chooser.filter.RouteServiceInstanceFilter"/>
+        <ref bean="nopServiceInstanceFilter_healthy"/>
+        <ref bean="nopServiceInstanceFilter_specific"/>
+
+        <ref bean="nopServiceInstanceFilter_tag"/>
+        <ref bean="nopServiceInstanceFilter_zone"/>
+        <ref bean="nopServiceInstanceFilter_route"/>
+
     </util:list>
+
+    <bean id="nopServiceInstanceFilter_healthy" class="io.nop.cluster.chooser.filter.HealthyServiceInstanceFilter"/>
+
+    <bean id="nopServiceInstanceFilter_zone" class="io.nop.cluster.chooser.filter.ZoneServiceInstanceFilter">
+        <property name="zone" value="@cfg:nop.rpc.cluster.prefer-zone|"/>
+        <property name="force" value="@cfg:nop.rpc.cluster.force-zone|false"/>
+    </bean>
+
+    <bean id="nopServiceInstanceFilter_route" class="io.nop.cluster.chooser.filter.RouteServiceInstanceFilter"/>
+
+    <bean id="nopServiceInstanceFilter_tag" class="io.nop.cluster.chooser.filter.TagServiceInstanceFilter"/>
+
+    <bean id="nopServiceInstanceFilter_specific" class="io.nop.cluster.chooser.filter.SpecificServiceInstanceFilter"/>
+
 
     <bean id="nopServerChooser_base" abstract="true"
           class="io.nop.cluster.chooser.LoadBalanceServerChooser">
@@ -60,13 +74,28 @@
     </bean>
 
     <bean id="AbstractClusterRpcProxyFactoryBean" abstract="true" ioc:default="true"
-          ioc:bean-method="getObject"
+          ioc:bean-method="getObject" feature:off="nop.rpc.service-mesh.enabled"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
         <property name="serverChooser" ref="nopServerChooser_random"/>
         <property name="interceptors" ref="nopRpcServiceInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
     </bean>
+
+    <bean id="AbstractClusterRpcProxyFactoryBean" abstract="true" parent="AbstractHttpRpcProxyFactoryBean"
+          feature:on="nop.rpc.service-mesh.enabled">
+        <property name="baseUrl" value="@cfg:nop.rpc.service-mesh.base-url"/>
+    </bean>
+
+    <bean id="AbstractHttpRpcProxyFactoryBean" abstract="true" ioc:default="true"
+          ioc:bean-method="getObject"
+          class="io.nop.rpc.cluster.http.HttpRpcProxyFactoryBean">
+        <property name="serverChooser" ref="nopServerChooser_random"/>
+        <property name="interceptors" ref="nopRpcServiceInterceptors"/>
+        <property name="serviceClass" value="@bean:type"/>
+        <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
+    </bean>
+
 
     <bean id="AbstractBroadcastRpcProxyFactoryBean" abstract="true" ioc:default="true"
           ioc:bean-method="getObject"

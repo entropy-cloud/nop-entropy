@@ -14,7 +14,11 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.api.IRpcService;
+import io.nop.rpc.core.task.CancellableRpcClient;
+import io.nop.rpc.core.task.PollingRpcClient;
+import io.nop.rpc.core.utils.RpcHelper;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -31,6 +35,7 @@ public class ClusterRpcClient implements IRpcService {
     private final String serviceName;
     private final IServerChooser<ApiRequest<?>> serverChooser;
     private final IRpcClientInstanceProvider clientProvider;
+    private final IScheduledExecutor timer;
 
     /**
      * 如果连接不上则自动尝试下一个连接
@@ -38,10 +43,11 @@ public class ClusterRpcClient implements IRpcService {
     private int retryCount;
 
     public ClusterRpcClient(String serviceName, IServerChooser<ApiRequest<?>> serverChooser,
-                            IRpcClientInstanceProvider clientProvider) {
+                            IRpcClientInstanceProvider clientProvider, IScheduledExecutor timer) {
         this.serviceName = serviceName;
         this.clientProvider = clientProvider;
         this.serverChooser = serverChooser;
+        this.timer = timer;
     }
 
     public void setRetryCount(int retryCount) {
@@ -61,7 +67,7 @@ public class ClusterRpcClient implements IRpcService {
                 @Override
                 public void accept(int retryTimes) {
                     ServiceInstance instance = serverChooser.chooseFromCandidates(instances, request);
-                    clientProvider.getRpcClientInstance(instance).callAsync(serviceMethod, request, cancelToken)
+                    getRpcClient(instance, request).callAsync(serviceMethod, request, cancelToken)
                             .whenComplete((ret, err) -> {
                                 if (err == null) {
                                     future.complete(ret);
@@ -94,7 +100,7 @@ public class ClusterRpcClient implements IRpcService {
         for (int i = 0; i <= retryCount; i++) {
             ServiceInstance instance = serverChooser.chooseFromCandidates(instances, request);
             try {
-                return clientProvider.getRpcClientInstance(instance).call(serviceMethod, request, cancelToken);
+                return getRpcClient(instance, request).call(serviceMethod, request, cancelToken);
             } catch (Exception e) {
                 error = e;
 
@@ -118,5 +124,21 @@ public class ClusterRpcClient implements IRpcService {
 
     protected boolean isAllowRetry(Throwable e) {
         return e instanceof NopConnectException;
+    }
+
+    protected IRpcService getRpcClient(ServiceInstance instance, ApiRequest<?> request) {
+        IRpcService service = clientProvider.getRpcClientInstance(instance);
+        String cancelMethod = RpcHelper.getCancelMethod(request);
+        if (cancelMethod != null)
+            service = new CancellableRpcClient(service, cancelMethod);
+
+        String pollingMethod = RpcHelper.getPollingMethod(request);
+        if (pollingMethod != null) {
+            int interval = RpcHelper.getPollInterval(request);
+            if (interval > 0) {
+                service = new PollingRpcClient(service, pollingMethod, timer, RpcHelper.getPollInterval(request));
+            }
+        }
+        return service;
     }
 }

@@ -15,5 +15,5 @@ import java.io.Serializable;
 public interface ITccServiceMeta extends Serializable {
     String getServiceName();
 
-    TccMethodMeta getMethodMeta(String serviceAction);
+    TccMethodMeta getMethodMeta(String serviceMethod);
 }

@@ -57,9 +57,6 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String HEADER_TRACE = "nop-trace";
 
-    String HEADER_HTTP_METHOD = "http-method";
-    String HEADER_HTTP_URL = "http-url";
-
     /**
      * 内部使用的header名前缀，一般情况下它们用于保存本地使用的临时变量，不会被发送到远端
      */
@@ -121,11 +118,6 @@ public interface ApiConstants extends FilterBeanConstants {
     String HEADER_ONE_WAY = "nop-one-way";
 
     /**
-     * 服务分组，可以限制一个服务的消费者只能消费属于同一个分组的生产者
-     */
-    String HEADER_SVC_GROUP = "nop-svc-group";
-
-    /**
      * 服务路由，格式为 a:1.1;b:1.2这种形式，表示对服务a使用版本1.1，而对服务2使用版本1.2
      */
     String HEADER_SVC_ROUTE = "nop-svc-route";
@@ -177,6 +169,8 @@ public interface ApiConstants extends FilterBeanConstants {
      * 服务调用返回success，但是业务层面服务调用没有成功，比如下发订单失败等，在tcc调用端会导致tcc事务回滚。
      */
     String HEADER_BIZ_FAIL = "nop-biz-fail";
+
+    String PROP_TARGET_HOST = "targetHost";
 
     String SYS_PARAM_SELECTION = "@selection";
 

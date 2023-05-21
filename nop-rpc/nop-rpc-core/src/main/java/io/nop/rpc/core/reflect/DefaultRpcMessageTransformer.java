@@ -13,11 +13,13 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiInvokeHelper;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,29 +44,35 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
     public ApiRequest<Object> toRequest(String serviceName, IFunctionModel method, Object[] args) {
         String methodName = getMethodName(method);
 
-        if (args != null) {
-            // 只有一个参数，且参数类型为ApiRequest时，直接传递request
-            if (args.length == 1) {
-                IFunctionArgument argModel = method.getArgs().get(0);
-                if (args[0] instanceof ApiRequest) {
-                    ApiRequest<Object> req = (ApiRequest<Object>) args[0];
-                    ApiHeaders.setSvcName(req, serviceName);
-                    ApiHeaders.setSvcAction(req, methodName);
-                    return req;
-                } else if (argModel.isAnnotationPresent(RequestBean.class)) {
-                    ApiRequest<Object> req = ApiRequest.build(args[0]);
-                    ApiHeaders.setSvcName(req, serviceName);
-                    ApiHeaders.setSvcAction(req, methodName);
-                    return req;
-                }
+
+        ApiRequest<Object> req = null;
+        Map<String, Object> params = null;
+
+        for (int i = 0, n = method.getArgCount(); i < n; i++) {
+            IFunctionArgument argModel = method.getArgs().get(i);
+            if (argModel.getRawClass() == ApiRequest.class) {
+                req = (ApiRequest<Object>) args[0];
+                ApiHeaders.setSvcName(req, serviceName);
+                ApiHeaders.setSvcAction(req, methodName);
+            } else if (argModel.isAnnotationPresent(RequestBean.class)) {
+                req = ApiRequest.build(args[0]);
+                ApiHeaders.setSvcName(req, serviceName);
+                ApiHeaders.setSvcAction(req, methodName);
+            } else if (argModel.getType().isAssignableTo(ICancelToken.class)) {
+                // 忽略当前参数，继续执行
+            } else {
+                String name = argModel.getName();
+                if (params == null)
+                    params = new HashMap<>();
+                params.put(name, args[i]);
             }
         }
 
-        ApiRequest<Object> req = new ApiRequest<>();
         ApiHeaders.setSvcName(req, serviceName);
         ApiHeaders.setSvcAction(req, methodName);
-        if (args != null && args.length > 0)
-            req.setData(args);
+        if (params != null && req.getData() == null) {
+            req.setData(params);
+        }
         return req;
     }
 
@@ -96,7 +104,7 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
 
     @Override
     public Object[] fromRequest(String serviceName, IFunctionModel method,
-                                ApiRequest<?> request) {
+                                ApiRequest<?> request, ICancelToken cancelToken) {
         List<? extends IFunctionArgument> argModels = method.getArgs();
         if (argModels.size() == 1) {
             IFunctionArgument argModel = argModels.get(0);

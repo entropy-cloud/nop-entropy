@@ -9,8 +9,11 @@ package io.nop.rpc.core.task;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.graphql.CancelRequestBean;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.util.StringHelper;
 import io.nop.rpc.api.IRpcService;
 
 import java.util.concurrent.CompletionStage;
@@ -31,7 +34,13 @@ public class CancellableRpcClient implements IRpcService {
     @Override
     public CompletionStage<ApiResponse<?>> callAsync(String serviceMethod, ApiRequest<?> request,
                                                      ICancelToken cancelToken) {
+        // 为了便于取消，需要为消息定义一个唯一id
+        String reqId = makeId(request);
+
         CompletionStage<ApiResponse<?>> future = rpcService.callAsync(serviceMethod, request, cancelToken);
+        if (cancelToken == null)
+            return future;
+
         AtomicBoolean done = new AtomicBoolean();
         future.whenComplete((r, e) -> done.set(true));
 
@@ -42,10 +51,26 @@ public class CancellableRpcClient implements IRpcService {
             cancelToken.appendOnCancel(reason -> {
                 // 只有当任务尚未结束，才会执行cancelMethod去尝试主动取消
                 if (!done.get()) {
-                    rpcService.callAsync(cancelMethod, request, null);
+                    ApiRequest<Object> copy = new ApiRequest<>();
+                    copy.setHeaders(request.copyHeaders());
+                    ApiHeaders.setId(copy, null);
+                    CancelRequestBean bean = new CancelRequestBean();
+                    bean.setReqId(reqId);
+                    bean.setData(request.getData());
+                    copy.setData(bean);
+                    rpcService.callAsync(cancelMethod, copy, null);
                 }
             });
         }
         return future;
+    }
+
+    private String makeId(ApiRequest<?> request) {
+        String reqId = ApiHeaders.getId(request);
+        if (StringHelper.isEmpty(reqId)) {
+            reqId = StringHelper.generateUUID();
+            ApiHeaders.setId(request, reqId);
+        }
+        return reqId;
     }
 }

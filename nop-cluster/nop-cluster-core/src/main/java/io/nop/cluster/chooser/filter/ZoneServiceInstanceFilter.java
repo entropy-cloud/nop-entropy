@@ -13,7 +13,7 @@ import io.nop.cluster.chooser.IRequestServiceInstanceFilter;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.commons.util.StringHelper;
 
-import java.util.Objects;
+import java.util.List;
 
 /**
  * 优先选择同一个zone的服务实例
@@ -28,20 +28,23 @@ public class ZoneServiceInstanceFilter implements IRequestServiceInstanceFilter<
     private boolean force;
 
     @Override
-    public boolean accept(ServiceInstance instance, ApiRequest<?> request, boolean onlyPreferred) {
-        String zone = this.zone;
-        if (StringHelper.isEmpty(zone))
-            zone = ApiHeaders.getAppZone(request);
+    public void filter(List<ServiceInstance> instances, ApiRequest<?> request, boolean onlyPreferred) {
+        String zone = getRequestZone(request);
 
         if (StringHelper.isEmpty(zone)) {
-            return true;
+            return;
         }
 
         if (force || !onlyPreferred) {
-            return Objects.equals(zone, instance.getMetadata(ServiceInstance.META_ZONE));
+            instances.removeIf(instance -> zone.equals(instance.getMetadata(ServiceInstance.META_ZONE)));
         }
+    }
 
-        return true;
+    private String getRequestZone(ApiRequest<?> request) {
+        String zone = this.zone;
+        if (StringHelper.isEmpty(zone))
+            zone = ApiHeaders.getAppZone(request);
+        return zone;
     }
 
     public String getZone() {

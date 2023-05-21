@@ -12,6 +12,7 @@ import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.elector.ILeaderObserver;
 import io.nop.commons.util.StringHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
@@ -26,12 +27,12 @@ public class MasterServerChooser<R> implements IServerChooser<R> {
 
     @Override
     public CompletionStage<List<ServiceInstance>> getServersAsync(String serviceName, R request) {
-        return discoveryClient.getInstancesAsync(serviceName);
+        return discoveryClient.getInstancesAsync(serviceName).thenApply(ArrayList::new);
     }
 
     @Override
     public List<ServiceInstance> getServers(String serviceName, R request) {
-        return discoveryClient.getInstances(serviceName);
+        return new ArrayList<>(discoveryClient.getInstances(serviceName));
     }
 
     @Override

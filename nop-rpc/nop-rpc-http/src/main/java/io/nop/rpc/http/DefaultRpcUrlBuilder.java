@@ -2,8 +2,8 @@ package io.nop.rpc.http;
 
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
-import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiStringHelper;
+import io.nop.rpc.core.utils.RpcHelper;
 
 public class DefaultRpcUrlBuilder implements IRpcUrlBuilder {
     private final String baseUrl;
@@ -19,17 +19,8 @@ public class DefaultRpcUrlBuilder implements IRpcUrlBuilder {
     }
 
     @Override
-    public String toHttpHeader(String name) {
-        if (name.startsWith(ApiConstants.TEMP_HEADER_PREFIX))
-            return null;
-        if (ApiConstants.HEADER_HTTP_METHOD.equals(name)) return null;
-        if (ApiConstants.HEADER_HTTP_URL.equals(name)) return null;
-        return name;
-    }
-
-    @Override
     public String buildUrl(ApiRequest<?> req, String serviceMethod) {
-        String url = ApiHeaders.getHttpUrl(req);
+        String url = RpcHelper.getHttpUrl(req);
         if (url == null) {
             if (serviceMethod.startsWith("/")) {
                 url = baseUrl + serviceMethod;

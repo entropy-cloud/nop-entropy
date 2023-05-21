@@ -45,33 +45,25 @@ public class ServiceServerChooser<R> {
         return discoveryClient.getInstancesAsync(serviceName).thenApply(servers -> filterInstances(servers, request));
     }
 
+    /**
+     * 总是返回一个新的List
+     */
     private List<ServiceInstance> filterInstances(List<ServiceInstance> instances, R request) {
         List<ServiceInstance> filtered = filterInstances(instances, request, true);
-        if (filtered == null || filtered.isEmpty())
+        if (filtered.isEmpty())
             filtered = filterInstances(instances, request, false);
         return filtered;
     }
 
     private List<ServiceInstance> filterInstances(List<ServiceInstance> instances, R request, boolean onlyPreferred) {
         if (filters == null || filters.isEmpty())
-            return instances;
+            return new ArrayList<>(instances);
 
-        List<ServiceInstance> ret = new ArrayList<>();
-        for (ServiceInstance instance : instances) {
-            if (accept(instance, request, onlyPreferred))
-                ret.add(instance);
+        List<ServiceInstance> ret = new ArrayList<>(instances);
+        for (IRequestServiceInstanceFilter filter : filters) {
+            if (filter.isEnabled())
+                filter.filter(ret, request, onlyPreferred);
         }
         return ret;
-    }
-
-    private boolean accept(ServiceInstance instance, R request, boolean onlyPreferred) {
-        for (IRequestServiceInstanceFilter<R> filter : filters) {
-            if (!filter.isEnabled())
-                continue;
-
-            if (!filter.accept(instance, request, onlyPreferred))
-                return false;
-        }
-        return true;
     }
 }

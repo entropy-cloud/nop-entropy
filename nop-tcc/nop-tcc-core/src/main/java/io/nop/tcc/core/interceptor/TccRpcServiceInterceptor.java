@@ -16,8 +16,10 @@ import io.nop.tcc.api.ITccEngine;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.core.impl.TccHelper;
 import io.nop.tcc.core.meta.ITccServiceMeta;
+import io.nop.tcc.core.meta.ITccServiceMetaLoader;
 import io.nop.tcc.core.meta.TccMethodMeta;
 
+import javax.inject.Inject;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.api.core.context.ContextProvider.thenOnContext;
@@ -25,15 +27,16 @@ import static io.nop.api.core.context.ContextProvider.thenOnContext;
 public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
 
     private final ITccEngine tccEngine;
-    private final ITccServiceMeta serviceMeta;
+    private final ITccServiceMetaLoader serviceMetaLoader;
 
     public int order() {
         return ApiConstants.INTERCEPTOR_PRIORITY_TCC;
     }
 
-    public TccRpcServiceInterceptor(ITccEngine engine, ITccServiceMeta serviceMeta) {
+    @Inject
+    public TccRpcServiceInterceptor(ITccEngine engine, ITccServiceMetaLoader serviceMetaLoader) {
         this.tccEngine = engine;
-        this.serviceMeta = serviceMeta;
+        this.serviceMetaLoader = serviceMetaLoader;
     }
 
     @Override
@@ -58,7 +61,12 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
     }
 
     private CompletionStage<ApiResponse<?>> runWithTccContext(TccContext tccContext, IRpcServiceInvocation inv) {
+        ITccServiceMeta serviceMeta = serviceMetaLoader.getServiceMeta(inv.getServiceName());
+        if (serviceMeta == null)
+            return inv.proceedAsync();
+
         TccMethodMeta methodMeta = serviceMeta.getMethodMeta(inv.getServiceMethod());
+
         // 对于不支持tcc事务的方法，直接返回
         if (methodMeta == null) {
             return inv.proceedAsync();
@@ -79,7 +87,7 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
         TccContext finalContext = tccContext;
         return tccEngine.runInTransactionAsync(methodMeta.getTxnGroup(), txnId, txn -> {
             if (shouldStartBranch(inv.isInbound(), txn.isInitiator(), methodMeta)) {
-                TccBranchRequest req = buildBranchRequest(methodMeta, finalContext, request);
+                TccBranchRequest req = buildBranchRequest(serviceMeta, methodMeta, finalContext, request);
                 return tccEngine.runBranchTransactionAsync(txn, req, t -> inv.proceedAsync());
             }
             return inv.proceedAsync();
@@ -99,7 +107,7 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
         return true;
     }
 
-    private TccBranchRequest buildBranchRequest(TccMethodMeta methodMeta, TccContext tccContext,
+    private TccBranchRequest buildBranchRequest(ITccServiceMeta serviceMeta, TccMethodMeta methodMeta, TccContext tccContext,
                                                 ApiRequest<?> request) {
         TccBranchRequest req = new TccBranchRequest();
         req.setServiceName(serviceMeta.getServiceName());

@@ -19,7 +19,7 @@ import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.rpc.api.IRpcService;
-import io.nop.rpc.core.utils.RpcTaskHelper;
+import io.nop.rpc.core.utils.RpcHelper;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -92,7 +92,7 @@ public class RpcTaskMonitor extends LifeCycleSupport {
             if (!StringHelper.isEmpty(statusMethod)) {
                 IRpcService service = task.getRpcService();
                 service.callAsync(statusMethod, task.getRequest(), cancellable).whenComplete((ret, err) -> {
-                    ApiResponse<TaskStatusBean> res = RpcTaskHelper.toTaskStatusResponse(ret);
+                    ApiResponse<TaskStatusBean> res = RpcHelper.toTaskStatusResponse(ret);
                     handleTaskStatus(task, res, err);
                 });
             }

@@ -76,6 +76,8 @@ public interface IGraphQLEngine {
         return newGraphQLContext(parsed);
     }
 
+    boolean cancel(String requestId);
+
     CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext context);
 
     default GraphQLResponseBean executeGraphQL(IGraphQLExecutionContext context) {
@@ -91,7 +93,7 @@ public interface IGraphQLEngine {
                         String operationName, ApiRequest<?> request);
 
     default IGraphQLExecutionContext newRpcContext(GraphQLOperationType opType, String operationName,
-                                           ApiRequest<?> request){
+                                                   ApiRequest<?> request) {
         IGraphQLExecutionContext context = newGraphQLContext();
         initRpcContext(context, opType, operationName, request);
         return context;

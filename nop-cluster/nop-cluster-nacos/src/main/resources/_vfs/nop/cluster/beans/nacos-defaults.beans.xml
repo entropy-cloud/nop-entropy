@@ -6,10 +6,10 @@
 
     <bean id="nopNamingService" class="io.nop.cluster.nacos.NacosNamingService">
         <ioc:condition>
-            <if-property name="nop.cluster.discovery.nacos.enabled" />
+            <if-property name="nop.cluster.discovery.nacos.enabled" enableIfMissing="true"/>
         </ioc:condition>
 
-        <property name="groupName" value="@cfg:nop.cluster.discovery.group|DEFAULT_GROUP"/>
+        <property name="groupName" value="@cfg:nop.cluster.discovery.nacos.group|DEFAULT_GROUP"/>
         <property name="properties">
             <props>
                 <prop key="serverAddr">@cfg:nop.cluster.discovery.nacos.server-addr</prop>

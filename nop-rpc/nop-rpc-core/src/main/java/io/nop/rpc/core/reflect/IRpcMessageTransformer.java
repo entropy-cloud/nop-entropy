@@ -9,6 +9,7 @@ package io.nop.rpc.core.reflect;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.reflect.IFunctionModel;
 
 public interface IRpcMessageTransformer {
@@ -18,7 +19,7 @@ public interface IRpcMessageTransformer {
 
     Object fromResponse(String serviceName, IFunctionModel method, ApiResponse<?> res);
 
-    Object[] fromRequest(String serviceName, IFunctionModel method, ApiRequest<?> request);
+    Object[] fromRequest(String serviceName, IFunctionModel method, ApiRequest<?> request, ICancelToken cancelToken);
 
     ApiResponse<?> toResponse(String serviceName, IFunctionModel method, Object result);
 
