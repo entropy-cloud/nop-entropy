@@ -25,6 +25,6 @@ public class SpecificServiceInstanceFilter implements IRequestServiceInstanceFil
         if (host == null)
             return;
 
-        serviceInstances.removeIf(instance -> host.equals(instance.getHost()));
+        serviceInstances.removeIf(instance -> !host.equals(instance.getHost()));
     }
 }

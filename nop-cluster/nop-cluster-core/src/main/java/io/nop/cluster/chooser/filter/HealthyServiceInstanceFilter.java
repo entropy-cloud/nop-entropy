@@ -24,6 +24,6 @@ public class HealthyServiceInstanceFilter<R> implements IRequestServiceInstanceF
     }
 
     public void filter(List<ServiceInstance> instances, R request, boolean onlyPreferred) {
-        instances.removeIf(instance -> instance.isHealthy() && instance.isEnabled());
+        instances.removeIf(instance -> !instance.isHealthy() || !instance.isEnabled());
     }
 }

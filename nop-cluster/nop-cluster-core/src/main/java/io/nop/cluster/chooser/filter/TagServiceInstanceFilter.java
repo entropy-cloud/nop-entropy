@@ -43,7 +43,7 @@ public class TagServiceInstanceFilter implements IRequestServiceInstanceFilter<A
 
         if (tags == null || tags.isEmpty())
             return;
-        serviceInstances.removeIf(instance -> TagsHelper.containsAll(instance.getTags(), tags));
+        serviceInstances.removeIf(instance -> !TagsHelper.containsAll(instance.getTags(), tags));
     }
 
     private Set<String> getTags(ApiRequest<?> request) {

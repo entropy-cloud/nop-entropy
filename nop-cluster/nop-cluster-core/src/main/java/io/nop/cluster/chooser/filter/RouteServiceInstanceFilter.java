@@ -66,7 +66,7 @@ public class RouteServiceInstanceFilter implements IRequestServiceInstanceFilter
             boolean b = requirement.isSatisfiedBy(ver);
 
             LOG.info("nop.cluster.check-svc-route:route={},ver={},result={}", svcRoute, ver, b);
-            return b;
+            return !b;
         });
     }
 

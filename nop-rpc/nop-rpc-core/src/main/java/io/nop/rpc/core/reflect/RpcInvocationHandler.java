@@ -48,6 +48,8 @@ public class RpcInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (args == null)
+            args = IFunctionModel.EMPTY_ARGS;
         if (method.getDeclaringClass() == Object.class) {
             return AopProxyHelper.invokeObjectMethod(this, proxy, method, args);
         }

@@ -12,6 +12,7 @@ import io.nop.cluster.discovery.ServiceInstance;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
@@ -49,6 +50,9 @@ public class ServiceServerChooser<R> {
      * 总是返回一个新的List
      */
     private List<ServiceInstance> filterInstances(List<ServiceInstance> instances, R request) {
+        if (instances.isEmpty())
+            return Collections.emptyList();
+
         List<ServiceInstance> filtered = filterInstances(instances, request, true);
         if (filtered.isEmpty())
             filtered = filterInstances(instances, request, false);
@@ -61,6 +65,9 @@ public class ServiceServerChooser<R> {
 
         List<ServiceInstance> ret = new ArrayList<>(instances);
         for (IRequestServiceInstanceFilter filter : filters) {
+            if (ret.isEmpty())
+                break;
+
             if (filter.isEnabled())
                 filter.filter(ret, request, onlyPreferred);
         }

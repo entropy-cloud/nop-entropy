@@ -68,6 +68,9 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
             }
         }
 
+        if (req == null)
+            req = new ApiRequest<>();
+
         ApiHeaders.setSvcName(req, serviceName);
         ApiHeaders.setSvcAction(req, methodName);
         if (params != null && req.getData() == null) {
