@@ -23,6 +23,7 @@ import io.nop.api.core.annotations.core.BeanClass;
 import io.nop.api.core.annotations.core.BeanDeserializer;
 import io.nop.api.core.annotations.core.BeanSerializer;
 import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.annotations.core.LazyLoad;
 import io.nop.api.core.annotations.core.PropertyGetter;
 import io.nop.api.core.annotations.core.PropertySetter;
 import io.nop.api.core.annotations.data.DataBean;
@@ -310,6 +311,7 @@ public class BeanModelBuilder {
         if (candidate.getMethod != null) {
             prop.setGetter(new FunctionSpecializedPropertyGetter(candidate.getMethod.getInvoker()));
             prop.setType(candidate.getMethod.getReturnType());
+            prop.setLazyLoad(candidate.getMethod.isAnnotationPresent(LazyLoad.class));
         }
 
         if (candidate.isField()) {

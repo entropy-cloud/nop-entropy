@@ -186,6 +186,21 @@ public class DaoQueryHelper {
         }
     }
 
+    public static void appendReverseOrderBy(SQL.SqlBuilder sb, String defaultOwner, List<OrderFieldBean> orderBy) {
+        if (orderBy == null || orderBy.isEmpty())
+            return;
+
+        sb.br().orderBy();
+        for (int i = 0, n = orderBy.size(); i < n; i++) {
+            OrderFieldBean orderField = orderBy.get(i);
+            if (i != 0)
+                sb.append(',');
+            checkOwnerName(orderField.getOwner());
+            checkFieldName(orderField.getName());
+            sb.reverseOrderField(defaultOwner, orderField);
+        }
+    }
+
     public static SQL queryToCountSql(String entityName, QueryBean query) {
         SQL.SqlBuilder sb = newSQL(query);
 
@@ -241,6 +256,31 @@ public class DaoQueryHelper {
         return sb.end();
     }
 
+    public static <T extends IOrmEntity> SQL queryToFindPrevSql(IEntityModel entityModel, T cursorEntity,
+                                                                ITreeBean filter, List<OrderFieldBean> orderBy, String delFlagProp) {
+        List<OrderFieldBean> orderByPk = new ArrayList<>();
+        if (orderBy != null) {
+            orderByPk.addAll(orderBy);
+        }
+        for (IColumnModel col : entityModel.getPkColumns()) {
+            if (!hasField(orderBy, col.getName())) {
+                orderByPk.add(OrderFieldBean.forField(col.getName()));
+            }
+        }
+
+        SQL.SqlBuilder sb = SQL.begin();
+        sb.append("select o from ").append(entityModel.getName()).as("o");
+        boolean hasCond = appendWhere(sb, "o", filter);
+        if (cursorEntity != null) {
+            if (hasCond)
+                sb.and();
+            appendLtCursorEntity(sb, entityModel, cursorEntity);
+        }
+
+        appendReverseOrderBy(sb, "o", orderByPk);
+        return sb.end();
+    }
+
     static boolean hasField(List<OrderFieldBean> orderBy, String name) {
         if (orderBy == null)
             return false;
@@ -260,6 +300,30 @@ public class DaoQueryHelper {
             }
             sb.append(')');
             sb.append('>');
+            sb.append('(');
+            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
+                if (i != 0)
+                    sb.append(',');
+                IColumnModel col = entityModel.getPkColumns().get(i);
+                sb.param(entity.orm_propValue(col.getPropId()));
+            }
+            sb.append(')');
+        }
+    }
+
+    static void appendLtCursorEntity(SQL.SqlBuilder sb, IEntityModel entityModel, IOrmEntity entity) {
+        if (entityModel.getPkColumns().size() == 1) {
+            IColumnModel col = entityModel.getPkColumns().get(0);
+            sb.owner("o").lt(col.getName(), entity.orm_propValue(col.getPropId()));
+        } else {
+            sb.append('(');
+            for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
+                if (i != 0)
+                    sb.append(',');
+                sb.owner("o").append(entityModel.getPkColumns().get(i).getName());
+            }
+            sb.append(')');
+            sb.append('<');
             sb.append('(');
             for (int i = 0, n = entityModel.getPkColumns().size(); i < n; i++) {
                 if (i != 0)

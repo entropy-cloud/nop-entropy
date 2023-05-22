@@ -22,6 +22,6 @@ public class TestSourceRefactor extends BaseTestCase {
         Function<IToken, IToken> transformer = new IdentifierTransformer(map);
         SourceRefactor refactor = new SourceRefactor(new SimpleTextTokenizer(), transformer);
         File targetDir = new File(getTargetDir(), "data");
-        refactor.refactorDir(dir, FileExtFilter.forFileExt("java", "xml", "json5", "json"), targetDir);
+        refactor.refactorDir(dir, FileExtFilter.forFileExt("java", "xml", "json5", "json","md","txt"), targetDir);
     }
 }

@@ -25,6 +25,8 @@ public interface IBeanPropertyModel {
 
     String getConfigVarName();
 
+    boolean isLazyLoad();
+
     default Class<?> getRawClass() {
         return getType().getRawClass();
     }

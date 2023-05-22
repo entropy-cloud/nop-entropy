@@ -40,6 +40,7 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
     private boolean field;
     private boolean serializable;
     private boolean deterministic;
+    private boolean lazyLoad;
     private String description;
     private String configVarName;
 
@@ -123,6 +124,15 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
         checkReadonly();
         this.type = type;
         this.simpleType = type.getStdDataType().isSimpleType();
+    }
+
+    public boolean isLazyLoad() {
+        return lazyLoad;
+    }
+
+    public void setLazyLoad(boolean lazyLoad) {
+        checkReadonly();
+        this.lazyLoad = lazyLoad;
     }
 
     @Override

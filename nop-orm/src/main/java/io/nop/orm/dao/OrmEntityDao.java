@@ -430,6 +430,11 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
                 getEntityModel().getDeleteFlagProp());
     }
 
+    SQL queryToFindPrevSql(T cursorEntity, ITreeBean filter, List<OrderFieldBean> orderBy) {
+        return DaoQueryHelper.queryToFindPrevSql(getEntityModel(), cursorEntity, filter, orderBy,
+                getEntityModel().getDeleteFlagProp());
+    }
+
     @Override
     public long countByQuery(QueryBean query) {
         return orm().runInSession(session -> {
@@ -525,6 +530,19 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
             }
 
             SQL sql = queryToFindNextSql(lastEntity, filter, orderBy);
+            return orm().findPage(sql, 0, limit);
+        });
+    }
+
+    @Override
+    public List<T> findPrev(T lastEntity, ITreeBean filter, List<OrderFieldBean> orderBy, int limit) {
+        return orm().runInSession(session -> {
+            IEntityDaoExtension<T> extension = getDaoQueryExtension();
+            if (extension != null && extension.supportFindNext(filter, orderBy)) {
+                return extension.findPrev(lastEntity, filter, orderBy, limit);
+            }
+
+            SQL sql = queryToFindPrevSql(lastEntity, filter, orderBy);
             return orm().findPage(sql, 0, limit);
         });
     }

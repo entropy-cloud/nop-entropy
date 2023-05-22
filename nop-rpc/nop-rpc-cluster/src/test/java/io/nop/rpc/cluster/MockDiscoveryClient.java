@@ -5,6 +5,7 @@ import io.nop.cluster.discovery.ServiceInstance;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class MockDiscoveryClient implements IDiscoveryClient {
@@ -24,7 +25,7 @@ public class MockDiscoveryClient implements IDiscoveryClient {
         server2.setPort(18081);
         ret.add(server2);
 
-        return ret;
+        return Collections.unmodifiableList(ret);
     }
 
     @Override

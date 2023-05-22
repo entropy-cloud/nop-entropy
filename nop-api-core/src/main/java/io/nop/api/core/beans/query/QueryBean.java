@@ -30,6 +30,7 @@ public class QueryBean implements Serializable {
     private int limit;
 
     private String cursor;
+    private boolean findPrev;
 
     private List<QueryFieldBean> fields;
 
@@ -227,6 +228,15 @@ public class QueryBean implements Serializable {
                 groupBy = new ArrayList<>();
             groupBy.add(GroupFieldBean.forField(name));
         }
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    public boolean isFindPrev() {
+        return findPrev;
+    }
+
+    public void setFindPrev(boolean findPrev) {
+        this.findPrev = findPrev;
     }
 
     public OrderFieldBean getOrderField(String name) {

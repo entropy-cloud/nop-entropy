@@ -191,6 +191,10 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                 old.setAuth(field.getAuth());
             }
 
+            // old或者field任意一个标记为lazy则认为是lazy的
+            if(field.isLazy())
+                old.setLazy(field.isLazy());
+
             if (old.getType() == null) {
                 old.setType(field.getType());
             } else if (field.getType() != null) {

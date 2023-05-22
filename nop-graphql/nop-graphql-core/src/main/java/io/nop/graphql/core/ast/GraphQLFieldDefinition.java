@@ -27,6 +27,8 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
      */
     private IObjPropMeta propMeta;
 
+    private boolean lazy;
+
     private IFunctionModel functionModel;
 
     private IServiceAction serviceAction;
@@ -45,6 +47,14 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
     private IServiceAction tryAction;
 
     private BizMakerCheckerMeta makerCheckerMeta;
+
+    public boolean isLazy() {
+        return lazy;
+    }
+
+    public void setLazy(boolean lazy) {
+        this.lazy = lazy;
+    }
 
     public IClassModel getSourceClassModel() {
         return sourceClassModel;

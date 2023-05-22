@@ -79,6 +79,7 @@ public class ObjMetaToGraphQLDefinition {
         field.setName(propMeta.getName());
         field.setDescription(propMeta.getDescription());
         field.setAuth(propMeta.getAuth());
+        field.setLazy(propMeta.isLazy());
 
         if (propMeta.getDescription() == null)
             field.setDescription(propMeta.getDisplayName());

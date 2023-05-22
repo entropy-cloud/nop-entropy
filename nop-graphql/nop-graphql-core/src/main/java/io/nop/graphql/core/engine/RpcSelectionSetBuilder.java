@@ -17,7 +17,6 @@ import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
-import io.nop.xlang.xmeta.IObjPropMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,7 +133,8 @@ public class RpcSelectionSetBuilder {
     }
 
     boolean isLazy(GraphQLFieldDefinition fieldDef) {
-        IObjPropMeta propMeta = fieldDef.getPropMeta();
-        return propMeta != null && propMeta.isLazy();
+        return fieldDef.isLazy();
+        //IObjPropMeta propMeta = fieldDef.getPropMeta();
+        //return propMeta != null && propMeta.isLazy();
     }
 }

@@ -45,6 +45,8 @@ public interface IEntityDaoExtension<T extends IDaoEntity> {
 
     List<T> findNext(T lastEntity, ITreeBean filter, List<OrderFieldBean> orderBy, int limit);
 
+    List<T> findPrev(T firstEntity, ITreeBean filter, List<OrderFieldBean> orderBy, int limit);
+
     /**
      * 满足条件的记录条数
      *

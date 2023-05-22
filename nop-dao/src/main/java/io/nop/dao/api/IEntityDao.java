@@ -216,6 +216,17 @@ public interface IEntityDao<T extends IDaoEntity> {
         return findNext(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit());
     }
 
+    List<T> findPrev(T lastEntity, ITreeBean filter, List<OrderFieldBean> orderBy, int limit);
+
+    default List<T> findPrev(QueryBean query) {
+        String cursor = query.getCursor();
+        if (StringHelper.isEmpty(cursor)) {
+            return findPrev(null, query.getFilter(), query.getOrderBy(), query.getLimit());
+        }
+        T lastEntity = loadEntityById(cursor);
+        return findPrev(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit());
+    }
+
     default Iterator<T> iterator(QueryBean query) {
         return new SelectNextIterator<>(
                 lastEntity -> findNext(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit()));

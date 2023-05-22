@@ -380,6 +380,21 @@ public class GraphQLEntityPersistDriver implements IEntityPersistDriver, IEntity
     }
 
     @Override
+    public List<IOrmEntity> findPrev(IOrmEntity lastEntity, ITreeBean filter, List<OrderFieldBean> orderBy, int limit) {
+        QueryBean query = new QueryBean();
+        if (lastEntity != null)
+            query.setCursor(lastEntity.orm_idString());
+        if (filter != null)
+            query.setFilter(filter.toTreeBean());
+        query.setFindPrev(true);
+        query.setOrderBy(orderBy);
+        query.setLimit(limit);
+
+        return findPage(query);
+    }
+
+
+    @Override
     public long count(QueryBean query) {
         return 0;
     }

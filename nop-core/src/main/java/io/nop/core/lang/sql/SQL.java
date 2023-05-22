@@ -494,6 +494,20 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             return nullsFirst(orderField.getNullsFirst());
         }
 
+        public SqlBuilder reverseOrderField(String defaultOwner, OrderFieldBean orderField) {
+            String owner = defaultOwner;
+            if (owner == null)
+                owner = orderField.getOwner();
+            owner(owner);
+            append(orderField.getName());
+            desc(!orderField.isDesc());
+            if (orderField.getNullsFirst() != null) {
+                return nullsFirst(!orderField.getNullsFirst());
+            } else {
+                return this;
+            }
+        }
+
         public SqlBuilder select() {
             return append(" select ");
         }
