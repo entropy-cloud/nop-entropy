@@ -174,6 +174,8 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String SYS_PARAM_SELECTION = "@selection";
 
+    String META_KEY_TAGS = "tags";
+
     int BEAN_PROP_INCLUDE_JSON_IGNORE = 1;
     int BEAN_PROP_INCLUDE_WRITABLE = 2;
     int BEAN_PROP_INCLUDE_READABLE = 4;

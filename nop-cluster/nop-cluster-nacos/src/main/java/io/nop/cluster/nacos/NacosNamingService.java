@@ -16,6 +16,8 @@ import com.alibaba.nacos.api.naming.listener.EventListener;
 import com.alibaba.nacos.api.naming.listener.NamingEvent;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.alibaba.nacos.client.naming.event.InstancesChangeEvent;
+import io.nop.api.core.ApiConstants;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.cluster.naming.INamingService;
@@ -33,6 +35,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -283,9 +286,15 @@ public class NacosNamingService implements INamingService {
         ret.setInstanceId(inst.getInstanceId());
         ret.setHealthy(inst.isHealthy());
         ret.setWeight((int) inst.getWeight());
+        int pos = inst.getServiceName().indexOf("@@");
+        ret.setGroupName(inst.getServiceName().substring(0, pos));
+        ret.setServiceName(inst.getServiceName().substring(pos + 2));
 
         if (inst.getMetadata() != null) {
             ret.setMetadata(new HashMap<>(inst.getMetadata()));
+
+            Set<String> tags = ConvertHelper.toCsvSet(inst.getMetadata().get(ApiConstants.META_KEY_TAGS));
+            ret.setTags(tags);
         }
     }
 }
