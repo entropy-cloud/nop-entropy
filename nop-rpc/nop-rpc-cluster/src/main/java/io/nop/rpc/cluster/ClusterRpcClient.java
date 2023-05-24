@@ -9,6 +9,8 @@ package io.nop.rpc.cluster;
 
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopConnectException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
@@ -57,6 +59,8 @@ public class ClusterRpcClient implements IRpcService {
     @Override
     public CompletionStage<ApiResponse<?>> callAsync(String serviceMethod, ApiRequest<?> request,
                                                      ICancelToken cancelToken) {
+        IContext ctx = ContextProvider.currentContext();
+
         return serverChooser.getServersAsync(serviceName, request).thenCompose(instances -> {
             if (instances.isEmpty()) {
                 throw newNoAvailableServerError(serviceName);
@@ -72,7 +76,7 @@ public class ClusterRpcClient implements IRpcService {
                                 if (err == null) {
                                     future.complete(ret);
                                 } else {
-                                    if (retryTimes >= retryCount || !isAllowRetry(err)) {
+                                    if (retryTimes >= retryCount || (ctx != null && ctx.isCallExpired()) || !isAllowRetry(err)) {
                                         future.completeExceptionally(err);
                                     } else {
                                         if (instances.size() > 1) {
@@ -103,6 +107,10 @@ public class ClusterRpcClient implements IRpcService {
                 return getRpcClient(instance, request).call(serviceMethod, request, cancelToken);
             } catch (Exception e) {
                 error = e;
+
+                // 服务调用已经超时则不需要再重试
+                if (ContextProvider.isCallExpired())
+                    break;
 
                 if (!isAllowRetry(e)) {
                     break;

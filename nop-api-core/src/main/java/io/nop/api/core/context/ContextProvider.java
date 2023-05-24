@@ -71,6 +71,13 @@ public class ContextProvider {
         return getOrCreateContext();
     }
 
+    public static boolean isCallExpired() {
+        IContext ctx = currentContext();
+        if (ctx == null)
+            return false;
+        return ctx.isCallExpired();
+    }
+
 
     public static String currentLocale() {
         IContext context = currentContext();

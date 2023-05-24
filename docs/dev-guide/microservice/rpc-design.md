@@ -100,13 +100,13 @@ public class MyEntityBizModel{
     @BizQuery
     public List<MyEntity> findList(@RequestBean MyRequestBean request,             
              FieldSelectionBean selection){
-        ....
+        //....
     }
 
     @BizLoader("children")
     @GraphQLReturn(bizObjName = "MyEntity")
     public List<MyEntity> loadChildren(@ContextSource MyEntity entity) {
-        ...
+        //...
         return children;
     }
 }
@@ -215,7 +215,7 @@ NopRPC这一双向信息交互抽象可以建筑在单向的消息流抽象之�
 
 NopRPC客户端执行逻辑的伪代码如下：
 
-```java
+```javascript
 // 利用服务发现机制获取到所有可用的服务实例
 List<ServiceInstance> instances = discoveryClient.getInstances(serviceName);
 
@@ -289,8 +289,8 @@ NopRPC的设计并没有选择利用CompletableFuture对象上的cancel方法，
 ```java
 @BizModel("MyEntity")
 interface MyEntityService{
-    @RpcMethod(cancelMethod="Sys__cancel”)
-    CompletionStage<ApiResponse<MyResponseBean> myAction(ApiRequest<MyRequestBean> request, ICancelToken cancelToken);
+    @RpcMethod(cancelMethod="Sys__cancel")
+    CompletionStage<ApiResponse<MyResponseBean>> myAction(ApiRequest<MyRequestBean> request, ICancelToken cancelToken);
 }
 ```
 
@@ -319,6 +319,7 @@ interface MyEntityService{
 在微服务架构下，一次业务操作可能会产生多个相关联的RPC调用，必须要建立一种自动的上下文传播机制，将一些共享的信息从上游的服务传播到下游的服务。在NopRPC的具体实现中[ContextBinder](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-api/src/main/java/io/nop/rpc/api/ContextBinder.java)负责将ApiRequest的部分header信息复制到异步上下文对象IContext上，而[ClientContextRpcServiceInterceptor](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/interceptors/ClientContextRpcServiceInterceptor.java)负责将IContext上的信息传播到下游的ApiRequest的headers中。
 
 缺省情况下，以下header会自动跨系统传播
+
 |名称|说明|
 |---|-----|
 |nop-svc-tags| 灰度发布时使用的过滤标签|
@@ -365,7 +366,7 @@ Dubbo框架中大量代码实现的都是辅助性的工作，从今天的角度
 Dubbo框架中内部接口的设计也不尽合理，例如负载均衡算法接口
 
 ```java
-interface interface LoadBalance {
+interface LoadBalance {
     <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, 
         Invocation invocation) throws RpcException;
 }
@@ -385,7 +386,7 @@ interface ILoadBalance<T,R>{
 }
 ```
 
-如果需要从candidate对象上读取权重配置等信息，可以实用Adapter模式
+如果需要从candidate对象上读取权重配置等信息，可以使用Adapter适配器
 
 ```
 public interface ILoadBalanceAdapter<T> {

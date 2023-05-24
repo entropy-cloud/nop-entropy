@@ -9,6 +9,7 @@ package io.nop.api.core.context;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import io.nop.api.core.annotations.core.NoReflection;
+import io.nop.api.core.time.CoreMetrics;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Map;
@@ -76,6 +77,16 @@ public interface IContext extends Executor, AutoCloseable {
     long getCallExpireTime();
 
     void setCallExpireTime(long expireTime);
+
+    default boolean isCallExpired() {
+        long expireTime = getCallExpireTime();
+        if (expireTime > 0) {
+            long contextTimeout = expireTime - CoreMetrics.currentTimeMillis();
+            if (contextTimeout <= 0)
+                return true;
+        }
+        return false;
+    }
 
     String getCallIp();
 
