@@ -25,3 +25,13 @@ Nop平台现在内置了一个演示用的软件生产线，可以从Excel格式
 [如何在不修改基础产品源码的情况下实现定制化开发](https://zhuanlan.zhihu.com/p/628770810)
 
 
+nop-ide-plugin为所有DSL提供断点调试、语法提示的功能
+![xlang-debugger](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/xlang-debugger.png)
+
+通过Excel来设计数据模型
+![excel-data-model](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
+
+使用Excel来定义业务规则
+![decision-matrix](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
+
+![decision-tree](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)

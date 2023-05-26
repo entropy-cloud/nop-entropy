@@ -488,5 +488,7 @@
         <module>nop-orm-pdm</module>
         <module>nop-xlang-debugger</module>
         <module>nop-orm-geo</module>
+        <module>nop-gateway</module>
+        <module>nop-vertx</module>
     </modules>
 </project>

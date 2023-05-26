@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -740,5 +741,23 @@ public class ClassHelper {
 
     public static String getCanonicalClassName(Class<?> clazz) {
         return clazz == null ? null : clazz.getCanonicalName();
+    }
+
+    static Optional<Class<? extends Annotation>> _vertxDataObject = null;
+
+    public static boolean isVertxDataObject(Class<?> clazz) {
+        if (_vertxDataObject == null) {
+            Class<? extends Annotation> dataObject = null;
+            try {
+                dataObject = (Class<? extends Annotation>) getSafeClassLoader().loadClass("io.vertx.codegen.annotations.DataObject");
+            } catch (Exception e) {
+            }
+            _vertxDataObject = Optional.ofNullable(dataObject);
+        }
+        if (_vertxDataObject.isPresent()) {
+            return clazz.getAnnotation(_vertxDataObject.get()) != null;
+        } else {
+            return false;
+        }
     }
 }

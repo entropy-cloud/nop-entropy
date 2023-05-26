@@ -139,6 +139,10 @@ public class BeanModelBuilder {
 
         if (classModel.isAnnotationPresent(DataBean.class) || classModel.getRawClass().isAnnotation()) {
             beanModel.setDataBean(true);
+        } else {
+            if (ClassHelper.isVertxDataObject(classModel.getRawClass())) {
+                beanModel.setDataBean(true);
+            }
         }
 
         BeanSerializer serializer = classModel.getAnnotation(BeanSerializer.class);
