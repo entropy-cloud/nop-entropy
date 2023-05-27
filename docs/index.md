@@ -51,8 +51,9 @@ Nop平台内置了sso支持，可以集成keycloak单点认证服务。
 ## 自动化测试: [autotest.md](dev-guide/autotest.md)
 Nop平台内置了一个自动化测试框架，可以通过录制回放机制自动实现测试用例，无需手工编写数据初始化和结果验证代码。
 
-## 报表疫情: [report](dev-guide/report/index.md)
-在Excel中配置Xpt报表参见[report.md](user-guide/report.md)
+## 报表引擎: [report](dev-guide/report/index.md)
+采用Excel作为设计器配置中国式报表: [report.md](user-guide/report.md)
+采用Word作为设计器配置导出报表: [word-template.md](dev-guide/report/word-template.md)
 
 ## 与其他低代码平台的对比: [nop-vs-skyve.md](compare/nop-vs-skyve.md)
 Nop平台的设计与传统的低代码平台有着非常大的差异，可以做到传统低代码平台无法做到的灵活性和可扩展性。
