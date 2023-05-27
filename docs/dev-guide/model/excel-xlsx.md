@@ -7,6 +7,7 @@ wk = new ExcelWorkbookParser().parseFromResource(new FileResource(file));
 ````
 
 ## 2. 解析Excel文件得到领域对象
+根据imp.xml导入配置来实现自动解析Excel文件为领域模型对象。
 
 ````
 FileResource resource = new FileResource(new File("c:/test.orm.xlsx"));
