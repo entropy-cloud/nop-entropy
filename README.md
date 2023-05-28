@@ -34,13 +34,9 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 [NOP:下一代软件生产范式](https://zhuanlan.zhihu.com/p/66548896)
 
-[可逆计算的技术实现](https://zhuanlan.zhihu.com/p/163852896)
+[写给程序员的可逆计算理论辨析](docs/theory/reversible-computation-for-programmers.md)
 
-[从可逆计算看Delta Oriented Programming](https://zhuanlan.zhihu.com/p/377740576)
-
-[从张量积看低代码平台的设计](https://zhuanlan.zhihu.com/p/531474176)
-
-[低代码平台需要什么样的ORM引擎？](https://zhuanlan.zhihu.com/p/543252423)
+[更多设计原理相关](docs/theory/index.md)
 
 #### 快速开始
 
@@ -48,9 +44,10 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 [介绍和答疑视频](https://www.bilibili.com/video/BV1u84y1w7kX/)
 
+[开发文档导引](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/index.md)
+
 [与若依Ruoyi框架集成](https://gitee.com/canonical-entropy/nop-for-ruoyi)
 
-[更多介绍视频](https://space.bilibili.com/3493261219990250)
 
 #### 软件架构
 
