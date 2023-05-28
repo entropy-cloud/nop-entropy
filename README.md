@@ -2,6 +2,8 @@
 
 #### 介绍
 
+**Nop is nOt Programming**
+
 Nop Platform 2. 0 is a new generation of low-code platform based on the theory of reversible computation. 
 It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, 
 transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
@@ -34,9 +36,9 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 [NOP:下一代软件生产范式](https://zhuanlan.zhihu.com/p/66548896)
 
-[写给程序员的可逆计算理论辨析](docs/theory/reversible-computation-for-programmers.md)
+[低代码平台需要什么样的ORM引擎？](https://zhuanlan.zhihu.com/p/543252423)
 
-[更多设计原理相关](docs/theory/index.md)
+[]
 
 #### 快速开始
 
@@ -48,6 +50,7 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 [与若依Ruoyi框架集成](https://gitee.com/canonical-entropy/nop-for-ruoyi)
 
+[更多介绍视频](https://space.bilibili.com/3493261219990250)
 
 #### 软件架构
 
