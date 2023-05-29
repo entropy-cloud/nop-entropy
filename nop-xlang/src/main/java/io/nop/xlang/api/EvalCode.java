@@ -25,10 +25,22 @@ public class EvalCode extends AbstractEvalAction implements ISourceLocationGette
         this.code = code;
     }
 
-    public EvalCode(SourceLocation loc,String code, IEvalAction action) {
+    public EvalCode(SourceLocation loc, String code, IEvalAction action) {
         this.location = loc;
         this.action = action;
         this.code = code;
+    }
+
+    public static IEvalAction addSource(SourceLocation loc, IEvalAction action, String code) {
+        if (action instanceof IWithSourceCode)
+            return action;
+        return new EvalCode(loc, code, action);
+    }
+
+    public static AbstractEvalAction addSource(ExprEvalAction action, String code) {
+        if (action instanceof IWithSourceCode)
+            return action;
+        return new EvalCode(action, code);
     }
 
     @Override

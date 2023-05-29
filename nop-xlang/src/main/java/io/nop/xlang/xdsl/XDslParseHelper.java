@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.xdsl;
 
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
@@ -14,18 +15,26 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.collections.IKeyedElement;
 import io.nop.commons.collections.KeyedList;
+import io.nop.commons.text.tokenizer.SimpleTextReader;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.IRawTypeResolver;
 import io.nop.core.type.parse.GenericTypeParser;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
+import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
+import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -358,5 +367,37 @@ public class XDslParseHelper {
             if (!allowedNames.contains(name))
                 throw new NopException(ERR_XDSL_TAG_NAME_NOT_ALLOWED).param(ARG_NODE, node).param(ARG_TAG_NAME, name)
                         .param(ARG_ALLOWED_NAMES, allowedNames);
+    }
+
+    public static XNode parseSchema(SourceLocation loc, String text) {
+        IObjMeta objMeta = SchemaLoader.loadXMeta(XLangConstants.XDSL_SCHEMA_SCHEMA);
+        XNode schema = XDslParseHelper.parseXJson(loc, text, objMeta);
+        return schema;
+    }
+
+    public static XNode parseXJson(SourceLocation loc, String text, IObjMeta objMeta) {
+        if (StringHelper.isEmpty(text))
+            return null;
+
+        SimpleTextReader reader = new SimpleTextReader(loc, text);
+        reader.skipBlank();
+        XNode node;
+        if (reader.startsWith("<")) {
+            node = XNodeParser.instance().parseFromText(loc, text);
+        } else if (reader.startsWith("{")) {
+            Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(loc, text);
+            if (objMeta == null) {
+                node = XNode.fromTreeBean(TreeBean.createFromJson(map));
+            } else {
+                node = new DslModelToXNodeTransformer(objMeta).transformToXNode(map);
+            }
+        } else {
+            node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+            node.content(loc, text);
+        }
+        if (objMeta.getXmlName() != null) {
+            node.setTagName(objMeta.getXmlName());
+        }
+        return node;
     }
 }

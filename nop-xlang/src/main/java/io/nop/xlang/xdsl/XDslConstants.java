@@ -19,6 +19,8 @@ public interface XDslConstants {
 
     String XDSL_SCHEMA_REGISTRY = "/nop/schema/registry.xdef";
 
+    String XDSL_SCHEMA_SCHEMA = "/nop/schema/schema/schema.xdef";
+
     String XMLNS_NAME = "xmlns";
     String NS_INFO = "info";
 

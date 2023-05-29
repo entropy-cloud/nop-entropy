@@ -8,12 +8,15 @@
 package io.nop.nosql.lettuce.impl;
 
 import io.lettuce.core.GetExArgs;
+import io.lettuce.core.KeyValue;
 import io.lettuce.core.ScriptOutputType;
 import io.lettuce.core.SetArgs;
 import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
+import io.lettuce.core.cluster.api.sync.RedisAdvancedClusterCommands;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.Functionals;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.nosql.core.INosqlHashOperations;
 import io.nop.nosql.core.INosqlListOperations;
@@ -23,6 +26,7 @@ import io.nop.nosql.core.INosqlZSetOperations;
 import io.nop.nosql.core.script.RedisScripts;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -39,34 +43,57 @@ public class LettuceMessageService implements INosqlService {
         return client.getConnection().async();
     }
 
+    protected RedisAdvancedClusterCommands<String, Object> sync() {
+        return client.getConnection().sync();
+    }
+
+    @Override
+    public long getSize() {
+        return sync().dbsize();
+    }
+
     @Override
     public Object get(String key) {
-        return null;
+        return sync().get(key);
     }
 
     @Override
     public Object computeIfAbsent(String key, Function<? super String, ?> mappingFunction) {
-        return null;
+        RedisAdvancedClusterCommands<String, Object> commands = sync();
+        Object value = commands.get(key);
+        if (value == null) {
+            value = mappingFunction.apply(key);
+            commands.set(key, value);
+        }
+        return value;
     }
 
     @Override
     public Map<String, Object> getAll(Collection<? extends String> keys) {
-        return null;
+        List<KeyValue<String, Object>> list = sync().mget(keys.toArray(new String[keys.size()]));
+        Map<String, Object> ret = CollectionHelper.newHashMap(list.size());
+        for (KeyValue<String, Object> kv : list) {
+            ret.put(kv.getKey(), kv.getValue());
+        }
+        return ret;
     }
 
     @Override
     public boolean containsKey(String key) {
-        return false;
+        return sync().get(key) != null;
     }
 
     @Override
     public void put(String key, Object value) {
-
+        sync().set(key, value);
     }
 
     @Override
     public void putAll(Map<? extends String, ?> map) {
+        if (map == null || map.isEmpty())
+            return;
 
+        sync().mset((Map<String, Object>) map);
     }
 
     @Override
@@ -81,7 +108,7 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public void remove(String key) {
-
+        sync().del(key);
     }
 
     @Override
@@ -91,12 +118,12 @@ public class LettuceMessageService implements INosqlService {
 
     @Override
     public void removeAll(Collection<? extends String> keys) {
-
+        sync().del(keys.toArray(new String[keys.size()]));
     }
 
     @Override
     public void clear() {
-
+        sync().flushdb();
     }
 
     @Override

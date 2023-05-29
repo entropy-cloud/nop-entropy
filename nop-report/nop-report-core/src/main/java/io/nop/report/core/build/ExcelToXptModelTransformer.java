@@ -169,7 +169,7 @@ public class ExcelToXptModelTransformer {
 
     private Object addSource(ValueWithLocation vl, Object value) {
         if (value instanceof IEvalAction && vl.getValue() instanceof String) {
-            return new EvalCode(vl.getLocation(), (String) vl.getValue(), (IEvalAction) value);
+            return EvalCode.addSource(vl.getLocation(), (IEvalAction) value, (String) vl.getValue());
         }
         return value;
     }

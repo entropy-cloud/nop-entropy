@@ -14,6 +14,8 @@ import java.util.concurrent.CompletionStage;
 public interface INosqlKeyValueOperations extends IAsyncMap<String, Object> {
     CompletionStage<Long> getSizeAsync();
 
+    long getSize();
+
     CompletionStage<Void> putExAsync(String key, Object value, long timeout);
 
     CompletionStage<Object> getExAsync(String key, long timeout);

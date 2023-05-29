@@ -16,6 +16,7 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.model.table.CellPosition;
@@ -26,6 +27,7 @@ import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
 import io.nop.excel.imp.model.ImportSheetModel;
+import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
@@ -232,8 +234,13 @@ public class ImportDataCollector implements ITableDataEventListener {
             if (stdDomain != null) {
                 IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler(stdDomain);
                 if (handler != null) {
+                    String source = value.toString();
+                    SourceLocation loc = getLocation(sheetName, rowIndex, colIndex);
                     value = handler.parseProp(null, getLocation(sheetName, rowIndex, colIndex), field.getName(), value,
                             compileTool);
+                    if (value instanceof IEvalAction) {
+                        value = EvalCode.addSource(loc, (IEvalAction) value, source);
+                    }
                 }
             }
 

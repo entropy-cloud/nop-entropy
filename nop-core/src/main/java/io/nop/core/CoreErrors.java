@@ -180,6 +180,8 @@ public interface CoreErrors {
     String ARG_ALLOWED_NS = "allowedNs";
     String ARG_XML_NAME = "xmlName";
 
+    String ARG_NODE_ID = "nodeId";
+
     ErrorCode ERR_JSON_VALUE_NOT_NODE =
             define("nop.err.core.json-value-not-node", "值无法转换为XNode类型");
 
@@ -868,4 +870,8 @@ public interface CoreErrors {
     ErrorCode ERR_XML_NOT_ALLOW_EXPR =
             define("nop.err.core.xml.not-allow-expr",
                     "不允许使用表达式:{expr}", ARG_EXPR);
+
+    ErrorCode ERR_TREE_DUPLICATE_NODE_ID =
+            define("nop.err.tree.duplicate-node-id",
+                    "多个节点具有同样的id:{}", ARG_NODE_ID);
 }

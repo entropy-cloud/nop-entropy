@@ -17760,7 +17760,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "NULL_ACTION"
+      }
+    ],
     "methods": [
       {
         "name": "invoke",
@@ -17777,7 +17783,18 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ALWAYS_FALSE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ALWAYS_TRUE"
+      }
+    ],
     "methods": [
       {
         "name": "passConditions",
@@ -44644,6 +44661,62 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addSource",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "io.nop.core.lang.eval.IEvalAction",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "addSource",
+        "parameterTypes": [
+          "io.nop.xlang.api.ExprEvalAction",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAction",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocation",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSource",
+        "parameterTypes": []
+      },
+      {
+        "name": "invoke",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.xlang.api.EvalCode",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getExpr",
+        "parameterTypes": []
+      },
       {
         "name": "getLocation",
         "parameterTypes": []
