@@ -490,5 +490,6 @@
         <module>nop-orm-geo</module>
         <module>nop-gateway</module>
         <module>nop-vertx</module>
+        <module>nop-orm-tdengine</module>
     </modules>
 </project>

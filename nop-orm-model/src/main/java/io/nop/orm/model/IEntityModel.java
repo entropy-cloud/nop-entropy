@@ -7,6 +7,7 @@
  */
 package io.nop.orm.model;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.IntArray;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.PropPath;
@@ -16,6 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_TAG;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_NO_COL_WITH_TAG;
+
 public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     String getName();
@@ -23,6 +28,10 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     String getTableName();
 
     String getClassName();
+
+    String getDbSchema();
+
+    String getDbCatalog();
 
     default String getSimpleClassName() {
         return StringHelper.simpleClassName(getClassName());
@@ -96,6 +105,15 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
                 return col;
         }
         return null;
+    }
+
+    default IColumnModel requireColumnByTag(String tag) {
+        IColumnModel col = getColumnByTag(tag);
+        if (col == null)
+            throw new NopException(ERR_ORM_NO_COL_WITH_TAG)
+                    .param(ARG_ENTITY_NAME, getName())
+                    .param(ARG_TAG, tag);
+        return col;
     }
 
     default List<IColumnModel> getAllColumnsByTag(String tag) {

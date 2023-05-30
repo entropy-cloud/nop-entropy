@@ -748,8 +748,8 @@ public class GenSqlHelper {
         }
     }
 
-    static void appendOrderBy(SQL.SqlBuilder sb, IDialect dialect, String owner, IEntityModel entityModel,
-                              List<OrderFieldBean> orderBy) {
+    public static void appendOrderBy(SQL.SqlBuilder sb, IDialect dialect, String owner, IEntityModel entityModel,
+                                     List<OrderFieldBean> orderBy) {
         if (orderBy == null || orderBy.isEmpty())
             return;
 

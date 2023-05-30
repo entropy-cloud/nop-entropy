@@ -76,6 +76,8 @@
         <forUpdate xdef:value="string"/>
 
         <lockHint xdef:value="string"/>
+
+        <validationQuery xdef:value="string" />
     </sqls>
 
     <errorCodes xdef:body-type="list" xdef:key-attr="name">

@@ -30,6 +30,8 @@
         <selectFromDual>select {fields}</selectFromDual>
 
         <forUpdate>for update</forUpdate>
+
+        <validationQuery>select 1</validationQuery>
     </sqls>
 
     <!--

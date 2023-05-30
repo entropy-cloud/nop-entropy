@@ -8,6 +8,7 @@ public interface OrmModelErrors {
     String ARG_ENTITY_NAME = "entityName";
     String ARG_ENTITY_ID = "entityId";
     String ARG_PROP_NAME = "propName";
+    String ARG_TAG = "tag";
 
     String ARG_ALLOWED_NAMES = "allowedNames";
 
@@ -157,4 +158,8 @@ public interface OrmModelErrors {
 
     ErrorCode ERR_ORM_UNKNOWN_PROP_ID = define("nop.err.orm.model.unknown-prop-id", "实体[{entityName}]上没有定义编号为[{propId}]的列",
             ARG_ENTITY_NAME, ARG_PROP_ID);
+
+    ErrorCode ERR_ORM_NO_COL_WITH_TAG =
+            define("nop.err.orm.model.no-col-with-tag", "实体[{entityName}]中没有定义具有标签[{tag}]的列",
+                    ARG_ENTITY_NAME, ARG_TAG);
 }
