@@ -309,17 +309,23 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-<!--            <dependency>-->
-<!--                <groupId>io.github.entropy-cloud</groupId>-->
-<!--                <artifactId>nop-vertx-commons</artifactId>-->
-<!--                <version>${nop-entropy.version}</version>-->
-<!--            </dependency>-->
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-vertx-commons</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
 
-<!--            <dependency>-->
-<!--                <groupId>io.github.entropy-cloud</groupId>-->
-<!--                <artifactId>nop-vertx-web</artifactId>-->
-<!--                <version>${nop-entropy.version}</version>-->
-<!--            </dependency>-->
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-vertx-mqtt-client</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-vertx-mqtt-server</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>

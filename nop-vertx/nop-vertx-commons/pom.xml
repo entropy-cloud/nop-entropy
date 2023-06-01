@@ -11,5 +11,15 @@
 
     <artifactId>nop-vertx-commons</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-core</artifactId>
+        </dependency>
 
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+        </dependency>
+    </dependencies>
 </project>
