@@ -22,6 +22,7 @@ import java.util.function.Function;
 public class MapCache<K, V> implements ICache<K, V> {
     private final String name;
     private final Map<K, V> map;
+    private CacheConfig config = new CacheConfig();
 
     public MapCache(String name, boolean threadSafe) {
         this.name = name;
@@ -30,6 +31,15 @@ public class MapCache<K, V> implements ICache<K, V> {
 
     public static <K, V> MapCache<K, V> create(String name, boolean threadSafe) {
         return new MapCache<>(name, threadSafe);
+    }
+
+    @Override
+    public CacheConfig getConfig() {
+        return config;
+    }
+
+    public void refreshConfig() {
+
     }
 
     @Nullable

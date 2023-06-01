@@ -12,6 +12,10 @@ public class IdentifierToken implements IToken, ISourceLocationGetter {
         this.text = text;
     }
 
+    public boolean isIdentifier() {
+        return true;
+    }
+
     @Override
     public SourceLocation getLocation() {
         return loc;

@@ -11,6 +11,7 @@ public interface AuthCoreConstants {
     String PLACEHOLDER_BACK_URL = "{backUrl}";
     String PLACEHOLDER_HOST = "{host}";
     String PLACEHOLDER_PORT = "{port}";
+    String PLACEHOLDER_ERR_CODE = "{errCode}";
 
     String ROLE_ADMIN = "admin";
     String ROLE_USER = "user";

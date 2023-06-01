@@ -32,24 +32,36 @@ public class NosqlCache implements ICache<String, Object> {
         this.cacheConfig = config;
     }
 
+    public CacheConfig getConfig() {
+        return cacheConfig;
+    }
+
+    @Override
+    public void refreshConfig() {
+
+    }
+
     @Override
     public boolean removeIfMatch(String key, Object object) {
         return ops.removeIfMatch(key, object);
     }
 
     @Override
-    public @Nullable CompletionStage<Object> getAsync(@Nonnull String key) {
+    public @Nullable
+    CompletionStage<Object> getAsync(@Nonnull String key) {
         return ops.getExAsync(key, cacheConfig.getExpireAfterAccess().toMillis());
     }
 
     @Override
-    public @Nonnull CompletionStage<Object> computeIfAbsentAsync(@Nonnull String key,
-                                                                 @Nonnull Function<? super String, ?> mappingFunction) {
+    public @Nonnull
+    CompletionStage<Object> computeIfAbsentAsync(@Nonnull String key,
+                                                 @Nonnull Function<? super String, ?> mappingFunction) {
         return ops.computeIfAbsentAsync(key, mappingFunction);
     }
 
     @Override
-    public @Nonnull CompletionStage<Map<String, Object>> getAllAsync(Collection<? extends String> keys) {
+    public @Nonnull
+    CompletionStage<Map<String, Object>> getAllAsync(Collection<? extends String> keys) {
         return ops.getAllAsync(keys);
     }
 

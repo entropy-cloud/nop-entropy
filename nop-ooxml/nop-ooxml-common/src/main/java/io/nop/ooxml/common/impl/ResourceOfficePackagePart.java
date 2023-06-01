@@ -65,6 +65,10 @@ public class ResourceOfficePackagePart implements IOfficePackagePart {
         return XNodeParser.instance().parseFromResource(resource);
     }
 
+    public String loadText() {
+        return ResourceHelper.readText(resource);
+    }
+
     @Override
     public XNode buildXml(IEvalContext context) {
         return loadXml();

@@ -379,6 +379,11 @@ public interface XLangErrors {
     ErrorCode ERR_XPL_MISSING_SLOT = define("nop.err.xlang.xpl.missing-slot", "缺少必要的子节点:{slotName}", ARG_SLOT_NAME,
             ARG_NODE);
 
+    ErrorCode ERR_XPL_IIF_NODE_MUST_HAS_TWO_CHILD =
+            define("nop.err.xlang.xpl.iif-node-child-count-not-two", "c:iif节点的子节点个数必须是2",
+                    ARG_NODE);
+
+
     ErrorCode ERR_XPL_INVALID_TYPE_REF = define("nop.err.xlang.xpl.invalid-type-ref", "非法的类型定义", ARG_TYPE_NAME);
 
     ErrorCode ERR_XPL_SCRIPT_NOT_ALLOW_CHILD = define("nop.err.xlang.xpl.script-not-allow-child",

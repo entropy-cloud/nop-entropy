@@ -91,7 +91,7 @@ public abstract class AbstractLoginService implements ILoginService {
         if (userContextHook != null) {
             userContextHook.onLogout(sessionInfo.getUserName(), sessionInfo.getSessionId(), logoutType);
         }
-        return userContextCache.removeUserContextAsync(sessionInfo.getSessionId());
+        return userContextCache.removeUserContextAsync(sessionInfo);
     }
 
 

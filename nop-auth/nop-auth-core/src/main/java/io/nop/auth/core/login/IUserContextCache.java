@@ -16,7 +16,9 @@ public interface IUserContextCache {
 
     CompletionStage<Void> saveUserContextAsync(IUserContext userContext);
 
-    CompletionStage<Void> removeUserContextAsync(String sessionId);
+    CompletionStage<Void> removeUserContextAsync(SessionInfo sessionInfo);
+
+    CompletionStage<String> getUserSessionId(String userName);
 
     /**
      * 获取用户登录失败次数。如果已经超过次数，则禁止再尝试登录

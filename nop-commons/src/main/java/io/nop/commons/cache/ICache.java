@@ -7,6 +7,7 @@
  */
 package io.nop.commons.cache;
 
+import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.commons.collections.IAsyncMap;
 
 import java.util.Collection;
@@ -14,10 +15,12 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V> {
+public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V> , IConfigRefreshable {
     String getName();
 
     long estimatedSize();
+
+    CacheConfig getConfig();
 
     default V get(K key) {
         return getIfPresent(key);

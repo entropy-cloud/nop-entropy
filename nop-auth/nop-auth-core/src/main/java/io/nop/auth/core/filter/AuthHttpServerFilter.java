@@ -14,6 +14,7 @@ import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.exceptions.NopLoginException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
@@ -107,7 +108,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                         return handleUserContext(userContext, routeContext, next, authToken);
                     }).exceptionally(ex -> {
                         LOG.error("nop.auth.init-user-context-fail", ex);
-                        routeContext.sendResponse(500, "Server Error");
+                        handleError(routeContext, ex);
                         throw NopException.adapt(ex);
                     });
                 }
@@ -123,15 +124,26 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                             return handleUserContext(userContext, routeContext, next, authToken);
                         }).exceptionally(ex -> {
                             LOG.error("nop.auth.init-user-context-fail", ex);
-                            routeContext.sendResponse(500, "Server Error");
+                            handleError(routeContext, ex);
                             throw NopException.adapt(ex);
                         });
             } catch (Exception ex) {
                 LOG.error("nop.auth.init-user-context-fail", ex);
-                routeContext.sendResponse(500, "Server Error");
+                handleError(routeContext, ex);
                 throw NopException.adapt(ex);
             }
         }).thenApply(v -> null);
+    }
+
+    private void handleError(IHttpServerContext routeContext, Throwable ex) {
+        if (ex instanceof NopLoginException) {
+            NopLoginException err = (NopLoginException) ex;
+            if (!routeContext.isResponseSent()) {
+                this.responseNotLogin(routeContext, err.getErrorCode(), err.getDescription());
+            }
+        } else {
+            routeContext.sendResponse(500, "Server Error");
+        }
     }
 
     boolean checkLogoutUrl(IHttpServerContext routeContext) {
@@ -264,6 +276,10 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     }
 
     protected CompletionStage<Void> responseNotLogin(IHttpServerContext context) {
+        return responseNotLogin(context, ERR_AUTH_NOT_AUTHORIZED.getErrorCode(), ERR_AUTH_NOT_AUTHORIZED.getDescription());
+    }
+
+    protected CompletionStage<Void> responseNotLogin(IHttpServerContext context, String errorCode, String errorDesc) {
         if (isAjaxRequest(context) || StringHelper.isEmpty(config.getLoginUrl())) {
             String locale = (String) context.getRequestHeader(ApiConstants.HEADER_LOCALE);
             if (StringHelper.isEmpty(locale))
@@ -271,11 +287,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
             ApiResponse<Object> error = new ApiResponse<>();
             error.setStatus(401);
-            error.setCode(ERR_AUTH_NOT_AUTHORIZED.getErrorCode());
+            error.setCode(errorCode);
             String msg = ErrorMessageManager.instance().getErrorDescription(locale,
-                    ERR_AUTH_NOT_AUTHORIZED.getErrorCode(), Collections.emptyMap());
+                    errorCode, Collections.emptyMap());
             if (msg == null) {
-                msg = ERR_AUTH_NOT_AUTHORIZED.getDescription();
+                msg = errorDesc;
             }
             error.setMsg(msg);
             error.setData(Collections.emptyMap());
@@ -283,9 +299,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             context.setResponseHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
             if (context.getRequestUrl().endsWith("/graphql")) {
                 GraphQLResponseBean response = new GraphQLResponseBean();
-                response.setErrorCode(ERR_AUTH_NOT_AUTHORIZED.getErrorCode());
+                response.setErrorCode(error.getCode());
                 response.setMsg(error.getMsg());
-                response.setStatus(401);
+                response.setStatus(error.getStatus());
                 context.sendResponse(401, JsonTool.stringify(response));
             } else {
                 context.sendResponse(401, JsonTool.stringify(error));
@@ -295,6 +311,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             String url = config.getLoginUrl();
             url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_HOST, context.getHost());
             url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_BACK_URL, StringHelper.encodeURL(context.getRequestUrl()));
+            url = StringHelper.replace(url, AuthCoreConstants.PLACEHOLDER_ERR_CODE, StringHelper.encodeURL(errorCode));
             String state = genStateCode();
             int pos = url.lastIndexOf('#');
             if (pos < 0) {

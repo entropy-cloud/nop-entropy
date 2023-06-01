@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.core.resource.component.AbstractFreezable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
@@ -33,6 +34,12 @@ public class LayoutModel extends AbstractFreezable implements IComponentModel {
         for (LayoutTableModel table : getGroups()) {
             table.forEachLayoutCell(consumer);
         }
+    }
+
+    public List<LayoutCellModel> getLayoutCells(){
+        List<LayoutCellModel> ret = new ArrayList<>();
+        forEachLayoutCell(ret::add);
+        return ret;
     }
 
     @JsonIgnore

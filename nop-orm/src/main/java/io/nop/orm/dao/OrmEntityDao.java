@@ -8,11 +8,14 @@
 package io.nop.orm.dao;
 
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.collections.ListFunctions;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
@@ -210,7 +213,7 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
 
     @Override
     public T loadEntityById(Object id) {
-        if (id == null)
+        if (StringHelper.isEmptyObject(id))
             return null;
         return (T) orm().load(getEntityName(), id);
     }
@@ -223,7 +226,7 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
 
     @Override
     public T getEntityById(Object id) {
-        if (id == null)
+        if (StringHelper.isEmptyObject(id))
             return null;
         return (T) orm().get(getEntityName(), id);
     }
@@ -476,7 +479,60 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     }
 
     @Override
+    public void findPageAndReturnCursor(QueryBean query, PageBean<T> page) {
+        T lastEntity = loadEntityByCursor(query.getCursor());
+
+        List<T> list;
+        boolean hasPrev, hasNext;
+        if (query.isFindPrev()) {
+            list = findPrev(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit() + 1);
+            list.remove(list.size() - 1);
+            list = ListFunctions.reverse(list);
+            hasPrev = list.size() > query.getLimit();
+            hasNext = lastEntity != null;
+        } else {
+            list = findNext(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit() + 1);
+            hasNext = list.size() > query.getLimit();
+            list.remove(list.size() - 1);
+            hasPrev = lastEntity != null;
+        }
+
+        page.setHasNext(hasNext);
+        page.setHasPrev(hasPrev);
+        if (hasPrev) {
+            page.setPrevCursor(list.get(0).orm_idString());
+        } else {
+            page.setPrevCursor(OrmConstants.ID_NULL);
+        }
+
+        if (hasNext) {
+            page.setNextCursor(list.get(list.size() - 1).orm_idString());
+        } else {
+            page.setNextCursor(OrmConstants.ID_NULL);
+        }
+        page.setItems(list);
+    }
+
+    @Override
     public List<T> findPageByQuery(QueryBean query) {
+        if (!StringHelper.isEmpty(query.getCursor()) || query.isFindPrev()) {
+            if (query.isFindPrev()) {
+                return findPrev(query);
+            } else {
+                return findNext(query);
+            }
+        } else {
+            return _findPageByQuery(query);
+        }
+    }
+
+    public T loadEntityByCursor(String cursor) {
+        if (OrmConstants.ID_NULL.equals(cursor))
+            return null;
+        return loadEntityById(cursor);
+    }
+
+    private List<T> _findPageByQuery(QueryBean query) {
         return orm().runInSession(session -> {
             IEntityDaoExtension<T> extension = getDaoQueryExtension();
             if (extension != null && extension.supportReadQuery(query)) {

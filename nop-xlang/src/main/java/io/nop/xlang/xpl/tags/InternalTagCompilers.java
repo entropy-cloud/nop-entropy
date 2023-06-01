@@ -23,6 +23,7 @@ public class InternalTagCompilers {
         registerTagCompiler("c:continue", ContinueTagCompiler.INSTANCE);
         registerTagCompiler("c:for", ForTagCompiler.INSTANCE);
         registerTagCompiler("c:if", IfTagCompiler.INSTANCE);
+        registerTagCompiler("c:iif", IifTagCompiler.INSTANCE);
         registerTagCompiler("c:import", ImportTagCompiler.INSTANCE);
         registerTagCompiler("c:include", IncludeTagCompiler.INSTANCE);
         // registerTagCompiler("c:tags", LibTagCompiler.INSTANCE);

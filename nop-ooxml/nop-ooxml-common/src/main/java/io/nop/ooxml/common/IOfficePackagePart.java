@@ -38,6 +38,10 @@ public interface IOfficePackagePart extends ITemplateOutput {
      */
     XNode loadXml();
 
+    default String loadText() {
+        return loadXml().xml();
+    }
+
     XNode buildXml(IEvalContext context);
 
     /**

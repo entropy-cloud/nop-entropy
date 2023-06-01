@@ -8,6 +8,7 @@
 package io.nop.dao.api;
 
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.commons.collections.iterator.FindNextPageIterator;
@@ -189,6 +190,8 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     List<T> findPageByQuery(QueryBean query);
 
+    void findPageAndReturnCursor(QueryBean query, PageBean<T> page);
+
     List<T> findAllByQuery(QueryBean query);
 
     boolean existsByQuery(QueryBean query);
@@ -212,7 +215,7 @@ public interface IEntityDao<T extends IDaoEntity> {
         if (StringHelper.isEmpty(cursor)) {
             return findNext(null, query.getFilter(), query.getOrderBy(), query.getLimit());
         }
-        T lastEntity = loadEntityById(cursor);
+        T lastEntity = loadEntityByCursor(cursor);
         return findNext(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit());
     }
 
@@ -223,9 +226,11 @@ public interface IEntityDao<T extends IDaoEntity> {
         if (StringHelper.isEmpty(cursor)) {
             return findPrev(null, query.getFilter(), query.getOrderBy(), query.getLimit());
         }
-        T lastEntity = loadEntityById(cursor);
+        T lastEntity = loadEntityByCursor(cursor);
         return findPrev(lastEntity, query.getFilter(), query.getOrderBy(), query.getLimit());
     }
+
+    T loadEntityByCursor(String cursor);
 
     default Iterator<T> iterator(QueryBean query) {
         return new SelectNextIterator<>(

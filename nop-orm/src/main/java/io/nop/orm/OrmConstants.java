@@ -38,7 +38,7 @@ public interface OrmConstants {
     String FOR_ADD = "_forAdd";
 
 
-
+    String ID_NULL = "__null";
 
     /**
      * 标记字段需要加密存储

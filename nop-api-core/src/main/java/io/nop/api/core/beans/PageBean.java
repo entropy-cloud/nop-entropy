@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.io.Serializable;
@@ -21,23 +22,36 @@ public final class PageBean<T> implements Serializable {
     private long total;
     private long offset;
     private int limit;
-    private boolean noMore;
-    private String cursor;
+    private Boolean hasPrev;
+    private Boolean hasNext;
+    private String prevCursor;
+    private String nextCursor;
 
-    public boolean isNoMore() {
-        return noMore;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getHasPrev() {
+        return hasPrev;
     }
 
-    public void setNoMore(boolean noMore) {
-        this.noMore = noMore;
+    public void setHasPrev(Boolean hasPrev) {
+        this.hasPrev = hasPrev;
     }
 
-    public String getCursor() {
-        return cursor;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getHasNext() {
+        return hasNext;
     }
 
-    public void setCursor(String cursor) {
-        this.cursor = cursor;
+    public void setHasNext(Boolean hasNext) {
+        this.hasNext = hasNext;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getPrevCursor() {
+        return prevCursor;
+    }
+
+    public void setPrevCursor(String prevCursor) {
+        this.prevCursor = prevCursor;
     }
 
     public long getOffset() {
@@ -88,5 +102,14 @@ public final class PageBean<T> implements Serializable {
             return 1;
 
         return (offset + limit - 1) / limit + 1;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getNextCursor() {
+        return nextCursor;
+    }
+
+    public void setNextCursor(String nextCursor) {
+        this.nextCursor = nextCursor;
     }
 }

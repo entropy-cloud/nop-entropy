@@ -17,10 +17,13 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.store.InMemoryResourceStore;
 import io.nop.core.resource.store.LocalResourceStore;
 import io.nop.core.resource.store.ZipResourceStore;
 import io.nop.core.resource.zip.IZipOutput;
+import io.nop.core.resource.zip.ZipOptions;
 import io.nop.ooxml.common.impl.ResourceOfficePackagePart;
 import io.nop.ooxml.common.model.ContentTypesPart;
 import io.nop.ooxml.common.model.OfficeRelationship;
@@ -31,6 +34,7 @@ import io.nop.ooxml.common.model.PackagingURIHelper;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -253,7 +257,7 @@ public class OfficePackage implements Closeable {
         return getRels(relsPath);
     }
 
-    public OfficeRelsPart makeRelsForPart(IOfficePackagePart part){
+    public OfficeRelsPart makeRelsForPart(IOfficePackagePart part) {
         String relsPath = PackagingURIHelper.getRelationshipPartName(part.getPath());
         return makeRels(relsPath);
     }
@@ -290,6 +294,26 @@ public class OfficePackage implements Closeable {
     public void generateToDir(File dir, IEvalScope scope) {
         for (IOfficePackagePart file : files.values()) {
             file.generateToFile(new File(dir, file.getPath()), scope);
+        }
+    }
+
+    public void saveToFile(File file, IEvalScope scope) {
+        saveToResource(new FileResource(file), scope);
+    }
+
+    public void saveToResource(IResource resource, IEvalScope scope) {
+        ZipOptions options = new ZipOptions();
+        String password = (String) scope.getValue(OfficeConstants.VAR_FILE_PASSWORD);
+        options.setPassword(password);
+        OutputStream os = resource.getOutputStream();
+        try {
+            IZipOutput out = ResourceHelper.getZipTool().newZipOutput(os, options);
+            generateToZip(out, scope);
+            os.close();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        } finally {
+            IoHelper.safeClose(os);
         }
     }
 

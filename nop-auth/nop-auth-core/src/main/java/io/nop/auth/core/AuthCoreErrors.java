@@ -35,6 +35,9 @@ public interface AuthCoreErrors {
     ErrorCode ERR_AUTH_USER_NOT_LOGIN =
             define("nop.err.auth.user-not-login", "用户尚未登录或者登录凭证已过期");
 
+    ErrorCode ERR_AUTH_LOGIN_NOT_CURRENT_SESSION =
+            define("nop.err.auth.not-current-session", "账号已经在别处登录，当前会话已失效");
+
     ErrorCode ERR_AUTH_OLD_PASSWORD_NOT_MATCH =
             define("nop.err.auth.password-not-match", "旧密码不匹配");
 

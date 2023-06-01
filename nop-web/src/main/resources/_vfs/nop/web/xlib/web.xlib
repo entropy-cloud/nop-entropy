@@ -28,6 +28,21 @@
             </source>
         </GenForm>
 
+        <GenFormImpl outputMode="xjson">
+            <attr name="formModel" />
+            <attr name="objMeta" />
+            <attr name="skipForm" />
+            <attr name="genScope" />
+            <attr name="i18nRoot" />
+
+            <source>
+                <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FormDefaultAttrs',formModel)"  xpl:skipIf="skipForm">
+
+                    <thisLib:GenFormBody formModel="${formModel}" objMeta="${objMeta}"/>
+                </form>
+            </source>
+        </GenFormImpl>
+
         <GenGrid outputMode="xjson">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="grid" mandatory="true" type="string"/>
@@ -36,6 +51,30 @@
                 <c:include src="web/impl_GenGrid.xpl"/>
             </source>
         </GenGrid>
+
+        <GenGridImpl outputMode="xjson">
+            <attr name="gridModel" />
+            <attr name="objMeta" />
+            <attr name="genScope" />
+            <attr name="i18nRoot" />
+
+            <source>
+                <crud xpl:attrs="xpl('thisLib:GridDefaultAttrs', gridModel)"
+                      syncLocation="@:false">
+                    <initApi xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.initApi,genScope)"
+                             xpl:if="gridModel.initApi"/>
+                    <api xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.api,genScope)"/>
+
+                    <saveOrderApi xpl:attrs="xpl('thisLib:NormalizeApi',gridModel.saveOrderApi,genScope)"
+                                  xpl:if="gridModel.saveOrderApi"/>
+
+
+                    <columns j:list="true">
+                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}"/>
+                    </columns>
+                </crud>
+            </source>
+        </GenGridImpl>
 
         <GenAction outputMode="xjson" ignoreUnknownAttrs="true">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>

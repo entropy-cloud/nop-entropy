@@ -167,4 +167,8 @@ public class SetFunctions {
         }
         return sb.toString();
     }
+
+    public static boolean hasNext(Collection<?> list, int index) {
+        return index <= list.size() - 1;
+    }
 }

@@ -205,17 +205,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         }
 
         if (selection == null || selection.hasField(GraphQLConstants.FIELD_ITEMS)
-                || selection.hasField(GraphQLConstants.FIELD_CURSOR)) {
-            List<T> ret = dao.findPageByQuery(query);
-            if (!ret.isEmpty()) {
-                String id = ret.get(ret.size() - 1).orm_idString();
-                pageBean.setCursor(id);
-                pageBean.setNoMore(ret.size() < query.getLimit());
+                || selection.hasField(GraphQLConstants.FIELD_NEXT_CURSOR)) {
+            if (!StringHelper.isEmpty(query.getCursor())) {
+                dao.findPageAndReturnCursor(query, pageBean);
             } else {
-                pageBean.setCursor(null);
-                pageBean.setNoMore(true);
+                List<T> ret = dao.findPageByQuery(query);
+                pageBean.setItems(ret);
             }
-            pageBean.setItems(ret);
         }
         return pageBean;
     }

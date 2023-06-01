@@ -42,9 +42,10 @@
               tagSet="tag-set" lazy="!boolean=false"
               insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false" sortable="!boolean=false"
               readable="!boolean=true"
-              published="!boolean=true" allowFilterOp="word-set" kind="string"
+              published="!boolean=true" allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
-              graphql:type="string" graphql:jsonComponentProp="string"
+              graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
+              graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
         >
             <description xdef:value="string"/>
 

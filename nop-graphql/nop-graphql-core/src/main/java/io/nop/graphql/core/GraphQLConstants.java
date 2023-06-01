@@ -75,7 +75,7 @@ public interface GraphQLConstants {
 
     String FIELD_ITEMS = "items";
     String FIELD_TOTAL = "total";
-    String FIELD_CURSOR = "cursor";
+    String FIELD_NEXT_CURSOR = "nextCursor";
 
     String BIZ_OBJ_NAME_THIS_OBJ = "THIS_OBJ";
 

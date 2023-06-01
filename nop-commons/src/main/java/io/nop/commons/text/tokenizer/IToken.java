@@ -12,5 +12,9 @@ public interface IToken {
         return false;
     }
 
+    default boolean isIdentifier(){
+        return false;
+    }
+
     String getText();
 }
