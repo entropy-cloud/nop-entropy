@@ -6,6 +6,9 @@ entity:
     NopRuleNode: Rule Node
     NopRuleOutput: Rule Output Variable
     NopRuleRole: Rule Role
+    RuleKeyBean: Rule Key
+    RuleMetaBean: Rule Meta
+    RuleRequestBean: Rule Request
 prop:
   label:
     NopRuleDefinition:
@@ -112,3 +115,17 @@ prop:
       remark: Remark
       ruleDefinition: Rule Definition
       ruleDefinition.displayName: Rule Definition
+    RuleKeyBean:
+      ruleName: Rule Name
+      ruleVersion: Rule Version
+    RuleMetaBean:
+      ruleName: Rule Name
+      ruleVersion: Rule Version
+      displayName: Display Name
+      description: Description
+      inputs: Inputs
+      outputs: Outputs
+    RuleRequestBean:
+      ruleName: Rule Name
+      ruleVersion: Rule Version
+      inputs: Inputs

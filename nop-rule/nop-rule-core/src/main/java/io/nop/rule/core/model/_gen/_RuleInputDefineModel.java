@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [38:10:0:0]/nop/schema/rule.xdef <p>
+ * generate from [39:10:0:0]/nop/schema/rule.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -19,7 +19,14 @@ public abstract class _RuleInputDefineModel extends io.nop.xlang.xmeta.ObjVarDef
      * xml name: computed
      * 
      */
-    private boolean _computed ;
+    private boolean _computed  = false;
+    
+    /**
+     *  
+     * xml name: mandatory
+     * 
+     */
+    private boolean _mandatory  = false;
     
     /**
      * 
@@ -40,6 +47,25 @@ public abstract class _RuleInputDefineModel extends io.nop.xlang.xmeta.ObjVarDef
     }
 
     
+    /**
+     * 
+     * xml name: mandatory
+     *  
+     */
+    
+    public boolean isMandatory(){
+      return _mandatory;
+    }
+
+    
+    public void setMandatory(boolean value){
+        checkAllowChange();
+        
+        this._mandatory = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -54,6 +80,7 @@ public abstract class _RuleInputDefineModel extends io.nop.xlang.xmeta.ObjVarDef
         super.outputJson(out);
         
         out.put("computed",this.isComputed());
+        out.put("mandatory",this.isMandatory());
     }
 }
  // resume CPD analysis - CPD-ON

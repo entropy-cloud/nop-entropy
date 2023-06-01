@@ -43,6 +43,7 @@
 /nop/dao/dialect/selector/mysql.selector.yaml
 /nop/dao/dialect/selector/oracle.selector.yaml
 /nop/dao/dialect/selector/postgresql.selector.yaml
+/nop/dao/dialect/tdengine.dialect.xml
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/imp/api.imp.xml
@@ -75,6 +76,7 @@
 /nop/schema/excel/anchor.xdef
 /nop/schema/excel/imp.xdef
 /nop/schema/excel/workbook.xdef
+/nop/schema/gateway.xdef
 /nop/schema/message.xdef
 /nop/schema/orm/dialect.xdef
 /nop/schema/orm/dict.xdef
