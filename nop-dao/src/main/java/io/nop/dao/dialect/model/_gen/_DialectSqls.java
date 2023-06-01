@@ -127,6 +127,13 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     private java.lang.String _updateKeyword ;
     
     /**
+     *  
+     * xml name: validationQuery
+     * 
+     */
+    private java.lang.String _validationQuery ;
+    
+    /**
      * 
      * xml name: createSequence
      *  
@@ -430,6 +437,25 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
     }
 
     
+    /**
+     * 
+     * xml name: validationQuery
+     *  
+     */
+    
+    public java.lang.String getValidationQuery(){
+      return _validationQuery;
+    }
+
+    
+    public void setValidationQuery(java.lang.String value){
+        checkAllowChange();
+        
+        this._validationQuery = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -459,6 +485,7 @@ public abstract class _DialectSqls extends io.nop.core.resource.component.Abstra
         out.put("timestampLiteral",this.getTimestampLiteral());
         out.put("trueString",this.getTrueString());
         out.put("updateKeyword",this.getUpdateKeyword());
+        out.put("validationQuery",this.getValidationQuery());
     }
 }
  // resume CPD analysis - CPD-ON

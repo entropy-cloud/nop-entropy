@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [115:10:0:0]/nop/schema/orm/dialect.xdef <p>
+ * generate from [117:10:0:0]/nop/schema/orm/dialect.xdef <p>
  * sql数据库内部支持的原生函数。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
