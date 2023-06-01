@@ -24,7 +24,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-rpc-api</artifactId>
+            <artifactId>nop-rpc-core</artifactId>
         </dependency>
 
 

@@ -36,7 +36,8 @@ public class LayoutModel extends AbstractFreezable implements IComponentModel {
         }
     }
 
-    public List<LayoutCellModel> getLayoutCells(){
+    @JsonIgnore
+    public List<LayoutCellModel> getLayoutCells() {
         List<LayoutCellModel> ret = new ArrayList<>();
         forEachLayoutCell(ret::add);
         return ret;
