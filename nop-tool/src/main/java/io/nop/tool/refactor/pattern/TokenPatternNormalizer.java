@@ -37,17 +37,22 @@ public class TokenPatternNormalizer implements ITextTokenizer {
     public List<IToken> replacePatterns(List<IToken> list) {
         List<IToken> ret = new ArrayList<>(list.size());
         for (int i = 0, n = list.size(); i < n; i++) {
-            String text = list.get(i).getText();
+            IToken token = list.get(i);
+            String text = token.getText();
             List<TokenPattern> patterns = allPatterns.get(text);
+            boolean matched = false;
             if (patterns != null) {
                 for (TokenPattern pattern : patterns) {
                     if (isMatch(list, i, pattern.getMatched())) {
                         ret.add(pattern.getReplaced());
                         i += pattern.getMatched().size() - 1;
+                        matched = true;
                         break;
                     }
                 }
             }
+            if (!matched)
+                ret.add(token);
         }
         return ret;
     }

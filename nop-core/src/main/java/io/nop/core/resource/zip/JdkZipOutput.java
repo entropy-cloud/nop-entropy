@@ -131,4 +131,8 @@ public class JdkZipOutput implements IZipOutput {
         }
         IZipOutput.super.addDir(basePath, file, onlyChild, filter);
     }
+
+    public void flush() throws IOException{
+        this.os.flush();
+    }
 }

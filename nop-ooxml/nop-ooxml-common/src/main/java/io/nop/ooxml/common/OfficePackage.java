@@ -309,7 +309,7 @@ public class OfficePackage implements Closeable {
         try {
             IZipOutput out = ResourceHelper.getZipTool().newZipOutput(os, options);
             generateToZip(out, scope);
-            os.close();
+            out.close();
         } catch (IOException e) {
             throw NopException.adapt(e);
         } finally {

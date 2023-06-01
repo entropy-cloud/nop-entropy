@@ -21,6 +21,8 @@ public interface IZipOutput extends Closeable {
 
     ZipEntry newZipEntry(String entryName);
 
+    void flush() throws IOException;
+
     OutputStream addEntry(ZipEntry entry) throws IOException;
 
     void addResource(ZipEntry entry, IResource resource) throws IOException;
