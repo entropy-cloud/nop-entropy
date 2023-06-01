@@ -74,7 +74,7 @@
     </bean>
 
     <bean id="AbstractClusterRpcProxyFactoryBean" abstract="true" ioc:default="true"
-          ioc:bean-method="getObject" feature:off="nop.rpc.service-mesh.enabled"
+          ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
         <property name="serverChooser" ref="nopServerChooser_random"/>
         <property name="interceptors" ref="nopRpcServiceInterceptors"/>
@@ -82,8 +82,11 @@
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
     </bean>
 
-    <bean id="AbstractClusterRpcProxyFactoryBean" abstract="true" parent="AbstractHttpRpcProxyFactoryBean"
-          feature:on="nop.rpc.service-mesh.enabled">
+    <bean id="AbstractRpcProxyFactoryBean" abstract="true" parent="AbstractClusterRpcProxyFactoryBean"
+          feature:off="nop.rpc.service-mesh.enabled or nop.rpc.mock-all"/>
+
+    <bean id="AbstractRpcProxyFactoryBean" abstract="true" parent="AbstractHttpRpcProxyFactoryBean"
+          feature:on="nop.rpc.service-mesh.enabled and !nop.rpc.mock-all">
         <property name="baseUrl" value="@cfg:nop.rpc.service-mesh.base-url"/>
     </bean>
 
@@ -95,7 +98,6 @@
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
     </bean>
-
 
     <bean id="AbstractBroadcastRpcProxyFactoryBean" abstract="true" ioc:default="true"
           ioc:bean-method="getObject"

@@ -81,6 +81,7 @@ public class FeatureConditionEvaluator implements IPredicateEvaluator {
         @Override
         protected Object tokenExpr(TextScanner sc) {
             String name = sc.nextConfigVar();
+            sc.skipBlank();
             // 作为表达式返回，因此不能为null
             return AppConfig.var(name,"");
         }

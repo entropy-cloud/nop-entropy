@@ -7494,6 +7494,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getValidationQuery",
+        "parameterTypes": []
+      },
+      {
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
@@ -7591,6 +7595,12 @@
       },
       {
         "name": "setUpdateKeyword",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValidationQuery",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -9127,6 +9137,14 @@
       },
       {
         "name": "getCreaterPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDbCatalog",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDbSchema",
         "parameterTypes": []
       },
       {
