@@ -69,4 +69,14 @@ public class NopCliTasks {
         app.factory = factory;
         assertEquals(0, app.run(args));
     }
+
+    @Test
+    public void testRun() {
+        String[] args = new String[]{"run", "data",
+                "-i", "1000"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.factory = factory;
+        assertEquals(-101, app.run(args));
+    }
 }

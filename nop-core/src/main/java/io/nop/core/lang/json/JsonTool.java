@@ -108,6 +108,15 @@ public class JsonTool {
         return parseBeanFromResource(resource, targetType, false);
     }
 
+    public static Object parseBeanFromResource(IResource resource) {
+        return parseBeanFromResource(resource, Object.class);
+    }
+
+    public static Object parseBeanFromVirtualPath(String path) {
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        return parseBeanFromResource(resource);
+    }
+
     public static <T> T parseBeanFromResource(IResource resource, Type targetType, boolean traceDepends) {
         JsonParseOptions options = new JsonParseOptions();
         String fileName = resource.getName();
@@ -125,6 +134,11 @@ public class JsonTool {
             options.setKeepLocation(true);
         }
         return (T) instance().parseFromResource(resource, options);
+    }
+
+    public static boolean isJsonOrYaml(String filePath) {
+        String fileExt = StringHelper.fileExt(filePath);
+        return ResourceConstants.JSON_FILE_EXTS.contains(fileExt);
     }
 
     public static <T> T loadBean(String path, Class<?> beanClass) {

@@ -7,6 +7,10 @@
  */
 package io.nop.core.resource;
 
+import io.nop.commons.util.CollectionHelper;
+
+import java.util.List;
+
 public interface ResourceConstants {
     String ENCODING_UTF8 = "UTF-8";
 
@@ -60,6 +64,8 @@ public interface ResourceConstants {
     String FILE_POSTFIX_JSON5 = ".json5";
     String FILE_POSTFIX_YAML = ".yaml";
     String FILE_POSTFIX_YML = ".yml";
+
+    List<String> JSON_FILE_EXTS = CollectionHelper.buildImmutableList("json","json5","yaml","yml");
 
     String FILE_POSTFIX_XML = ".xml";
 

@@ -628,7 +628,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     @Override
     public <T> T runWhenDependsChanged(String path, Supplier<T> loader) {
         String modelType = "__runWithCache__";
-        ResourceLoadingCache<ComponentCacheEntry> cache = getModelCache(modelType);
+        ResourceLoadingCache<ComponentCacheEntry> cache = makeModelCache(modelType);
         ComponentCacheEntry result = cache.get(path, p -> {
             T value = loader.get();
             ComponentCacheEntry entry = new ComponentCacheEntry();

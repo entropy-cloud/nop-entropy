@@ -44,6 +44,10 @@ public class NestedLoopBuilder implements INestedLoopBuilder {
         return vars.containsKey(varName);
     }
 
+    public NestedLoopBuilder defineLoopVar(String varName, String srcName) {
+        return defineLoopVar(varName, srcName, parent -> parent);
+    }
+
     public NestedLoopBuilder defineLoopVar(String varName, String srcName, Function<?, ?> generator) {
         Guard.notEmpty(varName, "varName");
         Guard.notEmpty(srcName, "srcName");

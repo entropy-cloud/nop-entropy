@@ -9,6 +9,7 @@ package io.nop.cli;
 
 import io.nop.boot.NopApplication;
 import io.nop.cli.commands.MainCommand;
+import io.nop.cli.exception.NopExitCodeExceptionMapper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.quarkus.core.QuarkusIntegration;
 import io.quarkus.runtime.Quarkus;
@@ -29,6 +30,7 @@ public class NopCliApplication implements QuarkusApplication {
     public int run(String... args) {
         QuarkusIntegration.start();
         CommandLine cmd = new CommandLine(new MainCommand(), factory);
+        cmd.setExitCodeExceptionMapper(new NopExitCodeExceptionMapper());
 
         return new NopApplication().run(args, () -> cmd.execute(args));
     }

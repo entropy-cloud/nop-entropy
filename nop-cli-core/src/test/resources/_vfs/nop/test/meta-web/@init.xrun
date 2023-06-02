@@ -1,0 +1,14 @@
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib" xpl:slotScope="builder">
+    <c:script><![CDATA[
+        import io.nop.core.resource.VirtualFileSystem;
+        import io.nop.xlang.xmeta.SchemaLoader;
+
+        let files = VirtualFileSystem.instance().getAllResources(metaDir,".xmeta")
+                .filter(res=> !res.getName().startsWith("_"));
+
+        let metaModels = files.map(file=> SchemaLoader.loadXMeta(file.path));
+
+        builder.defineGlobalVar("metaModels",metaModels);
+        builder.defineLoopVar("metaModel","metaModels");
+    ]]></c:script>
+</gen:DefineLoop>

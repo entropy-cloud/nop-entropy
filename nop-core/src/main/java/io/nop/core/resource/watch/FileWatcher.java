@@ -9,10 +9,11 @@ import io.nop.commons.util.StringHelper;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
@@ -96,10 +97,12 @@ public class FileWatcher {
     }
 
     private void processChangeEvent(Consumer<Collection<FileChangeEvent>> handler) {
-        Set<FileChangeEvent> events = new LinkedHashSet<>();
+        List<FileChangeEvent> events = new ArrayList<>();
         do {
             events.clear();
             queue.drainTo(events);
+            events = mergeEvents(events);
+
             if (events.isEmpty()) {
                 break;
             }
@@ -111,5 +114,24 @@ public class FileWatcher {
                 processing = false;
             }
         } while (true);
+    }
+
+    // 对于同一文件，仅保留最后一次的变化
+    private List<FileChangeEvent> mergeEvents(List<FileChangeEvent> events) {
+        List<FileChangeEvent> ret = new ArrayList<>();
+        Map<Path, FileChangeEvent> map = new HashMap<>();
+        for (FileChangeEvent event : events) {
+            FileChangeEvent old = map.put(event.getPath(), event);
+            if (old == null) {
+                ret.add(event);
+            } else {
+                if (event.isDelete()) {
+                    ret.remove(old);
+                    ret.add(event);
+                }
+                // 如果是新增或者修改，则第一次的结果即可
+            }
+        }
+        return ret;
     }
 }

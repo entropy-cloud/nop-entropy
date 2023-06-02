@@ -66,7 +66,7 @@ public class CliGenCommand implements Callable<Integer> {
 
             File output = this.outputDir;
             if (output == null)
-                output = new File(".");
+                output = FileHelper.currentDir();
 
             for (String template : templates) {
                 renderTemplate(scope, template, output);
@@ -87,7 +87,7 @@ public class CliGenCommand implements Callable<Integer> {
             outputDir = new File(outputDir, template.substring(0, pos));
             template = template.substring(pos + 1);
         }
-        if(template.startsWith("v:"))
+        if (template.startsWith("v:"))
             template = template.substring("v:".length());
 
         LOG.info("nop.cli.render-template:{}", template);

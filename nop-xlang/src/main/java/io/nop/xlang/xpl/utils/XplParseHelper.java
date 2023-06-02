@@ -686,7 +686,10 @@ public class XplParseHelper {
         String as = node.makeLocal().getName();
 
         if (node.isImportLib()) {
-            IXplTagLib lib = XplLibHelper.loadLib(node.getImportLibPath());
+            String libPath = node.getImportLibPath();
+            libPath = StringHelper.absolutePath(node.resourcePath(), libPath);
+
+            IXplTagLib lib = XplLibHelper.loadLib(libPath);
             scope.addLib(as, lib);
         } else {
             IClassModel classModel = scope.getClassModelLoader().loadClassModel(node.getImportClassName());

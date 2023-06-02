@@ -76,6 +76,10 @@ public class TemplateFileGenerator {
         return loader;
     }
 
+    public TemplateFileGenerator withDependsCache() {
+        return this.withDependencyManager().withContentCache();
+    }
+
     public TemplateFileGenerator withDependencyManager(IResourceDependencyManager dependencyManager) {
         this.dependencyManager = dependencyManager;
         return this;
@@ -295,7 +299,7 @@ public class TemplateFileGenerator {
             LOG.debug("nop.tpl.update-resource-text:tplFile={},targetFile={},len={}", resource, targetFile,
                     text.length());
             if (contentCache != null) {
-                contentCache.updateCachedText(resource, text, true, removeEmpty);
+                contentCache.updateCachedText(targetFile, text, true, removeEmpty);
             } else {
                 if (text.length() <= 0 && removeEmpty) {
                     LOG.info("nop.tpl.remove-empty-resource:targetFile={}", targetFile);

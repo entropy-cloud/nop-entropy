@@ -469,6 +469,14 @@ public class FileHelper {
         return "file:" + (path.startsWith("/") ? "" : "/") + path;
     }
 
+    public static String getRelativeFileUrl(String path) {
+        if (path.startsWith("./")) {
+            File file = new File(currentDir(), path);
+            return getFileUrl(file);
+        }
+        return getFileUrl(new File(path));
+    }
+
     public static String getRelativePath(File base, File file) {
         String basePath = base.getAbsolutePath();
         String filePath = file.getAbsolutePath();
@@ -478,7 +486,7 @@ public class FileHelper {
 
     public static FileVisitResult walk(File file, Function<File, FileVisitResult> fn) {
         FileVisitResult result = fn.apply(file);
-        if (result != FileVisitResult.CONTINUE)
+        if (result != null && result != FileVisitResult.CONTINUE)
             return result;
 
         File[] subFiles = file.listFiles();
