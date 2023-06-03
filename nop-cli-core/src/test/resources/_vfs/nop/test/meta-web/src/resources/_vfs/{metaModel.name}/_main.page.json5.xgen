@@ -1,0 +1,5 @@
+<c:unit xpl:outputMode="text">{
+    ${track(metaModel)}
+    objName3: "${metaModel.name}",
+    displayName: "${metaModel.displayName}"
+}</c:unit>

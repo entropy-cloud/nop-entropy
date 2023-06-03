@@ -126,7 +126,7 @@ public class XCodeGenerator extends TemplateFileGenerator {
      * @param scope   当前执行上下文，其中定义了codeGenLoop对象，它提供了INestedLoop循环处理逻辑。
      */
     public void execute(String tplPath, Map<String, Object> vars, IEvalScope scope) {
-        LOG.info("nop.execute-codegen:tplPath={},vars={},tplRootPath={},targetRootPath={}", tplPath, vars,
+        LOG.debug("nop.execute-codegen:tplPath={},vars={},tplRootPath={},targetRootPath={}", tplPath, vars,
                 this.getTplRootPath(), this.getTargetRootPath());
 
         scope = scope.newChildScope();

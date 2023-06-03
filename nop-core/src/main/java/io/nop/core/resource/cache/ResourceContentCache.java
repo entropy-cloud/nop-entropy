@@ -69,12 +69,8 @@ public class ResourceContentCache implements IResourceContentCache {
     public boolean updateCachedText(IResource resource, String text, boolean flushToFile, boolean removeEmptyFile) {
         ContentEntry entry = cache.get(resource.getPath());
         if (entry != null) {
-            if (Objects.equals(entry.text, text)) {
-                long lastModified = resource.lastModified();
-                // 仅修改时间发生了变化
-                if (entry.lastModified != lastModified) {
-                    cache.put(resource.getPath(), new ContentEntry(lastModified, text));
-                }
+            // 如果文件已经被删除，则文件时间会不一致
+            if (entry.lastModified == resource.lastModified() && Objects.equals(entry.text, text)) {
                 return false;
             }
         }

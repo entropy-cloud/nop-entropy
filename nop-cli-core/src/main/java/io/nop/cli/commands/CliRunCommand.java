@@ -20,6 +20,7 @@ import picocli.CommandLine;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,7 +65,7 @@ public class CliRunCommand implements Callable<Integer> {
             try {
                 System.in.read();
             } catch (IOException e) {
-                LOG.info("nop.cli.run.finished");
+                LOG.info("nop.cli.run.end");
             }
         }
         return 0;
@@ -78,7 +79,9 @@ public class CliRunCommand implements Callable<Integer> {
             runFile(file, globalState);
         } else if (file.isDirectory()) {
             boolean hasTaskFile = false;
-            for (File subFile : file.listFiles()) {
+            File[] subFiles = file.listFiles();
+            Arrays.sort(subFiles);
+            for (File subFile : subFiles) {
                 if (subFile.getName().endsWith(".xrun")) {
                     runFile(subFile, globalState);
                     hasTaskFile = true;
@@ -86,7 +89,6 @@ public class CliRunCommand implements Callable<Integer> {
             }
             if (!hasTaskFile)
                 throw new NopException(ERR_CLI_DIR_NOT_CONTAINS_TASK_FILE)
-                        .status(-101)
                         .param(ARG_PATH, file.getAbsolutePath());
         }
     }

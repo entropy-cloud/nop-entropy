@@ -8,6 +8,8 @@
 package io.nop.cli;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.MavenDirHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

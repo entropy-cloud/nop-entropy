@@ -238,20 +238,16 @@ public class TemplateFileGenerator {
             String targetPath = genPath.getTargetPath();
             IResource targetFile = getTargetResource(targetPath);
 
-            if (isTargetUpToDate(targetFile)) {
-                LOG.info("nop.tpl.skip-up-to-date-resource:resource={}", targetFile);
-                return;
-            }
-
             if (!isAllowWrite(resource, targetFile, targetPath, isTextFile(resource))) {
-                LOG.info("nop.tpl.skip-write-resource:resource={}", targetFile);
+                LOG.debug("nop.tpl.skip-resource-since-not-allow-write:resource={}", targetFile);
                 return;
             }
 
-            if (dependencyManager != null) {
+            if (dependencyManager != null && !forceOverride) {
                 dependencyManager.runWhenDependsChanged(targetFile.getPath(), () -> {
                     dependencyManager.traceDepends(resource.getPath());
                     renderTemplate(resource, targetFile, scope);
+                    dependencyManager.traceDepends(targetFile.getPath());
                     return null;
                 });
             } else {
@@ -405,7 +401,7 @@ public class TemplateFileGenerator {
      * @param targetFile 生成的目标文件
      * @return 目标文件的依赖是否已经发生变化
      */
-    protected boolean isTargetUpToDate(IResource targetFile) {
+    public boolean isTargetUpToDate(IResource targetFile) {
         if (forceOverride || !targetFile.exists())
             return false;
 
