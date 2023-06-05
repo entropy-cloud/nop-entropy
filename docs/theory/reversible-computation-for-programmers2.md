@@ -200,7 +200,7 @@ git的版本相当于是一个比较粗粒度的非结构化差量，可以给�
 
 但另一方面，很多时候我们就想直接修改Delta的实现本身，不需要保留语义边界，此时用git这种非结构化的方式去管理Delta差量代码就很合适。
 
-# 七. XML格式太复杂， 能不能考虑JSON？甚至YAML？
+# 六. XML格式太复杂， 能不能考虑JSON？甚至YAML？
 
 很多程序员并没有亲自设计过XML格式的DSL语言，只是听业界的前辈讲过上古时代的XML是如何被后起之秀淘汰的传说，就由此形成了一种刻板印象，认为XML过于冗长，只能用于机器之间传递信息，并不适合于人机交互。但是，这是一种错误的偏见，源于XML原教旨主义对于XML错误的使用方式，以及一系列XML国际规范对错误使用方式的推波助澜。
 
@@ -208,7 +208,7 @@ git的版本相当于是一个比较粗粒度的非结构化差量，可以给�
 
 在Nop平台中我们提供了XML和JSON、YAML之间的自动双向转换机制，同样的DSL同时存在着XML表示和JSON表示。
 
-# 八. 不完全等价的格式之间如何实现可逆转换？
+# 七. 不完全等价的格式之间如何实现可逆转换？
 
 有些程序员实践过DSL描述之间的转换机制，比如从高层的DSL自动转换到低层的DSL，此时我们经常会发现要实现可逆转换是非常困难的，甚至是不可能的。因为跨越复杂性层次或者系统边界的时候，经常会丢失细节信息，导致转换前和转换后仅仅是约等于关系，并不严格等价。
 
@@ -228,7 +228,7 @@ $$
 
 > 正所谓有一种用处叫做无用之用，一些可有可无的功能会撑起一个灰色的设计空间，允许意料之外的一些演化在其中发生。
 
-# 九. 从范畴论的角度如何理解可逆计算
+# 八. 从范畴论的角度如何理解可逆计算
 
 范畴论在抽象数学领域中也能算得上是最抽象的数学分支之一，而一般的程序员其实并没有接受过很强的抽象数学训练，所以他们对于范畴论的理解往往局限在类型系统中，甚至可能和某些函数式语言的语法特性绑定在一起。但是范畴论的本质其实很简单，也不涉及到类型系统。可逆计算以及Nop平台中的很多做法都可以放到范畴论的理论框架中去理解。
 
@@ -244,23 +244,23 @@ $$
 
 比如说，制作柠檬派的过程可以构成一个范畴。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reverisble/make-lemon-pie.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/make-lemon-pie.png)
 
 再比如，数据库的schema定义也构成一个范畴
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reverisble/database-schema.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/database-schema.png)
 
 这里需要注意的是，不是所有的有向图（Graph）都是范畴，因为范畴要求每个点上都存在单位箭头，而且箭头之间需要能够复合，复合关系还要满足结合律。数学上更加严谨的说法是，从任意一个有向图出发，我们可以通过Free Construction构造出一个范畴来。所以从下面这种只有两个箭头的图构造得到的范畴实际上包含6个箭头。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reverisble/free-category.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/free-category.png)
 
 v1,v2,v3上需要增加3个单位箭头，而f1和f2的复合需要被定义为一个新的箭头，所以总共有6个箭头。
 
 这里的所谓Free指的是我们没有添加任何新的约束条件，仅仅是从补足范畴论定义的需要出发向图中补充了最少量的元素。而一个不Free的构造方式是向图中引入约束条件：规定两条连接同样起点和钟点的路径是等价的。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reverisble/commu-equations.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/commu-equations.png)
 
 一个比较容易理解的例子是向数据库的schema关系图中增加业务约束条件：
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reverisble/my-schema.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/theory/reversible/my-schema.png)
 
 * 每个部门的秘书必须在这个部门中工作
 * 每个雇员的经理必须和雇员在同一个部门
@@ -278,7 +278,7 @@ v1,v2,v3上需要增加3个单位箭头，而f1和f2的复合需要被定义为�
 
 在Nop平台中，我们很注重以通用的方式来解决问题，这种所谓的通用性可以从范畴论的角度来解释。比如Excel模型文件解析，一般的做法是针对某个特殊约定好的Excel文件格式，特殊编写一个Excel文件解析函数，将它解析为某个特定结构的Java对象。而在Nop平台中，我们实现了一个通用的Excel解析器，它并不假定Excel具有特定格式，而是允许相对任意的Excel输入（字段顺序可以随意调整，允许任意复杂的字段嵌套关系），无需编程就可以将一个Excel文件解析得到对应的领域结构对象。从范畴论的角度观察，Nop平台所提供的是从Excel范畴到领域对象范畴的一个映射函子，而不仅仅是一个针对特定结构的解析函数。在另一个方向上，对于任意的领域对象，无需编程，就可以使用通用的报表导出机制将它导出为一个Excel文件。这个报表函子与Excel解析函子可以看作是构成了一对伴随函子(Adjoint Functor)。
 
-# 十. 这些抽象的理论有什么用？搞GPT代码生成能用得上吗
+# 九. 这些抽象的理论有什么用？搞GPT代码生成能用得上吗
 
 首先，可逆计算理论本身非常有用，它解决了系统级粗粒度软件复用的问题。比如说，如果一开始系统底层就遵循可逆计算原理，那么我们就没有必要再发明Kustomize技术，Spring容器的实现方式也可以得到大幅简化。一个银行核心应用产品如果遵循可逆计算原理，那么它在不同客户处进行定制化开发的时候，就不需要修改基础产品的源代码，大幅降低同时维护多个不同版本的基础产品代码的压力。而革命性的Docker技术在抽象结构层面可以被看作是可逆计算理论的一个标准应用实例，类似Docker的结构构造方式理应可以被推广到更多的技术应用领域。
 

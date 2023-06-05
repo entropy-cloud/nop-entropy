@@ -176,7 +176,7 @@ Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但�
 * 判断是否中小企业的算法如下:
 
 ```javascript
-swith(贵公司很有钱吗()){
+switch(贵公司很有钱吗()){
   case "有的是钱":{
     console.log("都这么有钱了，还需要整天琢磨别人的知识产权是否免费吗？");
     return false;
@@ -188,33 +188,33 @@ swith(贵公司很有钱吗()){
 
 #### 示例页面
 1. 界面框架
-![](docs/demo/framework.jpg)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/demo/framework.jpg)
 
 2. 使用Excel来定义数据模型 
-![](docs/tutorial/excel-model.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
 
 3. 使用Excel来定义对外发布的API模型
-![](docs/dev-guide/microservice/api-model.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/microservice/api-model.png)
 
 4. 集成百度的前端低代码框架AMIS
-![](docs/tutorial/amis-editor-view.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/amis-editor-view.png)
 
 5. 集成GraphQL调试工具
-![](docs/tutorial/graphql-ui.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/graphql-ui.png)
 
 6. 提供IDEA插件，支持自定义DSL的断点调试
-![](docs/tutorial/xlang-debugger.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/xlang-debugger.png)
 
 7. 使用Excel作为报表设计器，支持复杂的中国式报表
-![](docs/user-guide/report/block-report-result.png)
-![](docs/user-guide/report/cross-table-report-result.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report-result.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
 
 8. 使用Word模板来导出Word报表
-![](docs/dev-guide/report/word-template/word-report.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/word-template/word-report.png)
 
 9. 使用Excel来设计决策表和决策矩阵
-![](docs/dev-guide/rule/decision-tree.png)
-![](docs/dev-guide/rule/decision-matrix.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
 
 #### 友情链接
 前端设计器[rxdrag](https://github.com/codebdy/rxdrag)

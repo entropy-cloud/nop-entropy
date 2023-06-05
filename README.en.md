@@ -162,7 +162,7 @@ The front-end of Nop platform adopts MIT license, and the back-end adopts AGPL3.
 
 
 ```javascript
-swith(贵公司很有钱吗()){
+switch(贵公司很有钱吗()){
   case "有的是钱":{
     console.log("都这么有钱了，还需要整天琢磨别人的知识产权是否免费吗？");
     return false;
