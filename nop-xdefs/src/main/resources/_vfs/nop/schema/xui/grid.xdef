@@ -30,6 +30,8 @@
 
     <stopAutoRefreshWhen xdef:value="string"/>
 
+    <initApi xdef:ref="api.xdef" />
+
     <api xdef:ref="api.xdef"/>
 
     <saveOrderApi xdef:ref="api.xdef"/>

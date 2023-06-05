@@ -46,4 +46,11 @@ public class TestLayoutModelParser extends BaseTestCase {
     LayoutModel parse(String layout) {
         return new LayoutModelParser().parseFromText(null, layout);
     }
+
+    @Test
+    public void testLabel(){
+        String layout = "===>a b====\n x[1\\n2] y\n ";
+        LayoutModel model = parse(layout);
+        System.out.println(model.toString());
+    }
 }

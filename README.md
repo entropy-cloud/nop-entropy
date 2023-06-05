@@ -169,22 +169,6 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
 
 9. 作为数据驱动的自动化测试框架使用：通过录制、回放的机制实现自动化测试。第一遍运行的时候自动录制输出数据，此后运行时自动和录制的数据快照进行比较，减少手工需要编写的代码量。参见[autotest.md](docs/dev-guide/autotest.md)
 
-#### 开源协议
-
-Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但是中小企业可以在类似Apache2.0协议的条件下使用本项目的代码（可以免费商用，修改代码无需开源，但是要保留源码中的原始版权信息）。为了方便第三方集成，nop-api-support/nop-commons/nop-core这三个包采用Apache 2.0协议。
-
-* 判断是否中小企业的算法如下:
-
-```javascript
-switch(贵公司很有钱吗()){
-  case "有的是钱":{
-    console.log("都这么有钱了，还需要整天琢磨别人的知识产权是否免费吗？");
-    return false;
-  default:
-    return true;
-  }
-}
-```
 
 #### 示例页面
 1. 界面框架
@@ -216,9 +200,22 @@ switch(贵公司很有钱吗()){
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
 
-#### 友情链接
-前端设计器[rxdrag](https://github.com/codebdy/rxdrag)
+#### 开源协议
 
+Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但是中小企业可以在类似Apache2.0协议的条件下使用本项目的代码（可以免费商用，修改代码无需开源，但是要保留源码中的原始版权信息）。为了方便第三方集成，nop-api-support/nop-commons/nop-core这三个包采用Apache 2.0协议。
+
+* 判断是否中小企业的算法如下:
+
+```javascript
+switch(贵公司很有钱吗()){
+  case "有的是钱":{
+    console.log("都这么有钱了，还需要整天琢磨别人的知识产权是否免费吗？");
+    return false;
+  default:
+    return true;
+  }
+}
+```
 
 #### 技术支持
 

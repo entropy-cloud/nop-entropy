@@ -9,6 +9,7 @@ package io.nop.xlang.xmeta.layout.parse;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.ICell;
@@ -139,8 +140,15 @@ public class LayoutModelParser {
         String id = null;
         String label = null;
         if (StringHelper.isJavaIdentifierStart(sc.cur)) {
-            id = sc.nextXmlName();
+            MutableString buf = sc.useBuf();
+            sc.nextUntil(s-> s.cur == '[' || s.cur == '=' || s.cur == '(', sc::appendToBuf);
+            id = buf.trim().toString();
             sc.skipBlankInLine();
+
+            if(id.indexOf(' ') >= 0){
+                label = id;
+                id = null;
+            }
         }
 
         if (sc.cur == '[') {

@@ -187,21 +187,30 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 
         List<Expression> tagArgs = parseFuncArgs(node, cp, scope);
 
-        CallExpression expr = new CallExpression();
-        expr.setLocation(node.getLocation());
-        expr.setXplLibPath(lib.resourcePath());
+        CallExpression callExpr = new CallExpression();
+        callExpr.setLocation(node.getLocation());
+        callExpr.setXplLibPath(lib.resourcePath());
         Identifier id = Identifier.valueOf(node.getLocation(), tag.getTagFuncName());
         id.setResolvedDefinition(new ResolvedFuncDefinition(compiledTag.functionModel));
-        expr.setCallee(id);
-        expr.setArguments(tagArgs);
+        callExpr.setCallee(id);
+        callExpr.setArguments(tagArgs);
 
         compiledTag.lazyCompile();
 
+        Expression ret = callExpr;
+
         if (tag.isMacro()) {
             // 宏标签需要被立刻执行
-            return ExprEvalHelper.runMacroExpression(expr, scope, tag.isDump());
+            ret = ExprEvalHelper.runMacroExpression(callExpr, scope, tag.isDump());
         }
-        return expr;
+
+        if (tag.isConditionTag()) {
+            Expression body = cp.parseTagBody(node, scope);
+            if (body != null) {
+                ret = XLangASTBuilder.ifStatement(node.getLocation(), callExpr, body);
+            }
+        }
+        return ret;
     }
 
     private void checkUnknownArgs(XNode node) {
@@ -227,7 +236,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             });
         }
 
-        if (tag.getSlot(XLangConstants.SLOT_DEFAULT) == null) {
+        if (!tag.isConditionTag() && tag.getSlot(XLangConstants.SLOT_DEFAULT) == null) {
             node.forEachChild(child -> {
                 if (tag.getSlot(child.getTagName()) == null)
                     throw new NopEvalException(ERR_XPL_UNKNOWN_TAG_SLOT).loc(node.getLocation())
@@ -312,34 +321,36 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             args.add(buildCallLocationVar(node));
         }
 
-        buildSlotArgs(node, args, slot -> {
-            XNode child = slot.getName().equals(XLangConstants.SLOT_DEFAULT) ? (node.hasBody() ? node : null)
-                    : node.childByTag(slot.getName());
+        if (!tag.isConditionTag()) {
+            buildSlotArgs(node, args, slot -> {
+                XNode child = slot.getName().equals(XLangConstants.SLOT_DEFAULT) ? (node.hasBody() ? node : null)
+                        : node.childByTag(slot.getName());
 
-            XLangOutputMode oldMode = scope.getOutputMode();
-            if (child == null) {
-                scope.setOutputMode(getSlotOutputMode(slot, scope));
-                try {
-                    Expression expr = XplParseHelper.parseAttrExpr(node, slot.getVarName(), cp, scope);
-                    return expr;
-                } finally {
-                    scope.setOutputMode(oldMode);
+                XLangOutputMode oldMode = scope.getOutputMode();
+                if (child == null) {
+                    scope.setOutputMode(getSlotOutputMode(slot, scope));
+                    try {
+                        Expression expr = XplParseHelper.parseAttrExpr(node, slot.getVarName(), cp, scope);
+                        return expr;
+                    } finally {
+                        scope.setOutputMode(oldMode);
+                    }
                 }
-            }
 
-            if (slot.getSlotType() == XplSlotType.node) {
-                child = child.cloneInstance();
-                child.freeze(true);
-                return Literal.valueOf(child.getLocation(), child);
-            } else {
-                scope.setOutputMode(getSlotOutputMode(slot, scope));
-                try {
-                    return parseSlotArg(child, slot, cp, scope);
-                } finally {
-                    scope.setOutputMode(oldMode);
+                if (slot.getSlotType() == XplSlotType.node) {
+                    child = child.cloneInstance();
+                    child.freeze(true);
+                    return Literal.valueOf(child.getLocation(), child);
+                } else {
+                    scope.setOutputMode(getSlotOutputMode(slot, scope));
+                    try {
+                        return parseSlotArg(child, slot, cp, scope);
+                    } finally {
+                        scope.setOutputMode(oldMode);
+                    }
                 }
-            }
-        });
+            });
+        }
         return args;
     }
 

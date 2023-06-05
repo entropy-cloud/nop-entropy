@@ -45,7 +45,7 @@
                           outputMode="enum:io.nop.xlang.ast.XLangOutputMode"
                           unknownAttrsVar="var-name" attrsVar="var-name" checkNs="csv-set"
                           callLocationVar="var-name" ignoreUnknownAttrs="!boolean=false"
-                          xdef:bean-tag-prop="tagName" xdef:name="XplTag"
+                          xdef:bean-tag-prop="tagName" xdef:name="XplTag" conditionTag="!boolean=false"
         >
             <description xdef:value="string"/>
 

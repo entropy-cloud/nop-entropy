@@ -1,0 +1,14 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+
+        <Test conditionTag="true">
+            <attr name="a" type="Boolean"/>
+
+            <source>
+                <c:script>
+                    return a;
+                </c:script>
+            </source>
+        </Test>
+    </tags>
+</lib>

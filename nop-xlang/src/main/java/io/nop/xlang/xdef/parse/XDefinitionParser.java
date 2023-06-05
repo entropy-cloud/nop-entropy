@@ -140,6 +140,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         if (checkNs == null)
             checkNs = Collections.emptySet();
 
+        String xdefBase = node.attrText(keys.BASE);
+
         Set<String> propNs = node.attrCsvSet(keys.PROP_NS);
         if (propNs == null)
             propNs = Collections.emptySet();
@@ -170,6 +172,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         def.setXdefCheckNs(checkNs);
         def.setXdefPropNs(propNs);
         def.setXdefBeanPackage(beanPackage);
+        def.setXdefBase(xdefBase);
 
         XNode postParse = node.uniqueChild(keys.POST_PARSE);
         if (postParse != null) {

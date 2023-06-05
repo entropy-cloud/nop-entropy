@@ -132,7 +132,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * xml name: kind
      * 
      */
-    private java.lang.String _kind ;
+    private io.nop.xlang.xmeta.ObjPropKind _kind ;
     
     /**
      *  
@@ -591,12 +591,12 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      *  
      */
     
-    public java.lang.String getKind(){
+    public io.nop.xlang.xmeta.ObjPropKind getKind(){
       return _kind;
     }
 
     
-    public void setKind(java.lang.String value){
+    public void setKind(io.nop.xlang.xmeta.ObjPropKind value){
         checkAllowChange();
         
         this._kind = value;

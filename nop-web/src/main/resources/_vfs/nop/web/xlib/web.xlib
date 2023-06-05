@@ -31,9 +31,11 @@
         <GenFormImpl outputMode="xjson">
             <attr name="formModel" />
             <attr name="objMeta" />
-            <attr name="skipForm" />
             <attr name="genScope" />
-            <attr name="i18nRoot" />
+            <attr name="skipForm" optional="true"/>
+            <attr name="i18nRoot" implicit="true" />
+            <attr name="bizObjName" implicit="true" />
+            <attr name="controlLib" implicit="true"/>
 
             <source>
                 <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FormDefaultAttrs',formModel)"  xpl:skipIf="skipForm">
@@ -56,7 +58,9 @@
             <attr name="gridModel" />
             <attr name="objMeta" />
             <attr name="genScope" />
-            <attr name="i18nRoot" />
+            <attr name="bizObjName" implicit="true" />
+            <attr name="i18nRoot" implicit="true" />
+            <attr name="controlLib" implicit="true" />
 
             <source>
                 <crud xpl:attrs="xpl('thisLib:GridDefaultAttrs', gridModel)"
@@ -744,6 +748,8 @@
             <attr name="api"/>
             <attr name="genScope"/>
             <source><![CDATA[
+                if(!api) return null;
+
                 return _.filterNull({...api,
                     url:api.url.$renderTemplateForScope("{@","}",genScope),
                     data: api.withFormData ? genScope.formData : api.data

@@ -51,6 +51,13 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
     private java.util.Set<java.lang.String> _checkNs ;
     
     /**
+     *  
+     * xml name: conditionTag
+     * 
+     */
+    private boolean _conditionTag  = false;
+    
+    /**
      *  是否废弃
      * xml name: deprecated
      * 是否标签已经被废弃。如果已经被废弃，则调用时会打印出调试信息
@@ -286,6 +293,25 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
         checkAllowChange();
         
         this._checkNs = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: conditionTag
+     *  
+     */
+    
+    public boolean isConditionTag(){
+      return _conditionTag;
+    }
+
+    
+    public void setConditionTag(boolean value){
+        checkAllowChange();
+        
+        this._conditionTag = value;
            
     }
 
@@ -665,6 +691,7 @@ public abstract class _XplTag extends io.nop.core.resource.component.AbstractCom
         out.put("bodyType",this.getBodyType());
         out.put("callLocationVar",this.getCallLocationVar());
         out.put("checkNs",this.getCheckNs());
+        out.put("conditionTag",this.isConditionTag());
         out.put("deprecated",this.isDeprecated());
         out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());
