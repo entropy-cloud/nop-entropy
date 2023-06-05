@@ -40,6 +40,8 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 [写给程序员的可逆计算理论辨析](docs/theory/reversible-computation-for-programmers.md)
 
+[写给程序员的可逆计算理论辨析补遗](docs/theory/reversible-computation-for-programmers2.md)
+
 #### 快速开始
 
 [开发示例](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
@@ -145,7 +147,7 @@ java -Dquarkus.profile=dev -jar nop-quarkus-demo-2.0.0-SNAPSHOT-runner.jar
 
 #### 框架集成
 
-nop-entroy不依赖于spring或者quarkus框架，也不依赖于特定数据库，因此它很容易集成在第三方应用中使用。
+nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据库，因此它很容易集成在第三方应用中使用。
 
 > 核心引擎的功能并不依赖于数据库，可以以纯内存的方式运行。所有存储相关的代码都已经剥离到独立的dao模块中，例如nop-auth-dao，nop-sys-dao等。
 
