@@ -1,4 +1,4 @@
-<lib x:schema="/nop/schema/xlib.xdef" defaultOutputMode="node"
+<lib x:schema="/nop/schema/xlib.xdef"
      xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:thisLib="thisLib" xmlns:c="c" xmlns:xpl="xpl">
 
     <tags>
@@ -13,7 +13,7 @@
             </source>
         </DefaultPostExtends>
 
-        <JsonComponentSupport>
+        <JsonComponentSupport  outputMode="node">
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点
             -->
@@ -60,7 +60,7 @@
         <!--
         识别use-ext-field配置，自动生成扩展字段所需要的关联属性配置
         -->
-        <ExtFieldsSupport>
+        <ExtFieldsSupport  outputMode="node">
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点
             -->
@@ -101,7 +101,7 @@
             </source>
         </ExtFieldsSupport>
 
-        <GenLocalExtFieldSupport>
+        <GenLocalExtFieldSupport  outputMode="node">
             <attr name="entityNode" />
             <attr name="genExtTable">
                 <description>是否自动生成扩展表定义</description>
@@ -160,7 +160,7 @@
             </source>
         </GenLocalExtFieldSupport>
 
-        <GenFromExcel>
+        <GenFromExcel  outputMode="node">
             <attr name="path" type="string"/>
             <source>
 

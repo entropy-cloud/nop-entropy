@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" defaultOutputMode="text"
+<lib x:schema="/nop/schema/xlib.xdef"
      xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib" xmlns:graphql="graphql">
 
     <tags>
