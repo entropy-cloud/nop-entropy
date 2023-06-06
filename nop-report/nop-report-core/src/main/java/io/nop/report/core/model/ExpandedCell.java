@@ -76,7 +76,7 @@ public class ExpandedCell implements ICellView {
     private Map<String, Object> computedValues;
 
     public String toString() {
-        return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandValue() + ",text=" + getText() + "]";
+        return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandIndex() + ",text=" + getText() + "]";
     }
 
     public Object getComputed(String key, Function<ExpandedCell, Object> fn) {
