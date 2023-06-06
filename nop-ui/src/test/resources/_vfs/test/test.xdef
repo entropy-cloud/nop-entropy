@@ -1,0 +1,11 @@
+<meta x:schema="/nop/schema/xdef.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      xdef:bean-package="io.nop.xlang.xmeta.impl" x:extends="/nop/schema/xmeta.xdef" xdef:base="/nop/schema/xmeta.xdef"
+      xdef:name="ObjMetaImpl">
+    <grids xdef:key-attr="id" xdef:body-type="list">
+        <grid id="!xml-name" xdef:ref="/nop/schema/xui/grid.xdef"/>
+    </grids>
+
+    <forms xdef:key-attr="id" xdef:body-type="list">
+        <form id="!xml-name" xdef:ref="/nop/schema/xui/form.xdef" />
+    </forms>
+</meta>

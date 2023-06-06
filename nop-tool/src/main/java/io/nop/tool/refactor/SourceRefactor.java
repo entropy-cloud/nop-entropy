@@ -78,7 +78,7 @@ public class SourceRefactor {
         refactorResource(new FileResource(sourceFile), new FileResource(targetFile));
     }
 
-    public void refactorDir(File sourceDir, Predicate<String> filter, File targetDir) {
+    public void refactorDir(File sourceDir, Predicate<File> filter, File targetDir) {
         if (sourceDir.isDirectory()) {
             File[] subs = sourceDir.listFiles();
             if (subs != null) {
@@ -87,7 +87,7 @@ public class SourceRefactor {
                 }
             }
         } else {
-            if (filter == null || filter.test(sourceDir.getAbsolutePath())) {
+            if (filter == null || filter.test(sourceDir)) {
                 refactorFile(sourceDir, targetDir);
             }
         }
