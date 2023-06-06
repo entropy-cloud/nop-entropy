@@ -9,7 +9,6 @@
   @interfaces [接口列表] 标签库提供了一组函数，它们满足哪些接口要求
 -->
 <lib x:schema="/nop/schema/xdef.xdef" displayName="string"
-     defaultOutputMode="enum:io.nop.xlang.ast.XLangOutputMode=none"
      interfaces="generic-type-list" namespace="ns-name"
      xdef:bean-package="io.nop.xlang.xpl.xlib"
      xdef:name="XplTagLib" xdef:bean-extends-type="io.nop.xlang.xdsl.AbstractDslModel"

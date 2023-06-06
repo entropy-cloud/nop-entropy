@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [42:10:0:0]/nop/schema/xlib.xdef <p>
+ * generate from [41:10:0:0]/nop/schema/xlib.xdef <p>
  * 自定义标签具有返回值和输出文本。所有解析器未识别的没有名字空间的标签都会被直接输出。标签的返回值可以通过xpl:return参数获取，例如
  * <my:MyTag c:return="x" />
  */

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" defaultOutputMode="text"
+<lib x:schema="/nop/schema/xlib.xdef"
      xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib">
 
     <tags>
-        <CreateTables>
+        <CreateTables outputMode="text">
             <attr name="tables" type="Collection&lt;? extends io.nop.orm.model.IEntityModel>"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
             <attr name="allNullable" type="boolean" optional="true"/>
@@ -27,7 +27,7 @@
             </source>
         </CreateTables>
 
-        <DropTables>
+        <DropTables outputMode="text">
             <attr name="tables" type="Collection&lt;? extends io.nop.orm.model.IEntityModel>"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
             <attr name="ifExists" type="Boolean" optional="true"/>
@@ -39,7 +39,7 @@
             </source>
         </DropTables>
 
-        <CreateTable>
+        <CreateTable outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
             <attr name="allNullable" type="boolean" optional="true">
@@ -66,7 +66,7 @@
             </source>
         </CreateTable>
 
-        <DropTable>
+        <DropTable outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
             <attr name="ifExists" type="Boolean" optional="true"/>
@@ -75,7 +75,7 @@
             </source>
         </DropTable>
 
-        <ColSqlType>
+        <ColSqlType outputMode="text">
             <attr name="col" implicit="true"/>
             <attr name="dialect" implicit="true"/>
             <source>
@@ -83,7 +83,7 @@
             </source>
         </ColSqlType>
 
-        <ColNullDef>
+        <ColNullDef outputMode="text">
             <attr name="col" implicit="true"/>
             <attr name="dialect" implicit="true"/>
             <attr name="allNullable" implicit="true" />
@@ -100,11 +100,11 @@
             </source>
         </ColCommentDef>
 
-        <DefaultValue>
+        <DefaultValue outputMode="text">
             <source></source>
         </DefaultValue>
 
-        <AddComment>
+        <AddComment outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 

@@ -44,6 +44,7 @@
               readable="!boolean=true"
               published="!boolean=true" allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
+              xml:mapper="string" graphql:mapper="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
               graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
         >

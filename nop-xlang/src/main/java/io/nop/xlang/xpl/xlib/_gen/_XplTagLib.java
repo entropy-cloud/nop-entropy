@@ -16,13 +16,6 @@ import io.nop.core.lang.json.IJsonHandler;
 public abstract class _XplTagLib extends io.nop.xlang.xdsl.AbstractDslModel {
     
     /**
-     *  缺省输出模式
-     * xml name: defaultOutputMode
-     * 设置xpl标签的缺省输出模式
-     */
-    private io.nop.xlang.ast.XLangOutputMode _defaultOutputMode ;
-    
-    /**
      *  描述信息
      * xml name: description
      * 
@@ -56,25 +49,6 @@ public abstract class _XplTagLib extends io.nop.xlang.xdsl.AbstractDslModel {
      * 
      */
     private java.util.Map<java.lang.String,io.nop.xlang.xpl.xlib.XplTag> _tags = java.util.Collections.emptyMap();
-    
-    /**
-     * 缺省输出模式
-     * xml name: defaultOutputMode
-     *  设置xpl标签的缺省输出模式
-     */
-    
-    public io.nop.xlang.ast.XLangOutputMode getDefaultOutputMode(){
-      return _defaultOutputMode;
-    }
-
-    
-    public void setDefaultOutputMode(io.nop.xlang.ast.XLangOutputMode value){
-        checkAllowChange();
-        
-        this._defaultOutputMode = value;
-           
-    }
-
     
     /**
      * 描述信息
@@ -198,7 +172,6 @@ public abstract class _XplTagLib extends io.nop.xlang.xdsl.AbstractDslModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("defaultOutputMode",this.getDefaultOutputMode());
         out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());
         out.put("interfaces",this.getInterfaces());

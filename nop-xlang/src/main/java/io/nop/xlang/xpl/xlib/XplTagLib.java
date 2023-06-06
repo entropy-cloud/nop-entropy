@@ -11,6 +11,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FreezeHelper;
 import io.nop.api.core.util.INeedInit;
 import io.nop.xlang.ast.ImportAsDeclaration;
+import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.xpl.IXplTagLib;
 import io.nop.xlang.xpl.xlib._gen._XplTagLib;
 
@@ -58,7 +59,7 @@ public class XplTagLib extends _XplTagLib implements IXplTagLib, INeedInit {
         for (XplTag tag : getTags().values()) {
             tag.setTagFuncName('<' + resourcePath() + '#' + tag.getTagName() + '>');
             if (tag.getOutputMode() == null)
-                tag.setOutputMode(getDefaultOutputMode());
+                tag.setOutputMode(XLangOutputMode.none);
 
             for (XplTagSlot slot : tag.getSlots()) {
                 slot.setSlotFuncName("<" + resourcePath() + '#' + tag.getTagName() + "/slot[" + slot.getName() + "]>");

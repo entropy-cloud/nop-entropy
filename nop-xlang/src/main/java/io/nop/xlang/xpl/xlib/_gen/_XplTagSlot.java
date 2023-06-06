@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [78:14:0:0]/nop/schema/xlib.xdef <p>
+ * generate from [77:14:0:0]/nop/schema/xlib.xdef <p>
  * 在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
