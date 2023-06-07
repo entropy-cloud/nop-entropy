@@ -10,6 +10,7 @@ package io.nop.cli.commands;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.api.XLang;
@@ -21,6 +22,7 @@ import picocli.CommandLine;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +46,6 @@ public class CliRunCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"-i", "--interval"}, description = "循环运行的时间间隔")
     int interval;
-
 
     public Integer call() {
         if (!file.exists()) {

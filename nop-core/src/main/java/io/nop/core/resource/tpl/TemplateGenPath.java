@@ -115,4 +115,9 @@ public class TemplateGenPath {
 
         return true;
     }
+
+    Object getVarValue(IVariableScope scope, String varName){
+        String name = StringHelper.replace(varName,"___",":");
+        return BeanTool.getValueByPath(scope, varName);
+    }
 }
