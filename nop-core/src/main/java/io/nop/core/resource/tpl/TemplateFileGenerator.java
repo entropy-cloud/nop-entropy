@@ -339,7 +339,7 @@ public class TemplateFileGenerator {
                 return JsonTool.serialize(bean, true);
             } catch (Exception e) {
                 // ignore
-                LOG.debug("nop.err.resource.gen.invalid-json:\n{}", text, e);
+                LOG.debug("nop.err.resource.gen.invalid-json:path={},\n{}", resource.getPath(), text, e);
                 return text;
             }
         }
@@ -357,7 +357,7 @@ public class TemplateFileGenerator {
                 node.saveToWriter(sb);
                 return sb.toString();
             } catch (Exception e) {
-                LOG.debug("nop.err.resource.gen.invalid-xml:\n{}", text, e);
+                LOG.debug("nop.err.resource.gen.invalid-xml:path={},\n{}", resource.getPath(), text, e);
                 return text;
             }
         }

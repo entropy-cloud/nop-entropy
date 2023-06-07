@@ -89,14 +89,14 @@ public class TemplateGenPath {
             if (varName.startsWith("!")) {
                 varName = varName.substring(1);
                 if (varName.startsWith("!")) {
-                    value = BeanTool.getValueByPath(scope, varName.substring(1));
+                    value = getVarValue(scope, varName.substring(1));
                     value = ConvertHelper.toTruthy(value);
                 } else {
-                    value = BeanTool.getValueByPath(scope, varName);
+                    value = getVarValue(scope, varName);
                     value = ConvertHelper.toFalsy(value);
                 }
             } else {
-                value = BeanTool.getValueByPath(scope, varName);
+                value = getVarValue(scope, varName);
             }
 
             // bool变量作为开关使用，false表示不生成目录下的内容，而true则表示生成
@@ -114,5 +114,10 @@ public class TemplateGenPath {
             return false;
 
         return true;
+    }
+
+    Object getVarValue(IVariableScope scope, String varName){
+        String name = StringHelper.replace(varName,"___",":");
+        return BeanTool.getValueByPath(scope, name);
     }
 }
