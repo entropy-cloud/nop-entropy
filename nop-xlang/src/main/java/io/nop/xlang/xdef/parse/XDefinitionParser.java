@@ -27,6 +27,7 @@ import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdef.impl.XDefComment;
 import io.nop.xlang.xdef.impl.XDefHelper;
 import io.nop.xlang.xdef.impl.XDefNode;
+import io.nop.xlang.xdef.impl.XDefProp;
 import io.nop.xlang.xdef.impl.XDefRefResolver;
 import io.nop.xlang.xdef.impl.XDefinition;
 import io.nop.xlang.xdsl.AbstractDslParser;
@@ -387,6 +388,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
             });
         }
 
+        parseXdefChildren(node, defNode);
+
         XNode unknownTag = node.childByTag(keys.UNKNOWN_TAG);
         if (unknownTag != null) {
             defNode.setXdefUnknownTag(parseNode(unknownTag, false, beanPackage, parentKeyAttr));
@@ -416,6 +419,24 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
 
         validateNode(defNode, node);
         return defNode;
+    }
+
+    private void parseXdefChildren(XNode node, XDefNode defNode) {
+        node.forEachChild(child -> {
+            if (child.getTagName().equals(keys.PROP)) {
+                XDefProp prop = new XDefProp();
+                prop.setLocation(child.getLocation());
+
+                child.forEachAttr((name, vl) -> {
+                    if (name.equals("name")) {
+                        prop.setName(vl.asString());
+                    } else {
+                        prop.prop_set(name, vl.asString());
+                    }
+                });
+                defNode.addXdefProp(prop);
+            }
+        });
     }
 
     private String genId() {

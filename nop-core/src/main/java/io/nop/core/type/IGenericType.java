@@ -7,10 +7,10 @@
  */
 package io.nop.core.type;
 
-import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.type.utils.GenericTypeHelper;
 
@@ -176,7 +176,11 @@ public interface IGenericType extends Serializable, Type {
     }
 
     default boolean isDataBean() {
-        return getRawClass().isAnnotationPresent(DataBean.class);
+        return ClassHelper.isDataBean(getRawClass());
+    }
+
+    default boolean isAnyType() {
+        return this == PredefinedGenericTypes.ANY_TYPE;
     }
 
     /**

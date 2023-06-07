@@ -61,7 +61,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     public void ${prop.methodSetName}(${prop.schema.type} value){
         checkAllowChange();
         <c:choose>
-           <when test="${prop.schema.isKeyedListType()}">
+           <when test="${prop.schema.isKeyedListType()}">${$.checkArgument(!prop.componentType.anyType,"not define beanClass for prop:"+objSchema.simpleClassName+'.'+prop.name)}
         this._${prop.name} = KeyedList.fromList(value, ${prop.componentType}::${prop.schema.keyProp.$methodGet()});
            </when>
            <otherwise>

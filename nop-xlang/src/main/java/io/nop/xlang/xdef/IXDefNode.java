@@ -182,6 +182,8 @@ public interface IXDefNode extends IComponentModel, IFreezable {
 
     String getXdefBeanUnknownChildrenProp();
 
+    List<? extends IXDefProp> getXdefProps();
+
     /**
      * 是否从refNode继承了xdef:value配置
      */

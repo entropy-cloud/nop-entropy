@@ -15,6 +15,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNodeValuePosition;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -24,6 +25,7 @@ import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.IXDefProp;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefBodyType;
 import io.nop.xlang.xdef.XDefOverride;
@@ -285,6 +287,18 @@ public class XDefToObjMeta {
             }
         } else {
             props.add(bodyToProp(node));
+        }
+
+        for (IXDefProp propNode : node.getXdefProps()) {
+            String name = propNode.getName();
+
+            ObjPropMetaImpl propMeta = props.getByKey(name);
+            if (propMeta != null) {
+                for (String propName : propNode.prop_names()) {
+                    Object value = propNode.prop_get(propName);
+                    BeanTool.instance().setProperty(propMeta, propName, value);
+                }
+            }
         }
 
         return props;

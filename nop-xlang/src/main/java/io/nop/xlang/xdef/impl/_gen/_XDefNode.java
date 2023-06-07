@@ -214,6 +214,13 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: xdef:prop
+     * xdef转换为objMeta时，objPropMeta上存在的扩展属性
+     */
+    private KeyedList<io.nop.xlang.xdef.impl.XDefProp> _xdefProps = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: xdef:ref
      * 引用本文件中定义的xdef片段或者外部xdef定义。 引用相当于是继承已有定义。如果再增加属性或者子节点则表示在已有定义基础上扩展。
      */
@@ -832,6 +839,51 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
+     * xml name: xdef:prop
+     *  xdef转换为objMeta时，objPropMeta上存在的扩展属性
+     */
+    
+    public java.util.List<io.nop.xlang.xdef.impl.XDefProp> getXdefProps(){
+      return _xdefProps;
+    }
+
+    
+    public void setXdefProps(java.util.List<io.nop.xlang.xdef.impl.XDefProp> value){
+        checkAllowChange();
+        
+        this._xdefProps = KeyedList.fromList(value, io.nop.xlang.xdef.impl.XDefProp::getName);
+           
+    }
+
+    
+    public io.nop.xlang.xdef.impl.XDefProp getXdefProp(String name){
+        return this._xdefProps.getByKey(name);
+    }
+
+    public boolean hasXdefProp(String name){
+        return this._xdefProps.containsKey(name);
+    }
+
+    public void addXdefProp(io.nop.xlang.xdef.impl.XDefProp item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xdef.impl.XDefProp> list = this.getXdefProps();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xdef.impl.XDefProp::getName);
+            setXdefProps(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_xdefProps(){
+        return this._xdefProps.keySet();
+    }
+
+    public boolean hasXdefProps(){
+        return !this._xdefProps.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: xdef:ref
      *  引用本文件中定义的xdef片段或者外部xdef定义。 引用相当于是继承已有定义。如果再增加属性或者子节点则表示在已有定义基础上扩展。
      */
@@ -977,6 +1029,8 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
             
            this._xdefDefines = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefDefines);
             
+           this._xdefProps = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefProps);
+            
            this._xdefUnknownTag = io.nop.api.core.util.FreezeHelper.deepFreeze(this._xdefUnknownTag);
             
         }
@@ -1013,6 +1067,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         out.put("xdefMandatory",this.getXdefMandatory());
         out.put("xdefName",this.getXdefName());
         out.put("xdefOrderAttr",this.getXdefOrderAttr());
+        out.put("xdefProps",this.getXdefProps());
         out.put("xdefRef",this.getXdefRef());
         out.put("xdefRefResolved",this.getXdefRefResolved());
         out.put("xdefSupportExtends",this.getXdefSupportExtends());

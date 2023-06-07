@@ -20,6 +20,7 @@ package io.nop.commons.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.nop.api.core.annotations.core.NoReflection;
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.lang.IClassLoader;
@@ -759,5 +760,9 @@ public class ClassHelper {
         } else {
             return false;
         }
+    }
+
+    public static boolean isDataBean(Class<?> clazz) {
+        return clazz.isAnnotationPresent(DataBean.class) || isVertxDataObject(clazz);
     }
 }

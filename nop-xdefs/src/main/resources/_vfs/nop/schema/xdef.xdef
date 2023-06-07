@@ -66,7 +66,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
                  xdef:bean-extends-type="generic-type" xdef:bean-implements-types="generic-type-list"
     >
         <!--
-        这里的meta:unknown-tag表示节点下允许任意名称的子节点。但是xdef名字空间已经设置为check-ns，因此这里的meta:unknown-tag
+        这里的meta:unknown-tag表示节点下允许任意名称的子节点。因为xdef名字空间已经设置为check-ns，所以这里的meta:unknown-tag
         不会匹配xdef:unknown-tag节点。
         -->
         <meta:unknown-tag meta:ref="XDefNode"/>
@@ -76,6 +76,11 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
        meta:unknown-tag是无法匹配xdef名字空间的，xdef名字空间中的所有属性和节点都必须明确声明。
         -->
         <xdef:unknown-tag meta:ref="XDefNode"/>
+
+        <!--
+        xdef转换为objMeta时，objPropMeta上存在的扩展属性
+        -->
+        <xdef:prop name="!xml-name" meta:unknown-attr="string" meta:unique-attr="name" meta:name="XDefProp"/>
 
         <!--
            定义xdef片段，可以通过xdef:ref来引用

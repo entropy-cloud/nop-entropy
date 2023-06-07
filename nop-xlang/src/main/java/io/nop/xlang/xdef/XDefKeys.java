@@ -79,6 +79,8 @@ public class XDefKeys implements Serializable {
     public final String EXPORT_EXPR;
     public final String IMPORT_EXPR;
 
+    public final String PROP;
+
     public final String UNIT;
     // public final String SIMPLE;
 
@@ -122,7 +124,7 @@ public class XDefKeys implements Serializable {
         NAME = getFullName(ns, "name");
         REF = getFullName(ns, "ref");
         REF_RESOLVED = getFullName(ns, "ref-resolved");
-        BASE = getFullName(ns,"base");
+        BASE = getFullName(ns, "base");
         ALLOW_MULTIPLE = getFullName(ns, "allow-multiple");
         MANDATORY = getFullName(ns, "mandatory");
         VALUE = getFullName(ns, "value");
@@ -135,6 +137,8 @@ public class XDefKeys implements Serializable {
         // SIMPLE = getFullName(ns, "simple");
 
         ID = getFullName(ns, "id");
+
+        PROP = getFullName(ns, "prop");
 
         GETTER = getFullName(ns, "getter");
         SETTER = getFullName(ns, "setter");
@@ -158,9 +162,9 @@ public class XDefKeys implements Serializable {
         ROOT_ATTR_NAMES = CollectionHelper.immutableSet(rootAttrs);
 
         CHILD_NAMES = CollectionHelper.buildImmutableSet(DEFINE, UNIT, UNKNOWN_TAG, GETTER, SETTER, IMPORT_EXPR,
-                EXPORT_EXPR);
+                EXPORT_EXPR, PROP);
         ROOT_CHILD_NAMES = CollectionHelper.buildImmutableSet(DEFINE, UNKNOWN_TAG, GETTER, SETTER, IMPORT_EXPR,
-                EXPORT_EXPR, POST_PARSE);
+                EXPORT_EXPR, POST_PARSE, PROP);
     }
 
     private static String getFullName(String ns, String name) {

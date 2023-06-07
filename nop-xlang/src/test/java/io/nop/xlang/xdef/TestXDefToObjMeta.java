@@ -10,6 +10,7 @@ package io.nop.xlang.xdef;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNodeValuePosition;
 import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,5 +34,12 @@ public class TestXDefToObjMeta {
         IObjMeta objMeta = SchemaLoader.loadXMeta("/test/test2.xdef");
         objMeta.toNode().dump();
         assertEquals(XNodeValuePosition.child, objMeta.getProp("source").getXmlPos());
+    }
+
+    @Test
+    public void testXdefProp() {
+        IObjMeta objMeta = SchemaLoader.loadXMeta("/test/test_ext.xdef");
+        IObjPropMeta propMeta = objMeta.getProp("filter");
+        assertEquals("xml", propMeta.prop_get("graphql:mapper"));
     }
 }
