@@ -17,4 +17,5 @@ public interface IRowNumberRecord {
     long getRecordRowNumber();
 
     void setRecordRowNumber(long rowNumber);
+
 }

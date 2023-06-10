@@ -74,7 +74,7 @@ public class CellRowExpander extends AbstractCellExpander {
         }
 
         int incSpan = expandSpan * (expandCount - 1);
-        if (xptModel.getExpandInplaceCount() > 0) {
+        if (xptModel != null && xptModel.getExpandInplaceCount() != null && xptModel.getExpandInplaceCount() > 0) {
             incSpan -= xptModel.getExpandInplaceCount() - 1;
         }
 

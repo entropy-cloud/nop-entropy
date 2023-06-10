@@ -245,9 +245,10 @@ public class TemplateFileGenerator {
 
             if (dependencyManager != null && !forceOverride) {
                 dependencyManager.runWhenDependsChanged(targetFile.getPath(), () -> {
-                    dependencyManager.traceDepends(resource.getPath());
-                    renderTemplate(resource, targetFile, scope);
-                    dependencyManager.traceDepends(targetFile.getPath());
+                    dependencyManager.collectDepends(targetFile.getPath(), () -> {
+                        renderTemplate(resource, targetFile, scope);
+                        return null;
+                    });
                     return null;
                 });
             } else {

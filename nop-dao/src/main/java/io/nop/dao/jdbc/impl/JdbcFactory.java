@@ -35,6 +35,11 @@ public class JdbcFactory implements IJdbcTemplateFactory {
         this.daoMetrics = daoMetrics;
     }
 
+    public static IJdbcTemplate newJdbcTemplateFor(DataSource dataSource) {
+        JdbcFactory factory = new JdbcFactory();
+        return factory.newJdbcTemplate(factory.newTransactionTemplate(dataSource));
+    }
+
     public IJdbcTemplate newJdbcTemplate(ITransactionTemplate txn) {
         JdbcTemplateImpl jdbc = new JdbcTemplateImpl();
         jdbc.setCacheProvider(cacheProvider);

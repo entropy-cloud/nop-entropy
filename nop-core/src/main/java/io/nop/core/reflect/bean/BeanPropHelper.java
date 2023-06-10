@@ -17,8 +17,8 @@ import static io.nop.core.CoreErrors.ARG_PROP_PATH;
 import static io.nop.core.CoreErrors.ERR_REFLECT_SET_PROP_FAIL;
 
 public class BeanPropHelper {
-    private static boolean isSimple(String path) {
-        return path.indexOf('.') < 0 || path.indexOf(':') > 0;
+    public static boolean isSimple(String path) {
+        return path.indexOf('.') < 0;
     }
 
     public static Object getIn(IBeanTool beanTool, Object original, String path) {

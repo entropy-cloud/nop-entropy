@@ -6,10 +6,15 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
 /i18n/en/nop-core.i18n.yaml
+/meta/test/NopAuthUser.xmeta
+/meta/test/_NopAuthUser.xmeta
 /nop/aop/nop-api-core.annotations
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-report.beans
+/nop/biz/xlib/biz!check.xlib
+/nop/biz/xlib/biz!filter.xlib
+/nop/biz/xlib/biz-gen.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
 /nop/codegen/xlib/web-gen.xlib
@@ -47,6 +52,7 @@
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/imp/api.imp.xml
+/nop/graphql/imp/template.api.xlsx
 /nop/graphql/introspection.graphql
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
@@ -226,4 +232,7 @@
 /nop/templates/xdsl/@lib/gen-xdsl.xlib
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/_gen/_{objSchema.simpleClassName}.java.xgen
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/{objSchema.simpleClassName}.java.xgen
+/nop/test/meta-web/@init.xrun
+/nop/test/meta-web/src/resources/_vfs/{metaModel.name}/_main.page.json5.xgen
+/nop/test/meta-web/src/resources/_vfs/{metaModel.name}/main.page.json5.xgen
 /xdef.register-model.xml

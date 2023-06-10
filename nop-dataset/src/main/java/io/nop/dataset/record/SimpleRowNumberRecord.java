@@ -9,11 +9,11 @@ package io.nop.dataset.record;
 
 public class SimpleRowNumberRecord implements IRowNumberRecord {
     private long rowNumber;
-    private Object data;
+    private Object rowData;
 
-    public SimpleRowNumberRecord(long rowNumber, Object data) {
+    public SimpleRowNumberRecord(long rowNumber, Object rowData) {
         this.rowNumber = rowNumber;
-        this.data = data;
+        this.rowData = rowData;
     }
 
     @Override
@@ -26,11 +26,11 @@ public class SimpleRowNumberRecord implements IRowNumberRecord {
         this.rowNumber = recordLine;
     }
 
-    public Object getData() {
-        return data;
+    public Object getRecordRowData() {
+        return rowData;
     }
 
-    public void setData(Object data) {
-        this.data = data;
+    public void setRecordRowData(Object rowData) {
+        this.rowData = rowData;
     }
 }

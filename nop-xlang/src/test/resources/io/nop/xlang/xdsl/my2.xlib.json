@@ -1,12 +1,12 @@
 {
   "xmlns:x": "/nop/schema/xdsl.xdef",
-  "defaultOutputMode": "none",
   "tags": {
     "Add": {
       "tagName": "Add",
       "macro": false,
       "internal": false,
       "deprecated": false,
+      "conditionTag": false,
       "dump": false,
       "ignoreUnknownAttrs": false,
       "attrs": [
@@ -35,6 +35,7 @@
       "macro": false,
       "internal": false,
       "deprecated": false,
+      "conditionTag": false,
       "dump": false,
       "ignoreUnknownAttrs": false,
       "attrs": [

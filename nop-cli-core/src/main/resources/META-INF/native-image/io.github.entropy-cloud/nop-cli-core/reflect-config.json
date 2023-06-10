@@ -3761,6 +3761,13 @@
         "name": "defineLoopVar",
         "parameterTypes": [
           "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "defineLoopVar",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.util.function.Function"
         ]
@@ -5726,6 +5733,10 @@
         "parameterTypes": [
           "io.nop.core.resource.component.IResourceDependencyManager"
         ]
+      },
+      {
+        "name": "withDependsCache",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.core.resource.tpl.TemplateFileGenerator",
@@ -14724,6 +14735,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isConditionTag",
+        "parameterTypes": []
+      },
+      {
         "name": "isDeprecated",
         "parameterTypes": []
       },
@@ -14785,6 +14800,12 @@
         "name": "setCheckNs",
         "parameterTypes": [
           "java.util.Set"
+        ]
+      },
+      {
+        "name": "setConditionTag",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

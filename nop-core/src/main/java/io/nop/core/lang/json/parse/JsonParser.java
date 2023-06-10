@@ -103,11 +103,9 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
         if (handler == null)
             handler = new BuildObjectJsonHandler();
 
-        sc.skipBlank();
+        skipBlankAndComment(sc);
         handler.beginDoc(getEncoding());
 
-        if (!strictMode)
-            parseComment(sc);
         switch (sc.cur) {
             case '[':
                 array(sc);
@@ -131,8 +129,6 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
     }
 
     void object(TextScanner sc) {
-        if (!strictMode)
-            parseComment(sc);
         switch (sc.cur) {
             case '[':
                 array(sc);
@@ -169,25 +165,30 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
 
     Object nullExpr(TextScanner sc) {
         sc.match("null");
+        skipComment(sc);
         return null;
     }
 
     Object trueExpr(TextScanner sc) {
         sc.match("true");
+        skipComment(sc);
         return Boolean.TRUE;
     }
 
     Object falseExpr(TextScanner sc) {
         sc.match("false");
+        skipComment(sc);
         return Boolean.FALSE;
     }
 
     void array(TextScanner sc) {
         SourceLocation loc = sc.location();
         sc.match('[');
+        skipComment(sc);
         handler.beginArray(loc);
 
         if (sc.tryMatch(']')) {
+            skipComment(sc);
             handler.endArray();
             return;
         }
@@ -202,6 +203,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
             object(sc);
         }
         sc.match(']');
+        skipComment(sc);
 
         decParseDepth();
 
@@ -213,7 +215,9 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
         handler.beginObject(loc);
 
         sc.match('{');
+        skipComment(sc);
         if (sc.tryMatch('}')) {
+            skipComment(sc);
             handler.endObject();
             return;
         }
@@ -223,6 +227,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
         String key = key(sc);
         handler.key(key);
         sc.match(':');
+        skipComment(sc);
 
         object(sc);
         while (matchComma(sc)) {
@@ -231,9 +236,11 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
             key = key(sc);
             handler.key(key);
             sc.match(':');
+            skipComment(sc);
             object(sc);
         }
         sc.match('}');
+        skipComment(sc);
 
         decParseDepth();
         handler.endObject();
@@ -241,27 +248,35 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
 
     boolean matchComma(TextScanner sc) {
         if (sc.tryConsume(',')) {
-            sc.skipBlank();
+            skipBlankAndComment(sc);
             return true;
         }
         return false;
+    }
+
+    void skipBlankAndComment(TextScanner sc){
+        sc.skipBlank();
+        skipComment(sc);
+    }
+
+    void skipComment(TextScanner sc){
+        if(!strictMode){
+            parseComment(sc);
+        }
     }
 
     String key(TextScanner sc) {
         if (strictMode && sc.cur != '\"')
             throw sc.newError(ERR_JSON_STRICT_MODEL_KEY_NOT_DOUBLE_QUOTED);
 
-        if (!strictMode)
-            parseComment(sc);
-
         if (sc.cur == '\'' || sc.cur == '\"') {
             String str = sc.nextJavaString();
-            sc.skipBlank();
+            skipBlankAndComment(sc);
             return tryIntern(str);
         }
 
         String str = tryIntern(sc.nextJavaVar());
-        sc.skipBlank();
+        skipBlankAndComment(sc);
         return str;
     }
 
@@ -273,13 +288,13 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
         if (strictMode && sc.cur != '\"')
             throw sc.newError(ERR_JSON_STRICT_MODEL_STRING_NOT_DOUBLE_QUOTED);
         String str = sc.nextJavaString();
-        sc.skipBlank();
+        skipBlankAndComment(sc);
         return str;
     }
 
     Number number(TextScanner sc) {
         Number n = sc.nextNumber();
-        sc.skipBlank();
+        skipBlankAndComment(sc);
         return n;
     }
 }
