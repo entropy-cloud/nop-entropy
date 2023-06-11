@@ -31,6 +31,10 @@ public class BeanContainer {
         _instance = container;
     }
 
+    public static <T> T getBeanByType(Class<T> beanClass) {
+        return _instance.getBeanByType(beanClass);
+    }
+
     public static Object tryGetBean(String beanName) {
         if (_instance == null)
             return null;

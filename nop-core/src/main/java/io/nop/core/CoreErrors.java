@@ -16,6 +16,8 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface CoreErrors {
     String ARG_NODE = "node";
     String ARG_VAR_NAME = "varName";
+
+    String ARG_GLOBAL_VARS = "globalVars";
     String ARG_SRC_NAME = "srcName";
     String ARG_PARENTS = "parents";
     String ARG_RESOURCE = "resource";

@@ -51,7 +51,7 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
         if (list.isEmpty()) {
             return list;
         }
-        
+
         lastEntity = list.get(list.size() - 1);
         return list;
     }

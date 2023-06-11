@@ -81,4 +81,14 @@ public class NopCliTasks {
         app.factory = factory;
         assertEquals(-101, app.run(args));
     }
+
+    @Test
+    public void testGenDao() {
+        String[] args = new String[]{"gen", "../nop-sys/model/nop-sys.orm.xlsx",
+                "-t", "/nop/templates/orm-dao"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.factory = factory;
+        assertEquals(0, app.run(args));
+    }
 }

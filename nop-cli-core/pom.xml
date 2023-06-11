@@ -106,15 +106,15 @@
             <artifactId>mysql-connector-java</artifactId>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>com.oracle.ojdbc</groupId>-->
-        <!--            <artifactId>ojdbc8</artifactId>-->
-        <!--        </dependency>-->
+        <dependency>
+            <groupId>com.oracle.ojdbc</groupId>
+            <artifactId>ojdbc8</artifactId>
+        </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>org.postgresql</groupId>-->
-        <!--            <artifactId>postgresql</artifactId>-->
-        <!--        </dependency>-->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.quarkus</groupId>

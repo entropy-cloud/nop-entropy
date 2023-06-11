@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+import static io.nop.core.CoreErrors.ARG_GLOBAL_VARS;
 import static io.nop.core.CoreErrors.ARG_VAR_NAME;
 import static io.nop.core.CoreErrors.ERR_LOOP_VAR_NOT_DEFINED;
 
@@ -45,7 +46,8 @@ public class NestedLoop implements INestedLoop {
 
         if (varName != null) {
             if (!model.isGlobalVar(varName) && !model.isLoopVar(varName))
-                throw new NopException(ERR_LOOP_VAR_NOT_DEFINED).param(ARG_VAR_NAME, varName);
+                throw new NopException(ERR_LOOP_VAR_NOT_DEFINED)
+                        .param(ARG_VAR_NAME, varName).param(ARG_GLOBAL_VARS, globalVars.keySet());
         }
     }
 
@@ -170,7 +172,7 @@ public class NestedLoop implements INestedLoop {
         // 如果是全局变量
         Object value = globalVars.get(varName);
         if (StringHelper.isEmptyObject(value))
-            return Stream.of(new LoopVar(varName,null,p));
+            return Stream.of(new LoopVar(varName, null, p));
 
         Stream<Object> stream = CollectionHelper.toStream(value, true, false);
         return stream.map(v -> new LoopVar(varName, v, p));

@@ -1,0 +1,9 @@
+<c:unit>
+    <gen:Render template="/nop/templates/orm/{appName}-dao" targetDir="${targetResource.path.$filePath()}"
+                xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true"/>
+<!--    <c:script>-->
+<!--        import io.nop.core.resource.ResourceHelper;-->
+
+<!--        ResourceHelper.resolveSibling(targetResource,"pom.xml").delete();-->
+<!--    </c:script>-->
+</c:unit>

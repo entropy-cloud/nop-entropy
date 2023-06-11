@@ -25,10 +25,15 @@
         <Render>
             <attr name="template"/>
             <attr name="targetDir"/>
+            <attr name="inheritCodeGenLoop" optional="true" type="Boolean" />
             <attr name="codeGenerator" implicit="true"/>
+            <attr name="codeGenLoop" implicit="true" />
             <source>
                 <c:script>
-                    codeGenerator.withTplDir(template).withTargetDir(targetDir).execute("",null,$scope);
+                    const vars = {}
+                    if(inheritCodeGenLoop)
+                       vars.codeGenLoop = codeGenLoop;
+                    codeGenerator.withTplDir(template).withTargetDir(targetDir).execute("",vars,$scope);
                 </c:script>
             </source>
         </Render>
