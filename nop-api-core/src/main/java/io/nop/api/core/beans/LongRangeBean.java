@@ -132,6 +132,18 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
         return limit == 1;
     }
 
+    public LongRangeBean first(int n) {
+        if (this.limit <= n)
+            return this;
+
+        return of(offset, n);
+    }
+
+    public LongRangeBean last(int n) {
+        if (this.limit <= n)
+            return this;
+        return of(offset + limit - n, n);
+    }
 
     /**
      * 将当前区间拆成subCount份，返回subIndex对应的区间
@@ -140,7 +152,11 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
      * @param subCount 子区间总个数
      * @return 子区间范围
      */
-    public LongRangeBean subRange(int subIndex, int subCount) {
+    public LongRangeBean partitionRange(int subIndex, int subCount) {
+        return calcPartitionRange(limit, offset, subIndex, subCount);
+    }
+
+    public static LongRangeBean calcPartitionRange(long limit, long offset, int subIndex, int subCount) {
         long step = limit / subCount;
         long remainder = limit % subCount;
         long begin = offset + step * subIndex;
@@ -155,7 +171,6 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
         return of(begin, step);
     }
 
-
     public boolean containsValue(long value) {
         return offset <= value && value < getEnd();
     }
@@ -165,7 +180,7 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
             return false;
         }
 
-        return offset <= range.getOffset() && getEnd() <= range.getEnd();
+        return offset <= range.getOffset() && range.getEnd() <= getEnd();
     }
 
     /**

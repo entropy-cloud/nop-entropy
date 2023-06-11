@@ -11,16 +11,16 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.DaoErrors;
+import io.nop.dao.dialect.IDialect;
+import io.nop.dao.jdbc.impl.JdbcHelper;
 import io.nop.dataset.IDataRow;
 import io.nop.dataset.IDataSet;
 import io.nop.dataset.IDataSetMeta;
 import io.nop.dataset.impl.BaseDataRow;
 import io.nop.dataset.impl.BaseDataSet;
-import io.nop.dao.dialect.IDialect;
-import io.nop.dao.jdbc.impl.JdbcHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.nop.dataset.record.impl.RecordInputImpls;
 
+import javax.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -31,11 +31,13 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.function.Consumer;
 
 import static io.nop.api.core.convert.ConvertHelper.toLocalDate;
 
 public class JdbcDataSet implements IDataSet, IDataRow {
-    static final Logger LOG = LoggerFactory.getLogger(JdbcDataSet.class);
+    //static final Logger LOG = LoggerFactory.getLogger(JdbcDataSet.class);
 
     private final ResultSet rs;
     private final IDialect dialect;
@@ -557,5 +559,20 @@ public class JdbcDataSet implements IDataSet, IDataRow {
     @Override
     public IDataRow toDetachedDataRow() {
         return new BaseDataRow(getMeta(), false, getFieldValues());
+    }
+
+    @Override
+    public @Nonnull List<IDataRow> readBatch(int maxCount) {
+        return RecordInputImpls.defaultReadBatch(this, maxCount, IDataRow::toDetachedDataRow);
+    }
+
+    @Override
+    public void readBatch(int maxCount, Consumer<IDataRow> ret) {
+        RecordInputImpls.defaultReadBatch(this, maxCount, IDataRow::toDetachedDataRow, ret);
+    }
+
+    @Override
+    public @Nonnull List<IDataRow> readAll() {
+        return RecordInputImpls.defaultReadAll(this, IDataRow::toDetachedDataRow);
     }
 }

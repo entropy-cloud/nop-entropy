@@ -18,9 +18,10 @@ import io.nop.api.core.util.Guard;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.PrimitiveIterator;
 
 @DataBean
-public class IntRangeBean implements Serializable, Comparable<IntRangeBean> {
+public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Iterable<Integer> {
     private static final long serialVersionUID = 3846253782985184968L;
     public static char SEPARATOR = ',';
 
@@ -66,6 +67,39 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean> {
         sb.append(SEPARATOR);
         sb.append(limit);
         return sb.toString();
+    }
+
+    public PrimitiveIterator.OfInt iterator() {
+        return new PrimitiveIterator.OfInt() {
+            private int index = offset;
+
+            @Override
+            public int nextInt() {
+                return index++;
+            }
+
+            @Override
+            public boolean hasNext() {
+                return index < getEnd();
+            }
+        };
+    }
+
+    @JsonIgnore
+    public String getBeginEndString() {
+        return "[" + getBegin() + "," + getEnd() + ")";
+    }
+
+    @JsonIgnore
+    public String getFirstLastString() {
+        return "[" + getBegin() + "," + getLast() + "]";
+    }
+
+    @JsonIgnore
+    public int getLast() {
+        if (limit < 0)
+            return Integer.MAX_VALUE - 1;
+        return offset + limit - 1;
     }
 
     public int getOffset() {
@@ -128,6 +162,19 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean> {
         return of(this.offset + offset, limit);
     }
 
+    public IntRangeBean first(int n) {
+        if (this.limit <= n)
+            return this;
+
+        return of(offset, n);
+    }
+
+    public IntRangeBean last(int n) {
+        if (this.limit <= n)
+            return this;
+        return of(offset + limit - n, n);
+    }
+
     /**
      * 将当前区间拆成subCount份，返回subIndex对应的区间
      *
@@ -135,7 +182,11 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean> {
      * @param subCount 子区间总个数
      * @return 子区间范围
      */
-    public IntRangeBean subRange(int subIndex, int subCount) {
+    public IntRangeBean partitionRange(int subIndex, int subCount) {
+        return calcPartitionRange(limit, offset, subIndex, subCount);
+    }
+
+    public static IntRangeBean calcPartitionRange(int limit, int offset, int subIndex, int subCount) {
         int step = limit / subCount;
         int remainder = limit % subCount;
         int begin = offset + step * subIndex;
@@ -150,17 +201,15 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean> {
         return of(begin, step);
     }
 
-
     public boolean containsValue(int value) {
-        return offset >= value && value < getEnd();
+        return offset <= value && value < getEnd();
     }
 
     public boolean contains(IntRangeBean range) {
         if (range == null) {
             return false;
         }
-        return containsValue(range.getOffset())
-                && containsValue(range.getEnd() - 1);
+        return offset <= range.getOffset() && range.getEnd() <= getEnd();
     }
 
     /**

@@ -7,12 +7,13 @@
  */
 package io.nop.dataset.record.impl;
 
-import io.nop.dataset.record.IRecordInput;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.dataset.record.IRecordInput;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class RecordInputImpls {
     public static <T> long defaultSkip(IRecordInput<T> input, long count) {
@@ -24,17 +25,17 @@ public class RecordInputImpls {
         return n;
     }
 
-    public static <T> List<T> defaultReadBatch(IRecordInput<T> input, int maxCount) {
-        List<T> ret = new ArrayList<>();
-        defaultReadBatch(input, maxCount, ret::add);
+    public static <T, R> List<R> defaultReadBatch(IRecordInput<T> input, int maxCount, Function<T, R> fn) {
+        List<R> ret = new ArrayList<>();
+        defaultReadBatch(input, maxCount, fn, ret::add);
         return ret;
     }
 
-    public static <T> void defaultReadBatch(IRecordInput<T> input, int maxCount, Consumer<T> ret) {
+    public static <T, R> void defaultReadBatch(IRecordInput<T> input, int maxCount, Function<T, R> fn, Consumer<R> ret) {
         int n = 0;
         while (input.hasNext()) {
             T record = input.next();
-            ret.accept(record);
+            ret.accept(fn.apply(record));
             n++;
             if (maxCount >= 0 && n >= maxCount) {
                 break;
@@ -42,10 +43,10 @@ public class RecordInputImpls {
         }
     }
 
-    public static <T> List<T> defaultReadAll(IRecordInput<T> input) {
-        List<T> list = CollectionHelper.newList(input.getRemainingCount());
+    public static <T, R> List<R> defaultReadAll(IRecordInput<T> input, Function<T, R> fn) {
+        List<R> list = CollectionHelper.newList(input.getRemainingCount());
         while (input.hasNext()) {
-            list.add(input.next());
+            list.add(fn.apply(input.next()));
         }
         return list;
     }

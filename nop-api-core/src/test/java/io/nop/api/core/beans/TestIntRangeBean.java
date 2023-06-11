@@ -16,17 +16,17 @@ public class TestIntRangeBean {
     @Test
     public void testRange() {
         IntRangeBean range = IntRangeBean.of(32768 / 2, 32768 / 2);
-        IntRangeBean sub = range.subRange(2, 3);
+        IntRangeBean sub = range.partitionRange(2, 3);
         System.out.println(sub);
         assertEquals(27307, sub.getBegin());
         assertEquals(32768, sub.getEnd());
 
-        sub = range.subRange(1, 3);
+        sub = range.partitionRange(1, 3);
         System.out.println(sub);
         assertEquals(21846, sub.getBegin());
         assertEquals(27307, sub.getEnd());
 
-        sub = range.subRange(0, 3);
+        sub = range.partitionRange(0, 3);
         System.out.println(sub);
         assertEquals(16384, sub.getBegin());
         assertEquals(21846, sub.getEnd());
@@ -38,18 +38,18 @@ public class TestIntRangeBean {
         assertEquals(16384, range.getEnd());
 
         range = IntRangeBean.of(0, 3);
-        assertEquals(intRange(0, 1), range.subRange(0, 5));
-        assertEquals(intRange(1, 1), range.subRange(1, 5));
-        assertEquals(intRange(2, 1), range.subRange(2, 5));
-        assertEquals(intRange(3, 0), range.subRange(3, 5));
-        assertEquals(intRange(3, 0), range.subRange(4, 5));
+        assertEquals(intRange(0, 1), range.partitionRange(0, 5));
+        assertEquals(intRange(1, 1), range.partitionRange(1, 5));
+        assertEquals(intRange(2, 1), range.partitionRange(2, 5));
+        assertEquals(intRange(3, 0), range.partitionRange(3, 5));
+        assertEquals(intRange(3, 0), range.partitionRange(4, 5));
 
         range = IntRangeBean.of(0, 5);
-        assertEquals(intRange(0, 2), range.subRange(0, 3));
-        assertEquals(intRange(2, 2), range.subRange(1, 3));
-        assertEquals(intRange(4, 1), range.subRange(2, 3));
+        assertEquals(intRange(0, 2), range.partitionRange(0, 3));
+        assertEquals(intRange(2, 2), range.partitionRange(1, 3));
+        assertEquals(intRange(4, 1), range.partitionRange(2, 3));
 
         range = IntRangeBean.of(3, 0);
-        assertEquals(intRange(3, 0), range.subRange(0, 2));
+        assertEquals(intRange(3, 0), range.partitionRange(0, 2));
     }
 }

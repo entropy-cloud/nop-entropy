@@ -11,4 +11,15 @@
 
     <artifactId>nop-batch-orm</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-batch-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-orm</artifactId>
+        </dependency>
+    </dependencies>
 </project>

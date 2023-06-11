@@ -207,7 +207,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             Object meter = daoMetrics == null ? null : daoMetrics.beginExecuteUpdate(sql);
             try {
                 st = JdbcHelper.prepareStatement(dialect, conn, sql);
-                setQueryTimeout(dialect, st, sql, true);
+                JdbcHelper.setQueryTimeout(dialect, st, sql, true);
 
                 if (dialect.isSupportExecuteLargeUpdate()) {
                     count = st.executeLargeUpdate();
@@ -231,15 +231,6 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         });
     }
 
-    protected void setQueryTimeout(IDialect dialect, PreparedStatement ps, SQL sql, boolean update)
-            throws SQLException {
-        if (dialect.isSupportQueryTimeout()) {
-            int seconds = JdbcHelper.getQueryTimeout(sql, update);
-            if (seconds > 0)
-                ps.setQueryTimeout(seconds);
-        }
-    }
-
     @Override
     public <T> T executeStatement(@Nonnull SQL sql, LongRangeBean range, @Nonnull Function<IComplexDataSet, T> callback,
                                   ICancelToken cancelToken) {
@@ -255,7 +246,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             Object meter = daoMetrics == null ? null : daoMetrics.beginQuery(sql, range);
             try {
                 st = JdbcHelper.prepareStatement(dialect, conn, sql);
-                setQueryTimeout(dialect, st, sql, false);
+                JdbcHelper.setQueryTimeout(dialect, st, sql, false);
 
                 JdbcComplexDataSet ds = new JdbcComplexDataSet(st, dialect);
                 if (cancelToken != null) {
@@ -310,7 +301,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             Object meter = daoMetrics == null ? null : daoMetrics.beginQuery(pagedSql, range);
             try {
                 st = JdbcHelper.prepareStatement(dialect, conn, pagedSql);
-                setQueryTimeout(dialect, st, sql, false);
+                JdbcHelper.setQueryTimeout(dialect, st, sql, false);
 
                 rs = st.executeQuery();
                 IDataSet ds = new JdbcDataSet(dialect, rs);
@@ -413,7 +404,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             RuntimeException error = null;
             try {
                 st = JdbcHelper.prepareCallableStatement(dialect, conn, sql);
-                setQueryTimeout(dialect, st, sql, true);
+                JdbcHelper.setQueryTimeout(dialect, st, sql, true);
 
                 long count;
                 if (dialect.isSupportExecuteLargeUpdate()) {

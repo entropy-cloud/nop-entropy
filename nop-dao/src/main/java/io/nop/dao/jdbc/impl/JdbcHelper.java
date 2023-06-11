@@ -204,6 +204,15 @@ public class JdbcHelper {
         return ps;
     }
 
+    public static void setQueryTimeout(IDialect dialect, PreparedStatement ps, SQL sql, boolean update)
+            throws SQLException {
+        if (dialect.isSupportQueryTimeout()) {
+            int seconds = JdbcHelper.getQueryTimeout(sql, update);
+            if (seconds > 0)
+                ps.setQueryTimeout(seconds);
+        }
+    }
+
     public static int getMaxTimeout(boolean update) {
         if (update)
             return DaoConfigs.CFG_DAO_MAX_UPDATE_TIMEOUT.get();

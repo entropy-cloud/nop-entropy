@@ -10,11 +10,12 @@ package io.nop.orm.sql_lib;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.api.INamedSqlBuilder;
 
 /**
  * 类似mybatis，通过sq-lib.xml文件来统一管理系统中的SQL语句。 sql-lib.xml支持EQL和SQL两种语法，支持缓存、超时时间等设置。
  */
-public interface ISqlLibManager {
+public interface ISqlLibManager extends INamedSqlBuilder {
 
     SqlItemModel getSqlItemModel(String sqlName);
 

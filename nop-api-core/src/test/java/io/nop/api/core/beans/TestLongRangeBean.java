@@ -50,17 +50,17 @@ public class TestLongRangeBean {
     @Test
     public void testRange() {
         LongRangeBean range = LongRangeBean.of(32768 / 2, 32768 / 2);
-        LongRangeBean sub = range.subRange(2, 3);
+        LongRangeBean sub = range.partitionRange(2, 3);
         System.out.println(sub);
         assertEquals(27307, sub.getBegin());
         assertEquals(32768, sub.getEnd());
 
-        sub = range.subRange(1, 3);
+        sub = range.partitionRange(1, 3);
         System.out.println(sub);
         assertEquals(21846, sub.getBegin());
         assertEquals(27307, sub.getEnd());
 
-        sub = range.subRange(0, 3);
+        sub = range.partitionRange(0, 3);
         System.out.println(sub);
         assertEquals(16384, sub.getBegin());
         assertEquals(21846, sub.getEnd());
@@ -72,15 +72,15 @@ public class TestLongRangeBean {
         assertEquals(16384, range.getEnd());
 
         range = LongRangeBean.of(0, 3);
-        assertEquals(longRange(0, 1), range.subRange(0, 5));
-        assertEquals(longRange(1, 1), range.subRange(1, 5));
-        assertEquals(longRange(2, 1), range.subRange(2, 5));
-        assertEquals(longRange(3, 0), range.subRange(3, 5));
-        assertEquals(longRange(3, 0), range.subRange(4, 5));
+        assertEquals(longRange(0, 1), range.partitionRange(0, 5));
+        assertEquals(longRange(1, 1), range.partitionRange(1, 5));
+        assertEquals(longRange(2, 1), range.partitionRange(2, 5));
+        assertEquals(longRange(3, 0), range.partitionRange(3, 5));
+        assertEquals(longRange(3, 0), range.partitionRange(4, 5));
 
         range = LongRangeBean.of(0, 5);
-        assertEquals(longRange(0, 2), range.subRange(0, 3));
-        assertEquals(longRange(2, 2), range.subRange(1, 3));
-        assertEquals(longRange(4, 1), range.subRange(2, 3));
+        assertEquals(longRange(0, 2), range.partitionRange(0, 3));
+        assertEquals(longRange(2, 2), range.partitionRange(1, 3));
+        assertEquals(longRange(4, 1), range.partitionRange(2, 3));
     }
 }
