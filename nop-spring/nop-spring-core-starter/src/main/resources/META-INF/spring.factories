@@ -1,0 +1,1 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=io.nop.spring.core.autoconfig.NopSpringCoreAutoConfig

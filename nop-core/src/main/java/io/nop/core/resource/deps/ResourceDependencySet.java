@@ -8,45 +8,49 @@
 package io.nop.core.resource.deps;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.resource.IResourceReference;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 记录单个组件对象所依赖的所有资源
  */
-@DataBean
 public class ResourceDependencySet {
+    static final AtomicLong s_next = new AtomicLong();
+
     /**
-     * 每次依赖检查都使用一个新的版本号。因为依赖检查需要一定的时间，而且可能多个线程同时检查导致依赖更新。通过版本号的变化，可以识别出是否并发修改
+     * 每次发现修改，重新装载资源文件都会产生一个新版本号
      */
-    private final long version;
-    private final String resourcePath;
+    private final long version = s_next.incrementAndGet();
 
     /**
      * resource和lastModified用于缓存上次IResourceChangeChecker的检查结果
      */
-    private IResourceReference resource;
+    private final IResourceReference resource;
     private long lastModified;
 
-    private Set<String> depends = new HashSet<>();
+    protected final Map<String, Long> depends = new HashMap<>();
 
-    public ResourceDependencySet(@JsonProperty("resourcePath") String resourcePath,
-                                 @JsonProperty("version") long version) {
-        this.resourcePath = resourcePath;
-        this.version = version;
+    public ResourceDependencySet(IResourceReference resource) {
+        this.resource = resource;
+        this.lastModified = resource.lastModified();
+    }
+
+    public ResourceDependencySet copy() {
+        ResourceDependencySet ret = new ResourceDependencySet(resource);
+        ret.depends.putAll(depends);
+        return ret;
+    }
+
+    public void refreshLastModified() {
+        this.lastModified = resource.lastModified();
     }
 
     @JsonIgnore
     public IResourceReference getResource() {
         return resource;
-    }
-
-    public void setResource(IResourceReference resource) {
-        this.resource = resource;
     }
 
     public long getLastModified() {
@@ -57,18 +61,8 @@ public class ResourceDependencySet {
         this.lastModified = lastModified;
     }
 
-    public Set<String> getDepends() {
+    public Map<String, Long> getDepends() {
         return depends;
-    }
-
-    public void addDepends(Set<String> deps) {
-        if (deps != null) {
-            this.depends.addAll(deps);
-        }
-    }
-
-    public void setDepends(Set<String> deps) {
-        this.depends = deps;
     }
 
     public long getVersion() {
@@ -76,19 +70,22 @@ public class ResourceDependencySet {
     }
 
     public String getResourcePath() {
-        return resourcePath;
+        return resource.getPath();
     }
 
     public String toString() {
-        return resourcePath;
+        return getResourcePath();
     }
 
     public void clear() {
         depends.clear();
     }
 
-    public void addDependency(String depResourcePath) {
-        if (depResourcePath != null)
-            depends.add(depResourcePath);
+    public void addDependency(ResourceDependencySet resource) {
+        depends.put(resource.getResourcePath(), resource.getVersion());
+    }
+
+    public void addDepends(Map<String, Long> depends) {
+        this.depends.putAll(depends);
     }
 }

@@ -1,4 +1,4 @@
-package io.nop.spring.web.autoconfig;
+package io.nop.spring.core.autoconfig;
 
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.boot.NopApplication;
@@ -12,7 +12,7 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 
 @ComponentScan("io.nop.spring")
-public class NopSpringWebAutoConfig {
+public class NopSpringCoreAutoConfig {
 
     @Autowired
     ApplicationArguments globalArgs;

@@ -31,6 +31,10 @@ public class NopApplication {
 
         ApplicationArguments.set(new SimpleCommandLineArgsParser().parse(args));
 
+        ShutdownHook.getInstance().addDisposable(() -> {
+            CoreInitialization.destroy();
+        });
+
         CoreInitialization.initialize();
 
         new NopBanner(bannerPath).print();
@@ -38,9 +42,6 @@ public class NopApplication {
 
         int ret = task.getAsInt();
 
-        ShutdownHook.getInstance().addDisposable(() -> {
-            CoreInitialization.destroy();
-        });
         return ret;
     }
 

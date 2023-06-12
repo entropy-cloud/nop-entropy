@@ -68,7 +68,7 @@ public class TestXplTask extends BaseTestCase {
         System.out.println(ResourceComponentManager.instance().dumpDependsSet(deps));
 
         assertTrue(!deps.getDepends().isEmpty());
-        assertTrue(deps.getDepends().contains("classpath:_vfs/test/tasks/b.xpl"));
+        assertTrue(deps.getDepends().keySet().contains("classpath:_vfs/test/tasks/b.xpl"));
 
         // 重复加载会使用缓存，因此结果不变
         assertTrue(value == result.getReturnValue());

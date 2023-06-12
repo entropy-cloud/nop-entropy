@@ -7,12 +7,12 @@
  */
 package io.nop.core.resource.cache;
 
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
+import io.nop.core.resource.deps.VirtualResourceDependencySet;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -26,7 +26,7 @@ public class ReactiveObjectMap {
         final CompletableFuture<Object> future = new CompletableFuture<>();
 
         public ReactiveObject(String path) {
-            this.deps = new ResourceDependencySet(path, CoreMetrics.currentTimeMillis());
+            this.deps = new VirtualResourceDependencySet(path);
         }
 
         public boolean isChanged() {

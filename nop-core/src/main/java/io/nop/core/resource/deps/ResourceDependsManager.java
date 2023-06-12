@@ -7,12 +7,14 @@
  */
 package io.nop.core.resource.deps;
 
-import io.nop.commons.concurrent.thread.NamedThreadLocal;
 import io.nop.api.core.resource.IResourceReference;
+import io.nop.commons.concurrent.thread.NamedThreadLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,18 +57,27 @@ public class ResourceDependsManager {
      * @return task的执行结果
      */
     public <T> T collectDepends(IResourceReference resource, Supplier<T> task) {
-        addDependency(resource.getPath());
+        ResourceDependencySet current = currentDepends();
         ResourceDependsStack stack = makeStack();
         ResourceDependencySet deps = stack.push(resource);
         boolean success = false;
         try {
             T ret = task.get();
+            if (current != null) {
+                current.addDependency(deps);
+            }
+            deps.setLastModified(resource.lastModified());
             success = true;
             return ret;
         } finally {
             stack.pop();
-            if (success)
+
+            if (stack.isEmpty())
+                dependsStack.remove();
+
+            if (success) {
                 updateDeps(deps);
+            }
         }
     }
 
@@ -79,7 +90,7 @@ public class ResourceDependsManager {
         } finally {
             stack.pop();
             if (stack.isEmpty())
-                dependsStack.set(null);
+                dependsStack.remove();
         }
     }
 
@@ -108,21 +119,37 @@ public class ResourceDependsManager {
         }
     }
 
-    public void addDependency(String depResourcePath) {
-        ResourceDependencySet deps = currentDepends();
+    public void addDependency(String resourcePath, IResourceChangeChecker checker) {
+        ResourceDependsStack stack = dependsStack.get();
+        if (stack == null)
+            return;
+
+        ResourceDependencySet current = stack.current();
+
+        ResourceDependencySet deps = stack.get(resourcePath);
+        if (deps == null) {
+            deps = makeDepends(stack, resourcePath, checker);
+        }
         if (deps != null)
-            deps.addDependency(depResourcePath);
+            current.addDependency(deps);
     }
 
-    public void addDependencies(Set<String> depends) {
-        if (depends != null) {
-            ResourceDependencySet deps = currentDepends();
-            if (deps != null) {
-                for (String depPath : depends) {
-                    deps.addDependency(depPath);
-                }
+    private ResourceDependencySet makeDepends(ResourceDependsStack stack, String path,
+                                              IResourceChangeChecker checker) {
+        ResourceDependencySet deps = dependencyMap.get(path);
+        if (deps != null) {
+            ResourceChangeCheckResult checkResult = checker.checkChanged(deps.getResource(), deps.getLastModified());
+            if (!checkResult.isChanged()) {
+                return deps;
             }
+            stack.make(deps.getResource()).addDepends(deps.getDepends());
+        } else {
+            IResourceReference resource = checker.resolveResource(path);
+            if (resource == null)
+                return null;
+            deps = stack.make(resource);
         }
+        return deps;
     }
 
     public ResourceDependencySet getDepends(String resourcePath) {
@@ -136,11 +163,12 @@ public class ResourceDependsManager {
         return stack.current();
     }
 
-    public boolean isAnyDependsChange(Set<String> depends, Set<String> checkedResourcePaths,
+    public boolean isAnyDependsChange(Map<String, Long> depends, Map<String, List<Long>> checkedResourcePaths,
                                       IResourceDependsPersister defaultDependsLoader, IResourceChangeChecker checker) {
         if (depends != null) {
-            for (String depResourcePath : depends) {
-                if (isDependencyChanged(depResourcePath, checkedResourcePaths, defaultDependsLoader, checker))
+            for (Map.Entry<String, Long> entry : depends.entrySet()) {
+                String depResourcePath = entry.getKey();
+                if (isDependencyChanged(depResourcePath, entry.getValue(), checkedResourcePaths, defaultDependsLoader, checker))
                     return true;
             }
         }
@@ -152,40 +180,45 @@ public class ResourceDependsManager {
      *
      * @param checkedResourcePaths 为避免循环调用，通过checkedResourcePaths记录已经检查过的资源文件
      */
-    public boolean isDependencyChanged(String resourcePath, Set<String> checkedResourcePaths,
+    public boolean isDependencyChanged(String resourcePath, Long lastVersion, Map<String, List<Long>> checkedResourcePaths,
                                        IResourceDependsPersister defaultDependsLoader, IResourceChangeChecker checker) {
-        if (!checkedResourcePaths.add(resourcePath)) {
-            return false;
+        if (lastVersion == null) {
+            if (checkedResourcePaths.containsKey(resourcePath)) {
+                return false;
+            }
+        } else {
+            List<Long> list = checkedResourcePaths.get(resourcePath);
+            if (list == null) {
+                list = new ArrayList<>(2);
+                checkedResourcePaths.put(resourcePath, list);
+            } else {
+                if (list.contains(lastVersion))
+                    return false;
+            }
+            list.add(lastVersion);
         }
 
         ResourceDependencySet deps = dependencyMap.get(resourcePath);
         if (deps == null) {
-            if (defaultDependsLoader != null) {
-                try {
-                    deps = defaultDependsLoader.loadDepends(resourcePath);
-                } catch (Exception e) {
-                    LOG.info("nop.core.component.load-default-depends-fail:resourcePath={}", resourcePath, e);
-                }
-            }
-            if (deps == null) {
-                return true;
-            }
-
-            dependencyMap.putIfAbsent(resourcePath, deps);
+            return true;
         }
 
-        ResourceChangeCheckResult result = checker.checkChanged(resourcePath, deps.getLastModified(),
-                deps.getResource());
+        if (lastVersion != null) {
+            if (deps.getVersion() != lastVersion)
+                return true;
+        }
+
+        ResourceChangeCheckResult result = checker.checkChanged(deps.getResource(), deps.getLastModified());
         if (result.isChanged()) {
             return true;
         }
 
         // 内容没有修改，但是可能文件的修改时间变化了
         deps.setLastModified(result.getLastModified());
-        deps.setResource(result.getResource());
 
-        for (String depResourcePath : deps.getDepends()) {
-            if (isDependencyChanged(depResourcePath, checkedResourcePaths, defaultDependsLoader, checker))
+        for (Map.Entry<String, Long> entry : deps.getDepends().entrySet()) {
+            String depResourcePath = entry.getKey();
+            if (isDependencyChanged(depResourcePath, entry.getValue(), checkedResourcePaths, defaultDependsLoader, checker))
                 return true;
         }
         return false;
@@ -198,7 +231,7 @@ public class ResourceDependsManager {
     }
 
     private void _dump(StringBuilder sb, ResourceDependencySet deps, Set<String> visited, int level) {
-        for (String dep : deps.getDepends()) {
+        for (String dep : deps.getDepends().keySet()) {
             indent(sb, level);
             sb.append(dep);
 

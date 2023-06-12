@@ -25,6 +25,7 @@ import io.nop.core.resource.cache.IObjectChangeDetectable;
 import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
+import io.nop.core.resource.deps.VirtualResourceDependencySet;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.IXLangCompileScope;
@@ -166,7 +167,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
                 ((LazyCompiledFunction) invoker).compile();
             }
             if (deps != null) {
-                ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
+                ResourceComponentManager.instance().traceAllDepends(deps.getDepends().keySet());
             }
             return functionModel;
         }
@@ -657,8 +658,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 
             compiled = true;
 
-            ResourceDependencySet deps = new ResourceDependencySet(getTag().getTagFuncName(),
-                    CoreMetrics.currentTimeMillis());
+            ResourceDependencySet deps = new VirtualResourceDependencySet(getTag().getTagFuncName());
             ResourceComponentManager.instance().collectDependsTo(deps, () -> {
                 try {
                     ArrowFunctionExpression ast = parseSource(compileTool);

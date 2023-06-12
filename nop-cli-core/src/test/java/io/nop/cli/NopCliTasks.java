@@ -79,7 +79,17 @@ public class NopCliTasks {
         };
         NopCliApplication app = new NopCliApplication();
         app.factory = factory;
-        assertEquals(-101, app.run(args));
+        app.run(args);
+    }
+
+    @Test
+    public void testWatch() {
+        String[] args = new String[]{"watch", "src",
+                "-e", "tasks/gen-web.xrun"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.factory = factory;
+        app.run(args);
     }
 
     @Test

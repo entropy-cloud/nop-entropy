@@ -1,0 +1,6 @@
+<c:unit xmlns:c="c" xmlns:run="run" xmlns:xpl="xpl">
+    <run:GenWithCache xpl:lib="/nop/codegen/xlib/run.xlib"
+                      srcDir="/meta/test" appName="Test"
+                      targetDir="./target/gen"
+                      tplDir="/nop/test/meta-web"/>
+</c:unit>

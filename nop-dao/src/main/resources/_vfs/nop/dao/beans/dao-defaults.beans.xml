@@ -4,7 +4,7 @@
        xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc" xmlns:feature="feature">
 
     <x:config>
         <c:import class="io.nop.api.core.ApiConstants"/>
@@ -25,7 +25,7 @@
     <!--        <property name="defaultDataSource" ref="nopDefaultDataSource"/>-->
     <!--    </bean>-->
 
-    <bean id="nopDataSource" ioc:default="true"
+    <bean id="nopDataSource" ioc:default="true" feature:off="nop.dao.use-parent-data-source"
           class="com.zaxxer.hikari.HikariDataSource" >
         <constructor-arg index="0" ref="nopHikariConfig"/>
         <ioc:condition>
@@ -34,7 +34,7 @@
     </bean>
 
     <bean id="nopHikariConfig" ioc:default="true" ioc:config-prefix="nop.datasource.hikari"
-          class="com.zaxxer.hikari.HikariConfig">
+          class="com.zaxxer.hikari.HikariConfig" feature:off="nop.dao.use-parent-data-source">
         <ioc:condition>
             <on-class>com.zaxxer.hikari.HikariDataSource</on-class>
         </ioc:condition>
@@ -45,6 +45,8 @@
         <property name="password" value="@cfg:nop.datasource.password|"/>
         <property name="maximumPoolSize" value="@cfg:nop.datasource.max-pool-size|8"/>
     </bean>
+
+    <alias name="dataSource" alias="nopDataSource" feature:on="nop.dao.use-parent-data-source"/>
 
     <bean id="nopTransactionTemplate" ioc:default="true"
           class="io.nop.dao.txn.impl.TransactionTemplateImpl"/>

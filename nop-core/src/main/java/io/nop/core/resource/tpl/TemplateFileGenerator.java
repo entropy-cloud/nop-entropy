@@ -69,7 +69,11 @@ public class TemplateFileGenerator {
     public TemplateFileGenerator(ITemplateLoader loader, String tplRootPath, String targetRootPath) {
         this.loader = loader;
         this.tplRootPath = Guard.notEmpty(tplRootPath, "tplRootPath");
-        this.targetRootPath = Guard.notEmpty(targetRootPath, "targetRootPath");
+        this.targetRootPath = Guard.notEmpty(normalizeTargetRootDir(targetRootPath), "targetRootPath");
+    }
+
+    static String normalizeTargetRootDir(String path) {
+        return ResourceHelper.resolveRelativePath(path);
     }
 
     protected ITemplateLoader getLoader() {

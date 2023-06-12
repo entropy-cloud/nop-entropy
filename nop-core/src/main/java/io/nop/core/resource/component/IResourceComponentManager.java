@@ -13,6 +13,7 @@ import io.nop.api.core.util.IComponentModel;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.deps.ResourceDependencySet;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -98,7 +99,7 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     boolean isDependencyChanged(String resourcePath);
 
-    boolean isAnyDependsChange(Set<String> depends);
+    boolean isAnyDependsChange(Map<String, Long> depends);
 
     /**
      * 根据task处理过程中访问的资源文件情况，把它们收集到依赖集合对象中

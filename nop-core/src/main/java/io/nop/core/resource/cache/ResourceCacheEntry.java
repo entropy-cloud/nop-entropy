@@ -16,6 +16,7 @@ import io.nop.commons.util.DestroyHelper;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
+import io.nop.core.resource.deps.VirtualResourceDependencySet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,20 +201,20 @@ public class ResourceCacheEntry<T> implements IDestroyable {
         }
         ResourceDependencySet deps = this.deps;
         if (deps != null)
-            ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
+            ResourceComponentManager.instance().traceAllDepends(deps.getDepends().keySet());
         return normalizeObject(value);
     }
 
     public void traceDepends() {
         ResourceDependencySet deps = this.deps;
         if (deps != null)
-            ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
+            ResourceComponentManager.instance().traceAllDepends(deps.getDepends().keySet());
     }
 
     private Object loadObject(IResourceObjectLoader<T> loader) {
         LOG.debug("nop.core.resource.cache-load-object:path={}", path);
 
-        ResourceDependencySet deps = new ResourceDependencySet(path, CoreMetrics.currentTimeMillis());
+        ResourceDependencySet deps = new VirtualResourceDependencySet(path);
         T result = ResourceComponentManager.instance().collectDependsTo(deps, () -> loader.loadObjectFromPath(path));
         this.deps = deps;
         this.lastLoadTime = CoreMetrics.currentTimeMillis();

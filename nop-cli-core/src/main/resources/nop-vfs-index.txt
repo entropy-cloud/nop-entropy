@@ -129,6 +129,10 @@
 /nop/schema/xui/store.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
+/nop/sys/_module
+/nop/sys/beans/_dao.beans.xml
+/nop/sys/orm/_app.orm.xml
+/nop/sys/orm/app.orm.xml
 /nop/templates/antlr/@init.xrun
 /nop/templates/antlr/src/main/java/{parser.packagePath}/_{parser.name}ASTBuildVisitor.java.xgen
 /nop/templates/antlr/src/main/java/{parser.packagePath}/{parser.name}ASTBuildVisitor.java.xgen
@@ -166,6 +170,10 @@
 /nop/templates/meta/@init.xrun
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{deltaDir}/_{entityModel.shortName}.xmeta.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
+/nop/templates/orm-dao/@init.xrun
+/nop/templates/orm-dao/pom.xml.xgen
+/nop/templates/orm-dao/src/test/resources/application.yaml
+/nop/templates/orm-dao/x_impl.xrun
 /nop/templates/orm-delta/@init.xrun
 /nop/templates/orm-delta/src/main/java/impl.xrun
 /nop/templates/orm-delta/src/main/resources/_vfs/_delta/{deltaDir}/impl.xrun

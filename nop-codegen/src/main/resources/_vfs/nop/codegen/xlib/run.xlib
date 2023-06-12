@@ -1,0 +1,26 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <GenWithCache>
+            <attr name="srcDir" />
+            <attr name="targetDir" />
+            <attr name="tplDir" />
+            <attr name="appName" />
+
+            <source>
+                <c:script><![CDATA[
+                import io.nop.core.resource.component.ResourceComponentManager;
+                import io.nop.core.resource.VirtualFileSystem;
+                import io.nop.codegen.XCodeGenerator;
+                import io.nop.xlang.xmeta.SchemaLoader;
+                import io.nop.commons.util.FileHelper;
+
+                assign("srcDir",srcDir);
+                assign("appName",appName);
+                let codegen = new XCodeGenerator(tplDir,targetDir);
+                codegen = codegen.withDependsCache();
+                codegen.execute("/",$scope);
+            ]]></c:script>
+            </source>
+        </GenWithCache>
+    </tags>
+</lib>
