@@ -5639,6 +5639,12 @@
         ]
       },
       {
+        "name": "normalizeTargetRootDir",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "normalizeText",
         "parameterTypes": [
           "java.lang.String",

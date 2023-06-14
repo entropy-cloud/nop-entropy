@@ -7,7 +7,9 @@
 /dict/core/std-domain.dict.yaml
 /i18n/en/nop-core.i18n.yaml
 /meta/test/NopAuthUser.xmeta
+/meta/test/NopAuthUser2.xmeta
 /meta/test/_NopAuthUser.xmeta
+/meta/test/_NopAuthUser2.xmeta
 /nop/aop/nop-api-core.annotations
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-orm.beans
@@ -17,6 +19,7 @@
 /nop/biz/xlib/biz-gen.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
+/nop/codegen/xlib/run.xlib
 /nop/codegen/xlib/web-gen.xlib
 /nop/core/_module
 /nop/core/app.module.yaml

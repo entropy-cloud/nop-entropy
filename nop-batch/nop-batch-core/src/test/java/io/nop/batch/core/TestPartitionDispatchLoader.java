@@ -7,7 +7,7 @@
  */
 package io.nop.batch.core;
 
-import io.nop.batch.core.debug.DebugLoader;
+import io.nop.batch.core.debug.DebugBatchLoader;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.loader.PartitionDispatchLoader;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
@@ -24,7 +24,7 @@ public class TestPartitionDispatchLoader {
     @Test
     public void testLoad() {
         int n = 1000000;
-        DebugLoader baseLoader = new DebugLoader(n);
+        DebugBatchLoader baseLoader = new DebugBatchLoader(n);
         int fetchThreadCount = 1;
         PartitionDispatchLoader<String> loader = new PartitionDispatchLoader<>(baseLoader,
                 GlobalExecutors.cachedThreadPool(), fetchThreadCount, 20, k -> k.hashCode() % 3);

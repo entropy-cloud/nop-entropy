@@ -4,11 +4,28 @@
 可以通过JDBC连接数据库，获取数据库中的元数据生成Excel格式的数据模型定义。
 
 ```shell
-java -Dfile.encoding=UTF8 -jar nop-cli.jar reverse-db litemall -c=com.mysql.cj.jdbc.Driver --username=litemall --password=litemall123456 --jdbcUrl="jdbc:mysql://127.0.0.1:3306/litemall?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC"
+java -jar nop-cli.jar reverse-db litemall -c=com.mysql.cj.jdbc.Driver --username=litemall --password=litemall123456 --jdbcUrl="jdbc:mysql://127.0.0.1:3306/litemall?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC"
 ```
 
 nop-cli的reverse-db命令需要传入参数【数据库模式名】，例如litemall，然后通过jdbcUrl等选项传入JDBC连接字符串等信息。
 
+````
+Usage: nop-cli reverse-db [-dhV] -c=<driverClassName> -j=<jdbcUrl>
+                          [-o=<outputFile>] [-p=<password>] [-t=<table>]
+                          -u=<username> <catalog>
+对数据库进行逆向工程分析，生成Excel模型文件
+      <catalog>             数据库模式名
+  -c, --driverClass=<driverClassName>
+                            JDBC驱动类
+  -d, --dump                输出文件（缺省输出到命令行窗口中）
+  -h, --help                Show this help message and exit.
+  -j, --jdbcUrl=<jdbcUrl>   jdbc连接
+  -o, --output=<outputFile> 输出文件（缺省输出到命令行窗口中）
+  -p, --password=<password> 数据库密码
+  -t, --table=<table>       数据库表模式，例如litemal%表示匹配litemall为前缀的表
+  -u, --username=<username> 数据库用户名
+  -V, --version             Print version information and exit.
+````
 
 ## 代码生成
 
@@ -53,12 +70,22 @@ java -Xbootclasspath/a:bsin-codegen-template/src/main/resources/ -jar nop-cli-2.
 使用NopCli工具可以监听指定目录，当目录下的文件发生变动时自动执行脚本代码。
 
 ````shell
-java -jar nop-cli.jar watch app-meta -e=scripts/gen-web.xrun
+java -jar nop-cli.jar watch app-meta -e=taks/gen-web.xrun
 ````
 
 以上配置表示监控 app-meta目录，当其中的文件发生变化时执行gen-web.xrun脚本文件
 
 在这个脚本文件中，我们可以通过GenWithDependsCache等Xpl模板标签来动态生成代码
 
+````xml
+<c:unit xmlns:c="c" xmlns:run="run" xmlns:xpl="xpl">
+    <run:GenWithCache xpl:lib="/nop/codegen/xlib/run.xlib"
+                      srcDir="/meta/test" appName="Test"
+                      targetDir="./target/gen"
+                      tplDir="/nop/test/meta-web"/>
+</c:unit>
 ````
-````
+
+GenWithCache标签会设置srcDir,appName属性，然后执行tplDir指定的代码生成模板，生成文件的存放路径由targetDir指定。
+
+代码生成的过程中启用了依赖追踪，第一次生成之后再此触发gen-web.xrun运行代码生成任务时会自动检查输出文件所对应的依赖模型文件，只有当依赖文件发生变化时才会重新生成，否则会自动跳过。

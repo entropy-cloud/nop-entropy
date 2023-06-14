@@ -7,6 +7,7 @@
  */
 package io.nop.batch.core;
 
+import io.nop.api.core.annotations.core.PropertySetter;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.consumer.BatchConsumerWithListener;
 import io.nop.batch.core.consumer.BatchProcessorConsumer;
@@ -15,6 +16,7 @@ import io.nop.batch.core.consumer.InvokerBatchConsumer;
 import io.nop.batch.core.consumer.RateLimitConsumer;
 import io.nop.batch.core.consumer.RetryBatchConsumer;
 import io.nop.batch.core.consumer.SkipBatchConsumer;
+import io.nop.batch.core.consumer.WitchHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTask;
 import io.nop.batch.core.listener.MetricsRetryConsumeListener;
 import io.nop.batch.core.listener.MultiBatchChunkListener;
@@ -23,6 +25,7 @@ import io.nop.batch.core.listener.MultiBatchLoadListener;
 import io.nop.batch.core.listener.MultiBatchProcessListener;
 import io.nop.batch.core.listener.MultiBatchTaskListener;
 import io.nop.batch.core.loader.BatchLoaderWithListener;
+import io.nop.batch.core.loader.ChunkSortBatchLoader;
 import io.nop.batch.core.processor.BatchChunkProcessor;
 import io.nop.batch.core.processor.BatchProcessorWithListener;
 import io.nop.batch.core.processor.FilterBatchProcessor;
@@ -35,6 +38,7 @@ import io.nop.commons.util.retry.IRetryPolicy;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.Predicate;
@@ -80,6 +84,10 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
     private IFunctionInvoker singleSessionInvoker;
 
+    private IBatchRecordHistoryStore historyStore;
+
+    private Comparator inputComparator;
+
     /**
      * 每秒最多处理多少条记录
      */
@@ -95,66 +103,91 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return new BatchTaskBuilder();
     }
 
+    @PropertySetter
+    public BatchTaskBuilder inputComparator(Comparator comparator) {
+        this.inputComparator = comparator;
+        return this;
+    }
+
+    @PropertySetter
     public BatchTaskBuilder stateStore(IBatchStateStore stateStore) {
         this.stateStore = stateStore;
         return this;
     }
 
+    @PropertySetter
+    public BatchTaskBuilder historyStore(IBatchRecordHistoryStore historyStore) {
+        this.historyStore = historyStore;
+        return this;
+    }
+
+    @PropertySetter
     public BatchTaskBuilder skipPolicy(BatchSkipPolicy skipPolicy) {
         this.skipPolicy = skipPolicy;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder retryPolicy(IRetryPolicy retryPolicy) {
         this.retryPolicy = retryPolicy;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder retryOneByOne(boolean retryOneByOne) {
         this.retryOneByOne = retryOneByOne;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder singleMode(boolean singleMode) {
         this.singleMode = singleMode;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder rateLimit(double rateLimit) {
         this.rateLimit = rateLimit;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder jitterRatio(double jitterRatio) {
         this.jitterRatio = jitterRatio;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder transactionScope(BatchTransactionScope scope) {
         this.batchTransactionScope = batchTransactionScope;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder singleSession(boolean singleSession) {
         this.singleSession = singleSession;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder concurrency(int concurrency) {
         this.concurrency = concurrency;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder executor(Executor executor) {
         this.executor = executor;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder batchSize(int batchSize) {
         this.batchSize = batchSize;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder loader(IBatchLoader loader) {
         Guard.checkState(this.loader == null, "loader is already set");
         this.loader = loader;
@@ -162,6 +195,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder consumer(IBatchConsumer<?, IBatchChunkContext> consumer) {
         Guard.checkState(this.consumer == null, "consumer is already set");
         this.consumer = consumer;
@@ -169,6 +203,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder chunkProcessor(IBatchChunkProcessor chunkProcessor) {
         Guard.checkState(this.chunkProcessor == null, "chunkProcessor is already set");
         this.chunkProcessor = chunkProcessor;
@@ -176,11 +211,13 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder transactionalInvoker(IFunctionInvoker invoker) {
         this.transactionalInvoker = invoker;
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder singleSessionInvoker(IFunctionInvoker invoker) {
         this.singleSessionInvoker = invoker;
         return this;
@@ -209,6 +246,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder listeners(Collection<?> listeners) {
         for (Object listener : listeners) {
             addListener(listener);
@@ -216,6 +254,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder processor(IBatchProcessor<?, ?, IBatchChunkContext> processor) {
         Guard.checkState(this.processor == null, "processor is already set");
 
@@ -225,6 +264,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         return this;
     }
 
+    @PropertySetter
     public BatchTaskBuilder processors(List<IBatchProcessor<?, ?, IBatchChunkContext>> processors) {
         for (IBatchProcessor<?, ?, IBatchChunkContext> processor : processors) {
             addProcessor(processor);
@@ -265,9 +305,12 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
     protected IBatchChunkProcessor buildChunkProcessor() {
         IBatchLoader loader = this.loader;
 
-        IBatchLoadListener loadListener = null;
+        if (inputComparator != null)
+            loader = new ChunkSortBatchLoader(inputComparator, loader);
+
+
         if (!loadListeners.isEmpty()) {
-            loadListener = new MultiBatchLoadListener(loadListeners);
+            IBatchLoadListener loadListener = new MultiBatchLoadListener(loadListeners);
             loader = new BatchLoaderWithListener(loader, loadListener);
         }
 
@@ -294,11 +337,15 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
                 processor = new BatchProcessorWithListener<>(processor, processListener);
             }
             consumer = new BatchProcessorConsumer(processor, this.consumer);
+        }
 
-            // 在process和consume阶段打开事务
-            if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
-                consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
-            }
+        // 保存处理历史，避免重复处理
+        if (historyStore != null)
+            consumer = new WitchHistoryBatchConsumer(historyStore, consumer);
+
+        // 在process和consume阶段打开事务
+        if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
+            consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
         }
 
         // 限制消费速度

@@ -49,7 +49,8 @@ public class PartitionDispatchLoader<S>
 
     @Override
     public void onTaskBegin(IBatchTaskContext context) {
-        queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn);
+        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn);
+        this.queue = queue;
         AtomicInteger runningCount = new AtomicInteger(fetchThreadCount);
 
         for (int i = 0; i < fetchThreadCount; i++) {
@@ -79,8 +80,14 @@ public class PartitionDispatchLoader<S>
 
     @Override
     public void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        queue = null;
-        exception = null;
+        if (!context.isDone())
+            context.cancel();
+
+        if(queue != null)
+            queue.finish();
+        
+        this.queue = null;
+        this.exception = null;
     }
 
     @Override

@@ -9,6 +9,7 @@ package io.nop.core.resource.store;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.progress.IStepProgressListener;
+import io.nop.commons.lang.IRefreshable;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IFile;
@@ -31,7 +32,7 @@ import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_UNKNOWN_NAMESPACE;
 
-public class DefaultVirtualFileSystem implements IVirtualFileSystem {
+public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshable {
     private Map<String, IResourceNamespaceHandler> namespaceHandlers = new ConcurrentHashMap<>();
 
     private DeltaResourceStore deltaResourceStore;
@@ -47,6 +48,17 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem {
         registerNamespaceHandler(ClassPathNamespaceHandler.INSTANCE);
         registerNamespaceHandler(ModuleNamespaceHandler.INSTANCE);
 
+        DeltaResourceStoreBuilder builder = new DeltaResourceStoreBuilder();
+        this.deltaResourceStore = builder.build(config);
+        this.zipFiles = builder.getZipFiles();
+    }
+
+    @Override
+    public void refresh(boolean refreshDepends) {
+        IoHelper.safeCloseAll(zipFiles);
+        zipFiles = null;
+
+        VfsConfig config = VfsConfigLoader.loadDefault();
         DeltaResourceStoreBuilder builder = new DeltaResourceStoreBuilder();
         this.deltaResourceStore = builder.build(config);
         this.zipFiles = builder.getZipFiles();

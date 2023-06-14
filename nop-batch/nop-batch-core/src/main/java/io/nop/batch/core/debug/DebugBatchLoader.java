@@ -16,14 +16,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DebugLoader implements IBatchLoader<String, IBatchChunkContext>, IBatchTaskListener {
+public class DebugBatchLoader implements IBatchLoader<String, IBatchChunkContext>, IBatchTaskListener {
     private int maxCount;
     private int readCount;
 
-    public DebugLoader() {
+    public DebugBatchLoader() {
     }
 
-    public DebugLoader(int maxCount) {
+    public DebugBatchLoader(int maxCount) {
         this.maxCount = maxCount;
     }
 

@@ -34,7 +34,7 @@ public class CliReverseDbCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-p", "--password"}, description = "数据库密码")
     String password;
 
-    @CommandLine.Option(names = {"-t", "--table"}, description = "数据库表模式，例如litemal%表示匹配litemall为前缀的表")
+    @CommandLine.Option(names = {"-t", "--table"}, description = "数据库表模式，例如litemal%%表示匹配litemall为前缀的表")
     String table;
 
     @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件（缺省输出到命令行窗口中）")

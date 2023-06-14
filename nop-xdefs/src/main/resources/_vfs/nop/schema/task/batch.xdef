@@ -1,8 +1,36 @@
-<batch batchSize="int"
+<!--
+@concurrency 同时启动多少个线程去并行处理
+@retryOneByOne 重试的时候是否逐个重试，还是一整批重试
+@singleMode表示批量读取数据，然后逐条处理、消费，而不是批量消费。
+@rateLimit 每秒最多处理多少条记录
+@jitterRatio 多线程执行时，如果每个线程处理的batchSize都相同，则可能导致同时读取数据库和同时写数据库，产生资源征用。 通过设置一个随机比例，将每个线程处理的batchSize动态调整为originalBatchSize * (1
+                   + jitterRatio * random)， 使得每个线程的每个批次的负载随机化，从而破坏潜在的同步效应。
+-->
+<batch batchSize="int" concurrency="!int=1" retryOneByOne="boolean=false"
+       singleMode="boolean=false" singleSession="boolean"
+       transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
+       rateLimit="double" jitterRatio="double"
        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:xdef="/nop/schema/xdef.xdef"
 >
+    <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int"
+                 exponentialDelay="boolean=true" jitterRatio="double=0.3">
+        <exceptionFilter xdef:value="xpl-predicate"/>
+    </retryPolicy>
 
-    <reader bean="bean-name" xdef:bean-body-prop="impl">
+    <skipPolicy maxSkipCount="int">
+        <exceptionFilter xdef:value="xpl-predicate"/>
+    </skipPolicy>
+
+    <executor bean="bean-name"/>
+
+    <stateStore bean="bean-name"/>
+
+    <historyStore bean="bean-name"/>
+
+    <inputCompator xdef:ref="/nop/schema/query/order-by.xdef"/>
+
+    <reader bean="bean-name">
         <file-reader path="expr">
             <headers xdef:value="csv-set"/>
         </file-reader>
@@ -16,8 +44,16 @@
             <sql xdef:value="xpl-sql"/>
             <query xdef:ref="../query/query.xdef"/>
         </jdbc-reader>
+
+        <source xdef:value="xpl"/>
     </reader>
 
-    <processor bean="bean-name" xdef:value="xpl"/>
+    <processor bean="bean-name">
+        <source xdef:value="xpl"/>
+    </processor>
+
+    <chunk-processor bean="bean-name">
+        <source xdef:value="xpl"/>
+    </chunk-processor>
 
 </batch>
