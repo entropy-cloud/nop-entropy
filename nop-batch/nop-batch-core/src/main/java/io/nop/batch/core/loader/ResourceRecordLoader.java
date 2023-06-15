@@ -68,7 +68,7 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
     /**
      * 是否确保返回的记录实现{@link IRowNumberRecord}接口，并设置rowNumber为当前读取记录条目数，从1开始
      */
-    private boolean recordRowNumber = true;
+    private boolean recordRowNumber = false;
 
     /**
      * 是否记录处理状态。如果是，则打开文件的时候会检查此前保存的处理条目数，跳过相应的数据行

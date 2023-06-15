@@ -110,7 +110,7 @@ public class ImportDbTool {
 
                     if (!map.containsKey(tableName)) {
                         ImportTableConfig tableConfig = new ImportTableConfig();
-                        tableConfig.setName(name);
+                        tableConfig.setName(tableName);
                         map.put(tableName, tableConfig);
                     }
                 }
