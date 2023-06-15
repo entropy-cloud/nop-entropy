@@ -13,7 +13,7 @@ public class ImportDbConfig extends AbstractDbConfig {
 
     private List<String> excludeTableNames;
 
-    private boolean ignoreDuplicate;
+    private boolean ignoreDuplicate = true;
 
     public boolean isIgnoreDuplicate() {
         return ignoreDuplicate;

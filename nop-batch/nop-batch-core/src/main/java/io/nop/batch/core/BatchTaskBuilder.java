@@ -13,6 +13,7 @@ import io.nop.batch.core.consumer.BatchConsumerWithListener;
 import io.nop.batch.core.consumer.BatchProcessorConsumer;
 import io.nop.batch.core.consumer.EmptyBatchConsumer;
 import io.nop.batch.core.consumer.InvokerBatchConsumer;
+import io.nop.batch.core.consumer.MultiBatchConsumer;
 import io.nop.batch.core.consumer.RateLimitConsumer;
 import io.nop.batch.core.consumer.RetryBatchConsumer;
 import io.nop.batch.core.consumer.SkipBatchConsumer;
@@ -226,6 +227,14 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
     }
 
     public BatchTaskBuilder addListener(Object listener) {
+        if (listener instanceof MultiBatchConsumer) {
+            List<?> consumers = ((MultiBatchConsumer<?, ?>) listener).getConsumers();
+            for (Object consumer : consumers) {
+                addListener(consumer);
+            }
+            return this;
+        }
+
         if (listener instanceof IBatchTaskListener) {
             taskListeners.add((IBatchTaskListener) listener);
         }

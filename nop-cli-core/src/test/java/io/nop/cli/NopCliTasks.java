@@ -101,4 +101,24 @@ public class NopCliTasks {
         app.factory = factory;
         assertEquals(0, app.run(args));
     }
+
+    @Test
+    public void testExportDb(){
+        String[] args = new String[]{"export-db", "../nop-cli/demo/export.json",
+                "-o","target/data"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.factory = factory;
+        assertEquals(0, app.run(args));
+    }
+
+    @Test
+    public void testImportDb(){
+        String[] args = new String[]{"import-db", "../nop-cli/demo/import.json",
+                "-i","target/data"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.factory = factory;
+        assertEquals(0, app.run(args));
+    }
 }

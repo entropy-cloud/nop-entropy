@@ -23,12 +23,12 @@ import java.util.concurrent.Callable;
         description = "导出数据库中指定表的数据"
 )
 public class CliExportDbCommand implements Callable<Integer> {
-    @CommandLine.Parameters(description = "配置文件路径", index = "0")
-    String configPath;
 
     @CommandLine.Option(names = {"-o", "--output"}, description = "输出目录")
     File outputDir;
 
+    @CommandLine.Parameters(description = "配置文件路径")
+    String configPath;
     @Override
     public Integer call() {
         IResource resource = ResourceHelper.resolveRelativePathResource(configPath);
@@ -37,7 +37,7 @@ public class CliExportDbCommand implements Callable<Integer> {
             config.setOutputDir(outputDir.getAbsolutePath());
 
         if (config.getOutputDir() == null)
-            config.setOutputDir(new File("output").getAbsolutePath());
+            config.setOutputDir(new File("data").getAbsolutePath());
 
         ExportDbTool tool = new ExportDbTool();
         tool.setConfig(config);

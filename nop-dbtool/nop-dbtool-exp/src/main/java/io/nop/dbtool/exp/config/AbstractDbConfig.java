@@ -8,7 +8,7 @@ public class AbstractDbConfig {
     private String driverClassName;
     private String jdbcUrl;
 
-    private String userName;
+    private String username;
 
     private String password;
 
@@ -50,12 +50,12 @@ public class AbstractDbConfig {
         this.jdbcUrl = jdbcUrl;
     }
 
-    public String getUserName() {
-        return userName;
+    public String getUsername() {
+        return username;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setUsername(String userName) {
+        this.username = userName;
     }
 
     public String getPassword() {
@@ -78,7 +78,7 @@ public class AbstractDbConfig {
         SimpleDataSource ds = new SimpleDataSource();
         ds.setUrl(jdbcUrl);
         ds.setCatalog(catalog);
-        ds.setUsername(userName);
+        ds.setUsername(username);
         ds.setPassword(password);
         ds.setDriverClassName(driverClassName);
         return ds;

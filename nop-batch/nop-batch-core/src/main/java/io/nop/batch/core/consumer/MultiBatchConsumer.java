@@ -11,6 +11,10 @@ public class MultiBatchConsumer<R, C> implements IBatchConsumer<R, C> {
         this.list = list;
     }
 
+    public List<IBatchConsumer<R, C>> getConsumers() {
+        return list;
+    }
+
     @Override
     public void consume(List<R> items, C context) {
         for (IBatchConsumer<R, C> consumer : list) {

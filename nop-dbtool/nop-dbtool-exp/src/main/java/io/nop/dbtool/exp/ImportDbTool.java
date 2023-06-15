@@ -2,6 +2,7 @@ package io.nop.dbtool.exp;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumer;
@@ -60,11 +61,13 @@ public class ImportDbTool {
     }
 
     public void execute() {
+        Guard.notEmpty(config.getCatalog(),"catalog");
+
         this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
 
         IThreadPoolExecutor executor;
         if (config.getThreadCount() > 1) {
-            executor = DefaultThreadPoolExecutor.newExecutor("export-db", config.getThreadCount(), 10);
+            executor = DefaultThreadPoolExecutor.newExecutor("import-db", config.getThreadCount(), Integer.MAX_VALUE);
         } else {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
@@ -79,7 +82,7 @@ public class ImportDbTool {
             for (ImportTableConfig tableConfig : getAllTables().values()) {
                 futures.add(executor.submit(() -> runTask(tableConfig, ds, meta), null));
             }
-            FutureHelper.waitAll(futures);
+            FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
         } finally {
             executor.destroy();
         }

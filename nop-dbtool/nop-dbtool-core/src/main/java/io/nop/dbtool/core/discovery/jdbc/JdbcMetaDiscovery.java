@@ -7,10 +7,10 @@
  */
 package io.nop.dbtool.core.discovery.jdbc;
 
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
-import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.SQLDataType;
@@ -294,9 +294,14 @@ public class JdbcMetaDiscovery {
                 cols.get(i).setPropId(i + 1);
             }
 
-            table.setColumns(cols);
+            try {
+                table.setColumns(cols);
 
-            table.init();
+                table.init();
+            } catch (RuntimeException e) {
+                LOG.error("nop.err.discover-table-fail:table={}", table.getTableName(), e);
+                throw e;
+            }
         }
     }
 

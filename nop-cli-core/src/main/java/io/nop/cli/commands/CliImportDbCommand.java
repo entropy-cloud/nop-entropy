@@ -23,11 +23,11 @@ import java.util.concurrent.Callable;
         description = "导入数据到数据库中"
 )
 public class CliImportDbCommand implements Callable<Integer> {
-    @CommandLine.Parameters(description = "配置文件路径", index = "0")
-    String configPath;
-
     @CommandLine.Option(names = {"-i", "--input"}, description = "数据数据目录")
     File inputDir;
+
+    @CommandLine.Parameters(description = "配置文件路径")
+    String configPath;
 
     @Override
     public Integer call() {
@@ -37,7 +37,7 @@ public class CliImportDbCommand implements Callable<Integer> {
             config.setInputDir(inputDir.getAbsolutePath());
 
         if (config.getInputDir() == null)
-            config.setInputDir(new File("input").getAbsolutePath());
+            config.setInputDir(new File("data").getAbsolutePath());
 
         ImportDbTool tool = new ImportDbTool();
         tool.setConfig(config);

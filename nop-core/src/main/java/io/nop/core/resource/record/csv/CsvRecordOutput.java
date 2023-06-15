@@ -8,6 +8,7 @@
 package io.nop.core.resource.record.csv;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public class CsvRecordOutput<T> implements IRecordOutput<T> {
     private Collection<String> headers;
@@ -50,15 +52,17 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
 
     @Override
     public void writeBatch(Collection<? extends T> records) {
+        if (records == null || records.isEmpty())
+            return;
+
         try {
             if (!headersWritten) {
-                writeHeaders();
+                writeHeaders(CollectionHelper.first(records));
                 headersWritten = true;
             }
-            if (records != null) {
-                for (T record : records) {
-                    write(record);
-                }
+
+            for (T record : records) {
+                write(record);
             }
         } catch (IOException e) {
             throw NopException.adapt(e);
@@ -69,7 +73,7 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
     public void write(T record) {
         try {
             if (!headersWritten) {
-                writeHeaders();
+                writeHeaders(record);
                 headersWritten = true;
             }
 
@@ -90,7 +94,14 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
         return StringHelper.toString(value, "");
     }
 
-    private void writeHeaders() throws IOException {
+    private void writeHeaders(T record) throws IOException {
+        if (headers == null || headers.isEmpty()) {
+            if (record instanceof Map) {
+                headers = CollectionHelper.toStringList(((Map<?, ?>) record).keySet());
+            } else {
+                headers = BeanTool.getReadableComplexPropNames(record.getClass());
+            }
+        }
         writer.printRecord(headers.toArray());
     }
 

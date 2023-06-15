@@ -1,0 +1,9 @@
+{
+  "importAllTables": true,
+  "jdbcUrl": "jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC",
+  "driverClassName": "com.mysql.cj.jdbc.Driver",
+  "username": "nop",
+  "password": "nop-test",
+  "catalog": "dev",
+  "threadCount": 4
+}

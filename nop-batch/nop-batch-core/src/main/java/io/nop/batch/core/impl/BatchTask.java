@@ -163,7 +163,8 @@ public class BatchTask implements IBatchTask {
         Object meter = metrics == null ? null : metrics.beginChunk();
 
         long beginTime = CoreMetrics.currentTimeMillis();
-        LOG.info("nop.batch.process-chunk-begin:taskName={},taskId={}", context.getTaskName(), context.getTaskId());
+        LOG.info("nop.batch.process-chunk-begin:taskName={},taskId={},threadIndex={}",
+                context.getTaskName(), context.getTaskId(), threadIndex);
 
         ProcessResult result = ProcessResult.CONTINUE;
         boolean success = true;
@@ -190,7 +191,8 @@ public class BatchTask implements IBatchTask {
 
         } catch (Throwable e) {
             success = false;
-            LOG.error("nop.err.batch.task-chunk-fail:taskName={},taskId={}", context.getTaskName(), context.getTaskId(),
+            LOG.error("nop.err.batch.task-chunk-fail:taskName={},taskId={},threadIndex={}",
+                    context.getTaskName(), context.getTaskId(),threadIndex,
                     e);
 
             try {
@@ -208,8 +210,8 @@ public class BatchTask implements IBatchTask {
             }
         } finally {
             long endTime = CoreMetrics.currentTimeMillis();
-            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},usedTime={}", context.getTaskName(),
-                    context.getTaskId(), endTime - beginTime);
+            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},threadIndex={},usedTime={}", context.getTaskName(),
+                    context.getTaskId(), threadIndex, endTime - beginTime);
 
             if (metrics != null)
                 metrics.endChunk(meter, success);
