@@ -28,4 +28,9 @@ public class MapBeanObjectAdapter implements IBeanObjectAdapter {
     public void setProperty(Object bean, String propName, Object value, IEvalScope scope) {
         ((Map<String, Object>) bean).put(propName, value);
     }
+
+    @Override
+    public boolean hasProperty(Object bean, String propName) {
+        return ((Map<String, Object>) bean).containsKey(propName);
+    }
 }

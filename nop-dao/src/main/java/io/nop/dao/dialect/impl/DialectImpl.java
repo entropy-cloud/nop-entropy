@@ -7,6 +7,7 @@
  */
 package io.nop.dao.dialect.impl;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.convert.IByteArrayView;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
@@ -14,14 +15,11 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.CaseInsensitiveMap;
 import io.nop.commons.text.CharacterCase;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.commons.type.StdSqlType;
-import io.nop.dataset.binder.DataParameterBinders;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.core.reflect.ReflectionManager;
-import io.nop.dataset.impl.AutoConvertDataParameterBinder;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.exception.ISQLExceptionTranslator;
@@ -37,11 +35,15 @@ import io.nop.dao.dialect.model.SqlNativeFunctionModel;
 import io.nop.dao.dialect.model.SqlTemplateModel;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
 import io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler;
+import io.nop.dataset.binder.DataParameterBinders;
+import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.dataset.impl.AutoConvertDataParameterBinder;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -478,10 +480,16 @@ public class DialectImpl implements IDialect {
             return getBooleanValueLiteral((Boolean) value);
         if (value instanceof ByteString)
             return getHexValueLiteral((ByteString) value);
+        if (value instanceof Timestamp)
+            return getDateTimeLiteral(((Timestamp) value).toLocalDateTime());
+        if (value instanceof java.sql.Date)
+            return getDateLiteral(((Date) value).toLocalDate());
         if (value instanceof LocalDate)
             return getDateLiteral((LocalDate) value);
         if (value instanceof LocalDateTime)
             return getDateTimeLiteral((LocalDateTime) value);
+        if (value instanceof java.util.Date)
+            return getDateTimeLiteral(ConvertHelper.toLocalDateTime(value));
         return value.toString();
     }
 

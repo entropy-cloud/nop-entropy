@@ -6,7 +6,7 @@
 @jitterRatio 多线程执行时，如果每个线程处理的batchSize都相同，则可能导致同时读取数据库和同时写数据库，产生资源征用。 通过设置一个随机比例，将每个线程处理的batchSize动态调整为originalBatchSize * (1
                    + jitterRatio * random)， 使得每个线程的每个批次的负载随机化，从而破坏潜在的同步效应。
 -->
-<batch batchSize="int" concurrency="!int=1" retryOneByOne="boolean=false"
+<batch batchSize="!int" concurrency="!int=1" retryOneByOne="boolean=false"
        singleMode="boolean=false" singleSession="boolean"
        transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
        rateLimit="double" jitterRatio="double"
@@ -31,7 +31,7 @@
     <inputCompator xdef:ref="/nop/schema/query/order-by.xdef"/>
 
     <reader bean="bean-name">
-        <file-reader path="expr">
+        <file-reader pathExpr="expr">
             <headers xdef:value="csv-set"/>
         </file-reader>
 
@@ -55,5 +55,9 @@
     <chunk-processor bean="bean-name">
         <source xdef:value="xpl"/>
     </chunk-processor>
+
+    <writer bean="bean-name">
+        <source xdef:value="xpl" />
+    </writer>
 
 </batch>

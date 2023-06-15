@@ -95,6 +95,12 @@ public class BeanTool {
         return instance().getProperty(bean, propName);
     }
 
+    public static boolean hasProperty(Object bean, String propName) {
+        if (bean == null)
+            return false;
+        return instance().hasProperty(bean, propName);
+    }
+
     public static Object getComplexProperty(Object bean, String propPath) {
         if (bean == null)
             return null;

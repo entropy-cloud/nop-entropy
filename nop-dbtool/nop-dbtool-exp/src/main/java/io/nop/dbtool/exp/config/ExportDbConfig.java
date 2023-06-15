@@ -6,20 +6,42 @@ import java.util.List;
 
 @DataBean
 public class ExportDbConfig extends AbstractDbConfig {
-    private String targetDir;
+    private String outputDir;
 
     private List<String> exportFormats;
 
-    private List<SqlTableConfig> tables;
+    private List<ExportTableConfig> tables;
 
     private String tableNamePrefix;
 
-    public String getTargetDir() {
-        return targetDir;
+    private List<String> excludeTableNames;
+
+    private boolean exportAllTables;
+
+    private String dialect;
+
+    public String getDialect() {
+        return dialect;
     }
 
-    public void setTargetDir(String targetDir) {
-        this.targetDir = targetDir;
+    public void setDialect(String dialect) {
+        this.dialect = dialect;
+    }
+
+    public boolean isExportAllTables() {
+        return exportAllTables;
+    }
+
+    public void setExportAllTables(boolean exportAllTables) {
+        this.exportAllTables = exportAllTables;
+    }
+
+    public String getOutputDir() {
+        return outputDir;
+    }
+
+    public void setOutputDir(String outputDir) {
+        this.outputDir = outputDir;
     }
 
     public List<String> getExportFormats() {
@@ -30,11 +52,11 @@ public class ExportDbConfig extends AbstractDbConfig {
         this.exportFormats = exportFormats;
     }
 
-    public List<SqlTableConfig> getTables() {
+    public List<ExportTableConfig> getTables() {
         return tables;
     }
 
-    public void setTables(List<SqlTableConfig> tables) {
+    public void setTables(List<ExportTableConfig> tables) {
         this.tables = tables;
     }
 
@@ -44,5 +66,13 @@ public class ExportDbConfig extends AbstractDbConfig {
 
     public void setTableNamePrefix(String tableNamePrefix) {
         this.tableNamePrefix = tableNamePrefix;
+    }
+
+    public List<String> getExcludeTableNames() {
+        return excludeTableNames;
+    }
+
+    public void setExcludeTableNames(List<String> excludeTableNames) {
+        this.excludeTableNames = excludeTableNames;
     }
 }

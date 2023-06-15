@@ -47,6 +47,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -987,6 +988,20 @@ public class StringHelper extends ApiStringHelper {
             chars[i] = allowChars.charAt(rand.nextInt(m));
         }
         return new String(chars);
+    }
+
+    @Deterministic
+    public static String lowerCase(String str) {
+        if (str == null)
+            return null;
+        return str.toLowerCase(Locale.ROOT);
+    }
+
+    @Deterministic
+    public static String upperCase(String str) {
+        if (str == null)
+            return null;
+        return str.toUpperCase(Locale.ROOT);
     }
 
     public static String randomString(int length) {

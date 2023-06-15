@@ -10,6 +10,7 @@ package io.nop.core.reflect.bean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.type.IGenericType;
 
 import javax.annotation.Nonnull;
@@ -114,6 +115,21 @@ public class BeanToolImpl implements IBeanTool {
     @Override
     public void setProperty(Object bean, String propName, Object value, IEvalScope scope) {
         getBeanModel(bean).setProperty(bean, propName, value, scope);
+    }
+
+    @Override
+    public boolean hasProperty(Object bean, String propName) {
+        if (bean instanceof Map)
+            return ((Map<?, ?>) bean).containsKey(propName);
+
+        IBeanModel beanModel = getBeanModel(bean);
+        if (beanModel.getPropertyModel(propName) != null)
+            return true;
+
+        if (bean instanceof IPropGetMissingHook)
+            return ((IPropGetMissingHook) bean).prop_has(propName);
+
+        return false;
     }
 
     @Override

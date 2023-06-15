@@ -427,6 +427,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-batch-jdbc</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-batch-gen</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -602,7 +608,11 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-dbtool-exp</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>

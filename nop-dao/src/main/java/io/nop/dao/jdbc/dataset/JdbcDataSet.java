@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static io.nop.api.core.convert.ConvertHelper.toLocalDate;
 
@@ -564,6 +565,11 @@ public class JdbcDataSet implements IDataSet, IDataRow {
     @Override
     public @Nonnull List<IDataRow> readBatch(int maxCount) {
         return RecordInputImpls.defaultReadBatch(this, maxCount, IDataRow::toDetachedDataRow);
+    }
+
+    @Override
+    public @Nonnull List<IDataRow> readFiltered(int maxCount, Predicate<IDataRow> filter) {
+        return RecordInputImpls.defaultReadBatch(this, maxCount, filter, IDataRow::toDetachedDataRow);
     }
 
     @Override

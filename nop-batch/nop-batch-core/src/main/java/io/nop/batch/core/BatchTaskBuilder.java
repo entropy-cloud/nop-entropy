@@ -39,7 +39,9 @@ import io.nop.commons.util.retry.IRetryPolicy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Predicate;
 
@@ -66,11 +68,11 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
     private BatchSkipPolicy skipPolicy;
 
-    private List<IBatchTaskListener> taskListeners = new ArrayList<>();
-    private List<IBatchLoadListener> loadListeners = new ArrayList<>();
-    private List<IBatchConsumeListener> consumeListeners = new ArrayList<>();
-    private List<IBatchProcessListener> processListeners = new ArrayList<>();
-    private List<IBatchChunkListener> chunkListeners = new ArrayList<>();
+    private Set<IBatchTaskListener> taskListeners = new LinkedHashSet<>();
+    private Set<IBatchLoadListener> loadListeners = new LinkedHashSet<>();
+    private Set<IBatchConsumeListener> consumeListeners = new LinkedHashSet<>();
+    private Set<IBatchProcessListener> processListeners = new LinkedHashSet<>();
+    private Set<IBatchChunkListener> chunkListeners = new LinkedHashSet<>();
 
     private IBatchChunkProcessor chunkProcessor;
 
@@ -289,12 +291,12 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
     public IBatchTask build() {
         IBatchTaskListener taskListener = null;
         if (!taskListeners.isEmpty()) {
-            taskListener = new MultiBatchTaskListener(taskListeners);
+            taskListener = new MultiBatchTaskListener(new ArrayList<>(taskListeners));
         }
 
         IBatchChunkListener chunkListener = null;
         if (!chunkListeners.isEmpty()) {
-            chunkListener = new MultiBatchChunkListener(chunkListeners);
+            chunkListener = new MultiBatchChunkListener(new ArrayList<>(chunkListeners));
         }
 
         IBatchChunkProcessor chunkProcessor = buildChunkProcessor();
@@ -310,7 +312,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
 
         if (!loadListeners.isEmpty()) {
-            IBatchLoadListener loadListener = new MultiBatchLoadListener(loadListeners);
+            IBatchLoadListener loadListener = new MultiBatchLoadListener(new ArrayList<>(loadListeners));
             loader = new BatchLoaderWithListener(loader, loadListener);
         }
 
@@ -319,7 +321,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
             consumer = EmptyBatchConsumer.instance();
 
         if (!consumeListeners.isEmpty()) {
-            IBatchConsumeListener consumeListener = new MultiBatchConsumerListener(this.consumeListeners);
+            IBatchConsumeListener consumeListener = new MultiBatchConsumerListener(new ArrayList<>(this.consumeListeners));
             consumer = new BatchConsumerWithListener(consumer, consumeListener);
         }
 
@@ -333,7 +335,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
             // 如果设置了processor,则先执行processor再调用consumer，否则直接调用consumer
             IBatchProcessor processor = this.processor;
             if (!this.processListeners.isEmpty()) {
-                IBatchProcessListener processListener = new MultiBatchProcessListener(this.processListeners);
+                IBatchProcessListener processListener = new MultiBatchProcessListener(new ArrayList<>(this.processListeners));
                 processor = new BatchProcessorWithListener<>(processor, processListener);
             }
             consumer = new BatchProcessorConsumer(processor, this.consumer);
@@ -350,11 +352,11 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
         // 限制消费速度
         if (rateLimit > 0)
-            consumer = new RateLimitConsumer(consumer, new DefaultRateLimiter(rateLimit));
+            consumer = new RateLimitConsumer<>(consumer, new DefaultRateLimiter(rateLimit));
 
         // 一般情况下事务scope为process或者consume，因此retry是在事务之外执行
         if (retryPolicy != null) {
-            consumer = new RetryBatchConsumer(consumer, retryPolicy, retryOneByOne, singleMode,
+            consumer = new RetryBatchConsumer<>(consumer, retryPolicy, retryOneByOne, singleMode,
                     new MetricsRetryConsumeListener());
         }
 
@@ -366,7 +368,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
         // 一般只会使用缺省的BatchChunkProcessor，它负责核心的load/process/consume过程
         IBatchChunkProcessor chunkProcessor = this.chunkProcessor;
         if (chunkProcessor == null) {
-            chunkProcessor = new BatchChunkProcessor(loader, batchSize, jitterRatio, consumer);
+            chunkProcessor = new BatchChunkProcessor<>(loader, batchSize, jitterRatio, consumer);
         }
 
         if (batchTransactionScope == BatchTransactionScope.chunk && transactionalInvoker != null) {

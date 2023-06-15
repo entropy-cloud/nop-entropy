@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -80,6 +81,10 @@ public interface IRecordInput<T> extends Closeable, Iterator<T>, Iterable<T> {
 
     default @Nonnull List<T> readBatch(int maxCount) {
         return RecordInputImpls.defaultReadBatch(this, maxCount, Function.identity());
+    }
+
+    default @Nonnull List<T> readFiltered(int maxCount, Predicate<T> filter) {
+        return RecordInputImpls.defaultReadBatch(this, maxCount, filter, Function.identity());
     }
 
     default void readBatch(int maxCount, Consumer<T> ret) {

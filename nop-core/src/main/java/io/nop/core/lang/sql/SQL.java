@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static io.nop.core.CoreErrors.ARG_COUNT;
 import static io.nop.core.CoreErrors.ERR_SQL_PARAM_COUNT_MISMATCH;
@@ -380,6 +381,23 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         public SqlBuilder owner(String owner) {
             if (!StringHelper.isEmpty(owner)) {
                 append(owner).append('.');
+            }
+            return this;
+        }
+
+        public SqlBuilder field(String owner, String fieldName) {
+            return owner(owner).append(fieldName);
+        }
+
+        public SqlBuilder fields(String owner, Collection<String> fieldNames) {
+            boolean first = true;
+            for (String fieldName : fieldNames) {
+                if (first) {
+                    first = false;
+                } else {
+                    append(',');
+                }
+                field(owner, fieldName);
             }
             return this;
         }
@@ -752,6 +770,19 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
         public SqlBuilder callFunc(String funcName, Object... params) {
             return append("{ ? = call ").append(funcName).append("(").params(params).append(") }");
+        }
+
+        public <T> SqlBuilder forEach(String separator, Collection<T> c, BiConsumer<SqlBuilder, T> consumer) {
+            boolean first = true;
+            for (T item : c) {
+                if (first) {
+                    first = false;
+                } else {
+                    append(separator);
+                }
+                consumer.accept(this, item);
+            }
+            return this;
         }
 
         public SQL end() {

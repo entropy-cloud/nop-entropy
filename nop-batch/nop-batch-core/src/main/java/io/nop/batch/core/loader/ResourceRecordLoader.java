@@ -12,15 +12,16 @@ import io.nop.batch.core.IBatchAggregator;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchChunkListener;
 import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchRecordFilter;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskListener;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
-import io.nop.dataset.record.IRecordInput;
-import io.nop.dataset.record.IRowNumberRecord;
-import io.nop.dataset.record.impl.RowNumberRecordInput;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordIO;
+import io.nop.dataset.record.IRecordInput;
+import io.nop.dataset.record.IRowNumberRecord;
+import io.nop.dataset.record.impl.RowNumberRecordInput;
 
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +48,8 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
 
     // 对读取的数据进行汇总处理，例如统计读入的总行数等，最后在complete时写入到数据库中
     private IBatchAggregator<S, Object, ?> aggregator;
+
+    private IBatchRecordFilter<S> filter;
 
     private IRecordInput<S> input;
 
@@ -79,6 +82,8 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
 
     private Object combinedValue;
 
+    private IBatchTaskContext taskContext;
+
     public int getMaxProcessingItems() {
         return maxProcessingItems;
     }
@@ -93,6 +98,10 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
 
     public void setAggregator(IBatchAggregator<S, Object, ?> aggregator) {
         this.aggregator = aggregator;
+    }
+
+    public void setFilter(IBatchRecordFilter<S> filter) {
+        this.filter = filter;
     }
 
     public IResourceRecordIO<S> getRecordIO() {
@@ -137,6 +146,7 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
 
     @Override
     public synchronized void onTaskBegin(IBatchTaskContext context) {
+        taskContext = context;
         IResource resource = getResource();
         input = recordIO.openInput(resource, encoding);
 
@@ -146,7 +156,7 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
             combinedValue = aggregator.createCombinedValue(input.getHeaderMeta(), context);
 
         if (skipCount > 0) {
-            skip(input, skipCount);
+            skip(input, skipCount, context);
         }
 
         if (maxCount > 0) {
@@ -172,12 +182,16 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
         return skipCount;
     }
 
-    private void skip(IRecordInput<S> input, long skipCount) {
+    private void skip(IRecordInput<S> input, long skipCount, IBatchTaskContext context) {
         if (aggregator != null) {
             // 如果设置了aggregator，则需要从头开始遍历所有记录，否则断点重提的时候结果可能不正确。
             for (long i = 0; i < skipCount; i++) {
                 if (!input.hasNext())
                     break;
+                S item = input.next();
+                if (filter != null && filter.accept(item, context))
+                    continue;
+
                 aggregator.aggregate(input.next(), combinedValue);
             }
         } else {
@@ -187,6 +201,7 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
 
     @Override
     public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
+        taskContext = null;
         try {
             if (aggregator != null) {
                 aggregator.complete(input.getTrailerMeta(), combinedValue);
@@ -236,7 +251,7 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
 
     @Override
     public synchronized List<S> load(int batchSize, C context) {
-        List<S> items = input.readBatch(batchSize);
+        List<S> items = loadItems(batchSize, context);
         if (saveState) {
             for (S item : items) {
                 long rowNumber = getRowNumber(item);
@@ -255,6 +270,13 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
             }
         }
         return items;
+    }
+
+    private List<S> loadItems(int batchSize, C ctx) {
+        if (filter == null)
+            return input.readBatch(batchSize);
+
+        return input.readFiltered(batchSize, item -> filter.accept(item, taskContext));
     }
 
     private long getRowNumber(Object item) {

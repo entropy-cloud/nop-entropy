@@ -1,5 +1,9 @@
 package io.nop.dbtool.exp.config;
 
+import io.nop.dao.jdbc.datasource.SimpleDataSource;
+
+import javax.sql.DataSource;
+
 public class AbstractDbConfig {
     private String driverClassName;
     private String jdbcUrl;
@@ -9,6 +13,26 @@ public class AbstractDbConfig {
     private String password;
 
     private String catalog;
+
+    private int threadCount;
+
+    private int batchSize = 100;
+
+    public int getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(int batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    public int getThreadCount() {
+        return threadCount;
+    }
+
+    public void setThreadCount(int threadCount) {
+        this.threadCount = threadCount;
+    }
 
     public String getDriverClassName() {
         return driverClassName;
@@ -48,5 +72,15 @@ public class AbstractDbConfig {
 
     public void setCatalog(String catalog) {
         this.catalog = catalog;
+    }
+
+    public DataSource buildDataSource() {
+        SimpleDataSource ds = new SimpleDataSource();
+        ds.setUrl(jdbcUrl);
+        ds.setCatalog(catalog);
+        ds.setUsername(userName);
+        ds.setPassword(password);
+        ds.setDriverClassName(driverClassName);
+        return ds;
     }
 }

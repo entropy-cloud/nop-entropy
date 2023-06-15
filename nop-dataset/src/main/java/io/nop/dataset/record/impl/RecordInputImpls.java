@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class RecordInputImpls {
     public static <T> long defaultSkip(IRecordInput<T> input, long count) {
@@ -31,10 +32,34 @@ public class RecordInputImpls {
         return ret;
     }
 
+    public static <T, R> List<R> defaultReadBatch(IRecordInput<T> input, int maxCount,
+                                                  Predicate<T> filter, Function<T, R> fn) {
+        List<R> ret = new ArrayList<>();
+        defaultReadBatch(input, maxCount, filter, fn, ret::add);
+        return ret;
+    }
+
     public static <T, R> void defaultReadBatch(IRecordInput<T> input, int maxCount, Function<T, R> fn, Consumer<R> ret) {
         int n = 0;
         while (input.hasNext()) {
             T record = input.next();
+            ret.accept(fn.apply(record));
+            n++;
+            if (maxCount >= 0 && n >= maxCount) {
+                break;
+            }
+        }
+    }
+
+    public static <T, R> void defaultReadBatch(IRecordInput<T> input, int maxCount,
+                                               Predicate<T> filter,
+                                               Function<T, R> fn,
+                                               Consumer<R> ret) {
+        int n = 0;
+        while (input.hasNext()) {
+            T record = input.next();
+            if (!filter.test(record))
+                continue;
             ret.accept(fn.apply(record));
             n++;
             if (maxCount >= 0 && n >= maxCount) {

@@ -4,12 +4,20 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.TreeBean;
 
 @DataBean
-public class SqlTableConfig {
+public class ImportTableConfig {
     private String name;
-
-    private String sql;
-
     private TreeBean filter;
+    private String from;
+
+    private String format;
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
 
     public String getName() {
         return name;
@@ -19,19 +27,19 @@ public class SqlTableConfig {
         this.name = name;
     }
 
-    public String getSql() {
-        return sql;
-    }
-
-    public void setSql(String sql) {
-        this.sql = sql;
-    }
-
     public TreeBean getFilter() {
         return filter;
     }
 
     public void setFilter(TreeBean filter) {
         this.filter = filter;
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public void setFrom(String from) {
+        this.from = from;
     }
 }

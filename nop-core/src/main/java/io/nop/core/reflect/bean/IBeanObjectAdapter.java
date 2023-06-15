@@ -38,6 +38,8 @@ public interface IBeanObjectAdapter {
 
     void setProperty(Object bean, String propName, Object value, IEvalScope scope);
 
+    boolean hasProperty(Object bean, String propName);
+
     default void setProperties(Object bean, Map<String, Object> values) {
         setProperties(bean, values, DisabledEvalScope.INSTANCE);
     }
