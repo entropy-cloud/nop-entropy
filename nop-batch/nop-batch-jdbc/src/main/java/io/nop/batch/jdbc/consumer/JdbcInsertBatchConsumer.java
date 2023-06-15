@@ -34,6 +34,7 @@ public class JdbcInsertBatchConsumer<S, C> implements IBatchConsumer<S, C> {
             JdbcBatcher batcher = new JdbcBatcher(conn, dialect, jdbcTemplate.getDaoMetrics());
             for (S item : items) {
                 SQL insert = buildInsert(item);
+                batcher.addCommand(insert,false,null);
             }
             batcher.flush();
             return null;

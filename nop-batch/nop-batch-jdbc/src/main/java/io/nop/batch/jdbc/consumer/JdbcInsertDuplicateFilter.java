@@ -41,7 +41,7 @@ public class JdbcInsertDuplicateFilter<S> implements IBatchRecordHistoryStore<S>
 
             SQL sql = buildSelectByIdSql(records, pkCol, binder);
             List<String> list = jdbcTemplate.findAll(sql, StringColumnRowMapper.INSTANCE);
-            keyMap.keySet().retainAll(list);
+            keyMap.keySet().removeAll(list);
             return new ArrayList<>(keyMap.values());
         } else {
             Map<List<String>, S> keyMap = new LinkedHashMap<>();
@@ -52,7 +52,7 @@ public class JdbcInsertDuplicateFilter<S> implements IBatchRecordHistoryStore<S>
 
             SQL sql = buildSelectByCompositePkSql(records);
             List<List<String>> list = jdbcTemplate.findAll(sql, ListStringRowMapper.INSTANCE);
-            keyMap.keySet().retainAll(list);
+            keyMap.keySet().removeAll(list);
             return new ArrayList<>(keyMap.values());
         }
     }
@@ -87,7 +87,7 @@ public class JdbcInsertDuplicateFilter<S> implements IBatchRecordHistoryStore<S>
         SQL.SqlBuilder sb = SQL.begin();
         sb.select().fields(null, pkBinders.keySet());
         sb.from().sql(tableName);
-        sb.where().append('(').fields(null, pkBinders.keySet()).append(" in ");
+        sb.where().append('(').fields(null, pkBinders.keySet()).append(") in ");
         sb.append('(');
         sb.forEach(",", records, this::appendIdCond);
         sb.append(')');
