@@ -491,5 +491,6 @@
         <module>nop-gateway</module>
         <module>nop-vertx</module>
         <module>nop-orm-tdengine</module>
+        <module>nop-router</module>
     </modules>
 </project>

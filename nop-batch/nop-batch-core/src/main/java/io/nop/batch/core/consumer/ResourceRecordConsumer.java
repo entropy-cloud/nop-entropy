@@ -101,7 +101,7 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
     @Override
     public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
         try {
-            if (aggregator != null) {
+            if (aggregator != null && output != null) {
                 Map<String, Object> trailer = aggregator.complete(null, combinedValue);
                 output.setTrailerMeta(trailer);
                 combinedValue = null;

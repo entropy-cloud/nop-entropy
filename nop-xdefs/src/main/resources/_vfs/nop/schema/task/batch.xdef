@@ -48,7 +48,8 @@
         <source xdef:value="xpl"/>
     </reader>
 
-    <processor bean="bean-name">
+    <processor bean="bean-name" id="var-name" xdef:unique-attr="id">
+        <filter xdef:value="xpl-predicate" />
         <source xdef:value="xpl"/>
     </processor>
 
@@ -56,7 +57,7 @@
         <source xdef:value="xpl"/>
     </chunk-processor>
 
-    <writer bean="bean-name">
+    <writer bean="bean-name" id="var-name" xdef:unique-attr="id">
         <source xdef:value="xpl" />
     </writer>
 

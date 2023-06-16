@@ -11,13 +11,21 @@ import io.nop.batch.core.IBatchProcessor;
 
 import java.util.function.Consumer;
 
-public class CompositeBatchProcessor<S, R, T, C> implements IBatchProcessor<S, T, C> {
+public final class CompositeBatchProcessor<S, R, T, C> implements IBatchProcessor<S, T, C> {
     private final IBatchProcessor<S, R, C> processor;
     private final IBatchProcessor<R, T, C> next;
 
     public CompositeBatchProcessor(IBatchProcessor<S, R, C> processor, IBatchProcessor<R, T, C> next) {
         this.processor = processor;
         this.next = next;
+    }
+
+    public IBatchProcessor<S, R, C> getProcessor() {
+        return processor;
+    }
+
+    public IBatchProcessor<R, T, C> getNext() {
+        return next;
     }
 
     @Override

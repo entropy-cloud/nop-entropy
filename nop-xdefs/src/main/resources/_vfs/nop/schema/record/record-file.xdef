@@ -23,25 +23,33 @@
 
     <param name="!string" type="!string" xdef:unique-attr="name" xdef:name="RecordParamMeta"/>
 
-    <header xdef:name="RecordObjectMeta">
-        <param name="!string" xdef:ref="RecordParamMeta"/>
+    <xdef:define xdef:name="RecordObjectMeta">
+        <param name="!string" xdef:ref="RecordParamMeta" xdef:unique-attr="name"/>
 
         <!--
         每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
         -->
-        <recordClass xdef:value="class-name"/>
+        <recordType xdef:value="generic-type"/>
 
         <field name="!prop-name" xdef:ref="record-field.xdef" xdef:unique-attr="name"/>
 
         <computed-field name="!prop-name" type="!string" xdef:name="RecordComputedFieldMeta" xdef:unique-attr="name">
-            <compute-expr xdef:value="xpl"/>
+            <source xdef:value="xpl"/>
         </computed-field>
-    </header>
+    </xdef:define>
+
+    <header xdef:ref="RecordObjectMeta"/>
 
     <body xdef:name="RecordFileBodyMeta" repeat="enum:io.nop.record.model.FieldRepeatKind" xdef:ref="RecordObjectMeta">
 
+        <!--
+        返回字段的循环次数
+        -->
         <repeatExpr xdef:value="xpl"/>
 
+        <!--
+        返回字段循环的终止条件
+        -->
         <repeatUntil xdef:value="xpl"/>
     </body>
 
@@ -56,6 +64,9 @@
             <doc xdef:value="string"/>
             <option value="!string" label="!string" xdef:unique-attr="value" xdef:name="RecordEnumOption">
                 <doc xdef:value="string"/>
+                <!--
+                翻译为java doc的@see注释
+                -->
                 <docRef xdef:value="string"/>
             </option>
         </enum>

@@ -34,7 +34,7 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkCo
     private final IRecordSplitter<R, T> splitter;
     private final Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider;
 
-    private Map<String, IBatchConsumer<T, IBatchChunkContext>> activeConsumers = new HashMap<>();
+    private final Map<String, IBatchConsumer<T, IBatchChunkContext>> activeConsumers = new HashMap<>();
 
     public SplitBatchConsumer(IRecordSplitter<R, T> splitter,
                               Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider) {

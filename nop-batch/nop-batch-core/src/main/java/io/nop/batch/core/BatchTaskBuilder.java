@@ -29,12 +29,14 @@ import io.nop.batch.core.loader.BatchLoaderWithListener;
 import io.nop.batch.core.loader.ChunkSortBatchLoader;
 import io.nop.batch.core.processor.BatchChunkProcessor;
 import io.nop.batch.core.processor.BatchProcessorWithListener;
+import io.nop.batch.core.processor.CompositeBatchProcessor;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.InvokerBatchChunkProcessor;
 import io.nop.commons.concurrent.executor.ExecutorHelper;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.functional.IBuilder;
 import io.nop.commons.functional.IFunctionInvoker;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 
 import java.util.ArrayList;
@@ -201,8 +203,32 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
     @PropertySetter
     public BatchTaskBuilder consumer(IBatchConsumer<?, IBatchChunkContext> consumer) {
         Guard.checkState(this.consumer == null, "consumer is already set");
+        if (consumer instanceof MultiBatchConsumer) {
+            MultiBatchConsumer list = (MultiBatchConsumer) consumer;
+            if (list.isEmpty())
+                return this;
+            if (list.size() == 1) {
+                consumer = list.first();
+            }
+            return consumer(consumer);
+        }
+
         this.consumer = consumer;
         addListener(consumer);
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder consumers(Collection<IBatchConsumer<?, IBatchChunkContext>> consumers) {
+        if (consumers != null) {
+            if (consumers.isEmpty())
+                return this;
+            if (consumers.size() == 1) {
+                return consumer(CollectionHelper.first(consumers));
+            }
+            List<IBatchConsumer<Object, IBatchChunkContext>> list = new ArrayList(consumers);
+            consumer(new MultiBatchConsumer<>(list));
+        }
         return this;
     }
 
@@ -233,6 +259,15 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
                 addListener(consumer);
             }
             return this;
+        } else if (listener instanceof CompositeBatchProcessor) {
+            CompositeBatchProcessor processor = (CompositeBatchProcessor) listener;
+            addListener(processor.getProcessor());
+            addListener(processor.getNext());
+            return this;
+        } else if (listener instanceof IEnhancedBatchLoader) {
+            IEnhancedBatchLoader loader = (IEnhancedBatchLoader) listener;
+            addListener(loader.getBaseLoader());
+            // 先注册baseLoader上的listener，然后继续执行注册loader上的listener
         }
 
         if (listener instanceof IBatchTaskListener) {

@@ -31,11 +31,18 @@ public class PartitionDispatchQueue<T> {
     static final Logger LOG = LoggerFactory.getLogger(PartitionDispatchQueue.class);
 
     static class PartitionQueue<T> {
-        int threadIndex = -1;
+        /**
+         * 线程的唯一标识。小于0时表示此线程没有被占据
+         */
+        long threadId = -1;
         final Queue<T> queue = new ArrayDeque<>();
     }
 
     private final Semaphore semaphore;
+
+    /**
+     * 从partitionIndex映射得到对应的队列，每个队列由一个线程负责处理
+     */
     private final IntHashMap<PartitionQueue<T>> partitions = new IntHashMap<>();
     private final Function<T, Integer> partitionFn;
 
@@ -49,10 +56,8 @@ public class PartitionDispatchQueue<T> {
     private int count;
 
     private final int capacity;
-    /**
-     * 是否所有记录已经处理完毕
-     */
-    private volatile boolean finished = false;
+
+    private volatile boolean noMoreData = false;
 
     public PartitionDispatchQueue(int capacity, Function<T, Integer> partitionFn) {
         this.semaphore = new Semaphore(capacity);
@@ -60,11 +65,11 @@ public class PartitionDispatchQueue<T> {
         this.partitionFn = partitionFn;
     }
 
-    public int getCapacity(){
+    public int getCapacity() {
         return capacity;
     }
 
-    public MapOfInt<List<T>> takeBatch(int batchSize, int threadIndex) {
+    public MapOfInt<List<T>> takeBatch(int batchSize, long threadId) {
         Guard.checkArgument(batchSize > 0, "batchSize must be non negative");
         MutableInt remainSize = new MutableInt(batchSize);
         MapOfInt<List<T>> ret = new IntHashMap<>();
@@ -74,8 +79,8 @@ public class PartitionDispatchQueue<T> {
             try {
                 try {
                     partitions.randomForEachEntry((queue, index) -> {
-                        // threadIndex如果大于等于0，则表示此partition正被某个线程处理，需要被跳过
-                        if (queue.threadIndex < 0) {
+                        // threadId如果小于0，则表示此partition没有被某个线程处理
+                        if (queue.threadId < 0) {
                             Queue<T> q = queue.queue;
                             if (!q.isEmpty()) {
                                 List<T> list;
@@ -90,7 +95,7 @@ public class PartitionDispatchQueue<T> {
                                 }
                                 ret.put(index, list);
                                 remainSize.addAndGet(-list.size());
-                                queue.threadIndex = threadIndex;
+                                queue.threadId = threadId;
                                 if (remainSize.get() <= 0)
                                     throw NopBreakException.INSTANCE;
                             }
@@ -104,19 +109,23 @@ public class PartitionDispatchQueue<T> {
                     semaphore.release(batchSize - remainSize.get());
 
                     if (LOG.isTraceEnabled())
-                        LOG.trace("fetch-queue:count={},semaphore={},threadIndex={},queue={},ret={}", count,
-                                semaphore.availablePermits(), threadIndex, info(), allCount(ret));
+                        LOG.trace("fetch-queue:count={},semaphore={},threadId={},queue={},ret={}", count,
+                                semaphore.availablePermits(), threadId, info(), allCount(ret));
                     return ret;
                 }
 
                 // 没有获取到数据。如果已经结束则直接返回
-                if (finished)
+                if (noMoreData) {
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("noMoreData:count={},semaphore={},threadId={},queue={}", count,
+                                semaphore.availablePermits(), threadId, info());
                     return null;
+                }
 
                 // 等待addBatch加入数据
                 if (LOG.isDebugEnabled())
-                    LOG.debug("wait-queue:count={},semaphore={},threadIndex={},queue={}", count,
-                            semaphore.availablePermits(), threadIndex, info());
+                    LOG.debug("wait-queue:count={},semaphore={},threadId={},queue={}", count,
+                            semaphore.availablePermits(), threadId, info());
                 try {
                     notEmpty.await();
                 } catch (InterruptedException e) {
@@ -140,34 +149,38 @@ public class PartitionDispatchQueue<T> {
         StringBuilder sb = new StringBuilder();
         sb.append("[").append(partitions.size()).append(']');
         partitions.forEachEntry((queue, index) -> {
-            sb.append(index + ":" + queue.threadIndex + "=>" + queue.queue.size());
+            sb.append(index + ":" + queue.threadId + "=>" + queue.queue.size());
             sb.append(',');
         });
         return sb.toString();
     }
 
     public void finish() {
+        markNoMoreData();
+    }
+
+    public void markNoMoreData() {
         lock.lock();
         try {
-            finished = true;
+            noMoreData = true;
             notEmpty.signalAll();
         } finally {
             lock.unlock();
         }
     }
 
-    public void completeBatch(MapOfInt<List<T>> batch, int threadIndex) {
+    public void completeBatch(MapOfInt<List<T>> batch, long threadId) {
         lock.lock();
         try {
             batch.forEachEntry((list, index) -> {
                 PartitionQueue<T> queue = partitions.get(index);
                 if (queue != null) {
                     // 如果由当前线程负责处理，且已处理完毕，则删除队列，减少内存消耗
-                    if (queue.threadIndex == threadIndex) {
+                    if (queue.threadId == threadId) {
                         if (queue.queue.isEmpty()) {
                             partitions.remove(index);
                         }
-                        queue.threadIndex = -1;
+                        queue.threadId = -1;
                     }
                 }
             });
@@ -187,6 +200,12 @@ public class PartitionDispatchQueue<T> {
             map.computeIfAbsent(index, k -> new ArrayList<>()).add(record);
         }
 
+        try {
+            semaphore.acquire(data.size());
+        } catch (InterruptedException e) {
+
+        }
+
         lock.lock();
         try {
             map.forEachEntry((list, index) -> {
@@ -199,12 +218,6 @@ public class PartitionDispatchQueue<T> {
             notEmpty.signalAll();
         } finally {
             lock.unlock();
-        }
-
-        try {
-            semaphore.acquire(data.size());
-        } catch (InterruptedException e) {
-
         }
     }
 }

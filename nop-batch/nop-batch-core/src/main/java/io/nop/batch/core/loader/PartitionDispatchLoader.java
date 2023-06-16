@@ -13,13 +13,13 @@ import io.nop.batch.core.IBatchChunkListener;
 import io.nop.batch.core.IBatchLoader;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskListener;
+import io.nop.batch.core.IEnhancedBatchLoader;
 import io.nop.commons.collections.MapOfInt;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -28,7 +28,7 @@ import java.util.function.Function;
  * @param <S>
  */
 public class PartitionDispatchLoader<S>
-        implements IBatchLoader<S, IBatchChunkContext>, IBatchTaskListener, IBatchChunkListener {
+        implements IEnhancedBatchLoader<S, IBatchChunkContext>, IBatchTaskListener, IBatchChunkListener {
     private final IBatchLoader<S, IBatchChunkContext> loader;
     private final Executor executor;
     private final int fetchThreadCount;
@@ -48,10 +48,14 @@ public class PartitionDispatchLoader<S>
     }
 
     @Override
+    public IBatchLoader<S, IBatchChunkContext> getBaseLoader() {
+        return loader;
+    }
+
+    @Override
     public void onTaskBegin(IBatchTaskContext context) {
         PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn);
         this.queue = queue;
-        AtomicInteger runningCount = new AtomicInteger(fetchThreadCount);
 
         for (int i = 0; i < fetchThreadCount; i++) {
             int threadIndex = i;
@@ -63,9 +67,7 @@ public class PartitionDispatchLoader<S>
                     try {
                         List<S> list = loader.load(loadBatchSize, ctx);
                         if (list.isEmpty()) {
-                            if (runningCount.decrementAndGet() <= 0) {
-                                queue.finish();
-                            }
+                            queue.markNoMoreData();
                             return;
                         }
                         queue.addBatch(list);
@@ -83,9 +85,9 @@ public class PartitionDispatchLoader<S>
         if (!context.isDone())
             context.cancel();
 
-        if(queue != null)
+        if (queue != null)
             queue.finish();
-        
+
         this.queue = null;
         this.exception = null;
     }
@@ -96,8 +98,9 @@ public class PartitionDispatchLoader<S>
             throw NopException.adapt(exception);
 
         MapOfInt<List<S>> map = queue.takeBatch(batchSize, context.getThreadIndex());
-        if (map == null)
+        if (map == null) {
             return Collections.emptyList();
+        }
 
         context.setAttribute(PartitionDispatchLoader.class.getName(), map);
         List<S> ret = new ArrayList<>(batchSize);
