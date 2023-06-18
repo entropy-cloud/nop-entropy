@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [41:6:0:0]/nop/schema/record/record-file.xdef <p>
+ * generate from [43:6:0:0]/nop/schema/record/record-file.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -24,14 +24,14 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     /**
      *  
      * xml name: repeatExpr
-     * 
+     * 返回字段的循环次数
      */
     private io.nop.core.lang.eval.IEvalAction _repeatExpr ;
     
     /**
      *  
      * xml name: repeatUntil
-     * 
+     * 返回字段循环的终止条件
      */
     private io.nop.core.lang.eval.IEvalAction _repeatUntil ;
     
@@ -57,7 +57,7 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     /**
      * 
      * xml name: repeatExpr
-     *  
+     *  返回字段的循环次数
      */
     
     public io.nop.core.lang.eval.IEvalAction getRepeatExpr(){
@@ -76,7 +76,7 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     /**
      * 
      * xml name: repeatUntil
-     *  
+     *  返回字段循环的终止条件
      */
     
     public io.nop.core.lang.eval.IEvalAction getRepeatUntil(){

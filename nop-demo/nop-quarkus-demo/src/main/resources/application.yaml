@@ -35,6 +35,9 @@ nop:
     username: nop
     password: nop-test
 
+  gateway:
+    http-filter:
+      enabled: true
 
 # 开发模式配置
 "%dev":

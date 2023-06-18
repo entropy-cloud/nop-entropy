@@ -57,6 +57,10 @@ public interface IHttpServerContext {
         return value;
     }
 
+    default void resumeRequest(){
+
+    }
+
     String getCookie(String name);
 
     void addCookie(String sameSite, HttpCookie cookie);
@@ -78,6 +82,8 @@ public interface IHttpServerContext {
     String getResponseContentType();
 
     void setResponseContentType(String contentType);
+
+    IAsyncBody getRequestBody();
 
     CompletionStage<Object> executeBlocking(Callable<?> task);
 }

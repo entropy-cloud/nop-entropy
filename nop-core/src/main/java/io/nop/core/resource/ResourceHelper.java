@@ -974,4 +974,13 @@ public class ResourceHelper {
         path = resolveRelativePath(path);
         return VirtualFileSystem.instance().getResource(path);
     }
+
+    public static IResource resolveResource(SourceLocation baseLoc, String path) {
+        String fullPath = path;
+        if (baseLoc != null) {
+            String basePath = ResourceHelper.getStdPath(baseLoc.getPath());
+            fullPath = StringHelper.absolutePath(basePath, path);
+        }
+        return VirtualFileSystem.instance().getResource(fullPath);
+    }
 }

@@ -75,6 +75,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
     }
 
     @Override
+    public int order() {
+        return NORMAL_PRIORITY - 100;
+    }
+
+    @Override
     public CompletionStage<Void> filterAsync(IHttpServerContext routeContext,
                                              Supplier<CompletionStage<Void>> next) {
         try {

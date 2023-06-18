@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <tags>
+        <LoadJson>
+            <attr name="path" stdDomain="v-path"/>
+            <attr name="type" stdDomain="generic-type" optional="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.resource.ResourceHelper;
+
+                     const resource = ResourceHelper.resolveResource(location(),path);
+                    return ResourceHelper.readJson(resource,type);
+                ]]></c:script>
+            </source>
+        </LoadJson>
+
+        <LoadResponse>
+            <attr name="path" stdDomain="v-path"/>
+            <attr name="dataType" stdDomain="generic-type" optional="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.resource.ResourceHelper;
+                    import io.nop.core.type.utils.GenericTypeHelper;
+
+
+                    const resource = ResourceHelper.resolveResource(location(),path);
+                    return ResourceHelper.readJson(resource,GenericTypeHelper.buildResponseType(dataType));
+                ]]></c:script>
+            </source>
+        </LoadResponse>
+    </tags>
+</lib>

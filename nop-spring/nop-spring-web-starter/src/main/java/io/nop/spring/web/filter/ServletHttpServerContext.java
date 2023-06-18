@@ -9,6 +9,9 @@ package io.nop.spring.web.filter;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.IoHelper;
+import io.nop.commons.util.StringHelper;
+import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
 
 import javax.servlet.http.Cookie;
@@ -84,7 +87,7 @@ public class ServletHttpServerContext implements IHttpServerContext {
         Cookie retCookie = new Cookie(cookie.getName(), cookie.getValue());
         retCookie.setHttpOnly(cookie.isHttpOnly());
         // issues/I6RRQ7
-        if(Objects.nonNull(cookie.getDomain())){
+        if (Objects.nonNull(cookie.getDomain())) {
             retCookie.setDomain(cookie.getDomain());
         }
         retCookie.setPath(cookie.getPath());
@@ -158,6 +161,19 @@ public class ServletHttpServerContext implements IHttpServerContext {
     @Override
     public void setResponseContentType(String contentType) {
         response.setContentType(contentType);
+    }
+
+    @Override
+    public IAsyncBody getRequestBody() {
+        return new IAsyncBody() {
+            @Override
+            public CompletionStage<String> getTextAsync() {
+                return FutureHelper.futureCall(() -> {
+                    String text = IoHelper.readText(request.getInputStream(), StringHelper.ENCODING_UTF8);
+                    return text;
+                });
+            }
+        };
     }
 
     @Override

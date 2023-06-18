@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<gateway x:schema="/nop/schema/gateway.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:file="file" xmlns:c="c">
+
+    <x:config>
+        <c:import from="/nop/core/xlib/file.xlib"/>
+    </x:config>
+
+    <routes>
+        <route id="test">
+            <on-path path="/api/test"/>
+
+            <handler>
+                <file:LoadJson path="/nop/demo/data/test.json5"/>
+            </handler>
+
+        </route>
+    </routes>
+</gateway>

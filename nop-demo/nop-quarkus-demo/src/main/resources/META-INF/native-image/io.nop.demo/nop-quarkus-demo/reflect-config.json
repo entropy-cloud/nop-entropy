@@ -1196,6 +1196,12 @@
         "parameterTypes": [
           "boolean"
         ]
+      },
+      {
+        "name": "wrap",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
       }
     ],
     "name": "io.nop.api.core.beans.ApiResponse",
@@ -2104,11 +2110,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getHasNext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHasPrev",
+        "parameterTypes": []
+      },
+      {
         "name": "getItems",
         "parameterTypes": []
       },
       {
         "name": "getLimit",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNextCursor",
         "parameterTypes": []
       },
       {
@@ -2121,6 +2139,10 @@
       },
       {
         "name": "getPageCount",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPrevCursor",
         "parameterTypes": []
       },
       {
@@ -2152,6 +2174,18 @@
         ]
       },
       {
+        "name": "setHasNext",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setHasPrev",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
         "name": "setItems",
         "parameterTypes": [
           "java.util.List"
@@ -2164,6 +2198,12 @@
         ]
       },
       {
+        "name": "setNextCursor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setNoMore",
         "parameterTypes": [
           "boolean"
@@ -2173,6 +2213,12 @@
         "name": "setOffset",
         "parameterTypes": [
           "long"
+        ]
+      },
+      {
+        "name": "setPrevCursor",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -5049,6 +5095,10 @@
         ]
       },
       {
+        "name": "order",
+        "parameterTypes": []
+      },
+      {
         "name": "parseAuthToken",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
@@ -5058,6 +5108,14 @@
         "name": "responseNotLogin",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "responseNotLogin",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.lang.String",
+          "java.lang.String"
         ]
       },
       {
@@ -5224,6 +5282,134 @@
       }
     ],
     "name": "io.nop.auth.core.login.AbstractLoginService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "config"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "loginFailCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "userContextCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "userSessionCache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "verifyCodeCache"
+      }
+    ],
+    "methods": [
+      {
+        "name": "buildVerifyCacheKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getLoginFailCountForIp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getLoginFailCountForUser",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getUserSessionId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getVerifyCode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "refreshConfig",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.SessionInfo"
+        ]
+      },
+      {
+        "name": "resetLoginFailCountForIp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "resetLoginFailCountForUser",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "saveUserContextAsync",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      },
+      {
+        "name": "setLoginFailCountForIp",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "setLoginFailCountForUser",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "setUserContextConfig",
+        "parameterTypes": [
+          "io.nop.auth.core.login.UserContextConfig"
+        ]
+      },
+      {
+        "name": "setVerifyCode",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.login.AbstractUserContextCache",
     "unsafeAllocated": false
   },
   {
@@ -15120,6 +15306,379 @@
     "fields": [],
     "methods": [
       {
+        "name": "chooseFromCandidates",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setLoadBalance",
+        "parameterTypes": [
+          "io.nop.cluster.lb.ILoadBalance"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.chooser.LoadBalanceServerChooser",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getServers",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getServersAsync",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setDiscoveryClient",
+        "parameterTypes": [
+          "io.nop.cluster.discovery.IDiscoveryClient"
+        ]
+      },
+      {
+        "name": "setFilters",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.chooser.ServiceServerChooser",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "isEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.chooser.filter.HealthyServiceInstanceFilter",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "java.util.List",
+          "io.nop.api.core.beans.ApiRequest",
+          "boolean"
+        ]
+      },
+      {
+        "name": "isEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setStaticRoute",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setStaticRouteConfig",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.chooser.filter.RouteServiceInstanceFilter",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "java.util.List",
+          "io.nop.api.core.beans.ApiRequest",
+          "boolean"
+        ]
+      },
+      {
+        "name": "isEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.chooser.filter.SpecificServiceInstanceFilter",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "java.util.List",
+          "io.nop.api.core.beans.ApiRequest",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getTags",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTags",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.chooser.filter.TagServiceInstanceFilter",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "java.util.List",
+          "io.nop.api.core.beans.ApiRequest",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getZone",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "isForce",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setForce",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setZone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.chooser.filter.ZoneServiceInstanceFilter",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "choose",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.lb.impl.FirstLoadBalance",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "choose",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setMaxCandidateCount",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.lb.impl.LeastActiveLoadBalance",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "choose",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.lb.impl.RandomLoadBalance",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "choose",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.lb.impl.RoundRobinLoadBalance",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getActiveCount",
+        "parameterTypes": [
+          "io.nop.cluster.discovery.ServiceInstance"
+        ]
+      },
+      {
+        "name": "getWeight",
+        "parameterTypes": [
+          "io.nop.cluster.discovery.ServiceInstance"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.lb.impl.ServiceLoadBalanceAdapter",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "choose",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.cluster.lb.impl.WeightedRandomLoadBalance",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "addField",
         "parameterTypes": [
           "io.nop.codegen.graalvm.ReflectField"
@@ -15770,6 +16329,27 @@
       }
     ],
     "name": "io.nop.commons.concurrent.batch.AbstractBatchProcessService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "findAddr",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAddr",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.io.net.DefaultServerAddrFinder",
     "unsafeAllocated": false
   },
   {
@@ -22140,6 +22720,13 @@
         ]
       },
       {
+        "name": "resolveResource",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "resolveSibling",
         "parameterTypes": [
           "io.nop.core.resource.IResource",
@@ -22550,6 +23137,12 @@
       {
         "name": "instance",
         "parameterTypes": []
+      },
+      {
+        "name": "isAnyDependsChange",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
       },
       {
         "name": "isAnyDependsChange",
@@ -25466,6 +26059,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getValidationQuery",
+        "parameterTypes": []
+      },
+      {
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
@@ -25563,6 +26160,12 @@
       },
       {
         "name": "setUpdateKeyword",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValidationQuery",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -30097,6 +30700,334 @@
     "fields": [],
     "methods": [
       {
+        "name": "buildRequest",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "filterAsync",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.util.function.Supplier"
+        ]
+      },
+      {
+        "name": "order",
+        "parameterTypes": []
+      },
+      {
+        "name": "setRpcServiceLocator",
+        "parameterTypes": [
+          "io.nop.rpc.api.IRpcServiceLocator"
+        ]
+      },
+      {
+        "name": "write",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "io.nop.api.core.beans.ApiResponse"
+        ]
+      },
+      {
+        "name": "writeHeaders",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.gateway.http.GatewayHttpFilter",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getRouter",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.graphql.gateway.model.GatewayModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.gateway.model.GatewayOnPathModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.gateway.model.GatewayRouteModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addRoute",
+        "parameterTypes": [
+          "io.nop.graphql.gateway.model.GatewayRouteModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getRoute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRoutes",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasRoute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasRoutes",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_routes",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setRoutes",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.gateway.model._gen._GatewayModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.gateway.model._gen._GatewayOnPathModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addOnPath",
+        "parameterTypes": [
+          "io.nop.graphql.gateway.model.GatewayOnPathModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getHandler",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnError",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOnPaths",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnResponse",
+        "parameterTypes": []
+      },
+      {
+        "name": "getServiceName",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOnPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOnPaths",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMock",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRawResponse",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_onPaths",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setHandler",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMatch",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      },
+      {
+        "name": "setMock",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setOnError",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setOnPaths",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setOnResponse",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setRawResponse",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setServiceName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.gateway.model._gen._GatewayRouteModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "initialize",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLObjectDefinition",
@@ -30702,6 +31633,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.ioc.model.BeanInterceptorModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ioc.model.BeanListModel",
     "unsafeAllocated": false
   },
   {
@@ -31450,6 +32391,99 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanInterceptorModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIocInitOrder",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLazyInit",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getScope",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocAllowOverride",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIocDefault",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIocAllowOverride",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setIocDefault",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setIocInitOrder",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setLazyInit",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setScope",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model._gen._BeanListModel",
     "unsafeAllocated": false
   },
   {
@@ -34290,6 +35324,14 @@
       },
       {
         "name": "getCreaterPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDbCatalog",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDbSchema",
         "parameterTypes": []
       },
       {
@@ -40345,6 +41387,151 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.report.spl.initialize.SplCoreInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getRpcClientInstance",
+        "parameterTypes": [
+          "io.nop.cluster.discovery.ServiceInstance"
+        ]
+      },
+      {
+        "name": "setHttpClient",
+        "parameterTypes": [
+          "io.nop.http.api.client.IHttpClient"
+        ]
+      },
+      {
+        "name": "setUseHttps",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.cluster.http.HttpRpcClientInstanceProvider",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "intercept",
+        "parameterTypes": [
+          "io.nop.rpc.api.IRpcServiceInvocation"
+        ]
+      },
+      {
+        "name": "interceptAsync",
+        "parameterTypes": [
+          "io.nop.rpc.api.IRpcServiceInvocation"
+        ]
+      },
+      {
+        "name": "isTransferLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTransferPropagateHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTransferTenant",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTransferTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTransferTimezone",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTransferTrace",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTransferUser",
+        "parameterTypes": []
+      },
+      {
+        "name": "setTransferLocale",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTransferPropagateHeaders",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTransferTenant",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTransferTimeout",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTransferTimezone",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTransferTrace",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setTransferUser",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.core.interceptors.ClientContextRpcServiceInterceptor",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INSTANCE"
+      }
+    ],
+    "methods": [
+      {
+        "name": "interceptAsync",
+        "parameterTypes": [
+          "io.nop.rpc.api.IRpcServiceInvocation"
+        ]
+      }
+    ],
+    "name": "io.nop.rpc.core.interceptors.LogRpcServiceInterceptor",
     "unsafeAllocated": false
   },
   {
@@ -46940,6 +48127,12 @@
       {
         "name": "setKind",
         "parameterTypes": [
+          "io.nop.xlang.xmeta.ObjPropKind"
+        ]
+      },
+      {
+        "name": "setKind",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -47544,6 +48737,10 @@
       },
       {
         "name": "getGroups",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLayoutCells",
         "parameterTypes": []
       },
       {
@@ -48253,6 +49450,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isConditionTag",
+        "parameterTypes": []
+      },
+      {
         "name": "isDeprecated",
         "parameterTypes": []
       },
@@ -48314,6 +49515,12 @@
         "name": "setCheckNs",
         "parameterTypes": [
           "java.util.Set"
+        ]
+      },
+      {
+        "name": "setConditionTag",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

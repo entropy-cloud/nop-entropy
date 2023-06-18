@@ -99,6 +99,10 @@ public class GenericTypeHelper {
         return buildParameterizedType(PredefinedGenericTypes.API_REQUEST_TYPE, Collections.singletonList(type));
     }
 
+    public static IGenericType buildResponseType(IGenericType type) {
+        return buildParameterizedType(PredefinedGenericTypes.API_RESPONSE_TYPE, Collections.singletonList(type));
+    }
+
     public static IGenericType buildTypeVariable(String name) {
         IGenericType type = PredefinedGenericTypes.getPredefinedVar(name);
         if (type != null)

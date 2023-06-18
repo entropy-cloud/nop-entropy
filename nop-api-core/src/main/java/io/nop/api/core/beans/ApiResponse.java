@@ -66,6 +66,12 @@ public final class ApiResponse<T> extends ApiMessage {
         return ret;
     }
 
+    public static ApiResponse<?> wrap(Object data) {
+        if (data instanceof ApiResponse)
+            return (ApiResponse<?>) data;
+        return buildSuccess(data);
+    }
+
     public T get() {
         if (isOk()) {
             return getData();
@@ -227,11 +233,11 @@ public final class ApiResponse<T> extends ApiMessage {
     }
 
     @JsonIgnore
-    public boolean isWrapper(){
+    public boolean isWrapper() {
         return wrapper;
     }
 
-    public void setWrapper(boolean wrapper){
+    public void setWrapper(boolean wrapper) {
         this.wrapper = wrapper;
     }
 }

@@ -7,6 +7,8 @@
  */
 package io.nop.quarkus.web.filter;
 
+import io.nop.commons.util.StringHelper;
+import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.quarkus.web.utils.QuarkusExecutorHelper;
 import io.vertx.core.MultiMap;
@@ -76,6 +78,11 @@ public class VertxHttpServerContext implements IHttpServerContext {
         if (cookie == null)
             return null;
         return cookie.getValue();
+    }
+
+    @Override
+    public void resumeRequest() {
+        context.request().resume();
     }
 
     @Override
@@ -157,6 +164,23 @@ public class VertxHttpServerContext implements IHttpServerContext {
         });
         context.next();
         return future;
+    }
+
+    @Override
+    public IAsyncBody getRequestBody() {
+        return new IAsyncBody() {
+            @Override
+            public CompletionStage<String> getTextAsync() {
+                CompletableFuture<String> future = new CompletableFuture<>();
+                context.request().body().onSuccess(v -> {
+                            future.complete(v.toString(StringHelper.CHARSET_UTF8));
+                        })
+                        .onFailure(e -> {
+                            future.completeExceptionally(e);
+                        });
+                return future;
+            }
+        };
     }
 
     @Override

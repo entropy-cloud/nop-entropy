@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [57:14:0:0]/nop/schema/record/record-file.xdef <p>
+ * generate from [65:14:0:0]/nop/schema/record/record-file.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -24,7 +24,7 @@ public abstract class _RecordEnumOption extends io.nop.core.resource.component.A
     /**
      *  
      * xml name: docRef
-     * 
+     * 翻译为java doc的@see注释
      */
     private java.lang.String _docRef ;
     
@@ -64,7 +64,7 @@ public abstract class _RecordEnumOption extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: docRef
-     *  
+     *  翻译为java doc的@see注释
      */
     
     public java.lang.String getDocRef(){

@@ -37,10 +37,10 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: recordClass
+     * xml name: recordType
      * 每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
-    private java.lang.String _recordClass ;
+    private io.nop.core.type.IGenericType _recordType ;
     
     /**
      * 
@@ -179,19 +179,19 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: recordClass
+     * xml name: recordType
      *  每一行解析得到一个强类型的JavaBean。如果不设置，则解析为Map
      */
     
-    public java.lang.String getRecordClass(){
-      return _recordClass;
+    public io.nop.core.type.IGenericType getRecordType(){
+      return _recordType;
     }
 
     
-    public void setRecordClass(java.lang.String value){
+    public void setRecordType(io.nop.core.type.IGenericType value){
         checkAllowChange();
         
-        this._recordClass = value;
+        this._recordType = value;
            
     }
 
@@ -218,7 +218,7 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.put("computedFields",this.getComputedFields());
         out.put("fields",this.getFields());
         out.put("params",this.getParams());
-        out.put("recordClass",this.getRecordClass());
+        out.put("recordType",this.getRecordType());
     }
 }
  // resume CPD analysis - CPD-ON

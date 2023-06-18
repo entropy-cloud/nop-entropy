@@ -7,12 +7,12 @@
         @rawResponse 返回的response对象是否原始响应对象还是标准的ApiResponse对象。集成外部服务时会使用rawResponse
         @mock 如果设置为true，则只会调用handler返回，不会执行分布式RPC
         -->
-        <route id="!string" serviceName="string" xdef:name="GatewayRouteModel" mock="!boolean=false" rawResponse="!boolean=false">
+        <route id="!string" serviceName="string" xdef:name="GatewayRouteModel" mock="!boolean=false"
+               rawResponse="!boolean=false">
             <!--
             @path 对应REST请求链接，例如 /r/NopAuthUser__findPage
-            @pattern 支持指定前缀或者后缀的简单匹配模式，例如 XYZ*或者 *XYZ
             -->
-            <on-path path="!string" pattern="string" xdef:name="GatewayOnPathModel" xdef:unique-attr="path"/>
+            <on-path id="string" path="!string" xdef:name="GatewayOnPathModel" xdef:unique-attr="path"/>
 
             <!--
             路由的动态匹配条件

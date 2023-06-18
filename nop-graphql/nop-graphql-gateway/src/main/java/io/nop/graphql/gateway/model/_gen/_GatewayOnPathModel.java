@@ -16,17 +16,36 @@ public abstract class _GatewayOnPathModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: path
      * 对应REST请求链接，例如 /r/NopAuthUser__findPage
      */
     private java.lang.String _path ;
     
     /**
+     * 
+     * xml name: id
      *  
-     * xml name: pattern
-     * 支持指定前缀或者后缀的简单匹配模式，例如 XYZ*或者 *XYZ
      */
-    private java.lang.String _pattern ;
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
     
     /**
      * 
@@ -47,25 +66,6 @@ public abstract class _GatewayOnPathModel extends io.nop.core.resource.component
     }
 
     
-    /**
-     * 
-     * xml name: pattern
-     *  支持指定前缀或者后缀的简单匹配模式，例如 XYZ*或者 *XYZ
-     */
-    
-    public java.lang.String getPattern(){
-      return _pattern;
-    }
-
-    
-    public void setPattern(java.lang.String value){
-        checkAllowChange();
-        
-        this._pattern = value;
-           
-    }
-
-    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -79,8 +79,8 @@ public abstract class _GatewayOnPathModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("id",this.getId());
         out.put("path",this.getPath());
-        out.put("pattern",this.getPattern());
     }
 }
  // resume CPD analysis - CPD-ON

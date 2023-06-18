@@ -16,13 +16,6 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
     
     /**
      *  
-     * xml name: compute-expr
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalAction _computeExpr ;
-    
-    /**
-     *  
      * xml name: name
      * 
      */
@@ -30,29 +23,17 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
     
     /**
      *  
+     * xml name: source
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _source ;
+    
+    /**
+     *  
      * xml name: type
      * 
      */
     private java.lang.String _type ;
-    
-    /**
-     * 
-     * xml name: compute-expr
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalAction getComputeExpr(){
-      return _computeExpr;
-    }
-
-    
-    public void setComputeExpr(io.nop.core.lang.eval.IEvalAction value){
-        checkAllowChange();
-        
-        this._computeExpr = value;
-           
-    }
-
     
     /**
      * 
@@ -69,6 +50,25 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: source
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getSource(){
+      return _source;
+    }
+
+    
+    public void setSource(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._source = value;
            
     }
 
@@ -105,8 +105,8 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("computeExpr",this.getComputeExpr());
         out.put("name",this.getName());
+        out.put("source",this.getSource());
         out.put("type",this.getType());
     }
 }
