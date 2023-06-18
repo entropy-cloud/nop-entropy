@@ -24,3 +24,12 @@ $.checkEquals(3,bean.limit);
 import io.nop.api.core.config.AppConfig;
 logInfo("appName={}",AppConfig.appName());
 ````
+
+# 4. 导入内置类
+
+````expr
+import java.util.Map;
+import io.nop.core.lang.json.JsonTool;
+
+const data = JsonTool.parseBeanFromText("{a:1}",Map);
+````

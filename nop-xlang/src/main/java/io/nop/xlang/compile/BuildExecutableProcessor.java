@@ -508,6 +508,10 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
                             currentScope.getClosureSlots(fnScope.getAllClosureVars()), fnScope.getClosureTargetSlots());
                 }
             }
+            case IMPORT_CLASS_REF: {
+                IClassModel classModel = getRefClass(node);
+                return LiteralExecutable.build(node.getLocation(), classModel.getRawClass());
+            }
             default:
         }
         throw new NopEvalException(ERR_EXEC_NOT_SUPPORTED_AST_NODE).param(ARG_AST_NODE, node).param(ARG_IDENTIFIER_KIND,

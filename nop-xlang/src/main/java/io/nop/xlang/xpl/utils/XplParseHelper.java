@@ -697,7 +697,8 @@ public class XplParseHelper {
                 throw new NopEvalException(ERR_XLANG_IMPORTED_CLASS_MUST_STARTS_WITH_UPPERCASE).param(ARG_ALIAS, as)
                         .source(node);
             }
-            if (PredefinedGenericTypes.getPredefinedType(as) != null)
+            IGenericType type = PredefinedGenericTypes.getPredefinedType(as);
+            if (type != null && !type.getSimpleClassName().equals(as))
                 throw new NopEvalException(ERR_XLANG_IMPORT_CLASS_ALIAS_IS_BUILT_IN_TYPE_NAME).param(ARG_ALIAS, as)
                         .source(node);
             scope.addImportedClass(as, new ImportClassDefinition(classModel));
