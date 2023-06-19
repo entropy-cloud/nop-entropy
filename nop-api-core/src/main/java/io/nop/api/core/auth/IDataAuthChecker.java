@@ -16,10 +16,10 @@ public interface IDataAuthChecker {
     /**
      * 是否允许访问指定业务实体
      *
-     * @param bizObj      业务对象名
-     * @param action      待执行动作
-     * @param entity      业务实体
-     * @param userContext 用户上下文
+     * @param bizObj  业务对象名
+     * @param action  待执行动作
+     * @param entity  业务实体
+     * @param context 上下文对象，可以获取到IUserContext
      * @return 是否允许该操作
      */
     boolean isPermitted(String bizObj, String action, Object entity, ISecurityContext context);
@@ -27,8 +27,8 @@ public interface IDataAuthChecker {
     /**
      * 为列表查询追加数据权限相关的过滤条件
      *
-     * @param bizObj      业务对象名
-     * @param userContext 用户上下文
+     * @param bizObj  业务对象名
+     * @param context 上下文对象，可以获取到IUserContext
      */
     TreeBean getFilter(String bizObj, String action, ISecurityContext context);
 }

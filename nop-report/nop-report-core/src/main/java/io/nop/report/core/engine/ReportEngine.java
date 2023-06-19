@@ -9,18 +9,11 @@ package io.nop.report.core.engine;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateOutput;
-import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.model.ExcelWorkbook;
-import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.report.core.XptConstants;
-import io.nop.report.core.build.XptModelBuilder;
-import io.nop.report.core.imp.ExcelTemplateToXptModelTransformer;
-import io.nop.xlang.api.XLang;
-import io.nop.xlang.api.XLangCompileTool;
+import io.nop.report.core.util.ExcelReportHelper;
 
 import java.util.Collections;
 import java.util.Map;
@@ -77,16 +70,6 @@ public class ReportEngine implements IReportEngine {
 
     @Override
     public ExcelWorkbook buildXptModelFromImpModel(String impModelPath) {
-        ImportModel impModel = (ImportModel) ResourceComponentManager.instance().loadComponentModel(impModelPath);
-
-        IResource resource = VirtualFileSystem.instance().getResource(impModel.getTemplatePath());
-        ExcelWorkbook template = new ExcelWorkbookParser().parseFromResource(resource);
-
-        new ExcelTemplateToXptModelTransformer().transform(template, impModel);
-
-        XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
-        new XptModelBuilder(cp).build(template);
-
-        return template;
+        return ExcelReportHelper.buildXptModelFromImpModel(impModelPath);
     }
 }
