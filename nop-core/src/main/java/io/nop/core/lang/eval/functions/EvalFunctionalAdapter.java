@@ -16,6 +16,7 @@ import io.nop.commons.functional.IEqualsChecker;
 import io.nop.commons.functional.IFunctionN;
 import io.nop.commons.functional.ITriFunction;
 import io.nop.commons.functional.ITriPredicate;
+import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -29,9 +30,45 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.function.*;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import java.util.function.DoubleBinaryOperator;
+import java.util.function.DoubleConsumer;
+import java.util.function.DoubleFunction;
+import java.util.function.DoubleSupplier;
+import java.util.function.DoubleToIntFunction;
+import java.util.function.DoubleToLongFunction;
+import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
+import java.util.function.IntSupplier;
+import java.util.function.IntToDoubleFunction;
+import java.util.function.IntToLongFunction;
+import java.util.function.LongBinaryOperator;
+import java.util.function.LongConsumer;
+import java.util.function.LongFunction;
+import java.util.function.LongSupplier;
+import java.util.function.LongToDoubleFunction;
+import java.util.function.LongToIntFunction;
+import java.util.function.ObjDoubleConsumer;
+import java.util.function.ObjIntConsumer;
+import java.util.function.ObjLongConsumer;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.function.ToDoubleBiFunction;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntBiFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongBiFunction;
+import java.util.function.ToLongFunction;
 
-import static io.nop.api.core.convert.ConvertHelper.*;
+import static io.nop.api.core.convert.ConvertHelper.toPrimitiveDouble;
+import static io.nop.api.core.convert.ConvertHelper.toPrimitiveInt;
+import static io.nop.api.core.convert.ConvertHelper.toPrimitiveLong;
 
 /**
  * 实现IEvalFunction与常见java FunctionalInterface之间的适配转换
@@ -46,7 +83,8 @@ public class EvalFunctionalAdapter
         ToDoubleBiFunction<Object, Object>, ToDoubleFunction<Object>, ToIntBiFunction<Object, Object>,
         ToIntFunction<Object>, ToLongBiFunction<Object, Object>, ToLongFunction<Object>, IntFunction<Object>,
         DoubleFunction<Object>, LongFunction<Object>, IntBinaryOperator, LongBinaryOperator, DoubleBinaryOperator,
-        IEvalAction, IEvalPredicate, IEqualsChecker<Object>, IPropertyGetter, IPropertySetter, IResourceObjectLoader {
+        IEvalAction, IEvalPredicate, IEqualsChecker<Object>, IPropertyGetter, IPropertySetter, IResourceObjectLoader,
+        IRetryPolicy.IRetryExceptionFilter {
     public static final Set<Class<?>> SUPPORTED_INTERFACES = new HashSet<>(Arrays.asList(Runnable.class, Callable.class,
             Supplier.class, BooleanSupplier.class, IntSupplier.class, DoubleSupplier.class, LongSupplier.class,
             Consumer.class, BiConsumer.class, IntConsumer.class, DoubleConsumer.class, LongConsumer.class,
@@ -324,5 +362,10 @@ public class EvalFunctionalAdapter
     @Override
     public Object loadObjectFromPath(String path) {
         return apply(path);
+    }
+
+    @Override
+    public boolean isRecoverable(Throwable e, Object context) {
+        return test(e, context);
     }
 }

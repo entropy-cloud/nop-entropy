@@ -9,8 +9,10 @@ package io.nop.task.model;
 
 import io.nop.task.model._gen._TaskStepsModel;
 
-public class TaskStepsModel extends _TaskStepsModel {
+public abstract class TaskStepsModel extends _TaskStepsModel {
     public TaskStepsModel() {
 
     }
+
+
 }

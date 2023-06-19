@@ -28,12 +28,12 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
     static final Logger LOG = LoggerFactory.getLogger(RetryBatchConsumer.class);
 
     private final IBatchConsumer<R, IBatchChunkContext> consumer;
-    private final IRetryPolicy retryPolicy;
+    private final IRetryPolicy<IBatchChunkContext> retryPolicy;
     private final boolean retryOneByOne;
     private final boolean singleMode;
     private final IBatchRetryConsumeListener<R, IBatchChunkContext> listener;
 
-    public RetryBatchConsumer(IBatchConsumer<R, IBatchChunkContext> consumer, IRetryPolicy retryPolicy,
+    public RetryBatchConsumer(IBatchConsumer<R, IBatchChunkContext> consumer, IRetryPolicy<IBatchChunkContext> retryPolicy,
                               boolean retryOneByOne, boolean singleMode, IBatchRetryConsumeListener<R, IBatchChunkContext> listener) {
         this.consumer = consumer;
         this.retryPolicy = retryPolicy;
@@ -85,7 +85,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
 
         do {
             context.incRetryCount();
-            long delay = retryPolicy.getRetryDelay(exception, retryCount);
+            long delay = retryPolicy.getRetryDelay(exception, retryCount, context);
             if (delay < 0) {
                 throw NopException.adapt(exception);
             }
@@ -160,7 +160,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
 
                     consumeError = e;
 
-                    if (retryPolicy.getRetryDelay(e, retryCount + 1) >= 0) {
+                    if (retryPolicy.getRetryDelay(e, retryCount + 1, context) >= 0) {
                         // 如果item可重试
                         retryItems.add(item);
                         retryException = e;

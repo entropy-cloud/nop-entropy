@@ -7,10 +7,16 @@
  */
 package io.nop.task.model;
 
+import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._TaskFlowModel;
 
 public class TaskFlowModel extends _TaskFlowModel {
     public TaskFlowModel() {
 
+    }
+
+    @Override
+    public String getType() {
+        return TaskConstants.STEP_TYPE_TASK;
     }
 }

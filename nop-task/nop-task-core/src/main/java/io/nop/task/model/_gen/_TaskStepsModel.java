@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [76:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [93:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -16,62 +16,10 @@ public abstract class _TaskStepsModel extends io.nop.task.model.TaskStepModel {
     
     /**
      *  
-     * xml name: firstStep
-     * 
-     */
-    private java.lang.String _firstStep ;
-    
-    /**
-     *  
-     * xml name: graphMode
-     * 图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
-     */
-    private boolean _graphMode  = false;
-    
-    /**
-     *  
      * xml name: steps
      * 
      */
     private KeyedList<io.nop.task.model.TaskStepModel> _steps = KeyedList.emptyList();
-    
-    /**
-     * 
-     * xml name: firstStep
-     *  
-     */
-    
-    public java.lang.String getFirstStep(){
-      return _firstStep;
-    }
-
-    
-    public void setFirstStep(java.lang.String value){
-        checkAllowChange();
-        
-        this._firstStep = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: graphMode
-     *  图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
-     */
-    
-    public boolean isGraphMode(){
-      return _graphMode;
-    }
-
-    
-    public void setGraphMode(boolean value){
-        checkAllowChange();
-        
-        this._graphMode = value;
-           
-    }
-
     
     /**
      * 
@@ -115,8 +63,6 @@ public abstract class _TaskStepsModel extends io.nop.task.model.TaskStepModel {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("firstStep",this.getFirstStep());
-        out.put("graphMode",this.isGraphMode());
         out.put("steps",this.getSteps());
     }
 }

@@ -22,6 +22,6 @@ public class EvalStep extends AbstractStep {
     @Override
     protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
         Object result = source.invoke(state.evalScope());
-        return TaskStepResult.of(getNextStepId(), result);
+        return toStepResult(result);
     }
 }

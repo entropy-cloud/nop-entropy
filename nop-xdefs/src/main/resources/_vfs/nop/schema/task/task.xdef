@@ -2,31 +2,48 @@
 
 <!--
 支持异步执行的轻量化任务引擎。持久化状态为可选特性，如果在步骤上配置了saveState，则可以从任意步骤中断并恢复执行。
+
+@graphMode 图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
+@firstStep 当graphMode为true时，第一个执行的步骤id
 -->
 <task defaultSaveState="!boolean=false" version="!long=0"
-      restartable="!boolean=true"
+      restartable="!boolean=true" graphMode="!boolean=false" firstStep="var-name"
       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model"
-      xdef:ref="TaskExecutableModel"
+      xdef:ref="TaskStepsModel"
 >
 
-    <xdef:define xdef:name="TaskExecutableModel" executor="bean-name"
+    <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" id="var-name"
                  displayName="string" timeout="!long=0" shareScope="!boolean=false">
 
         <description xdef:value="string"/>
 
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
-               xdef:unique-attr="name" xdef:value="xpl" xdef:bean-body-prop="value"/>
+               xdef:unique-attr="name">
+            <description xdef:value="string"/>
+            <source xdef:value="xpl"/>
+        </input>
 
         <!--
+        @persist 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
         @forAttr 如果为true，则输出变量到taskContext.attributes集合中，否则输出到parentScope中
         -->
         <output name="!var-name" displayName="string" persist="!boolean=false"
                 xdef:name="TaskOutputModel" forAttr="!boolean=false"
-                xdef:unique-attr="name" xdef:value="xpl" xdef:bean-body-prop="value"/>
+                xdef:unique-attr="name">
+            <description xdef:value="string"/>
+            <source xdef:value="xpl"/>
+        </output>
 
-        <decorator index="!int" bean="bean-name" xdef:value="xpl"
-                   xdef:name="TaskDecoratorModel" xdef:unique-attr="index"/>
+        <!--
+        对taskStep进行增强，返回新的step
+
+        @order 按照从小到大的顺序排序。order更小的decorator会先被应用
+        -->
+        <decorator order="!int" bean="bean-name"
+                   xdef:name="TaskDecoratorModel" xdef:unique-attr="order">
+            <source xdef:value="xpl"/>
+        </decorator>
 
         <when xdef:value="xpl-predicate"/>
 
@@ -53,7 +70,7 @@
             <!--
               上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
             -->
-            <exception-filter xdef:value="xpl"/>
+            <exception-filter xdef:value="xpl-predicate"/>
         </retry>
 
     </xdef:define>
@@ -71,9 +88,9 @@
     </xdef:define>
 
     <!--
-    @graphMode 图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
+
     -->
-    <xdef:define xdef:name="TaskStepsModel" graphMode="!boolean=false" firstStep="var-name"
+    <xdef:define xdef:name="TaskStepsModel"
                  xdef:ref="TaskStepModel">
         <steps xdef:body-type="list" xdef:key-attr="id"
                xdef:bean-body-type="List&lt;io.nop.task.model.TaskStepModel>" xdef:bean-sub-type-prop="type">
@@ -92,7 +109,10 @@
 
             <flow id="!var-name" xdef:ref="TaskStepsModel" xdef:name="FlowTaskStepModel"/>
 
+            <sequential id="!var-name" xdef:ref="TaskStepsModel" xdef:name="SequentialTaskStepModel"/>
+
             <parallel id="!var-name" xdef:ref="TaskStepsModel" xdef:name="ParallelTaskStepModel"
+                      aggregateVarName="var-name"
                       joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
                 <aggregator xdef:ref="TaskBeanModel"/>
             </parallel>
@@ -109,13 +129,14 @@
             <sleep id="!var-name" sleepTime="!expr" xdef:ref="TaskStepModel" xdef:name="SleepTaskStepModel"/>
 
             <fork id="!var-name" var="!var-name" xdef:ref="TaskStepsModel" xdef:name="ForkTaskStepModel"
+                  aggregateVarName="var-name"
                   joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
                 <producer bean="bean-name" xdef:value="xpl" xdef:name="TaskBeanModel" xdef:bean-body-prop="source"/>
                 <aggregator xdef:ref="TaskBeanModel"/>
             </fork>
 
             <fork-n id="!var-name" var="!var-name" count="!expr" xdef:ref="TaskStepsModel"
-                    xdef:name="ForkNTaskStepModel"
+                    xdef:name="ForkNTaskStepModel" aggregateVarName="var-name"
                     joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
                 <aggregator xdef:ref="TaskBeanModel"/>
             </fork-n>

@@ -7,7 +7,7 @@
  */
 package io.nop.commons.util.retry;
 
-public interface IRetryPolicy {
+public interface IRetryPolicy<C> {
 
     /**
      * 得到下次重试的等待时间。如果返回-1， 则表示不再允许重试
@@ -16,5 +16,10 @@ public interface IRetryPolicy {
      * @param retryTimes 已经重试的次数。第一次重试retryTimes=0
      * @return 返回-1表示不再重试
      */
-    long getRetryDelay(Throwable ex, int retryTimes);
+    long getRetryDelay(Throwable ex, int retryTimes, C context);
+
+    @FunctionalInterface
+    interface IRetryExceptionFilter<C> {
+        boolean isRecoverable(Throwable e, C context);
+    }
 }

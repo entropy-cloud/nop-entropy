@@ -35,6 +35,10 @@ public interface TaskConstants {
     String VAR_RETURN_VALUE = "returnValue";
     String VAR_REQUEST = "request";
 
+    String VAR_RESULTS = "results";
+
+    String VAR_EXCEPTION = "exception";
+
     String STATE_ID_DEFAULT = "default";
 
     String PARAM_DELAY = "delay";
@@ -51,4 +55,67 @@ public interface TaskConstants {
     int TASK_STATUS_TIMEOUT = 60;
 
     int TASK_STATUS_HISTORY_BOUND = TASK_STATUS_COMPLETED;
+
+
+    String STEP_TYPE_AWAIT = "await";
+    String STEP_TYPE_XPL = "xpl";
+
+    String STEP_TYPE_SCRIPT = "script";
+
+    String STEP_TYPE_SEQUENTIAL = "sequential";
+
+    String STEP_TYPE_FLOW = "flow";
+
+    String STEP_TYPE_PARALLEL = "parallel";
+
+    String STEP_TYPE_FORK = "fork";
+
+    String STEP_TYPE_FORK_N = "fork-n";
+
+    String STEP_TYPE_LOOP = "loop";
+
+    String STEP_TYPE_LOOP_N = "loopN";
+
+    String STEP_TYPE_SUB_TASK = "sub-task";
+
+    String STEP_TYPE_INVOKE = "invoke";
+
+    String STEP_TYPE_CHOOSE = "choose";
+
+    String STEP_TYPE_SUSPEND = "suspend";
+
+    String STEP_TYPE_SLEEP = "sleep";
+
+    String STEP_TYPE_DELAY = "delay";
+
+    String STEP_TYPE_EXIT = "exit";
+
+    String STEP_TYPE_END = "end";
+
+    String STEP_TYPE_SIMPLE = "simple";
+
+    String STEP_TYPE_CASE = "case";
+
+    String STEP_TYPE_OTHERWISE = "otherwise";
+
+    String STEP_TYPE_TASK = "task";
+
+    String STEP_TYPE_TRY = "try";
+    String STEP_TYPE_RETRY = "retry";
+
+    String STEP_TYPE_THROTTLE = "throttle";
+
+    String STEP_TYPE_RATE_LIMIT = "rate-limit";
+
+    String STEP_TYPE_TIMEOUT = "timeout";
+
+    String POSTFIX_RETRY = ":retry";
+
+    String POSTFIX_TRY = ":try";
+
+    String POSTFIX_THROTTLE = ":throttle";
+
+    String POSTFIX_RATE_LIMIT = ":rate-limit";
+
+    String POSTFIX_TIMEOUT = ":timeout";
 }

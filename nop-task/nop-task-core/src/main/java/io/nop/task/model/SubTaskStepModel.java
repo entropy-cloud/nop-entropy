@@ -7,10 +7,16 @@
  */
 package io.nop.task.model;
 
+import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._SubTaskStepModel;
 
 public class SubTaskStepModel extends _SubTaskStepModel {
     public SubTaskStepModel() {
 
+    }
+
+    @Override
+    public String getType() {
+        return TaskConstants.STEP_TYPE_SUB_TASK;
     }
 }

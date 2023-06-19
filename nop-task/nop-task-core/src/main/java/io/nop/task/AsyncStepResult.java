@@ -18,18 +18,18 @@ import java.io.Serializable;
 public class AsyncStepResult implements Serializable {
     private static final long serialVersionUID = 6502001395245004110L;
 
-    private String stepId;
-    private String runId;
+    private int runId;
+    private String nextStepId;
     private Object returnValue;
     private ErrorBean error;
     private transient Throwable exception;
 
-    public String getStepId() {
-        return stepId;
+    public String getNextStepId() {
+        return nextStepId;
     }
 
-    public void setStepId(String stepId) {
-        this.stepId = stepId;
+    public void setNextStepId(String nextStepId) {
+        this.nextStepId = nextStepId;
     }
 
     public Object getReturnValue() {
@@ -40,11 +40,11 @@ public class AsyncStepResult implements Serializable {
         this.returnValue = returnValue;
     }
 
-    public String getRunId() {
+    public int getRunId() {
         return runId;
     }
 
-    public void setRunId(String runId) {
+    public void setRunId(int runId) {
         this.runId = runId;
     }
 

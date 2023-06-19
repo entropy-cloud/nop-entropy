@@ -30,9 +30,9 @@ public interface ITaskStepState extends ITaskStateCommon {
      *
      * @return
      */
-    String getRunId();
+    int getRunId();
 
-    void setRunId(String runId);
+    void setRunId(int runId);
 
     String getParentStepId();
 

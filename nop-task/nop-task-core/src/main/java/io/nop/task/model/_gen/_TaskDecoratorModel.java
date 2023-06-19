@@ -7,8 +7,8 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [28:10:0:0]/nop/schema/task/task.xdef <p>
- * 
+ * generate from [43:10:0:0]/nop/schema/task/task.xdef <p>
+ * 对taskStep进行增强，返回新的step
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
@@ -23,17 +23,17 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: 
-     * 
+     * xml name: order
+     * 按照从小到大的顺序排序。order更小的decorator会先被应用
      */
-    private io.nop.core.lang.eval.IEvalAction _body ;
+    private int _order ;
     
     /**
      *  
-     * xml name: index
+     * xml name: source
      * 
      */
-    private int _index ;
+    private io.nop.core.lang.eval.IEvalAction _source ;
     
     /**
      * 
@@ -56,38 +56,38 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: 
-     *  
+     * xml name: order
+     *  按照从小到大的顺序排序。order更小的decorator会先被应用
      */
     
-    public io.nop.core.lang.eval.IEvalAction getBody(){
-      return _body;
+    public int getOrder(){
+      return _order;
     }
 
     
-    public void setBody(io.nop.core.lang.eval.IEvalAction value){
+    public void setOrder(int value){
         checkAllowChange();
         
-        this._body = value;
+        this._order = value;
            
     }
 
     
     /**
      * 
-     * xml name: index
+     * xml name: source
      *  
      */
     
-    public int getIndex(){
-      return _index;
+    public io.nop.core.lang.eval.IEvalAction getSource(){
+      return _source;
     }
 
     
-    public void setIndex(int value){
+    public void setSource(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._index = value;
+        this._source = value;
            
     }
 
@@ -106,8 +106,8 @@ public abstract class _TaskDecoratorModel extends io.nop.core.resource.component
         super.outputJson(out);
         
         out.put("bean",this.getBean());
-        out.put("body",this.getBody());
-        out.put("index",this.getIndex());
+        out.put("order",this.getOrder());
+        out.put("source",this.getSource());
     }
 }
  // resume CPD analysis - CPD-ON

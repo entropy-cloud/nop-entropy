@@ -9,8 +9,10 @@ package io.nop.task.model;
 
 import io.nop.task.model._gen._TaskExecutableModel;
 
-public class TaskExecutableModel extends _TaskExecutableModel {
+public abstract class TaskExecutableModel extends _TaskExecutableModel {
     public TaskExecutableModel() {
 
     }
+
+    public abstract String getType();
 }

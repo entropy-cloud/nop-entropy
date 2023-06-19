@@ -7,12 +7,19 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [24:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [31:10:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _TaskOutputModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: description
+     * 
+     */
+    private java.lang.String _description ;
     
     /**
      *  
@@ -38,16 +45,35 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: persist
-     * 
+     * 输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
      */
     private boolean _persist  = false;
     
     /**
      *  
-     * xml name: 
+     * xml name: source
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _value ;
+    private io.nop.core.lang.eval.IEvalAction _source ;
+    
+    /**
+     * 
+     * xml name: description
+     *  
+     */
+    
+    public java.lang.String getDescription(){
+      return _description;
+    }
+
+    
+    public void setDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._description = value;
+           
+    }
+
     
     /**
      * 
@@ -109,7 +135,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: persist
-     *  
+     *  输出变量是否需要被持久化到数据库中。如果不设置持久化，则一旦中断任务则会丢失相应的输出变量
      */
     
     public boolean isPersist(){
@@ -127,19 +153,19 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
-     * xml name: 
+     * xml name: source
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getValue(){
-      return _value;
+    public io.nop.core.lang.eval.IEvalAction getSource(){
+      return _source;
     }
 
     
-    public void setValue(io.nop.core.lang.eval.IEvalAction value){
+    public void setSource(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._value = value;
+        this._source = value;
            
     }
 
@@ -157,11 +183,12 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());
         out.put("forAttr",this.isForAttr());
         out.put("name",this.getName());
         out.put("persist",this.isPersist());
-        out.put("value",this.getValue());
+        out.put("source",this.getSource());
     }
 }
  // resume CPD analysis - CPD-ON

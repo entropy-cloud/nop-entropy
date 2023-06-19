@@ -7,10 +7,16 @@
  */
 package io.nop.task.model;
 
+import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._ChooseTaskStepModel;
 
 public class ChooseTaskStepModel extends _ChooseTaskStepModel {
     public ChooseTaskStepModel() {
 
+    }
+
+    @Override
+    public String getType() {
+        return TaskConstants.STEP_TYPE_CHOOSE;
     }
 }

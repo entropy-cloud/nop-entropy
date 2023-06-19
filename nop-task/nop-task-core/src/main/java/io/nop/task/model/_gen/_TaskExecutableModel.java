@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [13:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [16:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -24,7 +24,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      *  
      * xml name: decorator
-     * 
+     * 对taskStep进行增强，返回新的step
      */
     private KeyedList<io.nop.task.model.TaskDecoratorModel> _decorators = KeyedList.emptyList();
     
@@ -55,6 +55,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      * 
      */
     private io.nop.task.model.TaskStepsModel _finally ;
+    
+    /**
+     *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
     
     /**
      *  
@@ -134,7 +141,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     /**
      * 
      * xml name: decorator
-     *  
+     *  对taskStep进行增强，返回新的step
      */
     
     public java.util.List<io.nop.task.model.TaskDecoratorModel> getDecorators(){
@@ -145,7 +152,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     public void setDecorators(java.util.List<io.nop.task.model.TaskDecoratorModel> value){
         checkAllowChange();
         
-        this._decorators = KeyedList.fromList(value, io.nop.task.model.TaskDecoratorModel::getIndex);
+        this._decorators = KeyedList.fromList(value, io.nop.task.model.TaskDecoratorModel::getOrder);
            
     }
 
@@ -162,7 +169,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         checkAllowChange();
         java.util.List<io.nop.task.model.TaskDecoratorModel> list = this.getDecorators();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.task.model.TaskDecoratorModel::getIndex);
+            list = new KeyedList<>(io.nop.task.model.TaskDecoratorModel::getOrder);
             setDecorators(list);
         }
         list.add(item);
@@ -248,6 +255,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._finally = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
            
     }
 
@@ -491,6 +517,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.put("displayName",this.getDisplayName());
         out.put("executor",this.getExecutor());
         out.put("finally",this.getFinally());
+        out.put("id",this.getId());
         out.put("inputs",this.getInputs());
         out.put("outputs",this.getOutputs());
         out.put("rateLimit",this.getRateLimit());

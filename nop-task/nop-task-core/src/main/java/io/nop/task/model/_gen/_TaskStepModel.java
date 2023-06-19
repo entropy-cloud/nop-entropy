@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [67:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [84:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -27,13 +27,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * 
      */
     private java.lang.String _extType ;
-    
-    /**
-     *  
-     * xml name: id
-     * 
-     */
-    private java.lang.String _id ;
     
     /**
      *  
@@ -111,25 +104,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         checkAllowChange();
         
         this._extType = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: id
-     *  
-     */
-    
-    public java.lang.String getId(){
-      return _id;
-    }
-
-    
-    public void setId(java.lang.String value){
-        checkAllowChange();
-        
-        this._id = value;
            
     }
 
@@ -263,7 +237,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         
         out.put("allowStartIfComplete",this.isAllowStartIfComplete());
         out.put("extType",this.getExtType());
-        out.put("id",this.getId());
         out.put("internal",this.isInternal());
         out.put("next",this.getNext());
         out.put("noWait",this.isNoWait());

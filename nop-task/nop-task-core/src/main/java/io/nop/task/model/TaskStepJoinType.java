@@ -8,4 +8,9 @@
 package io.nop.task.model;
 
 public enum TaskStepJoinType {
+    anyComplete,
+    allComplete,
+
+    anySuccess,
+    anyFailure;
 }

@@ -22,6 +22,30 @@ public class TryStep extends AbstractStep {
         return false;
     }
 
+    public ITaskStep getBody() {
+        return body;
+    }
+
+    public void setBody(ITaskStep body) {
+        this.body = body;
+    }
+
+    public ITaskStep getFinallyAction() {
+        return finallyAction;
+    }
+
+    public void setFinallyAction(ITaskStep finallyAction) {
+        this.finallyAction = finallyAction;
+    }
+
+    public ITaskStep getCatchAction() {
+        return catchAction;
+    }
+
+    public void setCatchAction(ITaskStep catchAction) {
+        this.catchAction = catchAction;
+    }
+
     @Override
     protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
 
@@ -39,7 +63,7 @@ public class TryStep extends AbstractStep {
 
         if (pc == 0) {
             try {
-                result = body.execute(state.getRunId(), null, state, context);
+                result = body.execute(state.getRunId(), state, context);
                 if (result.isAsync()) {
                     async = true;
                     int pcParam = pc;
@@ -92,7 +116,7 @@ public class TryStep extends AbstractStep {
         if (finallyAction == null)
             return result;
 
-        TaskStepResult finalResult = finallyAction.execute(state.getRunId(), null, state, context);
+        TaskStepResult finalResult = finallyAction.execute(state.getRunId(), state, context);
         if (finalResult.isAsync()) {
             finalResult = finalResult.thenApply(v -> {
                 state.setStateBean(3);

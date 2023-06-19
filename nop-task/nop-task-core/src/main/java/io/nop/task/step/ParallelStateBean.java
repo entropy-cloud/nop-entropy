@@ -24,4 +24,8 @@ public class ParallelStateBean {
     public void setResults(Map<String, AsyncStepResult> results) {
         this.results = results == null ? new ConcurrentHashMap<>() : new ConcurrentHashMap<>(results);
     }
+
+    public void add(AsyncStepResult result) {
+        results.put(result.getNextStepId(), result);
+    }
 }

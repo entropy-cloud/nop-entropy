@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [51:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [68:10:0:0]/nop/schema/task/task.xdef <p>
  * 如果发生异常，则重试整个task
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -19,7 +19,7 @@ public abstract class _TaskRetryModel extends io.nop.core.resource.component.Abs
      * xml name: exception-filter
      * 上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
      */
-    private io.nop.core.lang.eval.IEvalAction _exceptionFilter ;
+    private io.nop.core.lang.eval.IEvalPredicate _exceptionFilter ;
     
     /**
      *  
@@ -55,12 +55,12 @@ public abstract class _TaskRetryModel extends io.nop.core.resource.component.Abs
      *  上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
      */
     
-    public io.nop.core.lang.eval.IEvalAction getExceptionFilter(){
+    public io.nop.core.lang.eval.IEvalPredicate getExceptionFilter(){
       return _exceptionFilter;
     }
 
     
-    public void setExceptionFilter(io.nop.core.lang.eval.IEvalAction value){
+    public void setExceptionFilter(io.nop.core.lang.eval.IEvalPredicate value){
         checkAllowChange();
         
         this._exceptionFilter = value;

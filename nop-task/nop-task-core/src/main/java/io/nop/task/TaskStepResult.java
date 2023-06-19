@@ -90,16 +90,16 @@ public final class TaskStepResult {
     }
 
     public <T> CompletionStage<T> getReturnPromise() {
-        return (CompletionStage<T>) returnValue;
+        return FutureHelper.toCompletionStage(returnValue);
     }
 
     public <T> TaskStepResult thenCompose(BiFunction<T, Throwable, ?> fn) {
         CompletionStage<T> promise = getReturnPromise();
-        return new TaskStepResult(null, FutureHelper.thenCompleteAsync(promise, fn));
+        return TaskStepResult.of(null, FutureHelper.thenCompleteAsync(promise, fn));
     }
 
     public <T> TaskStepResult thenApply(Function<T, ?> fn) {
         CompletionStage<T> promise = getReturnPromise();
-        return new TaskStepResult(null, promise.thenApply(fn));
+        return TaskStepResult.of(null, promise.thenApply(fn));
     }
 }

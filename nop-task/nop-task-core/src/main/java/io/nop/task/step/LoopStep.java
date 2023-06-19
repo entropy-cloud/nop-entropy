@@ -81,6 +81,7 @@ public class LoopStep extends AbstractStep {
     protected void initStepState(ITaskStepState state) {
         List<Object> items = CollectionHelper.toList(getItemsExpr().invoke(state.evalScope()));
         LoopStateBean stateBean = new LoopStateBean();
+        stateBean.setBodyRunId(0);
         stateBean.setIndex(0);
         stateBean.setItems(items);
         state.setStateBean(stateBean);
@@ -88,12 +89,22 @@ public class LoopStep extends AbstractStep {
 
     @DataBean
     public static class LoopStateBean {
+        private int bodyRunId;
+
         private List<Object> items;
 
         /**
          * 当前正在执行的循环下标
          */
         private int index;
+
+        public int getBodyRunId() {
+            return bodyRunId;
+        }
+
+        public void setBodyRunId(int bodyRunId) {
+            this.bodyRunId = bodyRunId;
+        }
 
         public List<Object> getItems() {
             return items;
@@ -131,15 +142,15 @@ public class LoopStep extends AbstractStep {
                 return stepResult;
 
             if (stepResult.isExit()) {
-                return TaskStepResult.of(getNextStepId(), stepResult.getReturnValue());
+                return toStepResult(stepResult.getReturnValue());
             }
 
             if (!shouldContinue(stateBean, state.evalScope(), context))
                 return TaskStepResult.RESULT_SUCCESS;
 
-            String bodyRunId = getLoopRunId(state.getRunId(), stateBean.getIndex());
+            int bodyRunId = stateBean.getBodyRunId();
 
-            stepResult = body.execute(bodyRunId, null, state, context);
+            stepResult = body.execute(bodyRunId, state, context);
             if (stepResult.isAsync()) {
                 CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
                     TaskStepResult result = toStepResult(ret);
@@ -153,6 +164,7 @@ public class LoopStep extends AbstractStep {
 
             state.setResultValue(stepResult);
             stateBean.incIndex();
+            stateBean.setBodyRunId(context.newRunId());
             saveState(state, context);
 
             // 在saveState之后判断suspend。刚进入doExecute时不能判断suspend, 因为有可能是从休眠中恢复

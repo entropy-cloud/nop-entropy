@@ -7,10 +7,16 @@
  */
 package io.nop.task.model;
 
+import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._ForkTaskStepModel;
 
 public class ForkTaskStepModel extends _ForkTaskStepModel {
     public ForkTaskStepModel() {
 
+    }
+
+    @Override
+    public String getType() {
+        return TaskConstants.STEP_TYPE_FORK;
     }
 }

@@ -7,10 +7,16 @@
  */
 package io.nop.task.model;
 
+import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._ScriptTaskStepModel;
 
 public class ScriptTaskStepModel extends _ScriptTaskStepModel {
     public ScriptTaskStepModel() {
 
+    }
+
+    @Override
+    public String getType() {
+        return TaskConstants.STEP_TYPE_SCRIPT;
     }
 }

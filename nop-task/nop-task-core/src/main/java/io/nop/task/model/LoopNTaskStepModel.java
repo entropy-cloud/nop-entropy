@@ -7,10 +7,16 @@
  */
 package io.nop.task.model;
 
+import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._LoopNTaskStepModel;
 
 public class LoopNTaskStepModel extends _LoopNTaskStepModel {
     public LoopNTaskStepModel() {
 
+    }
+
+    @Override
+    public String getType() {
+        return TaskConstants.STEP_TYPE_LOOP_N;
     }
 }

@@ -210,7 +210,7 @@ public class SocketClient implements ICommandClient {
                             reconnect();
                             return null;
                         });
-                    }).thenRun(() -> {
+                    }, null).thenRun(() -> {
                         recv(executor, handler);
                     });
                 }

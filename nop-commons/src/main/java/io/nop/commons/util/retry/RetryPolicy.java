@@ -13,9 +13,8 @@ import io.nop.api.core.util.ICloneable;
 import io.nop.commons.util.MathHelper;
 
 import java.io.Serializable;
-import java.util.function.Predicate;
 
-public class RetryPolicy implements Serializable, IRetryPolicy, ICloneable {
+public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable {
 
     private static final long serialVersionUID = 8950466247476591272L;
 
@@ -27,7 +26,7 @@ public class RetryPolicy implements Serializable, IRetryPolicy, ICloneable {
     private int maxRetryDelay = 1000 * 60 * 5;
     private boolean exponentialDelay = true;
     private double jitterRatio = 0.3;
-    private Predicate<Throwable> exceptionFilter;
+    private IRetryExceptionFilter<C> exceptionFilter;
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -121,20 +120,20 @@ public class RetryPolicy implements Serializable, IRetryPolicy, ICloneable {
         this.exponentialDelay = exponentialDelay;
     }
 
-    public RetryPolicy withExponentialDelay(boolean exponentialDelay) {
+    public RetryPolicy<C> withExponentialDelay(boolean exponentialDelay) {
         this.setExponentialDelay(exponentialDelay);
         return this;
     }
 
-    public Predicate<Throwable> getExceptionFilter() {
+    public IRetryExceptionFilter<C> getExceptionFilter() {
         return exceptionFilter;
     }
 
-    public void setExceptionFilter(Predicate<Throwable> exceptionFilter) {
+    public void setExceptionFilter(IRetryExceptionFilter<C> exceptionFilter) {
         this.exceptionFilter = exceptionFilter;
     }
 
-    public RetryPolicy withExceptionFilter(Predicate<Throwable> exceptionFilter) {
+    public RetryPolicy<C> withExceptionFilter(IRetryExceptionFilter<C> exceptionFilter) {
         this.setExceptionFilter(exceptionFilter);
         return this;
     }
@@ -146,9 +145,9 @@ public class RetryPolicy implements Serializable, IRetryPolicy, ICloneable {
         return retryTimes > max;
     }
 
-    public boolean isRecoverableException(Throwable exception) {
+    public boolean isRecoverableException(Throwable exception, C context) {
         if (exceptionFilter != null)
-            return exceptionFilter.test(exception);
+            return exceptionFilter.isRecoverable(exception, context);
         if (exception instanceof NopException) {
             return !((NopException) exception).isBizFatal();
         }
@@ -156,9 +155,9 @@ public class RetryPolicy implements Serializable, IRetryPolicy, ICloneable {
     }
 
     @Override
-    public long getRetryDelay(Throwable e, int retryTimes) {
+    public long getRetryDelay(Throwable e, int retryTimes, C context) {
         if (e != null) {
-            if (!isRecoverableException(e))
+            if (!isRecoverableException(e, context))
                 return -1;
         }
         if (isExceedRetryCount(retryTimes))

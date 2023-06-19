@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [45:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [62:10:0:0]/nop/schema/task/task.xdef <p>
  * 限制对同一个key的调用速率不能超过指定值
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

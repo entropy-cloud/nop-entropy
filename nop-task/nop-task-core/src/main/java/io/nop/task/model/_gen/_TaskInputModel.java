@@ -7,12 +7,19 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [18:10:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [21:10:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _TaskInputModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: description
+     * 
+     */
+    private java.lang.String _description ;
     
     /**
      *  
@@ -30,10 +37,29 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: 
+     * xml name: source
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _value ;
+    private io.nop.core.lang.eval.IEvalAction _source ;
+    
+    /**
+     * 
+     * xml name: description
+     *  
+     */
+    
+    public java.lang.String getDescription(){
+      return _description;
+    }
+
+    
+    public void setDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._description = value;
+           
+    }
+
     
     /**
      * 
@@ -75,19 +101,19 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: 
+     * xml name: source
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getValue(){
-      return _value;
+    public io.nop.core.lang.eval.IEvalAction getSource(){
+      return _source;
     }
 
     
-    public void setValue(io.nop.core.lang.eval.IEvalAction value){
+    public void setSource(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._value = value;
+        this._source = value;
            
     }
 
@@ -105,9 +131,10 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());
         out.put("name",this.getName());
-        out.put("value",this.getValue());
+        out.put("source",this.getSource());
     }
 }
  // resume CPD analysis - CPD-ON

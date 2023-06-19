@@ -7,10 +7,15 @@
  */
 package io.nop.task.model;
 
+import io.nop.task.TaskConstants;
 import io.nop.task.model._gen._AwaitTaskStepModel;
 
 public class AwaitTaskStepModel extends _AwaitTaskStepModel {
     public AwaitTaskStepModel() {
 
+    }
+
+    public String getType(){
+        return TaskConstants.STEP_TYPE_AWAIT;
     }
 }

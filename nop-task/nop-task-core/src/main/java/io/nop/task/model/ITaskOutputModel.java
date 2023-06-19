@@ -13,7 +13,7 @@ import io.nop.core.lang.eval.IEvalAction;
 public interface ITaskOutputModel extends ISourceLocationGetter {
     String getName();
 
-    IEvalAction getValue();
+    IEvalAction getSource();
 
     boolean isForAttr();
 }

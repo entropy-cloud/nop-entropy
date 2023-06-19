@@ -10,7 +10,6 @@ package io.nop.task;
 import io.nop.api.core.util.ISourceLocationGetter;
 
 import javax.annotation.Nonnull;
-import java.util.Map;
 
 public interface ITaskStep extends ISourceLocationGetter {
     /**
@@ -18,7 +17,7 @@ public interface ITaskStep extends ISourceLocationGetter {
      *
      * @return
      */
-    String getId();
+    String getStepId();
 
     /**
      * 步骤类型
@@ -26,7 +25,5 @@ public interface ITaskStep extends ISourceLocationGetter {
     String getStepType();
 
     @Nonnull
-    TaskStepResult execute(String runId, Map<String, Object> params,
-                           ITaskStepState parentState,
-                           ITaskContext context);
+    TaskStepResult execute(int runId, ITaskStepState parentState, ITaskContext context);
 }

@@ -26,6 +26,11 @@ public interface ITaskContext extends IServiceContext {
 
     ITaskState getTaskState();
 
+    /**
+     * 分配一个新的runId
+     */
+    int newRunId();
+
     default String getTaskName() {
         return getTaskState().getTaskName();
     }

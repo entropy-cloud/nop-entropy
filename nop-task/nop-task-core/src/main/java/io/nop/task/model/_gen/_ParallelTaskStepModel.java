@@ -7,12 +7,19 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [95:14:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [114:14:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskStepsModel {
+    
+    /**
+     *  
+     * xml name: aggregateVarName
+     * 
+     */
+    private java.lang.String _aggregateVarName ;
     
     /**
      *  
@@ -34,6 +41,25 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
      * 
      */
     private io.nop.task.model.TaskStepJoinType _joinType ;
+    
+    /**
+     * 
+     * xml name: aggregateVarName
+     *  
+     */
+    
+    public java.lang.String getAggregateVarName(){
+      return _aggregateVarName;
+    }
+
+    
+    public void setAggregateVarName(java.lang.String value){
+        checkAllowChange();
+        
+        this._aggregateVarName = value;
+           
+    }
+
     
     /**
      * 
@@ -107,6 +133,7 @@ public abstract class _ParallelTaskStepModel extends io.nop.task.model.TaskSteps
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("aggregateVarName",this.getAggregateVarName());
         out.put("aggregator",this.getAggregator());
         out.put("autoCancelUnfinished",this.isAutoCancelUnfinished());
         out.put("joinType",this.getJoinType());

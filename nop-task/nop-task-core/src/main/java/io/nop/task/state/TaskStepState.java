@@ -14,7 +14,7 @@ import io.nop.task.TaskStepResult;
 
 public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepState {
     private String stepId;
-    private String runId;
+    private int runId;
     private String parentStepId;
     private String parentRunId;
     private String stepType;
@@ -94,12 +94,12 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
     }
 
     @Override
-    public String getRunId() {
+    public int getRunId() {
         return runId;
     }
 
     @Override
-    public void setRunId(String runId) {
+    public void setRunId(int runId) {
         this.runId = runId;
     }
 

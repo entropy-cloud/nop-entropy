@@ -49,7 +49,7 @@ public class SequentialStep extends AbstractStep {
 
             ITaskStep step = steps.get(index);
 
-            stepResult = step.execute(state.getRunId(), null, state, context);
+            stepResult = step.execute(state.getRunId(), state, context);
             if (stepResult.isAsync()) {
                 int indexParam = index;
                 CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
