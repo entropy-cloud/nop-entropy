@@ -23,10 +23,10 @@ public abstract class _TaskDeciderModel extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: 
+     * xml name: source
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _expr ;
+    private io.nop.core.lang.eval.IEvalAction _source ;
     
     /**
      * 
@@ -49,19 +49,19 @@ public abstract class _TaskDeciderModel extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: 
+     * xml name: source
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getExpr(){
-      return _expr;
+    public io.nop.core.lang.eval.IEvalAction getSource(){
+      return _source;
     }
 
     
-    public void setExpr(io.nop.core.lang.eval.IEvalAction value){
+    public void setSource(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._expr = value;
+        this._source = value;
            
     }
 
@@ -80,7 +80,7 @@ public abstract class _TaskDeciderModel extends io.nop.core.resource.component.A
         super.outputJson(out);
         
         out.put("bean",this.getBean());
-        out.put("expr",this.getExpr());
+        out.put("source",this.getSource());
     }
 }
  // resume CPD analysis - CPD-ON

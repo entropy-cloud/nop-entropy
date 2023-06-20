@@ -33,4 +33,10 @@ public interface TaskErrors {
     ErrorCode ERR_TASK_RETRY_TIMES_EXCEED_LIMIT =
             define("nop.err.task.step.retry-times-exceed-limit",
                     "步骤重试次数超过限制");
+
+    ErrorCode ERR_TASK_CANCELLED =
+            define("nop.err.task.cancelled", "任务已经被取消");
+
+    ErrorCode ERR_TASK_STEP_TIMEOUT =
+            define("nop.err.task.step-timeout", "步骤已超时");
 }

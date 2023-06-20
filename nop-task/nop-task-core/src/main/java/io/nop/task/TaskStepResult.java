@@ -12,6 +12,7 @@ import io.nop.api.core.util.FutureHelper;
 
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -101,5 +102,11 @@ public final class TaskStepResult {
     public <T> TaskStepResult thenApply(Function<T, ?> fn) {
         CompletionStage<T> promise = getReturnPromise();
         return TaskStepResult.of(null, promise.thenApply(fn));
+    }
+
+    public <T> TaskStepResult whenComplete(BiConsumer<? super T, ? super Throwable> consumer) {
+        CompletionStage<T> promise = getReturnPromise();
+        promise.whenComplete(consumer);
+        return this;
     }
 }

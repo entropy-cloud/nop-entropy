@@ -37,10 +37,10 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      *  
-     * xml name: count
+     * xml name: countExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _count ;
+    private io.nop.core.lang.eval.IEvalAction _countExpr ;
     
     /**
      *  
@@ -115,19 +115,19 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      * 
-     * xml name: count
+     * xml name: countExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getCount(){
-      return _count;
+    public io.nop.core.lang.eval.IEvalAction getCountExpr(){
+      return _countExpr;
     }
 
     
-    public void setCount(io.nop.core.lang.eval.IEvalAction value){
+    public void setCountExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._count = value;
+        this._countExpr = value;
            
     }
 
@@ -188,7 +188,7 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
         out.put("aggregateVarName",this.getAggregateVarName());
         out.put("aggregator",this.getAggregator());
         out.put("autoCancelUnfinished",this.isAutoCancelUnfinished());
-        out.put("count",this.getCount());
+        out.put("countExpr",this.getCountExpr());
         out.put("joinType",this.getJoinType());
         out.put("var",this.getVar());
     }

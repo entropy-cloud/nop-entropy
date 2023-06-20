@@ -19,7 +19,7 @@ import io.nop.task.TaskStepResult;
 import static io.nop.task.TaskErrors.ARG_STEP_ID;
 import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
 
-public class RetryStep extends AbstractStep {
+public class RetryTaskStep extends AbstractTaskStep {
     private IRetryPolicy<IEvalContext> retryPolicy;
     private ITaskStep body;
 
@@ -70,8 +70,8 @@ public class RetryStep extends AbstractStep {
     }
 
     @Override
-    protected void initStepState(ITaskStepState state) {
-        super.initStepState(state);
+    protected void initStepState(ITaskStepState state, ITaskContext context) {
+        super.initStepState(state, context);
         RetryStateBean stateBean = new RetryStateBean();
         state.setStateBean(stateBean);
     }

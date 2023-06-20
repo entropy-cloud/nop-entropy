@@ -17,7 +17,7 @@ import java.util.concurrent.CompletionStage;
 
 import static io.nop.task.TaskStepResult.RESULT_SUSPEND;
 
-public class SequentialStep extends AbstractStep {
+public class SequentialTaskStep extends AbstractTaskStep {
     private List<ITaskStep> steps;
 
     public List<ITaskStep> getSteps() {

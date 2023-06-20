@@ -14,7 +14,7 @@
 >
 
     <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" id="var-name"
-                 displayName="string" timeout="!long=0" shareScope="!boolean=false">
+                 displayName="string" timeout="!long=0">
 
         <description xdef:value="string"/>
 
@@ -52,17 +52,6 @@
         <finally xdef:ref="TaskStepsModel"/>
 
         <!--
-         限制对同一个key的调用并发数不能超过指定值
-      -->
-        <throttle maxConcurrent="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskThrottleModel"/>
-
-        <!--
-          限制对同一个key的调用速率不能超过指定值
-        -->
-        <rate-limit requestPerSecond="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskRateLimitModel"/>
-
-
-        <!--
           如果发生异常，则重试整个task
         -->
         <retry maxRetryCount="!int=0" retryDelay="!int=0" maxRetryDelay="!int=0"
@@ -72,6 +61,17 @@
             -->
             <exception-filter xdef:value="xpl-predicate"/>
         </retry>
+
+        <!--
+         限制对同一个key的调用并发数不能超过指定值
+      -->
+        <throttle maxConcurrent="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskThrottleModel"/>
+
+        <!--
+          限制对同一个key的调用速率不能超过指定值
+        -->
+        <rate-limit requestPerSecond="!int" maxWait="!int" keyExpr="expr" xdef:name="TaskRateLimitModel"/>
+
 
     </xdef:define>
 
@@ -84,7 +84,7 @@
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" returnAs="var-name"
                  extType="var-name" tagSet="csv-set"
                  allowStartIfComplete="!boolean=false" noWait="!boolean=false" internal="!boolean=false"
-                 next="var-name" id="!var-name" saveState="!boolean=false">
+                 next="string" id="!var-name" saveState="!boolean=false">
     </xdef:define>
 
     <!--
@@ -124,9 +124,9 @@
             <!--
               延迟执行后续step
             -->
-            <delay id="!var-name" delay="!expr" xdef:ref="TaskStepModel" xdef:name="DelayTaskStepModel"/>
+            <delay id="!var-name" delayMillisExpr="!expr" xdef:ref="TaskStepModel" xdef:name="DelayTaskStepModel"/>
 
-            <sleep id="!var-name" sleepTime="!expr" xdef:ref="TaskStepModel" xdef:name="SleepTaskStepModel"/>
+            <sleep id="!var-name" sleepMillisExpr="!expr" xdef:ref="TaskStepModel" xdef:name="SleepTaskStepModel"/>
 
             <fork id="!var-name" var="!var-name" xdef:ref="TaskStepsModel" xdef:name="ForkTaskStepModel"
                   aggregateVarName="var-name"
@@ -135,7 +135,7 @@
                 <aggregator xdef:ref="TaskBeanModel"/>
             </fork>
 
-            <fork-n id="!var-name" var="!var-name" count="!expr" xdef:ref="TaskStepsModel"
+            <fork-n id="!var-name" var="!var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
                     xdef:name="ForkNTaskStepModel" aggregateVarName="var-name"
                     joinType="enum:io.nop.task.model.TaskStepJoinType" autoCancelUnfinished="!boolean=false">
                 <aggregator xdef:ref="TaskBeanModel"/>
@@ -144,7 +144,7 @@
             <invoke id="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel"
                     xdef:name="InvokeTaskStepModel"
                     ignoreReturn="!boolean=false">
-                <arg index="!int" value="expr" xdef:unique-attr="index" xdef:name="TaskInvokeArgModel"/>
+                <arg index="!int" valueExpr="expr" xdef:unique-attr="index" xdef:name="TaskInvokeArgModel"/>
             </invoke>
 
             <loop id="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
@@ -153,12 +153,14 @@
             </loop>
 
             <loop-n id="!var-name" xdef:ref="TaskStepsModel" index="var-name" xdef:name="LoopNTaskStepModel"
-                    var="var-name" begin="!expr" end="!expr" step="!int=0">
+                    var="var-name" beginExpr="!expr" endExpr="!expr" step="!int=0">
             </loop-n>
 
             <choose id="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
-                <decider bean="bean-name" xdef:value="xpl" xdef:bean-body-prop="expr"
-                         xdef:name="TaskDeciderModel"/>
+                <decider bean="bean-name"
+                         xdef:name="TaskDeciderModel">
+                    <source xdef:value="xpl"/>
+                </decider>
 
                 <!--
                 可能用于全局跳转，因此不使用嵌套步骤定义

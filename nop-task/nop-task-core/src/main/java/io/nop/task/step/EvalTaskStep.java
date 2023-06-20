@@ -12,7 +12,7 @@ import io.nop.task.ITaskContext;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
-public class EvalStep extends AbstractStep {
+public class EvalTaskStep extends AbstractTaskStep {
     private IEvalAction source;
 
     public void setSource(IEvalAction source) {

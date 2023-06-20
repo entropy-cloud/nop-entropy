@@ -10,10 +10,9 @@ package io.nop.task.step;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.task.ITaskContext;
 import io.nop.task.ITaskStepState;
-import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepResult;
 
-public class EndTaskStep extends AbstractStep {
+public class EndTaskStep extends AbstractTaskStep {
     private IEvalAction result;
 
     public IEvalAction getResult() {

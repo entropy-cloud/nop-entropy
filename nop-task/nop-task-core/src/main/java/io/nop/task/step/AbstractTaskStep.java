@@ -33,11 +33,12 @@ import java.util.concurrent.CompletionStage;
 
 import static io.nop.core.CoreErrors.ARG_VAR_NAME;
 import static io.nop.task.TaskConstants.SPECIAL_STEP_PREFIX;
+import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 import static io.nop.task.TaskStepResult.RESULT_SUSPEND;
 
 
-public abstract class AbstractStep implements ITaskStep {
-    static final Logger LOG = LoggerFactory.getLogger(AbstractStep.class);
+public abstract class AbstractTaskStep implements ITaskStep {
+    static final Logger LOG = LoggerFactory.getLogger(AbstractTaskStep.class);
 
     private SourceLocation location;
     private String stepId;
@@ -194,6 +195,9 @@ public abstract class AbstractStep implements ITaskStep {
                 context.getTaskName(), context.getTaskInstanceId(),
                 this.getStepId(), runId, getLocation());
 
+        if (context.isCancelled())
+            throw new NopException(ERR_TASK_CANCELLED);
+
         IEvalScope scope = newStepScope(parentState, context);
 
         ITaskStepState state = null;
@@ -274,11 +278,11 @@ public abstract class AbstractStep implements ITaskStep {
         state.setTagSet(tagSet);
         state.setExtType(extType);
 
-        initStepState(state);
+        initStepState(state, context);
         return state;
     }
 
-    protected void initStepState(ITaskStepState state) {
+    protected void initStepState(ITaskStepState state, ITaskContext context) {
 
     }
 

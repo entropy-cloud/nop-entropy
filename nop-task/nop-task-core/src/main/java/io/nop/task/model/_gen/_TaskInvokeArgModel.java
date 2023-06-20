@@ -23,10 +23,10 @@ public abstract class _TaskInvokeArgModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: value
+     * xml name: valueExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _value ;
+    private io.nop.core.lang.eval.IEvalAction _valueExpr ;
     
     /**
      * 
@@ -49,19 +49,19 @@ public abstract class _TaskInvokeArgModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: value
+     * xml name: valueExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getValue(){
-      return _value;
+    public io.nop.core.lang.eval.IEvalAction getValueExpr(){
+      return _valueExpr;
     }
 
     
-    public void setValue(io.nop.core.lang.eval.IEvalAction value){
+    public void setValueExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._value = value;
+        this._valueExpr = value;
            
     }
 
@@ -80,7 +80,7 @@ public abstract class _TaskInvokeArgModel extends io.nop.core.resource.component
         super.outputJson(out);
         
         out.put("index",this.getIndex());
-        out.put("value",this.getValue());
+        out.put("valueExpr",this.getValueExpr());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-public class ParallelStep extends AbstractStep {
+public class ParallelTaskStep extends AbstractTaskStep {
     private List<ITaskStep> steps;
 
     private String aggregateVarName;
@@ -53,7 +53,7 @@ public class ParallelStep extends AbstractStep {
     }
 
     @Override
-    protected void initStepState(ITaskStepState state) {
+    protected void initStepState(ITaskStepState state, ITaskContext context) {
 
     }
 

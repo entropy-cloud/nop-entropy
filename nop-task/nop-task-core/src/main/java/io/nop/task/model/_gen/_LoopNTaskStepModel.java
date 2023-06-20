@@ -16,17 +16,17 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      *  
-     * xml name: begin
+     * xml name: beginExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _begin ;
+    private io.nop.core.lang.eval.IEvalAction _beginExpr ;
     
     /**
      *  
-     * xml name: end
+     * xml name: endExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _end ;
+    private io.nop.core.lang.eval.IEvalAction _endExpr ;
     
     /**
      *  
@@ -51,38 +51,38 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      * 
-     * xml name: begin
+     * xml name: beginExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getBegin(){
-      return _begin;
+    public io.nop.core.lang.eval.IEvalAction getBeginExpr(){
+      return _beginExpr;
     }
 
     
-    public void setBegin(io.nop.core.lang.eval.IEvalAction value){
+    public void setBeginExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._begin = value;
+        this._beginExpr = value;
            
     }
 
     
     /**
      * 
-     * xml name: end
+     * xml name: endExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getEnd(){
-      return _end;
+    public io.nop.core.lang.eval.IEvalAction getEndExpr(){
+      return _endExpr;
     }
 
     
-    public void setEnd(io.nop.core.lang.eval.IEvalAction value){
+    public void setEndExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._end = value;
+        this._endExpr = value;
            
     }
 
@@ -157,8 +157,8 @@ public abstract class _LoopNTaskStepModel extends io.nop.task.model.TaskStepsMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("begin",this.getBegin());
-        out.put("end",this.getEnd());
+        out.put("beginExpr",this.getBeginExpr());
+        out.put("endExpr",this.getEndExpr());
         out.put("index",this.getIndex());
         out.put("step",this.getStep());
         out.put("var",this.getVar());

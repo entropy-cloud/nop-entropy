@@ -13,7 +13,7 @@ import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
-public class TryStep extends AbstractStep {
+public class TryTaskStep extends AbstractTaskStep {
     private ITaskStep body;
     private ITaskStep finallyAction;
     private ITaskStep catchAction;

@@ -93,13 +93,6 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: shareScope
-     * 
-     */
-    private boolean _shareScope  = false;
-    
-    /**
-     *  
      * xml name: throttle
      * 限制对同一个key的调用并发数不能超过指定值
      */
@@ -408,25 +401,6 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: shareScope
-     *  
-     */
-    
-    public boolean isShareScope(){
-      return _shareScope;
-    }
-
-    
-    public void setShareScope(boolean value){
-        checkAllowChange();
-        
-        this._shareScope = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: throttle
      *  限制对同一个key的调用并发数不能超过指定值
      */
@@ -522,7 +496,6 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.put("outputs",this.getOutputs());
         out.put("rateLimit",this.getRateLimit());
         out.put("retry",this.getRetry());
-        out.put("shareScope",this.isShareScope());
         out.put("throttle",this.getThrottle());
         out.put("timeout",this.getTimeout());
         out.put("when",this.getWhen());

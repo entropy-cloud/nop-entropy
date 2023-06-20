@@ -5,13 +5,13 @@ import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
-public class WrapStep extends AbstractStep {
+public class WrapTaskStep extends AbstractTaskStep {
     private ITaskStep step;
 
-    public WrapStep() {
+    public WrapTaskStep() {
     }
 
-    public WrapStep(ITaskStep step) {
+    public WrapTaskStep(ITaskStep step) {
         this.step = step;
     }
 

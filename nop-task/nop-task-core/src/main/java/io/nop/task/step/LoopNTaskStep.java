@@ -8,37 +8,31 @@
 package io.nop.task.step;
 
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.commons.util.CollectionHelper;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITaskContext;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
-import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.task.TaskStepResult.RESULT_SUSPEND;
 
 
-public class LoopStep extends AbstractStep {
+public class LoopNTaskStep extends AbstractTaskStep {
     private String varName;
     private String indexName;
 
-    private IEvalAction itemsExpr;
+    private int step = 1;
+
+    private IEvalAction beginExpr;
+
+    private IEvalAction endExpr;
     private ITaskStep body;
-
-    private IEvalPredicate untilExpr;
-
-    public IEvalPredicate getUntilExpr() {
-        return untilExpr;
-    }
-
-    public void setUntilExpr(IEvalPredicate untilExpr) {
-        this.untilExpr = untilExpr;
-    }
 
     public String getVarName() {
         return varName;
@@ -56,14 +50,6 @@ public class LoopStep extends AbstractStep {
         this.indexName = indexName;
     }
 
-    public IEvalAction getItemsExpr() {
-        return itemsExpr;
-    }
-
-    public void setItemsExpr(IEvalAction itemsExpr) {
-        this.itemsExpr = itemsExpr;
-    }
-
     public ITaskStep getBody() {
         return body;
     }
@@ -72,18 +58,33 @@ public class LoopStep extends AbstractStep {
         this.body = body;
     }
 
-    @Override
-    public String getStepType() {
-        return "loop";
+    public int getStep() {
+        return step;
+    }
+
+    public void setStep(int step) {
+        Guard.checkArgument(step != 0, "step must not be zero");
+        this.step = step;
+    }
+
+    public void setBeginExpr(IEvalAction beginExpr) {
+        this.beginExpr = beginExpr;
+    }
+
+    public void setEndExpr(IEvalAction endExpr) {
+        this.endExpr = endExpr;
     }
 
     @Override
-    protected void initStepState(ITaskStepState state) {
-        List<Object> items = CollectionHelper.toList(getItemsExpr().invoke(state.evalScope()));
+    protected void initStepState(ITaskStepState state, ITaskContext context) {
+        IEvalScope scope = state.evalScope();
+        int begin = ConvertHelper.toPrimitiveInt(beginExpr.invoke(scope), 0, NopException::new);
+        int end = ConvertHelper.toPrimitiveInt(endExpr.invoke(scope), 0, NopException::new);
+
         LoopStateBean stateBean = new LoopStateBean();
         stateBean.setBodyRunId(0);
-        stateBean.setIndex(0);
-        stateBean.setItems(items);
+        stateBean.setIndex(begin);
+        stateBean.setEnd(end);
         state.setStateBean(stateBean);
     }
 
@@ -91,7 +92,7 @@ public class LoopStep extends AbstractStep {
     public static class LoopStateBean {
         private int bodyRunId;
 
-        private List<Object> items;
+        private int end;
 
         /**
          * 当前正在执行的循环下标
@@ -106,12 +107,12 @@ public class LoopStep extends AbstractStep {
             this.bodyRunId = bodyRunId;
         }
 
-        public List<Object> getItems() {
-            return items;
+        public int getEnd() {
+            return end;
         }
 
-        public void setItems(List<Object> items) {
-            this.items = items;
+        public void setEnd(int end) {
+            this.end = end;
         }
 
         public int getIndex() {
@@ -122,8 +123,8 @@ public class LoopStep extends AbstractStep {
             this.index = index;
         }
 
-        public void incIndex() {
-            this.index++;
+        public void incStep(int step) {
+            this.index += step;
         }
     }
 
@@ -155,7 +156,7 @@ public class LoopStep extends AbstractStep {
                 CompletionStage<Object> promise = stepResult.getReturnPromise().thenApply(ret -> {
                     TaskStepResult result = toStepResult(ret);
                     state.result(result);
-                    stateBean.incIndex();
+                    stateBean.incStep(step);
                     saveState(state, context);
                     return doExecute(state, context);
                 });
@@ -163,7 +164,7 @@ public class LoopStep extends AbstractStep {
             }
 
             state.setResultValue(stepResult);
-            stateBean.incIndex();
+            stateBean.incStep(step);
             stateBean.setBodyRunId(context.newRunId());
             saveState(state, context);
 
@@ -175,15 +176,9 @@ public class LoopStep extends AbstractStep {
     }
 
     boolean shouldContinue(LoopStateBean state, IEvalScope scope, ITaskContext context) {
-        if (state.getItems() != null) {
-            if (state.getIndex() >= state.getItems().size())
-                return false;
+        if (step > 0) {
+            return state.getIndex() < state.getEnd();
         }
-
-        if (untilExpr != null) {
-            return untilExpr.passConditions(scope);
-        }
-
-        return true;
+        return state.getIndex() > state.getEnd();
     }
 }

@@ -31,8 +31,9 @@ interface ITaskStep {
 1. 在全局scope中检查when条件是否满足，不满足条件则直接跳过步骤
 2. 根据input配置初始化输入变量，将它们设置到步骤scope中
 3. 注册超时时间，超时时间到达的时候取消整个step的执行，step的状态转换为TIMEOUT
-4. 注册重试策略，如果后续执行失败，则按照重试策略重试
-5. 检查throttle和rate-limit配置，对请求进行限速
-6. 执行decorator
-7. 执行单次尝试，如果失败，则执行catch处理。
-8. 步骤执行完毕后，根据output设置将步骤scope中的变量保存到全局scope中
+4. 注册错误处理，如果失败，则执行catch处理。
+5. 注册重试策略，如果后续执行失败，则按照重试策略重试
+6. 检查throttle和rate-limit配置，对请求进行限速
+7. 执行decorator
+8. 执行步骤body
+9. body执行完毕后，根据output设置将步骤scope中的变量保存到全局scope中

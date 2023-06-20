@@ -16,10 +16,10 @@ import io.nop.task.TaskConstants;
 import io.nop.task.model.TaskRetryModel;
 import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskStepsModel;
-import io.nop.task.step.AbstractStep;
-import io.nop.task.step.RetryStep;
-import io.nop.task.step.TryStep;
-import io.nop.task.step.WrapStep;
+import io.nop.task.step.AbstractTaskStep;
+import io.nop.task.step.RetryTaskStep;
+import io.nop.task.step.TryTaskStep;
+import io.nop.task.step.WrapTaskStep;
 
 public class TaskStepBuilder {
     public ITaskStep buildStep(TaskStepModel stepModel) {
@@ -37,7 +37,7 @@ public class TaskStepBuilder {
             ITaskStep catchStep = buildSequential(stepModel.getCatch());
             ITaskStep finallyStep = buildSequential(stepModel.getFinally());
 
-            TryStep tryStep = new TryStep();
+            TryTaskStep tryStep = new TryTaskStep();
             tryStep.setLocation(stepModel.getLocation());
             tryStep.setStepType(TaskConstants.STEP_TYPE_TRY);
             tryStep.setStepId(stepModel.getId() + TaskConstants.POSTFIX_TRY);
@@ -51,7 +51,7 @@ public class TaskStepBuilder {
 
         if (stepModel.getRetry() != null) {
             IRetryPolicy<IEvalContext> retryPolicy = buildRetryPolicy(stepModel.getRetry());
-            RetryStep retryStep = new RetryStep();
+            RetryTaskStep retryStep = new RetryTaskStep();
             retryStep.setLocation(stepModel.getLocation());
             retryStep.setStepType(TaskConstants.STEP_TYPE_RETRY);
             retryStep.setBody(step);
@@ -65,11 +65,11 @@ public class TaskStepBuilder {
     }
 
     private ITaskStep wrap(TaskStepModel stepModel, ITaskStep step) {
-        AbstractStep wrap;
-        if (stepModel.getId() == step.getStepId() && step instanceof AbstractStep) {
-            wrap = (AbstractStep) step;
+        AbstractTaskStep wrap;
+        if (stepModel.getId() == step.getStepId() && step instanceof AbstractTaskStep) {
+            wrap = (AbstractTaskStep) step;
         } else {
-            wrap = new WrapStep(step);
+            wrap = new WrapTaskStep(step);
         }
         wrap.setWhen(stepModel.getWhen());
         wrap.setStepId(stepModel.getId());

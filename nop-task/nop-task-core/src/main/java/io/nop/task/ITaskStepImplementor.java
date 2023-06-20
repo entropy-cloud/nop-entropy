@@ -7,14 +7,12 @@
  */
 package io.nop.task;
 
-import java.util.Map;
-
 /**
  * TaskStep包含了状态恢复和条件判断等通用逻辑，ITaskStepImplementor提供专属于该步骤的逻辑
  */
 public interface ITaskStepImplementor {
 
-    default void prepareState(String runId, Map<String, Object> params, ITaskContext context) {
+    default void prepareState(ITaskStep step, ITaskStepState state, ITaskContext context) {
 
     }
 
@@ -24,7 +22,7 @@ public interface ITaskStepImplementor {
      * @param context
      * @return
      */
-    TaskStepResult execute(ITaskStep step, ITaskStepState state,
-                           String runId, Map<String, Object> params,
+    TaskStepResult execute(ITaskStep step,
+                           ITaskStepState state,
                            ITaskContext context);
 }

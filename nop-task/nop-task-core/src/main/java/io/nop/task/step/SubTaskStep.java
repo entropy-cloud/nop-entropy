@@ -13,7 +13,7 @@ import io.nop.task.ITaskManager;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepResult;
 
-public class SubTaskStep extends AbstractStep {
+public class SubTaskStep extends AbstractTaskStep {
     private String taskName;
 
     private ITaskManager taskManager;
@@ -46,8 +46,11 @@ public class SubTaskStep extends AbstractStep {
 
         ITask task = taskManager.getTask(subContext);
 
-        TaskStepResult result = task.execute(subContext);
+        Object result = task.execute(subContext);
+        if (result instanceof TaskStepResult) {
+            result = ((TaskStepResult) result).getReturnValue();
+        }
 
-        return TaskStepResult.of(getNextStepId(), result.getReturnValue());
+        return TaskStepResult.of(getNextStepId(), result);
     }
 }

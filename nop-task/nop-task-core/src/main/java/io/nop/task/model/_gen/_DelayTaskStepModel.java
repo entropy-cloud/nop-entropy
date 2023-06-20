@@ -16,26 +16,26 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
     
     /**
      *  
-     * xml name: delay
+     * xml name: delayMillisExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _delay ;
+    private io.nop.core.lang.eval.IEvalAction _delayMillisExpr ;
     
     /**
      * 
-     * xml name: delay
+     * xml name: delayMillisExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getDelay(){
-      return _delay;
+    public io.nop.core.lang.eval.IEvalAction getDelayMillisExpr(){
+      return _delayMillisExpr;
     }
 
     
-    public void setDelay(io.nop.core.lang.eval.IEvalAction value){
+    public void setDelayMillisExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._delay = value;
+        this._delayMillisExpr = value;
            
     }
 
@@ -53,7 +53,7 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("delay",this.getDelay());
+        out.put("delayMillisExpr",this.getDelayMillisExpr());
     }
 }
  // resume CPD analysis - CPD-ON

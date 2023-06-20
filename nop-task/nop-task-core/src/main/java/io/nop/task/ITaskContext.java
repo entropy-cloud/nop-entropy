@@ -7,6 +7,7 @@
  */
 package io.nop.task;
 
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.context.IServiceContext;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -72,4 +73,6 @@ public interface ITaskContext extends IServiceContext {
     void saveState(ITaskStepState state);
 
     ITaskStepState loadState(String stepId, String runId);
+
+    ITaskContext withCancelToken(ICancelToken cancelToken);
 }

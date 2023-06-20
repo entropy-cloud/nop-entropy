@@ -12,5 +12,5 @@ public interface ITask {
 
     long getTaskVersion();
 
-    TaskStepResult execute(ITaskContext context);
+    Object execute(ITaskContext context);
 }

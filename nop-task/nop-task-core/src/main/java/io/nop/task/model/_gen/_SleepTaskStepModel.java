@@ -16,26 +16,26 @@ public abstract class _SleepTaskStepModel extends io.nop.task.model.TaskStepMode
     
     /**
      *  
-     * xml name: sleepTime
+     * xml name: sleepMillisExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _sleepTime ;
+    private io.nop.core.lang.eval.IEvalAction _sleepMillisExpr ;
     
     /**
      * 
-     * xml name: sleepTime
+     * xml name: sleepMillisExpr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getSleepTime(){
-      return _sleepTime;
+    public io.nop.core.lang.eval.IEvalAction getSleepMillisExpr(){
+      return _sleepMillisExpr;
     }
 
     
-    public void setSleepTime(io.nop.core.lang.eval.IEvalAction value){
+    public void setSleepMillisExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._sleepTime = value;
+        this._sleepMillisExpr = value;
            
     }
 
@@ -53,7 +53,7 @@ public abstract class _SleepTaskStepModel extends io.nop.task.model.TaskStepMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("sleepTime",this.getSleepTime());
+        out.put("sleepMillisExpr",this.getSleepMillisExpr());
     }
 }
  // resume CPD analysis - CPD-ON
