@@ -1,16 +1,26 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <TreeTableSupport>
+        <TreeTableSupport outputMode="node">
             <attr name="_dsl_root" implicit="true"/>
 
             <source>
-                <c:script>
-
-                </c:script>
-
                 <imp>
                     <sheets>
+                        <c:for var="sheetNode" items="${_dsl_root.childByTag('sheets').children}">
+                            <c:script><![CDATA[
+                                if(!sheetNode.attrText('imp:treeChildrenProp')
+                                    or !sheetNode.attrText('imp:treeLevelProp'))
+                                   continue;
+                            ]]></c:script>
+                            <sheet name="${sheetNode.getAttr('name')}">
+                                <afterParse x:override="append">
+                                    import io.nop.excel.imp.util.ImportDataHelper;
 
+                                    ImportDataHelper.normalizeTree(rootRecord.${sheetNode.getAttr('field')},
+                                          "${sheetNode.getAttr('imp:treeChildrenProp')}","${sheetNode.getAttr('imp:treeLevelProp')}","${sheetNode.getAttr('imp:treeChildKeyProp')}");
+                                </afterParse>
+                            </sheet>
+                        </c:for>
                     </sheets>
                 </imp>
             </source>

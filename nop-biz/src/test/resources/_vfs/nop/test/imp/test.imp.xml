@@ -2,21 +2,21 @@
 
 <imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      templatePath="tree.test.xlsx"
-     xmlns:imp="imp">
+     xmlns:imp="imp" xmlns:imp-gen="imp-gen" xmlns:xpl="xpl">
 
-    <!--    <x:post-extends>-->
-    <!--        <imp-gen:TreeTableSupport xpl:lib="/nop/excel/xlib/imp-gen.xlib"/>-->
-    <!--    </x:post-extends>-->
+        <x:post-extends>
+            <imp-gen:TreeTableSupport xpl:lib="/nop/excel/xlib/imp-gen.xlib"/>
+        </x:post-extends>
 
     <sheets>
         <sheet name="指标" field="entities" list="true"
                imp:treeChildrenProp="children" imp:treeLevelProp="ext:level">
 
-            <afterParse>
-                import io.nop.excel.imp.util.ImportDataHelper;
+<!--            <afterParse>-->
+<!--                import io.nop.excel.imp.util.ImportDataHelper;-->
 
-                ImportDataHelper.normalizeTree(rootRecord.entities,"children","ext:level",null);
-            </afterParse>
+<!--                ImportDataHelper.normalizeTree(rootRecord.entities,"children","ext:level",null);-->
+<!--            </afterParse>-->
 
             <fields>
                 <field name="name" displayName="指标" mandatory="true"/>

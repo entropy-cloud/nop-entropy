@@ -4,6 +4,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.KeyedList;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 
 import java.util.ArrayList;
@@ -38,6 +39,9 @@ public class ImportDataHelper {
 
         Guard.notEmpty(childrenProp, "childrenProp");
         Guard.notEmpty(levelProp, "levelProp");
+
+        if (StringHelper.isEmpty(childKeyProp))
+            childKeyProp = null;
 
         List<Item> stack = new ArrayList<>();
         stack.add(makeItem(list.get(0), levelProp));
