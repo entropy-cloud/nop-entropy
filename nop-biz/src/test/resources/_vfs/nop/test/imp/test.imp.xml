@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     templatePath="tree.test.xlsx"
+     xmlns:imp="imp">
+
+    <!--    <x:post-extends>-->
+    <!--        <imp-gen:TreeTableSupport xpl:lib="/nop/excel/xlib/imp-gen.xlib"/>-->
+    <!--    </x:post-extends>-->
+
+    <sheets>
+        <sheet name="指标" field="entities" list="true"
+               imp:treeChildrenProp="children" imp:treeLevelProp="ext:level">
+
+            <afterParse>
+                import io.nop.excel.imp.util.ImportDataHelper;
+
+                ImportDataHelper.normalizeTree(rootRecord.entities,"children","ext:level",null);
+            </afterParse>
+
+            <fields>
+                <field name="name" displayName="指标" mandatory="true"/>
+                <field name="ext:level" displayName="层级" mandatory="true"/>
+
+                <field name="name_L0" displayName="L0指标" prop="name" ignoreWhenEmpty="true">
+                    <normalizeFieldsExpr>
+                        record['ext:level'] = 0
+                    </normalizeFieldsExpr>
+                </field>
+
+                <field name="name_L1" displayName="L1指标" prop="name" ignoreWhenEmpty="true">
+                    <normalizeFieldsExpr>
+                        record['ext:level'] = 1
+                    </normalizeFieldsExpr>
+                </field>
+
+                <field name="name_L2" displayName="L2指标" prop="name" ignoreWhenEmpty="true">
+                    <normalizeFieldsExpr>
+                        record['ext:level'] = 2
+                    </normalizeFieldsExpr>
+                </field>
+
+                <field name="name_L3" displayName="L3指标" prop="name" ignoreWhenEmpty="true">
+                    <normalizeFieldsExpr>
+                        record['ext:level'] = 3
+                    </normalizeFieldsExpr>
+                </field>
+
+                <field name="unit" displayName="单位" mandatory="true"/>
+
+                <field name="value" displayName="指标值" mandatory="true">
+                    <schema stdDomain="int"/>
+                </field>
+
+            </fields>
+        </sheet>
+    </sheets>
+</imp>

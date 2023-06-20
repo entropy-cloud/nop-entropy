@@ -7,6 +7,7 @@
  */
 package io.nop.codegen;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.FileHelper;
@@ -29,6 +30,9 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static io.nop.codegen.CodeGenErrors.ARG_FILE_NAME;
+import static io.nop.codegen.CodeGenErrors.ERR_CODEGEN_UNKNOWN_MODEL_TYPE;
 
 /**
  * 数据驱动的代码生成器，也就是说有哪些文件要生成，生成过程中的循环和判断逻辑都完全由数据模板来指定，而不是直接内置在代码生成器的逻辑中。
@@ -162,6 +166,9 @@ public class XCodeGenerator extends TemplateFileGenerator {
             IComponentModel model = ResourceComponentManager.instance().loadComponentModel(fullPath);
             scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL, model);
         } else {
+            if (fullPath.endsWith(".xlsx"))
+                throw new NopException(ERR_CODEGEN_UNKNOWN_MODEL_TYPE).param(ARG_FILE_NAME, StringHelper.fileFullName(fullPath));
+
             LOG.warn("nop.cli.undefined-code-gen-model-type:{}", StringHelper.fileFullName(fullPath));
         }
 

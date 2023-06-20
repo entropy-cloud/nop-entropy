@@ -5,6 +5,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmModelConstants;
 
 import java.util.List;
@@ -28,7 +29,15 @@ public class OrmModelHelper {
     }
 
     public static String buildCollectionName(String entityName, String propName) {
+        return buildRelationName(entityName, propName);
+    }
+
+    public static String buildRelationName(String entityName, String propName) {
         return entityName + '@' + propName;
+    }
+
+    public static String buildRelationName(IEntityRelationModel rel) {
+        return buildRelationName(rel.getOwnerEntityModel().getName(), rel.getName());
     }
 
     public static Map<String, IDataParameterBinder> getEntityColBinders(IEntityModel entityModel, IDialect dialect,

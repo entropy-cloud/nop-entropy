@@ -160,7 +160,7 @@ public class ImportDataCollector implements ITableDataEventListener {
             if (endList) {
                 listAdapters.remove(listAdapters.size() - 1);
                 if (fieldModel.getFieldName() != null) {
-                    setProp(last, fieldModel.getFieldName(), entity);
+                    setProp(last, fieldModel.getPropOrName(), entity);
                 }
             } else {
                 IListAdapter adapter = listAdapters.get(listAdapters.size() - 1);
@@ -170,7 +170,7 @@ public class ImportDataCollector implements ITableDataEventListener {
             if (fieldModel.isMultiple()) {
                 multipleResults.add(entity);
             } else {
-                setProp(last, fieldModel.getFieldName(), entity);
+                setProp(last, fieldModel.getPropOrName(), entity);
             }
         }
     }
@@ -200,10 +200,14 @@ public class ImportDataCollector implements ITableDataEventListener {
         }
 
         if (field.isMandatory()) {
-            if (StringHelper.isEmptyObject(value))
+            if (StringHelper.isEmptyObject(value)) {
+                if (field.isIgnoreWhenEmpty())
+                    return;
+
                 throw new NopException(ERR_IMPORT_MANDATORY_FIELD_IS_EMPTY).param(ARG_SHEET_NAME, sheetName)
                         .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
                         .param(ARG_FIELD_NAME, field.getName()).param(ARG_DISPLAY_NAME, field.getDisplayName());
+            }
         }
 
         if (value != null && field.getSchema() != null) {
@@ -256,9 +260,22 @@ public class ImportDataCollector implements ITableDataEventListener {
         }
 
         if (!field.isVirtual()) {
-            Object obj = entityParents.get(entityParents.size() - 1);
-            setProp(obj, field.getName(), value);
+            if (!shouldIgnore(field, value)) {
+                Object obj = entityParents.get(entityParents.size() - 1);
+                setProp(obj, field.getPropOrName(), value);
+
+                if (field.getNormalizeFieldsExpr() != null) {
+                    scope.setLocalValue(ExcelConstants.VAR_RECORD, obj);
+                    field.getNormalizeFieldsExpr().invoke(scope);
+                }
+            }
         }
+    }
+
+    private boolean shouldIgnore(ImportFieldModel field, Object value) {
+        if (!StringHelper.isEmptyObject(value))
+            return false;
+        return field.isIgnoreWhenEmpty();
     }
 
 
@@ -271,7 +288,7 @@ public class ImportDataCollector implements ITableDataEventListener {
                     Object value = field.getValueExpr().invoke(scope);
                     setProp(obj, field.getName(), value);
                 }
-            } else if (obj != null && !field.isVirtual()) {
+            } else if (obj != null && !field.isVirtual() && !field.isIgnoreWhenEmpty()) {
                 obj.makeComplexPropDefault(field.getName(), null);
             }
         }
@@ -280,7 +297,7 @@ public class ImportDataCollector implements ITableDataEventListener {
     private void validateMandatory(Map<String, ImportFieldModel> fieldMap, DynamicObject obj) {
         for (ImportFieldModel field : fieldMap.values()) {
             if (field.isMandatory()) {
-                if (isPropEmpty(obj, field.getName()))
+                if (isPropEmpty(obj, field.getPropOrName()))
                     throw new NopException(ERR_IMPORT_MISSING_MANDATORY_FIELD).param(ARG_SHEET_NAME, sheetName)
                             .param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_LABEL, field.getFieldLabel());
             }

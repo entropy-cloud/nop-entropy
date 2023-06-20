@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [42:18:0:0]/nop/schema/excel/imp.xdef <p>
+ * generate from [47:18:0:0]/nop/schema/excel/imp.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -51,6 +51,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: ignoreWhenEmpty
+     * 当数据为空的时候自动忽略该字段，不设置到record对象上
+     */
+    private boolean _ignoreWhenEmpty  = false;
+    
+    /**
+     *  
      * xml name: keyProp
      * 
      */
@@ -80,7 +87,8 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     /**
      *  
      * xml name: normalizeFieldsExpr
-     * 
+     * 执行时上下文中存在record对象。
+     * 如果是对象字段，record对应于当前对象。对应简单字段，record对应于父对此昂
      */
     private io.nop.core.lang.eval.IEvalAction _normalizeFieldsExpr ;
     
@@ -90,6 +98,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
      * 
      */
     private java.lang.String _parentProp ;
+    
+    /**
+     *  
+     * xml name: prop
+     * 实际设置到record上的属性名，如果为空，则prop与name相同
+     */
+    private java.lang.String _prop ;
     
     /**
      *  
@@ -238,6 +253,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: ignoreWhenEmpty
+     *  当数据为空的时候自动忽略该字段，不设置到record对象上
+     */
+    
+    public boolean isIgnoreWhenEmpty(){
+      return _ignoreWhenEmpty;
+    }
+
+    
+    public void setIgnoreWhenEmpty(boolean value){
+        checkAllowChange();
+        
+        this._ignoreWhenEmpty = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: keyProp
      *  
      */
@@ -315,7 +349,8 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: normalizeFieldsExpr
-     *  
+     *  执行时上下文中存在record对象。
+     * 如果是对象字段，record对应于当前对象。对应简单字段，record对应于父对此昂
      */
     
     public io.nop.core.lang.eval.IEvalAction getNormalizeFieldsExpr(){
@@ -346,6 +381,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._parentProp = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: prop
+     *  实际设置到record上的属性名，如果为空，则prop与name相同
+     */
+    
+    public java.lang.String getProp(){
+      return _prop;
+    }
+
+    
+    public void setProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._prop = value;
            
     }
 
@@ -508,12 +562,14 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         out.put("displayName",this.getDisplayName());
         out.put("exportExpr",this.getExportExpr());
         out.put("fields",this.getFields());
+        out.put("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
         out.put("keyProp",this.getKeyProp());
         out.put("list",this.isList());
         out.put("mandatory",this.isMandatory());
         out.put("name",this.getName());
         out.put("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
         out.put("parentProp",this.getParentProp());
+        out.put("prop",this.getProp());
         out.put("schema",this.getSchema());
         out.put("stripText",this.getStripText());
         out.put("typeProp",this.getTypeProp());

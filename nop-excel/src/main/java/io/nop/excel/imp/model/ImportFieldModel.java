@@ -8,6 +8,7 @@
 package io.nop.excel.imp.model;
 
 import io.nop.api.core.util.INeedInit;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.type.IGenericType;
 import io.nop.excel.imp.model._gen._ImportFieldModel;
 import io.nop.xlang.xmeta.ISchema;
@@ -85,5 +86,12 @@ public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IF
         if (unknownField != null)
             fieldNameMap.put("*", unknownField);
         return fieldNameMap;
+    }
+
+    public String getPropOrName() {
+        String prop = getProp();
+        if (!StringHelper.isEmpty(prop))
+            return prop;
+        return getName();
     }
 }

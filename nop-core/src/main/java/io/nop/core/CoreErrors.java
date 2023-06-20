@@ -704,6 +704,11 @@ public interface CoreErrors {
             "nop.err.core.reflect.not-supported-method-for-synthesized-annotation",
             "注解类[{className}]不支持注解方法[{methodName}]", ARG_METHOD_NAME, ARG_CLASS_NAME);
 
+    ErrorCode ERR_REFLECT_NO_METHOD_FOR_GIVEN_NAME_AND_ARG_COUNT =
+            define("nop.err.core.reflect.no-method-for-given-name-and-arg-count",
+                    "类[{className}]中名称为[{methodName}]，参数个数为[{count}]的函数不存在或者存在多个无法确定使用哪一个函数",
+                    ARG_CLASS_NAME, ARG_METHOD_NAME, ARG_COUNT);
+
     ErrorCode ERR_FILTER_INVALID_VALUE_FORMAT = define("nop.err.core.filter.invalid-value-format",
             "属性[{name}]的值[{value}]格式不正确", ARG_NAME, ARG_VALUE);
 

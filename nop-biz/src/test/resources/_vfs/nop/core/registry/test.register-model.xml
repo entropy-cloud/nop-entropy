@@ -1,0 +1,6 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="gateway">
+    <loaders>
+        <xlsx-loader fileType="test.xlsx" impPath="/nop/test/imp/test.imp.xml" />
+    </loaders>
+</model>

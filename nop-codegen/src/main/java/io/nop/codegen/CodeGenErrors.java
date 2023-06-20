@@ -31,6 +31,8 @@ public interface CodeGenErrors {
 
     String ARG_MESSAGE = "message";
 
+    String ARG_FILE_NAME = "fileName";
+
     ErrorCode ERR_CODE_GEN_IMPORT_CLASS_CONFLICTED = define("nop.err.codegen.import-class-conflicted",
             "导入的类名[{className1}]和[className2]冲突", ARG_CLASS_NAME_1, ARG_CLASS_NAME_2, ARG_LOC_1);
 
@@ -45,6 +47,10 @@ public interface CodeGenErrors {
 
     ErrorCode ERR_CODE_GEN_INVALID_JSON_TYPE = define("nop.err.codegen.invalid-json-type", "j:type属性值应该是list:[{text}]",
             ARG_TEXT);
+
+    ErrorCode ERR_CODEGEN_UNKNOWN_MODEL_TYPE = define("nop.err.codegen.unknown-model-type",
+            "模型文件[{fileName}]的类型未注册，可能是没有引入相应的依赖包。比如解析orm.xlsx模型文件需要引入nop-ooxml-xlsx和nop-orm包，而解析api.xlsx需要引入nop-graphql-core包",
+            ARG_FILE_NAME);
 
     ErrorCode ERR_POM_REFERENCE_CONTAINS_LOOP = define("nop.err.pom.reference-contains-loop", "Maven不允许循环依赖",
             ARG_ARTIFACT);

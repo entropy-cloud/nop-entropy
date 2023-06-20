@@ -1,0 +1,36 @@
+[
+  {
+    "name": "A1",
+    "level": 1,
+    "children": [
+      {
+        "name": "A1-1",
+        "level": 2
+      },
+      {
+        "name": "A1-2",
+        "level": 2
+      }
+    ]
+  },
+  {
+    "name": "A2",
+    "level": 1,
+    "children": [
+      {
+        "name": "A2-1",
+        "level": 2,
+        "children": [
+          {
+            "name": "A2-1-1",
+            "level": 3
+          }
+        ]
+      },
+      {
+        "name": "A2-2",
+        "level": 2
+      }
+    ]
+  }
+]

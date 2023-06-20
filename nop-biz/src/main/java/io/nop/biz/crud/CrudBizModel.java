@@ -348,8 +348,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
         checkUniqueForSave(entityData);
 
-        new OrmEntityCopier(bizObjectManager, getBizObjName()).copyToEntity(entityData.getValidatedData(),
-                entityData.getEntity(), null, entityData.getObjMeta(), daoProvider);
+        new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
+                entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName());
 
         checkDataAuth(BizConstants.METHOD_SAVE, entityData.getEntity(), context);
 
@@ -519,8 +519,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         checkDataAuth(BizConstants.METHOD_UPDATE, entityData.getEntity(), context);
 
-        new OrmEntityCopier(bizObjectManager, getBizObjName()).copyToEntity(entityData.getValidatedData(),
-                entityData.getEntity(), null, entityData.getObjMeta(), daoProvider);
+        new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
+                entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName());
 
         if (prepareUpdate != null)
             prepareUpdate.accept(entityData, context);
@@ -919,12 +919,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         T newEntity;
         if (inputSelection != null) {
             newEntity = dao.newEntity();
-            new OrmEntityCopier(bizObjectManager, getBizObjName()).copyToEntity(entity,
-                    newEntity, inputSelection, entityData.getObjMeta(), daoProvider);
+            new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entity,
+                    newEntity, inputSelection, entityData.getObjMeta(), getBizObjName());
         } else {
             newEntity = (T) entity.cloneInstance();
-            new OrmEntityCopier(bizObjectManager, getBizObjName()).copyToEntity(entityData.getValidatedData(),
-                    newEntity, null, entityData.getObjMeta(), daoProvider);
+            new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
+                    newEntity, null, entityData.getObjMeta(), getBizObjName());
         }
 
         return newEntity;

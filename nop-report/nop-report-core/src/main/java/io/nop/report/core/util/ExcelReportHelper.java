@@ -10,6 +10,7 @@ import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.imp.XlsxObjectLoader;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
+import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptModelBuilder;
 import io.nop.report.core.engine.IReportEngine;
@@ -19,16 +20,7 @@ import io.nop.report.core.imp.ExcelTemplateToXptModelTransformer;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 
-public class ExcelReportHelper {
-    /**
-     * 根据imp模型定义解析Excel，返回领域对象
-     *
-     * @param impModelPath imp模型定义
-     * @param resource     excel文件
-     */
-    public static Object loadXlsxObject(String impModelPath, IResource resource) {
-        return new XlsxObjectLoader(impModelPath).parseFromResource(resource);
-    }
+public class ExcelReportHelper extends ExcelHelper {
 
     public static void saveXlsxObject(String impModelPath, IResource resource, Object obj) {
         ExcelWorkbook xptModel = buildXptModelFromImpModel(impModelPath);

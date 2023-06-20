@@ -1549,6 +1549,33 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         appendContent(null, value);
     }
 
+    public void appendScript(SourceLocation loc, String script) {
+        if (StringHelper.isBlank(script))
+            return;
+
+        if (!hasBody()) {
+            content(loc, script);
+        } else {
+            if (!hasChild()) {
+                normalizeScriptContent();
+            }
+
+            XNode node = XNode.make(CoreConstants.TAG_NAME_C_SCRIPT);
+            node.content(loc, script);
+        }
+    }
+
+    public void normalizeScriptContent() {
+        checkNotReadOnly();
+
+        if (this.content.isNull())
+            return;
+        XNode child = XNode.make(CoreConstants.TAG_NAME_C_SCRIPT);
+        child.content(content);
+        this.content = NULL_VALUE;
+        appendChild(child);
+    }
+
     public void append(String xml) {
         append(null, xml, false);
     }

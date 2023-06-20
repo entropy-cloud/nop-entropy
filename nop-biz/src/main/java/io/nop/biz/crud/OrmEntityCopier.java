@@ -25,11 +25,13 @@ import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.utils.OrmModelHelper;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.IObjSchema;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -44,23 +46,52 @@ import static io.nop.orm.OrmErrors.ERR_ORM_COPY_ENTITY_PROP_NOT_COLLECTION;
  */
 public class OrmEntityCopier {
     private final IBizObjectManager bizObjectManager;
-    private final String baseBizObjName;
+    private final IDaoProvider daoProvider;
 
-    public OrmEntityCopier(IBizObjectManager bizObjectManager, String baseBizObjName) {
+    private Map<String, RelationCopyOptions> relationOptions;
+
+    /**
+     * bizObjName是接口层面看到的业务对象名，IBizObjManager根据bizObjName装载对应业务对象。
+     * 指定的关联对象名会对应找到相关的meta文件，而meta中可以提供一些扩展信息，例如setter等
+     *
+     * @param daoProvider 用于创建或者装载关联实体对象
+     */
+    public OrmEntityCopier(IDaoProvider daoProvider, IBizObjectManager bizObjectManager) {
         this.bizObjectManager = bizObjectManager;
-        this.baseBizObjName = baseBizObjName;
+        this.daoProvider = daoProvider;
+    }
+
+    public OrmEntityCopier(IDaoProvider daoProvider) {
+        this(daoProvider, null);
+    }
+
+    public OrmEntityCopier addRelationCopyOptions(String relationName, RelationCopyOptions options) {
+        if (relationOptions == null) {
+            relationOptions = new HashMap<>();
+        }
+        relationOptions.put(relationName, options);
+        return this;
+    }
+
+    public RelationCopyOptions getRelationOptions(String relationName) {
+        if (relationOptions == null)
+            return null;
+        return relationOptions.get(relationName);
+    }
+
+    public void copyToEntity(Object src, IOrmEntity target, FieldSelectionBean selection) {
+        this.copyToEntity(src, target, selection, null, null);
     }
 
     /**
      * 将java bean或者json对象上的指定属性设置到实体对象上。根据实体属性的类型，有可能创建新的实体对象，或者装载关联实体对象。
      *
-     * @param src         来源数据对象
-     * @param target      需要被更新的目标实体对象
-     * @param selection   指定从来源对象的哪些属性读取并更新到目标实体对象的哪些属性上
-     * @param daoProvider 用于创建或者装载关联实体对象
+     * @param src       来源数据对象
+     * @param target    需要被更新的目标实体对象
+     * @param selection 指定从来源对象的哪些属性读取并更新到目标实体对象的哪些属性上
      */
     public void copyToEntity(Object src, IOrmEntity target, FieldSelectionBean selection, IObjSchema objMeta,
-                             IDaoProvider daoProvider) {
+                             String baseBizObjName) {
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(src.getClass());
 
         if (selection == null) {
@@ -68,12 +99,12 @@ public class OrmEntityCopier {
                 Map<String, Object> map = (Map<String, Object>) src;
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
                     String name = entry.getKey();
-                    copyField(beanModel, src, target, name, name, null, getProp(objMeta, name), daoProvider);
+                    copyField(beanModel, src, target, name, name, null, getProp(objMeta, name), baseBizObjName);
                 }
             } else {
                 beanModel.forEachSerializableProp(propModel -> {
                     String name = propModel.getName();
-                    copyField(beanModel, src, target, name, name, null, getProp(objMeta, name), daoProvider);
+                    copyField(beanModel, src, target, name, name, null, getProp(objMeta, name), baseBizObjName);
                 });
             }
         } else {
@@ -84,7 +115,7 @@ public class OrmEntityCopier {
                 if (from == null)
                     from = name;
 
-                copyField(beanModel, src, target, from, name, field, getProp(objMeta, from), daoProvider);
+                copyField(beanModel, src, target, from, name, field, getProp(objMeta, from), baseBizObjName);
             }
         }
     }
@@ -96,7 +127,7 @@ public class OrmEntityCopier {
     }
 
     private void copyField(IBeanModel beanModel, Object src, IOrmEntity target, String from, String name,
-                           FieldSelectionBean field, IObjPropMeta propMeta, IDaoProvider daoProvider) {
+                           FieldSelectionBean field, IObjPropMeta propMeta, String baseBizObjName) {
         Object fromValue = beanModel.getProperty(src, from);
         if (propMeta != null) {
             IEvalAction setter = propMeta.getSetter();
@@ -118,10 +149,10 @@ public class OrmEntityCopier {
         } else {
             if (propModel.isToOneRelation()) {
                 IObjSchema subSchema = getPropSchema(propMeta, false, bizObjectManager, baseBizObjName);
-                copyRefEntity(fromValue, target, (IEntityRelationModel) propModel, field, subSchema, daoProvider);
+                copyRefEntity(fromValue, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName);
             } else if (propModel.isToManyRelation()) {
                 IObjSchema subSchema = getPropSchema(propMeta, true, bizObjectManager, baseBizObjName);
-                copyRefEntitySet(fromValue, target, (IEntityRelationModel) propModel, field, subSchema, daoProvider);
+                copyRefEntitySet(fromValue, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName);
             } else {
                 target.orm_propValueByName(name, fromValue);
             }
@@ -129,7 +160,7 @@ public class OrmEntityCopier {
     }
 
     private void copyRefEntity(Object fromValue, IOrmEntity target, IEntityRelationModel propModel,
-                               FieldSelectionBean field, IObjSchema objMeta, IDaoProvider daoProvider) {
+                               FieldSelectionBean field, IObjSchema objMeta, String baseBizObjName) {
         if (StringHelper.isEmptyObject(fromValue)) {
             target.orm_propValueByName(propModel.getName(), null);
         } else {
@@ -138,40 +169,49 @@ public class OrmEntityCopier {
                 Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(fromValue);
                 target.orm_propValueByName(propName, refEntity);
             } else {
+                RelationCopyOptions options = getRelationOptions(OrmModelHelper.buildRelationName(propModel));
+
                 // 更新关联实体
                 Object id = BeanTool.instance().getProperty(fromValue, OrmConstants.PROP_ID);
                 if (StringHelper.isEmptyObject(id)) {
                     // 没有主键，需要新增对象
-                    if (!field.hasField()) {
+                    if (field != null && !field.hasField()) {
                         target.orm_propValueByName(propName, null);
                     } else {
-                        Object refEntity = daoProvider.dao(propModel.getRefEntityName()).newEntity();
-                        copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, daoProvider);
-                        target.orm_propValueByName(propName, refEntity);
+                        if (options == null || options.isAllowAdd()) {
+                            Object refEntity = daoProvider.dao(propModel.getRefEntityName()).newEntity();
+                            copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName);
+                            target.orm_propValueByName(propName, refEntity);
+                        }
                     }
                 } else {
-                    Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
-                    copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, daoProvider);
-                    target.orm_propValueByName(propName, refEntity);
+                    if (options == null || options.isAllowUpdate()) {
+                        Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
+                        copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName);
+                        target.orm_propValueByName(propName, refEntity);
+                    }
                 }
             }
         }
     }
 
     private void copyRefEntitySet(Object fromValue, IOrmEntity target, IEntityRelationModel propModel,
-                                  FieldSelectionBean field, IObjSchema objMeta, IDaoProvider daoProvider) {
+                                  FieldSelectionBean field, IObjSchema objMeta, String baseBizObjName) {
         String propName = propModel.getName();
         IOrmEntitySet<IOrmEntity> refSet = target.orm_refEntitySet(propName);
+        RelationCopyOptions options = getRelationOptions(refSet.orm_collectionName());
 
         if (StringHelper.isEmptyObject(fromValue)) {
-            refSet.clear();
+            if (options == null || options.isAllowDelete())
+                refSet.clear();
         } else if (fromValue instanceof Collection) {
             Collection<?> c = (Collection<?>) fromValue;
             if (c.isEmpty()) {
-                refSet.clear();
+                if (options == null || options.isAllowDelete())
+                    refSet.clear();
             } else {
                 syncEntitySet(c, refSet, propModel.getKeyProp(), field, propModel.getRefEntityName(), objMeta,
-                        daoProvider);
+                        baseBizObjName);
             }
         } else {
             throw new OrmException(ERR_ORM_COPY_ENTITY_PROP_NOT_COLLECTION).param(ARG_PROP_NAME, propModel.getName())
@@ -180,9 +220,11 @@ public class OrmEntityCopier {
     }
 
     void syncEntitySet(Collection<?> c, IOrmEntitySet<IOrmEntity> refSet, String keyProp, FieldSelectionBean field,
-                       String refEntityName, IObjSchema objMeta, IDaoProvider daoProvider) {
+                       String refEntityName, IObjSchema objMeta, String baseBizObjName) {
         Set<IOrmEntity> ret = new LinkedHashSet<>();
         IEntityDao<IOrmEntity> dao = daoProvider.dao(refEntityName);
+
+        RelationCopyOptions options = getRelationOptions(refSet.orm_collectionName());
 
         for (Object item : c) {
             if (StringHelper.isEmptyObject(item))
@@ -208,33 +250,39 @@ public class OrmEntityCopier {
                             if (keyValue != null)
                                 refEntity = (IOrmEntity) refSet.prop_get(keyValue.toString());
                         }
-                        if (refEntity == null)
+
+                        if (refEntity == null) {
+                            // 如果明确配置了不允许向集合中添加元素
+                            if (options != null && !options.isAllowAdd())
+                                continue;
                             refEntity = dao.newEntity();
-                        copyToEntity(item, refEntity, field, objMeta, daoProvider);
+                        } else {
+                            // 如果明确配置了不允许更新集合中的元素
+                            if (options != null && !options.isAllowUpdate())
+                                continue;
+                        }
+                        copyToEntity(item, refEntity, field, objMeta, baseBizObjName);
                         ret.add(refEntity);
                     }
                 } else {
-                    IOrmEntity refEntity = dao.loadEntityById(id);
-                    copyToEntity(item, refEntity, field, objMeta, daoProvider);
-                    ret.add(refEntity);
+                    if (options == null || options.isAllowUpdate()) {
+                        IOrmEntity refEntity = dao.loadEntityById(id);
+                        copyToEntity(item, refEntity, field, objMeta, baseBizObjName);
+                        ret.add(refEntity);
+                    }
                 }
             }
         }
 
         // 删除没有在src集合中出现的条目
-        refSet.clear();
-//        Iterator<IOrmEntity> it = refSet.iterator();
-//        while (it.hasNext()) {
-//            IOrmEntity entity = it.next();
-//            if (!ret.remove(entity)) {
-//                it.remove();
-//            }
-//        }
+        if (options == null || options.isAllowDelete())
+            refSet.clear();
+
         refSet.addAll(ret);
     }
 
     String getRefField(FieldSelectionBean field, String keyProp) {
-        if(field == null)
+        if (field == null)
             return keyProp;
         FieldSelectionBean subField = field.getField(keyProp);
         if (subField == null) {

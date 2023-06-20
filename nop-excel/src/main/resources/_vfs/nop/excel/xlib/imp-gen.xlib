@@ -1,0 +1,19 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <TreeTableSupport>
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:script>
+
+                </c:script>
+
+                <imp>
+                    <sheets>
+
+                    </sheets>
+                </imp>
+            </source>
+        </TreeTableSupport>
+    </tags>
+</lib>

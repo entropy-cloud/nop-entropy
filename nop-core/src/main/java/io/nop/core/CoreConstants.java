@@ -95,6 +95,8 @@ public interface CoreConstants extends ResourceConstants {
     String XNODE_PARENT_PROP = "$parent";
     String XNODE_LOC_PROP = "$loc";
 
+    String TAG_NAME_C_SCRIPT = "c:script";
+
     String DUMMY_TAG_NAME = "_";
     String TEXT_TAG_NAME = "#";
     String ATTR_ID = "id";

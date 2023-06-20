@@ -1,0 +1,130 @@
+{
+  "entities": [
+    {
+      "name": "A1",
+      "ext:level": 0,
+      "unit": "RMB",
+      "value": 100
+    },
+    {
+      "name": "A2",
+      "ext:level": 0,
+      "unit": "RMB",
+      "value": 100,
+      "children": [
+        {
+          "name": "A2-1",
+          "ext:level": 1,
+          "unit": "RMB",
+          "value": 100,
+          "children": [
+            {
+              "name": "A2-1-1",
+              "ext:level": 2,
+              "unit": "RMB",
+              "value": 100,
+              "children": [
+                {
+                  "name": "A2-1-1-1",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                },
+                {
+                  "name": "A2-1-1-2",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                },
+                {
+                  "name": "A2-1-1-3",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                }
+              ]
+            },
+            {
+              "name": "A2-1-2",
+              "ext:level": 2,
+              "unit": "RMB",
+              "value": 100,
+              "children": [
+                {
+                  "name": "A2-1-2-1",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                },
+                {
+                  "name": "A2-1-2-2",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                }
+              ]
+            },
+            {
+              "name": "A2-1-3",
+              "ext:level": 2,
+              "unit": "RMB",
+              "value": 100
+            }
+          ]
+        },
+        {
+          "name": "A2-2",
+          "ext:level": 1,
+          "unit": "RMB",
+          "value": 100,
+          "children": [
+            {
+              "name": "A2-2-1",
+              "ext:level": 2,
+              "unit": "RMB",
+              "value": 100,
+              "children": [
+                {
+                  "name": "A2-2-1-1",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                },
+                {
+                  "name": "A2-2-1-2",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                },
+                {
+                  "name": "A2-2-1-3",
+                  "ext:level": 3,
+                  "unit": "RMB",
+                  "value": 100
+                }
+              ]
+            },
+            {
+              "name": "A2-2-2",
+              "ext:level": 2,
+              "unit": "RMB",
+              "value": 100
+            }
+          ]
+        },
+        {
+          "name": "A2-3",
+          "ext:level": 1,
+          "unit": "RMB",
+          "value": 100
+        },
+        {
+          "name": "A2-4",
+          "ext:level": 1,
+          "unit": "RMB",
+          "value": 100
+        }
+      ]
+    }
+  ]
+}

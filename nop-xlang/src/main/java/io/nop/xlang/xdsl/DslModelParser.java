@@ -22,11 +22,18 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
      */
     private boolean forEditor;
 
+    private boolean disableInit;
+
     public DslModelParser(String requiredSchema) {
         this.setRequiredSchema(requiredSchema);
     }
 
     public DslModelParser() {
+    }
+
+    public DslModelParser disableInit(boolean disableInit) {
+        this.disableInit = disableInit;
+        return this;
     }
 
     public DslModelParser dynamic(boolean dynamic) {
@@ -60,15 +67,16 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
 
         // IClassModel classModel = ReflectionManager.instance().loadClassModel(xdef.getBeanClass());
         // IComponentModel model = BeanTool.buildBean(obj, classModel.getType());
-        IComponentModel model = (IComponentModel) new DslBeanModelParser(false, xdef, getCompileTool())
+        Object model = new DslBeanModelParser(false, xdef, getCompileTool())
                 .transformToObject(node);
         if (model instanceof IXDslModel) {
             IXDslModel dslModel = (IXDslModel) model;
             dslModel.setXdslSchema(xdef.resourcePath());
             dslModel.setImportExprs(getImportExprs());
         }
-        if (model instanceof INeedInit)
+
+        if (!disableInit && model instanceof INeedInit)
             ((INeedInit) model).init();
-        return model;
+        return (IComponentModel) model;
     }
 }

@@ -16,11 +16,15 @@ public interface IFieldContainer {
 
     boolean isList();
 
-    default boolean isMultiple(){
+    default boolean isMultiple() {
         return false;
     }
 
     String getFieldName();
+
+    default String getPropOrName() {
+        return getFieldName();
+    }
 
     IEvalAction getNormalizeFieldsExpr();
 
