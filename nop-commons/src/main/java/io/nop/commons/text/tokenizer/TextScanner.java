@@ -43,6 +43,7 @@ import static io.nop.commons.CommonErrors.ERR_SCAN_NEXT_UNTIL_UNEXPECTED_EOF;
 import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_ALLOW_TWO_SEPARATOR_IN_XML_NAME;
 import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_DIGIT;
 import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_END_PROPERLY;
+import static io.nop.commons.CommonErrors.ERR_SCAN_NOT_HEX_CHAR;
 import static io.nop.commons.CommonErrors.ERR_SCAN_NUMBER_NOT_INT;
 import static io.nop.commons.CommonErrors.ERR_SCAN_STRING_NOT_END;
 import static io.nop.commons.CommonErrors.ERR_SCAN_TOKEN_END_EXPECTED;
@@ -1204,11 +1205,39 @@ public class TextScanner {
             throw newError(ERR_SCAN_NOT_DIGIT).param(ARG_CUR, ch);
     }
 
+    public void checkHex(int ch) {
+        if (ch >= '0' && ch <= '9')
+            return;
+
+        if (ch >= 'A' && ch <= 'F')
+            return;
+        if (ch >= 'a' && ch <= 'f')
+            return;
+
+        throw newError(ERR_SCAN_NOT_HEX_CHAR).param(ARG_CUR, ch);
+    }
+
     public char nextDigit() {
         int ch = cur;
         checkDigit(ch);
         next();
         return (char) ch;
+    }
+
+    public int nextHexInt() {
+        int ch = cur;
+        if (ch <= 'f' && ch >= 'a') {
+            ch = ch - 'a' + 'A';
+        }
+
+        checkHex(ch);
+
+        next();
+
+        if (ch >= 'A')
+            return ch - 'A' + 10;
+
+        return ch - '0';
     }
 
     public void checkNotNull(Object o, ErrorCode errorCode) {

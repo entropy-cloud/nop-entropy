@@ -267,4 +267,14 @@ public class TestXNode {
         XNode node = XNodeParser.instance().forFragments(true).parseFromText(null, "aaa");
         assertEquals("aaa", node.contentText());
     }
+
+    @Test
+    public void testHexEntity() {
+        String str = "<div>&#xFFDD;</div>";
+        XNode node = XNodeParser.instance().parseFromText(null, str);
+        node.dump();
+
+        XNode node2 = XNodeParser.instance().parseFromText(null, "<div>&#xffdd;</div>");
+        assertEquals(node.contentText(), node2.contentText());
+    }
 }

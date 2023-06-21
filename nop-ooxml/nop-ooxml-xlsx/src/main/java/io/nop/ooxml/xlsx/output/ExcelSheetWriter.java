@@ -116,7 +116,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
         for (int i = 0, n = rows.size(); i < n; i++) {
             IRowView row = rows.get(i);
             // <row r="1" spans="1:4" ht="38" customHeight="1" x14ac:dyDescent="0.3">
-            out.beginNode(null, "row", attrs("r", i + 1, "spans", "1:" + (colCount - 1),
+            out.beginNode(null, "row", attrs("r", i + 1, "spans", "1:" + colCount,
                     "ht", row.getHeight(), "customHeight", row.getHeight() != null ? "1" : null,
                     "x14ac:dyDescent", "0.3"));
             genCells(out, i, row);

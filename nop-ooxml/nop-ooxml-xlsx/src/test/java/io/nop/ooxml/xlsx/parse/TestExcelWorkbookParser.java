@@ -8,11 +8,16 @@
 package io.nop.ooxml.xlsx.parse;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.xlsx.output.ExcelTemplate;
+import io.nop.xlang.api.XLang;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,6 +25,16 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExcelWorkbookParser extends BaseTestCase {
+    @BeforeAll
+    public static void init() {
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    public static void destroy() {
+        CoreInitialization.destroy();
+    }
+
     @Test
     public void testParse() {
         IResource resource = new ClassPathResource("classpath:xlsx/format-demo.xlsx");
@@ -33,11 +48,21 @@ public class TestExcelWorkbookParser extends BaseTestCase {
         }
         assertEquals(normalize(attachmentText("format-demo.txt")), normalize(dumpStr));
 
-        assertEquals("a=1\r\nb=2", wk.getSheets().get(0).getTable().getCell(0,0).getComment());
+        assertEquals("a=1\r\nb=2", wk.getSheets().get(0).getTable().getCell(0, 0).getComment());
     }
 
     String normalize(String str) {
         List<String> list = StringHelper.stripedSplit(str, '\n');
         return StringHelper.join(list, "\n");
+    }
+
+    /**
+     * 测试特殊字符
+     */
+    @Test
+    public void testSymbol() {
+        IResource resource = new ClassPathResource("classpath:xlsx/test-symbol.xlsx");
+        ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
+        new ExcelTemplate(wk).generateToFile(getTargetFile("test-symbol.xlsx"), XLang.newEvalScope());
     }
 }

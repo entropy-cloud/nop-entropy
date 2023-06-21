@@ -544,22 +544,22 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                 int num;
                 if (sc.cur == 'x') {
                     sc.next();
-                    num = sc.nextDigit() - '0';
+                    num = sc.nextHexInt();
                     if (sc.cur == ';') {
                         sc.next();
                         return (char) num;
                     }
-                    num = num * 16 + (sc.nextDigit() - '0');
+                    num = num * 16 + (sc.nextHexInt());
                     if (sc.cur == ';') {
                         sc.next();
                         return (char) num;
                     }
-                    num = num * 16 + (sc.nextDigit() - '0');
+                    num = num * 16 + (sc.nextHexInt());
                     if (sc.cur == ';') {
                         sc.next();
                         return (char) num;
                     }
-                    num = num * 16 + (sc.nextDigit() - '0');
+                    num = num * 16 + (sc.nextHexInt());
                     sc.consume(';', ERR_XML_PARSE_ESCAPE_CHAR_FAIL);
                 } else {
                     num = sc.nextDigit() - '0';
