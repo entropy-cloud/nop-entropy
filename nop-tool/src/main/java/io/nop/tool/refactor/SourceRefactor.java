@@ -21,10 +21,16 @@ import java.util.function.Predicate;
 public class SourceRefactor {
     private final ITextTokenizer tokenizer;
     private final Function<IToken, IToken> transformer;
+    private boolean normalizeFileName = true;
 
     public SourceRefactor(ITextTokenizer tokenizer, Function<IToken, IToken> transformer) {
         this.tokenizer = tokenizer;
         this.transformer = transformer;
+    }
+
+    public SourceRefactor normalizeFileName(boolean b) {
+        this.normalizeFileName = b;
+        return this;
     }
 
     public String refactor(SourceLocation loc, String text) {
@@ -83,7 +89,8 @@ public class SourceRefactor {
             File[] subs = sourceDir.listFiles();
             if (subs != null) {
                 for (File sub : subs) {
-                    refactorDir(sub, filter, new File(targetDir, sub.getName()));
+                    File targetSub = getTargetSub(targetDir, sub);
+                    refactorDir(sub, filter, targetSub);
                 }
             }
         } else {
@@ -91,5 +98,14 @@ public class SourceRefactor {
                 refactorFile(sourceDir, targetDir);
             }
         }
+    }
+
+    protected File getTargetSub(File dir, File sub) {
+        if (!normalizeFileName)
+            return new File(dir, sub.getName());
+
+        String name = sub.getName();
+        name = refactor(null, name);
+        return new File(dir, name);
     }
 }

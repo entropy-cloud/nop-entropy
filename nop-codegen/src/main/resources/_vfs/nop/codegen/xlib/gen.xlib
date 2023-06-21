@@ -25,14 +25,14 @@
         <Render>
             <attr name="template"/>
             <attr name="targetDir"/>
-            <attr name="inheritCodeGenLoop" optional="true" type="Boolean" />
+            <attr name="inheritCodeGenLoop" optional="true" type="Boolean"/>
             <attr name="codeGenerator" implicit="true"/>
-            <attr name="codeGenLoop" implicit="true" />
+            <attr name="codeGenLoop" implicit="true"/>
             <source>
                 <c:script>
                     const vars = {}
                     if(inheritCodeGenLoop)
-                       vars.codeGenLoop = codeGenLoop;
+                    vars.codeGenLoop = codeGenLoop;
                     codeGenerator.withTplDir(template).withTargetDir(targetDir).execute("",vars,$scope);
                 </c:script>
             </source>
@@ -42,7 +42,7 @@
             <attr name="template"/>
             <attr name="targetDir"/>
             <attr name="codeGenerator" implicit="true"/>
-            <attr name="codeGenLoop" implicit="true" />
+            <attr name="codeGenLoop" implicit="true"/>
 
             <source>
                 <c:script>
@@ -98,6 +98,12 @@
         <DefineLoopForOrm>
             <attr name="codeGenModel" implicit="true"/>
 
+            <slot name="default">
+                <arg name="builder" implicit="true"/>
+                <arg name="ormModel" implicit="true" />
+                <arg name="appName" implicit="true" />
+            </slot>
+
             <source>
                 <thisLib:DefineLoop>
                     <c:script><![CDATA[
@@ -137,12 +143,13 @@
                         builder.defineLoopVar("dialect","ormModel",model=> model["ext:dialect"].$toCsvSet());
                         builder.defineLoopVar("dict","ormModel", model=> model.dicts);
                     ]]></c:script>
+                    <c:unit xpl:slot="default" xpl:slotArgs="{builder,ormModel,appName}" />
                 </thisLib:DefineLoop>
             </source>
         </DefineLoopForOrm>
 
         <CollectApiMessageImports>
-            <attr name="serviceModel" />
+            <attr name="serviceModel"/>
             <source><![CDATA[
                 let types = new Set();
                 serviceModel.methods.forEach(method=>{

@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class TestSourceRefactor extends BaseTestCase {
 
     @Test
@@ -33,5 +35,33 @@ public class TestSourceRefactor extends BaseTestCase {
         SourceRefactor refactor = new SourceRefactor(normalizer, transformer);
         File targetDir = new File(getTargetDir(), "data");
         refactor.refactorDir(dir, FileExtFilter.forFileExt("java", "xml", "json5", "json", "md", "txt", "xlsx"), targetDir);
+    }
+
+    @Test
+    public void testPattern(){
+        TokenPatternNormalizer normalizer = new TokenPatternNormalizer(new SimpleTextTokenizer());
+        normalizer.addReplaced("{a.b}","{x.y123}");
+
+        SourceRefactor refactor = new SourceRefactor(normalizer, v->v);
+        String text = refactor.refactor(null,"_{a.b}.txt");
+        assertEquals("_{x.y123}.txt",text);
+    }
+
+    public static void main(String[] args){
+        File dir = new File("C:\\workspace\\nop-cardlite\\cardlite-gen\\src");
+
+        Map<String,String> map = new HashMap<>();
+        map.put("var","let");
+
+        Function<IToken, IToken> transformer = new IdentifierTransformer(map);
+        ITextTokenizer tokenizer = new NamespaceTextTokenizer(new SimpleTextTokenizer());
+
+        TokenPatternNormalizer normalizer = new TokenPatternNormalizer(tokenizer);
+        normalizer.addReplaced("{table.name}", "{entityModel.shortName}");
+        normalizer.addReplaced("{packagePath}", "{basePackagePath}");
+
+        SourceRefactor refactor = new SourceRefactor(normalizer, transformer);
+        File targetDir = new File("c:/refactored");
+        refactor.refactorDir(dir, FileExtFilter.forFileExt("xgen"), targetDir);
     }
 }

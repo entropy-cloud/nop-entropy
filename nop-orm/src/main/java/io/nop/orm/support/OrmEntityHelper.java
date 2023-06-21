@@ -9,6 +9,7 @@ package io.nop.orm.support;
 
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmCompositePk;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
@@ -74,9 +75,9 @@ public class OrmEntityHelper {
     public static Object getPropValue(IEntityPropModel propModel, IOrmEntity entity) {
         if (propModel.isColumnModel()) {
             return entity.orm_propValue(propModel.getColumnPropId());
-        }else if(propModel.isCompositePk()){
+        } else if (propModel.isCompositePk()) {
             return entity.orm_idString();
-        }else {
+        } else {
             return entity.orm_propValueByName(propModel.getName());
         }
     }
@@ -84,7 +85,7 @@ public class OrmEntityHelper {
     public static void setPropValue(IEntityPropModel propModel, IOrmEntity entity, Object value) {
         if (propModel.isColumnModel()) {
             entity.orm_propValue(propModel.getColumnPropId(), value);
-        }else if(propModel.isCompositePk()){
+        } else if (propModel.isCompositePk()) {
             IEntityModel entityModel = propModel.getOwnerEntityModel();
             Object id = OrmEntityHelper.castId(entityModel, value);
             OrmEntityHelper.setId(entityModel, entity, id);
@@ -283,6 +284,14 @@ public class OrmEntityHelper {
         return ret;
     }
 
+    /**
+     * 根据name和values列表构造关联实体列表，然后设置到coll集合中
+     *
+     * @param coll     多对多关联实体集合
+     * @param propName 关联实体上对应于value的属性名
+     * @param values   value列表
+     * @param <T>      实体类型
+     */
     public static <T extends IOrmEntity> void setRefProps(IOrmEntitySet<T> coll, String propName, List<?> values) {
         if (values == null)
             values = Collections.emptyList();
@@ -309,6 +318,34 @@ public class OrmEntityHelper {
                 IOrmEntity entity = coll.orm_newItem();
                 entity.orm_propValueByName(propName, value);
                 coll.add((T) entity);
+            }
+        }
+    }
+
+    public static void normalizePropTypes(List<Object> list, IEntityModel entityModel, List<String> propNames) {
+        for (String propName : propNames) {
+            normalizePropType(list, entityModel, propName);
+        }
+    }
+
+    /**
+     * 将列表对象中指定属性的类型转换为实体属性类型
+     *
+     * @param list        对象列表。可能是JSON对象。
+     * @param entityModel 实体模型
+     * @param propName    属性名
+     */
+    public static void normalizePropType(List<Object> list, IEntityModel entityModel, String propName) {
+        IEntityPropModel propModel = entityModel.getProp(propName, true);
+        if (propModel == null)
+            return;
+
+        for (Object obj : list) {
+            Object value = BeanTool.getProperty(obj, propName);
+            if (value != null) {
+                Object converted = propModel.getStdDataType().convert(value);
+                if (converted != value)
+                    BeanTool.instance().setProperty(obj, propName, converted);
             }
         }
     }

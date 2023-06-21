@@ -24,6 +24,12 @@ public class SimpleTextTokenizer implements ITextTokenizer {
                     String text = sc.nextJavaVar();
                     return new IdentifierToken(loc, text);
                 } else {
+                    int c = sc.cur;
+                    if (c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']') {
+                        sc.next();
+                        return new TextToken(loc, String.valueOf((char) c));
+                    }
+
                     MutableString str = sc.nextUntil(SimpleTextTokenizer::isIdentifierStart, true, null);
                     if (!sc.isEnd()) {
                         str.append((char) sc.cur);

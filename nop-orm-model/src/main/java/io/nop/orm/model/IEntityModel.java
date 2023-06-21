@@ -221,6 +221,13 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     int getUpdateTimePropId();
 
+    default IColumnModel getVersionPropModel() {
+        int propId = getVersionPropId();
+        if (propId <= 0)
+            return null;
+        return getColumnByPropId(propId, true);
+    }
+
     /**
      * 最大的propId+1
      */

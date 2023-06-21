@@ -91,5 +91,13 @@
                 ]]></c:script>
             </source>
         </IsColInternal>
+
+        <GenMetaExt outputMode="xml">
+            <attr name="entityModel" />
+
+            <source>
+
+            </source>
+        </GenMetaExt>
     </tags>
 </lib>

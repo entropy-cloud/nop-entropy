@@ -1,0 +1,25 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <MyTag outputMode="xml">
+            <attr name="a" mandatory="true"/>
+            <slot name="default" />
+
+            <source>
+                <c:unit xpl:slot="default" />
+                <a>${a}</a>
+            </source>
+        </MyTag>
+
+        <MyTagExt outputMode="xml">
+            <slot name="ext" >
+                <arg name="x" />
+            </slot>
+
+            <source>
+                <thisLib:MyTag a="1" >
+                    <c:unit xpl:slot="ext" xpl:slotArgs="{x:3}" />
+                </thisLib:MyTag>
+            </source>
+        </MyTagExt>
+    </tags>
+</lib>

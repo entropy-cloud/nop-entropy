@@ -104,6 +104,9 @@ public interface CommonErrors {
 
     ErrorCode ERR_SCAN_NOT_DIGIT = define("nop.err.commons.text.scan-not-digit", "不是合法的数字字符[{cur}]", ARG_CUR);
 
+    ErrorCode ERR_SCAN_NOT_HEX_CHAR = define("nop.err.commons.text.scan-not-hex-char", "不是合法的十六进制数字字符[{cur}]", ARG_CUR);
+
+
     ErrorCode ERR_SCAN_BLANK_EXPECTED = define("nop.err.commons.text.scan-blank-expected", "当前字符不是空白分隔符", ARG_CUR);
 
     ErrorCode ERR_SCAN_TOKEN_END_EXPECTED = define("nop.err.commons.text.scan-token-end-expected",

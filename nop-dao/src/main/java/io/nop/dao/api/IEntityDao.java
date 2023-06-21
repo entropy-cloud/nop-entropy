@@ -196,6 +196,14 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     boolean existsByQuery(QueryBean query);
 
+    /**
+     * 查找所有具有指定属性值的实体。例如 findAllByProps(list,["a","b"]) 对应于查询 (a=xx and b=yy or ...)
+     *
+     * @param list      对象列表，从中取到它每个条目的属性值作为查询条件。
+     * @param propNames 作为查询条件的属性名
+     */
+    List<T> findAllByProps(List<Object> list, List<String> propNames);
+
     long updateByQuery(QueryBean query, Map<String, Object> props);
 
     List<T> findAll();

@@ -413,7 +413,7 @@ public class Underscore {
     @Deterministic
     public static <K, T> Map<K, T> indexBy(Collection<T> c, Object keyOrFn) {
 
-        Map<K, T> ret = new LinkedHashMap<>();
+        Map<K, T> ret = CollectionHelper.newLinkedHashMap(c.size());
         if (keyOrFn instanceof Function) {
             Function<T, K> fn = (Function<T, K>) keyOrFn;
             for (T item : c) {
@@ -427,6 +427,23 @@ public class Underscore {
             }
         }
         return ret;
+    }
+
+    @Deterministic
+    public static <T> Map<Object, T> indexByFields(Collection<T> c, String... fieldNames) {
+        Guard.checkArgument(fieldNames.length >= 1, "fieldNames must not be empty");
+        if (fieldNames.length == 1)
+            return indexBy(c, fieldNames[0]);
+
+        Function<Object, List<Object>> fn = (Object obj) -> {
+            List<Object> ret = new ArrayList<>(fieldNames.length);
+            for (String fieldName : fieldNames) {
+                ret.addAll(getFieldValue(obj, fieldName));
+            }
+            return ret;
+        };
+
+        return indexBy(c, fn);
     }
 
     @Deterministic

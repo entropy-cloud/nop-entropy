@@ -8,6 +8,7 @@
 package io.nop.core.lang.eval.global;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.lang.impl.Cancellable;
@@ -51,6 +52,7 @@ public class EvalGlobalRegistry {
         registerVariable(CoreConstants.GLOBAL_VAR_UNDERSCORE,
                 new StaticClassGlobalVariableDefinition(Underscore.class));
         registerVariable(CoreConstants.GLOBAL_VAR_STRING, new StaticClassGlobalVariableDefinition(StringHelper.class));
+        registerVariable(CoreConstants.GLOBAL_VAR_CONFIG, new StaticClassGlobalVariableDefinition(AppConfig.class));
     }
 
     public void registerVariable(String name, IGlobalVariableDefinition varDef) {

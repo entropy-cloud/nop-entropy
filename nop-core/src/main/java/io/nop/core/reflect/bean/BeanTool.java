@@ -101,6 +101,11 @@ public class BeanTool {
         return instance().hasProperty(bean, propName);
     }
 
+    public static void setProperty(Object bean, String propName, Object propValue) {
+        Guard.notNull(bean, "bean");
+        instance().setProperty(bean, propName, propValue);
+    }
+
     public static Object getComplexProperty(Object bean, String propPath) {
         if (bean == null)
             return null;

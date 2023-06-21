@@ -167,4 +167,6 @@
             </prop>
         </c:for>
     </props>
+
+    <meta-gen:GenMetaExt entityModel="${entityModel}" xpl:lib="/nop/codegen/xlib/meta-gen.xlib"/>
 </meta>
