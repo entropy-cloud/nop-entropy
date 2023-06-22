@@ -26,24 +26,40 @@
                     <normalizeFieldsExpr>
                         record['ext:level'] = 0
                     </normalizeFieldsExpr>
+
+                    <xpt:valueExpr>
+                        cell.rp.ev['ext:level'] == 0 ? cell.rp.ev.name : null;
+                    </xpt:valueExpr>
                 </field>
 
                 <field name="name_L1" displayName="L1指标" prop="name" ignoreWhenEmpty="true">
                     <normalizeFieldsExpr>
                         record['ext:level'] = 1
                     </normalizeFieldsExpr>
+
+                    <xpt:valueExpr>
+                        cell.rp.ev['ext:level'] == 1 ? cell.rp.ev.name : null;
+                    </xpt:valueExpr>
                 </field>
 
                 <field name="name_L2" displayName="L2指标" prop="name" ignoreWhenEmpty="true">
                     <normalizeFieldsExpr>
                         record['ext:level'] = 2
                     </normalizeFieldsExpr>
+
+                    <xpt:valueExpr>
+                        cell.rp.ev['ext:level'] == 2 ? cell.rp.ev.name : null;
+                    </xpt:valueExpr>
                 </field>
 
                 <field name="name_L3" displayName="L3指标" prop="name" ignoreWhenEmpty="true">
                     <normalizeFieldsExpr>
                         record['ext:level'] = 3
                     </normalizeFieldsExpr>
+
+                    <xpt:valueExpr>
+                        cell.rp.ev['ext:level'] == 3 ? cell.rp.ev.name : null;
+                    </xpt:valueExpr>
                 </field>
 
                 <field name="unit" displayName="单位" mandatory="true"/>

@@ -74,7 +74,7 @@ public class LoopTaskStep extends AbstractTaskStep {
 
     @Override
     protected void initStepState(ITaskStepState state, ITaskContext context) {
-        List<Object> items = CollectionHelper.toList(getItemsExpr().invoke(state.evalScope()));
+        List<Object> items = CollectionHelper.toList(getItemsExpr().invoke(state.getEvalScope()));
         LoopStateBean stateBean = new LoopStateBean();
         stateBean.setBodyRunId(0);
         stateBean.setIndex(0);
@@ -140,7 +140,7 @@ public class LoopTaskStep extends AbstractTaskStep {
                 return toStepResult(stepResult.getReturnValue());
             }
 
-            if (!shouldContinue(stateBean, state.evalScope(), context))
+            if (!shouldContinue(stateBean, state.getEvalScope(), context))
                 return TaskStepResult.RESULT_SUCCESS;
 
             int bodyRunId = stateBean.getBodyRunId();

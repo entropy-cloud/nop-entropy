@@ -54,6 +54,11 @@ public interface IEvalScope extends IVariableScope, IEvalContext {
 
     boolean isInheritParentVars();
 
+    /**
+     * 共享同样的变量集合，但是使用不同的EvalFrame，一般用于并行执行
+     *
+     * @return 新建的scope
+     */
     IEvalScope duplicate();
 
     /**

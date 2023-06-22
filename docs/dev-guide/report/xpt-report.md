@@ -37,6 +37,13 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 - sheet: 等价于xptRt.sheet
 - workbook: 等价于xptRt.workbook
 
+### cell对象上的属性
+
+* rowParent或者rp: 行父格
+* colParent或者cp: 列父格
+* expandValue 或者ev: 单元格展开表达式返回的条目值
+* expandIndex 或者ei: 单元格展开时在父格中的下标，从0开始
+
 ## 单元格展开
 
 在单元格的批注中可以写如下属性
@@ -76,15 +83,16 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 
 2. 比较：当前值与第一个值做比较 计算公式为：当前值减去第一个值（C2/C2[A2:1]）
 
-3. 环比：当前值比上月份的值； 计算公式  IF(B4.expandIndex > 0 , C4 / C4[B4:-1] , '--') , B4为月份，C4为金额
+3. 环比：当前值比上月份的值； 计算公式 IF(B4.expandIndex > 0 , C4 / C4[B4:-1] , '--') , B4为月份，C4为金额
 
-4. 单元格展开位置： A2.expandIndex 从0开始，对应于帆软表达式的  &A2
+4. 单元格展开位置： A2.expandIndex 从0开始，对应于帆软表达式的 &A2
 
-5. 同期比： 
+5. 同期比：
 
 ## 内置函数
 
-具体参见[ReportFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java)类中定义的函数。
+具体参见[ReportFunctions](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/functions/ReportFunctions.java)
+类中定义的函数。
 
 * SUM
 * PRODUCT
@@ -99,4 +107,9 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 * ACCSUM: 累积汇总
 
 ## 与润乾集算器集成
+
 润乾软件开源了一个数据处理中间件，可以使用类似于报表表达式的机制对异构数据进行处理加工。在Nop平台中可以很方便的集成SPL处理引擎。具体参见[spl.md](spl.md)
+
+## 常用表达式
+
+* xptRt.incAndGet(seqName): 相当于是 seqName ++，即读取seqName对应的变量值，执行递增操作，然后返回递增之前的值。如果一开始变量不存在，则认为初始化为0

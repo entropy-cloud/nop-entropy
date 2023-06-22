@@ -16,7 +16,7 @@ public class SleepTaskStep extends AbstractTaskStep {
 
     @Override
     protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
-        Long sleep = ConvertHelper.toLong(sleepMillisExpr.invoke(state.evalScope()));
+        Long sleep = ConvertHelper.toLong(sleepMillisExpr.invoke(state.getEvalScope()));
         if (sleep == null)
             sleep = -1L;
         if (sleep <= 0)

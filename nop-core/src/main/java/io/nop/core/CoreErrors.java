@@ -512,6 +512,8 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_DUPLICATE_VFS_RESOURCE = define("nop.err.core.resource.duplicate-vfs-resource",
             "多个jar包中包含同样的虚拟文件路径[{path}]", ARG_PATH, ARG_RESOURCE1, ARG_RESOURCE2);
 
+    ErrorCode ERR_XML_NOT_NODE_VALUE = define("nop.err.core.xml.not-node-value",
+            "值不是XNode类型:{value}", ARG_VALUE);
     ErrorCode ERR_XML_EXCEED_MAX_NESTED_LEVEL = define("nop.err.core.xml.exceed-max-nested-level", "XML嵌套层次超过限制");
 
     ErrorCode ERR_XML_PARSE_RESOURCE_FAIL = define("nop.err.core.xml.parse-resource-fail", "解析XML文件失败");

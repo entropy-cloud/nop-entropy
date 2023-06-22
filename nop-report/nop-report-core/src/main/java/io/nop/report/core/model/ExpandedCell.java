@@ -433,6 +433,22 @@ public class ExpandedCell implements ICellView {
         return null;
     }
 
+    public ExpandedCell getRp() {
+        return getRowParent();
+    }
+
+    public ExpandedCell getCp() {
+        return getColParent();
+    }
+
+    public Object getEv() {
+        return getExpandValue();
+    }
+
+    public int getEi() {
+        return getExpandIndex();
+    }
+
     @EvalMethod
     public Object getExpandField(IEvalScope scope, String name) {
         if (expandValue != null) {

@@ -12,7 +12,6 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.model.table.html.HtmlTableOutput;
-import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
@@ -31,7 +30,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
     static final Logger LOG = LoggerFactory.getLogger(HtmlTemplate.class);
 
     @Override
-    public ITemplateOutput buildRenderer(ExcelWorkbook model, IExcelSheetGenerator sheetGenerator) {
+    public ITextTemplateOutput buildRenderer(ExcelWorkbook model, IExcelSheetGenerator sheetGenerator) {
         return new HtmlTemplate(model, sheetGenerator);
     }
 

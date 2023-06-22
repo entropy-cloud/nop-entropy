@@ -96,7 +96,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
         CompletionStage<?> promise = FutureHelper.waitAll(promises);
         if (aggregator != null) {
             promise = promise.thenApply(v -> {
-                IEvalScope scope = state.evalScope();
+                IEvalScope scope = state.getEvalScope();
                 String varName = aggregateVarName;
                 if (varName == null)
                     varName = TaskConstants.VAR_RESULTS;

@@ -120,6 +120,12 @@ public class EvalScopeImpl implements IEvalScope {
     @Override
     public IEvalScope duplicate() {
         EvalScopeImpl scope = new EvalScopeImpl(parentScope, variables, inheritParentVars, false);
+        scope.setOut(output);
+        scope.setExpressionExecutor(executor);
+        scope.setBeanProvider(beanProvider);
+        scope.setExtension(extension);
+        scope.setClassModelLoader(classModelLoader);
+
         if (ENABLE_EVAL_DEBUG) {
             if (locations == null) {
                 locations = new HashMap<>();

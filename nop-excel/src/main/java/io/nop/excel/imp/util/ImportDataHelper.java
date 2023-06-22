@@ -8,6 +8,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static io.nop.api.core.ApiErrors.ARG_PROP_NAME;
@@ -93,6 +94,28 @@ public class ImportDataHelper {
                 BeanTool.instance().setProperty(record, childrenProp, children);
             }
             return children;
+        }
+    }
+
+    public static <T> List<T> flattenTree(List<T> list, String childrenProp, boolean removeChildren) {
+        List<T> ret = new ArrayList<>();
+        _flattenTree(list, childrenProp, removeChildren,ret);
+        return ret;
+    }
+
+    private static <T> void _flattenTree(Collection<T> list, String childrenProp, boolean removeChildren,List<T> ret) {
+        for (T item : list) {
+            ret.add(item);
+
+            if (!BeanTool.hasProperty(item, childrenProp))
+                continue;
+
+            Collection<T> c = (Collection<T>) BeanTool.getProperty(item, childrenProp);
+            if (c != null) {
+                if(removeChildren)
+                    BeanTool.setProperty(item, childrenProp,null);
+                _flattenTree(c, childrenProp, removeChildren,ret);
+            }
         }
     }
 }

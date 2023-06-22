@@ -9,7 +9,7 @@
      xdef:bean-package="io.nop.excel.imp.model" ignoreUnknownSheet="!boolean=false"
      templatePath="v-path" resultType="generic-type" dump="!boolean=false" xdef:check-ns="imp"
      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-     xmlns:imp="imp"
+     xmlns:imp="imp" xmlns:xpt="xpt"
 >
     <validator xdef:ref="/nop/schema/validator.xdef"/>
 
@@ -36,6 +36,8 @@
             -->
             <when xdef:value="xpl-predicate"/>
 
+            <xpt:beforeExpand xdef:value="xml" />
+
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <!--
                 @list 是否列表定义，解析得到List类型，内部fields定义的是列表条目对象的属性。
@@ -48,8 +50,11 @@
                        displayName="string" stripText="boolean" mandatory="!boolean=false"
                        list="!boolean=false" computed="!boolean=false" virtual="!boolean=false"
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
+                       xpt:formatExpr="string"
                 >
                     <when xdef:value="xpl-predicate"/>
+
+                    <xpt:valueExpr xdef:value="xml"/>
 
                     <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
 

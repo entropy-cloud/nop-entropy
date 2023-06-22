@@ -7,10 +7,12 @@
  */
 package io.nop.report.core.imp;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.ICellView;
@@ -29,9 +31,11 @@ import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.IXptRuntime;
+import io.nop.report.core.util.ExcelReportHelper;
 import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.ast.XLangOutputMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +54,8 @@ public class ExcelTemplateToXptModelTransformer {
                 transformSheet(sheet, sheetModel);
             }
         }
+        if (AppConfig.isDebugMode())
+            ExcelReportHelper.dumpXptModel(template);
     }
 
     private void transformSheet(ExcelSheet sheet, ImportSheetModel sheetModel) {
@@ -116,6 +122,12 @@ public class ExcelTemplateToXptModelTransformer {
 
             XptSheetModel xptModel = new XptSheetModel();
             sheet.setModel(xptModel);
+
+            XNode beforeExpandNode = XNode.fromValue(sheetModel.prop_get(XptConstants.EXT_PROP_XPT_BEFORE_EXPAND));
+            if (beforeExpandNode != null) {
+                IEvalAction action = compileTool.compileTagBodyWithSource(beforeExpandNode, XLangOutputMode.none);
+                xptModel.setBeforeExpand(action);
+            }
 
             if (sheetModel.isMultiple()) {
                 String sheetVarName = sheetModel.getSheetVarName();
@@ -233,7 +245,7 @@ public class ExcelTemplateToXptModelTransformer {
             XptCellModel cellModel = ec.makeModel();
             FieldRange parent = parents.get(parents.size() - 1);
 
-            String formatExpr = (String) fieldModel.prop_get(XptConstants.EXT_PROP_FORMAT_EXPR);
+            String formatExpr = (String) fieldModel.prop_get(XptConstants.EXT_PROP_XPT_FORMAT_EXPR);
             if (!StringHelper.isEmpty(formatExpr)) {
                 cellModel.setFormatExpr(buildFormatExpr(fieldModel.getLocation(), formatExpr));
             }
@@ -247,11 +259,17 @@ public class ExcelTemplateToXptModelTransformer {
                 return;
             }
 
-            if (cellModel.getExpandType() != null) {
-                // 序号列对应于实际字段
-                cellModel.setValueExpr(getExpandFieldAction(fieldModel.getName()));
+            XNode valueExprNode = XNode.fromValue(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_VALUE_EXPR));
+            if (valueExprNode != null && valueExprNode.hasBody()) {
+                IEvalAction action = compileTool.compileTagBodyWithSource(valueExprNode, XLangOutputMode.none);
+                cellModel.setValueExpr(action);
             } else {
-                initCellField(cellModel, parent, fieldModel.getFieldName());
+                if (cellModel.getExpandType() != null) {
+                    // 序号列对应于实际字段
+                    cellModel.setValueExpr(getExpandFieldAction(fieldModel.getPropOrName()));
+                } else {
+                    initCellField(cellModel, parent, fieldModel.getPropOrName());
+                }
             }
         }
 

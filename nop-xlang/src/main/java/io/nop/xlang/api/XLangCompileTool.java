@@ -215,6 +215,13 @@ public class XLangCompileTool {
         }
     }
 
+    public EvalCode compileTagBodyWithSource(XNode node, XLangOutputMode outputMode) {
+        ExprEvalAction action = compileTagBody(node, outputMode);
+        if (action == null)
+            return null;
+        return new EvalCode(action, node.xml());
+    }
+
     private Program toProgram(Expression expr) {
         if (expr == null)
             return null;

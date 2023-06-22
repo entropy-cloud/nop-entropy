@@ -73,6 +73,14 @@ public class CloneHelper {
         return ret;
     }
 
+    public static <K, V> void deepCloneMapTo(Map<K, V> map, Map<K, V> ret) {
+        if (map == null)
+            return;
+        map.forEach((k, v) -> {
+            ret.put(k, deepClone(v));
+        });
+    }
+
     public static <T> List<T> deepCloneList(List<T> list) {
         if (list == null)
             return null;

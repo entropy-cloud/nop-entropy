@@ -26,7 +26,7 @@ public class DelayTaskStep extends AbstractTaskStep {
 
     @Override
     protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
-        Long delay = ConvertHelper.toLong(delayMillsExpr.invoke(state.evalScope()));
+        Long delay = ConvertHelper.toLong(delayMillsExpr.invoke(state.getEvalScope()));
         if (delay == null)
             delay = -1L;
         if (delay <= 0)

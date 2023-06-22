@@ -43,7 +43,7 @@ public class InvokeTaskStep extends AbstractTaskStep {
 
     @Override
     protected TaskStepResult doExecute(ITaskStepState state, ITaskContext context) {
-        IEvalScope scope = state.evalScope();
+        IEvalScope scope = state.getEvalScope();
         Object bean = scope.getBeanProvider().getBean(beanName);
         Object[] args = new Object[argExprs.size()];
         for (int i = 0, n = argExprs.size(); i < n; i++) {

@@ -81,7 +81,7 @@ public class RetryTaskStep extends AbstractTaskStep {
         RetryStateBean stateBean = state.getStateBean(RetryStateBean.class);
 
         do {
-            long delay = retryPolicy.getRetryDelay(null, stateBean.getRetryTimes(), state.evalScope());
+            long delay = retryPolicy.getRetryDelay(null, stateBean.getRetryTimes(), state.getEvalScope());
             if (delay < 0) {
                 Throwable e = state.exception();
                 if (e == null)

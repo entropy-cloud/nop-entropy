@@ -15,9 +15,6 @@ import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.bean.BeanTool;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.ResourceHelper;
-import io.nop.core.resource.VirtualFileSystem;
 import io.nop.excel.imp.ImportModelHelper;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
@@ -30,13 +27,13 @@ import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.util.MultiLineConfigParser;
 import io.nop.report.core.XptConstants;
+import io.nop.report.core.util.ExcelReportHelper;
 import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
-import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
 import io.nop.xlang.xmeta.SchemaLoader;
 
@@ -111,16 +108,7 @@ public class ExcelToXptModelTransformer {
     }
 
     private void dumpModel(ExcelWorkbook workbook) {
-        String path = workbook.resourcePath();
-        if (StringHelper.isEmpty(path))
-            path = "unknown.xpt.xlsx";
-        path = StringHelper.removeTail(path, ".xlsx");
-
-        path = ResourceHelper.getDumpPath(path);
-
-        IResource resource = VirtualFileSystem.instance().getResource(path);
-        DslModelHelper.saveDslModel(XptConstants.XDSL_SCHEMA_WORKBOOK, workbook, resource);
-
+        ExcelReportHelper.dumpXptModel(workbook);
     }
 
     private void parseCellModel(ExcelSheet sheet, IXDefNode cellModelNode, DslXNodeToJsonTransformer transformer) {

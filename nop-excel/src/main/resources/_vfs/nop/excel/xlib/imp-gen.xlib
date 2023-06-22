@@ -19,6 +19,11 @@
                                     ImportDataHelper.normalizeTree(rootRecord.${sheetNode.getAttr('field')},
                                           "${sheetNode.getAttr('imp:treeChildrenProp')}","${sheetNode.getAttr('imp:treeLevelProp')}","${sheetNode.getAttr('imp:treeChildKeyProp')}");
                                 </afterParse>
+
+                                <xpt:beforeExpand xpl:ignoreTag="true">
+                                    import io.nop.excel.imp.util.ImportDataHelper;
+                                    entity.entities = ImportDataHelper.flattenTree(entity.entities, "${sheetNode.getAttr('imp:treeChildrenProp')}",false);
+                                </xpt:beforeExpand>
                             </sheet>
                         </c:for>
                     </sheets>

@@ -52,4 +52,12 @@ public interface IXptRuntime extends IEvalContext {
     DynamicReportDataSet ds(String dsName);
 
     DynamicReportDataSet makeDs(String dsName, Object value);
+
+    /**
+     * 递增计数器并返回递增前的值
+     *
+     * @param name 变量名
+     * @return 递增前的值
+     */
+    int incAndGet(String name);
 }

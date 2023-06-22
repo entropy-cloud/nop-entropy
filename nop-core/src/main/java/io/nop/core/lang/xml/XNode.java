@@ -83,11 +83,13 @@ import static io.nop.core.CoreErrors.ARG_CHILD;
 import static io.nop.core.CoreErrors.ARG_INDEX;
 import static io.nop.core.CoreErrors.ARG_NODE;
 import static io.nop.core.CoreErrors.ARG_TAG_NAME;
+import static io.nop.core.CoreErrors.ARG_VALUE;
 import static io.nop.core.CoreErrors.ERR_XML_ATTACH_CHILD_NOT_ALLOW_NULL;
 import static io.nop.core.CoreErrors.ERR_XML_ATTACH_CHILD_SHOULD_NOT_HAS_PARENT;
 import static io.nop.core.CoreErrors.ERR_XML_ATTR_IS_EMPTY;
 import static io.nop.core.CoreErrors.ERR_XML_INVALID_CHILD_INDEX;
 import static io.nop.core.CoreErrors.ERR_XML_MULTIPLE_CHILD_WITH_SAME_TAG_NAME;
+import static io.nop.core.CoreErrors.ERR_XML_NOT_NODE_VALUE;
 import static io.nop.core.CoreErrors.ERR_XNODE_IS_READONLY;
 
 /**
@@ -2279,6 +2281,19 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         XNode node = make(bean.getTagName());
         node.assignTreeBean(bean);
         return node;
+    }
+
+    public static XNode fromValue(Object value) {
+        if (value == null)
+            return null;
+        if (value instanceof XNode)
+            return (XNode) value;
+        if (value instanceof ITreeBean)
+            return fromTreeBean((ITreeBean) value);
+        if (value instanceof Map)
+            return fromTreeBean(TreeBean.createFromJson((Map<String, Object>) value));
+        throw new NopException(ERR_XML_NOT_NODE_VALUE)
+                .param(ARG_VALUE, value);
     }
 
     public String jsonText() {

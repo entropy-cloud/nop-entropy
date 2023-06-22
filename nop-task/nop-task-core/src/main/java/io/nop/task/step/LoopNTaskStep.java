@@ -77,7 +77,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
     @Override
     protected void initStepState(ITaskStepState state, ITaskContext context) {
-        IEvalScope scope = state.evalScope();
+        IEvalScope scope = state.getEvalScope();
         int begin = ConvertHelper.toPrimitiveInt(beginExpr.invoke(scope), 0, NopException::new);
         int end = ConvertHelper.toPrimitiveInt(endExpr.invoke(scope), 0, NopException::new);
 
@@ -146,7 +146,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
                 return toStepResult(stepResult.getReturnValue());
             }
 
-            if (!shouldContinue(stateBean, state.evalScope(), context))
+            if (!shouldContinue(stateBean, state.getEvalScope(), context))
                 return TaskStepResult.RESULT_SUCCESS;
 
             int bodyRunId = stateBean.getBodyRunId();

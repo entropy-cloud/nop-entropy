@@ -74,12 +74,12 @@ public class TaskStepState extends AbstractTaskStateCommon implements ITaskStepS
     }
 
     @Override
-    public IEvalScope evalScope() {
+    public IEvalScope getEvalScope() {
         return null;
     }
 
     @Override
-    public void evalScope(IEvalScope scope) {
+    public void setEvalScope(IEvalScope scope) {
 
     }
 

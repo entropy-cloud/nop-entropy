@@ -93,7 +93,7 @@ public interface ITaskStepState extends ITaskStateCommon {
 
     void exception(Throwable exp);
 
-    IEvalScope evalScope();
+    IEvalScope getEvalScope();
 
-    void evalScope(IEvalScope scope);
+    void setEvalScope(IEvalScope scope);
 }

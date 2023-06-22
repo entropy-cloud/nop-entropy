@@ -9,9 +9,11 @@ package io.nop.core.model.object;
 
 import io.nop.api.core.annotations.core.NoReflection;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.CloneHelper;
 import io.nop.api.core.util.FreezeHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.api.core.util.IDeepCloneable;
 import io.nop.api.core.util.IMapLike;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.IKeyedElement;
@@ -55,7 +57,8 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_INVALID_EXT_PROP_NAME;
  * 动态构建的对象。在EL表达式中使用时与Java对象相同。
  */
 public class DynamicObject extends AbstractFreezable implements IComponentModel, IMethodMissingHook,
-        IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook, IJsonSerializable, IKeyedElement, IMapLike {
+        IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook, IJsonSerializable, IKeyedElement,
+        IMapLike, IDeepCloneable {
     private static final AtomicLong s_seq = new AtomicLong();
 
     private final long seq = s_seq.incrementAndGet();
@@ -75,6 +78,14 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
 
     public DynamicObject(String objName) {
         this(objName, null);
+    }
+
+    public DynamicObject deepClone(){
+        DynamicObject obj = new DynamicObject(objName,keyProp);
+        obj.methods.putAll(methods);
+        CloneHelper.deepCloneMapTo(defaultPropValues,obj.defaultPropValues);
+        CloneHelper.deepCloneMapTo(propValues,obj.propValues);
+        return obj;
     }
 
     @Override

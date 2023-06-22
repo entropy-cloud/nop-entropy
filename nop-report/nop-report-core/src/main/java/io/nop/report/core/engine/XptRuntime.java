@@ -35,6 +35,7 @@ import java.text.Format;
 import java.util.Collections;
 import java.util.List;
 
+import static io.nop.api.core.ApiErrors.ARG_NAME;
 import static io.nop.report.core.XptErrors.ARG_CELL_POS;
 import static io.nop.report.core.XptErrors.ARG_SHEET_NAME;
 
@@ -108,6 +109,7 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
             return sheet;
         if (XptConstants.VAR_ROW.equals(name))
             return row;
+        // 这里只判断扩展属性名，因此对于不识别的属性直接返回null
         return null;
     }
 
@@ -306,5 +308,14 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
         if (cell != null)
             evaluateCell(cell);
         return cell;
+    }
+
+    @Override
+    public int incAndGet(String name) {
+        int value = ConvertHelper.toPrimitiveInt(scope.getValue(name),
+                err -> new NopException(err).param(ARG_NAME, name));
+        int ret = value++;
+        scope.setLocalValue(name, value);
+        return ret;
     }
 }
