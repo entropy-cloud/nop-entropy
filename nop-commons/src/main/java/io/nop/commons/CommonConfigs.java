@@ -20,6 +20,10 @@ public interface CommonConfigs {
     IConfigReference<Integer> CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE = varRef(
             "nop.commons.concurrent.global-timer.maxPoolSize", Integer.class, 5);
 
+    @Description("全局工作线程池的大小")
+    IConfigReference<Integer> CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL_SIZE = varRef(
+            "nop.commons.concurrent.global-worker.maxPoolSize", Integer.class, 50);
+
     @Description("限制StringHelper.repeat函数的参数值小于指定值，不会过大")
     IConfigReference<Integer> CFG_UTILS_STRING_MAX_REPEAT_LEN = varRef("nop.commons.util.string-max-repeat-len",
             Integer.class, 2000);

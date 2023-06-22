@@ -47,7 +47,7 @@ public class TestParseTreeTable extends BaseTestCase {
 
         ExcelReportHelper.saveXlsxObject("/nop/test/imp/test.imp.xml", getTargetResource("test-exp.xlsx"), bean);
 
-        String html = ExcelReportHelper.getXlsxObjectAsHtml("/nop/test/imp/test.imp.xml", bean2);
+        String html = ExcelReportHelper.getHtmlForXlsxObject("/nop/test/imp/test.imp.xml", bean2);
         ResourceHelper.writeText(getTargetResource("test-exp.html"), html);
     }
 }

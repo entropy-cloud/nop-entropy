@@ -7,10 +7,16 @@
  -->
 <imp defaultStripText="!boolean=true" xdef:name="ImportModel" xdef="v-path"
      xdef:bean-package="io.nop.excel.imp.model" ignoreUnknownSheet="!boolean=false"
-     templatePath="v-path" resultType="generic-type" dump="!boolean=false" xdef:check-ns="imp"
+     templatePath="v-path" resultType="generic-type" dump="!boolean=false" xdef:check-ns="imp,xpt"
      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
      xmlns:imp="imp" xmlns:xpt="xpt"
 >
+
+    <beforeParse xdef:value="xpl"/>
+    <afterParse xdef:value="xpl"/>
+
+    <xpt:beforeExpand xdef:value="xml"/>
+
     <validator xdef:ref="/nop/schema/validator.xdef"/>
 
     <sheets xdef:body-type="list" xdef:key-attr="name">
@@ -36,7 +42,11 @@
             -->
             <when xdef:value="xpl-predicate"/>
 
-            <xpt:beforeExpand xdef:value="xml" />
+            <!-- 在利用imp导入模板来作为Excel生成模板时使用。
+                导入模板将被转换为xpt报表模板，然后利用NopReport报表引擎实现Excel导出。
+                beforeExpand是作为报表导出时在报表执行交叉表展开之前需要执行的Xpl模板语言代码。
+            -->
+            <xpt:beforeExpand xdef:value="xml"/>
 
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <!--
@@ -54,6 +64,9 @@
                 >
                     <when xdef:value="xpl-predicate"/>
 
+                    <!--
+                    Excel导出时缺省按照prop名称从相关对象上获取属性值导出。如果设置了valueExpr，则执行valueExpr来获取单元格的值
+                    -->
                     <xpt:valueExpr xdef:value="xml"/>
 
                     <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
@@ -86,6 +99,4 @@
         </sheet>
     </sheets>
 
-    <beforeParse xdef:value="xpl"/>
-    <afterParse xdef:value="xpl"/>
 </imp>

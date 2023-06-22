@@ -19,3 +19,6 @@
 ## [XPath: Tree结构路径查找语言](xpath.md)
 
 ## [XTransform: Tree结构变换语言](xtransform.md)
+
+## [综合示例](xlang-demo.md)
+以orm.imp.xml模型为例解释xdef，xdsl、xpl、xscript等语法的具体使用

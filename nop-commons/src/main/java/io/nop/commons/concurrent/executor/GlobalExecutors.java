@@ -13,11 +13,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.commons.CommonConfigs.CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE;
+import static io.nop.commons.CommonConfigs.CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL_SIZE;
 
 @GlobalInstance
 public class GlobalExecutors {
     public static final String GLOBAL_TIMER = "nop-global-timer";
     public static final String CACHED_THREAD_POOL = "nop-cached-thread-pool";
+
+    public static final String GLOBAL_WORKER = "nop-global-worker";
 
     private static final Map<String, IThreadPoolExecutor> g_executors = new ConcurrentHashMap<>();
 
@@ -46,6 +49,19 @@ public class GlobalExecutors {
             config.setThreadDaemon(true);
             config.setMaxPoolSize(-1); // 不限制线程池大小
             config.setQueueCapacity(0);
+            executor.setConfig(config);
+            executor.init();
+            return executor;
+        });
+    }
+
+    public static IThreadPoolExecutor globalWorker() {
+        return g_executors.computeIfAbsent(GLOBAL_WORKER, key -> {
+            DefaultThreadPoolExecutor executor = new DefaultThreadPoolExecutor();
+            ThreadPoolConfig config = new ThreadPoolConfig();
+            config.setName(GLOBAL_WORKER);
+            config.setThreadDaemon(true);
+            config.setMaxPoolSize(CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL_SIZE.get());
             executor.setConfig(config);
             executor.init();
             return executor;

@@ -19,6 +19,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.sql.FilterBeanToSQLTransformer;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
@@ -334,4 +335,33 @@ public class DaoQueryHelper {
             sb.append(')');
         }
     }
+
+    /**
+     * 查找所有具有指定属性值的实体。例如 buildPropsFilterForList(list,["a","b"]) 对应于查询 (a=xx and b=yy or ...)
+     *
+     * @param list      对象列表，从中取到它每个条目的属性值作为查询条件。
+     * @param propNames 作为查询条件的属性名
+     */
+    public static TreeBean buildPropsFilterForList(List<?> list, List<String> propNames) {
+        List<TreeBean> filters = new ArrayList<>(list.size());
+
+        for (Object obj : list) {
+            if (propNames.size() == 1) {
+                String propName = propNames.get(0);
+                filters.add(FilterBeans.eq(propName, BeanTool.getComplexProperty(obj, propName)));
+            } else {
+                filters.add(getPropFilter(obj, propNames));
+            }
+        }
+        return FilterBeans.or(filters);
+    }
+
+    private static TreeBean getPropFilter(Object obj, List<String> propNames) {
+        List<TreeBean> filters = new ArrayList<>(propNames.size());
+        for (String propName : propNames) {
+            filters.add(FilterBeans.eq(propName, BeanTool.getComplexProperty(obj, propName)));
+        }
+        return FilterBeans.and(filters);
+    }
+
 }

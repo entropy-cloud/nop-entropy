@@ -47,7 +47,7 @@ public class ExcelReportHelper extends ExcelHelper {
         output.generateToResource(resource, scope);
     }
 
-    public static String getXlsxObjectAsHtml(String impModelPath, Object obj) {
+    public static String getHtmlForXlsxObject(String impModelPath, Object obj) {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
 

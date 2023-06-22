@@ -7,10 +7,8 @@
  */
 package io.nop.orm.dao;
 
-import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.PageBean;
-import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -19,7 +17,6 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.ListFunctions;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
-import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -642,31 +639,6 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
             return _getPropModel(((IEntityRelationModel) propModel).getRefEntityModel(), propName.substring(pos + 1),
                     ignoreUnknown);
         }
-    }
-
-    @Override
-    public List<T> findAllByProps(List<Object> list, List<String> propNames) {
-        QueryBean query = new QueryBean();
-        List<TreeBean> filters = new ArrayList<>(list.size());
-
-        for (Object obj : list) {
-            if (propNames.size() == 1) {
-                String propName = propNames.get(0);
-                filters.add(FilterBeans.eq(propName, BeanTool.getComplexProperty(obj, propName)));
-            } else {
-                filters.add(getPropFilter(obj, propNames));
-            }
-        }
-        query.addFilter(FilterBeans.or(filters));
-        return findAllByQuery(query);
-    }
-
-    private TreeBean getPropFilter(Object obj, List<String> propNames) {
-        List<TreeBean> filters = new ArrayList<>(propNames.size());
-        for (String propName : propNames) {
-            filters.add(FilterBeans.eq(propName, BeanTool.getComplexProperty(obj, propName)));
-        }
-        return FilterBeans.and(filters);
     }
 
     @Override
