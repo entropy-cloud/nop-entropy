@@ -1,0 +1,1 @@
+monitor目录下存放微服务监控系统的启动脚本和相关配置。示例中使用了grafana,prometheus,loki,promtail等软件实现微服务的在线监控

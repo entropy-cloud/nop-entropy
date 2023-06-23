@@ -6,6 +6,10 @@
 # [ORM引擎](orm.md)
 类似JPA的完整的ORM引擎的实现，它支持EQL对象查询语言，支持租户过滤、级联删除、逻辑删除、字段自动加解密等功能。
 
+# [事务管理](transaction.md)
+
+# [数据修改历史](data-change-log.md)
+
 # [多对多配置](many-to-many.md)
 
 # [SQL管理](sql-lib.md)

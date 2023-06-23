@@ -19,7 +19,7 @@
 <!--            </afterParse>-->
 
             <fields>
-                <field name="name" displayName="指标" mandatory="true"/>
+                <field name="name" displayName="指标" mandatory="true" />
                 <field name="ext:level" displayName="层级" mandatory="true"/>
 
                 <field name="name_L0" displayName="L0指标" prop="name" ignoreWhenEmpty="true">

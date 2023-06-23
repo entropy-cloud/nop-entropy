@@ -63,7 +63,7 @@ normalizeFieldsExpr在元模型中对应的stdDomain是xpl，对应的Java类型
 </normalizeFieldsExpr>
 
 <normalizeFieldsExpr>
-`import xxx.MyHelper;
+import xxx.MyHelper;
 return MyHelper.myMethod(a);
 </normalizeFieldsExpr>
 ````
