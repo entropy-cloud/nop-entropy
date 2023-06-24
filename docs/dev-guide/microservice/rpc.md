@@ -133,6 +133,44 @@ Body传递，返回类型总是ApiResponse。
 
 如果是异步调用，则约定方法名增加Async后缀，且返回类型为CompletionStage。
 
+需要注意的是，与一般的RPC框架不同，客户端和服务端并不需要共享同一个API接口。如果不需要通过远程RPC方式访问后端服务，我们可以不提供客户端API接口定义。
+这种做法与SpringCloud中的Feign框架的做法类似：采用任何http客户端都可以调用远程服务，客户端接口函数的定义并不需要和服务端实现函数的定义一致。
+例如，通过以下的客户端接口函数都可以调用到服务端的同一个函数
+
+````java
+@BizModel("TestRpc")
+public interface TestRpc {
+    @BizMutation
+    ApiResponse<MyResponse> myMethod(ApiRequest<MyRequest> req);
+
+    @BizMutation 
+    MyResponse myMethod(MyRequest req);
+
+    @BizMutation
+    CompletionStage<ApiResponse<MyResponse>> myMethodAsync(ApiRequest<MyRequest> req);
+}
+````
+
+服务端的实现函数也可以根据需要采用以下几种不同的参数形式
+````javascript
+
+    @BizMutation
+    public CompletionStage<MyResponse> myMethodAsync(@RequestBean MyRequest req, FieldSelectionBean selection, IServiceContext context) {
+        ...
+        return res;
+    }
+    或者
+
+    @BizMutation
+    public MyResponse myMethod(@RequestBean MyRequest req, FieldSelectionBean selection) {
+        ...
+        return res;
+    }
+````
+
+在服务端, FieldSelection和IServiceContext都是可选参数，如果函数声明中没有对应参数，则表示忽略此参数。同时如果是异步执行，则一般约定方法名加上Async后缀，
+同时返回值类型为CompletionStage。
+
 ### 一般REST服务接口
 
 如果服务端是普通的REST服务，则可以采用JAXRS接口定义。

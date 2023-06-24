@@ -18,6 +18,9 @@ XLang语言是Nop平台实现可逆计算的核心技术，它包含XDef, XScrip
 
 如何使用以及扩展Nop平台的代码生成器。Nop平台的代码生成器可以在Nop平台之外使用，可以定制生成模板，用于生成其他框架以及其他语言的代码。
 
+## 架构设计: [module-dependency.md](arch/module-dependency.md)
+介绍了Nop平台内部众多模块之间的依赖关系，实现可逆计算原理的最核心模块只有nop-commons、nop-core以及nop-xlang等少数几个模块
+
 ## Excel模型: [model/index.md](dev-guide/model/index.md)
 除了使用平台内置的数据模型，API模型等，我们还可以利用Nop平台的机制定制实现专属于自己的Excel模型。比如我们可以用Excel模型来实现网络协议包的格式定义等。
 
