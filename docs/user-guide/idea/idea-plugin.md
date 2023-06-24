@@ -45,3 +45,13 @@ XLang DSL采用XML格式，根节点上必须通过x:schema属性来指定所对
 ![idea-executor](idea-executor.png)
 
 ![xlang-debugger](xlang-debugger.png)
+
+为了调试XLang，需要引入nop-xlang-debugger模块
+
+````xml
+<dependency>
+    <groupId>io.github.entropy-cloud</groupId>
+    <artifactId>nop-xlang-debugger</artifactId>
+    <version>2.0.0-SNAPSHOT</version>
+</dependency>
+````

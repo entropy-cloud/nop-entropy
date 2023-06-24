@@ -18,6 +18,7 @@ import io.nop.core.resource.component.IResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.idea.plugin.services.NopProjectService;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -93,7 +94,7 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public boolean isAnyDependsChange(Set<String> depends) {
+    public boolean isAnyDependsChange(Map<String, Long> depends) {
         return getImpl().isAnyDependsChange(depends);
     }
 
