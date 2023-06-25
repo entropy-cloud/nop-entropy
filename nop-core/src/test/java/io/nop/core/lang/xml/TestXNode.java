@@ -277,4 +277,11 @@ public class TestXNode {
         XNode node2 = XNodeParser.instance().parseFromText(null, "<div>&#xffdd;</div>");
         assertEquals(node.contentText(), node2.contentText());
     }
+
+    @Test
+    public void testUnicode() {
+        String str = "<div>&#24207;&#21495;</div>";
+        XNode node = XNodeParser.instance().parseFromText(null, str);
+        node.dump();
+    }
 }

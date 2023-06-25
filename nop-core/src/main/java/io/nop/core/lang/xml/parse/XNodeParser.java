@@ -542,9 +542,11 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                 if (!sc.next())
                     throw newError(ERR_XML_UNEXPECTED_EOF);
                 int num;
-                if (sc.cur == 'x') {
+                if (sc.cur == 'x' || sc.cur == 'X') {
                     sc.next();
                     num = sc.nextHexInt();
+                    if (num == 0)
+                        throw sc.newError(ERR_XML_PARSE_ESCAPE_CHAR_FAIL);
                     if (sc.cur == ';') {
                         sc.next();
                         return (char) num;
@@ -563,21 +565,15 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                     sc.consume(';', ERR_XML_PARSE_ESCAPE_CHAR_FAIL);
                 } else {
                     num = sc.nextDigit() - '0';
-                    if (sc.cur == ';') {
-                        sc.next();
-                        return (char) num;
+                    if (num == 0)
+                        throw sc.newError(ERR_XML_PARSE_ESCAPE_CHAR_FAIL);
+                    for (int i = 0; i < 5; i++) {
+                        if (sc.cur == ';') {
+                            sc.next();
+                            return (char) num;
+                        }
+                        num = num * 10 + (sc.nextDigit() - '0');
                     }
-                    num = num * 10 + (sc.nextDigit() - '0');
-                    if (sc.cur == ';') {
-                        sc.next();
-                        return (char) num;
-                    }
-                    num = num * 10 + (sc.nextDigit() - '0');
-                    if (sc.cur == ';') {
-                        sc.next();
-                        return (char) num;
-                    }
-                    num = num * 10 + (sc.nextDigit() - '0');
                     sc.consume(';', ERR_XML_PARSE_ESCAPE_CHAR_FAIL);
                 }
                 return (char) num;
