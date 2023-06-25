@@ -26,7 +26,7 @@ nop-xlang的开发是一个有趣的自举过程。因为codegen需要使用XLan
 
 nop-codegen工具可以独立于Nop平台被使用，生成其他框架或者其他语言的代码，比如生成mybatis代码，vue代码等，而且可以将CodeGenerator与FileWatcher结合在一起，**当发现某个目录下的模型文件发生变动时，就自动将依赖于该模型的所有文件重新生成一遍**。
 
-## 二. GraphQL引擎
+# 二. GraphQL引擎
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/images/graphql-modules.png)
 
@@ -46,7 +46,7 @@ Nop平台的后端服务使用NopGraphQL引擎实现。NopGraphQL引擎没有使
 
 * nop-biz通过nop-fsm内置了有限自动机机制，可以描述某些简单的业务流程
 
-* nop-biz并不直接依赖于NopIoC容器，但是依赖nop-ioc模块可以利用模块内置的beans.xml配置。
+* nop-biz并不强依赖于NopIoC容器，但是依赖nop-ioc模块可以利用模块内置的beans.xml配置。
 
 # 三. 分布式RPC框架
 
@@ -94,6 +94,10 @@ NopIoC内置了类似springboot的autoconfig机制，因此只要引入nop-clust
 
 * nop-auth模块提供用户角色权限控制相关的后端服务和前端页面
 
+
+Nop平台整体设计采用了可分可合的灵活组织形式。初始代码生成时对于每一个Excel数据模型，我们会生成一个app模块，它引用了本模型对应的service和web子模块，例如nop-auth-app引用了nop-auth-web和nop-auth-service。在开发调试的过程中，我们可以使用nop-auth-app模块作为微服务单独启动，通过内置的sso机制即可将多个微服务集成为一个整体应用系统。
+
+除此之外，**我们也可以在一个应用中引用所有模块的web和service子模块，从而构成一个单体应用**，例如nop-quarkus-demo模块中的做法。
 
 
 # 六. 报表引擎
