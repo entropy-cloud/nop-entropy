@@ -161,7 +161,7 @@ public class WorkbookDataParser {
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj, list);
 
         for (ExcelSheet sheet : sheets) {
-            new TableDataParser().parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
+            new TableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
         }
 
         if (sheetModel.getFieldName() != null) {
@@ -178,7 +178,7 @@ public class WorkbookDataParser {
     private void parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, DynamicObject obj, IEvalScope scope) {
         //new SheetBeanParser(sheetModel, compileTool, cache, importModel.isDump()).parseFromSheet(sheet, obj, scope);
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj);
-        new TableDataParser().parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
+        new TableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
     }
 
     private List<ExcelSheet> collectMatchedSheets(ImportSheetModel sheetModel, Map<String, ExcelSheet> sheets,

@@ -108,8 +108,10 @@ public class CellRowExpander extends AbstractCellExpander {
                     xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
 
             ExpandedRow newRow = needInsert ? table.insertEmptyRow(newIndex) : table.makeRow(newIndex);
-            if (needInsert)
+            if (needInsert){
                 newRow.setHeight(r.getHeight());
+				newRow.setModel(r.getModel());
+			}
             duplicateRow(r, cell, expandIndex, expandValue, newRow, cellMap, processing);
         }
 

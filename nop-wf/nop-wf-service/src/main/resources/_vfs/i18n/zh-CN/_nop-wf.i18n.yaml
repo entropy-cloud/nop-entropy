@@ -141,8 +141,8 @@ prop:
       stepType: 步骤类型
       stepType_label: 步骤类型
       subWfId: 子工作流ID
-      subWfInstance: 岗位
-      subWfInstance.title: 岗位
+      subWfInstance: 子流程实例
+      subWfInstance.title: 子流程实例
       subWfName: 子工作流名
       subWfVersion: 子流程版本
       tagSet: 标签
@@ -150,8 +150,8 @@ prop:
       updatedBy: 修改人
       version: 数据版本
       wfId: 工作流实例ID
-      wfInstance: 部门
-      wfInstance.title: 部门
+      wfInstance: 工作流实例
+      wfInstance.title: 工作流实例
     NopWfStepInstanceLink:
       createTime: 创建时间
       createdBy: 创建人

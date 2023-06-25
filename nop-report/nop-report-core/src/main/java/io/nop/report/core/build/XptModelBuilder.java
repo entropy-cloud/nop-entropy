@@ -490,17 +490,21 @@ public class XptModelBuilder {
         int startIndex = cellModel.getRowIndex() + cellModel.getRowExpandOffset();
         int endIndex = startIndex + cellModel.getRowExpandSpan();
 
+        // 在单元格的展开范围内，所有没有rowParent且不与展开单元格在同一行的单元格缺省都应该以cell为父
         for (int i = startIndex; i < endIndex; i++) {
             ExcelRow row = table.getRow(i);
             for (ExcelCell c : row.getCells()) {
                 if (c != null && c != cell && !c.isProxyCell()) {
                     XptCellModel cm = c.getModel();
                     if (cm.getRowParent() == null) {
-                        cm.setRowParent(cellModel.getCellPosition());
-                        cm.setRowParentCell(cell);
-                        cellModel.addRowChildCell(c);
-                        cellModel.addRowDuplicateCell(c);
-                        cellModel.addRowDuplicateCells(cm.getRowDuplicateCells());
+                        if (cm.getRowIndex() + c.getRowSpan() <= cellModel.getRowIndex()
+                                || cm.getRowIndex() >= cellModel.getRowIndex() + cell.getRowSpan()) {
+                            cm.setRowParent(cellModel.getCellPosition());
+                            cm.setRowParentCell(cell);
+                            cellModel.addRowChildCell(c);
+                            cellModel.addRowDuplicateCell(c);
+                            cellModel.addRowDuplicateCells(cm.getRowDuplicateCells());
+                        }
                     }
                 }
             }
@@ -518,12 +522,15 @@ public class XptModelBuilder {
                 if (ic != null && ic != cell && !ic.isProxyCell()) {
                     ExcelCell c = (ExcelCell) ic.getRealCell();
                     XptCellModel cm = c.getModel();
-                    if (cm.getColParent() == null) {
-                        cm.setColParent(cellModel.getCellPosition());
-                        cm.setColParentCell(cell);
-                        cellModel.addColChildCell(c);
-                        cellModel.addColDuplicateCell(c);
-                        cellModel.addColDuplicateCells(cm.getColDuplicateCells());
+                    if (cm.getColParent() == null ) {
+                        if (cm.getColIndex() + c.getColSpan() <= cellModel.getColIndex()
+                                || cm.getColIndex() >= cellModel.getColIndex() + cell.getColSpan()) {
+                            cm.setColParent(cellModel.getCellPosition());
+                            cm.setColParentCell(cell);
+                            cellModel.addColChildCell(c);
+                            cellModel.addColDuplicateCell(c);
+                            cellModel.addColDuplicateCells(cm.getColDuplicateCells());
+                        }
                     }
                 }
             }

@@ -30,10 +30,12 @@ import io.nop.core.reflect.hook.IPropSetMissingHook;
 import io.nop.core.reflect.impl.HelperMethodInvoker;
 import io.nop.core.resource.component.AbstractFreezable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -80,11 +82,11 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
         this(objName, null);
     }
 
-    public DynamicObject deepClone(){
-        DynamicObject obj = new DynamicObject(objName,keyProp);
+    public DynamicObject deepClone() {
+        DynamicObject obj = new DynamicObject(objName, keyProp);
         obj.methods.putAll(methods);
-        CloneHelper.deepCloneMapTo(defaultPropValues,obj.defaultPropValues);
-        CloneHelper.deepCloneMapTo(propValues,obj.propValues);
+        CloneHelper.deepCloneMapTo(defaultPropValues, obj.defaultPropValues);
+        CloneHelper.deepCloneMapTo(propValues, obj.propValues);
         return obj;
     }
 
@@ -157,6 +159,15 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
     @Override
     public boolean prop_allow(String propName) {
         return propValues.containsKey(propName) || defaultPropValues.containsKey(propName) || propName.indexOf(':') > 0;
+    }
+
+    public List<Object> makeList(String propName) {
+        Object value = propValues.get(propName);
+        if (value == null) {
+            value = new ArrayList<>();
+            propValues.put(propName, value);
+        }
+        return (List<Object>) value;
     }
 
     @Override

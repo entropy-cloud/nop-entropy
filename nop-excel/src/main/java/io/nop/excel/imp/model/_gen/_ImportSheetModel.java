@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [25:10:0:0]/nop/schema/excel/imp.xdef <p>
+ * generate from [31:10:0:0]/nop/schema/excel/imp.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -41,6 +41,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
      * 整个sheet的数据解析为一个字段。如果multiple=true，则field对应List类型，而sheet的数据解析为List中的一个条目。
      */
     private java.lang.String _field ;
+    
+    /**
+     *  
+     * xml name: fieldDecider
+     * 动态确定Excel单元格所对应的field，返回field的name
+     */
+    private io.nop.core.lang.eval.IEvalAction _fieldDecider ;
     
     /**
      *  
@@ -212,6 +219,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._field = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: fieldDecider
+     *  动态确定Excel单元格所对应的field，返回field的name
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getFieldDecider(){
+      return _fieldDecider;
+    }
+
+    
+    public void setFieldDecider(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._fieldDecider = value;
            
     }
 
@@ -529,6 +555,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         out.put("beforeParse",this.getBeforeParse());
         out.put("description",this.getDescription());
         out.put("field",this.getField());
+        out.put("fieldDecider",this.getFieldDecider());
         out.put("fields",this.getFields());
         out.put("ignore",this.isIgnore());
         out.put("keyProp",this.getKeyProp());

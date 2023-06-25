@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [49:18:0:0]/nop/schema/excel/imp.xdef <p>
+ * generate from [59:18:0:0]/nop/schema/excel/imp.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -44,10 +44,17 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: fieldDecider
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _fieldDecider ;
+    
+    /**
+     *  
      * xml name: fields
      * 
      */
-    private java.util.List<io.nop.excel.imp.model.ImportFieldModel> _fields = java.util.Collections.emptyList();
+    private KeyedList<io.nop.excel.imp.model.ImportFieldModel> _fields = KeyedList.emptyList();
     
     /**
      *  
@@ -234,6 +241,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: fieldDecider
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getFieldDecider(){
+      return _fieldDecider;
+    }
+
+    
+    public void setFieldDecider(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._fieldDecider = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: fields
      *  
      */
@@ -246,10 +272,36 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     public void setFields(java.util.List<io.nop.excel.imp.model.ImportFieldModel> value){
         checkAllowChange();
         
-        this._fields = value;
+        this._fields = KeyedList.fromList(value, io.nop.excel.imp.model.ImportFieldModel::getName);
            
     }
 
+    
+    public io.nop.excel.imp.model.ImportFieldModel getField(String name){
+        return this._fields.getByKey(name);
+    }
+
+    public boolean hasField(String name){
+        return this._fields.containsKey(name);
+    }
+
+    public void addField(io.nop.excel.imp.model.ImportFieldModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.excel.imp.model.ImportFieldModel> list = this.getFields();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.excel.imp.model.ImportFieldModel::getName);
+            setFields(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_fields(){
+        return this._fields.keySet();
+    }
+
+    public boolean hasFields(){
+        return !this._fields.isEmpty();
+    }
     
     /**
      * 
@@ -561,6 +613,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         out.put("computed",this.isComputed());
         out.put("displayName",this.getDisplayName());
         out.put("exportExpr",this.getExportExpr());
+        out.put("fieldDecider",this.getFieldDecider());
         out.put("fields",this.getFields());
         out.put("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
         out.put("keyProp",this.getKeyProp());

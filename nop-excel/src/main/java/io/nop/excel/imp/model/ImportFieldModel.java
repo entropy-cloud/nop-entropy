@@ -46,6 +46,17 @@ public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IF
         return fieldNameMap;
     }
 
+    public ImportFieldModel getFieldModel(String name) {
+        ImportFieldModel field = getField(name);
+        if (field != null)
+            return field;
+
+        Map<String, ImportFieldModel> fields = getFieldNameMap();
+        if (fields == null)
+            return null;
+        return fields.get(name);
+    }
+
     public IGenericType getResultType() {
         ISchema schema = getSchema();
         return schema == null ? null : schema.getType();

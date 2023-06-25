@@ -247,13 +247,13 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="SL"/>
             </columns>
             <relations>
-                <to-one displayName="部门" name="wfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
+                <to-one displayName="工作流实例" name="wfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
                         tagSet="pub,ref-pub" i18n-en:displayName="Workflow Instance">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
                 </to-one>
-                <to-one displayName="岗位" name="subWfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
+                <to-one displayName="子流程实例" name="subWfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
                         tagSet="pub,ref-pub" i18n-en:displayName="Sub Workflow Instance">
                     <join>
                         <on leftProp="subWfId" rightProp="wfId"/>

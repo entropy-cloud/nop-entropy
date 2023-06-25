@@ -61,6 +61,7 @@
                        list="!boolean=false" computed="!boolean=false" virtual="!boolean=false"
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
                        xpt:formatExpr="string"
+                       imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                 >
                     <when xdef:value="xpl-predicate"/>
 
@@ -69,9 +70,16 @@
                     -->
                     <xpt:valueExpr xdef:value="xml"/>
 
+                    <!--
+                    导出数据时动态生成导出列
+                    -->
+                    <xpt:labelExpandExpr xdef:value="xml"/>
+
+                    <xpt:labelValueExpr xdef:value="xml"/>
+
                     <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
 
-                    <fields xdef:body-type="list" xdef:name="name">
+                    <fields xdef:body-type="list" xdef:key-attr="name">
                         <field xdef:ref="ImportFieldModel"/>
                     </fields>
 
@@ -81,6 +89,8 @@
                     -->
                     <normalizeFieldsExpr xdef:value="xpl"/>
 
+                    <fieldDecider xdef:value="xpl"/>
+
                     <unknownField xdef:ref="ImportFieldModel"/>
 
                     <valueExpr xdef:value="xpl"/>
@@ -89,6 +99,9 @@
 
                 </field>
             </fields>
+
+            <!-- 动态确定Excel单元格所对应的field，返回field的name -->
+            <fieldDecider xdef:value="xpl"/>
 
             <unknownField xdef:ref="ImportFieldModel"/>
 

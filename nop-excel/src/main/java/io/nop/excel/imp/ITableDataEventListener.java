@@ -20,11 +20,15 @@ public interface ITableDataEventListener {
     void beginList(int rowIndex, int colIndex, int maxRowIndex, int maxColIndex,
                    IFieldContainer fieldModel, boolean cardList);
 
+    default void onColHeader(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+
+    }
+
     void endList(int maxRowIndex, int maxColIndex, IFieldContainer fieldModel);
 
     void beginObject(int rowIndex, int colIndex, int maxRowIndex, int maxColIndex, IFieldContainer fieldModel);
 
     void endObject(IFieldContainer fieldModel);
 
-    void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel);
+    void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel, String label);
 }

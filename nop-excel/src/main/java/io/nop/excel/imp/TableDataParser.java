@@ -7,12 +7,16 @@
  */
 package io.nop.excel.imp;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.ITableView;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
 import io.nop.excel.imp.model.ImportSheetModel;
@@ -30,6 +34,12 @@ import static io.nop.excel.ExcelErrors.ERR_IMPORT_INVALID_DATA_ROW;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_UNKNOWN_FIELD;
 
 public class TableDataParser {
+    private final IEvalScope scope;
+
+    public TableDataParser(IEvalScope scope) {
+        this.scope = scope;
+    }
+
     public void parse(String sheetName, ITableView table, ImportSheetModel sheetModel, ITableDataEventListener listener) {
         listener.beginSheet(sheetName, sheetModel);
 
@@ -114,29 +124,32 @@ public class TableDataParser {
 
         Map<String, ImportFieldModel> nameMap = field.getFieldNameMap();
 
-        List<ImportFieldModel> colFields = new ArrayList<>(maxColIndex - colIndex + 1);
+        List<ImportFieldModel> colFields = new ArrayList<>();
+        List<String> colLabels = new ArrayList<>();
 
         for (int j = colIndex; j <= maxColIndex; j++) {
             ICellView headerCell = table.getCell(rowIndex, j);
             if (headerCell == null || headerCell.isBlankCell() || headerCell.isProxyCell()) {
                 colFields.add(null);
+                colLabels.add(null);
                 continue;
             }
             String name = headerCell.getText().trim();
-            ImportFieldModel colField = nameMap.get(name);
+            ImportFieldModel colField = getFieldModel(field, name);
             if (colField == null) {
                 // 第一列，可以被忽略
                 if (j == colIndex) {
                     colFields.add(null);
+                    colLabels.add(null);
                     if (headerCell.getMergeAcross() > 0) {
                         for (int i = 0, n = headerCell.getMergeAcross(); i < n; i++) {
                             j++;
                             colFields.add(null);
+                            colLabels.add(null);
                         }
                     }
                     continue;
                 }
-                colField = nameMap.get(name);
             }
             if (colField == null) {
                 throw new NopException(ERR_IMPORT_UNKNOWN_FIELD).param(ARG_SHEET_NAME, sheetName)
@@ -144,6 +157,9 @@ public class TableDataParser {
                         .param(ARG_ALLOWED_NAMES, nameMap.keySet());
             }
             colFields.add(colField);
+            colLabels.add(name);
+
+            listener.onColHeader(rowIndex, j, headerCell, colField, name);
         }
 
         for (int i = rowIndex + 1; i <= maxRowIndex; i++) {
@@ -161,8 +177,10 @@ public class TableDataParser {
                     continue;
                 }
 
+                String colLabel = colLabels.get(j - colIndex);
+
                 ICellView cell = table.getCell(i, j);
-                listener.simpleField(i, j, cell, colField);
+                listener.simpleField(i, j, cell, colField, colLabel);
             }
 
             listener.endObject(field);
@@ -171,6 +189,20 @@ public class TableDataParser {
         listener.endList(maxRowIndex, maxColIndex, field);
 
         return new CellRange(rowIndex, colIndex, maxRowIndex, maxColIndex);
+    }
+
+    private ImportFieldModel getFieldModel(IFieldContainer fields, String text) {
+        ImportFieldModel field = fields.getFieldModel(text);
+        if (field == null) {
+            IEvalAction decider = fields.getFieldDecider();
+            if (decider != null) {
+                scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, text);
+                String fieldName = ConvertHelper.toString(decider.invoke(scope));
+                if (!StringHelper.isEmpty(fieldName))
+                    return fields.getFieldModel(fieldName);
+            }
+        }
+        return field;
     }
 
 
@@ -220,9 +252,9 @@ public class TableDataParser {
             return null;
 
         // nameMap提供了从displayName到field的映射。在excel数据文件中，字段名通过displayName区分。
-        ImportFieldModel field = fieldContainer.getFieldModel(name);
+        ImportFieldModel field = getFieldModel(fieldContainer, name);
         if (field == null)
-            field = fieldContainer.getFieldModel("*"); // 尝试缺省字段配置
+            field = fieldContainer.getUnknownField(); // 尝试缺省字段配置
 
         if (field == null)
             throw new NopException(ERR_IMPORT_UNKNOWN_FIELD).param(ARG_SHEET_NAME, sheetName)
@@ -234,7 +266,7 @@ public class TableDataParser {
         } else if (field.getFields() != null && !field.getFields().isEmpty()) {
             return parseObjectField(sheetName, field, table, rowIndex, colIndex, maxRowIndex, maxColIndex, listener);
         } else {
-            return parseSimpleField(field, table, rowIndex, colIndex, listener);
+            return parseSimpleField(field, name, table, rowIndex, colIndex, listener);
         }
     }
 
@@ -317,13 +349,13 @@ public class TableDataParser {
         return new CellRange(rowIndex, colIndex, maxRowIndex, maxColIndex);
     }
 
-    private CellRange parseSimpleField(ImportFieldModel fieldModel, ITableView table, int rowIndex,
+    private CellRange parseSimpleField(ImportFieldModel fieldModel, String fieldLabel, ITableView table, int rowIndex,
                                        int colIndex, ITableDataEventListener listener) {
         ICellView cell = table.getCell(rowIndex, colIndex);
         colIndex += cell.getColSpan();
         ICellView valueCell = table.getCell(rowIndex, colIndex);
 
-        listener.simpleField(rowIndex, colIndex, valueCell, fieldModel);
+        listener.simpleField(rowIndex, colIndex, valueCell, fieldModel, fieldLabel);
 
         return new CellRange(rowIndex, colIndex, rowIndex + cell.getMergeDown(),
                 valueCell == null ? colIndex + 1 : colIndex + valueCell.getMergeAcross());

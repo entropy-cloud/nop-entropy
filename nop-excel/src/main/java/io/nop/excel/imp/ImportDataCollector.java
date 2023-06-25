@@ -185,7 +185,7 @@ public class ImportDataCollector implements ITableDataEventListener {
     }
 
     @Override
-    public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field) {
+    public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
         Object value = cell == null ? null : cell.getValue();
         LOG.trace("nop.imp.parse-field:name={},r={},c={},value={}", field.getName(), rowIndex, colIndex, value);
 
@@ -193,6 +193,8 @@ public class ImportDataCollector implements ITableDataEventListener {
             if (value instanceof String)
                 value = StringHelper.strip(value.toString());
         }
+
+        scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, fieldLabel);
 
         if (field.getValueExpr() != null) {
             scope.setLocalValue(null, ExcelConstants.VAR_VALUE, value);
@@ -259,15 +261,14 @@ public class ImportDataCollector implements ITableDataEventListener {
             }
         }
 
-        if (!field.isVirtual()) {
-            if (!shouldIgnore(field, value)) {
-                Object obj = entityParents.get(entityParents.size() - 1);
+        if (!shouldIgnore(field, value)) {
+            Object obj = entityParents.get(entityParents.size() - 1);
+            if (!field.isVirtual())
                 setProp(obj, field.getPropOrName(), value);
 
-                if (field.getNormalizeFieldsExpr() != null) {
-                    scope.setLocalValue(ExcelConstants.VAR_RECORD, obj);
-                    field.getNormalizeFieldsExpr().invoke(scope);
-                }
+            if (field.getNormalizeFieldsExpr() != null) {
+                scope.setLocalValue(ExcelConstants.VAR_RECORD, obj);
+                field.getNormalizeFieldsExpr().invoke(scope);
             }
         }
     }

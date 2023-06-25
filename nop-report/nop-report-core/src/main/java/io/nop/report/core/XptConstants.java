@@ -78,4 +78,7 @@ public interface XptConstants {
     String EXT_PROP_XPT_BEFORE_EXPAND = "xpt:beforeExpand";
 
     String EXT_PROP_XPT_VALUE_EXPR = "xpt:valueExpr";
+
+    String EXT_PROP_XPT_LABEL_EXPAND_EXPR = "xpt:labelExpandExpr";
+    String EXT_PROP_XPT_LABEL_VALUE_EXPR = "xpt:labelValueExpr";
 }

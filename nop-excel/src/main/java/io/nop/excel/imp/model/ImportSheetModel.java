@@ -64,6 +64,17 @@ public class ImportSheetModel extends _ImportSheetModel implements INeedInit, IF
         return pattern.matcher(name).matches();
     }
 
+    @Override
+    public ImportFieldModel getFieldModel(String name) {
+        ImportFieldModel field = getField(name);
+        if (field == null) {
+            if (getFieldNameMap() == null)
+                return null;
+            field = getFieldNameMap().get(name);
+        }
+        return field;
+    }
+
     public Map<String, ImportFieldModel> getFieldNameMap() {
         return fieldNameMap;
     }

@@ -74,7 +74,7 @@ public class TableBlockCollector implements ITableDataEventListener {
     }
 
     @Override
-    public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel) {
+    public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel, String fieldLabel) {
         FieldBlock block = new FieldBlock();
         block.setRowIndex(rowIndex);
         block.setMaxRowIndex(rowIndex + (cell == null ? 0 : cell.getMergeDown()));

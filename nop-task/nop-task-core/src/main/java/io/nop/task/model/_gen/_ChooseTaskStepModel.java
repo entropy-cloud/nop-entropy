@@ -54,15 +54,15 @@ public abstract class _ChooseTaskStepModel extends io.nop.task.model.TaskStepMod
     }
 
     
-    public io.nop.task.model.TaskChooseCaseModel getCase(String name){
+    public io.nop.task.model.TaskChooseCaseModel getSteps(String name){
         return this._cases.getByKey(name);
     }
 
-    public boolean hasCase(String name){
+    public boolean hasSteps(String name){
         return this._cases.containsKey(name);
     }
 
-    public void addCase(io.nop.task.model.TaskChooseCaseModel item) {
+    public void addSteps(io.nop.task.model.TaskChooseCaseModel item) {
         checkAllowChange();
         java.util.List<io.nop.task.model.TaskChooseCaseModel> list = this.getCases();
         if (list == null || list.isEmpty()) {

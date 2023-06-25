@@ -51,5 +51,23 @@ prometheus --config.file="prometheus.yml" --web.enable-lifecycle
 
 ### 安装grafana
 
+将grafana的conf目录下的sample.ini文件复制为custom.ini，然后修改其中的登录用户名和密码，缺省为admin/admin。
+````
+[security]
+# default admin user, created on startup
+admin_user = nop
+
+# default admin password, can be changed before first start of grafana,  or in profile settings
+admin_password = test
+````
+
+在grafana/bin目录下通过如下指令启动服务
+
+````shell
+grafana-server --config="../conf/custom.ini"
+````
+
+* 访问http://localhost:3000，通过用户名 nop，密码test登录
+> 首次启动后初始化用户名和密码就保存到了grafana/data目录下，修改ini文件中的admin_user等配置不再起作用。
 
 ### 安装loki服务器

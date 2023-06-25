@@ -71,6 +71,9 @@ public class CellColExpander extends AbstractCellExpander {
         }
 
         int incSpan = expandSpan * (expandCount - 1);
+        if (xptModel != null && xptModel.getExpandInplaceCount() != null && xptModel.getExpandInplaceCount() > 0) {
+            incSpan -= xptModel.getExpandInplaceCount() - 1;
+        }
 
         for (ExpandedCell needExtend : needExtends.keySet()) {
             needExtend.setMergeAcross(needExtend.getMergeAcross() + incSpan);

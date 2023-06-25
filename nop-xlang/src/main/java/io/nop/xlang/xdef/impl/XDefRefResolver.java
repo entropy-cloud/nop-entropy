@@ -256,6 +256,14 @@ public class XDefRefResolver {
         }
 
         mergeChildren(refNode, defNode);
+
+        if (defNode.getXdefBeanChildName() == null) {
+            if (defNode.getChildren().size() == 1) {
+                IXDefNode childDef = defNode.getChildren().values().iterator().next();
+                if (!childDef.isUnknownTag())
+                    defNode.setXdefBeanChildName(childDef.getTagName());
+            }
+        }
     }
 
     void mergeChildren(IXDefNode refNode, XDefNode defNode) {

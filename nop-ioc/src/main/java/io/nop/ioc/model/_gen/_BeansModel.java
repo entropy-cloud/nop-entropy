@@ -463,15 +463,15 @@ public abstract class _BeansModel extends io.nop.xlang.xdsl.AbstractDslModel {
     }
 
     
-    public io.nop.ioc.model.BeanMapModel getUtilMap(String name){
+    public io.nop.ioc.model.BeanMapModel getEntry(String name){
         return this._utilMaps.getByKey(name);
     }
 
-    public boolean hasUtilMap(String name){
+    public boolean hasEntry(String name){
         return this._utilMaps.containsKey(name);
     }
 
-    public void addUtilMap(io.nop.ioc.model.BeanMapModel item) {
+    public void addEntry(io.nop.ioc.model.BeanMapModel item) {
         checkAllowChange();
         java.util.List<io.nop.ioc.model.BeanMapModel> list = this.getUtilMaps();
         if (list == null || list.isEmpty()) {

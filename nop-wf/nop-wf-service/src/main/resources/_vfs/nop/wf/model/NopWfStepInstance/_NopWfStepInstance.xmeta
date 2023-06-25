@@ -162,21 +162,21 @@
               insertable="true" updatable="true" ext:show="SL">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="wfInstance" displayName="部门" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"
+        <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="wfId" ext:joinRightProp="wfId"
               ext:joinRightDisplayProp="title" insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema type="io.nop.wf.dao.entity.NopWfInstance" bizObjName="NopWfInstance"/>
         </prop>
-        <prop name="wfInstance.title" displayName="部门" i18n-en:displayName="Workflow Instance" internal="true"
+        <prop name="wfInstance.title" displayName="工作流实例" i18n-en:displayName="Workflow Instance" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="subWfInstance" displayName="岗位" i18n-en:displayName="Sub Workflow Instance" tagSet="pub,ref-pub"
+        <prop name="subWfInstance" displayName="子流程实例" i18n-en:displayName="Sub Workflow Instance" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="subWfId" ext:joinRightProp="wfId"
               ext:joinRightDisplayProp="title" insertable="false" updatable="false" lazy="true">
             <schema type="io.nop.wf.dao.entity.NopWfInstance" bizObjName="NopWfInstance"/>
         </prop>
-        <prop name="subWfInstance.title" displayName="岗位" i18n-en:displayName="Sub Workflow Instance" internal="true"
+        <prop name="subWfInstance.title" displayName="子流程实例" i18n-en:displayName="Sub Workflow Instance" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

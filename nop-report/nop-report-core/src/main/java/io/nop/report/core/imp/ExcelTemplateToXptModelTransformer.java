@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
@@ -44,6 +45,12 @@ import java.util.List;
  * 解析导入模板，根据导入模型配置识别其中的变量区域，然后将导入模板转换为XPT报表模型
  */
 public class ExcelTemplateToXptModelTransformer {
+    private final IEvalScope scope;
+
+    public ExcelTemplateToXptModelTransformer(IEvalScope scope) {
+        this.scope = scope;
+    }
+
     public void transform(ExcelWorkbook template, ImportModel model) {
         for (ExcelSheet sheet : template.getSheets()) {
             ImportSheetModel sheetModel = getSheetModel(model, sheet);
@@ -59,7 +66,7 @@ public class ExcelTemplateToXptModelTransformer {
     }
 
     private void transformSheet(ExcelSheet sheet, ImportSheetModel sheetModel) {
-        new TableDataParser().parse(sheet.getName(), sheet.getTable(), sheetModel,
+        new TableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel,
                 new DataListener(sheet));
     }
 
@@ -181,6 +188,26 @@ public class ExcelTemplateToXptModelTransformer {
             }
         }
 
+        @Override
+        public void onColHeader(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+            ExcelCell ec = (ExcelCell) cell;
+            XptCellModel cellModel = new XptCellModel();
+            ec.setModel(cellModel);
+
+            XNode labelExpandExpr = (XNode) field.prop_get(XptConstants.EXT_PROP_XPT_LABEL_EXPAND_EXPR);
+            if (labelExpandExpr != null) {
+                IEvalAction expandExpr = compileTool.compileTagBodyWithSource(labelExpandExpr, XLangOutputMode.none);
+                cellModel.setExpandType(XptExpandType.c);
+                cellModel.setExpandExpr(expandExpr);
+            }
+
+            XNode labelValueExpr = (XNode) field.prop_get(XptConstants.EXT_PROP_XPT_LABEL_VALUE_EXPR);
+            if (labelValueExpr != null) {
+                IEvalAction valueExpr = compileTool.compileTagBodyWithSource(labelValueExpr, XLangOutputMode.none);
+                cellModel.setValueExpr(valueExpr);
+            }
+        }
+
         private void clearIndexCell(int rowIndex, int colIndex) {
             ExcelTable table = getTable();
             for (int i = rowIndex, n = table.getRowCount(); i < n; i++) {
@@ -234,7 +261,7 @@ public class ExcelTemplateToXptModelTransformer {
         }
 
         @Override
-        public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel) {
+        public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel, String label) {
             ExcelCell ec = (ExcelCell) cell;
             if (ec == null) {
                 ec = new ExcelCell();
@@ -254,21 +281,18 @@ public class ExcelTemplateToXptModelTransformer {
             if (parent.childIndex > 0)
                 return;
 
-            // 忽略虚拟字段
-            if (fieldModel.isVirtual()) {
-                return;
-            }
-
             XNode valueExprNode = XNode.fromValue(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_VALUE_EXPR));
             if (valueExprNode != null && valueExprNode.hasBody()) {
                 IEvalAction action = compileTool.compileTagBodyWithSource(valueExprNode, XLangOutputMode.none);
                 cellModel.setValueExpr(action);
             } else {
-                if (cellModel.getExpandType() != null) {
-                    // 序号列对应于实际字段
-                    cellModel.setValueExpr(getExpandFieldAction(fieldModel.getPropOrName()));
-                } else {
-                    initCellField(cellModel, parent, fieldModel.getPropOrName());
+                if(!fieldModel.isVirtual()) {
+                    if (cellModel.getExpandType() != null) {
+                        // 序号列对应于实际字段
+                        cellModel.setValueExpr(getExpandFieldAction(fieldModel.getPropOrName()));
+                    } else {
+                        initCellField(cellModel, parent, fieldModel.getPropOrName());
+                    }
                 }
             }
         }

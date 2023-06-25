@@ -172,10 +172,10 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 38;
 
     
-    /* relation: 部门 */
+    /* relation: 工作流实例 */
     public static final String PROP_NAME_wfInstance = "wfInstance";
     
-    /* relation: 岗位 */
+    /* relation: 子流程实例 */
     public static final String PROP_NAME_subWfInstance = "subWfInstance";
     
 
@@ -1951,7 +1951,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 部门
+     * 工作流实例
      */
     public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
        return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_wfInstance);
@@ -1972,7 +1972,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
        
     /**
-     * 岗位
+     * 子流程实例
      */
     public io.nop.wf.dao.entity.NopWfInstance getSubWfInstance(){
        return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_subWfInstance);

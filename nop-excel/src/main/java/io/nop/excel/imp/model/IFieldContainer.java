@@ -7,7 +7,9 @@
  */
 package io.nop.excel.imp.model;
 
+import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.Map;
 
@@ -32,10 +34,9 @@ public interface IFieldContainer {
 
     Map<String, ImportFieldModel> getFieldNameMap();
 
-    default ImportFieldModel getFieldModel(String name) {
-        Map<String, ImportFieldModel> fields = getFieldNameMap();
-        if (fields == null)
-            return null;
-        return fields.get(name);
-    }
+    ImportFieldModel getUnknownField();
+
+    ImportFieldModel getFieldModel(String name);
+
+    IEvalAction getFieldDecider();
 }

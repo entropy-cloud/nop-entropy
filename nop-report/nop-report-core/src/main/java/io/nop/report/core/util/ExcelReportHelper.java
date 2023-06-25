@@ -27,9 +27,12 @@ import io.nop.xlang.xdsl.DslModelHelper;
 public class ExcelReportHelper extends ExcelHelper {
 
     public static void saveXlsxObject(String impModelPath, IResource resource, Object obj) {
+        saveXlsxObject(impModelPath, resource, obj, XLang.newEvalScope());
+    }
+
+    public static void saveXlsxObject(String impModelPath, IResource resource, Object obj, IEvalScope scope) {
         ExcelWorkbook xptModel = buildXptModelFromImpModel(impModelPath);
 
-        IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
 
         IBinaryTemplateOutput output = new XlsxReportRendererFactory()
@@ -39,7 +42,11 @@ public class ExcelReportHelper extends ExcelHelper {
 
     public static void saveXlsxObject(IReportEngine reportEngine, String impModelPath, IResource resource,
                                       Object obj, String renderType) {
-        IEvalScope scope = XLang.newEvalScope();
+        saveXlsxObject(reportEngine, impModelPath, resource, obj, renderType, XLang.newEvalScope());
+    }
+
+    public static void saveXlsxObject(IReportEngine reportEngine, String impModelPath, IResource resource,
+                                      Object obj, String renderType, IEvalScope scope) {
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
 
         ExcelWorkbook workbook = reportEngine.buildXptModelFromImpModel(impModelPath);
@@ -48,11 +55,14 @@ public class ExcelReportHelper extends ExcelHelper {
     }
 
     public static String getHtmlForXlsxObject(String impModelPath, Object obj) {
-        IEvalScope scope = XLang.newEvalScope();
+        return getHtmlForXlsxObject(impModelPath, obj, XLang.newEvalScope());
+    }
+
+    public static String getHtmlForXlsxObject(String impModelPath, Object obj, IEvalScope scope) {
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
 
         ExcelWorkbook workbook = buildXptModelFromImpModel(impModelPath);
-        ITextTemplateOutput output = new HtmlReportRendererFactory().buildRenderer(workbook,new ReportSheetGenerator(workbook));
+        ITextTemplateOutput output = new HtmlReportRendererFactory().buildRenderer(workbook, new ReportSheetGenerator(workbook));
         return output.generateText(scope);
     }
 
@@ -62,7 +72,7 @@ public class ExcelReportHelper extends ExcelHelper {
         IResource resource = VirtualFileSystem.instance().getResource(impModel.getTemplatePath());
         ExcelWorkbook template = new ExcelWorkbookParser().parseFromResource(resource);
 
-        new ExcelTemplateToXptModelTransformer().transform(template, impModel);
+        new ExcelTemplateToXptModelTransformer(XLang.newEvalScope()).transform(template, impModel);
 
         XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
         new XptModelBuilder(cp).build(template);
