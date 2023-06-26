@@ -31,6 +31,7 @@ import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.XptConstants;
+import io.nop.report.core.build.XptConfigParseHelper;
 import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.util.ExcelReportHelper;
 import io.nop.xlang.api.EvalCode;
@@ -52,6 +53,8 @@ public class ExcelTemplateToXptModelTransformer {
     }
 
     public void transform(ExcelWorkbook template, ImportModel model) {
+        XptConfigParseHelper.parseWorkbookModel(template);
+
         for (ExcelSheet sheet : template.getSheets()) {
             ImportSheetModel sheetModel = getSheetModel(model, sheet);
             if (sheetModel != null) {
@@ -201,10 +204,29 @@ public class ExcelTemplateToXptModelTransformer {
                 cellModel.setExpandExpr(expandExpr);
             }
 
+            initLabelField(cellModel, field);
+        }
+
+        @Override
+        public void onFieldLabel(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+            ExcelCell ec = (ExcelCell) cell;
+            XptCellModel cellModel = new XptCellModel();
+            ec.setModel(cellModel);
+
+            initLabelField(cellModel, field);
+        }
+
+        private void initLabelField(XptCellModel cellModel, ImportFieldModel field) {
             XNode labelValueExpr = (XNode) field.prop_get(XptConstants.EXT_PROP_XPT_LABEL_VALUE_EXPR);
             if (labelValueExpr != null) {
                 IEvalAction valueExpr = compileTool.compileTagBodyWithSource(labelValueExpr, XLangOutputMode.none);
                 cellModel.setValueExpr(valueExpr);
+            }
+
+            XNode labelStyleIdExpr = XNode.fromValue(field.prop_get(XptConstants.EXT_PROP_XPT_LABEL_STYLE_ID_EXPR));
+            if (labelStyleIdExpr != null) {
+                IEvalAction styleIdExpr = compileTool.compileTagBodyWithSource(labelStyleIdExpr, XLangOutputMode.none);
+                cellModel.setStyleIdExpr(styleIdExpr);
             }
         }
 
@@ -286,7 +308,7 @@ public class ExcelTemplateToXptModelTransformer {
                 IEvalAction action = compileTool.compileTagBodyWithSource(valueExprNode, XLangOutputMode.none);
                 cellModel.setValueExpr(action);
             } else {
-                if(!fieldModel.isVirtual()) {
+                if (!fieldModel.isVirtual()) {
                     if (cellModel.getExpandType() != null) {
                         // 序号列对应于实际字段
                         cellModel.setValueExpr(getExpandFieldAction(fieldModel.getPropOrName()));
@@ -294,6 +316,11 @@ public class ExcelTemplateToXptModelTransformer {
                         initCellField(cellModel, parent, fieldModel.getPropOrName());
                     }
                 }
+            }
+
+            XNode styleIdExpr = XNode.fromValue(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_STYLE_ID_EXPR));
+            if (styleIdExpr != null) {
+                cellModel.setStyleIdExpr(compileTool.compileTagBodyWithSource(styleIdExpr, XLangOutputMode.none));
             }
         }
 

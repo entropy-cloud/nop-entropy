@@ -16,9 +16,17 @@ public class ExcelWorkbook extends _ExcelWorkbook implements INeedInit {
     }
 
     @Override
-    public void init(){
-        for(ExcelSheet sheet: getSheets()){
+    public void init() {
+        for (ExcelSheet sheet : getSheets()) {
             sheet.init();
         }
+    }
+
+    public ExcelSheet removeSheet(String sheetName) {
+        ExcelSheet sheet = getSheet(sheetName);
+        if (sheet != null) {
+            getSheets().remove(sheet);
+        }
+        return sheet;
     }
 }

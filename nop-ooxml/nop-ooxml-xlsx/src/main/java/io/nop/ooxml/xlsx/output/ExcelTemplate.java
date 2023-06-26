@@ -95,7 +95,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         workbook.addSheet(relId, sheetId, sheet.getName());
 
         IResource resource = new FileResource(new File(dir, sheetPath));
-        new ExcelSheetWriter(sheet, index == 0).indent(isIndent()).generateToResource(resource, context);
+        new ExcelSheetWriter(sheet, index == 0, this.workbook).indent(isIndent()).generateToResource(resource, context);
         IOfficePackagePart sheetPart = pkg.addFile(sheetPath, resource);
 
         IResource commentResource = new FileResource(new File(dir, commentPath));

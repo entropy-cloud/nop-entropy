@@ -18,6 +18,8 @@ import io.nop.core.model.table.IColumnConfig;
 import io.nop.core.model.table.IRowView;
 import io.nop.core.resource.tpl.AbstractXmlTemplate;
 import io.nop.excel.model.ExcelPageMargins;
+import io.nop.excel.model.ExcelStyle;
+import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.util.UnitsHelper;
 
@@ -33,9 +35,12 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
     private final IExcelSheet sheet;
     private final boolean tabSelected;
 
-    public ExcelSheetWriter(IExcelSheet sheet, boolean tabSelected) {
+    private final ExcelWorkbook workbook;
+
+    public ExcelSheetWriter(IExcelSheet sheet, boolean tabSelected, ExcelWorkbook workbook) {
         this.sheet = sheet;
         this.tabSelected = tabSelected;
+        this.workbook = workbook;
     }
 
     @Override
@@ -92,7 +97,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             for (int i = 0, n = cols.size(); i < n; i++) {
                 IColumnConfig col = cols.get(i);
                 Double width = col == null ? null : col.getWidth();
-                if(width == null)
+                if (width == null)
                     width = sheet.getDefaultColumnWidth();
                 out.simpleNode(null, "col", attrs("min", i + 1, "max", i + 1, "width",
                         ptToCharWidth(width),
@@ -137,7 +142,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
                 // 保留border样式
                 out.simpleNode(null, "c",
                         attrs("r", CellPosition.toABString(rowIndex, i, false, false),
-                                "s", ec.getStyleId()));
+                                "s", normalizeStyleId(ec)));
                 continue;
             }
 
@@ -157,17 +162,17 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             } else if (value instanceof String) {
                 str = value.toString();
                 cellType = "inlineStr";
-            } else if(value instanceof Collection){
-                str = StringHelper.join((Collection)value,",");
+            } else if (value instanceof Collection) {
+                str = StringHelper.join((Collection) value, ",");
                 cellType = "inlineStr";
-            } else if(value != null){
+            } else if (value != null) {
                 str = value.toString();
                 cellType = "inlineStr";
             }
 
             out.beginNode(null, "c",
                     attrs("r", CellPosition.toABString(rowIndex, i, false, false),
-                            "s", ec.getStyleId(), "t", cellType));
+                            "s", normalizeStyleId(ec), "t", cellType));
             if ("inlineStr".equals(cellType)) {
                 out.beginNode(null, "is", Collections.emptyMap());
                 out.beginNode(null, "t", Collections.emptyMap());
@@ -181,6 +186,19 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             }
             out.endNode("c");
         }
+    }
+
+    String normalizeStyleId(ICellView cell) {
+        String styleId = cell.getStyleId();
+        if (StringHelper.isEmpty(styleId))
+            return styleId;
+
+        ExcelStyle style = workbook.getStyle(styleId);
+        if (style != null) {
+            int index = workbook.getStyles().indexOf(style);
+            return String.valueOf(index);
+        }
+        return styleId;
     }
 
     void genMergeCells(IXNodeHandler out, IExcelSheet sheet) {

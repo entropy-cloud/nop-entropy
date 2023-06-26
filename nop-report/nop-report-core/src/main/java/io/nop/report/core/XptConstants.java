@@ -19,8 +19,6 @@ public interface XptConstants {
     String VAR_XPT_RT = "xptRt";
 
     String VAR_ENTITY = "entity";
-
-
     String VAR_SHEET_TPL = "sheetTpl";
     String VAR_WORKBOOK_TPL = "workbookTpl";
     String VAR_SHEET_NAME = "sheetName";
@@ -81,4 +79,8 @@ public interface XptConstants {
 
     String EXT_PROP_XPT_LABEL_EXPAND_EXPR = "xpt:labelExpandExpr";
     String EXT_PROP_XPT_LABEL_VALUE_EXPR = "xpt:labelValueExpr";
+
+    String EXT_PROP_XPT_LABEL_STYLE_ID_EXPR = "xpt:labelStyleIdExpr";
+
+    String EXT_PROP_XPT_STYLE_ID_EXPR = "xpt:styleIdExpr";
 }

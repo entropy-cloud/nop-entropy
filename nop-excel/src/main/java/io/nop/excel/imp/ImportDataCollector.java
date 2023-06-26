@@ -195,6 +195,7 @@ public class ImportDataCollector implements ITableDataEventListener {
         }
 
         scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, fieldLabel);
+        scope.setLocalValue(ExcelConstants.VAR_CELL, cell);
 
         if (field.getValueExpr() != null) {
             scope.setLocalValue(null, ExcelConstants.VAR_VALUE, value);

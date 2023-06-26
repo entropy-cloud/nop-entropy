@@ -261,6 +261,8 @@ public class TableDataParser {
                     .param(ARG_CELL_POS, getCellPosition(rowIndex, colIndex)).param(ARG_FIELD_NAME, name)
                     .param(ARG_ALLOWED_NAMES, fieldContainer.getFieldNameMap().keySet());
 
+        listener.onFieldLabel(rowIndex, colIndex, table.getCell(rowIndex, colIndex).getRealCell(), field, name);
+
         if (field.isList()) {
             return parseListField(sheetName, field, table, rowIndex, colIndex, maxRowIndex, maxColIndex, listener);
         } else if (field.getFields() != null && !field.getFields().isEmpty()) {

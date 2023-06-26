@@ -24,6 +24,10 @@ public interface ITableDataEventListener {
 
     }
 
+    default void onFieldLabel(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+
+    }
+
     void endList(int maxRowIndex, int maxColIndex, IFieldContainer fieldModel);
 
     void beginObject(int rowIndex, int colIndex, int maxRowIndex, int maxColIndex, IFieldContainer fieldModel);

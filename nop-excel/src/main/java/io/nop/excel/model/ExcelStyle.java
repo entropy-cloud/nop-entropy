@@ -22,6 +22,10 @@ public class ExcelStyle extends _ExcelStyle {
 
     }
 
+    public String toString() {
+        return getClass().getSimpleName() + "[id="+getId()+",loc=" + getLocation() + "]";
+    }
+
     public boolean hasBorder() {
         if (getTopBorder() != null)
             return true;

@@ -8,6 +8,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
@@ -17,6 +18,7 @@ import io.nop.core.model.table.tree.TreeCell;
 import io.nop.core.model.table.tree.TreeTableHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.ImportModelHelper;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
@@ -105,7 +107,9 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
 
         ImportModel importModel = ImportModelHelper.getImportModel(RuleConstants.IMP_PATH_RULE);
         ImportSheetModel sheetModel = importModel.getSheet(RuleConstants.SHEET_NAME_CONFIG);
-        RuleModel rule = ImportModelHelper.parseSheet(sheetModel, configSheet, compileTool, RuleModel.class);
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue(ExcelConstants.VAR_WORKBOOK, wk);
+        RuleModel rule = ImportModelHelper.parseSheet(sheetModel, configSheet, compileTool, scope, RuleModel.class);
         rule.initVarMap();
         return rule;
     }

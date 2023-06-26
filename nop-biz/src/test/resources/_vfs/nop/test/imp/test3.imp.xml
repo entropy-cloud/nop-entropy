@@ -96,6 +96,14 @@
                             <xpt:valueExpr>
                                 _.findWhere(cell.rp.ev.indexValues,'year',cell.cp.ev.$toInt()).value
                             </xpt:valueExpr>
+
+                            <xpt:labelStyleIdExpr>
+                                cell.ev == 2002 ? 'red' : null
+                            </xpt:labelStyleIdExpr>
+
+                            <xpt:styleIdExpr>
+                                cell.value > 300 ? 'red' : null
+                            </xpt:styleIdExpr>
                         </field>
 
                     </fields>
