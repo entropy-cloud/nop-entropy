@@ -40,6 +40,16 @@ import static io.nop.core.CoreErrors.ERR_FILTER_UNKNOWN_OP;
 
 public class FilterBeanVisitor<T> {
 
+    public T visitRoot(ITreeBean filter, IVariableScope scope) {
+        if (filter == null)
+            return visitNullFilter(scope);
+
+        String op = filter.getTagName();
+        if (op.equals(CoreConstants.DUMMY_TAG_NAME) || op.equals(CoreConstants.FILTER_TAG_NAME))
+            return visitAnd(filter, scope);
+        return visit(filter, scope);
+    }
+
     /**
      * 自上而下深度便利树形结构的判断条件
      *

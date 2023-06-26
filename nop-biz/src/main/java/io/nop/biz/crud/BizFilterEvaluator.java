@@ -24,8 +24,8 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
     }
 
     public boolean testForEntity(ITreeBean filter, Object entity) {
-        BizExprHelper.resolveBizExpr(filter,context);
-        return Boolean.TRUE.equals(visit(filter, new BeanVariableScope(entity)));
+        BizExprHelper.resolveBizExpr(filter, context);
+        return Boolean.TRUE.equals(visitRoot(filter, new BeanVariableScope(entity)));
     }
 
     @Override

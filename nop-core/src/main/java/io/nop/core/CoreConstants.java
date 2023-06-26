@@ -99,6 +99,8 @@ public interface CoreConstants extends ResourceConstants {
 
     String DUMMY_TAG_NAME = "_";
     String TEXT_TAG_NAME = "#";
+
+    String FILTER_TAG_NAME = "filter";
     String ATTR_ID = "id";
     String ATTR_NAME = "name";
     String ATTR_TAGS = "tags";
