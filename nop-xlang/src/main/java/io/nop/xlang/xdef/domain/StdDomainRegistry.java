@@ -74,6 +74,7 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.CsvListType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.ClassSetType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.TagSetType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.MultiCsvSetType());
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.NsNameType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.GenericTypeListType());

@@ -22,6 +22,8 @@ import io.nop.graphql.core.ast.GraphQLOperation;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 
+import java.util.Set;
+
 import static io.nop.auth.api.AuthApiErrors.ARG_PERMISSION;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 
@@ -89,12 +91,21 @@ public class GraphQLActionAuthChecker {
                 return;
         }
 
-        if (!CollectionHelper.isEmpty(auth.getPermissions())) {
-            for (String permission : auth.getPermissions()) {
-                if (!checker.isPermitted(permission, context))
-                    throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION).source(field)
-                            .param(ARG_PERMISSION, permission).param(ARG_FIELD_NAME, field.getName());
+        if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
+            for (Set<String> permissions : auth.getPermissions()) {
+                if (isPermitted(permissions, checker, context))
+                    return;
             }
+            throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION).source(field)
+                    .param(ARG_PERMISSION, auth.getPermissions()).param(ARG_FIELD_NAME, field.getName());
         }
+    }
+
+    private boolean isPermitted(Set<String> permissions, IActionAuthChecker checker, IGraphQLExecutionContext context) {
+        for (String permission : permissions) {
+            if (!checker.isPermitted(permission, context))
+                return false;
+        }
+        return true;
     }
 }

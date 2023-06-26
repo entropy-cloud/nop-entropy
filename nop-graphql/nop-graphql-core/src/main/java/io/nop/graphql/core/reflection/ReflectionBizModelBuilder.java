@@ -27,6 +27,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.MultiCsvSet;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.ArrayHelper;
@@ -100,10 +101,10 @@ public class ReflectionBizModelBuilder {
                         loc, action, func, registry);
                 field.setSourceClassModel(classModel);
                 field.setOperationName(GraphQLNameHelper.getOperationName(bizObjName, action));
-                if (field.getAuth() == null) {
-                    String permission = GraphQLNameHelper.getPermission(bizObjName, action);
-                    field.setAuth(new ActionAuthMeta(Collections.emptySet(), buildImmutableSet(permission)));
-                }
+//                if (field.getAuth() == null) {
+//                    String permission = GraphQLNameHelper.getPermission(bizObjName, action);
+//                    field.setAuth(new ActionAuthMeta(Collections.emptySet(), MultiCsvSet.fromText(permission)));
+//                }
                 ret.addMutationAction(action, field);
                 continue;
             }
@@ -117,10 +118,10 @@ public class ReflectionBizModelBuilder {
                         loc, action, func, registry);
                 field.setSourceClassModel(classModel);
                 field.setOperationName(GraphQLNameHelper.getOperationName(bizObjName, action));
-                if (field.getAuth() == null) {
-                    String permission = GraphQLNameHelper.getPermission(bizObjName, action);
-                    field.setAuth(new ActionAuthMeta(Collections.emptySet(), buildImmutableSet(permission)));
-                }
+//                if (field.getAuth() == null) {
+//                    String permission = GraphQLNameHelper.getPermission(bizObjName, action);
+//                    field.setAuth(new ActionAuthMeta(Collections.emptySet(), MultiCsvSet.fromText(permission)));
+//                }
 
                 ret.addQueryAction(action, field);
                 continue;
@@ -271,10 +272,10 @@ public class ReflectionBizModelBuilder {
 
         Auth auth = func.getAnnotation(Auth.class);
         if (auth != null) {
-            field.setAuth(new ActionAuthMeta(buildImmutableSet(auth.roles()), buildImmutableSet(auth.permissions())));
+            field.setAuth(new ActionAuthMeta(buildImmutableSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
         } else {
-            String permission = bizObjName + ':' + opType;
-            field.setAuth(new ActionAuthMeta(Collections.emptySet(), Collections.singleton(permission)));
+            String permission = bizObjName + ':' + opType + "|" + bizObjName + ':' + name;
+            field.setAuth(new ActionAuthMeta(Collections.emptySet(), MultiCsvSet.fromText(permission)));
         }
 
         BizMakerChecker makerChecker = func.getAnnotation(BizMakerChecker.class);

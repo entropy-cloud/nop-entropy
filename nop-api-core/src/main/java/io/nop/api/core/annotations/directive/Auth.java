@@ -28,5 +28,5 @@ public @interface Auth {
     /**
      * 必须具有所有permission才认为具有权限
      */
-    String[] permissions() default {};
+    String permissions() default "";
 }

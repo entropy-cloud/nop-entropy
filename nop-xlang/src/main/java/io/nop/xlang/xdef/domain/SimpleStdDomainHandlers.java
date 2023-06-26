@@ -15,6 +15,7 @@ import io.nop.api.core.json.JsonParseOptions;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.bytes.ByteString;
+import io.nop.api.core.util.MultiCsvSet;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.regex.RegexHelper;
 import io.nop.commons.type.StdDataType;
@@ -688,6 +689,32 @@ public class SimpleStdDomainHandlers {
                 throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc).param(ARG_PROP_NAME, propName)
                         .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text);
             return value;
+        }
+    }
+
+
+    public static class MultiCsvSetType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_MULTI_CSV_SET;
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return ReflectionManager.instance().buildRawType(MultiCsvSet.class);
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (text instanceof MultiCsvSet)
+                return text;
+            return MultiCsvSet.fromText(StringHelper.toString(text, null));
         }
     }
 

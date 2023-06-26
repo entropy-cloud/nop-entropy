@@ -782,6 +782,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "NO_VALUE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PARAM_ENTITY_NAME"
       },
       {
@@ -823,6 +828,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "TREE_BEAN_PROP_TYPE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "YES_VALUE"
       }
     ],
     "methods": [],

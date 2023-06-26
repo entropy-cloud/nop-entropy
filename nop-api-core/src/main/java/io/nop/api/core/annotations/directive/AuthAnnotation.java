@@ -13,7 +13,7 @@ import java.lang.annotation.Annotation;
 
 public class AuthAnnotation implements Auth {
     private String[] roles = ApiConstants.EMPTY_STRING_ARRAY;
-    private String[] permissions = ApiConstants.EMPTY_STRING_ARRAY;
+    private String permissions = "";
     private boolean noAuth;
 
     public String[] roles() {
@@ -25,7 +25,7 @@ public class AuthAnnotation implements Auth {
         return noAuth;
     }
 
-    public void setNoAuth(boolean noAuth){
+    public void setNoAuth(boolean noAuth) {
         this.noAuth = noAuth;
     }
 
@@ -33,11 +33,11 @@ public class AuthAnnotation implements Auth {
         this.roles = roles;
     }
 
-    public String[] permissions() {
+    public String permissions() {
         return permissions;
     }
 
-    public void setPermissions(String[] permissions) {
+    public void setPermissions(String permissions) {
         this.permissions = permissions;
     }
 

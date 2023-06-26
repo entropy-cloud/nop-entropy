@@ -69,7 +69,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
                 authModel.addObj(objAuth);
             }
 
-            IEvalPredicate checker = ctx -> new BizFilterEvaluator((IServiceContext) ctx).testForEntity(filter.toTreeBean(), ctx.getEvalScope().getValue(AuthCoreConstants.VAR_ENTITY));
+            IEvalPredicate checker = ctx -> new BizFilterEvaluator(IServiceContext.fromEvalContext(ctx)).testForEntity(filter.toTreeBean(), ctx.getEvalScope().getValue(AuthCoreConstants.VAR_ENTITY));
             IXNodeGenerator filterBuilder = new BizFilterNodeGenerator(filter);
 
             RoleDataAuthModel roleAuth = objAuth.getRoleAuth(auth.getRoleId());
