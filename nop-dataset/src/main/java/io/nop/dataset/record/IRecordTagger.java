@@ -14,6 +14,6 @@ import java.util.Collection;
  *
  * @param <T>
  */
-public interface IRecordTagger<T> {
-    Collection<String> getTags(T record);
+public interface IRecordTagger<T,C> {
+    Collection<String> getTags(T record, C context);
 }

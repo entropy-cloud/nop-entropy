@@ -15,13 +15,13 @@ import java.util.function.BiConsumer;
  *
  * @param <T>
  */
-public interface IRecordSplitter<T, R> {
+public interface IRecordSplitter<T, R,C> {
 
-    default void splitMulti(Collection<? extends T> data, BiConsumer<String, R> collector) {
+    default void splitMulti(Collection<? extends T> data, BiConsumer<String, R> collector,C context) {
         for (T record : data) {
-            split(record, collector);
+            split(record, collector,context);
         }
     }
 
-    void split(T record, BiConsumer<String, R> collector);
+    void split(T record, BiConsumer<String, R> collector, C context);
 }

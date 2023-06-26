@@ -14,6 +14,7 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.commons.cache.ICache;
+import io.nop.core.CoreConstants;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -101,4 +102,10 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
     IContext getContext();
 
     void setContext(IContext context);
+
+    static IServiceContext fromEvalContext(IEvalContext context) {
+        if (context instanceof IServiceContext)
+            return (IServiceContext) context;
+        return (IServiceContext) context.getEvalScope().getValue(CoreConstants.VAR_SVC_CTX);
+    }
 }

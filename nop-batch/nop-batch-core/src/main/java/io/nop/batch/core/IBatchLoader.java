@@ -7,7 +7,10 @@
  */
 package io.nop.batch.core;
 
+import io.nop.api.core.util.FutureHelper;
+
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 
 /**
  * <p>
@@ -23,4 +26,8 @@ public interface IBatchLoader<S, C> {
      * @return 返回空集合表示所有数据已经加载完毕
      */
     List<S> load(int batchSize, C context);
+
+    default CompletionStage<List<S>> loadAsync(int batchSize, C context) {
+        return FutureHelper.futureCall(() -> load(batchSize, context));
+    }
 }

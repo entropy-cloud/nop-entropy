@@ -31,12 +31,12 @@ import java.util.function.Function;
 public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkContext>, IBatchTaskListener {
     static final Logger LOG = LoggerFactory.getLogger(SplitBatchConsumer.class);
 
-    private final IRecordSplitter<R, T> splitter;
+    private final IRecordSplitter<R, T, IBatchChunkContext> splitter;
     private final Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider;
 
     private final Map<String, IBatchConsumer<T, IBatchChunkContext>> activeConsumers = new HashMap<>();
 
-    public SplitBatchConsumer(IRecordSplitter<R, T> splitter,
+    public SplitBatchConsumer(IRecordSplitter<R, T, IBatchChunkContext> splitter,
                               Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider) {
         this.splitter = splitter;
         this.consumerProvider = consumerProvider;
@@ -69,7 +69,7 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkCo
     @Override
     public void consume(List<R> items, IBatchChunkContext context) {
         MultiMapCollector<String, T> collector = new MultiMapCollector<>();
-        splitter.splitMulti(items, collector);
+        splitter.splitMulti(items, collector, context);
         Map<String, List<T>> map = collector.getResultMap();
         for (Map.Entry<String, List<T>> entry : map.entrySet()) {
             IBatchConsumer<T, IBatchChunkContext> consumer = getConsumer(entry.getKey(), context);

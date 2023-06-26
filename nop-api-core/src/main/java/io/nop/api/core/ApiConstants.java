@@ -235,4 +235,7 @@ public interface ApiConstants extends FilterBeanConstants {
     String MDC_NOP_SESSION = "nop-session";
     String MDC_NOP_USER = "nop-user";
     String MDC_NOP_TRACE = "nop-trace";
+
+    String YES_VALUE = "1";
+    String NO_VALUE = "0";
 }
