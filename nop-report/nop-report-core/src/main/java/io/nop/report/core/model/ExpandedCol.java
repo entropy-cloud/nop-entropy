@@ -29,7 +29,7 @@ public class ExpandedCol implements IColumnConfig {
         ExpandedCell cell = firstCell;
         do {
             action.accept(cell);
-            cell = cell.getRight();
+            cell = cell.getDown();
             if (cell == null)
                 break;
         } while (true);

@@ -7,6 +7,7 @@
  */
 package io.nop.excel.model;
 
+import io.nop.core.model.table.CellPosition;
 import io.nop.excel.model._gen._ExcelCell;
 
 public class ExcelCell extends _ExcelCell {
@@ -55,7 +56,13 @@ public class ExcelCell extends _ExcelCell {
     }
 
     public String toString() {
-        return getClass().getSimpleName() + "[text=" + getText() + (isProxyCell() ? ",proxy" : "") + ",loc=" + getLocation() + "]";
+        return getClass().getSimpleName() + "[text=" + getText() + (getModelCellName() == null ? "," + getModelCellName() : "")
+                + (isProxyCell() ? ",proxy" : "") + ",loc=" + getLocation() + "]";
+    }
+
+    public String getModelCellName() {
+        XptCellModel cellModel = getModel();
+        return cellModel == null ? null : cellModel.getName();
     }
 
     public XptCellModel makeModel() {

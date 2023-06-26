@@ -477,7 +477,7 @@ public class XptModelBuilder {
             // 1. 整个单元格的延展范围包含了展开单元格的范围
             // 2. 且不是展开单元格的子单元格
             if (rcModel.getColIndex() <= beginIndex
-                    && rcModel.getColIndex() + ic.getColSpan() >= endIndex) {
+                    && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
                 if (!xptModel.getColDuplicateCells().containsKey(name)) {
                     xptModel.addColExtendCell(rc);
                 }
