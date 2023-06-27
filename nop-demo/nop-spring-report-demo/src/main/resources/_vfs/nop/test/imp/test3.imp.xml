@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     templatePath="template3.test.xlsx"
+     xmlns:xpt="xpt">
+
+    <!--    <x:post-extends>-->
+    <!--        <imp-gen:TreeTableSupport xpl:lib="/nop/excel/xlib/imp-gen.xlib"/>-->
+    <!--    </x:post-extends>-->
+
+    <sheets>
+        <sheet name="指标">
+            <fields>
+
+                <field name="projectName" displayName="项目名称" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="projectNo" displayName="项目号">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="batchNo" displayName="批次号">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="time" displayName="日期">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="columns" displayName="项目指标" list="true" keyProp="name">
+                    <fields>
+                        <field name="name" displayName="指标" mandatory="true"/>
+                        <field name="ext:level" displayName="层级" mandatory="true"/>
+
+                        <field name="name_L0" displayName="L0指标" prop="name" ignoreWhenEmpty="true">
+                            <normalizeFieldsExpr>
+                                record['ext:level'] = 0
+                            </normalizeFieldsExpr>
+
+                            <xpt:valueExpr>
+                                cell.rp.ev['ext:level'] == 0 ? cell.rp.ev.name : null;
+                            </xpt:valueExpr>
+
+                            <xpt:styleIdExpr>
+                                cell.value  == 'A2' ? 'red' : null
+                            </xpt:styleIdExpr>
+                        </field>
+
+                        <field name="name_L1" displayName="L1指标" prop="name" ignoreWhenEmpty="true">
+                            <normalizeFieldsExpr>
+                                record['ext:level'] = 1
+                            </normalizeFieldsExpr>
+
+                            <xpt:valueExpr>
+                                cell.rp.ev['ext:level'] == 1 ? cell.rp.ev.name : null;
+                            </xpt:valueExpr>
+                        </field>
+
+                        <field name="name_L2" displayName="L2指标" prop="name" ignoreWhenEmpty="true">
+                            <normalizeFieldsExpr>
+                                record['ext:level'] = 2
+                            </normalizeFieldsExpr>
+
+                            <xpt:valueExpr>
+                                cell.rp.ev['ext:level'] == 2 ? cell.rp.ev.name : null;
+                            </xpt:valueExpr>
+                        </field>
+
+                        <field name="name_L3" displayName="L3指标" prop="name" ignoreWhenEmpty="true">
+                            <normalizeFieldsExpr>
+                                record['ext:level'] = 3
+                            </normalizeFieldsExpr>
+
+                            <xpt:valueExpr>
+                                cell.rp.ev['ext:level'] == 3 ? cell.rp.ev.name : null;
+                            </xpt:valueExpr>
+                        </field>
+
+                        <field name="unit" displayName="单位" mandatory="true"/>
+
+                        <!--
+                        virtual=true表示是虚拟字段，只是执行它的valueExpr，并不会自动设置属性到record对象上
+                        -->
+                        <field name="indexValue" displayName="X年指标" virtual="true">
+                            <schema stdDomain="int"/>
+                            <valueExpr>
+                                // 如果是第一次访问indexValues属性，则自动创建一个List
+                                let list = record.makeList('indexValues')
+                                let year = fieldLabel.$removeTail('指标').$toInt()
+                                list.add({ year, value})
+                            </valueExpr>
+
+                            <xpt:labelExpandExpr>
+                                <!-- 外部传入的年份列表数据 -->
+                                indexYears
+                            </xpt:labelExpandExpr>
+
+                            <!-- 根据展开表达式值动态构建字段标题 -->
+                            <xpt:labelValueExpr>
+                                cell.ev + '指标'
+                            </xpt:labelValueExpr>
+
+                            <xpt:valueExpr>
+                                _.findWhere(cell.rp.ev.indexValues,'year',cell.cp.ev.$toInt()).value
+                            </xpt:valueExpr>
+
+                            <xpt:labelStyleIdExpr>
+                                cell.ev == 2002 ? 'red' : null
+                            </xpt:labelStyleIdExpr>
+
+                            <xpt:styleIdExpr>
+                                cell.value > 300 ? 'red' : null
+                            </xpt:styleIdExpr>
+                        </field>
+
+                    </fields>
+
+                    <!--
+                    动态计算字段名，用于获取解析配置
+                    -->
+                    <fieldDecider>
+                        fieldLabel.endsWith("指标") ? "indexValue" : null
+                    </fieldDecider>
+                </field>
+            </fields>
+
+
+            <normalizeFieldsExpr>
+                import io.nop.excel.imp.util.ImportDataHelper;
+
+                ImportDataHelper.normalizeTree(record.columns, "children","ext:level",null);
+            </normalizeFieldsExpr>
+
+            <xpt:beforeExpand>
+                import io.nop.excel.imp.util.ImportDataHelper;
+                entity.columns = ImportDataHelper.flattenTree(entity.columns, "children",false);
+            </xpt:beforeExpand>
+        </sheet>
+    </sheets>
+</imp>

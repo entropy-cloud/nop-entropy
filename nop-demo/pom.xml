@@ -21,6 +21,7 @@
         <module>nop-spring-demo</module>
         <module>nop-rpc-client-demo</module>
         <module>nop-rpc-server-demo</module>
+        <module>nop-spring-report-demo</module>
     </modules>
 
 </project>
