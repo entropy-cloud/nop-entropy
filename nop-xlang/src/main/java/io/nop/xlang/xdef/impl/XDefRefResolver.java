@@ -257,7 +257,7 @@ public class XDefRefResolver {
 
         mergeChildren(refNode, defNode);
 
-        if (defNode.getXdefBeanChildName() == null) {
+        if (defNode.getXdefBeanChildName() == null && defNode.getXdefKeyAttr() != null) {
             if (defNode.getChildren().size() == 1) {
                 IXDefNode childDef = defNode.getChildren().values().iterator().next();
                 if (!childDef.isUnknownTag())
