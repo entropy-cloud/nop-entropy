@@ -3,7 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <groupId>io.github.entropy-cloud</groupId>
-    <artifactId>nop-spring-reportdemo</artifactId>
+    <artifactId>nop-spring-report-demo</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
 
@@ -44,6 +44,12 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-spring-core-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>nop-codegen</artifactId>
+                    <groupId>io.github.entropy-cloud</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Excel解析和报表引擎支持 -->
@@ -59,4 +65,52 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.7.3</version>
+                <configuration>
+                    <!--                    <classifier>${repackage.classifier}</classifier>-->
+                    <!--                    <image>-->
+                    <!--                        <builder>paketobuildpacks/builder:tiny</builder>-->
+                    <!--                        <env>-->
+                    <!--                            <BP_NATIVE_IMAGE>true</BP_NATIVE_IMAGE>-->
+                    <!--                        </env>-->
+                    <!--                    </image>-->
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>exec</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--            <plugin>-->
+            <!--                <groupId>org.springframework.experimental</groupId>-->
+            <!--                <artifactId>spring-aot-maven-plugin</artifactId>-->
+            <!--                <version>${spring-native.version}</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>test-generate</id>-->
+            <!--                        <goals>-->
+            <!--                            <goal>test-generate</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                    <execution>-->
+            <!--                        <id>generate</id>-->
+            <!--                        <goals>-->
+            <!--                            <goal>generate</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
+        </plugins>
+    </build>
 </project>
