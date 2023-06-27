@@ -257,11 +257,15 @@ public class XDefRefResolver {
 
         mergeChildren(refNode, defNode);
 
-        if (defNode.getXdefBeanChildName() == null && defNode.getXdefKeyAttr() != null) {
-            if (defNode.getChildren().size() == 1) {
-                IXDefNode childDef = defNode.getChildren().values().iterator().next();
-                if (!childDef.isUnknownTag())
-                    defNode.setXdefBeanChildName(childDef.getTagName());
+        if (defNode.getXdefBeanChildName() == null) {
+            if (defNode.getXdefKeyAttr() != null) {
+                if (defNode.getChildren().size() == 1) {
+                    IXDefNode childDef = defNode.getChildren().values().iterator().next();
+                    if (!childDef.isUnknownTag())
+                        defNode.setXdefBeanChildName(StringHelper.xmlNameToVarName(childDef.getTagName()));
+                }
+            } else if (defNode.getXdefUniqueAttr() != null) {
+                defNode.setXdefBeanChildName(StringHelper.xmlNameToVarName(defNode.getTagName()));
             }
         }
     }

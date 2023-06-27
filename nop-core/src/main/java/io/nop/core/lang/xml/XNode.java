@@ -335,7 +335,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public void setTagName(String tagName) {
         checkNotReadOnly();
-        this.tagName = tagName;
+        this.tagName = Guard.notEmpty(tagName,"tagName");
     }
 
     public SourceLocation getLocation() {

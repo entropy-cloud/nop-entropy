@@ -416,11 +416,15 @@ public class XDefToObjMeta {
                 name = StringHelper.xmlNameToPropName(node.getTagName());
             prop.setName(name);
             prop.setSchema(toSchema(node));
-            if (prop.getChildName() == null && prop.getSchema().isListSchema()) {
+            if (prop.getSchema().isListSchema()) {
                 IXDefNode child = getUniqueChild(node);
                 if (child != null && !child.isUnknownTag()) {
-                    prop.setChildName(StringHelper.xmlNameToPropName(child.getTagName()));
-                    prop.setChildXmlName(child.getTagName());
+                    if (prop.getChildName() == null) {
+                        prop.setChildName(StringHelper.xmlNameToPropName(child.getTagName()));
+                    }
+
+                    if (prop.getChildXmlName() == null)
+                        prop.setChildXmlName(child.getTagName());
                 }
             }
         } else {

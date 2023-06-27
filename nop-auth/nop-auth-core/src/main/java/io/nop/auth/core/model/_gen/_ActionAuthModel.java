@@ -93,15 +93,15 @@ public abstract class _ActionAuthModel extends io.nop.core.resource.component.Ab
     }
 
     
-    public io.nop.auth.api.messages.SiteMapBean getResource(String name){
+    public io.nop.auth.api.messages.SiteMapBean getSite(String name){
         return this._sites.getByKey(name);
     }
 
-    public boolean hasResource(String name){
+    public boolean hasSite(String name){
         return this._sites.containsKey(name);
     }
 
-    public void addResource(io.nop.auth.api.messages.SiteMapBean item) {
+    public void addSite(io.nop.auth.api.messages.SiteMapBean item) {
         checkAllowChange();
         java.util.List<io.nop.auth.api.messages.SiteMapBean> list = this.getSites();
         if (list == null || list.isEmpty()) {

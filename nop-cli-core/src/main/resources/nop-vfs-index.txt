@@ -34,6 +34,7 @@
 /nop/core/registry/xpl.register-model.xml
 /nop/core/registry/xpt.register-model.xml
 /nop/core/registry/xtask.register-model.xml
+/nop/core/xlib/file.xlib
 /nop/dao/beans/dao-defaults.beans.xml
 /nop/dao/dialect/db2.dialect.xml
 /nop/dao/dialect/default.dialect.xml
@@ -52,6 +53,7 @@
 /nop/dao/dialect/selector/oracle.selector.yaml
 /nop/dao/dialect/selector/postgresql.selector.yaml
 /nop/dao/dialect/tdengine.dialect.xml
+/nop/excel/xlib/imp-gen.xlib
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/imp/api.imp.xml
@@ -132,10 +134,6 @@
 /nop/schema/xui/store.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
-/nop/sys/_module
-/nop/sys/beans/_dao.beans.xml
-/nop/sys/orm/_app.orm.xml
-/nop/sys/orm/app.orm.xml
 /nop/templates/antlr/@init.xrun
 /nop/templates/antlr/src/main/java/{parser.packagePath}/_{parser.name}ASTBuildVisitor.java.xgen
 /nop/templates/antlr/src/main/java/{parser.packagePath}/{parser.name}ASTBuildVisitor.java.xgen
