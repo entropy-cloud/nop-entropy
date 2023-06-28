@@ -73,7 +73,6 @@ public class GraphQLWebService {
         ContextBinder binder = new ContextBinder();
         IGraphQLExecutionContext context = null;
         try {
-            context = newGraphQLContext(engine);
 
             GraphQLRequestBean request = (GraphQLRequestBean) JSON.parseToBean(null, body, GraphQLRequestBean.class);
             LOG.debug("nop.graphql.parse:vars={},document=\n{}", request.getVariables(), request.getQuery());
