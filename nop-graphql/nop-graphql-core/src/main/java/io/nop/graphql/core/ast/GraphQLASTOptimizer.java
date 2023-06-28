@@ -106,7 +106,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDefinition> definitionsOpt = optimizeList(node.getDefinitions(),true, context);
                             if(definitionsOpt != node.getDefinitions()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(definitionsOpt); ret = node.deepClone();}
                                 ret.setDefinitions(definitionsOpt);
                             }
                         
@@ -124,7 +124,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLArgument> argumentsOpt = optimizeList(node.getArguments(),true, context);
                             if(argumentsOpt != node.getArguments()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argumentsOpt); ret = node.deepClone();}
                                 ret.setArguments(argumentsOpt);
                             }
                         
@@ -142,7 +142,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLValue valueOpt = (io.nop.graphql.core.ast.GraphQLValue)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -167,7 +167,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLValue> itemsOpt = optimizeList(node.getItems(),true, context);
                             if(itemsOpt != node.getItems()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(itemsOpt); ret = node.deepClone();}
                                 ret.setItems(itemsOpt);
                             }
                         
@@ -185,7 +185,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLPropertyValue> propertiesOpt = optimizeList(node.getProperties(),true, context);
                             if(propertiesOpt != node.getProperties()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(propertiesOpt); ret = node.deepClone();}
                                 ret.setProperties(propertiesOpt);
                             }
                         
@@ -203,7 +203,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLValue valueOpt = (io.nop.graphql.core.ast.GraphQLValue)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -228,7 +228,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -239,7 +239,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLVariableDefinition> variableDefinitionsOpt = optimizeList(node.getVariableDefinitions(),true, context);
                             if(variableDefinitionsOpt != node.getVariableDefinitions()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(variableDefinitionsOpt); ret = node.deepClone();}
                                 ret.setVariableDefinitions(variableDefinitionsOpt);
                             }
                         
@@ -250,7 +250,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLSelectionSet selectionSetOpt = (io.nop.graphql.core.ast.GraphQLSelectionSet)optimize(node.getSelectionSet(),context);
                             if(selectionSetOpt != node.getSelectionSet()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { selectionSetOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSelectionSet(selectionSetOpt);
                             }
                         
@@ -268,7 +268,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -279,7 +279,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLType typeOpt = (io.nop.graphql.core.ast.GraphQLType)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -290,7 +290,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLValue defaultValueOpt = (io.nop.graphql.core.ast.GraphQLValue)optimize(node.getDefaultValue(),context);
                             if(defaultValueOpt != node.getDefaultValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { defaultValueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDefaultValue(defaultValueOpt);
                             }
                         
@@ -315,7 +315,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLType typeOpt = (io.nop.graphql.core.ast.GraphQLType)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -333,7 +333,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLType typeOpt = (io.nop.graphql.core.ast.GraphQLType)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -351,7 +351,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLSelection> selectionsOpt = optimizeList(node.getSelections(),true, context);
                             if(selectionsOpt != node.getSelections()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(selectionsOpt); ret = node.deepClone();}
                                 ret.setSelections(selectionsOpt);
                             }
                         
@@ -369,7 +369,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -380,7 +380,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLArgument> argumentsOpt = optimizeList(node.getArguments(),true, context);
                             if(argumentsOpt != node.getArguments()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argumentsOpt); ret = node.deepClone();}
                                 ret.setArguments(argumentsOpt);
                             }
                         
@@ -391,7 +391,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLSelectionSet selectionSetOpt = (io.nop.graphql.core.ast.GraphQLSelectionSet)optimize(node.getSelectionSet(),context);
                             if(selectionSetOpt != node.getSelectionSet()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { selectionSetOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSelectionSet(selectionSetOpt);
                             }
                         
@@ -409,7 +409,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -427,7 +427,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -438,7 +438,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLSelectionSet selectionSetOpt = (io.nop.graphql.core.ast.GraphQLSelectionSet)optimize(node.getSelectionSet(),context);
                             if(selectionSetOpt != node.getSelectionSet()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { selectionSetOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSelectionSet(selectionSetOpt);
                             }
                         
@@ -456,7 +456,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -467,7 +467,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLFieldDefinition> fieldsOpt = optimizeList(node.getFields(),true, context);
                             if(fieldsOpt != node.getFields()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(fieldsOpt); ret = node.deepClone();}
                                 ret.setFields(fieldsOpt);
                             }
                         
@@ -485,7 +485,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -496,7 +496,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLType typeOpt = (io.nop.graphql.core.ast.GraphQLType)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -507,7 +507,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLArgumentDefinition> argumentsOpt = optimizeList(node.getArguments(),true, context);
                             if(argumentsOpt != node.getArguments()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argumentsOpt); ret = node.deepClone();}
                                 ret.setArguments(argumentsOpt);
                             }
                         
@@ -525,7 +525,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -536,7 +536,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLInputFieldDefinition> fieldsOpt = optimizeList(node.getFields(),true, context);
                             if(fieldsOpt != node.getFields()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(fieldsOpt); ret = node.deepClone();}
                                 ret.setFields(fieldsOpt);
                             }
                         
@@ -554,7 +554,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -565,7 +565,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLType typeOpt = (io.nop.graphql.core.ast.GraphQLType)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -576,7 +576,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLValue defaultValueOpt = (io.nop.graphql.core.ast.GraphQLValue)optimize(node.getDefaultValue(),context);
                             if(defaultValueOpt != node.getDefaultValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { defaultValueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDefaultValue(defaultValueOpt);
                             }
                         
@@ -594,7 +594,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -605,7 +605,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLType typeOpt = (io.nop.graphql.core.ast.GraphQLType)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -616,7 +616,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             io.nop.graphql.core.ast.GraphQLValue defaultValueOpt = (io.nop.graphql.core.ast.GraphQLValue)optimize(node.getDefaultValue(),context);
                             if(defaultValueOpt != node.getDefaultValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { defaultValueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDefaultValue(defaultValueOpt);
                             }
                         
@@ -634,7 +634,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -645,7 +645,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLArgumentDefinition> argumentsOpt = optimizeList(node.getArguments(),true, context);
                             if(argumentsOpt != node.getArguments()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argumentsOpt); ret = node.deepClone();}
                                 ret.setArguments(argumentsOpt);
                             }
                         
@@ -663,7 +663,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -674,7 +674,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> typesOpt = optimizeList(node.getTypes(),true, context);
                             if(typesOpt != node.getTypes()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typesOpt); ret = node.deepClone();}
                                 ret.setTypes(typesOpt);
                             }
                         
@@ -692,7 +692,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -710,7 +710,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         
@@ -721,7 +721,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLEnumValueDefinition> enumValuesOpt = optimizeList(node.getEnumValues(),true, context);
                             if(enumValuesOpt != node.getEnumValues()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(enumValuesOpt); ret = node.deepClone();}
                                 ret.setEnumValues(enumValuesOpt);
                             }
                         
@@ -739,7 +739,7 @@ public class GraphQLASTOptimizer<C> extends AbstractOptimizer<GraphQLASTNode,C>{
                             java.util.List<io.nop.graphql.core.ast.GraphQLDirective> directivesOpt = optimizeList(node.getDirectives(),true, context);
                             if(directivesOpt != node.getDirectives()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(directivesOpt); ret = node.deepClone();}
                                 ret.setDirectives(directivesOpt);
                             }
                         

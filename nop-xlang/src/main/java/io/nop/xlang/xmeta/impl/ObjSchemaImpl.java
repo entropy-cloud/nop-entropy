@@ -13,6 +13,7 @@ import io.nop.xlang.xmeta.impl._gen._ObjSchemaImpl;
 
 public class ObjSchemaImpl extends _ObjSchemaImpl implements IObjSchemaImpl {
 
+
     @Override
     public boolean isPropInherited(String name) {
         if (getRefSchema() != null)

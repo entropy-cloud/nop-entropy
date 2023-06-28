@@ -25,8 +25,8 @@ public class ValidatorCheckModel extends _ValidatorCheckModel {
             node.setAttr("severity", getSeverity());
 
         if (getCondition() != null) {
-            XNode conditionN = XNode.fromTreeBean(getCondition());
-            node.appendChild(conditionN);
+            XNode conditionN = getCondition();
+            node.appendChildren(conditionN.cloneChildren());
         }
         return node;
     }

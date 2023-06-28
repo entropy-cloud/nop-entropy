@@ -7,10 +7,15 @@
  */
 package io.nop.xlang.xmeta.impl;
 
+import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.xlang.xmeta.impl._gen._ObjPropAuthModel;
 
 public class ObjPropAuthModel extends _ObjPropAuthModel {
     public ObjPropAuthModel() {
 
+    }
+
+    public ActionAuthMeta toActionAuthMeta() {
+        return new ActionAuthMeta(getRoles(), getPermissions());
     }
 }

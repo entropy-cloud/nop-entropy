@@ -32,7 +32,8 @@ public class ValidatorModel extends _ValidatorModel {
         }
 
         if (getCondition() != null) {
-            XNode conditionN = XNode.fromTreeBean(getCondition());
+            XNode conditionN = getCondition().cloneInstance();
+            conditionN.setTagName("condition");
             node.appendChild(conditionN);
         }
 

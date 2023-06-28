@@ -24,6 +24,8 @@ public interface BizErrors {
 
     String ARG_PROP_NAME = "propName";
 
+    String ARG_PROP_DISPLAY_NAME = "propDisplayName";
+
     String ARG_DISPLAY_NAME = "displayName";
 
     String ARG_RELATION = "relation";
@@ -126,6 +128,8 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_OBJECT_NOT_SUPPORT_ACTION = define("nop.err.biz.object-not-support-action",
             "业务对象[{bizObjName}]不支持函数[{actionName}]", ARG_BIZ_OBJ_NAME, ARG_ACTION_NAME);
 
+    ErrorCode ERR_BIZ_NOT_ALLOW_WRITE_PROP =
+            define("nop.err.biz.not-allow-write-prop", "不允许修改属性:{propName}", ARG_PROP_NAME);
     ErrorCode ERR_BIZ_ACTION_ARG_NOT_FIELD_SELECTION = define("nop.err.biz.action-arg-not-field-selection",
             "通过thisObj来调用业务对象[{bizObjName}]的业务处理函数[{actionName}]时，传入的参数不是FieldSelectionBean类型", ARG_BIZ_OBJ_NAME,
             ARG_ACTION_NAME);

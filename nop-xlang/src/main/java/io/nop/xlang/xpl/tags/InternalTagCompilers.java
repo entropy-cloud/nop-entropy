@@ -37,6 +37,7 @@ public class InternalTagCompilers {
         registerTagCompiler("c:unit", UnitTagCompiler.INSTANCE);
         registerTagCompiler("c:var", VarTagCompiler.INSTANCE);
         registerTagCompiler("c:while", WhileTagCompiler.INSTANCE);
+        registerTagCompiler("c:ast",AstTagCompiler.INSTANCE);
 
         registerTagCompiler("macro:var", MacroVarTagCompiler.INSTANCE);
         registerTagCompiler("macro:gen", MacroGenTagCompiler.INSTANCE);

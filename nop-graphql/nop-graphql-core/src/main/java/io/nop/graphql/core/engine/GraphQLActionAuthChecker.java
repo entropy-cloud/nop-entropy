@@ -22,9 +22,9 @@ import io.nop.graphql.core.ast.GraphQLOperation;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 
-import java.util.Set;
-
+import static io.nop.auth.api.AuthApiErrors.ARG_OBJ_TYPE_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_PERMISSION;
+import static io.nop.auth.api.AuthApiErrors.ARG_ROLES;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 
 public class GraphQLActionAuthChecker {
@@ -44,13 +44,15 @@ public class GraphQLActionAuthChecker {
         GraphQLOperation operation = context.getOperation();
         FieldSelectionBean selectionBean = context.getFieldSelection();
 
+        String objTypeName = operation.getSelectionSet().getObjTypeName();
+
         for (GraphQLSelection field : operation.getSelectionSet().getSelections()) {
             GraphQLFieldSelection selection = (GraphQLFieldSelection) field;
             FieldSelectionBean subSelection = selectionBean.getField(selection.getAliasOrName());
             if (subSelection == null)
                 continue;
 
-            checkAuth(selection, checker, context);
+            checkAuth(objTypeName, selection, checker, context);
 
             checkSelectionSet(selection.getSelectionSet(), subSelection, checker, userContext, context);
         }
@@ -60,6 +62,8 @@ public class GraphQLActionAuthChecker {
                            IActionAuthChecker checker, IUserContext userContext, IGraphQLExecutionContext context) {
         if (selectionSet == null)
             return;
+
+        String objTypeName = selectionSet.getObjTypeName();
 
         for (GraphQLSelection selection : selectionSet.getSelections()) {
             if (selection instanceof GraphQLFragmentSelection) {
@@ -72,14 +76,14 @@ public class GraphQLActionAuthChecker {
                 if (subSelection == null)
                     continue;
 
-                checkAuth(fieldSelection, checker, context);
+                checkAuth(objTypeName, fieldSelection, checker, context);
 
                 checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, userContext, context);
             }
         }
     }
 
-    void checkAuth(GraphQLFieldSelection selection, IActionAuthChecker checker, IGraphQLExecutionContext context) {
+    void checkAuth(String objTypeName, GraphQLFieldSelection selection, IActionAuthChecker checker, IGraphQLExecutionContext context) {
         GraphQLFieldDefinition field = selection.getFieldDefinition();
         ActionAuthMeta auth = field.getAuth();
         if (auth == null)
@@ -92,20 +96,15 @@ public class GraphQLActionAuthChecker {
         }
 
         if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
-            for (Set<String> permissions : auth.getPermissions()) {
-                if (isPermitted(permissions, checker, context))
-                    return;
-            }
+            if (checker.isPermissionSetSatisfied(auth.getPermissions(), context))
+                return;
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION).source(field)
-                    .param(ARG_PERMISSION, auth.getPermissions()).param(ARG_FIELD_NAME, field.getName());
+                    .param(ARG_PERMISSION, auth.getPermissions())
+                    .param(ARG_FIELD_NAME, field.getName())
+                    .param(ARG_OBJ_TYPE_NAME, objTypeName);
         }
-    }
 
-    private boolean isPermitted(Set<String> permissions, IActionAuthChecker checker, IGraphQLExecutionContext context) {
-        for (String permission : permissions) {
-            if (!checker.isPermitted(permission, context))
-                return false;
-        }
-        return true;
+        throw new NopException(AuthApiErrors.ERR_AUTH_NO_ROLE).source(field)
+                .param(ARG_ROLES, auth.getRoles()).param(ARG_FIELD_NAME, field.getName());
     }
 }

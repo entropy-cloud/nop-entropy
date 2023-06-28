@@ -38,9 +38,9 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: auth
-     * 
+     * 配置字段级别的权限约束
      */
-    private io.nop.api.core.auth.ActionAuthMeta _auth ;
+    private KeyedList<io.nop.xlang.xmeta.impl.ObjPropAuthModel> _auths = KeyedList.emptyList();
     
     /**
      *  
@@ -340,21 +340,47 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: auth
-     *  
+     *  配置字段级别的权限约束
      */
     
-    public io.nop.api.core.auth.ActionAuthMeta getAuth(){
-      return _auth;
+    public java.util.List<io.nop.xlang.xmeta.impl.ObjPropAuthModel> getAuths(){
+      return _auths;
     }
 
     
-    public void setAuth(io.nop.api.core.auth.ActionAuthMeta value){
+    public void setAuths(java.util.List<io.nop.xlang.xmeta.impl.ObjPropAuthModel> value){
         checkAllowChange();
         
-        this._auth = value;
+        this._auths = KeyedList.fromList(value, io.nop.xlang.xmeta.impl.ObjPropAuthModel::getFor);
            
     }
 
+    
+    public io.nop.xlang.xmeta.impl.ObjPropAuthModel getAuth(String name){
+        return this._auths.getByKey(name);
+    }
+
+    public boolean hasAuth(String name){
+        return this._auths.containsKey(name);
+    }
+
+    public void addAuth(io.nop.xlang.xmeta.impl.ObjPropAuthModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xlang.xmeta.impl.ObjPropAuthModel> list = this.getAuths();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xlang.xmeta.impl.ObjPropAuthModel::getFor);
+            setAuths(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_auths(){
+        return this._auths.keySet();
+    }
+
+    public boolean hasAuths(){
+        return !this._auths.isEmpty();
+    }
     
     /**
      * 
@@ -937,7 +963,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         
            this._args = io.nop.api.core.util.FreezeHelper.deepFreeze(this._args);
             
-           this._auth = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auth);
+           this._auths = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auths);
             
            this._autoExpr = io.nop.api.core.util.FreezeHelper.deepFreeze(this._autoExpr);
             
@@ -952,7 +978,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.put("allowCpExpr",this.getAllowCpExpr());
         out.put("allowFilterOp",this.getAllowFilterOp());
         out.put("args",this.getArgs());
-        out.put("auth",this.getAuth());
+        out.put("auths",this.getAuths());
         out.put("autoExpr",this.getAutoExpr());
         out.put("childName",this.getChildName());
         out.put("childXmlName",this.getChildXmlName());

@@ -17,6 +17,8 @@ public interface XDslConstants {
 
     String XDSL_SCHEMA_QUERY_FILTER = "/nop/schema/query/filter.xdef";
 
+    String XDSL_SCHEMA_VALIDATOR = "/nop/schema/validator.xdef";
+
     String XDSL_SCHEMA_REGISTRY = "/nop/schema/registry.xdef";
 
     String XDSL_SCHEMA_SCHEMA = "/nop/schema/schema/schema.xdef";

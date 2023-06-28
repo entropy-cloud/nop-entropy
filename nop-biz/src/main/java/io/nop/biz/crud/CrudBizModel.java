@@ -404,7 +404,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         IObjMeta objMeta = bizObj.requireObjMeta();
 
         ObjMetaBasedValidator validator = new ObjMetaBasedValidator(bizObjectManager, bizObj.getBizObjName(), objMeta,
-                context);
+                context, true);
 
         Map<String, Object> validated = validator.validateForSave(data, inputSelection);
 
@@ -548,7 +548,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         IObjMeta objMeta = bizObj.requireObjMeta();
 
         ObjMetaBasedValidator validator = new ObjMetaBasedValidator(bizObjectManager, bizObj.getBizObjName(), objMeta,
-                context);
+                context, true);
 
         Map<String, Object> validated = validator.validateForUpdate(data, inputSelection);
 

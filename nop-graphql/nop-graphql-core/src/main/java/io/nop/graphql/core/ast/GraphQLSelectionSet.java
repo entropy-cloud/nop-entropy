@@ -24,6 +24,12 @@ public class GraphQLSelectionSet extends _GraphQLSelectionSet {
         this.objectDefinition = objectDefinition;
     }
 
+    public String getObjTypeName() {
+        if (objectDefinition == null)
+            return null;
+        return objectDefinition.getName();
+    }
+
     public GraphQLSelectionSet newInstance() {
         GraphQLSelectionSet ret = new GraphQLSelectionSet();
         ret.setObjectDefinition(objectDefinition);

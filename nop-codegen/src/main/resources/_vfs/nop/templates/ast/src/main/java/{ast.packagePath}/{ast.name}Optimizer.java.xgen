@@ -34,7 +34,7 @@ public class ${ast.name}Optimizer&lt;C> extends AbstractOptimizer&lt;${ast.name}
                             ${_f.type} ${_f.name}Opt = optimizeList(node.${_f.name.$methodGet()}(),true, context);
                             if(${_f.name}Opt != node.${_f.name.$methodGet()}()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(${_f.name}Opt); ret = node.deepClone();}
                                 ret.${_f.name.$methodSet()}(${_f.name}Opt);
                             }
                         </when>
@@ -42,7 +42,7 @@ public class ${ast.name}Optimizer&lt;C> extends AbstractOptimizer&lt;${ast.name}
                             ${_f.type} ${_f.name}Opt = (${_f.type})optimize(node.${_f.name.$methodGet()}(),context);
                             if(${_f.name}Opt != node.${_f.name.$methodGet()}()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { ${_f.name}Opt.setASTParent(null); ret = node.deepClone();}
                                ret.${_f.name.$methodSet()}(${_f.name}Opt);
                             }
                         </when>

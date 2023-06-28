@@ -1,0 +1,9 @@
+<meta x:extends="super" x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <props>
+        <prop name="extConfig">
+            <auth roles="manager,hr" for="read"/>
+            <auth roles="hr" for="write"/>
+        </prop>
+    </props>
+</meta>

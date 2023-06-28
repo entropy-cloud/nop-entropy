@@ -17,7 +17,7 @@ public class TestBizFilterEvaluator {
         XNode node = XNodeParser.instance().forFragments(true).parseFromText(null, text);
 
         Map<String, Object> entity = new HashMap<>();
-        entity.put("status", "1");
+        entity.put("status", 1);
 
         boolean b = new BizFilterEvaluator(new ServiceContextImpl()).testForEntity(node, entity);
         assertTrue(b);

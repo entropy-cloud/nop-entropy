@@ -33,6 +33,12 @@ public class ModelBasedValidator implements IValidator<IVariableScope> {
         this(validatorModel, FilterBeanEvaluator.INSTANCE);
     }
 
+    public void validateWithDefaultCollector(IVariableScope scope, int fatalSeverity) {
+        DefaultValidationErrorCollector collector = new DefaultValidationErrorCollector(fatalSeverity);
+        validate(scope, collector);
+        collector.end();
+    }
+
     @Override
     public void validate(IVariableScope scope, IValidationErrorCollector collector) {
 
@@ -65,7 +71,7 @@ public class ModelBasedValidator implements IValidator<IVariableScope> {
         if (condition == null)
             return true;
 
-        return Boolean.TRUE.equals(evaluator.visit(condition, scope));
+        return Boolean.TRUE.equals(evaluator.visitRoot(condition, scope));
     }
 
     private Map<String, Object> buildParams(Map<String, String> errorParams, IVariableScope scope) {

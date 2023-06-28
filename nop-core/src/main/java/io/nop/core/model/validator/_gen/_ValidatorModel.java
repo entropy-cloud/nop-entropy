@@ -7,12 +7,19 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [1:2:0:0]/nop/schema/validator.xdef <p>
+ * generate from [6:2:0:0]/nop/schema/validator.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public abstract class _ValidatorModel extends io.nop.core.resource.component.AbstractSimpleComponentModel {
+public abstract class _ValidatorModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: checkLibPath
+     * 在condition段以及check段中可以使用的判断标签
+     */
+    private java.lang.String _checkLibPath ;
     
     /**
      *  
@@ -44,10 +51,36 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: fatalSeverity
+     * 当exception的severity大于等于fatalSeverity的时候会立刻中断，抛出异常。否则会收集所有异常信息，最后统一抛出
+     */
+    private int _fatalSeverity  = 0;
+    
+    /**
+     *  
      * xml name: severity
-     * 
+     * 值越大严重性越高
      */
     private int _severity  = 0;
+    
+    /**
+     * 
+     * xml name: checkLibPath
+     *  在condition段以及check段中可以使用的判断标签
+     */
+    
+    public java.lang.String getCheckLibPath(){
+      return _checkLibPath;
+    }
+
+    
+    public void setCheckLibPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._checkLibPath = value;
+           
+    }
+
     
     /**
      * 
@@ -157,8 +190,27 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: fatalSeverity
+     *  当exception的severity大于等于fatalSeverity的时候会立刻中断，抛出异常。否则会收集所有异常信息，最后统一抛出
+     */
+    
+    public int getFatalSeverity(){
+      return _fatalSeverity;
+    }
+
+    
+    public void setFatalSeverity(int value){
+        checkAllowChange();
+        
+        this._fatalSeverity = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: severity
-     *  
+     *  值越大严重性越高
      */
     
     public int getSeverity(){
@@ -189,10 +241,12 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("checkLibPath",this.getCheckLibPath());
         out.put("checks",this.getChecks());
         out.put("condition",this.getCondition());
         out.put("errorCode",this.getErrorCode());
         out.put("errorParams",this.getErrorParams());
+        out.put("fatalSeverity",this.getFatalSeverity());
         out.put("severity",this.getSeverity());
     }
 }

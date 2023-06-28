@@ -23,6 +23,7 @@ import io.nop.xlang.xdef.SchemaKind;
 import io.nop.xlang.xdef.XDefOverride;
 import io.nop.xlang.xmeta.impl.ObjConditionExpr;
 import io.nop.xlang.xmeta.impl.ObjPropArgModel;
+import io.nop.xlang.xmeta.impl.ObjPropAuthModel;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,13 @@ public interface IObjPropMeta
 
     Integer getPropId();
 
-    ActionAuthMeta getAuth();
+    List<ObjPropAuthModel> getAuths();
+
+    ObjPropAuthModel getAuth(String authFor);
+
+    ActionAuthMeta getReadAuth();
+
+    ActionAuthMeta getWriteAuth();
 
     List<ObjPropArgModel> getArgs();
 

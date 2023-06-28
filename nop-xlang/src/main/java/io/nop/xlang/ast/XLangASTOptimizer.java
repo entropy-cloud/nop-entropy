@@ -334,7 +334,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.XLangASTNode> bodyOpt = optimizeList(node.getBody(),true, context);
                             if(bodyOpt != node.getBody()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(bodyOpt); ret = node.deepClone();}
                                 ret.setBody(bodyOpt);
                             }
                         
@@ -380,7 +380,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.Expression> bodyOpt = optimizeList(node.getBody(),true, context);
                             if(bodyOpt != node.getBody()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(bodyOpt); ret = node.deepClone();}
                                 ret.setBody(bodyOpt);
                             }
                         
@@ -405,7 +405,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -437,7 +437,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression testOpt = (io.nop.xlang.ast.Expression)optimize(node.getTest(),context);
                             if(testOpt != node.getTest()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { testOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTest(testOpt);
                             }
                         
@@ -448,7 +448,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression consequentOpt = (io.nop.xlang.ast.Expression)optimize(node.getConsequent(),context);
                             if(consequentOpt != node.getConsequent()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { consequentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setConsequent(consequentOpt);
                             }
                         
@@ -459,7 +459,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression alternateOpt = (io.nop.xlang.ast.Expression)optimize(node.getAlternate(),context);
                             if(alternateOpt != node.getAlternate()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { alternateOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAlternate(alternateOpt);
                             }
                         
@@ -477,7 +477,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression discriminantOpt = (io.nop.xlang.ast.Expression)optimize(node.getDiscriminant(),context);
                             if(discriminantOpt != node.getDiscriminant()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { discriminantOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDiscriminant(discriminantOpt);
                             }
                         
@@ -488,7 +488,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.SwitchCase> casesOpt = optimizeList(node.getCases(),true, context);
                             if(casesOpt != node.getCases()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(casesOpt); ret = node.deepClone();}
                                 ret.setCases(casesOpt);
                             }
                         
@@ -499,7 +499,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression defaultCaseOpt = (io.nop.xlang.ast.Expression)optimize(node.getDefaultCase(),context);
                             if(defaultCaseOpt != node.getDefaultCase()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { defaultCaseOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDefaultCase(defaultCaseOpt);
                             }
                         
@@ -517,7 +517,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression testOpt = (io.nop.xlang.ast.Expression)optimize(node.getTest(),context);
                             if(testOpt != node.getTest()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { testOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTest(testOpt);
                             }
                         
@@ -528,7 +528,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression consequentOpt = (io.nop.xlang.ast.Expression)optimize(node.getConsequent(),context);
                             if(consequentOpt != node.getConsequent()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { consequentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setConsequent(consequentOpt);
                             }
                         
@@ -546,7 +546,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -564,7 +564,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression blockOpt = (io.nop.xlang.ast.Expression)optimize(node.getBlock(),context);
                             if(blockOpt != node.getBlock()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { blockOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBlock(blockOpt);
                             }
                         
@@ -575,7 +575,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.CatchClause catchHandlerOpt = (io.nop.xlang.ast.CatchClause)optimize(node.getCatchHandler(),context);
                             if(catchHandlerOpt != node.getCatchHandler()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { catchHandlerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setCatchHandler(catchHandlerOpt);
                             }
                         
@@ -586,7 +586,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression finalizerOpt = (io.nop.xlang.ast.Expression)optimize(node.getFinalizer(),context);
                             if(finalizerOpt != node.getFinalizer()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { finalizerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setFinalizer(finalizerOpt);
                             }
                         
@@ -604,7 +604,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -615,7 +615,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode varTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getVarType(),context);
                             if(varTypeOpt != node.getVarType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { varTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setVarType(varTypeOpt);
                             }
                         
@@ -626,7 +626,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -644,7 +644,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression testOpt = (io.nop.xlang.ast.Expression)optimize(node.getTest(),context);
                             if(testOpt != node.getTest()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { testOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTest(testOpt);
                             }
                         
@@ -655,7 +655,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -673,7 +673,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -684,7 +684,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression testOpt = (io.nop.xlang.ast.Expression)optimize(node.getTest(),context);
                             if(testOpt != node.getTest()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { testOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTest(testOpt);
                             }
                         
@@ -702,7 +702,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.XLangASTNode idOpt = (io.nop.xlang.ast.XLangASTNode)optimize(node.getId(),context);
                             if(idOpt != node.getId()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { idOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setId(idOpt);
                             }
                         
@@ -713,7 +713,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode varTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getVarType(),context);
                             if(varTypeOpt != node.getVarType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { varTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setVarType(varTypeOpt);
                             }
                         
@@ -724,7 +724,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression initOpt = (io.nop.xlang.ast.Expression)optimize(node.getInit(),context);
                             if(initOpt != node.getInit()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { initOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInit(initOpt);
                             }
                         
@@ -742,7 +742,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.VariableDeclarator> declaratorsOpt = optimizeList(node.getDeclarators(),true, context);
                             if(declaratorsOpt != node.getDeclarators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(declaratorsOpt); ret = node.deepClone();}
                                 ret.setDeclarators(declaratorsOpt);
                             }
                         
@@ -760,7 +760,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression initOpt = (io.nop.xlang.ast.Expression)optimize(node.getInit(),context);
                             if(initOpt != node.getInit()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { initOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInit(initOpt);
                             }
                         
@@ -771,7 +771,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression testOpt = (io.nop.xlang.ast.Expression)optimize(node.getTest(),context);
                             if(testOpt != node.getTest()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { testOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTest(testOpt);
                             }
                         
@@ -782,7 +782,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression updateOpt = (io.nop.xlang.ast.Expression)optimize(node.getUpdate(),context);
                             if(updateOpt != node.getUpdate()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { updateOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setUpdate(updateOpt);
                             }
                         
@@ -793,7 +793,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -811,7 +811,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier indexOpt = (io.nop.xlang.ast.Identifier)optimize(node.getIndex(),context);
                             if(indexOpt != node.getIndex()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { indexOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setIndex(indexOpt);
                             }
                         
@@ -822,7 +822,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression leftOpt = (io.nop.xlang.ast.Expression)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -833,7 +833,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression rightOpt = (io.nop.xlang.ast.Expression)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -844,7 +844,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -862,7 +862,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier varOpt = (io.nop.xlang.ast.Identifier)optimize(node.getVar(),context);
                             if(varOpt != node.getVar()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { varOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setVar(varOpt);
                             }
                         
@@ -873,7 +873,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier indexOpt = (io.nop.xlang.ast.Identifier)optimize(node.getIndex(),context);
                             if(indexOpt != node.getIndex()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { indexOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setIndex(indexOpt);
                             }
                         
@@ -884,7 +884,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression beginOpt = (io.nop.xlang.ast.Expression)optimize(node.getBegin(),context);
                             if(beginOpt != node.getBegin()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { beginOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBegin(beginOpt);
                             }
                         
@@ -895,7 +895,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression endOpt = (io.nop.xlang.ast.Expression)optimize(node.getEnd(),context);
                             if(endOpt != node.getEnd()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { endOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setEnd(endOpt);
                             }
                         
@@ -906,7 +906,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression stepOpt = (io.nop.xlang.ast.Expression)optimize(node.getStep(),context);
                             if(stepOpt != node.getStep()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { stepOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setStep(stepOpt);
                             }
                         
@@ -917,7 +917,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -935,7 +935,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier indexOpt = (io.nop.xlang.ast.Identifier)optimize(node.getIndex(),context);
                             if(indexOpt != node.getIndex()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { indexOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setIndex(indexOpt);
                             }
                         
@@ -946,7 +946,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression leftOpt = (io.nop.xlang.ast.Expression)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -957,7 +957,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression rightOpt = (io.nop.xlang.ast.Expression)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -968,7 +968,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -986,7 +986,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -1004,7 +1004,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression exprOpt = (io.nop.xlang.ast.Expression)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1036,7 +1036,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier idOpt = (io.nop.xlang.ast.Identifier)optimize(node.getId(),context);
                             if(idOpt != node.getId()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { idOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setId(idOpt);
                             }
                         
@@ -1047,7 +1047,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.TemplateStringLiteral valueOpt = (io.nop.xlang.ast.TemplateStringLiteral)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -1065,7 +1065,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.XLangASTNode> elementsOpt = optimizeList(node.getElements(),true, context);
                             if(elementsOpt != node.getElements()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(elementsOpt); ret = node.deepClone();}
                                 ret.setElements(elementsOpt);
                             }
                         
@@ -1083,7 +1083,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.XLangASTNode> propertiesOpt = optimizeList(node.getProperties(),true, context);
                             if(propertiesOpt != node.getProperties()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(propertiesOpt); ret = node.deepClone();}
                                 ret.setProperties(propertiesOpt);
                             }
                         
@@ -1101,7 +1101,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression keyOpt = (io.nop.xlang.ast.Expression)optimize(node.getKey(),context);
                             if(keyOpt != node.getKey()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { keyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setKey(keyOpt);
                             }
                         
@@ -1112,7 +1112,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression valueOpt = (io.nop.xlang.ast.Expression)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -1130,7 +1130,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Decorators decoratorsOpt = (io.nop.xlang.ast.Decorators)optimize(node.getDecorators(),context);
                             if(decoratorsOpt != node.getDecorators()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { decoratorsOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -1141,7 +1141,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.XLangASTNode nameOpt = (io.nop.xlang.ast.XLangASTNode)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -1152,7 +1152,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode typeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -1163,7 +1163,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression initializerOpt = (io.nop.xlang.ast.Expression)optimize(node.getInitializer(),context);
                             if(initializerOpt != node.getInitializer()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { initializerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInitializer(initializerOpt);
                             }
                         
@@ -1181,7 +1181,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Decorators decoratorsOpt = (io.nop.xlang.ast.Decorators)optimize(node.getDecorators(),context);
                             if(decoratorsOpt != node.getDecorators()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { decoratorsOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -1192,7 +1192,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -1203,7 +1203,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.ParameterDeclaration> paramsOpt = optimizeList(node.getParams(),true, context);
                             if(paramsOpt != node.getParams()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(paramsOpt); ret = node.deepClone();}
                                 ret.setParams(paramsOpt);
                             }
                         
@@ -1214,7 +1214,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode returnTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getReturnType(),context);
                             if(returnTypeOpt != node.getReturnType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { returnTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setReturnType(returnTypeOpt);
                             }
                         
@@ -1225,7 +1225,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -1243,7 +1243,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.ParameterDeclaration> paramsOpt = optimizeList(node.getParams(),true, context);
                             if(paramsOpt != node.getParams()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(paramsOpt); ret = node.deepClone();}
                                 ret.setParams(paramsOpt);
                             }
                         
@@ -1254,7 +1254,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode returnTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getReturnType(),context);
                             if(returnTypeOpt != node.getReturnType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { returnTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setReturnType(returnTypeOpt);
                             }
                         
@@ -1265,7 +1265,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -1283,7 +1283,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -1301,7 +1301,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -1319,7 +1319,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression leftOpt = (io.nop.xlang.ast.Expression)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1330,7 +1330,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression rightOpt = (io.nop.xlang.ast.Expression)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1348,7 +1348,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression leftOpt = (io.nop.xlang.ast.Expression)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1359,7 +1359,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression rightOpt = (io.nop.xlang.ast.Expression)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1377,7 +1377,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression expressionOpt = (io.nop.xlang.ast.Expression)optimize(node.getExpression(),context);
                             if(expressionOpt != node.getExpression()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { expressionOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpression(expressionOpt);
                             }
                         
@@ -1395,7 +1395,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression leftOpt = (io.nop.xlang.ast.Expression)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1406,7 +1406,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression rightOpt = (io.nop.xlang.ast.Expression)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1424,7 +1424,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression leftOpt = (io.nop.xlang.ast.Expression)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1435,7 +1435,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression rightOpt = (io.nop.xlang.ast.Expression)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1453,7 +1453,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression objectOpt = (io.nop.xlang.ast.Expression)optimize(node.getObject(),context);
                             if(objectOpt != node.getObject()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { objectOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setObject(objectOpt);
                             }
                         
@@ -1464,7 +1464,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression propertyOpt = (io.nop.xlang.ast.Expression)optimize(node.getProperty(),context);
                             if(propertyOpt != node.getProperty()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { propertyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setProperty(propertyOpt);
                             }
                         
@@ -1482,7 +1482,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Literal sourceOpt = (io.nop.xlang.ast.Literal)optimize(node.getSource(),context);
                             if(sourceOpt != node.getSource()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { sourceOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSource(sourceOpt);
                             }
                         
@@ -1500,7 +1500,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression calleeOpt = (io.nop.xlang.ast.Expression)optimize(node.getCallee(),context);
                             if(calleeOpt != node.getCallee()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { calleeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setCallee(calleeOpt);
                             }
                         
@@ -1511,7 +1511,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.Expression> argumentsOpt = optimizeList(node.getArguments(),true, context);
                             if(argumentsOpt != node.getArguments()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argumentsOpt); ret = node.deepClone();}
                                 ret.setArguments(argumentsOpt);
                             }
                         
@@ -1529,7 +1529,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode calleeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getCallee(),context);
                             if(calleeOpt != node.getCallee()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { calleeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setCallee(calleeOpt);
                             }
                         
@@ -1540,7 +1540,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.Expression> argumentsOpt = optimizeList(node.getArguments(),true, context);
                             if(argumentsOpt != node.getArguments()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argumentsOpt); ret = node.deepClone();}
                                 ret.setArguments(argumentsOpt);
                             }
                         
@@ -1558,7 +1558,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -1576,7 +1576,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.Expression> expressionsOpt = optimizeList(node.getExpressions(),true, context);
                             if(expressionsOpt != node.getExpressions()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(expressionsOpt); ret = node.deepClone();}
                                 ret.setExpressions(expressionsOpt);
                             }
                         
@@ -1594,7 +1594,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.Expression> expressionsOpt = optimizeList(node.getExpressions(),true, context);
                             if(expressionsOpt != node.getExpressions()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(expressionsOpt); ret = node.deepClone();}
                                 ret.setExpressions(expressionsOpt);
                             }
                         
@@ -1612,7 +1612,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression exprOpt = (io.nop.xlang.ast.Expression)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1630,7 +1630,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.PropertyBinding> propertiesOpt = optimizeList(node.getProperties(),true, context);
                             if(propertiesOpt != node.getProperties()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(propertiesOpt); ret = node.deepClone();}
                                 ret.setProperties(propertiesOpt);
                             }
                         
@@ -1641,7 +1641,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.RestBinding restBindingOpt = (io.nop.xlang.ast.RestBinding)optimize(node.getRestBinding(),context);
                             if(restBindingOpt != node.getRestBinding()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { restBindingOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRestBinding(restBindingOpt);
                             }
                         
@@ -1659,7 +1659,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier identifierOpt = (io.nop.xlang.ast.Identifier)optimize(node.getIdentifier(),context);
                             if(identifierOpt != node.getIdentifier()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { identifierOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setIdentifier(identifierOpt);
                             }
                         
@@ -1670,7 +1670,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression initializerOpt = (io.nop.xlang.ast.Expression)optimize(node.getInitializer(),context);
                             if(initializerOpt != node.getInitializer()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { initializerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInitializer(initializerOpt);
                             }
                         
@@ -1688,7 +1688,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier identifierOpt = (io.nop.xlang.ast.Identifier)optimize(node.getIdentifier(),context);
                             if(identifierOpt != node.getIdentifier()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { identifierOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setIdentifier(identifierOpt);
                             }
                         
@@ -1699,7 +1699,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression initializerOpt = (io.nop.xlang.ast.Expression)optimize(node.getInitializer(),context);
                             if(initializerOpt != node.getInitializer()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { initializerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInitializer(initializerOpt);
                             }
                         
@@ -1717,7 +1717,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.ArrayElementBinding> elementsOpt = optimizeList(node.getElements(),true, context);
                             if(elementsOpt != node.getElements()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(elementsOpt); ret = node.deepClone();}
                                 ret.setElements(elementsOpt);
                             }
                         
@@ -1728,7 +1728,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.RestBinding restBindingOpt = (io.nop.xlang.ast.RestBinding)optimize(node.getRestBinding(),context);
                             if(restBindingOpt != node.getRestBinding()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { restBindingOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRestBinding(restBindingOpt);
                             }
                         
@@ -1746,7 +1746,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier identifierOpt = (io.nop.xlang.ast.Identifier)optimize(node.getIdentifier(),context);
                             if(identifierOpt != node.getIdentifier()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { identifierOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setIdentifier(identifierOpt);
                             }
                         
@@ -1757,7 +1757,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression initializerOpt = (io.nop.xlang.ast.Expression)optimize(node.getInitializer(),context);
                             if(initializerOpt != node.getInitializer()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { initializerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInitializer(initializerOpt);
                             }
                         
@@ -1775,7 +1775,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Declaration declarationOpt = (io.nop.xlang.ast.Declaration)optimize(node.getDeclaration(),context);
                             if(declarationOpt != node.getDeclaration()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { declarationOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDeclaration(declarationOpt);
                             }
                         
@@ -1793,7 +1793,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.ExportSpecifier> specifiersOpt = optimizeList(node.getSpecifiers(),true, context);
                             if(specifiersOpt != node.getSpecifiers()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(specifiersOpt); ret = node.deepClone();}
                                 ret.setSpecifiers(specifiersOpt);
                             }
                         
@@ -1804,7 +1804,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Literal sourceOpt = (io.nop.xlang.ast.Literal)optimize(node.getSource(),context);
                             if(sourceOpt != node.getSource()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { sourceOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSource(sourceOpt);
                             }
                         
@@ -1822,7 +1822,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Literal sourceOpt = (io.nop.xlang.ast.Literal)optimize(node.getSource(),context);
                             if(sourceOpt != node.getSource()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { sourceOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSource(sourceOpt);
                             }
                         
@@ -1840,7 +1840,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier localOpt = (io.nop.xlang.ast.Identifier)optimize(node.getLocal(),context);
                             if(localOpt != node.getLocal()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { localOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLocal(localOpt);
                             }
                         
@@ -1851,7 +1851,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier exportedOpt = (io.nop.xlang.ast.Identifier)optimize(node.getExported(),context);
                             if(exportedOpt != node.getExported()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exportedOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExported(exportedOpt);
                             }
                         
@@ -1869,7 +1869,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.ModuleSpecifier> specifiersOpt = optimizeList(node.getSpecifiers(),true, context);
                             if(specifiersOpt != node.getSpecifiers()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(specifiersOpt); ret = node.deepClone();}
                                 ret.setSpecifiers(specifiersOpt);
                             }
                         
@@ -1880,7 +1880,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Literal sourceOpt = (io.nop.xlang.ast.Literal)optimize(node.getSource(),context);
                             if(sourceOpt != node.getSource()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { sourceOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSource(sourceOpt);
                             }
                         
@@ -1898,7 +1898,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.XLangASTNode sourceOpt = (io.nop.xlang.ast.XLangASTNode)optimize(node.getSource(),context);
                             if(sourceOpt != node.getSource()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { sourceOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSource(sourceOpt);
                             }
                         
@@ -1909,7 +1909,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier localOpt = (io.nop.xlang.ast.Identifier)optimize(node.getLocal(),context);
                             if(localOpt != node.getLocal()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { localOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLocal(localOpt);
                             }
                         
@@ -1927,7 +1927,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier localOpt = (io.nop.xlang.ast.Identifier)optimize(node.getLocal(),context);
                             if(localOpt != node.getLocal()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { localOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLocal(localOpt);
                             }
                         
@@ -1938,7 +1938,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier importedOpt = (io.nop.xlang.ast.Identifier)optimize(node.getImported(),context);
                             if(importedOpt != node.getImported()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { importedOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setImported(importedOpt);
                             }
                         
@@ -1956,7 +1956,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier localOpt = (io.nop.xlang.ast.Identifier)optimize(node.getLocal(),context);
                             if(localOpt != node.getLocal()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { localOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLocal(localOpt);
                             }
                         
@@ -1974,7 +1974,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier localOpt = (io.nop.xlang.ast.Identifier)optimize(node.getLocal(),context);
                             if(localOpt != node.getLocal()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { localOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLocal(localOpt);
                             }
                         
@@ -1992,7 +1992,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -2010,7 +2010,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.Decorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -2028,7 +2028,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.QualifiedName nextOpt = (io.nop.xlang.ast.QualifiedName)optimize(node.getNext(),context);
                             if(nextOpt != node.getNext()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nextOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setNext(nextOpt);
                             }
                         
@@ -2046,7 +2046,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.QualifiedName nameOpt = (io.nop.xlang.ast.QualifiedName)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -2057,7 +2057,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.MetaObject valueOpt = (io.nop.xlang.ast.MetaObject)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2075,7 +2075,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.MetaProperty> propertiesOpt = optimizeList(node.getProperties(),true, context);
                             if(propertiesOpt != node.getProperties()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(propertiesOpt); ret = node.deepClone();}
                                 ret.setProperties(propertiesOpt);
                             }
                         
@@ -2093,7 +2093,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -2104,7 +2104,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.XLangASTNode valueOpt = (io.nop.xlang.ast.XLangASTNode)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2122,7 +2122,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.XLangASTNode> elementsOpt = optimizeList(node.getElements(),true, context);
                             if(elementsOpt != node.getElements()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(elementsOpt); ret = node.deepClone();}
                                 ret.setElements(elementsOpt);
                             }
                         
@@ -2140,7 +2140,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.VariableDeclaration varsOpt = (io.nop.xlang.ast.VariableDeclaration)optimize(node.getVars(),context);
                             if(varsOpt != node.getVars()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { varsOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setVars(varsOpt);
                             }
                         
@@ -2151,7 +2151,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -2169,7 +2169,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression exprOpt = (io.nop.xlang.ast.Expression)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -2194,7 +2194,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression textOpt = (io.nop.xlang.ast.Expression)optimize(node.getText(),context);
                             if(textOpt != node.getText()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { textOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setText(textOpt);
                             }
                         
@@ -2212,7 +2212,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -2230,7 +2230,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression leftOpt = (io.nop.xlang.ast.Expression)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -2241,7 +2241,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression rightOpt = (io.nop.xlang.ast.Expression)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -2259,7 +2259,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression valueOpt = (io.nop.xlang.ast.Expression)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2277,7 +2277,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression valueOpt = (io.nop.xlang.ast.Expression)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2288,7 +2288,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression minOpt = (io.nop.xlang.ast.Expression)optimize(node.getMin(),context);
                             if(minOpt != node.getMin()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { minOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setMin(minOpt);
                             }
                         
@@ -2299,7 +2299,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression maxOpt = (io.nop.xlang.ast.Expression)optimize(node.getMax(),context);
                             if(maxOpt != node.getMax()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { maxOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setMax(maxOpt);
                             }
                         
@@ -2317,7 +2317,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression tagNameOpt = (io.nop.xlang.ast.Expression)optimize(node.getTagName(),context);
                             if(tagNameOpt != node.getTagName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { tagNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTagName(tagNameOpt);
                             }
                         
@@ -2328,7 +2328,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression extAttrsOpt = (io.nop.xlang.ast.Expression)optimize(node.getExtAttrs(),context);
                             if(extAttrsOpt != node.getExtAttrs()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { extAttrsOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExtAttrs(extAttrsOpt);
                             }
                         
@@ -2339,7 +2339,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.GenNodeAttrExpression> attrsOpt = optimizeList(node.getAttrs(),true, context);
                             if(attrsOpt != node.getAttrs()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(attrsOpt); ret = node.deepClone();}
                                 ret.setAttrs(attrsOpt);
                             }
                         
@@ -2350,7 +2350,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression bodyOpt = (io.nop.xlang.ast.Expression)optimize(node.getBody(),context);
                             if(bodyOpt != node.getBody()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { bodyOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBody(bodyOpt);
                             }
                         
@@ -2368,7 +2368,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression valueOpt = (io.nop.xlang.ast.Expression)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2386,7 +2386,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression valueOpt = (io.nop.xlang.ast.Expression)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2404,7 +2404,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression extAttrsOpt = (io.nop.xlang.ast.Expression)optimize(node.getExtAttrs(),context);
                             if(extAttrsOpt != node.getExtAttrs()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { extAttrsOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExtAttrs(extAttrsOpt);
                             }
                         
@@ -2422,7 +2422,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression argumentOpt = (io.nop.xlang.ast.Expression)optimize(node.getArgument(),context);
                             if(argumentOpt != node.getArgument()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argumentOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgument(argumentOpt);
                             }
                         
@@ -2440,7 +2440,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression valueOpt = (io.nop.xlang.ast.Expression)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2451,7 +2451,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode refTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getRefType(),context);
                             if(refTypeOpt != node.getRefType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { refTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRefType(refTypeOpt);
                             }
                         
@@ -2469,7 +2469,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression valueOpt = (io.nop.xlang.ast.Expression)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2480,7 +2480,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode asTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getAsType(),context);
                             if(asTypeOpt != node.getAsType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { asTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAsType(asTypeOpt);
                             }
                         
@@ -2498,7 +2498,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode componentTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getComponentType(),context);
                             if(componentTypeOpt != node.getComponentType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { componentTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setComponentType(componentTypeOpt);
                             }
                         
@@ -2516,7 +2516,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.NamedTypeNode> typeArgsOpt = optimizeList(node.getTypeArgs(),true, context);
                             if(typeArgsOpt != node.getTypeArgs()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typeArgsOpt); ret = node.deepClone();}
                                 ret.setTypeArgs(typeArgsOpt);
                             }
                         
@@ -2541,7 +2541,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.NamedTypeNode> typesOpt = optimizeList(node.getTypes(),true, context);
                             if(typesOpt != node.getTypes()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typesOpt); ret = node.deepClone();}
                                 ret.setTypes(typesOpt);
                             }
                         
@@ -2559,7 +2559,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.NamedTypeNode> typesOpt = optimizeList(node.getTypes(),true, context);
                             if(typesOpt != node.getTypes()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typesOpt); ret = node.deepClone();}
                                 ret.setTypes(typesOpt);
                             }
                         
@@ -2577,7 +2577,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.PropertyTypeDef> typesOpt = optimizeList(node.getTypes(),true, context);
                             if(typesOpt != node.getTypes()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typesOpt); ret = node.deepClone();}
                                 ret.setTypes(typesOpt);
                             }
                         
@@ -2595,7 +2595,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.TypeNode valueTypeOpt = (io.nop.xlang.ast.TypeNode)optimize(node.getValueType(),context);
                             if(valueTypeOpt != node.getValueType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValueType(valueTypeOpt);
                             }
                         
@@ -2613,7 +2613,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.TypeNode> typesOpt = optimizeList(node.getTypes(),true, context);
                             if(typesOpt != node.getTypes()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typesOpt); ret = node.deepClone();}
                                 ret.setTypes(typesOpt);
                             }
                         
@@ -2631,7 +2631,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -2642,7 +2642,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode upperBoundOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getUpperBound(),context);
                             if(upperBoundOpt != node.getUpperBound()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { upperBoundOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setUpperBound(upperBoundOpt);
                             }
                         
@@ -2653,7 +2653,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode lowerBoundOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getLowerBound(),context);
                             if(lowerBoundOpt != node.getLowerBound()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { lowerBoundOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLowerBound(lowerBoundOpt);
                             }
                         
@@ -2671,7 +2671,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier typeNameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getTypeName(),context);
                             if(typeNameOpt != node.getTypeName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTypeName(typeNameOpt);
                             }
                         
@@ -2682,7 +2682,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.TypeParameterNode> typeParamsOpt = optimizeList(node.getTypeParams(),true, context);
                             if(typeParamsOpt != node.getTypeParams()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typeParamsOpt); ret = node.deepClone();}
                                 ret.setTypeParams(typeParamsOpt);
                             }
                         
@@ -2693,7 +2693,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.TypeNode defTypeOpt = (io.nop.xlang.ast.TypeNode)optimize(node.getDefType(),context);
                             if(defTypeOpt != node.getDefType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { defTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDefType(defTypeOpt);
                             }
                         
@@ -2711,7 +2711,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.TypeParameterNode> typeParamsOpt = optimizeList(node.getTypeParams(),true, context);
                             if(typeParamsOpt != node.getTypeParams()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typeParamsOpt); ret = node.deepClone();}
                                 ret.setTypeParams(typeParamsOpt);
                             }
                         
@@ -2722,7 +2722,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.FunctionArgTypeDef> argsOpt = optimizeList(node.getArgs(),true, context);
                             if(argsOpt != node.getArgs()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argsOpt); ret = node.deepClone();}
                                 ret.setArgs(argsOpt);
                             }
                         
@@ -2733,7 +2733,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode returnTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getReturnType(),context);
                             if(returnTypeOpt != node.getReturnType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { returnTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setReturnType(returnTypeOpt);
                             }
                         
@@ -2751,7 +2751,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier argNameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getArgName(),context);
                             if(argNameOpt != node.getArgName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgName(argNameOpt);
                             }
                         
@@ -2762,7 +2762,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode argTypeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getArgType(),context);
                             if(argTypeOpt != node.getArgType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { argTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setArgType(argTypeOpt);
                             }
                         
@@ -2780,7 +2780,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -2791,7 +2791,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.EnumMember> membersOpt = optimizeList(node.getMembers(),true, context);
                             if(membersOpt != node.getMembers()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(membersOpt); ret = node.deepClone();}
                                 ret.setMembers(membersOpt);
                             }
                         
@@ -2809,7 +2809,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -2820,7 +2820,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Literal valueOpt = (io.nop.xlang.ast.Literal)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -2838,7 +2838,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Decorators decoratorsOpt = (io.nop.xlang.ast.Decorators)optimize(node.getDecorators(),context);
                             if(decoratorsOpt != node.getDecorators()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { decoratorsOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -2849,7 +2849,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -2860,7 +2860,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.TypeParameterNode> typeParamsOpt = optimizeList(node.getTypeParams(),true, context);
                             if(typeParamsOpt != node.getTypeParams()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(typeParamsOpt); ret = node.deepClone();}
                                 ret.setTypeParams(typeParamsOpt);
                             }
                         
@@ -2871,7 +2871,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.ParameterizedTypeNode extendsTypeOpt = (io.nop.xlang.ast.ParameterizedTypeNode)optimize(node.getExtendsType(),context);
                             if(extendsTypeOpt != node.getExtendsType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { extendsTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExtendsType(extendsTypeOpt);
                             }
                         
@@ -2882,7 +2882,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.ParameterizedTypeNode> implementTypesOpt = optimizeList(node.getImplementTypes(),true, context);
                             if(implementTypesOpt != node.getImplementTypes()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(implementTypesOpt); ret = node.deepClone();}
                                 ret.setImplementTypes(implementTypesOpt);
                             }
                         
@@ -2893,7 +2893,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.FieldDeclaration> fieldsOpt = optimizeList(node.getFields(),true, context);
                             if(fieldsOpt != node.getFields()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(fieldsOpt); ret = node.deepClone();}
                                 ret.setFields(fieldsOpt);
                             }
                         
@@ -2904,7 +2904,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.FunctionDeclaration> methodsOpt = optimizeList(node.getMethods(),true, context);
                             if(methodsOpt != node.getMethods()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(methodsOpt); ret = node.deepClone();}
                                 ret.setMethods(methodsOpt);
                             }
                         
@@ -2915,7 +2915,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             java.util.List<io.nop.xlang.ast.ClassDefinition> classDefinitionsOpt = optimizeList(node.getClassDefinitions(),true, context);
                             if(classDefinitionsOpt != node.getClassDefinitions()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(classDefinitionsOpt); ret = node.deepClone();}
                                 ret.setClassDefinitions(classDefinitionsOpt);
                             }
                         
@@ -2933,7 +2933,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Decorators decoratorsOpt = (io.nop.xlang.ast.Decorators)optimize(node.getDecorators(),context);
                             if(decoratorsOpt != node.getDecorators()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { decoratorsOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -2944,7 +2944,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Identifier nameOpt = (io.nop.xlang.ast.Identifier)optimize(node.getName(),context);
                             if(nameOpt != node.getName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setName(nameOpt);
                             }
                         
@@ -2955,7 +2955,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.NamedTypeNode typeOpt = (io.nop.xlang.ast.NamedTypeNode)optimize(node.getType(),context);
                             if(typeOpt != node.getType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { typeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setType(typeOpt);
                             }
                         
@@ -2966,7 +2966,7 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                             io.nop.xlang.ast.Expression initializerOpt = (io.nop.xlang.ast.Expression)optimize(node.getInitializer(),context);
                             if(initializerOpt != node.getInitializer()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { initializerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setInitializer(initializerOpt);
                             }
                         

@@ -2117,6 +2117,13 @@
         ]
       },
       {
+        "name": "indexByFields",
+        "parameterTypes": [
+          "java.util.Collection",
+          "[Ljava.lang.String;"
+        ]
+      },
+      {
         "name": "invert",
         "parameterTypes": [
           "java.util.Map"
@@ -2483,6 +2490,13 @@
         "name": "appendContent",
         "parameterTypes": [
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "appendScript",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String"
         ]
       },
       {
@@ -2924,6 +2938,12 @@
         ]
       },
       {
+        "name": "fromValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "frozen",
         "parameterTypes": []
       },
@@ -3231,6 +3251,10 @@
       },
       {
         "name": "normalizeContent",
+        "parameterTypes": []
+      },
+      {
+        "name": "normalizeScriptContent",
         "parameterTypes": []
       },
       {
@@ -3810,6 +3834,10 @@
         ]
       },
       {
+        "name": "deepClone",
+        "parameterTypes": []
+      },
+      {
         "name": "defineMethod",
         "parameterTypes": [
           "java.lang.String",
@@ -3844,6 +3872,12 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "makeList",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -4756,6 +4790,13 @@
         "name": "resolveRelativeStdPath",
         "parameterTypes": [
           "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "resolveResource",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
           "java.lang.String"
         ]
       },
@@ -8151,11 +8192,21 @@
         "parameterTypes": []
       },
       {
+        "name": "getFieldModel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getFieldName",
         "parameterTypes": []
       },
       {
         "name": "getFieldNameMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropOrName",
         "parameterTypes": []
       },
       {
@@ -8214,6 +8265,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getFieldModel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getFieldName",
         "parameterTypes": []
       },
@@ -8253,6 +8310,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "addField",
+        "parameterTypes": [
+          "io.nop.excel.imp.model.ImportFieldModel"
+        ]
+      },
+      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -8268,6 +8331,16 @@
       },
       {
         "name": "getExportExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFieldDecider",
         "parameterTypes": []
       },
       {
@@ -8288,6 +8361,10 @@
       },
       {
         "name": "getParentProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getProp",
         "parameterTypes": []
       },
       {
@@ -8315,7 +8392,21 @@
         "parameterTypes": []
       },
       {
+        "name": "hasField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasFields",
+        "parameterTypes": []
+      },
+      {
         "name": "isComputed",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIgnoreWhenEmpty",
         "parameterTypes": []
       },
       {
@@ -8328,6 +8419,10 @@
       },
       {
         "name": "isVirtual",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_fields",
         "parameterTypes": []
       },
       {
@@ -8361,9 +8456,21 @@
         ]
       },
       {
+        "name": "setFieldDecider",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
         "name": "setFields",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setIgnoreWhenEmpty",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -8398,6 +8505,12 @@
       },
       {
         "name": "setParentProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setProp",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -8639,6 +8752,10 @@
         ]
       },
       {
+        "name": "getFieldDecider",
+        "parameterTypes": []
+      },
+      {
         "name": "getFields",
         "parameterTypes": []
       },
@@ -8736,6 +8853,12 @@
         "name": "setField",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFieldDecider",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
         ]
       },
       {
@@ -12454,6 +12577,10 @@
         ]
       },
       {
+        "name": "getCp",
+        "parameterTypes": []
+      },
+      {
         "name": "getDown",
         "parameterTypes": []
       },
@@ -12463,6 +12590,14 @@
       },
       {
         "name": "getDsName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEi",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEv",
         "parameterTypes": []
       },
       {
@@ -12564,6 +12699,10 @@
       },
       {
         "name": "getRowRoot",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRp",
         "parameterTypes": []
       },
       {

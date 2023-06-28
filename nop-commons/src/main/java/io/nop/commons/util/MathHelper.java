@@ -34,6 +34,7 @@ package io.nop.commons.util;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.NoReflection;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IWithWeight;
 import io.nop.commons.util.random.DefaultSecureRandom;

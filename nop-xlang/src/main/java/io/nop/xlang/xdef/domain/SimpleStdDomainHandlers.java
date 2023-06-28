@@ -12,10 +12,10 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JsonParseOptions;
+import io.nop.api.core.util.MultiCsvSet;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.bytes.ByteString;
-import io.nop.api.core.util.MultiCsvSet;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.regex.RegexHelper;
 import io.nop.commons.type.StdDataType;
@@ -568,6 +568,7 @@ public class SimpleStdDomainHandlers {
         @Override
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
+            node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.clearAttrs();
             node.removeJsonPrefix();
             node.freeze(true);

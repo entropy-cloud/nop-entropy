@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.ast._gen._Expression;
 import io.nop.xlang.ast.print.XLangExpressionPrinter;
+import io.nop.xlang.ast.trans.XLangASTTransformer;
 
 public abstract class Expression extends _Expression {
     private transient IGenericType returnTypeInfo;
@@ -32,5 +33,9 @@ public abstract class Expression extends _Expression {
         XLangExpressionPrinter out = new XLangExpressionPrinter();
         out.visit(this);
         return out.getResult();
+    }
+
+    public Expression replaceIdentifier(String name, Object value) {
+        return XLangASTTransformer.replaceIdentifier(this, name, value);
     }
 }

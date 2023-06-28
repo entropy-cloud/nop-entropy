@@ -52,7 +52,15 @@
 
             <schema xdef:ref="schema.xdef"/>
 
-            <auth xdef:ref="auth.xdef"/>
+            <!--
+            配置字段级别的权限约束
+
+            @for 如果为all，则表示所有操作都可以匹配这个权限约束。
+                如果设置为read，则表示当读取的时候使用此约束。此时如果没有配置write所对应的auth，则实际不允许修改
+                如果设置为write，则表示读取和修改的时候都使用此约束
+            -->
+            <auth for="!xml-name" xdef:unique-attr="for" xdef:name="ObjPropAuthModel"
+                  roles="csv-set" permissions="multi-csv-set"/>
 
             <!--
             对应graphql的argument

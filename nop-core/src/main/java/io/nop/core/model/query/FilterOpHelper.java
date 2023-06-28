@@ -103,18 +103,30 @@ public class FilterOpHelper {
     }
 
     public static boolean gt(Object v1, Object v2) {
+        if (v2 != null && v1 instanceof Number) {
+            v2 = ConvertHelper.toNumber(v2, NopException::new);
+        }
         return MathHelper.gt(v1, v2);
     }
 
     public static boolean ge(Object v1, Object v2) {
+        if (v2 != null && v1 instanceof Number) {
+            v2 = ConvertHelper.toNumber(v2, NopException::new);
+        }
         return MathHelper.ge(v1, v2);
     }
 
     public static boolean lt(Object v1, Object v2) {
+        if (v2 != null && v1 instanceof Number) {
+            v2 = ConvertHelper.toNumber(v2, NopException::new);
+        }
         return MathHelper.lt(v1, v2);
     }
 
     public static boolean le(Object v1, Object v2) {
+        if (v2 != null && v1 instanceof Number) {
+            v2 = ConvertHelper.toNumber(v2, NopException::new);
+        }
         return MathHelper.le(v1, v2);
     }
 
@@ -182,6 +194,13 @@ public class FilterOpHelper {
     }
 
     public static boolean between(Object value, Object min, Object max, boolean excludeMin, boolean excludeMax) {
+        if (value instanceof Number) {
+            if (min != null)
+                min = ConvertHelper.toNumber(min, NopException::new);
+            if (max != null) {
+                max = ConvertHelper.toNumber(max, NopException::new);
+            }
+        }
         if (min != null) {
             int cmp1 = MathHelper.compareWithConversion(value, min);
             if (excludeMin ? cmp1 <= 0 : cmp1 < 0) {

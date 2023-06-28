@@ -7,6 +7,8 @@
  */
 package io.nop.api.core.auth;
 
+import io.nop.api.core.util.MultiCsvSet;
+
 import java.util.Set;
 
 /**
@@ -24,5 +26,16 @@ public interface IActionAuthChecker {
                 return false;
         }
         return true;
+    }
+
+    default boolean isPermissionSetSatisfied(MultiCsvSet permissionSet, ISecurityContext context) {
+        if (permissionSet == null || permissionSet.isEmpty())
+            return true;
+
+        for (Set<String> permissions : permissionSet) {
+            if (isAllPermitted(permissions, context))
+                return true;
+        }
+        return false;
     }
 }

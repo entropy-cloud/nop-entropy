@@ -11,17 +11,17 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.api.IXLangCompileScope;
+import io.nop.xlang.ast.EscapeOutputExpression;
 import io.nop.xlang.ast.Expression;
-import io.nop.xlang.ast.GenNodeAttrExpression;
 import io.nop.xlang.ast.GenNodeExpression;
 import io.nop.xlang.ast.Literal;
 import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.TextOutputExpression;
+import io.nop.xlang.ast.XLangEscapeMode;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTagCompiler;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static io.nop.xlang.XLangErrors.ARG_NODE;
@@ -39,8 +39,11 @@ public class PrintTagCompiler implements IXplTagCompiler {
             case html:
                 String html = node.innerHtml();
                 return TextOutputExpression.valueOf(node.content().getLocation(), html);
-            case xml:
             case text:
+                if (!node.hasChild()) {
+                    return TextOutputExpression.valueOf(node.content().getLocation(), node.contentText());
+                }
+            case xml:
                 String xml = node.innerXml();
                 return TextOutputExpression.valueOf(node.content().getLocation(), xml);
             // case json:
@@ -85,7 +88,9 @@ public class PrintTagCompiler implements IXplTagCompiler {
         return SequenceExpression.valueOf(node.getLocation(), list);
     }
 
-    GenNodeExpression nodeToExpression(XNode node) {
+    Expression nodeToExpression(XNode node) {
+        return EscapeOutputExpression.valueOf(node.getLocation(), XLangEscapeMode.none, Literal.valueOf(node.getLocation(), node));
+    /*
         if (node.isTextNode()) {
             return GenNodeExpression.genTextNode(valueToExpr(node.content()));
         }
@@ -123,6 +128,8 @@ public class PrintTagCompiler implements IXplTagCompiler {
         }
 
         return ret;
+
+     */
     }
 
     Expression valueToExpr(ValueWithLocation value) {

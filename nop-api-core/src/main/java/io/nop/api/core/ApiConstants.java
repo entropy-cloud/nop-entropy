@@ -238,4 +238,10 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String YES_VALUE = "1";
     String NO_VALUE = "0";
+
+    String AUTH_FOR_READ = "read";
+
+    String AUTH_FOR_WRITE = "write";
+
+    String AUTH_FOR_ALL = "all";
 }

@@ -8,6 +8,7 @@
 package io.nop.core.lang.ast.optimize;
 
 import io.nop.api.core.util.IFreezable;
+import io.nop.core.lang.ast.ASTNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +66,8 @@ public abstract class AbstractOptimizer<T extends IFreezable, C> implements IOpt
                     if (!ignoreNullItem || opt != null) {
                         ret.add(opt);
                     }
+                } else if (ret != list) {
+                    ret.add(item);
                 }
             } else {
                 if (ignoreNullItem) {
@@ -78,5 +81,13 @@ public abstract class AbstractOptimizer<T extends IFreezable, C> implements IOpt
             }
         }
         return ret;
+    }
+
+    public void clearParent(List<? extends ASTNode<?>> children) {
+        if (children != null) {
+            for (ASTNode<?> child : children) {
+                child.setASTParent(null);
+            }
+        }
     }
 }

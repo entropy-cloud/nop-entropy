@@ -7,16 +7,16 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [15:6:0:0]/nop/schema/validator.xdef <p>
+ * generate from [20:6:0:0]/nop/schema/validator.xdef <p>
  * check检查不通过会抛出异常
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public abstract class _ValidatorCheckModel extends io.nop.core.resource.component.AbstractSimpleComponentModel {
+public abstract class _ValidatorCheckModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
-     * xml name: condition
+     * xml name: 
      * 
      */
     private io.nop.core.lang.xml.XNode _condition ;
@@ -27,6 +27,13 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
      * 检查不通过时抛出的异常码。
      */
     private java.lang.String _errorCode ;
+    
+    /**
+     *  
+     * xml name: errorDescription
+     * 
+     */
+    private java.lang.String _errorDescription ;
     
     /**
      *  
@@ -46,13 +53,13 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
     /**
      *  
      * xml name: severity
-     * 严重程度。如果有多个检查失败，只返回最严重的错误信息（一个或者多个）
+     * 严重程度。值越大严重性越高。如果有多个检查失败，可以选择只返回最严重的错误信息（一个或者多个）
      */
     private int _severity  = 0;
     
     /**
      * 
-     * xml name: condition
+     * xml name: 
      *  
      */
     
@@ -84,6 +91,25 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._errorCode = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: errorDescription
+     *  
+     */
+    
+    public java.lang.String getErrorDescription(){
+      return _errorDescription;
+    }
+
+    
+    public void setErrorDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._errorDescription = value;
            
     }
 
@@ -134,7 +160,7 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
     /**
      * 
      * xml name: severity
-     *  严重程度。如果有多个检查失败，只返回最严重的错误信息（一个或者多个）
+     *  严重程度。值越大严重性越高。如果有多个检查失败，可以选择只返回最严重的错误信息（一个或者多个）
      */
     
     public int getSeverity(){
@@ -165,6 +191,7 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
         
         out.put("condition",this.getCondition());
         out.put("errorCode",this.getErrorCode());
+        out.put("errorDescription",this.getErrorDescription());
         out.put("errorParams",this.getErrorParams());
         out.put("id",this.getId());
         out.put("severity",this.getSeverity());

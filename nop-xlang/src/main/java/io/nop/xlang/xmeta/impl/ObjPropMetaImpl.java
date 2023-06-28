@@ -7,6 +7,8 @@
  */
 package io.nop.xlang.xmeta.impl;
 
+import io.nop.api.core.ApiConstants;
+import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
@@ -17,7 +19,39 @@ import io.nop.xlang.xmeta.impl._gen._ObjPropMetaImpl;
 
 import java.util.Map;
 
+import static io.nop.api.core.ApiConstants.AUTH_FOR_ALL;
+
 public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
+    static final ActionAuthMeta NULL_AUTH = new ActionAuthMeta(null, null);
+    private ActionAuthMeta writeAuth;
+
+    public ActionAuthMeta getReadAuth() {
+        ObjPropAuthModel authModel = getAuth(ApiConstants.AUTH_FOR_READ);
+        if (authModel == null) {
+            authModel = getAuth(ApiConstants.AUTH_FOR_WRITE);
+            if (authModel == null) authModel = getAuth(AUTH_FOR_ALL);
+        }
+        if (authModel == null) return null;
+        return authModel.toActionAuthMeta();
+    }
+
+    public ActionAuthMeta getWriteAuth() {
+        if (writeAuth != null) {
+            if (writeAuth == NULL_AUTH) return null;
+            return writeAuth;
+        }
+
+        ObjPropAuthModel authModel = getAuth(ApiConstants.AUTH_FOR_WRITE);
+        if (authModel == null) {
+            authModel = getAuth(ApiConstants.AUTH_FOR_ALL);
+        }
+        if (authModel == null) {
+            writeAuth = NULL_AUTH;
+        } else {
+            writeAuth = authModel.toActionAuthMeta();
+        }
+        return writeAuth;
+    }
 
     public String getChildName() {
         String name = super.getChildName();
@@ -37,25 +71,19 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
         if (getName() != null) {
             node.setAttr(getLocation(), "name", getName());
         }
-        if (getDisplayName() != null)
-            node.setAttr(getLocation(), "displayName", getDisplayName());
+        if (getDisplayName() != null) node.setAttr(getLocation(), "displayName", getDisplayName());
         if (!StringHelper.isEmpty(getDescription()))
             node.makeChild("description").content(getLocation(), CDataText.encodeIfNecessary(getDescription()));
-        if (getPropId() != null)
-            node.setAttr(getLocation(), "propId", getPropId());
-        if (isMandatory())
-            node.setAttr(getLocation(), "mandatory", true);
-        if (isInternal())
-            node.setAttr(getLocation(), "internal", true);
+        if (getPropId() != null) node.setAttr(getLocation(), "propId", getPropId());
+        if (isMandatory()) node.setAttr(getLocation(), "mandatory", true);
+        if (isInternal()) node.setAttr(getLocation(), "internal", true);
         if (isDeprecated()) {
             node.setAttr(getLocation(), "deprecated", true);
         }
-        if (getAllowCpExpr() != null && getAllowCpExpr())
-            node.setAttr(getLocation(), "allowCpExpr", getAllowCpExpr());
+        if (getAllowCpExpr() != null && getAllowCpExpr()) node.setAttr(getLocation(), "allowCpExpr", getAllowCpExpr());
         if (getXmlName() != null && !getXmlName().equals(getName()))
             node.setAttr(getLocation(), "xmlName", getXmlName());
-        if (getChildXmlName() != null)
-            node.setAttr(getLocation(), "childXmlName", getChildXmlName());
+        if (getChildXmlName() != null) node.setAttr(getLocation(), "childXmlName", getChildXmlName());
         if (super.getChildName() != null && !super.getChildName().equals(getChildXmlName())) {
             node.setAttr(getLocation(), "childName", getChildName());
         }
@@ -66,12 +94,10 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
 
         if (getTagSet() != null && !getTagSet().isEmpty())
             node.setAttr(getLocation(), "tagSet", StringHelper.join(getTagSet(), ","));
-        if (getDefaultValue() != null)
-            node.setAttr(getLocation(), "defaultValue", getDefaultValue());
+        if (getDefaultValue() != null) node.setAttr(getLocation(), "defaultValue", getDefaultValue());
         if (this.getXmlPos() != null && this.getXmlPos() != XNodeValuePosition.attr)
             node.setAttr(getLocation(), "xmlPos", this.getXmlPos());
-        if (getMapToProp() != null)
-            node.setAttr(getLocation(), "mapToProp", getMapToProp());
+        if (getMapToProp() != null) node.setAttr(getLocation(), "mapToProp", getMapToProp());
 
         if (getSchema() != null) {
             XNode schemaN = getSchema().toNode(nodeRefs);

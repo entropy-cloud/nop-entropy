@@ -20,12 +20,18 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
     }
 
     public BizFilterEvaluator(IServiceContext context) {
-        this(BizConstants.XLIB_BIZ_CHECK, context);
+        this(BizConstants.XLIB_BIZ_CHECK_PATH, context);
     }
 
     public boolean testForEntity(ITreeBean filter, Object entity) {
         BizExprHelper.resolveBizExpr(filter, context);
-        return Boolean.TRUE.equals(visitRoot(filter, new BeanVariableScope(entity)));
+        IVariableScope scope;
+        if (entity instanceof IVariableScope) {
+            scope = (IVariableScope) entity;
+        } else {
+            scope = new BeanVariableScope(entity);
+        }
+        return Boolean.TRUE.equals(visitRoot(filter, scope));
     }
 
     @Override

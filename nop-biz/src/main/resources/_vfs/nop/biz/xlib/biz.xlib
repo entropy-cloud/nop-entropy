@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <Validator ignoreUnknownAttrs="true" macro="true">
+            <!-- slotType=node表示保持XNode节点内容传入到source段中。如果不设置这个属性，则会编译后传入 -->
+            <slot name="default" slotType="node"/>
+
+            <description>
+                利用宏标签机制将XNode按照Validator模型解析，并转化对ModelBasedValidator调用。
+                宏标签的source段在编译期执行，它的输出结果才是最终要编译的内容
+            </description>
+
+            <source>
+                <!-- 在编译期解析标签体得到ValidatorModel, 保存为编译期的变量validatorModel -->
+                <c:script><![CDATA[
+                    import io.nop.biz.lib.BizValidatorHelper;
+
+                    let validatorModel = BizValidatorHelper.parseValidator(slot_default,$scope);
+                    // 得到<c:script>对应的抽象语法树
+                    let ast = xpl `<c:ast><c:script>
+                           import io.nop.biz.lib.BizValidatorHelper;
+                           BizValidatorHelper.runValidator(validatorModel, svcCtx);
+                        </c:script></c:ast>
+                     `
+                    // 将抽象语法树中的标识名称替换为模型对象
+                    return ast.replaceIdentifier("validatorModel",validatorModel);
+                ]]></c:script>
+
+            </source>
+        </Validator>
+    </tags>
+</lib>

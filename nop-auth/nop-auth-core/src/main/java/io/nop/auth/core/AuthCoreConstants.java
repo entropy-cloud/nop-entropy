@@ -25,4 +25,5 @@ public interface AuthCoreConstants {
     String VAR_ENTITY = "entity";
     String VAR_USER_CONTEXT = "userContext";
     String VAR_FILTER = "filter";
+
 }

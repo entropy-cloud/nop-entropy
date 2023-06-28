@@ -433,6 +433,14 @@ public class ExpandedCell implements ICellView {
         return null;
     }
 
+    public ExpandedCell getRr() {
+        return getRowRoot();
+    }
+
+    public ExpandedCell getCr() {
+        return getColRoot();
+    }
+
     public ExpandedCell getRp() {
         return getRowParent();
     }

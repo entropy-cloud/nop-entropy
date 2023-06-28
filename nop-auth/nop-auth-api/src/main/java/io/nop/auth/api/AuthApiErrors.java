@@ -14,6 +14,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 public interface AuthApiErrors {
     String ARG_BIZ_OBJ_NAME = "bizObjName";
     String ARG_ACTION_NAME = "actionName";
+    String ARG_OBJ_TYPE_NAME = "objTypeName";
 
     String ARG_PERMISSION = "permission";
 
@@ -26,10 +27,17 @@ public interface AuthApiErrors {
     String ARG_ID = "id";
 
     String ARG_ROLES = "roles";
+
+    String ARG_FIELD_NAME = "{fieldName}";
+
+    String ARG_FIELD_DISPLAY_NAME = "{fieldDisplayName}";
     ErrorCode ERR_AUTH_NO_PERMISSION =
             define("nop.err.auth.no-permission",
-                    "没有访问权限:{permission}", ARG_PERMISSION);
+                    "没有访问权限", ARG_PERMISSION);
 
+    ErrorCode ERR_AUTH_NO_PERMISSION_FOR_FIELD =
+            define("nop.err.auth.no-permission",
+                    "没有对字段[{fieldName}]的访问权限", ARG_PERMISSION, ARG_FIELD_NAME, ARG_OBJ_TYPE_NAME);
     ErrorCode ERR_AUTH_NO_ROLE =
             define("nop.err.auth.no-role",
                     "没有访问权限", ARG_ROLES);

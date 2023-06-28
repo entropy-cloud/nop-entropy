@@ -10,7 +10,6 @@ package io.nop.xlang.xpl.xlib;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -101,7 +100,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     /**
      * 强制按照node输出模式编译.当输出模式为xml的标签被用在x:exp-extends段中时会使用这里的编译结果
      */
-    private final ResourceCacheEntryWithLoader<CompiledTag> cachedCompiledTagForNodeNode = new ResourceCacheEntryWithLoader<>(
+    private final ResourceCacheEntryWithLoader<CompiledTag> cachedCompiledTagForNodeMode = new ResourceCacheEntryWithLoader<>(
             "XplLibTagCompilerForNodeMode", path -> this.buildCompiledTag(XLangOutputMode.node));
 
     public XplLibTagCompiler(XplTagLib lib, XplTag tag) {
@@ -180,8 +179,8 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         CompiledTag compiledTag;
 
         // 如果外部环境要求node输出，而标签本身标记了xml或者html输出，则转换为node输出
-        if (isOutputNode(scope.getOutputMode())) {
-            compiledTag = this.cachedCompiledTagForNodeNode.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get());
+        if (tag.isMacro() || isOutputNode(scope.getOutputMode())) {
+            compiledTag = this.cachedCompiledTagForNodeMode.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get());
         } else {
             compiledTag = this.cachedCompiledTag.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get());
         }
@@ -585,7 +584,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     @Override
     public IFunctionModel getFunctionModel(XLangOutputMode outputMode) {
         if (isOutputNode(outputMode))
-            return cachedCompiledTagForNodeNode.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get()).lazyCompile();
+            return cachedCompiledTagForNodeMode.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get()).lazyCompile();
 
         CompiledTag compiledTag = cachedCompiledTag.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get());
         return compiledTag.lazyCompile();
@@ -597,7 +596,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 
         // 如果外部环境要求输出node，而标签本身输出模式设置为xml或者html，则也调整输出模式为node
         if (tag.getOutputMode().isXmlOrHtml()) {
-            if (tag.isMacro() || outputMode == XLangOutputMode.node)
+            if (outputMode == XLangOutputMode.node)
                 return true;
         }
         return false;
@@ -691,7 +690,16 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         XNode source = loadSource();
         XplParseHelper.runImportExprs(compileTool.getScope(), lib.getImportExprs());
 
-        Expression body = compileTool.parseTagBody(source, compileTool.getScope());
+        Expression body;
+
+        XLangOutputMode oldMode = compileTool.getOutputMode();
+        if (tag.isMacro())
+            compileTool.outputMode(XLangOutputMode.node);
+        try {
+            body = compileTool.parseTagBody(source, compileTool.getScope());
+        } finally {
+            compileTool.outputMode(oldMode);
+        }
 
         ArrowFunctionExpression func = new ArrowFunctionExpression();
         func.setLocation(this.tag.getLocation());

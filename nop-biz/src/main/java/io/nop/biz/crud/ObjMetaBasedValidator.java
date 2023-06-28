@@ -7,6 +7,8 @@
  */
 package io.nop.biz.crud;
 
+import io.nop.api.core.auth.ActionAuthMeta;
+import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -15,6 +17,7 @@ import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.validate.IValidationErrorCollector;
+import io.nop.auth.api.AuthApiErrors;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.lang.Undefined;
@@ -46,6 +49,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 
+import static io.nop.auth.api.AuthApiErrors.ARG_FIELD_DISPLAY_NAME;
+import static io.nop.auth.api.AuthApiErrors.ARG_FIELD_NAME;
+import static io.nop.auth.api.AuthApiErrors.ARG_OBJ_TYPE_NAME;
 import static io.nop.biz.BizConstants.METHOD_GET;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_DICT;
@@ -70,12 +76,15 @@ public class ObjMetaBasedValidator {
     private final String bizObjName;
     private final IServiceContext context;
 
+    private final boolean checkWriteAuth;
+
     public ObjMetaBasedValidator(IBizObjectManager bizObjManager, String bizObjName, IObjMeta objMeta,
-                                 IServiceContext context) {
+                                 IServiceContext context, boolean checkWriteAuth) {
         this.bizObjectManager = bizObjManager;
         this.bizObjName = bizObjName;
         this.objMeta = objMeta;
         this.context = context;
+        this.checkWriteAuth = checkWriteAuth;
     }
 
     public Map<String, Object> validateAndConvert(Map<String, Object> data, FieldSelectionBean selection,
@@ -141,6 +150,10 @@ public class ObjMetaBasedValidator {
                 continue;
             }
 
+            if (checkWriteAuth) {
+                doCheckWriteAuth(bizObjName, propMeta);
+            }
+
             if (propMeta.isMandatory()) {
                 if (StringHelper.isEmptyObject(value)) {
                     throw newError(ERR_BIZ_MANDATORY_PROP_IS_EMPTY, propMeta).param(ARG_BIZ_OBJ_NAME, bizObjName);
@@ -189,6 +202,33 @@ public class ObjMetaBasedValidator {
             setIn(ret, schema, propMeta, value);
         }
         return ret;
+    }
+
+    private void doCheckWriteAuth(String objTypeName, IObjPropMeta propMeta) {
+        ActionAuthMeta auth = propMeta.getWriteAuth();
+        if (auth == null)
+            return;
+
+        IActionAuthChecker authChecker = this.context.getActionAuthChecker();
+        if (authChecker == null)
+            return;
+
+        if (auth.getRoles() != null && !auth.getRoles().isEmpty()) {
+            if (this.context.getUserContext().isUserInAnyRole(auth.getRoles()))
+                return;
+        }
+
+        if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
+            if (authChecker.isPermissionSetSatisfied(auth.getPermissions(), context))
+                return;
+
+
+            throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
+                    .param(ARG_FIELD_NAME, propMeta.getName())
+                    .param(ARG_OBJ_TYPE_NAME, objTypeName)
+                    .param(ARG_FIELD_DISPLAY_NAME, propMeta.getDisplayName());
+        }
+
     }
 
     private void setIn(Map<String, Object> ret, ISchema schema, IObjPropMeta propMeta, Object value) {

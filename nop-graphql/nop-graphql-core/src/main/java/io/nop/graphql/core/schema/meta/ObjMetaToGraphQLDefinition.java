@@ -56,7 +56,7 @@ public class ObjMetaToGraphQLDefinition {
                 continue;
 
             // 忽略a.b.c这种复合字段
-            if(propMeta.getName().indexOf('.') > 0)
+            if (propMeta.getName().indexOf('.') > 0)
                 continue;
 
             GraphQLFieldDefinition field = toFieldDefinition(objMeta.getBizObjName(), propMeta, typeRegistry);
@@ -78,7 +78,7 @@ public class ObjMetaToGraphQLDefinition {
         field.setLocation(propMeta.getLocation());
         field.setName(propMeta.getName());
         field.setDescription(propMeta.getDescription());
-        field.setAuth(propMeta.getAuth());
+        field.setAuth(propMeta.getReadAuth());
         field.setLazy(propMeta.isLazy());
 
         if (propMeta.getDescription() == null)
@@ -138,7 +138,7 @@ public class ObjMetaToGraphQLDefinition {
             gqlType = buildObjType(bizObjName, schema, typeRegistry);
         } else {
             if (type == null) {
-                if(bizObjName != null)
+                if (bizObjName != null)
                     return GraphQLTypeHelper.namedType(bizObjName);
 
                 StdDataType stdDataType = schema.getStdDataType();
