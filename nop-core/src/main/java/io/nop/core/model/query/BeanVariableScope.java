@@ -12,6 +12,12 @@ public class BeanVariableScope implements IVariableScope {
         this.bean = bean;
     }
 
+    public static IVariableScope makeScope(Object obj) {
+        if (obj instanceof IVariableScope)
+            return (IVariableScope) obj;
+        return new BeanVariableScope(obj);
+    }
+
     @Override
     public Object getValue(String name) {
         return BeanTool.instance().getProperty(bean, name);

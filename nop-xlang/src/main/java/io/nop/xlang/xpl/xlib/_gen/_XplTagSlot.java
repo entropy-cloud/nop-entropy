@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [77:14:0:0]/nop/schema/xlib.xdef <p>
+ * generate from [80:14:0:0]/nop/schema/xlib.xdef <p>
  * 在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -76,6 +76,13 @@ public abstract class _XplTagSlot extends io.nop.core.resource.component.Abstrac
      * 当slotType=renderer的时候起作用。如果不设置，则缺省值与标签的outputMode相同。
      */
     private io.nop.xlang.ast.XLangOutputMode _outputMode ;
+    
+    /**
+     *  
+     * xml name: runtime
+     * 
+     */
+    private boolean _runtime  = false;
     
     /**
      *  
@@ -337,6 +344,25 @@ public abstract class _XplTagSlot extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: runtime
+     *  
+     */
+    
+    public boolean isRuntime(){
+      return _runtime;
+    }
+
+    
+    public void setRuntime(boolean value){
+        checkAllowChange();
+        
+        this._runtime = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: schema
      *  
      */
@@ -456,6 +482,7 @@ public abstract class _XplTagSlot extends io.nop.core.resource.component.Abstrac
         out.put("multiple",this.isMultiple());
         out.put("name",this.getName());
         out.put("outputMode",this.getOutputMode());
+        out.put("runtime",this.isRuntime());
         out.put("schema",this.getSchema());
         out.put("slotType",this.getSlotType());
         out.put("stdDomain",this.getStdDomain());

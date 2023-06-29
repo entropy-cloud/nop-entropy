@@ -18,6 +18,7 @@ import io.nop.core.lang.xml.IXNodeToObjectTransformer;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
@@ -49,6 +50,8 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
     public DslXNodeToJsonTransformer(boolean forEditor, IXDefinition rootDefNode, XLangCompileTool compileTool) {
         this.forEditor = forEditor;
         this.rootDefNode = rootDefNode;
+        if (compileTool == null)
+            compileTool = XLang.newCompileTool();
         this.compileTool = compileTool.allowUnregisteredScopeVar(true);
     }
 

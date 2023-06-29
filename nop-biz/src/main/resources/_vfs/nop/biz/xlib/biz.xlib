@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef">
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
 
     <tags>
+        <!--
+        @macro 表示本标签是宏标签。它的source段在编译期会运行，输出的结果是一个表达式对象，然后再对该表达式对象进行编译。
+           宏标签相当于是一种内嵌的代码生成器
+        -->
         <Validator ignoreUnknownAttrs="true" macro="true">
+            <!--
+            runtime标识是运行期存在的变量。这个属性仅当标签是宏标签的时候起作用
+            -->
+            <attr name="obj" defaultValue="$scope" runtime="true" optional="true"/>
+
             <!-- slotType=node表示保持XNode节点内容传入到source段中。如果不设置这个属性，则会编译后传入 -->
             <slot name="default" slotType="node"/>
 
@@ -18,14 +26,18 @@
                 <c:script><![CDATA[
                     import io.nop.biz.lib.BizValidatorHelper;
 
-                    let validatorModel = BizValidatorHelper.parseValidator(slot_default,$scope);
+                    let validatorModel = BizValidatorHelper.parseValidator(slot_default);
                     // 得到<c:script>对应的抽象语法树
-                    let ast = xpl `<c:ast><c:script>
-                           import io.nop.biz.lib.BizValidatorHelper;
-                           BizValidatorHelper.runValidator(validatorModel, svcCtx);
-                        </c:script></c:ast>
+                    let ast = xpl `
+                         <c:ast>
+                            <c:script>
+                               import io.nop.biz.lib.BizValidatorHelper;
+                               if(obj == '$scope') obj = $scope;
+                               BizValidatorHelper.runValidatorModel(validatorModel,obj,svcCtx);
+                            </c:script>
+                         </c:ast>
                      `
-                    // 将抽象语法树中的标识名称替换为模型对象
+                    // 将抽象语法树中的标识名称替换为编译期解析得到的模型对象。这样在运行期就不需要动态加载模型并解析
                     return ast.replaceIdentifier("validatorModel",validatorModel);
                 ]]></c:script>
 

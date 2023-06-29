@@ -10,6 +10,7 @@ package io.nop.xlang.xpl.xlib;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -25,6 +26,7 @@ import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.core.resource.deps.VirtualResourceDependencySet;
+import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.IXLangCompileScope;
@@ -185,7 +187,8 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             compiledTag = this.cachedCompiledTag.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get());
         }
 
-        List<Expression> tagArgs = parseFuncArgs(node, cp, scope);
+        List<Expression> runtimeExprs = tag.isMacro() ? new ArrayList<>() : null;
+        List<Expression> tagArgs = parseFuncArgs(node, cp, scope, runtimeExprs);
 
         CallExpression callExpr = new CallExpression();
         callExpr.setLocation(node.getLocation());
@@ -202,12 +205,16 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         if (tag.isMacro()) {
             // 宏标签需要被立刻执行
             ret = ExprEvalHelper.runMacroExpression(callExpr, scope, tag.isDump());
+
+            if (!runtimeExprs.isEmpty()) {
+                ret = buildRuntimeCall(node.getLocation(), ret, runtimeExprs);
+            }
         }
 
         if (tag.isConditionTag()) {
             Expression body = cp.parseTagBody(node, scope);
             if (body != null) {
-                ret = XLangASTBuilder.ifStatement(node.getLocation(), callExpr, body);
+                ret = XLangASTBuilder.ifStatement(node.getLocation(), ret, body);
             }
         }
         return ret;
@@ -308,10 +315,11 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 //        return parseFuncArgs(node, cp, scope);
 //    }
 
-    private List<Expression> parseFuncArgs(XNode node, IXplCompiler cp, IXLangCompileScope scope) {
+    private List<Expression> parseFuncArgs(XNode node, IXplCompiler cp, IXLangCompileScope scope,
+                                           List<Expression> runtimeExprs) {
         List<Expression> args = new ArrayList<>();
 
-        buildArgs(node, args, name -> XplParseHelper.parseAttrTemplateExpr(node, name, cp, scope));
+        buildArgs(node, args, runtimeExprs, name -> XplParseHelper.parseAttrTemplateExpr(node, name, cp, scope));
 
         if (tag.getUnknownAttrsVar() != null) {
             args.add(buildUnknownArgsObj(node, cp, scope));
@@ -322,7 +330,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         }
 
         if (!tag.isConditionTag()) {
-            buildSlotArgs(node, args, slot -> {
+            buildSlotArgs(node, args, runtimeExprs, slot -> {
                 XNode child = slot.getName().equals(XLangConstants.SLOT_DEFAULT) ? (node.hasBody() ? node : null)
                         : node.childByTag(slot.getName());
 
@@ -344,7 +352,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
                 } else {
                     scope.setOutputMode(getSlotOutputMode(slot, scope));
                     try {
-                        return parseSlotArg(child, slot, cp, scope);
+                        return parseSlotArg(child, slot, runtimeExprs, cp, scope);
                     } finally {
                         scope.setOutputMode(oldMode);
                     }
@@ -378,7 +386,8 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return slotMode;
     }
 
-    private Expression parseSlotArg(XNode child, IXplTagSlot slot, IXplCompiler cp, IXLangCompileScope scope) {
+    private Expression parseSlotArg(XNode child, IXplTagSlot slot, List<Expression> runtimeExprs,
+                                    IXplCompiler cp, IXLangCompileScope scope) {
 
         // child = mergeSlot(child, slot, compiledTag);
 
@@ -390,6 +399,11 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 
         Expression body = cp.parseTagBody(child, scope);
         expr.setBody(body);
+
+        if (tag.isMacro() && slot.isRuntime()) {
+            runtimeExprs.add(expr);
+            return Literal.valueOf(expr.getLocation(), expr);
+        }
         return expr;
     }
 
@@ -459,23 +473,24 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return params;
     }
 
-    private void buildArgs(XNode node, List<Expression> args, Function<String, Expression> fn) {
+    private void buildArgs(XNode node, List<Expression> args, List<Expression> runtimeExprs,
+                           Function<String, Expression> fn) {
         if (tag.getAttrsVar() == null) {
             for (IXplTagAttribute attr : tag.getAttrs()) {
-                Expression expr = buildArgExpr(node, attr, fn,
+                Expression expr = buildArgExpr(node, attr, runtimeExprs, fn,
                         err -> new NopEvalException(err).loc(node.getLocation()).param(ARG_TAG_NAME, node.getTagName())
                                 .param(ARG_ATTR_NAME, attr.getName()).param(ARG_NODE, node));
                 args.add(expr);
             }
         } else {
-            args.add(buildArgsObj(node, fn));
+            args.add(buildArgsObj(node, fn, runtimeExprs));
         }
     }
 
-    private ObjectExpression buildArgsObj(XNode node, Function<String, Expression> fn) {
+    private ObjectExpression buildArgsObj(XNode node, Function<String, Expression> fn, List<Expression> runtimeExprs) {
         List<XLangASTNode> props = new ArrayList<>();
         for (IXplTagAttribute attr : tag.getAttrs()) {
-            Expression expr = buildArgExpr(node, attr, fn, err -> new NopEvalException(err)
+            Expression expr = buildArgExpr(node, attr, runtimeExprs, fn, err -> new NopEvalException(err)
                     .loc(node.attrLoc(attr.getName())).param(ARG_ATTR_NAME, attr.getName()).param(ARG_NODE, node));
 
             PropertyAssignment assign = new PropertyAssignment();
@@ -487,9 +502,13 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return ObjectExpression.valueOf(tag.getLocation(), props);
     }
 
-    private Expression buildArgExpr(XNode node, IXplTagAttribute attr, Function<String, Expression> fn,
+    private Expression buildArgExpr(XNode node, IXplTagAttribute attr, List<Expression> runtimeExprs,
+                                    Function<String, Expression> fn,
                                     Function<ErrorCode, NopException> errorFactory) {
         Expression expr = fn.apply(attr.getName());
+
+        boolean literal = true;
+
         if (expr == null) {
             // implicit参数假设外部环境中具有同名的变量
             if (attr.isImplicit()) {
@@ -513,8 +532,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
                 }
                 ((Literal) expr).setValue(value);
             } else {
-                if (tag.isMacro())
-                    throw errorFactory.apply(ERR_XPL_MACRO_TAG_ATTR_NOT_STATIC_VALUE);
+                literal = false;
             }
             expr.setASTParent(null);
         }
@@ -531,6 +549,16 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
                 chain.setNotEmpty(true);
                 chain.setTarget(tag.getTagFuncName() + '@' + attr.getName());
                 expr = chain;
+            }
+        }
+
+        if (tag.isMacro()) {
+            if (attr.isRuntime()) {
+                runtimeExprs.add(expr);
+                // 运行期属性在编译期对应于表达式对象
+                expr = Literal.valueOf(expr.getLocation(), expr);
+            } else if (!literal) {
+                throw errorFactory.apply(ERR_XPL_MACRO_TAG_ATTR_NOT_STATIC_VALUE);
             }
         }
         return expr;
@@ -565,7 +593,8 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return Literal.valueOf(node.getLocation(), node.getLocation());
     }
 
-    private void buildSlotArgs(XNode node, List<Expression> args, Function<IXplTagSlot, Expression> fn) {
+    private void buildSlotArgs(XNode node, List<Expression> args, List<Expression> runtimeExprs,
+                               Function<IXplTagSlot, Expression> fn) {
         for (IXplTagSlot slot : tag.getSlots()) {
             Expression expr = fn.apply(slot);
             if (expr == null) {
@@ -577,7 +606,12 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             } else {
                 expr.setASTParent(null);
             }
-            args.add(expr);
+            if (tag.isMacro() && slot.isRuntime()) {
+                runtimeExprs.add(expr);
+                args.add(Literal.valueOf(expr.getLocation(), expr));
+            } else {
+                args.add(expr);
+            }
         }
     }
 
@@ -704,7 +738,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         ArrowFunctionExpression func = new ArrowFunctionExpression();
         func.setLocation(this.tag.getLocation());
         func.setFuncName(tag.getTagFuncName());
-        func.setParams(buildParamsDecl());
+        func.setParams(buildParamsDecl(true));
         func.setReturnType(buildReturnDecl());
         func.setBody(body);
 
@@ -721,7 +755,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             params.add(buildAttrsArgModel());
         } else {
             for (IXplTagAttribute attr : this.tag.getAttrs()) {
-                params.add(buildArgModel(attr));
+                params.add(buildArgModel(attr, true));
             }
         }
 
@@ -730,7 +764,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         }
 
         for (IXplTagSlot frame : this.tag.getSlots()) {
-            params.add(buildArgModel(frame));
+            params.add(buildArgModel(frame, true));
         }
         return params;
     }
@@ -749,27 +783,35 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return arg;
     }
 
-    private FunctionArgument buildArgModel(IXplTagAttribute attr) {
+    private FunctionArgument buildArgModel(IXplTagAttribute attr, boolean compile) {
         FunctionArgument arg = new FunctionArgument();
         arg.setName(attr.getVarName());
-        arg.setType(attr.getType());
+        if (compile && tag.isMacro() && attr.isRuntime()) {
+            arg.setType(ReflectionManager.instance().buildRawType(Expression.class));
+        } else {
+            arg.setType(attr.getType());
+        }
         return arg;
     }
 
-    private FunctionArgument buildArgModel(IXplTagSlot frame) {
+    private FunctionArgument buildArgModel(IXplTagSlot frame, boolean compile) {
         FunctionArgument arg = new FunctionArgument();
         arg.setName(frame.getVarName());
-        arg.setType(frame.getType());
+        if (compile && tag.isMacro() && frame.isRuntime()) {
+            arg.setType(ReflectionManager.instance().buildRawType(Expression.class));
+        } else {
+            arg.setType(frame.getType());
+        }
         return arg;
     }
 
-    private List<ParameterDeclaration> buildParamsDecl() {
+    private List<ParameterDeclaration> buildParamsDecl(boolean compile) {
         List<ParameterDeclaration> params = new ArrayList<>();
         if (this.tag.getAttrsVar() != null) {
             params.add(buildAttrsParamDecl());
         } else {
             for (IXplTagAttribute attr : this.tag.getAttrs()) {
-                params.add(buildParamDecl(attr));
+                params.add(buildParamDecl(attr, compile));
             }
         }
 
@@ -795,13 +837,17 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         return param;
     }
 
-    private ParameterDeclaration buildParamDecl(IXplTagAttribute attr) {
+    private ParameterDeclaration buildParamDecl(IXplTagAttribute attr, boolean compile) {
         ParameterDeclaration param = new ParameterDeclaration();
         param.setLocation(attr.getLocation());
         param.setName(Identifier.valueOf(attr.getLocation(), attr.getVarName()));
 
-        if (attr.getType() != null)
+        if (compile && tag.isMacro() && attr.isRuntime()) {
+            IGenericType exprType = ReflectionManager.instance().buildRawType(Expression.class);
+            param.setType(XLangASTBuilder.buildTypeNode(attr.getLocation(), exprType));
+        } else if (attr.getType() != null) {
             param.setType(XLangASTBuilder.buildTypeNode(attr.getLocation(), attr.getType()));
+        }
 
         param.validate();
         // param.setInitializer(Literal.valueOf(attr.getLocation(), attr.getDefaultValue()));
@@ -866,4 +912,57 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     // String resourcePath = StringHelper.absolutePath(path, resourceName);
     // return resourcePath;
     // }
+
+    private List<ParameterDeclaration> buildRuntimeParamsDecl() {
+        List<ParameterDeclaration> params = new ArrayList<>();
+
+        for (IXplTagAttribute attr : this.tag.getAttrs()) {
+            if (attr.isRuntime()) {
+                params.add(buildParamDecl(attr, false));
+            }
+        }
+
+        for (IXplTagSlot frame : this.tag.getSlots()) {
+            if (frame.isRuntime()) {
+                params.add(buildParamDecl(frame));
+            }
+        }
+        return params;
+    }
+
+    private ArrowFunctionExpression buildRuntimeFunc(Expression body) {
+        ArrowFunctionExpression func = new ArrowFunctionExpression();
+        func.setLocation(this.tag.getLocation());
+        func.setFuncName(tag.getTagFuncName());
+        func.setParams(buildRuntimeParamsDecl());
+        func.setReturnType(buildReturnDecl());
+        func.setBody(body);
+        return func;
+    }
+
+    private List<FunctionArgument> buildRuntimeArgsModel() {
+        List<FunctionArgument> params = new ArrayList<>();
+
+        for (IXplTagAttribute attr : this.tag.getAttrs()) {
+            if (attr.isRuntime())
+                params.add(buildArgModel(attr, false));
+        }
+
+        for (IXplTagSlot frame : this.tag.getSlots()) {
+            if (frame.isRuntime())
+                params.add(buildArgModel(frame, false));
+        }
+        return params;
+    }
+
+    private CallExpression buildRuntimeCall(SourceLocation loc,
+                                            Expression body, List<Expression> runtimeArgs) {
+        ArrowFunctionExpression func = buildRuntimeFunc(body);
+        CallExpression callExpr = new CallExpression();
+        callExpr.setLocation(loc);
+        callExpr.setXplLibPath(lib.resourcePath());
+        callExpr.setCallee(func);
+        callExpr.setArguments(runtimeArgs);
+        return callExpr;
+    }
 }

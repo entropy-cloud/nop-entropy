@@ -55,12 +55,15 @@
                 则将会转换为大小写混排的变量名，例如onClick和vModel。
             @mandatory [是否非空] 是否必须设置该属性，且属性值不能是空值或者空字符串
             @optional [是否可选] 如果不是可选属性，则调用时必须传入该属性，但是属性值允许为空
+            @runtime [是否运行时属性] 只有标签是宏标签时起作用。对于宏标签，非运行时属性必须是编译期可以确定的具体值，且在运行期不存在。
+                 而运行时属性在标签编译时对应于Expression类型，同时存在于运行期
             @internal [是否内部] 内部属性不出现在IDE的提示信息中
             @deprecated [是否已废弃] 已废弃的属性不推荐在程序中继续被使用
+            @defaultValue [缺省值] 当外部调用标签时没有指定属性时会使用缺省值
             -->
             <attr name="!xml-name" varName="var-name" displayName="string" type="generic-type" stdDomain="std-domain"
                   mandatory="!boolean=false" implicit="!boolean=false" optional="!boolean=false"
-                  internal="!boolean=false"
+                  internal="!boolean=false" runtime="!boolean=false"
                   defaultValue="string" deprecated="!boolean=false"
                   xdef:unique-attr="name" xdef:name="XplTagAttribute"
             >
@@ -75,7 +78,7 @@
             @outputMode 当slotType=renderer的时候起作用。如果不设置，则缺省值与标签的outputMode相同。
             -->
             <slot name="!var-name" varName="var-name" displayName="string" stdDomain="var-name" type="generic-type"
-                  mandatory="!boolean=false" multiple="!boolean=false" schema="v-path"
+                  mandatory="!boolean=false" multiple="!boolean=false" schema="v-path" runtime="!boolean=false"
                   slotType="enum:io.nop.xlang.xpl.XplSlotType=renderer"
                   deprecated="!boolean=false" xdef:unique-attr="name"
                   outputMode="enum:io.nop.xlang.ast.XLangOutputMode"

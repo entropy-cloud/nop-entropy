@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [61:14:0:0]/nop/schema/xlib.xdef <p>
+ * generate from [64:14:0:0]/nop/schema/xlib.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -15,9 +15,9 @@ import io.nop.core.lang.json.IJsonHandler;
 public abstract class _XplTagAttribute extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
-     *  
+     *  缺省值
      * xml name: defaultValue
-     * 
+     * 当外部调用标签时没有指定属性时会使用缺省值
      */
     private java.lang.String _defaultValue ;
     
@@ -78,6 +78,14 @@ public abstract class _XplTagAttribute extends io.nop.core.resource.component.Ab
     private boolean _optional  = false;
     
     /**
+     *  是否运行时属性
+     * xml name: runtime
+     * 只有标签是宏标签时起作用。对于宏标签，非运行时属性必须是编译期可以确定的具体值，且在运行期不存在。
+     * 而运行时属性在标签编译时对应于Expression类型，同时存在于运行期
+     */
+    private boolean _runtime  = false;
+    
+    /**
      *  
      * xml name: stdDomain
      * 
@@ -100,9 +108,9 @@ public abstract class _XplTagAttribute extends io.nop.core.resource.component.Ab
     private java.lang.String _varName ;
     
     /**
-     * 
+     * 缺省值
      * xml name: defaultValue
-     *  
+     *  当外部调用标签时没有指定属性时会使用缺省值
      */
     
     public java.lang.String getDefaultValue(){
@@ -271,6 +279,26 @@ public abstract class _XplTagAttribute extends io.nop.core.resource.component.Ab
 
     
     /**
+     * 是否运行时属性
+     * xml name: runtime
+     *  只有标签是宏标签时起作用。对于宏标签，非运行时属性必须是编译期可以确定的具体值，且在运行期不存在。
+     * 而运行时属性在标签编译时对应于Expression类型，同时存在于运行期
+     */
+    
+    public boolean isRuntime(){
+      return _runtime;
+    }
+
+    
+    public void setRuntime(boolean value){
+        checkAllowChange();
+        
+        this._runtime = value;
+           
+    }
+
+    
+    /**
      * 
      * xml name: stdDomain
      *  
@@ -350,6 +378,7 @@ public abstract class _XplTagAttribute extends io.nop.core.resource.component.Ab
         out.put("mandatory",this.isMandatory());
         out.put("name",this.getName());
         out.put("optional",this.isOptional());
+        out.put("runtime",this.isRuntime());
         out.put("stdDomain",this.getStdDomain());
         out.put("type",this.getType());
         out.put("varName",this.getVarName());

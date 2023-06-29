@@ -16,6 +16,8 @@ public interface IXplTagSlot extends IXplTagVariable {
 
     boolean isMandatory();
 
+    boolean isRuntime();
+
     XLangOutputMode getOutputMode();
 
     XplSlotType getSlotType();

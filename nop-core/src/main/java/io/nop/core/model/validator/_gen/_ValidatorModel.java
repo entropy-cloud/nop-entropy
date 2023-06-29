@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [6:2:0:0]/nop/schema/validator.xdef <p>
+ * generate from [7:2:0:0]/nop/schema/validator.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -55,6 +55,13 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
      * 当exception的severity大于等于fatalSeverity的时候会立刻中断，抛出异常。否则会收集所有异常信息，最后统一抛出
      */
     private int _fatalSeverity  = 0;
+    
+    /**
+     *  
+     * xml name: obj
+     * 待验证的对象的构造表达式。例如 obj="${entity}"
+     */
+    private io.nop.core.lang.eval.IEvalAction _obj ;
     
     /**
      *  
@@ -209,6 +216,25 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: obj
+     *  待验证的对象的构造表达式。例如 obj="${entity}"
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getObj(){
+      return _obj;
+    }
+
+    
+    public void setObj(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._obj = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: severity
      *  值越大严重性越高
      */
@@ -247,6 +273,7 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
         out.put("errorCode",this.getErrorCode());
         out.put("errorParams",this.getErrorParams());
         out.put("fatalSeverity",this.getFatalSeverity());
+        out.put("obj",this.getObj());
         out.put("severity",this.getSeverity());
     }
 }

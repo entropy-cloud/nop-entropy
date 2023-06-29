@@ -13,6 +13,7 @@ import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.api.core.validate.IValidator;
 import io.nop.core.CoreErrors;
+import io.nop.core.model.query.BeanVariableScope;
 import io.nop.core.model.query.FilterBeanEvaluator;
 
 import java.util.Collections;
@@ -33,9 +34,9 @@ public class ModelBasedValidator implements IValidator<IVariableScope> {
         this(validatorModel, FilterBeanEvaluator.INSTANCE);
     }
 
-    public void validateWithDefaultCollector(IVariableScope scope, int fatalSeverity) {
+    public void validateWithDefaultCollector(Object obj, int fatalSeverity) {
         DefaultValidationErrorCollector collector = new DefaultValidationErrorCollector(fatalSeverity);
-        validate(scope, collector);
+        validate(BeanVariableScope.makeScope(obj), collector);
         collector.end();
     }
 

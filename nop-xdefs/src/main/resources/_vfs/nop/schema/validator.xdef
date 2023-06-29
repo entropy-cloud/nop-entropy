@@ -2,10 +2,11 @@
 @severity 值越大严重性越高
 @fatalSeverity 当exception的severity大于等于fatalSeverity的时候会立刻中断，抛出异常。否则会收集所有异常信息，最后统一抛出
 @checkLibPath 在condition段以及check段中可以使用的判断标签
+@obj 待验证的对象的构造表达式。例如 obj="${entity}"
 -->
 <validator xdef:bean-package="io.nop.core.model.validator" xdef:name="ValidatorModel"
            errorCode="string" errorParams="string-map" severity="!int=0" fatalSeverity="!int=0"
-           checkLibPath="v-path"
+           checkLibPath="v-path" obj="s-expr"
            x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
 >
 

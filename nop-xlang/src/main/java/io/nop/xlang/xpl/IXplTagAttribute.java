@@ -13,6 +13,8 @@ public interface IXplTagAttribute extends IXplTagVariable {
 
     boolean isMandatory();
 
+    boolean isRuntime();
+
     boolean isOptional();
 
     String getStdDomain();
