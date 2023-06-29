@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.demo.quarkus.web;
+package io.nop.demo.quarkus;
 
 import io.nop.boot.NopApplication;
 import io.nop.core.initialize.CoreInitialization;

@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.nop.api.core.ApiConstants;
@@ -44,12 +45,15 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
 
     private boolean forPublic;
 
+    private boolean resolved;
+
     public ErrorBean() {
     }
 
     public ErrorBean(String errorCode) {
         this.errorCode = errorCode;
     }
+
 
     @Override
     public ErrorBean cloneInstance() {
@@ -64,8 +68,18 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         ret.setSeverity(severity);
         ret.setDetails(details == null ? null : new LinkedHashMap<>(details));
         ret.setCause(cause);
+        ret.setResolved(resolved);
 
         return ret;
+    }
+
+    @JsonIgnore
+    public boolean isResolved() {
+        return resolved;
+    }
+
+    public void setResolved(boolean resolved) {
+        this.resolved = resolved;
     }
 
     public String toString() {

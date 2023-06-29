@@ -36,6 +36,10 @@ public @interface NopTestConfig {
      */
     BeanContainerStartMode beanContainerStartMode() default BeanContainerStartMode.ALL_LAZY;
 
+    String enableActionAuth() default "";
+
+    String enableDataAuth() default "";
+
     /**
      * 是否自动加载/nop/auto-config/目录下的xxx.beans配置
      */

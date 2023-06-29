@@ -38,7 +38,7 @@ public class DefaultValidationErrorCollector implements IValidationErrorCollecto
         if (LOG.isDebugEnabled())
             LOG.info("nop.validate.error:{}", JsonTool.stringify(error));
 
-        ErrorMessageManager.instance().resolveErrorDescription(error);
+        error = ErrorMessageManager.instance().resolveErrorBean(error, true);
         errors.add(error);
     }
 

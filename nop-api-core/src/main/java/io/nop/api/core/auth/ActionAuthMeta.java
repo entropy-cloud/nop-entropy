@@ -21,8 +21,7 @@ public class ActionAuthMeta {
     private final MultiCsvSet permissions;
 
     public ActionAuthMeta(@JsonProperty("roles") Set<String> roles,
-                          @JsonProperty("permissions") MultiCsvSet permissions
-    ) {
+                          @JsonProperty("permissions") MultiCsvSet permissions) {
         this.roles = roles;
         this.permissions = permissions;
     }

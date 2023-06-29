@@ -28,7 +28,7 @@ public interface AuthApiErrors {
 
     String ARG_ROLES = "roles";
 
-    String ARG_FIELD_NAME = "{fieldName}";
+    String ARG_FIELD_NAME = "fieldName";
 
     String ARG_FIELD_DISPLAY_NAME = "{fieldDisplayName}";
     ErrorCode ERR_AUTH_NO_PERMISSION =

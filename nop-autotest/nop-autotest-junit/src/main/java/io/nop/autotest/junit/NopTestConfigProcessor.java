@@ -7,7 +7,9 @@
  */
 package io.nop.autotest.junit;
 
+import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.ClassPathResource;
@@ -70,5 +72,13 @@ public class NopTestConfigProcessor {
         }
 
         setTestConfig(CFG_INIT_DATABASE_SCHEMA, config.initDatabaseSchema());
+
+        if (!config.enableActionAuth().isEmpty()) {
+            setTestConfig(ApiConfigs.CFG_AUTH_ENABLE_ACTION_AUTH, ConvertHelper.toBoolean(config.enableActionAuth()));
+        }
+
+        if (!config.enableDataAuth().isEmpty()) {
+            setTestConfig(ApiConfigs.CFG_AUTH_ENABLE_DATA_AUTH, ConvertHelper.toBoolean(config.enableDataAuth()));
+        }
     }
 }

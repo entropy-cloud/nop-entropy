@@ -202,7 +202,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlStatement> statementsOpt = optimizeList(node.getStatements(),true, context);
                             if(statementsOpt != node.getStatements()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(statementsOpt); ret = node.deepClone();}
                                 ret.setStatements(statementsOpt);
                             }
                         
@@ -220,7 +220,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlQualifiedName nextOpt = (io.nop.orm.eql.ast.SqlQualifiedName)optimize(node.getNext(),context);
                             if(nextOpt != node.getNext()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { nextOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setNext(nextOpt);
                             }
                         
@@ -238,7 +238,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlQualifiedName ownerOpt = (io.nop.orm.eql.ast.SqlQualifiedName)optimize(node.getOwner(),context);
                             if(ownerOpt != node.getOwner()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { ownerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setOwner(ownerOpt);
                             }
                         
@@ -256,7 +256,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlQualifiedName ownerOpt = (io.nop.orm.eql.ast.SqlQualifiedName)optimize(node.getOwner(),context);
                             if(ownerOpt != node.getOwner()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { ownerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setOwner(ownerOpt);
                             }
                         
@@ -274,7 +274,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -285,7 +285,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlTableName tableNameOpt = (io.nop.orm.eql.ast.SqlTableName)optimize(node.getTableName(),context);
                             if(tableNameOpt != node.getTableName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { tableNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTableName(tableNameOpt);
                             }
                         
@@ -296,7 +296,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlColumnName> columnsOpt = optimizeList(node.getColumns(),true, context);
                             if(columnsOpt != node.getColumns()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(columnsOpt); ret = node.deepClone();}
                                 ret.setColumns(columnsOpt);
                             }
                         
@@ -307,7 +307,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSelect selectOpt = (io.nop.orm.eql.ast.SqlSelect)optimize(node.getSelect(),context);
                             if(selectOpt != node.getSelect()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { selectOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSelect(selectOpt);
                             }
                         
@@ -318,7 +318,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlValues valuesOpt = (io.nop.orm.eql.ast.SqlValues)optimize(node.getValues(),context);
                             if(valuesOpt != node.getValues()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valuesOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValues(valuesOpt);
                             }
                         
@@ -336,7 +336,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlExpr> valuesOpt = optimizeList(node.getValues(),true, context);
                             if(valuesOpt != node.getValues()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(valuesOpt); ret = node.deepClone();}
                                 ret.setValues(valuesOpt);
                             }
                         
@@ -354,7 +354,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -365,7 +365,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlTableName tableNameOpt = (io.nop.orm.eql.ast.SqlTableName)optimize(node.getTableName(),context);
                             if(tableNameOpt != node.getTableName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { tableNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTableName(tableNameOpt);
                             }
                         
@@ -376,7 +376,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
                             if(aliasOpt != node.getAlias()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAlias(aliasOpt);
                             }
                         
@@ -387,7 +387,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlAssignment> assignmentsOpt = optimizeList(node.getAssignments(),true, context);
                             if(assignmentsOpt != node.getAssignments()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(assignmentsOpt); ret = node.deepClone();}
                                 ret.setAssignments(assignmentsOpt);
                             }
                         
@@ -398,7 +398,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlWhere whereOpt = (io.nop.orm.eql.ast.SqlWhere)optimize(node.getWhere(),context);
                             if(whereOpt != node.getWhere()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { whereOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setWhere(whereOpt);
                             }
                         
@@ -423,7 +423,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlColumnName columnNameOpt = (io.nop.orm.eql.ast.SqlColumnName)optimize(node.getColumnName(),context);
                             if(columnNameOpt != node.getColumnName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { columnNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setColumnName(columnNameOpt);
                             }
                         
@@ -434,7 +434,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -452,7 +452,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -463,7 +463,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlTableName tableNameOpt = (io.nop.orm.eql.ast.SqlTableName)optimize(node.getTableName(),context);
                             if(tableNameOpt != node.getTableName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { tableNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTableName(tableNameOpt);
                             }
                         
@@ -474,7 +474,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
                             if(aliasOpt != node.getAlias()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAlias(aliasOpt);
                             }
                         
@@ -485,7 +485,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlWhere whereOpt = (io.nop.orm.eql.ast.SqlWhere)optimize(node.getWhere(),context);
                             if(whereOpt != node.getWhere()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { whereOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setWhere(whereOpt);
                             }
                         
@@ -503,7 +503,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -521,7 +521,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSelect statementOpt = (io.nop.orm.eql.ast.SqlSelect)optimize(node.getStatement(),context);
                             if(statementOpt != node.getStatement()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { statementOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setStatement(statementOpt);
                             }
                         
@@ -539,7 +539,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -550,7 +550,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlCteStatement> withCtesOpt = optimizeList(node.getWithCtes(),true, context);
                             if(withCtesOpt != node.getWithCtes()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(withCtesOpt); ret = node.deepClone();}
                                 ret.setWithCtes(withCtesOpt);
                             }
                         
@@ -561,7 +561,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSelect selectOpt = (io.nop.orm.eql.ast.SqlSelect)optimize(node.getSelect(),context);
                             if(selectOpt != node.getSelect()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { selectOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSelect(selectOpt);
                             }
                         
@@ -579,7 +579,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -590,7 +590,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlProjection> projectionsOpt = optimizeList(node.getProjections(),true, context);
                             if(projectionsOpt != node.getProjections()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(projectionsOpt); ret = node.deepClone();}
                                 ret.setProjections(projectionsOpt);
                             }
                         
@@ -601,7 +601,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlFrom fromOpt = (io.nop.orm.eql.ast.SqlFrom)optimize(node.getFrom(),context);
                             if(fromOpt != node.getFrom()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { fromOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setFrom(fromOpt);
                             }
                         
@@ -612,7 +612,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlWhere whereOpt = (io.nop.orm.eql.ast.SqlWhere)optimize(node.getWhere(),context);
                             if(whereOpt != node.getWhere()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { whereOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setWhere(whereOpt);
                             }
                         
@@ -623,7 +623,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlGroupBy groupByOpt = (io.nop.orm.eql.ast.SqlGroupBy)optimize(node.getGroupBy(),context);
                             if(groupByOpt != node.getGroupBy()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { groupByOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setGroupBy(groupByOpt);
                             }
                         
@@ -634,7 +634,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlHaving havingOpt = (io.nop.orm.eql.ast.SqlHaving)optimize(node.getHaving(),context);
                             if(havingOpt != node.getHaving()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { havingOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setHaving(havingOpt);
                             }
                         
@@ -645,7 +645,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlOrderBy orderByOpt = (io.nop.orm.eql.ast.SqlOrderBy)optimize(node.getOrderBy(),context);
                             if(orderByOpt != node.getOrderBy()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { orderByOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setOrderBy(orderByOpt);
                             }
                         
@@ -656,7 +656,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlLimit limitOpt = (io.nop.orm.eql.ast.SqlLimit)optimize(node.getLimit(),context);
                             if(limitOpt != node.getLimit()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { limitOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLimit(limitOpt);
                             }
                         
@@ -681,7 +681,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -699,7 +699,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlLiteral> argsOpt = optimizeList(node.getArgs(),true, context);
                             if(argsOpt != node.getArgs()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argsOpt); ret = node.deepClone();}
                                 ret.setArgs(argsOpt);
                             }
                         
@@ -717,7 +717,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -728,7 +728,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSelect leftOpt = (io.nop.orm.eql.ast.SqlSelect)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -739,7 +739,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSelect rightOpt = (io.nop.orm.eql.ast.SqlSelect)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -757,7 +757,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -768,7 +768,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -779,7 +779,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
                             if(aliasOpt != node.getAlias()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAlias(aliasOpt);
                             }
                         
@@ -797,7 +797,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlQualifiedName ownerOpt = (io.nop.orm.eql.ast.SqlQualifiedName)optimize(node.getOwner(),context);
                             if(ownerOpt != node.getOwner()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { ownerOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setOwner(ownerOpt);
                             }
                         
@@ -815,7 +815,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlOrderByItem> itemsOpt = optimizeList(node.getItems(),true, context);
                             if(itemsOpt != node.getItems()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(itemsOpt); ret = node.deepClone();}
                                 ret.setItems(itemsOpt);
                             }
                         
@@ -833,7 +833,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlGroupByItem> itemsOpt = optimizeList(node.getItems(),true, context);
                             if(itemsOpt != node.getItems()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(itemsOpt); ret = node.deepClone();}
                                 ret.setItems(itemsOpt);
                             }
                         
@@ -851,7 +851,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -869,7 +869,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -887,7 +887,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr limitOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getLimit(),context);
                             if(limitOpt != node.getLimit()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { limitOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLimit(limitOpt);
                             }
                         
@@ -898,7 +898,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr offsetOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getOffset(),context);
                             if(offsetOpt != node.getOffset()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { offsetOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setOffset(offsetOpt);
                             }
                         
@@ -916,7 +916,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -927,7 +927,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlTableSource> tableSourcesOpt = optimizeList(node.getTableSources(),true, context);
                             if(tableSourcesOpt != node.getTableSources()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(tableSourcesOpt); ret = node.deepClone();}
                                 ret.setTableSources(tableSourcesOpt);
                             }
                         
@@ -945,7 +945,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -956,7 +956,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlTableName tableNameOpt = (io.nop.orm.eql.ast.SqlTableName)optimize(node.getTableName(),context);
                             if(tableNameOpt != node.getTableName()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { tableNameOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTableName(tableNameOpt);
                             }
                         
@@ -967,7 +967,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
                             if(aliasOpt != node.getAlias()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAlias(aliasOpt);
                             }
                         
@@ -985,7 +985,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -996,7 +996,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlTableSource leftOpt = (io.nop.orm.eql.ast.SqlTableSource)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1007,7 +1007,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlTableSource rightOpt = (io.nop.orm.eql.ast.SqlTableSource)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1018,7 +1018,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr conditionOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getCondition(),context);
                             if(conditionOpt != node.getCondition()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { conditionOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setCondition(conditionOpt);
                             }
                         
@@ -1036,7 +1036,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -1047,7 +1047,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSelect queryOpt = (io.nop.orm.eql.ast.SqlSelect)optimize(node.getQuery(),context);
                             if(queryOpt != node.getQuery()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { queryOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setQuery(queryOpt);
                             }
                         
@@ -1058,7 +1058,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlAlias aliasOpt = (io.nop.orm.eql.ast.SqlAlias)optimize(node.getAlias(),context);
                             if(aliasOpt != node.getAlias()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAlias(aliasOpt);
                             }
                         
@@ -1076,7 +1076,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1094,7 +1094,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr leftOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1105,7 +1105,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr rightOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1123,7 +1123,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr leftOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1134,7 +1134,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr rightOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1201,7 +1201,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr leftOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getLeft(),context);
                             if(leftOpt != node.getLeft()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { leftOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setLeft(leftOpt);
                             }
                         
@@ -1212,7 +1212,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr rightOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getRight(),context);
                             if(rightOpt != node.getRight()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { rightOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setRight(rightOpt);
                             }
                         
@@ -1230,7 +1230,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1248,7 +1248,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1259,7 +1259,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSubQueryExpr queryOpt = (io.nop.orm.eql.ast.SqlSubQueryExpr)optimize(node.getQuery(),context);
                             if(queryOpt != node.getQuery()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { queryOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setQuery(queryOpt);
                             }
                         
@@ -1277,7 +1277,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSelect selectOpt = (io.nop.orm.eql.ast.SqlSelect)optimize(node.getSelect(),context);
                             if(selectOpt != node.getSelect()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { selectOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setSelect(selectOpt);
                             }
                         
@@ -1295,7 +1295,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1306,7 +1306,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSubQueryExpr queryOpt = (io.nop.orm.eql.ast.SqlSubQueryExpr)optimize(node.getQuery(),context);
                             if(queryOpt != node.getQuery()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { queryOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setQuery(queryOpt);
                             }
                         
@@ -1324,7 +1324,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1335,7 +1335,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlExpr> valuesOpt = optimizeList(node.getValues(),true, context);
                             if(valuesOpt != node.getValues()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(valuesOpt); ret = node.deepClone();}
                                 ret.setValues(valuesOpt);
                             }
                         
@@ -1353,7 +1353,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr testOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getTest(),context);
                             if(testOpt != node.getTest()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { testOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTest(testOpt);
                             }
                         
@@ -1364,7 +1364,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr beginOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getBegin(),context);
                             if(beginOpt != node.getBegin()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { beginOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setBegin(beginOpt);
                             }
                         
@@ -1375,7 +1375,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr endOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getEnd(),context);
                             if(endOpt != node.getEnd()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { endOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setEnd(endOpt);
                             }
                         
@@ -1393,7 +1393,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1404,7 +1404,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr valueOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getValue(),context);
                             if(valueOpt != node.getValue()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { valueOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setValue(valueOpt);
                             }
                         
@@ -1415,7 +1415,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr escapeOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getEscape(),context);
                             if(escapeOpt != node.getEscape()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { escapeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setEscape(escapeOpt);
                             }
                         
@@ -1433,7 +1433,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1451,7 +1451,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlExpr> argsOpt = optimizeList(node.getArgs(),true, context);
                             if(argsOpt != node.getArgs()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argsOpt); ret = node.deepClone();}
                                 ret.setArgs(argsOpt);
                             }
                         
@@ -1469,7 +1469,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlExpr> argsOpt = optimizeList(node.getArgs(),true, context);
                             if(argsOpt != node.getArgs()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(argsOpt); ret = node.deepClone();}
                                 ret.setArgs(argsOpt);
                             }
                         
@@ -1487,7 +1487,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlExpr> valuesOpt = optimizeList(node.getValues(),true, context);
                             if(valuesOpt != node.getValues()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(valuesOpt); ret = node.deepClone();}
                                 ret.setValues(valuesOpt);
                             }
                         
@@ -1505,7 +1505,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlSubQueryExpr queryOpt = (io.nop.orm.eql.ast.SqlSubQueryExpr)optimize(node.getQuery(),context);
                             if(queryOpt != node.getQuery()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { queryOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setQuery(queryOpt);
                             }
                         
@@ -1523,7 +1523,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1541,7 +1541,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr testOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getTest(),context);
                             if(testOpt != node.getTest()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { testOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setTest(testOpt);
                             }
                         
@@ -1552,7 +1552,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlCaseWhenItem> caseWhensOpt = optimizeList(node.getCaseWhens(),true, context);
                             if(caseWhensOpt != node.getCaseWhens()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(caseWhensOpt); ret = node.deepClone();}
                                 ret.setCaseWhens(caseWhensOpt);
                             }
                         
@@ -1563,7 +1563,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr elseExprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getElseExpr(),context);
                             if(elseExprOpt != node.getElseExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { elseExprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setElseExpr(elseExprOpt);
                             }
                         
@@ -1581,7 +1581,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr whenOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getWhen(),context);
                             if(whenOpt != node.getWhen()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { whenOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setWhen(whenOpt);
                             }
                         
@@ -1592,7 +1592,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr thenOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getThen(),context);
                             if(thenOpt != node.getThen()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { thenOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setThen(thenOpt);
                             }
                         
@@ -1610,7 +1610,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlExpr exprOpt = (io.nop.orm.eql.ast.SqlExpr)optimize(node.getExpr(),context);
                             if(exprOpt != node.getExpr()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { exprOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setExpr(exprOpt);
                             }
                         
@@ -1621,7 +1621,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             io.nop.orm.eql.ast.SqlTypeExpr dataTypeOpt = (io.nop.orm.eql.ast.SqlTypeExpr)optimize(node.getDataType(),context);
                             if(dataTypeOpt != node.getDataType()){
                                incChangeCount();
-                               if(shouldClone(ret,node))  ret = node.deepClone();
+                               if(shouldClone(ret,node)) { dataTypeOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setDataType(dataTypeOpt);
                             }
                         
@@ -1646,7 +1646,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         
@@ -1664,7 +1664,7 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                             java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
                             if(decoratorsOpt != node.getDecorators()){
                                 incChangeCount();
-                                if(shouldClone(ret,node))  ret = node.deepClone();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
                                 ret.setDecorators(decoratorsOpt);
                             }
                         

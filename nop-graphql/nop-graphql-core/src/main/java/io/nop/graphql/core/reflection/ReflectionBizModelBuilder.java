@@ -26,6 +26,7 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.MultiCsvSet;
 import io.nop.api.core.util.SourceLocation;
@@ -61,7 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static io.nop.commons.util.CollectionHelper.buildImmutableSet;
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_METHOD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
@@ -272,7 +272,7 @@ public class ReflectionBizModelBuilder {
 
         Auth auth = func.getAnnotation(Auth.class);
         if (auth != null) {
-            field.setAuth(new ActionAuthMeta(buildImmutableSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
+            field.setAuth(new ActionAuthMeta(ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions())));
         } else {
             String permission = bizObjName + ':' + opType + "|" + bizObjName + ':' + name;
             field.setAuth(new ActionAuthMeta(Collections.emptySet(), MultiCsvSet.fromText(permission)));

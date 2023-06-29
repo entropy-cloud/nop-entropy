@@ -52,6 +52,8 @@ import java.util.function.BiPredicate;
 import static io.nop.auth.api.AuthApiErrors.ARG_FIELD_DISPLAY_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_FIELD_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_OBJ_TYPE_NAME;
+import static io.nop.auth.api.AuthApiErrors.ARG_PERMISSION;
+import static io.nop.auth.api.AuthApiErrors.ARG_ROLES;
 import static io.nop.biz.BizConstants.METHOD_GET;
 import static io.nop.biz.BizErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.biz.BizErrors.ARG_DICT;
@@ -221,14 +223,14 @@ public class ObjMetaBasedValidator {
         if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
             if (authChecker.isPermissionSetSatisfied(auth.getPermissions(), context))
                 return;
-
-
-            throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
-                    .param(ARG_FIELD_NAME, propMeta.getName())
-                    .param(ARG_OBJ_TYPE_NAME, objTypeName)
-                    .param(ARG_FIELD_DISPLAY_NAME, propMeta.getDisplayName());
         }
 
+        throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
+                .param(ARG_FIELD_NAME, propMeta.getName())
+                .param(ARG_PERMISSION, auth.getPermissions())
+                .param(ARG_ROLES, auth.getRoles())
+                .param(ARG_OBJ_TYPE_NAME, objTypeName)
+                .param(ARG_FIELD_DISPLAY_NAME, propMeta.getDisplayName());
     }
 
     private void setIn(Map<String, Object> ret, ISchema schema, IObjPropMeta propMeta, Object value) {

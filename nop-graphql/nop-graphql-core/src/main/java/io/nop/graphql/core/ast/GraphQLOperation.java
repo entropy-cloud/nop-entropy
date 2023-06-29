@@ -46,9 +46,18 @@ public class GraphQLOperation extends _GraphQLOperation implements INeedInit {
         GraphQLFieldSelection field = new GraphQLFieldSelection();
         field.setName(actionName);
         field.setOpRequest(request);
-        GraphQLSelectionSet selectionSet = new GraphQLSelectionSet();
+        GraphQLSelectionSet selectionSet = makeSelectionSet();
         selectionSet.addFieldSelection(field);
         setSelectionSet(selectionSet);
         return field;
+    }
+
+    public GraphQLSelectionSet makeSelectionSet() {
+        GraphQLSelectionSet selectionSet = getSelectionSet();
+        if (selectionSet == null) {
+            selectionSet = new GraphQLSelectionSet();
+            setSelectionSet(selectionSet);
+        }
+        return selectionSet;
     }
 }

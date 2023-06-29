@@ -11,6 +11,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.IErrorMessageManager;
 import io.nop.api.core.exceptions.IException;
@@ -115,6 +116,18 @@ public class ErrorMessageManager implements IErrorMessageManager {
 
         message = resolveDescription(locale, message, params);
         return message;
+    }
+
+    @Override
+    public ErrorBean resolveErrorBean(ErrorBean error, boolean onlyPublic) {
+        if (error.isResolved())
+            return error;
+
+        Pair<ErrorBean, ErrorCodeMapping> pair = applyMapping(ContextProvider.currentLocale(), error, onlyPublic);
+        if (pair == null) {
+            return error;
+        }
+        return pair.getFirst();
     }
 
     public String resolveDescription(String locale, String message, Map<String, ?> params) {
@@ -318,6 +331,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
             if (mapping == null) {
                 // 虽然没有找到错误码映射，但是明确标记了是公开异常，则可以直接返回异常信息
                 if (errorBean.isForPublic()) {
+                    errorBean.setResolved(true);
                     return Pair.of(errorBean, mapping);
                 }
             }
@@ -359,6 +373,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
             errorBean.setDetails(details);
         }
 
+        errorBean.setResolved(true);
         return Pair.of(errorBean, mapping);
     }
 
@@ -372,6 +387,7 @@ public class ErrorMessageManager implements IErrorMessageManager {
         if (error.getDescription() == null) {
             error.setDescription(getErrorDescription(locale, CoreConstants.ERROR_SYS_ERR, Collections.emptyMap()));
         }
+        error.setResolved(true);
         return Pair.of(error, mapping);
     }
 

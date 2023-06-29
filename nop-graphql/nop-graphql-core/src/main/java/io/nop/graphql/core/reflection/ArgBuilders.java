@@ -22,6 +22,8 @@ public class ArgBuilders {
 
     public static IServiceActionArgBuilder getActionArgFromRequest(String name, IGenericType type) {
         return (req, selection, ctx) -> {
+            if (req == null)
+                return null;
             Object value = BeanTool.instance().getProperty(req, name, ctx.getEvalScope());
             if (value == null)
                 return null;
@@ -41,6 +43,14 @@ public class ArgBuilders {
             }
             return BeanTool.castBeanToType(value, type);
         };
+    }
+
+    public static IServiceActionArgBuilder getSelection() {
+        return (req, selection, ctx) -> selection;
+    }
+
+    public static IServiceActionArgBuilder getContext() {
+        return (req, selection, ctx) -> ctx;
     }
 
     public static IServiceActionArgBuilder getActionRequest(IGenericType type) {

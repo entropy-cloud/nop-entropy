@@ -11,7 +11,6 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.util.ApiHeaders;
-import io.nop.api.core.util.ApiStringHelper;
 
 import java.util.Map;
 
@@ -26,11 +25,7 @@ public interface IErrorMessageManager {
 
     String resolveDescription(String locale, String message, Map<String, ?> params);
 
-    default void resolveErrorDescription(ErrorBean error) {
-        if (ApiStringHelper.isEmpty(error.getDescription())) {
-            error.setDescription(resolveDescription(null, error.getErrorCode(), error.getParams()));
-        }
-    }
+    ErrorBean resolveErrorBean(ErrorBean error, boolean onlyPublic);
 
     default ErrorBean buildErrorMessage(String locale, Throwable e) {
         return buildErrorMessage(locale, e, false, true);

@@ -9,6 +9,7 @@ package io.nop.core.i18n;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.ApiStringHelper;
@@ -129,7 +130,9 @@ public class I18nMessageManager implements II18nMessageManager {
 
     @Override
     public String getMessage(String locale, String key, String defaultValue) {
-        if(locale == null)
+        if (locale == null)
+            locale = ContextProvider.currentLocale();
+        if (locale == null)
             locale = getDefaultLocale();
 
         Map<String, String> messages = registeredMessages.get(locale);

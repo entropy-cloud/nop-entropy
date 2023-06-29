@@ -7,12 +7,19 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [21:6:0:0]/nop/schema/validator.xdef <p>
+ * generate from [22:6:0:0]/nop/schema/validator.xdef <p>
  * check检查不通过会抛出异常
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _ValidatorCheckModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: bizFatal
+     * 
+     */
+    private java.lang.Boolean _bizFatal ;
     
     /**
      *  
@@ -45,6 +52,13 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: errorStatus
+     * 
+     */
+    private java.lang.Integer _errorStatus ;
+    
+    /**
+     *  
      * xml name: id
      * 
      */
@@ -56,6 +70,25 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
      * 严重程度。值越大严重性越高。如果有多个检查失败，可以选择只返回最严重的错误信息（一个或者多个）
      */
     private int _severity  = 0;
+    
+    /**
+     * 
+     * xml name: bizFatal
+     *  
+     */
+    
+    public java.lang.Boolean getBizFatal(){
+      return _bizFatal;
+    }
+
+    
+    public void setBizFatal(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._bizFatal = value;
+           
+    }
+
     
     /**
      * 
@@ -140,6 +173,25 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: errorStatus
+     *  
+     */
+    
+    public java.lang.Integer getErrorStatus(){
+      return _errorStatus;
+    }
+
+    
+    public void setErrorStatus(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._errorStatus = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: id
      *  
      */
@@ -189,10 +241,12 @@ public abstract class _ValidatorCheckModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("bizFatal",this.getBizFatal());
         out.put("condition",this.getCondition());
         out.put("errorCode",this.getErrorCode());
         out.put("errorDescription",this.getErrorDescription());
         out.put("errorParams",this.getErrorParams());
+        out.put("errorStatus",this.getErrorStatus());
         out.put("id",this.getId());
         out.put("severity",this.getSeverity());
     }

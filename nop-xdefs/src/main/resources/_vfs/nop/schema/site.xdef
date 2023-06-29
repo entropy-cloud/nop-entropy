@@ -11,7 +11,7 @@
        为用户赋权时，允许访问资源，则自动允许访问所有依赖的资源。
    -->
     <resource xdef:name="SiteResourceBean" xdef:unique-attr="id" resourceType="string"
-              id="!string" depends="csv-set" displayName="string" orderNo="!int=0"
+              id="!string" depends="csv-set" displayName="string" orderNo="!int=0" roles="multi-csv-set"
               routePath="string" url="string" target="string" icon="string" component="string"
               hidden="!boolean=false" keepAlive="!boolean=false" noAuth="!boolean=false">
 

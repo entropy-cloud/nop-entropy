@@ -33,7 +33,7 @@ public interface NopAuthConfigs {
 
     @Description("静态配置的菜单文件路径")
     IConfigReference<String> CFG_AUTH_SITE_MAP_STATIC_CONFIG_PATH = varRef("nop.auth.site-map.static-config-path",
-            String.class, "/nop/main/auth/main.action-auth.xml");
+            String.class, NopAuthConstants.PATH_MAIN_ACTION_AUTH);
 
     @Description("是否启用前端调试模式")
     IConfigReference<Boolean> CFG_AUTH_SITE_MAP_SUPPORT_DEBUG = AuthCoreConfigs.CFG_AUTH_SITE_MAP_SUPPORT_DEBUG;
@@ -56,7 +56,7 @@ public interface NopAuthConfigs {
 
     @Description("数据权限配置文件对应的虚拟路径")
     IConfigReference<String> CFG_AUTH_DATA_AUTH_CONFIG_PATH =
-            varRef("nop.auth.data-auth-config-path", String.class, "/nop/main/auth/main.data-auth.xml");
+            varRef("nop.auth.data-auth-config-path", String.class, NopAuthConstants.PATH_MAIN_DATA_AUTH);
 
     @Description("启用数据库数据权限配置")
     IConfigReference<Boolean> CFG_AUTH_USE_DATA_AUTH_TABLE =

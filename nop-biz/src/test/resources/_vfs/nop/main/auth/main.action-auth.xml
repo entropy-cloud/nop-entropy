@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <site id="main">
+        <resource id="test-orm-nop-auth" displayName="测试nop-auth" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-auth" component="layouts/default/index">
+            <children>
+                <resource id="FNPT:NopAuthSite:query" displayName="查询部门" orderNo="10002" resourceType="FNPT">
+                    <permissions>NopAuthSite:query</permissions>
+                </resource>
+            </children>
+        </resource>
+    </site>
+
+    <role name="manager">
+        <resource id="FNPT:NopAuthSite:query" />
+    </role>
+</auth>

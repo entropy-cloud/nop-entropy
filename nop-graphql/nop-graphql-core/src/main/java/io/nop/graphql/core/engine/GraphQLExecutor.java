@@ -67,13 +67,14 @@ public class GraphQLExecutor implements IGraphQLExecutor {
             env.setExecutionContext(context);
             env.setSource(null);
             env.setRoot(null);
-            env.setSelectionBean(context.getFieldSelection());
-
-            Object meter = graphQLHook == null ? null : graphQLHook.beginExecute(context);
 
             GraphQLFieldSelection operation = context.getOperation().getFieldSelection();
             env.setSelection(operation);
             env.setOpRequest(operation.getOpRequest());
+            env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
+
+            Object meter = graphQLHook == null ? null : graphQLHook.beginExecute(context);
+
 
             CompletionStage<Object> future = invokeOperation(env);
 

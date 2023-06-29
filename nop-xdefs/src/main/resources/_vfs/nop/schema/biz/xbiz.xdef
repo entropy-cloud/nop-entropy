@@ -52,6 +52,7 @@
                  displayName="string" xdef:unique-attr="name"
                  kind="enum:io.nop.api.core.annotations.biz.BizActionArgKind">
                 <description xdef:value="string"/>
+                <defaultExpr xdef:value="xpl" />
                 <schema xdef:ref="../schema/schema.xdef"/>
             </arg>
 

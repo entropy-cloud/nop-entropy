@@ -8,7 +8,6 @@
 package io.nop.auth.service.sitemap;
 
 import io.nop.api.core.auth.ISecurityContext;
-import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.SiteMapBean;
@@ -18,6 +17,7 @@ import io.nop.auth.core.sitemap.ISiteMapProvider;
 import io.nop.auth.dao.entity.NopAuthResource;
 import io.nop.auth.dao.entity.NopAuthRoleResource;
 import io.nop.auth.dao.entity.NopAuthSite;
+import io.nop.auth.service.NopAuthConstants;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
@@ -107,6 +107,10 @@ public class SiteMapProviderImpl implements ISiteMapProvider {
             return Collections.emptyList();
 
         IResource resource = VirtualFileSystem.instance().getResource(path);
+        if (!resource.exists()) {
+            if (resource.getPath().equals(NopAuthConstants.PATH_MAIN_ACTION_AUTH))
+                return Collections.emptyList();
+        }
         ActionAuthModel actionModel = (ActionAuthModel) new DslModelParser().parseFromResource(resource);
         return actionModel.getSites();
     }

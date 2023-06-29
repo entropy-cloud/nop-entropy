@@ -142,9 +142,14 @@ public class BizModelToGraphQLDefinition {
 
     IServiceActionArgBuilder getArgBuilder(BizActionArgKind kind, String name, IGenericType type) {
         if (kind == BizActionArgKind.RequestBean) {
+            return ArgBuilders.getActionRequest(type);
+        } else if (kind == BizActionArgKind.FieldSelection) {
+            return ArgBuilders.getSelection();
+        } else if (kind == BizActionArgKind.ServiceContext) {
+            return ArgBuilders.getContext();
+        } else {
             return ArgBuilders.getActionArgFromRequest(name, type);
         }
-        return ArgBuilders.getActionRequest(type);
     }
 
     Function<IDataFetchingEnvironment, Object> getFetcherArg(BizActionArgKind kind, String name, IGenericType type) {
@@ -160,6 +165,8 @@ public class BizModelToGraphQLDefinition {
                 return IDataFetchingEnvironment::getCache;
             case ServiceContext:
                 return IDataFetchingEnvironment::getExecutionContext;
+            case FieldSelection:
+                return IDataFetchingEnvironment::getSelectionBean;
             case RequestBean:
                 return ArgBuilders.getArgsAsBean(type);
         }

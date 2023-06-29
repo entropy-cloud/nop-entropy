@@ -7,16 +7,14 @@
  */
 package io.nop.api.core.annotations.directive;
 
-import io.nop.api.core.ApiConstants;
-
 import java.lang.annotation.Annotation;
 
 public class AuthAnnotation implements Auth {
-    private String[] roles = ApiConstants.EMPTY_STRING_ARRAY;
+    private String roles = "";
     private String permissions = "";
     private boolean noAuth;
 
-    public String[] roles() {
+    public String roles() {
         return roles;
     }
 
@@ -29,7 +27,7 @@ public class AuthAnnotation implements Auth {
         this.noAuth = noAuth;
     }
 
-    public void setRoles(String[] roles) {
+    public void setRoles(String roles) {
         this.roles = roles;
     }
 

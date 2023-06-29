@@ -43,5 +43,21 @@
 
             </source>
         </Validator>
+
+        <RunValidator>
+            <attr name="validatorPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="obj" defaultValue="$scope" runtime="true" optional="true"/>
+
+            <!-- 自动捕获的服务调用上下文。在标签内部所有scope变量都必须通过implicit参数引入 -->
+            <attr name="svcCtx" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.biz.lib.BizValidatorHelper;
+
+                    BizValidatorHelper.runValidator(validatorPath,obj,svcCtx);
+                ]]></c:script>
+            </source>
+        </RunValidator>
     </tags>
 </lib>

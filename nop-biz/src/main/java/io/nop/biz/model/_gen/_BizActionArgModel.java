@@ -16,6 +16,13 @@ public abstract class _BizActionArgModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: defaultExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _defaultExpr ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -56,6 +63,25 @@ public abstract class _BizActionArgModel extends io.nop.core.resource.component.
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
      */
     private io.nop.xlang.xmeta.ISchema _schema ;
+    
+    /**
+     * 
+     * xml name: defaultExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getDefaultExpr(){
+      return _defaultExpr;
+    }
+
+    
+    public void setDefaultExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._defaultExpr = value;
+           
+    }
+
     
     /**
      * 
@@ -187,6 +213,7 @@ public abstract class _BizActionArgModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("defaultExpr",this.getDefaultExpr());
         out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());
         out.put("kind",this.getKind());

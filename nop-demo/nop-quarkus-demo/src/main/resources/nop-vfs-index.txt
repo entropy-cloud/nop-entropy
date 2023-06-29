@@ -191,6 +191,7 @@
 /nop/biz/xlib/biz!check.xlib
 /nop/biz/xlib/biz!filter.xlib
 /nop/biz/xlib/biz-gen.xlib
+/nop/biz/xlib/biz.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
 /nop/codegen/xlib/run.xlib
@@ -203,6 +204,7 @@
 /nop/core/registry/gateway.register-model.xml
 /nop/core/registry/imp.register-model.xml
 /nop/core/registry/orm.register-model.xml
+/nop/core/registry/validator.register-model.xml
 /nop/core/registry/xlib.register-model.xml
 /nop/core/registry/xmeta.register-model.xml
 /nop/core/registry/xpl.register-model.xml
@@ -227,9 +229,14 @@
 /nop/dao/dialect/selector/oracle.selector.yaml
 /nop/dao/dialect/selector/postgresql.selector.yaml
 /nop/dao/dialect/tdengine.dialect.xml
+/nop/demo/_module
 /nop/demo/app.action-auth.xml
 /nop/demo/app.data-auth.xml
+/nop/demo/beans/app-demo.beans.xml
 /nop/demo/data/test.json5
+/nop/demo/model/Demo/Demo.xbiz
+/nop/demo/pages/Demo/test-validator.page.yaml
+/nop/demo/validator/process-card.validator.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/gateway/beans/gateway-defaults.beans.xml
 /nop/graphql/base.graphql

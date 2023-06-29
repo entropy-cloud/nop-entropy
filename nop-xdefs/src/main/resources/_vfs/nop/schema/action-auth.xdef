@@ -12,7 +12,6 @@
     <role xdef:name="AuthRoleModel" name="!string" xdef:unique-attr="name"
           displayName="!string" primary="!boolean=false">
         <description xdef:value="string"/>
-        <resource id="!string" xdef:unique-attr="id" xdef:name="AuthRoleResourceModel"/>
     </role>
 
 </auth>

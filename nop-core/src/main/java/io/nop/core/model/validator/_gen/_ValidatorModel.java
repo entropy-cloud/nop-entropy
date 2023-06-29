@@ -16,6 +16,13 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: bizFatal
+     * 
+     */
+    private java.lang.Boolean _bizFatal ;
+    
+    /**
+     *  
      * xml name: checkLibPath
      * 在condition段以及check段中可以使用的判断标签
      */
@@ -44,10 +51,24 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: errorDescription
+     * 
+     */
+    private java.lang.String _errorDescription ;
+    
+    /**
+     *  
      * xml name: errorParams
      * 
      */
     private java.util.Map<java.lang.String,java.lang.String> _errorParams ;
+    
+    /**
+     *  
+     * xml name: errorStatus
+     * 
+     */
+    private java.lang.Integer _errorStatus ;
     
     /**
      *  
@@ -69,6 +90,25 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
      * 值越大严重性越高
      */
     private int _severity  = 0;
+    
+    /**
+     * 
+     * xml name: bizFatal
+     *  
+     */
+    
+    public java.lang.Boolean getBizFatal(){
+      return _bizFatal;
+    }
+
+    
+    public void setBizFatal(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._bizFatal = value;
+           
+    }
+
     
     /**
      * 
@@ -174,6 +214,25 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: errorDescription
+     *  
+     */
+    
+    public java.lang.String getErrorDescription(){
+      return _errorDescription;
+    }
+
+    
+    public void setErrorDescription(java.lang.String value){
+        checkAllowChange();
+        
+        this._errorDescription = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: errorParams
      *  
      */
@@ -194,6 +253,25 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     public boolean hasErrorParams(){
         return this._errorParams != null && !this._errorParams.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: errorStatus
+     *  
+     */
+    
+    public java.lang.Integer getErrorStatus(){
+      return _errorStatus;
+    }
+
+    
+    public void setErrorStatus(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._errorStatus = value;
+           
+    }
+
     
     /**
      * 
@@ -267,11 +345,14 @@ public abstract class _ValidatorModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("bizFatal",this.getBizFatal());
         out.put("checkLibPath",this.getCheckLibPath());
         out.put("checks",this.getChecks());
         out.put("condition",this.getCondition());
         out.put("errorCode",this.getErrorCode());
+        out.put("errorDescription",this.getErrorDescription());
         out.put("errorParams",this.getErrorParams());
+        out.put("errorStatus",this.getErrorStatus());
         out.put("fatalSeverity",this.getFatalSeverity());
         out.put("obj",this.getObj());
         out.put("severity",this.getSeverity());

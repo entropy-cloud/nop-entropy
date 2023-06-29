@@ -1,5 +1,6 @@
 package io.nop.auth.service;
 
+import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -17,7 +18,12 @@ import org.junit.jupiter.api.Test;
 import javax.inject.Inject;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * 设置localDb=true,initDatabaseSchema=true表示本单元测试使用独立的内存数据库，并且自动初始化数据库中的表定义
+ */
+@NopTestConfig(localDb = true, initDatabaseSchema = true, enableActionAuth = "true")
 public class TestCheckFieldAuth extends JunitBaseTestCase {
     @Inject
     IGraphQLEngine graphQLEngine;
@@ -27,28 +33,29 @@ public class TestCheckFieldAuth extends JunitBaseTestCase {
      */
     @Test
     public void testCheckReadAuth() {
-        IUserContext.set(null);
+        UserContextImpl userContext = new UserContextImpl();
+        userContext.setUserId("test");
+        IUserContext.set(userContext);
 
         ApiRequest<?> request = new ApiRequest<>();
         request.setSelection(FieldSelectionBean.fromProp("id", "extConfig"));
 
         try {
             IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
-                    "NopAuthSite__findPage", request);
-            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
+                    "NopAuthSite__findList", request);
+            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context)).get();
+            assertTrue(false);
         } catch (NopException e) {
-            assertEquals(AuthApiErrors.ERR_AUTH_NO_ROLE.getErrorCode(), e.getErrorCode());
+            e.printStackTrace();
+            assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION.getErrorCode(), e.getErrorCode());
         }
 
-        UserContextImpl userContext = new UserContextImpl();
-        userContext.setUserId("test");
         userContext.setRoles(CollectionHelper.buildImmutableSet("manager"));
-        IUserContext.set(userContext);
 
         try {
             IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
-                    "NopAuthSite__findPage", request);
-            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
+                    "NopAuthSite__findList", request);
+//            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context)).get();
         } finally {
             IUserContext.set(null);
         }

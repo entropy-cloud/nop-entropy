@@ -50,7 +50,13 @@ public class ModelBasedValidator implements IValidator<IVariableScope> {
                     Map<String, Object> params = buildParams(check.getErrorParams(), scope);
                     ErrorBean errorBean = collector.buildError(check.getErrorCode());
                     errorBean.setSeverity(check.getSeverity());
+                    errorBean.setDescription(check.getErrorDescription());
                     errorBean.setParams(params);
+                    if (check.getBizFatal() != null)
+                        errorBean.setBizFatal(check.getBizFatal());
+                    if (check.getErrorStatus() != null)
+                        errorBean.setStatus(check.getErrorStatus());
+
                     collector.addError(errorBean);
                 }
             }
@@ -64,6 +70,11 @@ public class ModelBasedValidator implements IValidator<IVariableScope> {
             ErrorBean errorBean = collector.buildError(errorCode);
             errorBean.setParams(params);
             errorBean.setSeverity(validatorModel.getSeverity());
+            errorBean.setDescription(validatorModel.getErrorDescription());
+            if (validatorModel.getBizFatal() != null)
+                errorBean.setBizFatal(validatorModel.getBizFatal());
+            if (validatorModel.getErrorStatus() != null)
+                errorBean.setStatus(validatorModel.getErrorStatus());
             collector.addError(errorBean);
         }
     }

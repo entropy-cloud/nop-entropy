@@ -67,4 +67,11 @@ public interface ApiConfigs {
                     ApiConstants.HEADER_SVC_ROUTE + "," + ApiConstants.HEADER_TAGS
                             + "," + ApiConstants.HEADER_CLIENT_ADDR);
 
+    @Description("是否启用操作权限验证")
+    IConfigReference<Boolean> CFG_AUTH_ENABLE_ACTION_AUTH =
+            varRef("nop.auth.enable-action-auth", Boolean.class, false);
+
+    @Description("是否启用数据权限验证")
+    IConfigReference<Boolean> CFG_AUTH_ENABLE_DATA_AUTH =
+            varRef("nop.auth.enable-data-auth", Boolean.class, false);
 }
