@@ -30,7 +30,7 @@ public class CaffeineCacheLoader<K, V> implements CacheLoader<K, V> {
     }
 
     @Override
-    public @NonNull Map<K, V> loadAll(@NonNull Set<? extends K> keys) throws Exception {
+    public @NonNull Map<K, V> loadAll(@NonNull Iterable<? extends K> keys) throws Exception {
         return loader.loadAll(keys);
     }
 
@@ -40,7 +40,7 @@ public class CaffeineCacheLoader<K, V> implements CacheLoader<K, V> {
     }
 
     @Override
-    public @NonNull CompletableFuture<Map<K, V>> asyncLoadAll(@NonNull Set<? extends K> keys,
+    public @NonNull CompletableFuture<Map<K, V>> asyncLoadAll(@NonNull Iterable<? extends K> keys,
                                                               @NonNull Executor executor) {
         return loader.asyncLoadAll(keys, executor);
     }

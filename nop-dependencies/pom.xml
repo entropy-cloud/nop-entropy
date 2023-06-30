@@ -12,8 +12,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
 
         <!-- 文件拷贝时的编码 -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -25,7 +25,7 @@
         <spring-cloud.version>2021.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2021.0.1.0</spring-cloud-alibaba.version>
 
-        <quarkus.platform.version>2.16.7.Final</quarkus.platform.version>
+        <quarkus.platform.version>2.12.1.Final</quarkus.platform.version>
 
         <!--        <vertx.version>4.3.1</vertx.version>-->
 
@@ -442,11 +442,11 @@
             <!--            </dependency>-->
 
             <!-- https://mvnrepository.com/artifact/org.yaml/snakeyaml -->
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>2.0</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>org.yaml</groupId>-->
+<!--                <artifactId>snakeyaml</artifactId>-->
+<!--                <version>2.0</version>-->
+<!--            </dependency>-->
 
             <!-- https://mvnrepository.com/artifact/org.codehaus.janino/janino -->
             <dependency>
