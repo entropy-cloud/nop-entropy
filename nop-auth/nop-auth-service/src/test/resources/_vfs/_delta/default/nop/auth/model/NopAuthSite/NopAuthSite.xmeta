@@ -2,7 +2,7 @@
 
     <props>
         <prop name="extConfig">
-            <auth roles="manager|hr" for="read"/>
+            <auth roles="manager,hr" for="read"/>
             <auth roles="hr" for="write"/>
         </prop>
     </props>

@@ -9,9 +9,12 @@
    @id 资源id是全局唯一的。后台通过指定资源id和角色之间的映射关系来实现权限分配
    @depends  资源可能依赖其他的资源。例如[用户管理]资源会依赖于[选择角色]资源。
        为用户赋权时，允许访问资源，则自动允许访问所有依赖的资源。
+   @roles 指定哪些角色可以访问本资源对象
+   @authCascadeUp 对本资源对象有权限是否自动对上层资源对象有权限
    -->
     <resource xdef:name="SiteResourceBean" xdef:unique-attr="id" resourceType="string"
-              id="!string" depends="csv-set" displayName="string" orderNo="!int=0" roles="multi-csv-set"
+              id="!string" depends="csv-set" displayName="string" orderNo="!int=0"
+              roles="csv-set" authCascadeUp="!boolean=true"
               routePath="string" url="string" target="string" icon="string" component="string"
               hidden="!boolean=false" keepAlive="!boolean=false" noAuth="!boolean=false">
 

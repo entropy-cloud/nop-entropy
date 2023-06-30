@@ -5,14 +5,16 @@
         <resource id="test-orm-nop-auth" displayName="测试nop-auth" icon="ion:grid-outline" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-nop-auth" component="layouts/default/index">
             <children>
-                <resource id="FNPT:NopAuthSite:query" displayName="查询部门" orderNo="10002" resourceType="FNPT">
+                <resource id="FNPT:NopAuthSite:query" displayName="查询" orderNo="10002"
+                          resourceType="FNPT" roles="manager,hr">
                     <permissions>NopAuthSite:query</permissions>
+                </resource>
+                <resource id="FNPT:NopAuthSite:mutation" displayName="修改" orderNo="10003"
+                          resourceType="FNPT" roles="manager,hr">
+                    <permissions>NopAuthSite:mutation</permissions>
                 </resource>
             </children>
         </resource>
     </site>
 
-    <role name="manager">
-        <resource id="FNPT:NopAuthSite:query" />
-    </role>
 </auth>

@@ -143,6 +143,10 @@ public class SiteCacheDataBuilder {
             if (resource.isNoAuth())
                 continue;
 
+            if (resource.getRoles() != null && !resource.getRoles().isEmpty()) {
+                resourceToRoles.computeIfAbsent(resource.getId(), k -> new HashSet<>()).addAll(resource.getRoles());
+            }
+
             Set<String> permissions = resource.getPermissions();
             if (permissions != null) {
                 for (String permission : permissions) {
@@ -151,13 +155,10 @@ public class SiteCacheDataBuilder {
             }
         }
 
-        // 对父节点有权限，则自动对子节点有权限
-        for (Map.Entry<String, Set<String>> entry : resourceToRoles.entrySet()) {
-            Set<String> roles = entry.getValue();
-            String entryId = entry.getKey();
-
-            SiteResourceBean resource = entryMap.get(entryId);
-            addResourceToRoles(resource, roles);
+        for (String resourceId : new HashSet<>(resourceToRoles.keySet())) {
+            Set<String> roles = resourceToRoles.get(resourceId);
+            SiteResourceBean resource = entryMap.get(resourceId);
+            cascadeResourceToRoles(resource, roles);
         }
 
         Map<String, Set<String>> permissionToRoles = new HashMap<>();
@@ -211,12 +212,15 @@ public class SiteCacheDataBuilder {
         }
     }
 
-    void addResourceToRoles(SiteResourceBean resource, Set<String> roles) {
-        List<SiteResourceBean> children = resource.getChildren();
-        if (children != null) {
-            for (SiteResourceBean child : resource.getChildren()) {
-                resourceToRoles.computeIfAbsent(child.getId(), k -> new HashSet<>()).addAll(roles);
-                addResourceToRoles(child, roles);
+    void cascadeResourceToRoles(SiteResourceBean resource, Set<String> roles) {
+        if (resource.isAuthCascadeUp()) {
+            String parentId = this.childToParent.get(resource.getId());
+            if (parentId != null) {
+                SiteResourceBean parent = this.entryMap.get(parentId);
+                if (parent != null) {
+                    resourceToRoles.computeIfAbsent(parent.getId(), k -> new HashSet<>()).addAll(roles);
+                    cascadeResourceToRoles(parent, roles);
+                }
             }
         }
     }

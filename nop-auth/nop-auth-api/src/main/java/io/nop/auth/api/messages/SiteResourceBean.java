@@ -58,6 +58,9 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
 
     private int orderNo;
 
+    private Set<String> roles;
+    private boolean authCascadeUp = true;
+
     public SiteResourceBean cloneInstance() {
         SiteResourceBean ret = new SiteResourceBean();
         ret.setLocation(location);
@@ -80,8 +83,28 @@ public class SiteResourceBean implements ISourceLocationGetter, ISourceLocationS
         ret.setResourceType(resourceType);
         ret.setStatus(status);
         ret.setOrderNo(orderNo);
+        ret.setAuthCascadeUp(authCascadeUp);
+        ret.setRoles(roles);
 
         return ret;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Set<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    public boolean isAuthCascadeUp() {
+        return authCascadeUp;
+    }
+
+    public void setAuthCascadeUp(boolean authCascadeUp) {
+        this.authCascadeUp = authCascadeUp;
     }
 
     public SiteResourceBean deepClone() {

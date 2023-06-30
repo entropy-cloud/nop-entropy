@@ -55,7 +55,7 @@ public class TestCheckFieldAuth extends JunitBaseTestCase {
         try {
             IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
                     "NopAuthSite__findList", request);
-//            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context)).get();
+            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context)).get();
         } finally {
             IUserContext.set(null);
         }

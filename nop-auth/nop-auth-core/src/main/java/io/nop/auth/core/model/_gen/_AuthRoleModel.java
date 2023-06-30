@@ -43,13 +43,6 @@ public abstract class _AuthRoleModel extends io.nop.core.resource.component.Abst
     private boolean _primary  = false;
     
     /**
-     *  
-     * xml name: resource
-     * 
-     */
-    private KeyedList<io.nop.auth.core.model.AuthRoleResourceModel> _resources = KeyedList.emptyList();
-    
-    /**
      * 
      * xml name: description
      *  
@@ -125,51 +118,6 @@ public abstract class _AuthRoleModel extends io.nop.core.resource.component.Abst
     }
 
     
-    /**
-     * 
-     * xml name: resource
-     *  
-     */
-    
-    public java.util.List<io.nop.auth.core.model.AuthRoleResourceModel> getResources(){
-      return _resources;
-    }
-
-    
-    public void setResources(java.util.List<io.nop.auth.core.model.AuthRoleResourceModel> value){
-        checkAllowChange();
-        
-        this._resources = KeyedList.fromList(value, io.nop.auth.core.model.AuthRoleResourceModel::getId);
-           
-    }
-
-    
-    public io.nop.auth.core.model.AuthRoleResourceModel getResource(String name){
-        return this._resources.getByKey(name);
-    }
-
-    public boolean hasResource(String name){
-        return this._resources.containsKey(name);
-    }
-
-    public void addResource(io.nop.auth.core.model.AuthRoleResourceModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.auth.core.model.AuthRoleResourceModel> list = this.getResources();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.auth.core.model.AuthRoleResourceModel::getId);
-            setResources(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_resources(){
-        return this._resources.keySet();
-    }
-
-    public boolean hasResources(){
-        return !this._resources.isEmpty();
-    }
-    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -177,8 +125,6 @@ public abstract class _AuthRoleModel extends io.nop.core.resource.component.Abst
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._resources = io.nop.api.core.util.FreezeHelper.deepFreeze(this._resources);
-            
         }
     }
 
@@ -189,7 +135,6 @@ public abstract class _AuthRoleModel extends io.nop.core.resource.component.Abst
         out.put("displayName",this.getDisplayName());
         out.put("name",this.getName());
         out.put("primary",this.isPrimary());
-        out.put("resources",this.getResources());
     }
 }
  // resume CPD analysis - CPD-ON
