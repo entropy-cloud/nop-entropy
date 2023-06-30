@@ -10,12 +10,15 @@ import io.nop.auth.api.AuthApiErrors;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.dao.DaoErrors;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -56,6 +59,49 @@ public class TestCheckFieldAuth extends JunitBaseTestCase {
             IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
                     "NopAuthSite__findList", request);
             FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context)).get();
+        } finally {
+            IUserContext.set(null);
+        }
+    }
+
+
+    @Test
+    public void testWriteAuth() {
+        UserContextImpl userContext = new UserContextImpl();
+        userContext.setUserId("test");
+        IUserContext.set(userContext);
+
+
+        userContext.setRoles(CollectionHelper.buildImmutableSet("manager"));
+
+        ApiRequest<Map<String, Object>> request = new ApiRequest<>();
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", "3");
+        data.put("extConfig", "{}");
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("data", data);
+        request.setData(body);
+
+        try {
+            IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.mutation,
+                    "NopAuthSite__update", request);
+            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context)).get();
+            assertTrue(false);
+        } catch (NopException e) {
+            e.printStackTrace();
+            assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION.getErrorCode(), e.getErrorCode());
+        }
+
+        userContext.setRoles(CollectionHelper.buildImmutableSet("hr"));
+
+        try {
+            IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.mutation,
+                    "NopAuthSite__update", request);
+            FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context)).get();
+        } catch (NopException e) {
+            e.printStackTrace();
+            assertEquals(DaoErrors.ERR_DAO_UNKNOWN_ENTITY.getErrorCode(), e.getErrorCode());
         } finally {
             IUserContext.set(null);
         }

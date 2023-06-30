@@ -6,16 +6,16 @@ NopAutoTest测试框架是一个数据驱动的测试框架，这意味着一般
 
 [nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-auth/nop-auth-service/cases/io/nop/auth/service/TestLoginApi)
 
-
 ```java
 class TestLoginApi extends JunitAutoTestCase {
-   // @EnableSnapshot
+    // @EnableSnapshot
     @Test
     public void testLogin() {
         LoginApi loginApi = buildLoginApi();
 
-         //ApiRequest<LoginRequest> request = request("request.json5", LoginRequest.class);
-        ApiRequest<LoginRequest> request = input("request.json5", new TypeReference<ApiRequest<LoginRequest>>(){}.getType());
+        //ApiRequest<LoginRequest> request = request("request.json5", LoginRequest.class);
+        ApiRequest<LoginRequest> request = input("request.json5", new TypeReference<ApiRequest<LoginRequest>>() {
+        }.getType());
 
         ApiResponse<LoginResult> result = loginApi.login(request);
 
@@ -24,7 +24,8 @@ class TestLoginApi extends JunitAutoTestCase {
 }
 ```
 
-测试用例从JunitAutoTestCase类继承，然后使用`input(fileName, javaType)` 来读取外部的数据文件，并将数据转型为javaType指定的类型。具体数据格式根据文件名的后缀来确定，可以是json/json5/yaml等。
+测试用例从JunitAutoTestCase类继承，然后使用`input(fileName, javaType)`
+来读取外部的数据文件，并将数据转型为javaType指定的类型。具体数据格式根据文件名的后缀来确定，可以是json/json5/yaml等。
 
 调用被测函数之后，通过output(fileName, result)将结果数据保存到外部数据文件中，而不是编写结果校验代码。
 
@@ -85,7 +86,8 @@ _chgType,SID,USER_ID,LOGIN_ADDR,LOGIN_DEVICE,LOGIN_APP,LOGIN_OS,LOGIN_TIME,LOGIN
 A,@var:NopAuthSession@sid,067e0f1a03cf4ae28f71b606de700716,,,,,@var:NopAuthSession@loginTime,1,,,,,0,autotest-ref,*,autotest-ref,*,
 ```
 
-第一列_chgType表示数据变更类型，A-新增，U-修改,D-删除。随机生成的主键已经被替换为变量匹配表达式`@var:NopAuthSession@sid` 。同时，根据ORM模型所提供的信息，createTime字段和updateTime字段为簿记字段，它们不参与数据匹配校验，因此被替换为了*，表示匹配任意值。
+第一列_chgType表示数据变更类型，A-新增，U-修改,D-删除。随机生成的主键已经被替换为变量匹配表达式`@var:NopAuthSession@sid`
+。同时，根据ORM模型所提供的信息，createTime字段和updateTime字段为簿记字段，它们不参与数据匹配校验，因此被替换为了*，表示匹配任意值。
 
 ### 1.2 验证模式
 
@@ -104,8 +106,8 @@ A,@var:NopAuthSession@sid,067e0f1a03cf4ae28f71b606de700716,,,,,@var:NopAuthSessi
 ```java
 @Test
 public void testXXXThrowException(){
-   error("response-error.json5",()-> xxx());
-}
+        error("response-error.json5",()->xxx());
+        }
 ```
 
 在teardown阶段，测试用例会自动执行如下操作：
@@ -118,17 +120,21 @@ public void testXXXThrowException(){
 如果后期修改了代码，测试用例的返回结果发生了变化，则我们可以临时设置saveOutput属性为true，更新output目录下的录制结果。
 
 ```java
-@EnableSnapshot(saveOutput=true)
+@EnableSnapshot(saveOutput = true)
 @Test
 public void testLogin(){
-    ....
-}
+        ....
+        }
 ```
 
 ## 二. 基于前缀引导语法的对象模式匹配
 
-在上一节中，用于匹配的数据模板文件中匹配条件只包含固定值和变量表达式`@var:xx` 两种，其中变量表达式采用了所谓的前缀引导语法（详细介绍可以参加我的文章[DSL分层语法设计及前缀引导语法](https://zhuanlan.zhihu.com/p/548314138) ），这是一种可扩展的领域特定语法（DSL）设计。首先，我们注意到`@var:`前缀可以被扩展为更多情况，例如 `@ge:3`表示大于等于3。第二，这是一种开放式的设计。**
-我们随时可以增加更多的语法支持，而且可以确保它们之间不会出现语法冲突**。第三，这是一种局域化的嵌入式语法设计，`String->DSL` 这一转换可以将任意字符串增强为可执行的表达式，例如在csv文件中表示字段匹配条件。我们来看一个更加复杂的匹配配置
+在上一节中，用于匹配的数据模板文件中匹配条件只包含固定值和变量表达式`@var:xx`
+两种，其中变量表达式采用了所谓的前缀引导语法（详细介绍可以参加我的文章[DSL分层语法设计及前缀引导语法](https://zhuanlan.zhihu.com/p/548314138)
+），这是一种可扩展的领域特定语法（DSL）设计。首先，我们注意到`@var:`前缀可以被扩展为更多情况，例如 `@ge:3`
+表示大于等于3。第二，这是一种开放式的设计。**
+我们随时可以增加更多的语法支持，而且可以确保它们之间不会出现语法冲突**。第三，这是一种局域化的嵌入式语法设计，`String->DSL`
+这一转换可以将任意字符串增强为可执行的表达式，例如在csv文件中表示字段匹配条件。我们来看一个更加复杂的匹配配置
 
 ```json
 {
@@ -160,19 +166,27 @@ public void testLogin(){
 
 ```json
 {
-    "@prefix":"if"
-    "testExpr": "matchState.value.type == 'a'",
-    "true": {...}
-    "false": {...}
+  "@prefix": "if"
+  "testExpr": "matchState.value.type == 'a'",
+  "true": {
+    ...
+  }
+  "false": {
+    ...
+  }
 }
 {
-    ”@prefix":"switch",
-    "chooseExpr": "matchState.value.type",
-    "cases": {
-       "a": {...},
-       "b": {...}
-    },
-    "default": {...}
+  ”@prefix":"switch",
+"chooseExpr": "matchState.value.type",
+"cases": {
+"a": {...},
+"b": {
+...
+}
+},
+"default": {
+...
+}
 }
 ```
 
@@ -186,14 +200,15 @@ testExpr为XLang表达式，其中matchState对应于当前匹配上下文对象
 
 只要把if对应的参数通过JSON编码转化为字符串，再拼接上`@if:`前缀就可以了。
 
-前缀引导语法的语法设计方式非常灵活，并不要求不同前缀的语法格式完全统一。例如`@between:1,5`表示大于等于1并且小于等于5。前缀后面的数据格式只有前缀对一个的解析器负责识别，我们可以根据情况设计对应的简化语法。
+前缀引导语法的语法设计方式非常灵活，并不要求不同前缀的语法格式完全统一。例如`@between:1,5`
+表示大于等于1并且小于等于5。前缀后面的数据格式只有前缀对一个的解析器负责识别，我们可以根据情况设计对应的简化语法。
 
 如果只需要验证对象中的部分字段满足匹配条件，可以使用符号`*`来表示忽略其他字段
 
 ```json
 {
-    "a":1,
-    "*": "*"
+  "a": 1,
+  "*": "*"
 }
 ```
 
@@ -205,29 +220,29 @@ testExpr为XLang表达式，其中matchState对应于当前匹配上下文对象
 
 ```java
     @EnableSnapshot
-    @Test
-    public void testLoginLogout() {
-        LoginApi loginApi = buildLoginApi();
+@Test
+public void testLoginLogout(){
+        LoginApi loginApi=buildLoginApi();
 
-        ApiRequest<LoginRequest> request = request("1_request.json5", LoginRequest.class);
+        ApiRequest<LoginRequest> request=request("1_request.json5",LoginRequest.class);
 
-        ApiResponse<LoginResult> result = loginApi.login(request);
+        ApiResponse<LoginResult> result=loginApi.login(request);
 
-        output("1_response.json5", result);
+        output("1_response.json5",result);
 
-        ApiRequest<AccessTokenRequest> userRequest = request("2_userRequest.json5", AccessTokenRequest.class);
+        ApiRequest<AccessTokenRequest> userRequest=request("2_userRequest.json5",AccessTokenRequest.class);
 
-        ApiResponse<LoginUserInfo> userResponse = loginApi.getLoginUserInfo(userRequest);
-        output("2_userResponse.json5", userResponse);
+        ApiResponse<LoginUserInfo> userResponse=loginApi.getLoginUserInfo(userRequest);
+        output("2_userResponse.json5",userResponse);
 
-        ApiRequest<RefreshTokenRequest> refreshTokenRequest = request("3_refreshTokenRequest.json5", RefreshTokenRequest.class);
-        ApiResponse<LoginResult> refreshTokenResponse = loginApi.refreshToken(refreshTokenRequest);
-        output("3_refreshTokenResponse.json5", refreshTokenResponse);
+        ApiRequest<RefreshTokenRequest> refreshTokenRequest=request("3_refreshTokenRequest.json5",RefreshTokenRequest.class);
+        ApiResponse<LoginResult> refreshTokenResponse=loginApi.refreshToken(refreshTokenRequest);
+        output("3_refreshTokenResponse.json5",refreshTokenResponse);
 
-        ApiRequest<LogoutRequest> logoutRequest = request("4_logoutRequest.json5", LogoutRequest.class);
-        ApiResponse<Void> logoutResponse = loginApi.logout(logoutRequest);
-        output("4_logoutResponse.json5", logoutResponse);
-    }
+        ApiRequest<LogoutRequest> logoutRequest=request("4_logoutRequest.json5",LogoutRequest.class);
+        ApiResponse<Void> logoutResponse=loginApi.logout(logoutRequest);
+        output("4_logoutResponse.json5",logoutResponse);
+        }
 ```
 
 其中2_userRequest.json5中的内容为
@@ -248,23 +263,23 @@ testExpr为XLang表达式，其中matchState对应于当前匹配上下文对象
 
 ```java
 public void testXXX(){
-     ....
-    response = myMethod(request);
-    setVar("v_myValue", response.myValue);
-    // 后续的input文件中就可以通过@var:v_myValue来引用这里定义的变量
-    request2 = input("request2.json", Request2.class);
-    ...
-}
+        ....
+        response=myMethod(request);
+        setVar("v_myValue",response.myValue);
+        // 后续的input文件中就可以通过@var:v_myValue来引用这里定义的变量
+        request2=input("request2.json",Request2.class);
+        ...
+        }
 ```
 
 在集成测试场景下，我们需要访问外部独立部署的测试数据库，而不再能够使用本地内存数据库。此时，我们可以配置localDb=false来禁用本地数据库
 
 ```java
 @Test
-@EnableSnapshot(localDb=false)
+@EnableSnapshot(localDb = false)
 public void integrationTest(){
-    ...
-}
+        ...
+        }
 ```
 
 EnableSnapshot具有多种开关控制，可以灵活选择启用哪些自动化测试支持
@@ -309,15 +324,16 @@ NopAutoTest框架通过数据变体(Variant)的概念来支持这种细化测试
 
 ```java
     @ParameterizedTest
-    @EnableVariants
-    @EnableSnapshot
-    public void testVariants(String variant) {
-        input("request.json", ...);
+@EnableVariants
+@EnableSnapshot
+public void testVariants(String variant){
+        input("request.json",...);
         output("displayName.json5",testInfo.getDisplayName());
-    }
+        }
 ```
 
-在增加了`@EnableVariants`和`@ParameterizedTest`注解之后，当我们调用input函数的时候，它读取的数据是/variants/{variant}/input目录下的数据与/input目录下的数据合并的结果。
+在增加了`@EnableVariants`和`@ParameterizedTest`
+注解之后，当我们调用input函数的时候，它读取的数据是/variants/{variant}/input目录下的数据与/input目录下的数据合并的结果。
 
 ```
 /input
@@ -341,14 +357,15 @@ NopAutoTest框架通过数据变体(Variant)的概念来支持这种细化测试
 
 首先，测试用户会在忽略variants配置的情况下执行，此时会录制数据到input/tables目录下。然后，在开启variant机制之后，按照每个variant会再次执行测试用例。
 
-以testVariants的配置为例，它实际上会被执行3遍，第一遍`variant=_default` ，表示以原始的input/output目录数据来执行。第二遍执行variants/x目录下的数据，第三遍执行variants/y目录下的数据。
+以testVariants的配置为例，它实际上会被执行3遍，第一遍`variant=_default`
+，表示以原始的input/output目录数据来执行。第二遍执行variants/x目录下的数据，第三遍执行variants/y目录下的数据。
 
 因为不同变体之间的数据往往相似度很高，我们没有必要完整复制原有的数据。NopAutoTest测试框架在这里采用了可逆计算理论的统一设计，可以利用Nop平台内置的delta差量合并机制来实现配置简化。例如在/variants/x/input/request.json文件中
 
 ```json
 {
-    "x:extends":"../../input/request.json"
-    "amount": 300
+  "x:extends": "../../input/request.json"
+  "amount": 300
 }
 ```
 
@@ -375,13 +392,88 @@ SID, AMOUNT
 
 ```markdown
 # 测试用例标题
- 具体说明文字，可以采用一般的markdown语法，测试用例解析时会自动忽略这些说明
+
+具体说明文字，可以采用一般的markdown语法，测试用例解析时会自动忽略这些说明
 ‘’‘测试代码块的语言
 测试代码
 ’‘’
 
- * 配置名: 配置值
- * 配置名: 配置
+* 配置名: 配置值
+* 配置名: 配置
 ```
 
 具体实例可以参见TestXpl的测试用例 [TestXpl](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-xlang/src/test/resources/io/nop/xlang/xpl/xpls)
+
+# 其他注解
+
+## @NopTestConfig
+
+在测试类上可以通过@NopTestConfig注解控制测试用例中的初始化过程。使用@NopTestConfig注解需要从JunitAutoTestCase或者JunitBaseTestCase类继承。
+这两个基类的区别在于JunitBaseTestCase不是使用录制回放机制，仅仅是启动NopIoC容器。
+
+````java
+public @interface NopTestConfig {
+    /**
+     * 是否强制设置nop.datasource.jdbc-url为h2内存数据库
+     */
+    boolean localDb() default false;
+
+    /**
+     * 使用随机生成的服务端口
+     */
+    boolean randomPort() default false;
+
+    /**
+     * 缺省使用lazy模式来执行单元测试
+     */
+    BeanContainerStartMode beanContainerStartMode() default BeanContainerStartMode.ALL_LAZY;
+
+    String enableActionAuth() default "";
+
+    String enableDataAuth() default "";
+
+    /**
+     * 是否自动加载/nop/auto-config/目录下的xxx.beans配置
+     */
+    boolean enableAutoConfig() default true;
+
+    boolean enableMergedBeansFile() default true;
+
+    String autoConfigPattern() default "";
+
+    String autoConfigSkipPattern() default "";
+
+    /**
+     * 是否自动加载模块下的app.beans.xml配置
+     */
+    boolean enableAppBeansFile() default true;
+
+    String appBeansFilePattern() default "";
+
+    String appBeansFileSkipPattern() default "";
+
+    /**
+     * 为单元测试指定的beans配置文件
+     */
+    String testBeansFile() default "";
+
+    /**
+     * 为单元测试指定的config配置文件
+     */
+    String testConfigFile() default "";
+
+    boolean initDatabaseSchema() default false;
+}
+````
+
+## @NopTestProperty
+
+在测试类上可以通过@NopTestProperty注解直接指定专门针对本测试类的配置项，这样可以不用修改application.yaml文件，例如
+
+````java
+@NopTestProperty(name="my.xxx",value="true")
+@NopTestProperty(name="my.yyy",value="123")
+class MyTestCase extends JunitBaseTestCase{
+    
+}
+````

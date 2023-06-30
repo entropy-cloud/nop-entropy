@@ -8,6 +8,8 @@
 package io.nop.autotest.junit;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.autotest.NopTestProperties;
+import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
@@ -34,6 +36,13 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
         NopTestConfig config = context.getRequiredTestClass().getAnnotation(NopTestConfig.class);
         if (config != null) {
             new NopTestConfigProcessor().process(config);
+        }
+
+        NopTestProperties props = context.getRequiredTestClass().getAnnotation(NopTestProperties.class);
+        if (props != null) {
+            for (NopTestProperty prop : props.value()) {
+                setTestConfig(prop.name(), prop.value());
+            }
         }
     }
 

@@ -134,3 +134,84 @@ h-full可以去除max-height设置
 ````
 
 responseKey是Nop平台的ajaxFetch函数负责识别的，amis本身并不支持。
+
+
+## 表达式
+* 可以通过表达式函数GETRENDERERDATA(id, path)和GETRENDERERPROP(id, path)分别获取指定组件的数据和属性。
+* http 请求动作执行结束后，后面的动作可以通过 ${responseResult}或${{outputVar}}来获取请求响应结果
+
+## 设置combo数据
+1. 需要给 combo 设置个 id 属性，用来给事件动作指定目标用。
+2. 弹窗按钮配置了数据映射 {comboIndex: "${index}"} 因为 crud 的行数据上也有 index 变量，派送动作时获取 index 变量是 crud 所在行的序号。所以弹出弹窗的时候，先把 combo 的序号赋值给 comboIndex
+3. crud 操作栏里面添加了个按钮，close: true 设置是让动作完成后关闭弹窗。
+4. 按钮里面添加了 onEvent 配置，click 时做 setValue 动作，并设置参数 index 为 '${comboIndex}' 值为 ${&}。其中 ${&} 是特殊语法，用来取整个上下数据。
+
+````json
+      {
+        "type": "combo",
+        "name": "combo",
+        "id": "thecombo",
+        "multiple": true,
+        "value": [
+          {
+            "engine": ""
+          }
+        ],
+        "items": [
+          {
+            "name": "engine",
+            "type": "input-text"
+          },
+          {
+            "label": "Copy",
+            "type": "button",
+            "actionType": "dialog",
+            "size": "md",
+            "dialog": {
+              "title": "历史记录",
+              "actions": [],
+              "data": {
+                "comboIndex": "${index}"
+              },
+              "body": [
+                {
+                  "type": "crud",
+                  "api": "/amis/api/mock2/sample",
+                  "columns": [
+                    {
+                      "label": "Engine",
+                      "name": "engine"
+                    },
+                    {
+                      "type": "operation",
+                      "label": "操作",
+                      "buttons": [
+                        {
+                          "label": "复制",
+                          "type": "button",
+                          "close": true,
+                          "onEvent": {
+                            "click": {
+                              "actions": [
+                                {
+                                  "componentId": "thecombo",
+                                  "actionType": "setValue",
+                                  "args": {
+                                    "index": "${comboIndex}",
+                                    "value": "${&}"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+````

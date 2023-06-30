@@ -14,7 +14,7 @@
     <artifactId>nop-quarkus-demo</artifactId>
 
     <properties>
-        <quarkus.platform.version>2.10.3.Final</quarkus.platform.version>
+        <quarkus.platform.version>2.16.7.Final</quarkus.platform.version>
 
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
