@@ -2,6 +2,9 @@
 nop:
   debug: true
   auth:
+    jwt:
+      enc-key: ${$String.generateUUID()}
+
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
 
@@ -17,9 +20,6 @@ nop:
 
   orm:
     init-database-schema: true
-
-    jwt:
-      enc-key: ${$String.generateUUID()}
 
   datasource:
     driver-class-name: org.h2.Driver
