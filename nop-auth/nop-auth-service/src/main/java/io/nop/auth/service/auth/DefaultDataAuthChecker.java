@@ -8,7 +8,7 @@ import io.nop.auth.core.model.DataAuthModel;
 import io.nop.auth.core.model.ObjDataAuthModel;
 import io.nop.auth.core.model.RoleDataAuthModel;
 import io.nop.auth.dao.entity.NopAuthRoleDataAuth;
-import io.nop.biz.crud.BizFilterEvaluator;
+import io.nop.xlang.filter.BizFilterEvaluator;
 import io.nop.biz.crud.BizFilterNodeGenerator;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalPredicate;

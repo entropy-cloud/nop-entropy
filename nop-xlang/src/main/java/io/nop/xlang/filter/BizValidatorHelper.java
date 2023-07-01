@@ -1,8 +1,7 @@
-package io.nop.biz.lib;
+package io.nop.xlang.filter;
 
-import io.nop.biz.BizConstants;
-import io.nop.biz.crud.BizFilterEvaluator;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.validator.ModelBasedValidator;
 import io.nop.core.model.validator.ValidatorModel;
@@ -48,8 +47,15 @@ public class BizValidatorHelper {
     public static void runValidatorModel(ValidatorModel model, Object obj, IServiceContext context) {
         String checkLibPath = model.getCheckLibPath();
         if (checkLibPath == null)
-            checkLibPath = BizConstants.XLIB_BIZ_CHECK_PATH;
+            checkLibPath = BizFilterConstants.XLIB_BIZ_CHECK_PATH;
         new ModelBasedValidator(model, new BizFilterEvaluator(checkLibPath, context))
                 .validateWithDefaultCollector(obj, model.getFatalSeverity());
+    }
+
+    public static IEvalAction toEvalAction(ValidatorModel model) {
+        return ctx -> {
+            runValidatorModel(model, ctx, IServiceContext.fromEvalContext(ctx));
+            return null;
+        };
     }
 }

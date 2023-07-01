@@ -60,6 +60,16 @@ public abstract class AbstractTaskStep implements ITaskStep {
 
     private IEvalPredicate when;
 
+    private IEvalAction validator;
+
+    public IEvalAction getValidator() {
+        return validator;
+    }
+
+    public void setValidator(IEvalAction validator) {
+        this.validator = validator;
+    }
+
     public IEvalPredicate getWhen() {
         return when;
     }
@@ -279,6 +289,10 @@ public abstract class AbstractTaskStep implements ITaskStep {
         state.setExtType(extType);
 
         initInputs(parentScope, scope);
+
+        if (validator != null) {
+            validator.invoke(scope);
+        }
 
         initStepState(state, context);
         return state;

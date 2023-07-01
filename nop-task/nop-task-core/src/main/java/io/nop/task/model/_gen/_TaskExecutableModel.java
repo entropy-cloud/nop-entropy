@@ -107,6 +107,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: validator
+     * 
+     */
+    private io.nop.core.model.validator.ValidatorModel _validator ;
+    
+    /**
+     *  
      * xml name: when
      * 
      */
@@ -439,6 +446,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: validator
+     *  
+     */
+    
+    public io.nop.core.model.validator.ValidatorModel getValidator(){
+      return _validator;
+    }
+
+    
+    public void setValidator(io.nop.core.model.validator.ValidatorModel value){
+        checkAllowChange();
+        
+        this._validator = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: when
      *  
      */
@@ -479,6 +505,8 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
             
            this._throttle = io.nop.api.core.util.FreezeHelper.deepFreeze(this._throttle);
             
+           this._validator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._validator);
+            
         }
     }
 
@@ -498,6 +526,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.put("retry",this.getRetry());
         out.put("throttle",this.getThrottle());
         out.put("timeout",this.getTimeout());
+        out.put("validator",this.getValidator());
         out.put("when",this.getWhen());
     }
 }

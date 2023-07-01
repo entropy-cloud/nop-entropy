@@ -10,6 +10,7 @@ package io.nop.xlang;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.xlang.expr.ExprConstants;
+import io.nop.xlang.filter.BizFilterConstants;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xpl.XplConstants;
 
@@ -22,7 +23,8 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.Set;
 
-public interface XLangConstants extends ExprConstants, XplConstants, XDslConstants {
+public interface XLangConstants extends ExprConstants,
+        XplConstants, XDslConstants, BizFilterConstants {
     String XPATH_OPERATOR_VALUE = "$value";
     String XPATH_OPERATOR_TAG = "$tag";
     String XPATH_OPERATOR_XML = "$xml";

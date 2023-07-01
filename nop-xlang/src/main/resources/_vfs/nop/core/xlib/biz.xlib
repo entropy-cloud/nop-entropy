@@ -24,14 +24,14 @@
             <source>
                 <!-- 在编译期解析标签体得到ValidatorModel, 保存为编译期的变量validatorModel -->
                 <c:script><![CDATA[
-                    import io.nop.biz.lib.BizValidatorHelper;
+                   import io.nop.xlang.filter.BizValidatorHelper;
 
                     let validatorModel = BizValidatorHelper.parseValidator(slot_default);
                     // 得到<c:script>对应的抽象语法树
                     let ast = xpl `
                          <c:ast>
                             <c:script>
-                               import io.nop.biz.lib.BizValidatorHelper;
+                               import io.nop.xlang.filter.BizValidatorHelper;
                                if(obj == '$scope') obj = $scope;
                                BizValidatorHelper.runValidatorModel(validatorModel,obj,svcCtx);
                             </c:script>
@@ -53,7 +53,7 @@
 
             <source>
                 <c:script><![CDATA[
-                    import io.nop.biz.lib.BizValidatorHelper;
+                    import io.nop.xlang.filter.BizValidatorHelper;
 
                     BizValidatorHelper.runValidator(validatorPath,obj,svcCtx);
                 ]]></c:script>

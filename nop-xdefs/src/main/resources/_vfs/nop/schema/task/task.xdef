@@ -47,6 +47,8 @@
 
         <when xdef:value="xpl-predicate"/>
 
+        <validator xdef:ref="../validator.xdef"/>
+
         <catch xdef:ref="TaskStepsModel"/>
 
         <finally xdef:ref="TaskStepsModel"/>

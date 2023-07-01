@@ -1,7 +1,7 @@
 <!--
 validator的结构由/nop/schema/validator.xdef元模型定义。过滤条件格式由/nop/schema/query/filter.xdef定义
 -->
-<biz:Validator xpl:lib="/nop/biz/xlib/biz.xlib" fatalSeverity="100">
+<biz:Validator xpl:lib="/nop/core/xlib/biz.xlib" fatalSeverity="100">
     <!--
     扫码限制:
     1.只有流程卡上流程卡模式字段为流转码”的流程卡才能扫入。不然提示扫入的码不是流转码!

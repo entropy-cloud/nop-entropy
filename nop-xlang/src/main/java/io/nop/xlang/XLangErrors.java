@@ -969,4 +969,7 @@ public interface XLangErrors {
 
     ErrorCode ERR_XLANG_EXPR_NOT_QUALIFIED_NAME =
             define("nop.err.xlang.expr-not-qualified-name", "表达式不是合法的名称:{expr}", ARG_EXPR);
+
+    ErrorCode ERR_BIZ_UNKNOWN_BIZ_VAR = define("nop.err.xlang.filter.unknown-biz-var",
+            "未定义的前缀引导语法变量:{varName}", ARG_VAR_NAME);
 }

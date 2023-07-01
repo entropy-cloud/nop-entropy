@@ -3,7 +3,7 @@ package io.nop.demo.biz;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
-import io.nop.biz.lib.BizValidatorHelper;
+import io.nop.xlang.filter.BizValidatorHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.demo.domain.Material;
 import io.nop.demo.domain.ProcessCard;

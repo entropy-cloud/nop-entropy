@@ -190,6 +190,4 @@ public interface BizErrors {
                     ARG_META_PATH);
 
 
-    ErrorCode ERR_BIZ_UNKNOWN_BIZ_VAR = define("nop.err.biz.unknown-biz-var",
-            "未定义的前缀引导语法变量:{varName}", ARG_VAR_NAME);
 }

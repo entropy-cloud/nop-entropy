@@ -15,7 +15,7 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-core</artifactId>
+            <artifactId>nop-xlang</artifactId>
         </dependency>
     </dependencies>
 

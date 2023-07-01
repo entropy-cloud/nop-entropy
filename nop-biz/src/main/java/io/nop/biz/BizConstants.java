@@ -25,9 +25,6 @@ public interface BizConstants {
 
     String VAR_USER_CONTEXT = "userContext";
 
-    String DICT_NAME_BIZ_VAR = "biz/biz-var";
-
-    String BIZ_EXPR_PREFIX = "@biz:";
 
     String FILE_EXT_XBIZ = "xbiz";
     String DEFAULT_WORK_EXECUTOR_NAME = "defaultWorkExecutor";

@@ -1,8 +1,7 @@
-package io.nop.biz.crud;
+package io.nop.xlang.filter;
 
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.util.IVariableScope;
-import io.nop.biz.BizConstants;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.model.query.BeanVariableScope;
@@ -20,7 +19,7 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
     }
 
     public BizFilterEvaluator(IServiceContext context) {
-        this(BizConstants.XLIB_BIZ_CHECK_PATH, context);
+        this(BizFilterConstants.XLIB_BIZ_CHECK_PATH, context);
     }
 
     public boolean testForEntity(ITreeBean filter, Object entity) {
@@ -37,11 +36,11 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
     @Override
     public Boolean visitUnknown(String op, ITreeBean filter, IVariableScope scope) {
         String tagName = filter.getTagName();
-        if (!StringHelper.startsWithNamespace(tagName, BizConstants.XLIB_NS_BIZ))
+        if (!StringHelper.startsWithNamespace(tagName, BizFilterConstants.XLIB_NS_BIZ))
             return super.visitUnknown(op, filter, scope);
 
         // biz标签库中的标签
-        AbstractEvalAction tag = XLang.getTagAction(libPath, tagName.substring(BizConstants.XLIB_NS_BIZ.length()));
+        AbstractEvalAction tag = XLang.getTagAction(libPath, tagName.substring(BizFilterConstants.XLIB_NS_BIZ.length()));
         return tag.passConditions(context);
     }
 }
