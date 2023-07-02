@@ -25,6 +25,7 @@ import io.nop.graphql.core.ast.GraphQLEnumDefinition;
 import io.nop.graphql.core.ast.GraphQLEnumValueDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLInputDefinition;
+import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLListType;
 import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
@@ -133,6 +134,7 @@ public class BuiltinSchemaLoader {
 
     void initTypeFetcher(GraphQLObjectDefinition type) {
         setFetcher(type, "fields", this::fetchFields);
+        setFetcher(type, "inputFields", this::fetchInputFields);
         setFetcher(type, "enumValues", this::fetchEnumValues);
         setFetcher(type, "interfaces", this::fetchInterfaces);
         setFetcher(type, "possibleTypes", this::fetchPossibleTypes);
@@ -236,6 +238,14 @@ public class BuiltinSchemaLoader {
         return ret;
     }
 
+    List<__InputValue> toInputFields(Collection<GraphQLInputFieldDefinition> fieldDefs) {
+        List<__InputValue> ret = new ArrayList<>(fieldDefs.size());
+        for (GraphQLInputFieldDefinition fieldDef : fieldDefs) {
+            ret.add(toInputField(toGraphQLType(fieldDef.getType(), true), fieldDef));
+        }
+        return ret;
+    }
+
     __Field toField(__Type type, GraphQLFieldDefinition fieldDef) {
         __Field field = new __Field();
         field.setName(fieldDef.getName());
@@ -244,6 +254,15 @@ public class BuiltinSchemaLoader {
         field.setArgs(toArgs(fieldDef));
         return field;
     }
+
+    __InputValue toInputField(__Type type, GraphQLInputFieldDefinition fieldDef) {
+        __InputValue field = new __InputValue();
+        field.setName(fieldDef.getName());
+        field.setDescription(resolveDescription(fieldDef.getDescription()));
+        field.setType(type);
+        return field;
+    }
+
 
     List<__InputValue> toArgs(GraphQLFieldDefinition fieldDef) {
         if (fieldDef.getArguments() == null || fieldDef.getArguments().isEmpty())
@@ -331,13 +350,15 @@ public class BuiltinSchemaLoader {
                 ret.setKind(__TypeKind.UNION);
             } else if (def instanceof GraphQLEnumDefinition) {
                 ret.setKind(__TypeKind.ENUM);
+            } else if (def instanceof GraphQLInputDefinition) {
+                ret.setKind(__TypeKind.INPUT_OBJECT);
             } else {
                 ret.setKind(__TypeKind.OBJECT);
-
-                if (forInput) {
-                    ret.setKind(__TypeKind.SCALAR);
-                    ret.setName(GraphQLScalarType.Map.name());
-                }
+//
+//                if (forInput) {
+//                    ret.setKind(__TypeKind.SCALAR);
+//                    ret.setName(GraphQLScalarType.Map.name());
+//                }
             }
         } else {
             // not supported
@@ -368,6 +389,16 @@ public class BuiltinSchemaLoader {
         return type.getFields();
     }
 
+    List<__InputValue> fetchInputFields(IDataFetchingEnvironment env) {
+        __Type type = (__Type) env.getSource();
+        if (type.getKind() == __TypeKind.INPUT_OBJECT) {
+            GraphQLInputDefinition objDef = (GraphQLInputDefinition) getTypeDefinition(type.getName());
+            return toInputFields(objDef.getFields());
+        }
+        return type.getInputFields();
+    }
+
+
     List<__Field> fetchOperations(GraphQLObjectDefinition def, GraphQLOperationType opType) {
         Collection<GraphQLFieldDefinition> operations = schemaLoader.getOperationDefinitions(opType);
         List<__Field> fields = toOperations(operations);
@@ -392,7 +423,7 @@ public class BuiltinSchemaLoader {
             List<__Type> ret = new ArrayList<>();
             GraphQLUnionTypeDefinition unionType = (GraphQLUnionTypeDefinition) getTypeDefinition(type.getName());
             for (GraphQLType subType : unionType.getTypes()) {
-                ret.add(toGraphQLType(subType,false));
+                ret.add(toGraphQLType(subType, false));
             }
             return ret;
         }

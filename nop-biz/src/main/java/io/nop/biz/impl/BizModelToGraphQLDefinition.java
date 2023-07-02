@@ -228,7 +228,7 @@ public class BizModelToGraphQLDefinition {
             return GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
 
         return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, returnModel.isMandatory(),
-                typeRegistry);
+                typeRegistry,false);
     }
 
     GraphQLType getLoaderType(String thisObjName, BizLoaderModel loaderModel, TypeRegistry typeRegistry) {
@@ -241,7 +241,7 @@ public class BizModelToGraphQLDefinition {
             return null;
 
         return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, returnModel.isMandatory(),
-                typeRegistry);
+                typeRegistry,false);
     }
 
     private GraphQLArgumentDefinition buildArgDef(String name, GraphQLType type) {
@@ -255,6 +255,6 @@ public class BizModelToGraphQLDefinition {
         ISchema schema = argModel.getSchema();
         if (schema == null)
             return null;
-        return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, argModel.isMandatory(), registry);
+        return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, argModel.isMandatory(), registry,true);
     }
 }

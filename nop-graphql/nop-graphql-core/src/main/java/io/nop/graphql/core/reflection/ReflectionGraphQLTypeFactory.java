@@ -28,6 +28,8 @@ import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLEnumDefinition;
 import io.nop.graphql.core.ast.GraphQLEnumValueDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLInputDefinition;
+import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLType;
@@ -64,7 +66,7 @@ public class ReflectionGraphQLTypeFactory {
             if (arg.isAnnotationPresent(RequestBean.class)) {
                 return getArgTypes(func.getName(), arg, arg.getType(), registry, creatingTypes);
             } else if (arg.isAnnotationPresent(Name.class)) {
-                GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes);
+                GraphQLType type = buildGraphQLType(arg.getType(), null, registry, creatingTypes, true);
                 GraphQLArgumentDefinition argDef = new GraphQLArgumentDefinition();
                 argDef.setName(arg.getName());
                 argDef.setType(type);
@@ -99,7 +101,7 @@ public class ReflectionGraphQLTypeFactory {
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(type.getRawClass());
         beanModel.forEachSerializableProp(propModel -> {
             String propName = propModel.getName();
-            GraphQLType graphqlType = buildGraphQLType(propModel.getType(), null, registry, creatingTypes);
+            GraphQLType graphqlType = buildGraphQLType(propModel.getType(), null, registry, creatingTypes, true);
             argDefs.add(buildArgDef(propName, graphqlType));
 
         });
@@ -114,15 +116,15 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     public GraphQLType buildGraphQLType(IGenericType type, String thisObjName, String bizObjName,
-                                        TypeRegistry registry) {
+                                        TypeRegistry registry, boolean input) {
         if (GraphQLConstants.BIZ_OBJ_NAME_THIS_OBJ.equals(bizObjName))
             bizObjName = thisObjName;
-        return buildGraphQLType(type, bizObjName, registry, new HashMap<>());
+        return buildGraphQLType(type, bizObjName, registry, new HashMap<>(), input);
     }
 
-    public GraphQLType buildGraphQLType(Class<?> type, TypeRegistry registry) {
+    public GraphQLType buildGraphQLType(Class<?> type, TypeRegistry registry, boolean input) {
         String bizObjName = getBizObjName(type);
-        return buildGraphQLType(ReflectionManager.instance().buildRawType(type), null, bizObjName, registry);
+        return buildGraphQLType(ReflectionManager.instance().buildRawType(type), null, bizObjName, registry, input);
     }
 
     String getBizObjName(Class<?> type) {
@@ -131,26 +133,26 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     private GraphQLType buildGraphQLType(IGenericType type, String bizObjName, TypeRegistry registry,
-                                         Map<String, GraphQLTypeDefinition> creatingTypes) {
+                                         Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         if (type.isAssignableTo(CompletionStage.class)) {
             type = type.getGenericType(CompletionStage.class).getTypeParameters().get(0);
         }
 
         if (type.isCollectionLike() || type.isArray()) {
-            GraphQLType componentType = buildGraphQLType(type.getComponentType(), bizObjName, registry, creatingTypes);
+            GraphQLType componentType = buildGraphQLType(type.getComponentType(), bizObjName, registry, creatingTypes, input);
             return GraphQLTypeHelper.listType(componentType);
         }
 
         if (type.getRawClass() == PageBean.class) {
             IGenericType componentType = type.getTypeParameters().get(0);
-            GraphQLType beanType = buildGraphQLType(componentType, bizObjName, registry, creatingTypes);
-            return buildPageBeanType(beanType, registry, creatingTypes);
+            GraphQLType beanType = buildGraphQLType(componentType, bizObjName, registry, creatingTypes, input);
+            return buildPageBeanType(beanType, registry, creatingTypes, input);
         }
 
         if (type.getRawClass() == GraphQLConnection.class) {
             IGenericType componentType = type.getTypeParameters().get(0);
-            GraphQLType beanType = buildGraphQLType(componentType, bizObjName, registry, creatingTypes);
-            return buildConnectionType(beanType, registry, creatingTypes);
+            GraphQLType beanType = buildGraphQLType(componentType, bizObjName, registry, creatingTypes, input);
+            return buildConnectionType(beanType, registry, creatingTypes, input);
         }
 
         if (type.getRawClass() == Object.class) {
@@ -182,8 +184,8 @@ public class ReflectionGraphQLTypeFactory {
         if (clazz.isAnnotationPresent(GraphQLScalar.class))
             return GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
 
-        String name = GraphQLNameHelper.getResultTypeName(clazz);
-        GraphQLDefinition typeDef = buildDef(name, clazz, registry, creatingTypes);
+        String name = GraphQLNameHelper.getGraphQLTypeName(clazz, input);
+        GraphQLDefinition typeDef = buildDef(name, clazz, registry, creatingTypes, input);
 
         GraphQLNamedType gqlType = GraphQLTypeHelper.namedType(name);
         gqlType.setResolvedType(typeDef);
@@ -191,19 +193,19 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     public GraphQLObjectDefinition buildDef(Class<?> clazz, TypeRegistry registry) {
-        String name = GraphQLNameHelper.getResultTypeName(clazz);
-        GraphQLObjectDefinition typeDef = (GraphQLObjectDefinition) buildDef(name, clazz, registry, new HashMap<>());
+        String name = GraphQLNameHelper.getGraphQLTypeName(clazz, false);
+        GraphQLObjectDefinition typeDef = (GraphQLObjectDefinition) buildDef(name, clazz, registry, new HashMap<>(), false);
         return typeDef;
     }
 
     GraphQLType buildPageBeanType(GraphQLType type, TypeRegistry registry,
-                                  Map<String, GraphQLTypeDefinition> creatingTypes) {
+                                  Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         String pageBeanTypeName = GraphQLConstants.PAGE_BEAN_PREFIX + type;
         GraphQLTypeDefinition objDef = creatingTypes.get(pageBeanTypeName);
         if (objDef == null) {
             objDef = registry.getType(pageBeanTypeName);
             if (objDef == null) {
-                objDef = buildPageBeanType(pageBeanTypeName, type, registry, creatingTypes);
+                objDef = buildPageBeanType(pageBeanTypeName, type, registry, creatingTypes, input);
                 registry.registerType(objDef);
             }
         }
@@ -213,9 +215,9 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     GraphQLObjectDefinition buildPageBeanType(String typeName, GraphQLType type, TypeRegistry registry,
-                                              Map<String, GraphQLTypeDefinition> creatingTypes) {
+                                              Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) buildDef(GraphQLConstants.PAGE_BEAN, PageBean.class,
-                registry, creatingTypes);
+                registry, creatingTypes, input);
         objDef = objDef.deepClone();
         creatingTypes.put(typeName, objDef);
         objDef.setName(typeName);
@@ -226,13 +228,13 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     GraphQLType buildConnectionType(GraphQLType type, TypeRegistry registry,
-                                    Map<String, GraphQLTypeDefinition> creatingTypes) {
+                                    Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         String retTypeName = GraphQLConstants.GRAPAHQL_CONNECTION_PREFIX + type;
         GraphQLTypeDefinition objDef = creatingTypes.get(retTypeName);
         if (objDef == null) {
             objDef = registry.getType(retTypeName);
             if (objDef == null) {
-                objDef = buildConnectionType(retTypeName, type, registry, creatingTypes);
+                objDef = buildConnectionType(retTypeName, type, registry, creatingTypes, input);
                 registry.registerType(objDef);
             }
         }
@@ -242,9 +244,9 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     GraphQLObjectDefinition buildConnectionType(String typeName, GraphQLType type, TypeRegistry registry,
-                                                Map<String, GraphQLTypeDefinition> creatingTypes) {
+                                                Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) buildDef(GraphQLConstants.GRAPHQL_CONNECTION, GraphQLConnection.class,
-                registry, creatingTypes);
+                registry, creatingTypes, input);
         objDef = objDef.deepClone();
         creatingTypes.put(typeName, objDef);
         objDef.setName(typeName);
@@ -255,11 +257,11 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     public GraphQLObjectDefinition buildObjectDefinition(String name, Class<?> clazz, TypeRegistry registry) {
-        return (GraphQLObjectDefinition) buildDef(name, clazz, registry, new HashMap<>());
+        return (GraphQLObjectDefinition) buildDef(name, clazz, registry, new HashMap<>(), false);
     }
 
     GraphQLTypeDefinition buildDef(String name, Class<?> clazz, TypeRegistry registry,
-                                   Map<String, GraphQLTypeDefinition> creatingTypes) {
+                                   Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         GraphQLTypeDefinition objDef = creatingTypes.get(name);
         if (objDef != null)
             return objDef;
@@ -270,6 +272,40 @@ public class ReflectionGraphQLTypeFactory {
         if (clazz.isEnum())
             return buildEnumDef(name, clazz, creatingTypes);
 
+        if (input) {
+            return newInputDefinition(name, clazz, registry, creatingTypes);
+        }
+
+        GraphQLTypeDefinition def = newObjectDefinition(name, clazz, registry, creatingTypes);
+        return def;
+    }
+
+    GraphQLInputDefinition newInputDefinition(String name, Class<?> clazz, TypeRegistry registry,
+                                              Map<String, GraphQLTypeDefinition> creatingTypes) {
+        GraphQLInputDefinition def = new GraphQLInputDefinition();
+        def.setName(name);
+        creatingTypes.put(name, def);
+
+        IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
+        List<GraphQLInputFieldDefinition> fields = new ArrayList<>();
+
+        beanModel.forEachSerializableProp(propModel -> {
+            GraphQLInputFieldDefinition field = new GraphQLInputFieldDefinition();
+            field.setName(propModel.getName());
+
+            IGenericType type = propModel.getType();
+            GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes, true);
+            field.setType(gqlType);
+            fields.add(field);
+        });
+        def.setFields(fields);
+
+        registry.registerType(def);
+        return def;
+    }
+
+    GraphQLObjectDefinition newObjectDefinition(String name, Class<?> clazz, TypeRegistry registry,
+                                                Map<String, GraphQLTypeDefinition> creatingTypes) {
         GraphQLObjectDefinition def = new GraphQLObjectDefinition();
         def.setName(name);
         creatingTypes.put(name, def);
@@ -283,7 +319,7 @@ public class ReflectionGraphQLTypeFactory {
             field.setLazy(propModel.isLazyLoad());
 
             IGenericType type = propModel.getType();
-            GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes);
+            GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes, false);
             field.setType(gqlType);
             field.setFetcher(BeanPropertyFetcher.INSTANCE);
             fields.add(field);

@@ -152,7 +152,7 @@ public class ReflectionBizModelBuilder {
                     returnType = returnType.getTypeParameters().get(0);
                 }
                 field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(returnType, bizObjName,
-                        getReturnBizObjName(func), registry));
+                        getReturnBizObjName(func), registry,false));
 
                 GraphQLObjectDefinition loaderType = getLoaderForType(bizLoader, registry);
                 if (loaderType != null) {
@@ -289,7 +289,7 @@ public class ReflectionBizModelBuilder {
         field.setFetcher(fetcher);
 
         field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
-                getReturnBizObjName(func), registry));
+                getReturnBizObjName(func), registry,false));
         return field;
     }
 

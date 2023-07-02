@@ -26,16 +26,27 @@ public class GraphQLNameHelper {
     }
 
     public static String getResultTypeName(Class<?> clazz) {
-        if (clazz.isAnnotationPresent(GraphQLObject.class))
-            return clazz.getSimpleName();
-        return "g_" + clazz.getName().replace('.', '_');
+        return getGraphQLTypeName(clazz, false);
     }
 
     public static String getInputTypeName(Class<?> clazz) {
-        if (clazz.isAnnotationPresent(GraphQLInput.class)) {
-            return clazz.getSimpleName();
+        return getGraphQLTypeName(clazz, true);
+    }
+
+    public static String getGraphQLTypeName(Class<?> clazz, boolean input) {
+        if (input) {
+            if (clazz.isAnnotationPresent(GraphQLInput.class))
+                return clazz.getSimpleName();
+
+            if (clazz.isAnnotationPresent(GraphQLObject.class))
+                return clazz.getSimpleName() + "Input";
+
+            return "i_" + clazz.getName().replace('.', '_');
         }
-        return "i_" + clazz.getName().replace('.', '_');
+
+        if (clazz.isAnnotationPresent(GraphQLObject.class))
+            return clazz.getSimpleName();
+        return "g_" + clazz.getName().replace('.', '_');
     }
 
     public static boolean isGeneratedTypeName(String typeName) {

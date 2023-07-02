@@ -20,6 +20,7 @@ import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLType;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLUnionTypeDefinition;
 import io.nop.graphql.core.fetcher.PropGetterFetcher;
 import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
@@ -64,7 +65,7 @@ public class ObjMetaToGraphQLDefinition {
             if (propMeta.getName().indexOf('.') > 0)
                 continue;
 
-            GraphQLFieldDefinition field = toFieldDefinition(objMeta.getBizObjName(), propMeta, typeRegistry);
+            GraphQLFieldDefinition field = toFieldDefinition(objMeta.getBizObjName(), propMeta, typeRegistry, false);
             if (field.getType() == null) {
                 LOG.info("nop.graphql.ignore-field-without-type:objName={},propName={}", objName, field.getName());
                 continue;
@@ -78,7 +79,7 @@ public class ObjMetaToGraphQLDefinition {
     }
 
     private GraphQLFieldDefinition toFieldDefinition(String thisObjName, IObjPropMeta propMeta,
-                                                     TypeRegistry typeRegistry) {
+                                                     TypeRegistry typeRegistry, boolean input) {
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setLocation(propMeta.getLocation());
         field.setName(propMeta.getName());
@@ -89,7 +90,7 @@ public class ObjMetaToGraphQLDefinition {
         if (propMeta.getDescription() == null)
             field.setDescription(propMeta.getDisplayName());
 
-        field.setType(toGraphQLType(thisObjName, propMeta.getSchema(), propMeta.isMandatory(), typeRegistry));
+        field.setType(toGraphQLType(thisObjName, propMeta.getSchema(), propMeta.isMandatory(), typeRegistry, input));
 
         String inputType = ConvertHelper.toString(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_INPUT_TYPE));
         if (!StringHelper.isEmpty(inputType)) {
@@ -128,7 +129,7 @@ public class ObjMetaToGraphQLDefinition {
 
     private GraphQLArgumentDefinition buildArg(ObjPropArgModel propArg, String thisObjName, TypeRegistry registry) {
         String name = propArg.getName();
-        GraphQLType type = toGraphQLType(thisObjName, propArg.getSchema(), propArg.isMandatory(), registry);
+        GraphQLType type = toGraphQLType(thisObjName, propArg.getSchema(), propArg.isMandatory(), registry, true);
 
         GraphQLArgumentDefinition arg = new GraphQLArgumentDefinition();
         arg.setLocation(propArg.getLocation());
@@ -140,7 +141,8 @@ public class ObjMetaToGraphQLDefinition {
         return arg;
     }
 
-    public GraphQLType toGraphQLType(String thisObjName, ISchema schema, boolean mandatory, TypeRegistry typeRegistry) {
+    public GraphQLType toGraphQLType(String thisObjName, ISchema schema, boolean mandatory,
+                                     TypeRegistry typeRegistry, boolean input) {
         IGenericType type = schema.getType();
         String bizObjName = schema.getBizObjName();
         if (GraphQLConstants.BIZ_OBJ_NAME_THIS_OBJ.equals(bizObjName))
@@ -149,13 +151,13 @@ public class ObjMetaToGraphQLDefinition {
         GraphQLType gqlType = null;
 
         if (schema.isListSchema()) {
-            gqlType = toGraphQLType(bizObjName, schema.getItemSchema(), false, typeRegistry);
+            gqlType = toGraphQLType(bizObjName, schema.getItemSchema(), false, typeRegistry, input);
             if (gqlType != null)
                 gqlType = GraphQLTypeHelper.listType(gqlType);
         } else if (schema.isUnionSchema()) {
-            gqlType = buildUnionType(bizObjName, schema, typeRegistry);
+            gqlType = buildUnionType(bizObjName, schema, typeRegistry, input);
         } else if (schema.isObjSchema()) {
-            gqlType = buildObjType(bizObjName, schema, typeRegistry);
+            gqlType = buildObjType(bizObjName, schema, typeRegistry, input);
         } else {
             if (type == null) {
                 if (bizObjName != null)
@@ -169,7 +171,7 @@ public class ObjMetaToGraphQLDefinition {
                 return gqlType;
             }
             gqlType = ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(type, thisObjName, bizObjName,
-                    typeRegistry);
+                    typeRegistry, input);
         }
 
         if (mandatory) {
@@ -179,32 +181,32 @@ public class ObjMetaToGraphQLDefinition {
         return gqlType;
     }
 
-    private GraphQLType buildObjType(String thisObjName, ISchema schema, TypeRegistry registry) {
+    private GraphQLType buildObjType(String thisObjName, ISchema schema, TypeRegistry registry, boolean input) {
         GraphQLObjectDefinition def = new GraphQLObjectDefinition();
         def.setLocation(schema.getLocation());
 
         List<GraphQLFieldDefinition> fields = new ArrayList<>(schema.getProps().size());
 
         for (IObjPropMeta propMeta : schema.getProps()) {
-            GraphQLFieldDefinition field = toFieldDefinition(thisObjName, propMeta, registry);
+            GraphQLFieldDefinition field = toFieldDefinition(thisObjName, propMeta, registry, input);
             fields.add(field);
         }
         def.setFields(fields);
 
-        GraphQLObjectDefinition typeDef = (GraphQLObjectDefinition) registry.normalizeType(def);
+        GraphQLTypeDefinition typeDef = registry.normalizeType(def);
         GraphQLNamedType type = GraphQLTypeHelper.namedType(typeDef.getName());
         type.setResolvedType(typeDef);
         return type;
     }
 
-    private GraphQLType buildUnionType(String thisObjName, ISchema schema, TypeRegistry registry) {
+    private GraphQLType buildUnionType(String thisObjName, ISchema schema, TypeRegistry registry, boolean input) {
         GraphQLUnionTypeDefinition def = new GraphQLUnionTypeDefinition();
         def.setLocation(schema.getLocation());
 
         List<GraphQLNamedType> types = new ArrayList<>(schema.getOneOf().size());
 
         for (ISchema subType : schema.getOneOf()) {
-            GraphQLType type = toGraphQLType(thisObjName, subType, false, registry);
+            GraphQLType type = toGraphQLType(thisObjName, subType, false, registry, input);
             if (!type.isNamedType())
                 throw new NopException(ERR_GRAPHQL_SUB_TYPE_OF_UNION_MUST_BE_OBJ_TYPE).source(schema);
             types.add((GraphQLNamedType) type);
