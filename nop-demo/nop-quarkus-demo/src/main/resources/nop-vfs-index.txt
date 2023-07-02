@@ -235,6 +235,7 @@
 /nop/demo/beans/app-demo.beans.xml
 /nop/demo/data/test.json5
 /nop/demo/model/Demo/Demo.xbiz
+/nop/demo/pages/Demo/edit-validator.page.yaml
 /nop/demo/pages/Demo/test-validator.page.yaml
 /nop/demo/validator/process-card.validator.xml
 /nop/excel/xlib/imp-gen.xlib

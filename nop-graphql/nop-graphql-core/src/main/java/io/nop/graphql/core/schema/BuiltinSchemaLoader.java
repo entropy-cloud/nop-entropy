@@ -221,7 +221,7 @@ public class BuiltinSchemaLoader {
     List<__Field> toOperations(Collection<GraphQLFieldDefinition> fieldDefs) {
         List<__Field> ret = new ArrayList<>(fieldDefs.size());
         for (GraphQLFieldDefinition fieldDef : fieldDefs) {
-            __Field field = toField(toGraphQLType(fieldDef.getType()), fieldDef);
+            __Field field = toField(toGraphQLType(fieldDef.getType(), false), fieldDef);
             field.setName(fieldDef.getOperationName());
             ret.add(field);
         }
@@ -231,7 +231,7 @@ public class BuiltinSchemaLoader {
     List<__Field> toFields(Collection<GraphQLFieldDefinition> fieldDefs) {
         List<__Field> ret = new ArrayList<>(fieldDefs.size());
         for (GraphQLFieldDefinition fieldDef : fieldDefs) {
-            ret.add(toField(toGraphQLType(fieldDef.getType()), fieldDef));
+            ret.add(toField(toGraphQLType(fieldDef.getType(), false), fieldDef));
         }
         return ret;
     }
@@ -258,7 +258,7 @@ public class BuiltinSchemaLoader {
 
     __InputValue toArg(GraphQLArgumentDefinition argDef) {
         __InputValue ret = new __InputValue();
-        __Type type = toGraphQLType(argDef.getType());
+        __Type type = toGraphQLType(argDef.getType(), true);
         // 暂时不支持复杂input对象格式，全部转换为Map
         if (type.getKind() == __TypeKind.OBJECT) {
             type.setKind(__TypeKind.SCALAR);
@@ -303,7 +303,7 @@ public class BuiltinSchemaLoader {
         for (GraphQLArgumentDefinition def : args) {
             __InputValue arg = new __InputValue();
             arg.setName(def.getName());
-            arg.setType(toGraphQLType(def.getType()));
+            arg.setType(toGraphQLType(def.getType(), true));
             if (def.getDefaultValue() != null)
                 arg.setDefaultValue(new GraphQLSourcePrinter().print(def.getDefaultValue()));
             ret.add(arg);
@@ -311,15 +311,15 @@ public class BuiltinSchemaLoader {
         return ret;
     }
 
-    __Type toGraphQLType(GraphQLType type) {
+    __Type toGraphQLType(GraphQLType type, boolean forInput) {
         __Type ret = new __Type();
         if (type.isNonNullType()) {
             ret.setKind(__TypeKind.NON_NULL);
-            ret.setOfType(toGraphQLType(type.getNullableType()));
+            ret.setOfType(toGraphQLType(type.getNullableType(), forInput));
         } else if (type.isListType()) {
             ret.setKind(__TypeKind.LIST);
             GraphQLListType listType = (GraphQLListType) type;
-            ret.setOfType(toGraphQLType(listType.getType()));
+            ret.setOfType(toGraphQLType(listType.getType(), forInput));
         } else if (type.isScalarType()) {
             ret.setName(((GraphQLNamedType) type).getName());
             ret.setKind(__TypeKind.SCALAR);
@@ -333,6 +333,11 @@ public class BuiltinSchemaLoader {
                 ret.setKind(__TypeKind.ENUM);
             } else {
                 ret.setKind(__TypeKind.OBJECT);
+
+                if (forInput) {
+                    ret.setKind(__TypeKind.SCALAR);
+                    ret.setName(GraphQLScalarType.Map.name());
+                }
             }
         } else {
             // not supported
@@ -387,7 +392,7 @@ public class BuiltinSchemaLoader {
             List<__Type> ret = new ArrayList<>();
             GraphQLUnionTypeDefinition unionType = (GraphQLUnionTypeDefinition) getTypeDefinition(type.getName());
             for (GraphQLType subType : unionType.getTypes()) {
-                ret.add(toGraphQLType(subType));
+                ret.add(toGraphQLType(subType,false));
             }
             return ret;
         }

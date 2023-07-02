@@ -346,7 +346,7 @@
                         // 不显示label的时候，以label为placeholder
                         placeholder: placeholder ? placeholderKey.$i18n(placeholder) :
                             (formCell.hideLabel ? label : null) ,
-                        label: formCell.hideLabel? null : label,
+                        label: formCell.hideLabel? false : label,
                         required: mandatory ?  true : null,
                         hint: hint && ('@i18n:cells.'+i18nRoot+"."+formCell.id + ".$hint").$i18n(hint),
                         disabledOn: cellModel?.disabledOn,

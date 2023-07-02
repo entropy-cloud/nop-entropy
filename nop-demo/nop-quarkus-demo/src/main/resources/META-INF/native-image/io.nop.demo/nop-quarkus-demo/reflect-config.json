@@ -2615,6 +2615,169 @@
     "fields": [],
     "methods": [
       {
+        "name": "getEdges",
+        "parameterTypes": []
+      },
+      {
+        "name": "getItems",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPageInfo",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTotal",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEdges",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setItems",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setPageInfo",
+        "parameterTypes": [
+          "io.nop.api.core.beans.graphql.GraphQLPageInfo"
+        ]
+      },
+      {
+        "name": "setTotal",
+        "parameterTypes": [
+          "long"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLConnection",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAfter",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBefore",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilter",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOffset",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOrderBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAfter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setBefore",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFilter",
+        "parameterTypes": [
+          "io.nop.api.core.beans.TreeBean"
+        ]
+      },
+      {
+        "name": "setFirst",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setLast",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setOffset",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setOrderBy",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLConnectionInput",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getCursor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNode",
+        "parameterTypes": []
+      },
+      {
+        "name": "setCursor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNode",
+        "parameterTypes": [
+          "io.nop.api.core.beans.graphql.GraphQLNode"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLEdgeBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "addLocation",
         "parameterTypes": [
           "io.nop.api.core.beans.graphql.GraphQLSourceLocation"
@@ -2642,6 +2805,78 @@
       }
     ],
     "name": "io.nop.api.core.beans.graphql.GraphQLErrorBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLNode",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getEndCursor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHasNextPage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHasPreviousPage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStartCursor",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEndCursor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setHasNextPage",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setHasPreviousPage",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setStartCursor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLPageInfo",
     "unsafeAllocated": false
   },
   {
@@ -2929,6 +3164,10 @@
       },
       {
         "name": "isDesc",
+        "parameterTypes": []
+      },
+      {
+        "name": "reverse",
         "parameterTypes": []
       },
       {
