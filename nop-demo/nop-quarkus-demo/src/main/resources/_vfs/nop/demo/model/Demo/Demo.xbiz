@@ -25,7 +25,7 @@
                 <!--
                 validator的结构由/nop/schema/validator.xdef元模型定义。过滤条件格式由/nop/schema/query/filter.xdef定义
                 -->
-                <biz:Validator xpl:lib="/nop/biz/xlib/biz.xlib" fatalSeverity="100"
+                <biz:Validator xpl:lib="/nop/core/xlib/biz.xlib" fatalSeverity="100"
                                obj="${{entity,firstProductionOrder:entity.productionOrder,firstMaterial}}">
                     <!--
                     扫码限制:
@@ -85,7 +85,7 @@
                     let firstMaterial = { materialId: "2" }
                 </c:script>
 
-                <biz:RunValidator xpl:lib="/nop/biz/xlib/biz.xlib"
+                <biz:RunValidator xpl:lib="/nop/core/xlib/biz.xlib"
                                   validatorPath="/nop/demo/validator/process-card.validator.xml"
                                   obj="${{entity,firstProductionOrder:entity.productionOrder,firstMaterial}}"/>
                 <c:script>

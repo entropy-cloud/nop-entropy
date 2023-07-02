@@ -87,3 +87,16 @@ quarkus:
     category:
       "io.nop":
         level: DEBUG
+
+    file:
+      enable: true
+      path: log/app-demo.log
+#      # 输出格式
+#      format: %d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n
+#      # Indicates whether to log asynchronously
+      async: true
+      rotation:
+        max-file-size: 100M
+        max-backup-index: 3
+        file-suffix: .yyyy-MM-dd
+

@@ -1,0 +1,23 @@
+{
+  "data": {
+    "NopAuthSite__get": {
+      "id": "test2",
+      "resourcesConnection": {
+        "items": [
+          {
+            "resourceId": "test2",
+            "resourceType": "TOPM",
+            "displayName": "RES2"
+          }
+        ],
+        "total": 1,
+        "pageInfo": {
+          "startCursor": "test2",
+          "endCursor": "test2",
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  }
+}

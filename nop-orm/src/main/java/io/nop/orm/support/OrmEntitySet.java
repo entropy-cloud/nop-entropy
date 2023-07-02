@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
+import static io.nop.orm.OrmErrors.ARG_ELM_OWNER;
 import static io.nop.orm.OrmErrors.ARG_ENTITY;
 import static io.nop.orm.OrmErrors.ARG_OWNER;
 import static io.nop.orm.OrmErrors.ARG_OWNER_PROP;
@@ -376,7 +377,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
                 e.orm_propValueByName(refPropName, owner);
             } else if (elmOwner != owner) {
                 throw newError(ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER)
-                        .param(ARG_ENTITY, e);
+                        .param(ARG_ENTITY, e)
+                        .param(ARG_ELM_OWNER, elmOwner);
             }
         }
 

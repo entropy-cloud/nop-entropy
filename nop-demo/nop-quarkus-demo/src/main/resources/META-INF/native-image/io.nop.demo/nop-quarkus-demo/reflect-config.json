@@ -4758,6 +4758,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRoles",
+        "parameterTypes": []
+      },
+      {
         "name": "getRoutePath",
         "parameterTypes": []
       },
@@ -4775,6 +4779,10 @@
       },
       {
         "name": "isActive",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAuthCascadeUp",
         "parameterTypes": []
       },
       {
@@ -4796,6 +4804,12 @@
       {
         "name": "removeInactive",
         "parameterTypes": []
+      },
+      {
+        "name": "setAuthCascadeUp",
+        "parameterTypes": [
+          "boolean"
+        ]
       },
       {
         "name": "setChildren",
@@ -4891,6 +4905,12 @@
         "name": "setResourceType",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoles",
+        "parameterTypes": [
+          "java.util.Set"
         ]
       },
       {
@@ -10623,6 +10643,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_resources"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_siteId"
       },
       {
@@ -10686,6 +10711,10 @@
       },
       {
         "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResources",
         "parameterTypes": []
       },
       {
@@ -47660,6 +47689,52 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.xlang.debugger.initialize.XLangDebuggerInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "parseValidator",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      },
+      {
+        "name": "runValidator",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "runValidator",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "runValidatorModel",
+        "parameterTypes": [
+          "io.nop.core.model.validator.ValidatorModel",
+          "java.lang.Object",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "toEvalAction",
+        "parameterTypes": [
+          "io.nop.core.model.validator.ValidatorModel"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.filter.BizValidatorHelper",
     "unsafeAllocated": false
   },
   {

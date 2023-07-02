@@ -25,10 +25,16 @@ public interface GraphQLConstants {
     String ATTR_GRAPHQL_PROP = "graphql:prop";
     String ATTR_GRAPHQL_MAX_FETCH_SIZE = "graphql:maxFetchSize";
 
+    String ATTR_GRAPHQL_CONNECTION_PROP = "graphql:connectionProp";
+
+    String ATTR_GRAPHQL_INPUT_TYPE = "graphql:inputType";
+
     String TAG_GRAPHQL_FILTER = "graphql:filter";
     String TAG_GRAPHQL_ORDER_BY = "graphql:orderBy";
 
     String PROP_TAG_CONNECTION = "connection";
+
+    String POSTFIX_CONNECTION = "Connection";
     String PROP_TAG_NOT_RETURN = "not-return";
 
     String DIRECTIVE_DICT_LABEL = "DictLabel";
@@ -71,10 +77,16 @@ public interface GraphQLConstants {
 
     String PAGE_BEAN_PREFIX = "PageBean_";
 
+    String GRAPAHQL_CONNECTION_PREFIX = "GraphQLConnection_";
     String PAGE_BEAN = "PageBean";
+
+    String GRAPHQL_CONNECTION = "GraphQLConnection";
 
     String FIELD_ITEMS = "items";
     String FIELD_TOTAL = "total";
+
+    String FIELD_PAGE_INFO = "pageInfo";
+
     String FIELD_NEXT_CURSOR = "nextCursor";
 
     String BIZ_OBJ_NAME_THIS_OBJ = "THIS_OBJ";

@@ -191,7 +191,6 @@
 /nop/biz/xlib/biz!check.xlib
 /nop/biz/xlib/biz!filter.xlib
 /nop/biz/xlib/biz-gen.xlib
-/nop/biz/xlib/biz.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
 /nop/codegen/xlib/run.xlib
@@ -210,6 +209,7 @@
 /nop/core/registry/xpl.register-model.xml
 /nop/core/registry/xpt.register-model.xml
 /nop/core/registry/xtask.register-model.xml
+/nop/core/xlib/biz.xlib
 /nop/core/xlib/file.xlib
 /nop/dao/beans/dao-defaults.beans.xml
 /nop/dao/dialect/db2.dialect.xml

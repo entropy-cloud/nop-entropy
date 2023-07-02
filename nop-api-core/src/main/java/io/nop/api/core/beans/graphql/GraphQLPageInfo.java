@@ -7,9 +7,11 @@
  */
 package io.nop.api.core.beans.graphql;
 
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 
 @GraphQLObject
+@DataBean
 public class GraphQLPageInfo {
     private String startCursor;
     private String endCursor;

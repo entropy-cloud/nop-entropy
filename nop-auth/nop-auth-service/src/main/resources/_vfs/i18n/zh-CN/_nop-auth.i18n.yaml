@@ -196,6 +196,7 @@ prop:
       extConfigComponent: null
       orderNo: 排序
       remark: 备注
+      resources: 资源列表
       siteId: 站点ID
       status: 状态
       status_label: 状态

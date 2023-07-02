@@ -4199,4 +4199,16 @@ public class StringHelper extends ApiStringHelper {
         }
         return false;
     }
+
+    public static String parseGenericComponentType(String text) {
+        if (StringHelper.isEmpty(text))
+            return null;
+        int pos = text.indexOf('<');
+        if (pos < 0)
+            return null;
+        int endPos = text.lastIndexOf('>');
+        if (endPos <= pos)
+            return null;
+        return text.substring(pos + 1, endPos).trim();
+    }
 }

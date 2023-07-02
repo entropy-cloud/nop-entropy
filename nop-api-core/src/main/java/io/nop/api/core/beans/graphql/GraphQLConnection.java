@@ -8,24 +8,27 @@
 package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.graphql.GraphQLObject;
 
 import java.util.List;
 
 @DataBean
+@GraphQLObject
 public class GraphQLConnection<T> {
-    private long totalCount;
+
+    private long total;
     private List<GraphQLEdgeBean> edges;
 
-    private List<T> data;
+    private List<T> items;
 
     private GraphQLPageInfo pageInfo;
 
-    public long getTotalCount() {
-        return totalCount;
+    public long getTotal() {
+        return total;
     }
 
-    public void setTotalCount(long totalCount) {
-        this.totalCount = totalCount;
+    public void setTotal(long total) {
+        this.total = total;
     }
 
     public List<GraphQLEdgeBean> getEdges() {
@@ -36,12 +39,12 @@ public class GraphQLConnection<T> {
         this.edges = edges;
     }
 
-    public List<T> getData() {
-        return data;
+    public List<T> getItems() {
+        return items;
     }
 
-    public void setData(List<T> data) {
-        this.data = data;
+    public void setItems(List<T> items) {
+        this.items = items;
     }
 
     public GraphQLPageInfo getPageInfo() {

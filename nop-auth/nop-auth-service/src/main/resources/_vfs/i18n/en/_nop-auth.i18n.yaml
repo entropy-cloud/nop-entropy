@@ -202,6 +202,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      resources: Resources
       extConfigComponent: null
     NopAuthTenant:
       tenantId: Tenant ID

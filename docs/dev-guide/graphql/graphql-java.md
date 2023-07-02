@@ -1,6 +1,11 @@
 ## 面向对象的GraphQL
 
-Nop平台以数据模型为基础，自动生成实体定义、SQL表定义、GraphQL类型、前端页面等。以部门表Department为例，缺省情况下我们会生成一个GraphQL类型Department，并为主外键关联生成对应的属性，例如parent和children。如果增加了connection标签，我们还会为关联对象生成分页获取所对应的属性，例如usersConnection通过类似[Relay Cursor Connection](https://relay.dev/graphql/connections.htm)的方式来分页返回属于指定部门的用户。缺省情况下业务对象会自动继承CrudBizModel，所以它会自动生成GraphQL入口操作
+Nop平台以数据模型为基础，自动生成实体定义、SQL表定义、GraphQL类型、前端页面等。以部门表Department为例，缺省情况下我们会生成一个GraphQL类型Department，
+并为主外键关联生成对应的属性，例如parent和children。如果增加了connection标签，我们还会为关联对象生成分页获取所对应的属性，
+例如usersConnection通过类似[Relay Cursor Connection](https://relay.dev/graphql/connections.htm)的方式来分页返回属于指定部门的用户。
+缺省情况下业务对象会自动继承CrudBizModel，所以它会自动生成GraphQL入口操作.
+
+> 关于connection的具体介绍，参见[connection.md](connection.md)
 
 ```graphql
 extend type Query{
@@ -81,8 +86,8 @@ CrudBizModel采用的是元数据驱动的实现方式，它会读取xmeta配置
 
 1. 数据验证：类似于GraphQL的输出选择，NopGraphQL可以对输入字段进行选择性验证和转换，这体现了**输入和输出的对偶性**。
    
-   ```java
-   validatedData = new ObjMetaBasedValidator(bizObjName,objMeta,context)
+   ```javascript
+   validatedData = new ObjMetaBasedValidator(bizObjManager,bizObjName,objMeta,context,checkWriteAuth)
                        .validateForSave(input,inputSelection)
    ```
 
@@ -100,7 +105,7 @@ CrudBizModel采用的是元数据驱动的实现方式，它会读取xmeta配置
 
 CrudBizModel对于复杂查询提供了三个标准接口
 
-```java
+```javascript
 PageBean<OrmEntity> findPage(QueryBean query, FieldSelectionBean selection);
 List<OrmEntity> findList(QueryBean query);
 OrmEntity findFirst(QueryBean query);
@@ -114,7 +119,7 @@ OrmEntity findFirst(QueryBean query);
 
 QueryBean类似于Hibernate中的Criteria查询对象，支持复杂的and/or嵌套查询条件以及排序条件。QueryBean可以由前台直接构造，在送到dao中真正执行之前它会经历如下处理过程：
 
-1. 验证查询条件中只包含标记为queriable的字段，且查询算符在每个字段的allowFilterOp集合中，缺省只允许按照相等条件进行查询。例如配置用户名支持模糊查询
+1. 验证查询条件中只包含标记为queryable的字段，且查询算符在每个字段的allowFilterOp集合中，缺省只允许按照相等条件进行查询。例如配置用户名支持模糊查询
    
    ```xml
    <!-- 支持按照相等或者模糊匹配的方式进行查询，缺省前端生成的控件为模糊查询 -->
@@ -207,8 +212,8 @@ NopGraphQL在实现业务方法时，采用的是一种框架无关的非侵入�
 @BizModel("MyEntity")
 class MyBizModel{
     @BizQuery
-    public MyEntity get(@Name("id")String id){
-        return ... 
+    public MyEntity get(@Name("id")String id){ 
+        return ... 
     }
 
     @BizLoader
@@ -237,11 +242,11 @@ class MyBizModel{
 
 4. 如果标注了`@BizLoader`注解的方法的ContextSource参数为 List类型，则表示它对应GraphQL的DataLoader实现，支持批量加载。
 
-<img src="file:///C:/can/entropy-cloud/articles/graphql/BizModel.svg" title="" alt="" data-align="center">
+![](../../arch/BizModel.svg)
 
 基于NopGraphQL引擎编写的服务方法，可以看作具有如下函数签名
 
-```java
+```javascript
 ApiResponse<Object> service(ApiRequest<Map> request);
 
 class ApiRequest<T>{

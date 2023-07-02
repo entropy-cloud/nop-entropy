@@ -56,6 +56,18 @@ public class OrmQueryHelper {
         }
     }
 
+    public static List<OrderFieldBean> reverseOrderBy(List<OrderFieldBean> orderBy) {
+        if (orderBy == null || orderBy.isEmpty())
+            return null;
+
+        List<OrderFieldBean> ret = new ArrayList<>(orderBy.size());
+        for(OrderFieldBean order: orderBy){
+            order = order.reverse();
+            ret.add(order);
+        }
+        return ret;
+    }
+
     private static boolean containsProp(List<OrderFieldBean> orderBy, String name) {
         for (OrderFieldBean field : orderBy) {
             if (field.getName().equals(name))

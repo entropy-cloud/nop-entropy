@@ -7,8 +7,12 @@
  */
 package io.nop.graphql.core.schema.meta;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
@@ -30,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_SUB_TYPE_OF_UNION_MUST_BE_OBJ_TYPE;
@@ -86,9 +91,18 @@ public class ObjMetaToGraphQLDefinition {
 
         field.setType(toGraphQLType(thisObjName, propMeta.getSchema(), propMeta.isMandatory(), typeRegistry));
 
-        List<GraphQLArgumentDefinition> args = toArgs(thisObjName, propMeta, typeRegistry);
-        if (args != null)
+        String inputType = ConvertHelper.toString(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_INPUT_TYPE));
+        if (!StringHelper.isEmpty(inputType)) {
+            IClassModel classModel = ReflectionManager.instance().loadClassModel(inputType);
+            IGenericType type = ReflectionManager.instance().buildRawType(classModel.getRawClass());
+            List<GraphQLArgumentDefinition> args = ReflectionGraphQLTypeFactory.INSTANCE
+                    .getArgsFromInputType(type, typeRegistry, new HashMap<>());
             field.setArguments(args);
+        } else {
+            List<GraphQLArgumentDefinition> args = toArgs(thisObjName, propMeta, typeRegistry);
+            if (args != null)
+                field.setArguments(args);
+        }
         field.setPropMeta(propMeta);
 
         if (propMeta.getGetter() != null) {
@@ -104,20 +118,26 @@ public class ObjMetaToGraphQLDefinition {
 
         List<GraphQLArgumentDefinition> args = new ArrayList<>(propArgs.size());
         for (ObjPropArgModel propArg : propArgs) {
-            String name = propArg.getName();
-            GraphQLType type = toGraphQLType(thisObjName, propArg.getSchema(), propArg.isMandatory(), registry);
 
-            GraphQLArgumentDefinition arg = new GraphQLArgumentDefinition();
-            arg.setLocation(propArg.getLocation());
-            arg.setName(name);
-            arg.setType(type);
-            arg.setDescription(propArg.getDescription());
-            if (propArg.getDescription() == null)
-                arg.setDescription(propArg.getDisplayName());
+            GraphQLArgumentDefinition arg = buildArg(propArg, thisObjName, registry);
 
             args.add(arg);
         }
         return args;
+    }
+
+    private GraphQLArgumentDefinition buildArg(ObjPropArgModel propArg, String thisObjName, TypeRegistry registry) {
+        String name = propArg.getName();
+        GraphQLType type = toGraphQLType(thisObjName, propArg.getSchema(), propArg.isMandatory(), registry);
+
+        GraphQLArgumentDefinition arg = new GraphQLArgumentDefinition();
+        arg.setLocation(propArg.getLocation());
+        arg.setName(name);
+        arg.setType(type);
+        arg.setDescription(propArg.getDescription());
+        if (propArg.getDescription() == null)
+            arg.setDescription(propArg.getDisplayName());
+        return arg;
     }
 
     public GraphQLType toGraphQLType(String thisObjName, ISchema schema, boolean mandatory, TypeRegistry typeRegistry) {

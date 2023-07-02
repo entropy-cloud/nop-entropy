@@ -76,6 +76,9 @@ public class _NopAuthSite extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 14;
 
     
+    /* relation: 资源列表 */
+    public static final String PROP_NAME_resources = "resources";
+    
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
     
@@ -771,6 +774,16 @@ public class _NopAuthSite extends DynamicOrmEntity{
         }
     }
     
+    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthResource> _resources = new OrmEntitySet<>(this, PROP_NAME_resources,
+        io.nop.auth.dao.entity.NopAuthResource.PROP_NAME_site, null,io.nop.auth.dao.entity.NopAuthResource.class);
+
+    /**
+     * 资源列表。 refPropName: site, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthResource> getResources(){
+       return _resources;
+    }
+       
    private io.nop.orm.support.JsonOrmComponent _extConfigComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_extConfigComponent = new HashMap<>();

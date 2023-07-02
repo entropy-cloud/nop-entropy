@@ -197,6 +197,8 @@ public class FilterBeans {
         TreeBean ret = new TreeBean(FILTER_OP_AND);
         for (int i = 0, n = filters.length; i < n; i++) {
             TreeBean filter = filters[i];
+            if (filter == null)
+                continue;
             if (filter.getTagName().equals(FILTER_OP_AND)) {
                 if (filter.getChildren() != null) {
                     for (TreeBean child : filter.getChildren()) {
@@ -207,6 +209,9 @@ public class FilterBeans {
                 ret.addChild(filter);
             }
         }
+
+        if (!ret.hasChild())
+            return alwaysTrue();
         return ret;
     }
 

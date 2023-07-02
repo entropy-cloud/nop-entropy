@@ -8,8 +8,10 @@
 package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.graphql.GraphQLObject;
 
 @DataBean
+@GraphQLObject
 public class GraphQLEdgeBean {
     private GraphQLNode node;
     private String cursor;

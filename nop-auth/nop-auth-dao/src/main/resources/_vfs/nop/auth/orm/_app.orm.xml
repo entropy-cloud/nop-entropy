@@ -373,6 +373,14 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
             </columns>
             <comment>整个应用系统可以拆分为多个子站点</comment>
+            <relations>
+                <to-many displayName="资源列表" name="resources" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
+                         refPropName="site" tagSet="pub,connection" i18n-en:displayName="Resources">
+                    <join>
+                        <on leftProp="siteId" rightProp="siteId"/>
+                    </join>
+                </to-many>
+            </relations>
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthResource" createTimeProp="createTime" createrProp="createdBy"
                 displayName="菜单资源" name="io.nop.auth.dao.entity.NopAuthResource" registerShortName="true"
@@ -462,8 +470,9 @@
                         <on leftProp="parentId" rightProp="resourceId"/>
                     </join>
                 </to-one>
-                <to-one displayName="子系统" name="site" refEntityName="io.nop.auth.dao.entity.NopAuthSite" tagSet="pub"
-                        i18n-en:displayName="Site">
+                <to-one displayName="子系统" name="site" refEntityName="io.nop.auth.dao.entity.NopAuthSite"
+                        refPropName="resources" tagSet="pub,ref-pub,cascade-delete,ref-connection"
+                        i18n-en:displayName="Site" ref-i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="siteId" rightProp="siteId"/>
                     </join>

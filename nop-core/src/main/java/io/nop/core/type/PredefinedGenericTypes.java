@@ -421,6 +421,20 @@ public class PredefinedGenericTypes {
 
     public static final PredefinedRawType API_RESPONSE_TYPE = javaType(io.nop.api.core.beans.ApiResponse.class,"API_RESPONSE_TYPE");
 
+    public static final PredefinedRawType PAGE_BEAN_TYPE = javaType(io.nop.api.core.beans.PageBean.class,"PAGE_BEAN_TYPE");
+
+    public static final PredefinedRawType GRAPH_Q_L_CONNECTION_TYPE = javaType(io.nop.api.core.beans.graphql.GraphQLConnection.class,"GRAPH_Q_L_CONNECTION_TYPE");
+
+    public static final PredefinedRawType GRAPH_Q_L_REQUEST_BEAN_TYPE = javaType(io.nop.api.core.beans.graphql.GraphQLRequestBean.class,"GRAPH_Q_L_REQUEST_BEAN_TYPE");
+
+    public static final PredefinedRawType GRAPH_Q_L_RESPONSE_BEAN_TYPE = javaType(io.nop.api.core.beans.graphql.GraphQLResponseBean.class,"GRAPH_Q_L_RESPONSE_BEAN_TYPE");
+
+    public static final PredefinedRawType GRAPH_Q_L_PAGE_INFO_TYPE = javaType(io.nop.api.core.beans.graphql.GraphQLPageInfo.class,"GRAPH_Q_L_PAGE_INFO_TYPE");
+
+    public static final PredefinedRawType GRAPH_Q_L_CONNECTION_INPUT_TYPE = javaType(io.nop.api.core.beans.graphql.GraphQLConnectionInput.class,"GRAPH_Q_L_CONNECTION_INPUT_TYPE");
+
+    public static final PredefinedRawType GRAPH_Q_L_ERROR_BEAN_TYPE = javaType(io.nop.api.core.beans.graphql.GraphQLErrorBean.class,"GRAPH_Q_L_ERROR_BEAN_TYPE");
+
     public static final PredefinedRawType I_CONTEXT_TYPE = javaType(io.nop.api.core.context.IContext.class,"I_CONTEXT_TYPE");
 
     public static final PredefinedRawType I_KEYED_LIST_TYPE = javaType(io.nop.commons.collections.IKeyedList.class,"I_KEYED_LIST_TYPE");
@@ -1216,6 +1230,20 @@ public class PredefinedGenericTypes {
             Pair.of(API_REQUEST_TYPE.getTypeName(), API_REQUEST_TYPE),
             
             Pair.of(API_RESPONSE_TYPE.getTypeName(), API_RESPONSE_TYPE),
+            
+            Pair.of(PAGE_BEAN_TYPE.getTypeName(), PAGE_BEAN_TYPE),
+            
+            Pair.of(GRAPH_Q_L_CONNECTION_TYPE.getTypeName(), GRAPH_Q_L_CONNECTION_TYPE),
+            
+            Pair.of(GRAPH_Q_L_REQUEST_BEAN_TYPE.getTypeName(), GRAPH_Q_L_REQUEST_BEAN_TYPE),
+            
+            Pair.of(GRAPH_Q_L_RESPONSE_BEAN_TYPE.getTypeName(), GRAPH_Q_L_RESPONSE_BEAN_TYPE),
+            
+            Pair.of(GRAPH_Q_L_PAGE_INFO_TYPE.getTypeName(), GRAPH_Q_L_PAGE_INFO_TYPE),
+            
+            Pair.of(GRAPH_Q_L_CONNECTION_INPUT_TYPE.getTypeName(), GRAPH_Q_L_CONNECTION_INPUT_TYPE),
+            
+            Pair.of(GRAPH_Q_L_ERROR_BEAN_TYPE.getTypeName(), GRAPH_Q_L_ERROR_BEAN_TYPE),
             
             Pair.of(I_CONTEXT_TYPE.getTypeName(), I_CONTEXT_TYPE),
             

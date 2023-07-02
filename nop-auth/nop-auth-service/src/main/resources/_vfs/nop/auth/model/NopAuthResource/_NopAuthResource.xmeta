@@ -142,9 +142,10 @@
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="site" displayName="子系统" i18n-en:displayName="Site" tagSet="pub" ext:kind="to-one" internal="true"
-              queryable="true" ext:joinLeftProp="siteId" ext:joinRightProp="siteId"
-              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
+        <prop name="site" displayName="子系统" i18n-en:displayName="Site"
+              tagSet="pub,ref-pub,cascade-delete,ref-connection" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="siteId" ext:joinRightProp="siteId" ext:joinRightDisplayProp="displayName"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema type="io.nop.auth.dao.entity.NopAuthSite" bizObjName="NopAuthSite"/>
         </prop>
         <prop name="site.displayName" displayName="子系统" i18n-en:displayName="Site" internal="true" queryable="true"

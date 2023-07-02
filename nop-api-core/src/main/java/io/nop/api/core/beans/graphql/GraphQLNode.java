@@ -7,9 +7,19 @@
  */
 package io.nop.api.core.beans.graphql;
 
-import javax.annotation.Nonnull;
+import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.graphql.GraphQLObject;
 
-public interface GraphQLNode {
-    @Nonnull
-    String getId();
+@DataBean
+@GraphQLObject
+public class GraphQLNode {
+    private String id;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 }

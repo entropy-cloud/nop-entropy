@@ -10,7 +10,7 @@
         xdef:name="ObjSchemaImpl" xdef:bean-package="io.nop.xlang.xmeta.impl"
         interface="boolean" extendsType="generic-type" implementsTypes="generic-type-list"
         minProperties="int" maxProperties="int" supportExtends="boolean"
-        uniqueProp="string"
+        uniqueProp="string" xdef:check-ns="graphql,ui"
 
         x:schema="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:graphql="graphql"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -47,10 +47,15 @@
               xml:mapper="string" graphql:mapper="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
               graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
+              graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
         >
             <description xdef:value="string"/>
 
             <schema xdef:ref="schema.xdef"/>
+
+            <graphql:filter xdef:value="filter-bean"/>
+
+            <graphql:orderBy xdef:ref="/nop/schema/query/order-by.xdef"/>
 
             <!--
             配置字段级别的权限约束
@@ -61,6 +66,8 @@
             -->
             <auth for="!xml-name" xdef:unique-attr="for" xdef:name="ObjPropAuthModel"
                   roles="csv-set" permissions="multi-csv-set"/>
+
+            <graphql:inputType xdef:value="class-name"/>
 
             <!--
             对应graphql的argument

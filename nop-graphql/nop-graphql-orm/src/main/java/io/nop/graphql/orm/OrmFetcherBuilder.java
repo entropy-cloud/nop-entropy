@@ -7,7 +7,9 @@
  */
 package io.nop.graphql.orm;
 
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.graphql.GraphQLConnection;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
@@ -39,6 +41,7 @@ import io.nop.graphql.orm.fetcher.OrmEntitySetFetcher;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
@@ -46,6 +49,7 @@ import io.nop.xlang.xdsl.ExtPropsGetter;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -129,26 +133,15 @@ public class OrmFetcherBuilder {
     }
 
     IDataFetcher getConnectionFetcher(IEntityModel entityModel, String objType, IObjPropMeta propMeta) {
-        if (propMeta.containsTag(GraphQLConstants.PROP_TAG_CONNECTION)) {
-            String propName = (String) propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_PROP);
-            if (propName != null) {
-                IEntityPropModel propModel = entityModel.getProp(propName, false);
-                if (!propModel.isToManyRelation()) {
-                    return null;
-                }
-                return buildConnectionFetcher(objType, (IEntityRelationModel) propModel, propMeta);
-            }
-        }
+        String connectionProp = (String) propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_CONNECTION_PROP);
+        if (StringHelper.isEmpty(connectionProp))
+            return null;
 
-        if (propMeta.getName().endsWith(GraphQLConstants.PROP_TAG_CONNECTION)) {
-            String propName = StringHelper.removeTail(propMeta.getName(), GraphQLConstants.PROP_TAG_CONNECTION);
-            IEntityPropModel propModel = entityModel.getProp(propName, false);
-            if (propModel != null && propModel.isToManyRelation()) {
-                return buildConnectionFetcher(objType, (IEntityRelationModel) propModel, propMeta);
-            }
+        IEntityPropModel propModel = entityModel.getProp(connectionProp, false);
+        if (!propModel.isToManyRelation()) {
+            return null;
         }
-
-        return null;
+        return buildConnectionFetcher(objType, (IEntityRelationModel) propModel, propMeta);
     }
 
     IDataFetcher buildConnectionFetcher(String objType, IEntityRelationModel propModel, IObjPropMeta propMeta) {
@@ -157,17 +150,38 @@ public class OrmFetcherBuilder {
                 -1, NopException::new);
         String bizObjName = propMeta.getBizObjName();
         if (bizObjName == null) {
-            bizObjName = propModel.getRefEntityName();
+            bizObjName = StringHelper.simpleClassName(propModel.getRefEntityName());
         }
         String fetchAction = GraphQLNameHelper.getFetchAction(objType, propMeta.getName());
 
         TreeBean filter = ExtPropsGetter.getTreeBean(propMeta, GraphQLConstants.TAG_GRAPHQL_FILTER);
+        TreeBean relFilter = buildRelationFilter(propModel);
+        if (filter != null) {
+            filter = FilterBeans.and(filter, relFilter);
+        } else {
+            filter = relFilter;
+        }
+
         List<OrderFieldBean> orderBy = ExtPropsGetter.getOrderBy(propMeta, GraphQLConstants.TAG_GRAPHQL_ORDER_BY);
 
         boolean findFirst = isFindFirst(propMeta);
 
         return new OrmEntityPropConnectionFetcher(dao, bizObjName, fetchAction, maxFetchSize, findFirst, filter,
-                orderBy,queryProcessor);
+                orderBy, queryProcessor);
+    }
+
+    private TreeBean buildRelationFilter(IEntityRelationModel propModel) {
+        List<TreeBean> filters = new ArrayList<>(propModel.getJoin().size());
+        for (IEntityJoinConditionModel join : propModel.getJoin()) {
+            if (join.getRightPropModel() != null) {
+                if (join.getLeftProp() != null) {
+                    filters.add(FilterBeans.eq(join.getRightProp(), OrmConstants.VALUE_PREFIX_PROP_REF + join.getLeftProp()));
+                } else {
+                    filters.add(FilterBeans.eq(join.getRightProp(), join.getRightValue()));
+                }
+            }
+        }
+        return FilterBeans.and(filters);
     }
 
     boolean isFindFirst(IObjPropMeta propMeta) {
@@ -175,10 +189,7 @@ public class OrmFetcherBuilder {
         if (schema == null)
             return false;
         IGenericType type = schema.getType();
-        if (type != null)
-            return !type.isCollectionLike();
-
-        return schema.getItemSchema() == null;
+        return type.getRawClass() != GraphQLConnection.class;
     }
 
     IDataFetcher buildPropFetcher(Set<String> dependsOn, String propName) {

@@ -28,40 +28,44 @@ import static io.nop.core.CoreErrors.ARG_TYPE_NAME;
 import static io.nop.core.CoreErrors.ERR_TYPE_NOT_PREDEFINED_TYPE;
 
 <c:script>
-  import io.nop.commons.type.StdDataType;
+    import io.nop.commons.type.StdDataType;
 
-  const predefinedTypes = [];
+    const predefinedTypes = [];
 
-  const varTypeNames = ["A","B","C","D","E","F","G",
-                      "H","I","J","K","L","M","N",
-                      "O","P","Q","R","S","T",
-                      "U","V","W","X","Y","Z",
-                      "T0","T1","T2"];
+    const varTypeNames = ["A","B","C","D","E","F","G",
+    "H","I","J","K","L","M","N",
+    "O","P","Q","R","S","T",
+    "U","V","W","X","Y","Z",
+    "T0","T1","T2"];
 
-  const classNames = ["java.lang.Cloneable","java.lang.Comparable", "java.lang.Runnable","java.lang.Number",
-                "java.io.Serializable",
-                "java.util.Collection","java.util.Set", "java.util.HashMap", "java.util.LinkedHashMap", "java.util.SortedMap",
-               "java.util.function.Function","java.util.function.Consumer", "java.util.function.Supplier",
-               "java.util.concurrent.Callable", "java.util.function.BiConsumer",
-               "java.util.function.BiFunction", "java.util.function.Predicate", "java.util.Comparator",
-               "java.util.concurrent.CompletionStage","java.util.concurrent.CompletableFuture","java.util.concurrent.Future",
-               "io.nop.core.lang.xml.XNode", "io.nop.commons.util.objects.Pair",
-               "io.nop.core.type.IGenericType","io.nop.core.lang.eval.IEvalAction","io.nop.core.lang.eval.IEvalPredicate",
-               "io.nop.core.lang.eval.IEvalFunction","io.nop.core.reflect.IPropertyGetter",
-               "io.nop.core.reflect.IPropertySetter","io.nop.core.lang.eval.IEvalScope",
-               "io.nop.core.resource.tpl.ITextTemplateOutput","io.nop.core.resource.tpl.ITemplateOutput",
-               "io.nop.core.lang.sql.ISqlGenerator","io.nop.core.lang.xml.IXNodeGenerator",
-               "io.nop.core.lang.json.JObject","io.nop.core.lang.json.JArray",
-               "io.nop.core.lang.json.IJsonContainer","io.nop.api.core.util.ISourceLocationGetter",
-               "io.nop.api.core.util.IDeepCloneable","io.nop.api.core.util.ICloneable",
-               "io.nop.api.core.util.IFreezable","io.nop.api.core.util.SourceLocation",
-               "io.nop.api.core.util.ICancellable","io.nop.api.core.util.ICancelToken",
-               "io.nop.api.core.beans.ApiRequest","io.nop.api.core.beans.ApiResponse",
-               "io.nop.api.core.context.IContext",
-               "io.nop.commons.collections.IKeyedList","io.nop.commons.collections.IKeyedElement",
-               "io.nop.commons.type.StdDataType",
-               "io.nop.api.core.exceptions.NopException", "io.nop.api.core.exceptions.NopScriptError"
-               ];
+    const classNames = ["java.lang.Cloneable","java.lang.Comparable", "java.lang.Runnable","java.lang.Number",
+    "java.io.Serializable",
+    "java.util.Collection","java.util.Set", "java.util.HashMap", "java.util.LinkedHashMap", "java.util.SortedMap",
+    "java.util.function.Function","java.util.function.Consumer", "java.util.function.Supplier",
+    "java.util.concurrent.Callable", "java.util.function.BiConsumer",
+    "java.util.function.BiFunction", "java.util.function.Predicate", "java.util.Comparator",
+    "java.util.concurrent.CompletionStage","java.util.concurrent.CompletableFuture","java.util.concurrent.Future",
+    "io.nop.core.lang.xml.XNode", "io.nop.commons.util.objects.Pair",
+    "io.nop.core.type.IGenericType","io.nop.core.lang.eval.IEvalAction","io.nop.core.lang.eval.IEvalPredicate",
+    "io.nop.core.lang.eval.IEvalFunction","io.nop.core.reflect.IPropertyGetter",
+    "io.nop.core.reflect.IPropertySetter","io.nop.core.lang.eval.IEvalScope",
+    "io.nop.core.resource.tpl.ITextTemplateOutput","io.nop.core.resource.tpl.ITemplateOutput",
+    "io.nop.core.lang.sql.ISqlGenerator","io.nop.core.lang.xml.IXNodeGenerator",
+    "io.nop.core.lang.json.JObject","io.nop.core.lang.json.JArray",
+    "io.nop.core.lang.json.IJsonContainer","io.nop.api.core.util.ISourceLocationGetter",
+    "io.nop.api.core.util.IDeepCloneable","io.nop.api.core.util.ICloneable",
+    "io.nop.api.core.util.IFreezable","io.nop.api.core.util.SourceLocation",
+    "io.nop.api.core.util.ICancellable","io.nop.api.core.util.ICancelToken",
+    "io.nop.api.core.beans.ApiRequest","io.nop.api.core.beans.ApiResponse",
+    "io.nop.api.core.beans.PageBean","io.nop.api.core.beans.graphql.GraphQLConnection",
+    "io.nop.api.core.beans.graphql.GraphQLRequestBean", "io.nop.api.core.beans.graphql.GraphQLResponseBean",
+    "io.nop.api.core.beans.graphql.GraphQLPageInfo", "io.nop.api.core.beans.graphql.GraphQLConnectionInput",
+    "io.nop.api.core.beans.graphql.GraphQLErrorBean",
+    "io.nop.api.core.context.IContext",
+    "io.nop.commons.collections.IKeyedList","io.nop.commons.collections.IKeyedElement",
+    "io.nop.commons.type.StdDataType",
+    "io.nop.api.core.exceptions.NopException", "io.nop.api.core.exceptions.NopScriptError"
+    ];
 </c:script>
 
 @SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})

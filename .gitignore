@@ -13,7 +13,7 @@ target/
 /nop-idea-plugin/nop-idea-plugin.jar
 .antlr
 /nop-idea-plugin/bin
-/nop_log
+/log
 _dump
 /db
 /nop-antlr4/gen

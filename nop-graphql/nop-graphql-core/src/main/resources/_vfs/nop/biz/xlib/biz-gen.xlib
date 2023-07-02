@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib" xmlns:graphql="graphql">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib">
 
     <tags>
         <!--
@@ -37,6 +37,7 @@
                 <meta>
                     <props>
                         <thisLib:GenDictLabelFields/>
+                        <thisLib:GenConnectionFields/>
                     </props>
                 </meta>
             </source>
@@ -67,5 +68,33 @@
                 </c:for>
             </source>
         </GenDictLabelFields>
+
+        <GenConnectionFields outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                    <c:script><![CDATA[
+                        if(!prop.attrCsvSet('tagSet')?.contains('connection'))
+                            continue;
+
+                        let kind = prop.getAttr('ext:kind');
+                        if(kind != 'to-many')
+                            continue;
+
+                        let name = prop.getAttr('name');
+                    ]]></c:script>
+
+                    <prop name="${name}"/>
+
+                    <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}"
+                          internal="true" graphql:connectionProp="${name}">
+                        <graphql:inputType xpl:ignoreTag="true">io.nop.api.core.beans.graphql.GraphQLConnectionInput</graphql:inputType>
+                        <schema type="io.nop.api.core.beans.graphql.GraphQLConnection&lt;${prop.childAttr('schema','type').$parseGenericComponentType()}>"
+                                bizObjName="${prop.childAttr('schema','bizObjName')}"/>
+                    </prop>
+                </c:for>
+            </source>
+        </GenConnectionFields>
     </tags>
 </lib>

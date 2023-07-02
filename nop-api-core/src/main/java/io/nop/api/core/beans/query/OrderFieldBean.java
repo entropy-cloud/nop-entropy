@@ -44,6 +44,16 @@ public class OrderFieldBean implements Serializable {
         return forField(name, false);
     }
 
+    public OrderFieldBean reverse() {
+        OrderFieldBean ret = new OrderFieldBean();
+        ret.setOwner(owner);
+        ret.setName(name);
+        ret.setDesc(!desc);
+        if (nullsFirst != null)
+            ret.setNullsFirst(!nullsFirst);
+        return ret;
+    }
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public Boolean getNullsFirst() {
         return nullsFirst;

@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_EAGER_INIT_BIZ_OBJECT;
+import static io.nop.graphql.core.GraphQLConstants.GRAPAHQL_CONNECTION_PREFIX;
 import static io.nop.graphql.core.GraphQLConstants.OBJ_ACTION_SEPARATOR;
 import static io.nop.graphql.core.GraphQLConstants.PAGE_BEAN_PREFIX;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
@@ -184,7 +185,8 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     @Override
     public GraphQLTypeDefinition getTypeDefinition(String objName) {
-        if (GraphQLNameHelper.isGeneratedTypeName(objName) || objName.startsWith(PAGE_BEAN_PREFIX))
+        if (GraphQLNameHelper.isGeneratedTypeName(objName) || objName.startsWith(PAGE_BEAN_PREFIX)
+                || objName.startsWith(GRAPAHQL_CONNECTION_PREFIX))
             return typeRegistry.getType(objName);
 
         GraphQLTypeDefinition def = typeRegistry.getType(objName);
