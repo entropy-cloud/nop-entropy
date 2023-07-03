@@ -12,7 +12,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.OrderedComparator;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
-import io.nop.xlang.filter.BizExprHelper;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.makerchecker.IMakerCheckerProvider;
 import io.nop.biz.model.BizActionModel;
@@ -31,7 +30,6 @@ import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
-import io.nop.graphql.core.fetcher.BeanMethodAction;
 import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
@@ -39,6 +37,7 @@ import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.schema.meta.ObjMetaToGraphQLDefinition;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
+import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -262,27 +261,27 @@ public class BizObjectBuilder {
                     actions.put(actionModel.getName(), buildServiceAction(bizObj, actionModel));
                 } else {
                     GraphQLFieldDefinition op = buildActionOperation(bizObj, actionModel);
-                    operations.put(op.getName(), op);
+                    operations.put(actionModel.getName(), op);
                 }
             }
         }
 
         if (gqlBizModel != null) {
-            for (GraphQLFieldDefinition action : gqlBizModel.getMutationActions().values()) {
+            gqlBizModel.getMutationActions().forEach((name, action) -> {
                 buildFetcher(action);
                 // 如果xbiz文件中已经定义，则忽略java类上的定义
-                operations.putIfAbsent(action.getName(), action);
-            }
+                operations.putIfAbsent(name, action);
+            });
 
-            for (GraphQLFieldDefinition action : gqlBizModel.getQueryActions().values()) {
+            gqlBizModel.getQueryActions().forEach((name, action) -> {
                 buildFetcher(action);
-                operations.putIfAbsent(action.getName(), action);
-            }
+                operations.putIfAbsent(name, action);
+            });
 
-            for (Map.Entry<String, BeanMethodAction> entry : gqlBizModel.getBizActions().entrySet()) {
+            gqlBizModel.getBizActions().forEach((name, action) -> {
                 // 如果xbiz文件中已经定义，则忽略java类上的定义
-                actions.putIfAbsent(entry.getKey(), entry.getValue());
-            }
+                actions.putIfAbsent(name, action);
+            });
         }
 
         bizObj.setActions(actions);

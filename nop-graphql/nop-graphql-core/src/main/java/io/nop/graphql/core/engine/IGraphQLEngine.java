@@ -22,11 +22,14 @@ import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLVariableDefinition;
+import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public interface IGraphQLEngine {
+    IGraphQLSchemaLoader getSchemaLoader();
+
     GraphQLDocument parseOperation(String query, boolean skipCache);
 
     GraphQLTypeDefinition getTypeDefinition(String typeName);

@@ -9,6 +9,7 @@ package io.nop.graphql.core.ast;
 
 import io.nop.api.core.util.INeedInit;
 import io.nop.graphql.core.ast._gen._GraphQLDocument;
+import io.nop.graphql.core.schema.utils.GraphQLSourcePrinter;
 
 import java.util.ArrayList;
 
@@ -25,6 +26,10 @@ public class GraphQLDocument extends _GraphQLDocument implements INeedInit {
 
     public void setResolved(boolean resolved) {
         this.resolved = resolved;
+    }
+
+    public String toSource() {
+        return new GraphQLSourcePrinter().print(this);
     }
 
     public void init() {

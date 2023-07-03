@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.schema;
 
+import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
@@ -14,6 +15,7 @@ import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * 用于加载builtin schema之外的biz模型定义
@@ -35,7 +37,9 @@ public interface IGraphQLSchemaLoader {
     //
     // GraphQLFragment getFragment(String objName, String fragmentName, Map<String, Object> directives);
 
-    Collection<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType);
+    List<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType);
 
     Collection<GraphQLTypeDefinition> getTypeDefinitions();
+
+    GraphQLDocument getGraphQLDocument();
 }

@@ -284,7 +284,7 @@ public class ReflectionBizModelBuilder {
         }
 
         field.setLocation(loc);
-        field.setName(name);
+        field.setName(GraphQLNameHelper.getOperationName(bizObjName,name));
         field.setServiceAction(action);
         field.setFetcher(fetcher);
 

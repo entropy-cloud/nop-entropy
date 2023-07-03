@@ -116,11 +116,10 @@ class GraphQLAST {
     }
 
     abstract class GraphQLTypeDefinition extends GraphQLDefinition {
-
+        boolean extension;
     }
 
     class GraphQLObjectDefinition extends GraphQLTypeDefinition {
-        boolean extension;
         List<GraphQLFieldDefinition> fields;
     }
 

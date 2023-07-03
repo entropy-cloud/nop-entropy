@@ -148,6 +148,10 @@ public class GraphQLEngine implements IGraphQLEngine {
         this.schemaLoader = schemaLoader;
     }
 
+    public IGraphQLSchemaLoader getSchemaLoader() {
+        return schemaLoader;
+    }
+
     /**
      * 一般是SingleSessionFunctionInvoker
      */

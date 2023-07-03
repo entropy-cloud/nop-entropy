@@ -35,8 +35,11 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.core.type.IGenericType;
+import io.nop.graphql.core.ast.GraphQLDocument;
+import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.ioc.api.IBeanContainerImplementor;
 
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +51,17 @@ import java.util.TreeMap;
 @Locale("zh-CN")
 @BizModel("DevDoc")
 public class DevDocBizModel {
+
+    @Inject
+    IGraphQLEngine graphQLEngine;
+
+    @BizQuery
+    @Description("graphql模型定义")
+    public String graphql() {
+        GraphQLDocument doc = graphQLEngine.getSchemaLoader().getGraphQLDocument();
+        return doc.toSource();
+    }
+
     @BizQuery
     @Description("全局函数列表")
     public List<FunctionDefBean> globalFunctions() {

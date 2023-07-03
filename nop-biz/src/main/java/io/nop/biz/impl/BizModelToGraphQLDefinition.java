@@ -26,6 +26,8 @@ import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLInputDefinition;
+import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLType;
@@ -68,7 +70,7 @@ public class BizModelToGraphQLDefinition {
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setLocation(actionModel.getLocation());
         String operationName = GraphQLNameHelper.getOperationName(bizObjName, actionModel.getName());
-        field.setName(actionModel.getName());
+        field.setName(operationName);
         field.setOperationName(operationName);
 
         field.setDescription(actionModel.getDisplayName());
@@ -209,11 +211,20 @@ public class BizModelToGraphQLDefinition {
         }
 
         List<GraphQLArgumentDefinition> argDefs = new ArrayList<>();
-        GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) def;
-        for (GraphQLFieldDefinition field : objDef.getFields()) {
-            String propName = field.getName();
-            GraphQLType graphqlType = field.getType().deepClone();
-            argDefs.add(buildArgDef(propName, graphqlType));
+        if (def instanceof GraphQLObjectDefinition) {
+            GraphQLObjectDefinition objDef = (GraphQLObjectDefinition) def;
+            for (GraphQLFieldDefinition field : objDef.getFields()) {
+                String propName = field.getName();
+                GraphQLType graphqlType = field.getType().deepClone();
+                argDefs.add(buildArgDef(propName, graphqlType));
+            }
+        } else {
+            GraphQLInputDefinition objDef = (GraphQLInputDefinition) def;
+            for (GraphQLInputFieldDefinition field : objDef.getFields()) {
+                String propName = field.getName();
+                GraphQLType graphQLType = field.getType().deepClone();
+                argDefs.add(buildArgDef(propName, graphQLType));
+            }
         }
         return argDefs;
     }
@@ -228,7 +239,7 @@ public class BizModelToGraphQLDefinition {
             return GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
 
         return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, returnModel.isMandatory(),
-                typeRegistry,false);
+                typeRegistry, false);
     }
 
     GraphQLType getLoaderType(String thisObjName, BizLoaderModel loaderModel, TypeRegistry typeRegistry) {
@@ -241,7 +252,7 @@ public class BizModelToGraphQLDefinition {
             return null;
 
         return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, returnModel.isMandatory(),
-                typeRegistry,false);
+                typeRegistry, false);
     }
 
     private GraphQLArgumentDefinition buildArgDef(String name, GraphQLType type) {
@@ -255,6 +266,6 @@ public class BizModelToGraphQLDefinition {
         ISchema schema = argModel.getSchema();
         if (schema == null)
             return null;
-        return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, argModel.isMandatory(), registry,true);
+        return ObjMetaToGraphQLDefinition.INSTANCE.toGraphQLType(thisObjName, schema, argModel.isMandatory(), registry, true);
     }
 }

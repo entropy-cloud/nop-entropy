@@ -34,6 +34,11 @@
         <property name="bizInitializers">
             <ioc:collect-beans only-concrete-classes="true" by-type="io.nop.graphql.core.biz.IGraphQLBizInitializer"/>
         </property>
+
+        <property name="schemaInitializers">
+            <ioc:collect-beans only-concrete-classes="true"
+                               by-type="io.nop.graphql.core.biz.IGraphQLSchemaInitializer"/>
+        </property>
     </bean>
 
     <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer">

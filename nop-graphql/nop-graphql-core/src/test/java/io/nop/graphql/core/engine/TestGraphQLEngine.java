@@ -27,12 +27,12 @@ public class TestGraphQLEngine extends BaseTestCase {
     GraphQLEngine engine;
 
     @BeforeAll
-    public static void init(){
+    public static void init() {
         CoreInitialization.initialize();
     }
 
     @AfterAll
-    public static void destroy(){
+    public static void destroy() {
         CoreInitialization.destroy();
     }
 
@@ -50,5 +50,11 @@ public class TestGraphQLEngine extends BaseTestCase {
         GraphQLResponseBean response = FutureHelper.syncGet(promise);
         System.out.println(JsonTool.serialize(response, true));
         assertEquals(attachmentJsonText("response.json"), JsonTool.serialize(response, true));
+    }
+
+    @Test
+    public void testPrintSource() {
+        String source = engine.getSchemaLoader().getGraphQLDocument().toSource();
+        System.out.println(source);
     }
 }

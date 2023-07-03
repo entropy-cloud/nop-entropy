@@ -62,6 +62,8 @@ public abstract class _GraphQLScalarDefinition extends io.nop.graphql.core.ast.G
                       
                 }
             
+                ret.setExtension(extension);
+            
        return ret;
     }
 
@@ -132,6 +134,10 @@ public abstract class _GraphQLScalarDefinition extends io.nop.graphql.core.ast.G
                    return false;
                 }
             
+                if(!isValueEquivalent(this.extension,other.getExtension())){
+                   return false;
+                }
+            
         return true;
     }
 
@@ -160,6 +166,8 @@ public abstract class _GraphQLScalarDefinition extends io.nop.graphql.core.ast.G
                               json.put("name", name);
                           
                     }
+                
+                   json.put("extension", extension);
                 
     }
 

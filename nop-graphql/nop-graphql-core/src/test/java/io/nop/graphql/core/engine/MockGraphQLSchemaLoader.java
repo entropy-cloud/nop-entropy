@@ -10,6 +10,8 @@ package io.nop.graphql.core.engine;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.graphql.core.ast.GraphQLDefinition;
+import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
@@ -28,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
     private Map<String, GraphQLObjectDefinition> defs;
@@ -84,8 +87,8 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
     }
 
     @Override
-    public Collection<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType) {
-        return Collections.emptySet();
+    public List<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType) {
+        return Collections.emptyList();
     }
 
     @Override
@@ -97,4 +100,16 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
     public Collection<GraphQLTypeDefinition> getTypeDefinitions() {
         return new ArrayList<>(defs.values());
     }
+
+
+    @Override
+    public GraphQLDocument getGraphQLDocument() {
+        GraphQLDocument doc = new GraphQLDocument();
+        List<GraphQLDefinition> defs = new ArrayList<>();
+        defs.addAll(getTypeDefinitions().stream().map(def -> def.deepClone()).collect(Collectors.toList()));
+
+        doc.setDefinitions(defs);
+        return doc;
+    }
+
 }

@@ -107,7 +107,7 @@ Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后
 
 ### 2. 如何查看当前应用所加载的bean
 
-在debug模式下，可以通过/r/DevDoc_beans链接查看实际装载的bean
+在debug模式下，可以通过/p/DevDoc_beans链接查看实际装载的bean
 
 ### 3. 如何查看系统中定义的全局函数和全局对象
 
@@ -124,6 +124,11 @@ nop-config模块负责从多个配置来源收集配置信息，并按照优先�
 /r/DevDoc_configVars
 
 在返回的结果中包含每个配置变量的来源资源文件路径。
+
+### 5. 如何查看后台所有的GraphQL服务以及类型定义
+
+/p/DevDoc__graphql
+返回graphql定义
 
 ## 自动化测试
 

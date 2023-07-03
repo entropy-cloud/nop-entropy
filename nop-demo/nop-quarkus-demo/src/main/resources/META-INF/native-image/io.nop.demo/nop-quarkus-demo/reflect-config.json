@@ -14655,7 +14655,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
     "methods": [
       {
         "name": "beans",
@@ -14705,6 +14711,10 @@
       },
       {
         "name": "globalVars",
+        "parameterTypes": []
+      },
+      {
+        "name": "graphql",
         "parameterTypes": []
       },
       {
@@ -15273,6 +15283,10 @@
         ]
       },
       {
+        "name": "getGraphQLDocument",
+        "parameterTypes": []
+      },
+      {
         "name": "getObjectTypeDefinition",
         "parameterTypes": [
           "java.lang.String"
@@ -15351,6 +15365,12 @@
         "name": "setOrmTemplate",
         "parameterTypes": [
           "io.nop.orm.IOrmTemplate"
+        ]
+      },
+      {
+        "name": "setSchemaInitializers",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -31680,6 +31700,10 @@
           "io.nop.graphql.core.ast.GraphQLOperationType",
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getSchemaLoader",
+        "parameterTypes": []
       },
       {
         "name": "getTypeDefinition",

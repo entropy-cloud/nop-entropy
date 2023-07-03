@@ -16,24 +16,12 @@ import java.util.function.Consumer;
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _GraphQLObjectDefinition extends io.nop.graphql.core.ast.GraphQLTypeDefinition {
     
-    protected boolean extension;
-    
     protected java.util.List<io.nop.graphql.core.ast.GraphQLFieldDefinition> fields;
     
 
     public _GraphQLObjectDefinition(){
     }
 
-    
-    public boolean getExtension(){
-        return extension;
-    }
-
-    public void setExtension(boolean value){
-        checkAllowChange();
-        
-        this.extension = value;
-    }
     
     public java.util.List<io.nop.graphql.core.ast.GraphQLFieldDefinition> getFields(){
         return fields;

@@ -27,6 +27,8 @@ import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLFragment;
 import io.nop.graphql.core.ast.GraphQLFragmentSelection;
+import io.nop.graphql.core.ast.GraphQLInputDefinition;
+import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLListType;
 import io.nop.graphql.core.ast.GraphQLLiteral;
 import io.nop.graphql.core.ast.GraphQLNamedType;
@@ -40,6 +42,7 @@ import io.nop.graphql.core.ast.GraphQLScalarDefinition;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.ast.GraphQLType;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLValue;
 import io.nop.graphql.core.ast.GraphQLVariable;
 import io.nop.graphql.core.ast.GraphQLVariableDefinition;
@@ -78,33 +81,28 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
             skipComments(sc);
             String description = description(sc);
             skipComments(sc);
-            if (sc.tryMatchToken("type")) {
-                GraphQLObjectDefinition def = objType(sc);
-                def.setDescription(description);
-                definitions.add(def);
-            } else if (sc.tryMatchToken("directive")) {
+            if (sc.tryMatchToken("directive")) {
                 GraphQLDirectiveDefinition def = directiveDef(sc);
-                def.setDescription(description);
-                definitions.add(def);
-            } else if (sc.tryMatchToken("extend")) {
-                sc.matchToken("type");
-                GraphQLObjectDefinition def = objType(sc);
-                def.setExtension(true);
                 def.setDescription(description);
                 definitions.add(def);
             } else if (sc.tryMatchToken("fragment")) {
                 GraphQLFragment fragment = fragment(sc);
                 fragment.setDescription(description);
                 definitions.add(fragment);
-            } else if (sc.tryMatchToken("enum")) {
-                GraphQLEnumDefinition enumDef = enumDef(sc);
-                enumDef.setDescription(description);
-                definitions.add(enumDef);
-            } else if (sc.tryMatchToken("scalar")) {
-                GraphQLScalarDefinition def = scalarDef(sc);
+            } else if (sc.tryMatchToken("extend")) {
+                GraphQLTypeDefinition def = parseType(sc);
+                if (def == null)
+                    sc.matchToken("type");
+                def.setExtension(true);
                 def.setDescription(description);
                 definitions.add(def);
             } else {
+                GraphQLTypeDefinition typeDef = parseType(sc);
+                if (typeDef != null) {
+                    typeDef.setDescription(description);
+                    definitions.add(typeDef);
+                    continue;
+                }
                 GraphQLDefinition def = operation(sc);
                 if (def == null)
                     break;
@@ -117,6 +115,20 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
 
         doc.setDefinitions(definitions);
         return doc;
+    }
+
+    private GraphQLTypeDefinition parseType(TextScanner sc) {
+        if (sc.tryMatchToken("type")) {
+            return objType(sc);
+        } else if (sc.tryMatchToken("enum")) {
+            return enumDef(sc);
+        } else if (sc.tryMatchToken("scalar")) {
+            return scalarDef(sc);
+        } else if (sc.tryMatchToken("input")) {
+            return inputDef(sc);
+        } else {
+            return null;
+        }
     }
 
     private void skipComments(TextScanner sc) {
@@ -173,6 +185,24 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         return def;
     }
 
+    private GraphQLInputDefinition inputDef(TextScanner sc) {
+        GraphQLInputDefinition def = new GraphQLInputDefinition();
+        def.setLocation(sc.location());
+
+        String name = sc.nextGraphQLVar();
+        sc.skipBlank();
+        def.setName(name);
+
+        List<GraphQLDirective> directives = directives(sc);
+        def.setDirectives(directives);
+
+        sc.match('{');
+        List<GraphQLInputFieldDefinition> fields = inputFields(sc);
+        sc.match('}');
+        def.setFields(fields);
+        return def;
+    }
+
     private GraphQLFragment fragment(TextScanner sc) {
         GraphQLFragment fragment = new GraphQLFragment();
         fragment.setLocation(sc.location());
@@ -205,6 +235,18 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         return ret;
     }
 
+    private List<GraphQLInputFieldDefinition> inputFields(TextScanner sc) {
+        List<GraphQLInputFieldDefinition> ret = new ArrayList<>();
+        while (sc.cur != '}' && !sc.isEnd()) {
+            skipComments(sc);
+            GraphQLInputFieldDefinition field = inputFieldDef(sc);
+            ret.add(field);
+            sc.skipBlank();
+            sc.tryMatch(',');
+        }
+        return ret;
+    }
+
     private GraphQLFieldDefinition fieldDef(TextScanner sc) {
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setLocation(sc.location());
@@ -228,6 +270,33 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         field.setDirectives(directives);
         return field;
     }
+
+    private GraphQLInputFieldDefinition inputFieldDef(TextScanner sc) {
+        GraphQLInputFieldDefinition field = new GraphQLInputFieldDefinition();
+        field.setLocation(sc.location());
+
+        skipComments(sc);
+        String description = description(sc);
+        field.setDescription(description);
+        skipComments(sc);
+
+        String name = sc.nextGraphQLVar();
+        field.setName(name);
+        sc.skipBlank();
+        sc.match(':');
+        GraphQLType type = type(sc);
+        field.setType(type);
+
+        if (sc.tryMatch('=')) {
+            GraphQLValue value = value(sc);
+            field.setDefaultValue(value);
+        }
+
+        List<GraphQLDirective> directives = directives(sc);
+        field.setDirectives(directives);
+        return field;
+    }
+
 
     private GraphQLDirectiveDefinition directiveDef(TextScanner sc) {
         GraphQLDirectiveDefinition ret = new GraphQLDirectiveDefinition();

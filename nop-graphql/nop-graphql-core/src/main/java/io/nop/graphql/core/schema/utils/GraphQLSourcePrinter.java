@@ -15,14 +15,18 @@ import io.nop.graphql.core.ast.GraphQLASTVisitor;
 import io.nop.graphql.core.ast.GraphQLArgument;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
 import io.nop.graphql.core.ast.GraphQLArrayValue;
+import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLDirective;
 import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
+import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.ast.GraphQLEnumDefinition;
 import io.nop.graphql.core.ast.GraphQLEnumValueDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLFragment;
 import io.nop.graphql.core.ast.GraphQLFragmentSelection;
+import io.nop.graphql.core.ast.GraphQLInputDefinition;
+import io.nop.graphql.core.ast.GraphQLInputFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLListType;
 import io.nop.graphql.core.ast.GraphQLLiteral;
 import io.nop.graphql.core.ast.GraphQLNamedType;
@@ -31,6 +35,7 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectValue;
 import io.nop.graphql.core.ast.GraphQLOperation;
 import io.nop.graphql.core.ast.GraphQLPropertyValue;
+import io.nop.graphql.core.ast.GraphQLScalarDefinition;
 import io.nop.graphql.core.ast.GraphQLSelection;
 import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.ast.GraphQLUnionTypeDefinition;
@@ -59,6 +64,14 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
             throw NopException.adapt(e);
         }
         return out.toString();
+    }
+
+    @Override
+    public void visitGraphQLDocument(GraphQLDocument node) {
+        for (GraphQLDefinition def : node.getDefinitions()) {
+            visit(def);
+            out.br();
+        }
     }
 
     @Override
@@ -240,6 +253,8 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
         }
         out.append("type ");
         out.append(node.getName());
+        visitChildren(node.getDirectives());
+
         out.append('{');
         out.incIndent();
         for (int i = 0, n = node.getFields().size(); i < n; i++) {
@@ -259,6 +274,52 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
         printArgDefs(node.getArguments());
         out.append(" : ");
         visit(node.getType());
+        visitChildren(node.getDirectives());
+    }
+
+    @Override
+    public void visitGraphQLInputDefinition(GraphQLInputDefinition node) {
+        printDesc(node.getDescription());
+        if (node.getExtension()) {
+            out.append("extend ");
+        }
+        out.append("input ");
+        out.append(node.getName());
+        visitChildren(node.getDirectives());
+
+        out.append('{');
+        out.incIndent();
+        for (int i = 0, n = node.getFields().size(); i < n; i++) {
+            out.indent();
+            GraphQLInputFieldDefinition field = node.getFields().get(i);
+            visit(field);
+        }
+        out.decIndent();
+        out.indent();
+        out.append("}").br();
+    }
+
+    @Override
+    public void visitGraphQLInputFieldDefinition(GraphQLInputFieldDefinition node) {
+        printDesc(node.getDescription());
+        out.append(node.getName());
+        out.append(" : ");
+        visit(node.getType());
+        if (node.getDefaultValue() != null) {
+            out.append(" = ");
+            visit(node.getDefaultValue());
+        }
+        visitChildren(node.getDirectives());
+    }
+
+    @Override
+    public void visitGraphQLScalarDefinition(GraphQLScalarDefinition node) {
+        printDesc(node.getDescription());
+        if (node.getExtension()) {
+            out.append("extend ");
+        }
+        out.append("scalar ");
+        out.append(node.getName());
         visitChildren(node.getDirectives());
     }
 
@@ -355,7 +416,7 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
         if (!StringHelper.isEmpty(desc)) {
             out.indent();
             out.append(StringHelper.quote(desc));
-            out.indent();
         }
+        out.indent();
     }
 }

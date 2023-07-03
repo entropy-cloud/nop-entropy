@@ -87,6 +87,8 @@ public abstract class _GraphQLEnumDefinition extends io.nop.graphql.core.ast.Gra
                       
                 }
             
+                ret.setExtension(extension);
+            
                 if(enumValues != null){
                   
                           java.util.List<io.nop.graphql.core.ast.GraphQLEnumValueDefinition> copy_enumValues = new java.util.ArrayList<>(enumValues.size());
@@ -194,6 +196,10 @@ public abstract class _GraphQLEnumDefinition extends io.nop.graphql.core.ast.Gra
                    return false;
                 }
             
+                if(!isValueEquivalent(this.extension,other.getExtension())){
+                   return false;
+                }
+            
             if(isListEquivalent(this.enumValues,other.getEnumValues())){
                return false;
             }
@@ -225,6 +231,8 @@ public abstract class _GraphQLEnumDefinition extends io.nop.graphql.core.ast.Gra
                               json.put("name", name);
                           
                     }
+                
+                   json.put("extension", extension);
                 
                     if(enumValues != null){
                       

@@ -23,6 +23,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.ast.GraphQLDefinition;
+import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
@@ -30,6 +31,7 @@ import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
+import io.nop.graphql.core.biz.IGraphQLSchemaInitializer;
 import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -47,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_EAGER_INIT_BIZ_OBJECT;
 import static io.nop.graphql.core.GraphQLConstants.GRAPAHQL_CONNECTION_PREFIX;
@@ -68,6 +71,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private List<IActionDecoratorCollector> actionDecoratorCollectors;
 
+    private List<IGraphQLSchemaInitializer> schemaInitializers;
     private List<IGraphQLBizInitializer> bizInitializers;
 
     private IMakerCheckerProvider makerCheckerProvider;
@@ -81,6 +85,10 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
         this.bizInitializers = bizInitializers;
+    }
+
+    public void setSchemaInitializers(List<IGraphQLSchemaInitializer> schemaInitializers) {
+        this.schemaInitializers = schemaInitializers;
     }
 
     public void setActionDecoratorCollectors(List<IActionDecoratorCollector> actionDecoratorCollectors) {
@@ -108,6 +116,12 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         cancellable.appendOnCancelTask(() -> {
             GlobalCacheRegistry.instance().unregister(bizObjCache);
         });
+
+        if (schemaInitializers != null) {
+            for (IGraphQLSchemaInitializer initializer : schemaInitializers) {
+                initializer.initialize(typeRegistry);
+            }
+        }
 
         bizModels = new GraphQLBizModels();
         bizModels.build(typeRegistry, bizModelBeans);
@@ -224,7 +238,7 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     @Override
-    public Collection<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType) {
+    public List<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType) {
         Set<String> bizObjNames = getBizObjNames();
         List<GraphQLFieldDefinition> defs = new ArrayList<>();
         for (String bizObjName : bizObjNames) {
@@ -247,5 +261,44 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         // 加载BizObject的时候有可能会注册新的类型，因此最后再从typeRegistry获取
         CollectionHelper.putAllIfAbsent(types, typeRegistry.getTypes());
         return types.values();
+    }
+
+    @Override
+    public GraphQLDocument getGraphQLDocument() {
+        GraphQLDocument doc = new GraphQLDocument();
+        List<GraphQLDefinition> defs = new ArrayList<>();
+        defs.addAll(getTypeDefinitions().stream().map(def -> def.deepClone()).collect(Collectors.toList()));
+
+        GraphQLObjectDefinition queryType = getObjDef(GraphQLOperationType.query);
+        if (queryType != null) {
+            defs.add(queryType);
+        }
+
+        GraphQLObjectDefinition mutationType = getObjDef(GraphQLOperationType.mutation);
+        if (mutationType != null) {
+            defs.add(mutationType);
+        }
+
+        GraphQLObjectDefinition subscriptionType = getObjDef(GraphQLOperationType.subscription);
+        if (subscriptionType != null) {
+            defs.add(subscriptionType);
+        }
+
+        doc.setDefinitions(defs);
+        return doc;
+    }
+
+    private GraphQLObjectDefinition getObjDef(GraphQLOperationType opType) {
+        List<GraphQLFieldDefinition> fields = getOperationDefinitions(opType);
+        if (fields.isEmpty())
+            return null;
+
+        fields = fields.stream().map(f -> f.deepClone()).collect(Collectors.toList());
+
+        GraphQLObjectDefinition objDef = new GraphQLObjectDefinition();
+        objDef.setExtension(true);
+        objDef.setName(opType.getTypeName());
+        objDef.setFields(fields);
+        return objDef;
     }
 }

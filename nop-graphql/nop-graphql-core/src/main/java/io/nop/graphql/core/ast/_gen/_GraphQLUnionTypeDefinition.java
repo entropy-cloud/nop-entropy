@@ -87,6 +87,8 @@ public abstract class _GraphQLUnionTypeDefinition extends io.nop.graphql.core.as
                       
                 }
             
+                ret.setExtension(extension);
+            
                 if(types != null){
                   
                           java.util.List<io.nop.graphql.core.ast.GraphQLNamedType> copy_types = new java.util.ArrayList<>(types.size());
@@ -194,6 +196,10 @@ public abstract class _GraphQLUnionTypeDefinition extends io.nop.graphql.core.as
                    return false;
                 }
             
+                if(!isValueEquivalent(this.extension,other.getExtension())){
+                   return false;
+                }
+            
             if(isListEquivalent(this.types,other.getTypes())){
                return false;
             }
@@ -225,6 +231,8 @@ public abstract class _GraphQLUnionTypeDefinition extends io.nop.graphql.core.as
                               json.put("name", name);
                           
                     }
+                
+                   json.put("extension", extension);
                 
                     if(types != null){
                       
