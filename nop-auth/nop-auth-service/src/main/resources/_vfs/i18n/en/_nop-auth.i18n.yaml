@@ -203,6 +203,7 @@ prop:
       updateTime: Update Time
       remark: Remark
       resources: Resources
+      resourcesConnection: null
       extConfigComponent: null
     NopAuthTenant:
       tenantId: Tenant ID
