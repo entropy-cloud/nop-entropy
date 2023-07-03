@@ -1,0 +1,51 @@
+scrape_configs:
+  # Pods with a label 'app'
+  - job_name: kubernetes-pods-app
+    pipeline_stages:
+      - docker: {}
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      # 将pod中带有label为app的label重写为app
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_label_app
+        target_label: app
+      # 将app为空的值丢弃
+      - action: drop
+        regex: ''
+        source_labels:
+        - app
+      # 将pod中带有label为component的label重写为component
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_label_component
+        target_label: component
+      # prometheus中预定义的label
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_node_name
+        target_label: node_name
+      # prometheus中预定义的label
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_namespace
+        target_label: namespace
+      # prometheus中预定义的label
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_name
+        target_label: pod
+      # prometheus中预定义的label
+      - action: replace
+        source_labels:
+        - __meta_kubernetes_pod_container_name
+        target_label: container
+      # 重点是以下部分
+      - action: replace
+        replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+        - __meta_kubernetes_pod_uid
+        - __meta_kubernetes_pod_container_name
+        target_label: __path__

@@ -1,0 +1,22 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: ./data/positions.yaml
+
+clients:
+  - url: http://localhost:3100/loki/api/v1/push
+    batchwait: 10s
+
+scrape_configs:
+- job_name: demo
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: demologs
+      host: demo-host   # 用于识别日志来源
+      __path__: C:\can\nop\nop-entropy\log\*.log
+
+
