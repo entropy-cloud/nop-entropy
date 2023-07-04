@@ -104,7 +104,7 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
             query.addOrderBy(input.getOrderBy());
         }
 
-        TreeBean filter = this.filter.toTreeBean();
+        TreeBean filter = this.filter.cloneInstance().toTreeBean();
         resolveRef(filter, source);
         query.addFilter(filter);
 
