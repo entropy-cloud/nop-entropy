@@ -56,11 +56,16 @@ public class TestConnectionProp extends JunitAutoTestCase {
             ormTemplate.save(site2);
         });
 
-        GraphQLRequestBean request = input("request.yaml", GraphQLRequestBean.class);
+        run("request.yaml", "response.json5");
+        run("request2.yaml", "response2.json5");
+    }
+
+    private void run(String requestFileName, String responseFileName) {
+        GraphQLRequestBean request = input(requestFileName, GraphQLRequestBean.class);
 
         IGraphQLExecutionContext context = graphQLEngine.newGraphQLContext(request);
         GraphQLResponseBean result = graphQLEngine.executeGraphQL(context);
 
-        output("response.json5", result);
+        output(responseFileName, result);
     }
 }

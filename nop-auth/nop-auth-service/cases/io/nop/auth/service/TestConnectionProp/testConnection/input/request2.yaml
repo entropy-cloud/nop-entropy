@@ -1,0 +1,22 @@
+query: >
+  query test($id:String){
+    NopAuthSite__get(id:$id){
+      id
+      resourcesConnection(first:10,after:""){
+         items {
+           resourceId
+           resourceType
+           displayName
+         },
+         total,
+         pageInfo{
+           startCursor,
+           endCursor,
+           hasNextPage,
+           hasPreviousPage
+         }
+      }
+    }
+  }
+variables:
+  id: "test"
