@@ -47,6 +47,9 @@ public @interface NopTestConfig {
 
     boolean enableMergedBeansFile() default true;
 
+    /**
+     * 如果不为空，且启用auto-config的情况下，则只启用指定的xxx.beans配置
+     */
     String autoConfigPattern() default "";
 
     String autoConfigSkipPattern() default "";

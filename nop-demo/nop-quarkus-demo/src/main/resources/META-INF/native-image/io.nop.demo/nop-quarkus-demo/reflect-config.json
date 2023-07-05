@@ -2062,7 +2062,17 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "FILTER_OP_NOT_BETWEEN"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "FILTER_OP_NOT_BLANK"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "FILTER_OP_NOT_CONTAINS"
       },
       {
         "allowUnsafeAccess": false,

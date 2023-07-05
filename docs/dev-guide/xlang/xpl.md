@@ -170,12 +170,11 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 ### 条件标签
 
-当自定义标签的返回值类型设置为boolean，且没有slot的时候，该标签可以作为条件容器来使用。
+当自定义标签的conditionTag设置为true时为条件标签
 
 ````
 标签定义
-   <WhenAdmin>
-     <return type="boolean" />
+   <WhenAdmin conditionTag="true">
      <source>
        <c:script>
          $userContext.isUserInRole('admin')

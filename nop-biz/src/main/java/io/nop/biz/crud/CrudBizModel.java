@@ -279,7 +279,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
                         }
                     } else {
                         throw new NopException(ERR_BIZ_UNKNOWN_PROP).param(ARG_BIZ_OBJ_NAME, getBizObjName())
-                                .param(ARG_PROP_NAME, propMeta.getName());
+                                .param(ARG_PROP_NAME, name);
                     }
                 }
             }

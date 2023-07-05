@@ -22,3 +22,5 @@
 
 ## [综合示例](xlang-demo.md)
 以orm.imp.xml模型为例解释xdef，xdsl、xpl、xscript等语法的具体使用
+
+## 元编程: [meta-programming.md](meta-programming.md)

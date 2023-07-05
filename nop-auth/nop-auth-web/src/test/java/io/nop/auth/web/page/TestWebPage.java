@@ -20,6 +20,7 @@ import javax.inject.Inject;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(enableAppBeansFile = false, autoConfigPattern = "nop-web")
@@ -54,5 +55,15 @@ public class TestWebPage extends JunitBaseTestCase {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         Map<String, Object> map = JsonTool.parseBeanFromResource(resource, Map.class);
         assertEquals(JSON.serialize(map, true), JSON.serialize(delta, true));
+    }
+
+    @Test
+    public void testGenPage() {
+        String path = "/nop/auth/pages/NopAuthOpLog/main.page.yaml";
+        Map<String, Object> page = pageProvider.getPageSource(path);
+        System.out.println(JSON.serialize(page, true));
+
+        String text = JsonTool.serialize(page, true);
+        assertFalse(text.contains("session.null"));
     }
 }

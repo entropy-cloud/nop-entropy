@@ -15,9 +15,9 @@ nop:
       client-secret: qpgEjwXqd1TpgaA3aIi1jd4AVTLCrs8o
 ```
 
-* nop.auth.sso.server-url对应与keycloak单点服务器的url
+* nop.auth.sso.server-url对应于keycloak单点服务器的url
 * nop.auth.sso.realm是keycloak中配置的realm
-* nop.auth.sso.client-id和nop.auth.sso.client-secrete是keycloak服务其中配置的客户端信息
+* nop.auth.sso.client-id和nop.auth.sso.client-secret是keycloak服务器中配置的客户端信息
 
 
 ## 权限限制

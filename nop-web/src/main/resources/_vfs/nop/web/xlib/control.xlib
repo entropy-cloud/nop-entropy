@@ -720,9 +720,15 @@
                 import io.nop.xui.utils.XuiHelper;
                 const relProp = XuiHelper.getRelationProp(propMeta,objMeta);
 
-                return {
-                   type: 'static',
-                   name: propMeta['graphql:labelProp'] || relProp.name+'.'+relProp['ext:joinRightDisplayProp']
+                const labelProp = propMeta['graphql:labelProp'] || relProp['ext:joinRightDisplayProp'];
+
+                if(labelProp){
+                    return {
+                       type: 'static',
+                       name: propMeta['graphql:labelProp'] || relProp.name+'.'+relProp['ext:joinRightDisplayProp']
+                    }
+                }else{
+                    return { type: 'static'}
                 }
             ]]></source>
         </view-relation>

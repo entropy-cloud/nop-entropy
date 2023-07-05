@@ -40,7 +40,7 @@
                                     <c:for var="colNode" items="${jsonCols}">
                                         <c:script>
                                             const pub =
-                                            !colNode.attrCsvSet('tagSet')?.contains('no-pub').$('gen-component-for-json-col')
+                                            !colNode.attrCsvSet('tagSet')?.contains('no-pub')
                                         </c:script>
                                         <component name="${colNode.getAttr('name')}Component" needFlush="true"
                                                    notGenCode="${colNode.getAttr('notGenCode')}"

@@ -1,2 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthOpLog.xmeta"/>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthOpLog.xmeta">
+    <props>
+        <prop name="session.loginAddr" displayName="登录地址" queryable="true" sortable="true">
+        </prop>
+
+        <prop name="session.loginDevice" displayName="登录设备" queryable="true" sortable="true" />
+    </props>
+</meta>

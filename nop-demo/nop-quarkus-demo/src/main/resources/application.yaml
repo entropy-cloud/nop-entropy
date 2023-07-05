@@ -84,6 +84,9 @@ quarkus:
   log:
     level: INFO
 
+    console:
+      json: true
+
     category:
       "io.nop":
         level: DEBUG

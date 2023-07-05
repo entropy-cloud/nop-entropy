@@ -67,9 +67,9 @@ public class XuiViewAnalyzer {
 
                 addRelationDispProp(propMeta, objMeta, selection);
                 if (!prop.equals(colModel.getId())) {
-                    selection.makeSubField(colModel.getId(), true).setName(prop);
+                    selection.addCompositeField(colModel.getId(), true).setName(prop);
                 } else {
-                    selection.makeSubField(colModel.getId(), false);
+                    selection.addCompositeField(colModel.getId(), false);
                 }
                 addLabelProp(propMeta, selection);
                 addJsonComponent(propMeta, objMeta, selection);
@@ -92,7 +92,7 @@ public class XuiViewAnalyzer {
             });
 
             if (colModel.getSelection() != null) {
-                selection.makeSubField(colModel.getId(), true).mergeFields(colModel.getSelection().getFields());
+                selection.addCompositeField(colModel.getId(), true).mergeFields(colModel.getSelection().getFields());
             } else {
                 addViewDepends(selection, colModel);
             }
@@ -149,9 +149,9 @@ public class XuiViewAnalyzer {
                 addRelationDispProp(propMeta, objMeta, selection);
 
                 if (!prop.equals(lc.getId())) {
-                    selection.makeSubField(lc.getId(), true).setName(prop);
+                    selection.addCompositeField(lc.getId(), true).setName(prop);
                 } else {
-                    selection.makeSubField(lc.getId(), false);
+                    selection.addCompositeField(lc.getId(), false);
                 }
                 addLabelProp(propMeta, selection);
                 addJsonComponent(propMeta, objMeta, selection);
@@ -175,7 +175,7 @@ public class XuiViewAnalyzer {
                 });
 
                 if (cellModel.getSelection() != null) {
-                    selection.makeSubField(lc.getId(), true).mergeFields(cellModel.getSelection().getFields());
+                    selection.addCompositeField(lc.getId(), true).mergeFields(cellModel.getSelection().getFields());
                 } else {
                     addViewDepends(selection, cellModel);
                 }
@@ -214,24 +214,24 @@ public class XuiViewAnalyzer {
             UiFormModel formModel = getForm(refView.getLocation(), viewModel, page);
             if (formModel != null) {
                 FieldSelectionBean subSelection = getFormSelection(formModel, getObjMeta(formModel, viewObjMeta));
-                selection.makeSubField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
             } else {
                 UiGridModel gridModel = getGrid(refView.getLocation(), viewModel, page);
                 if (gridModel != null) {
                     FieldSelectionBean subSelection = getListSelection(gridModel, getObjMeta(gridModel, viewObjMeta));
-                    selection.makeSubField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                    selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
                 }
             }
         } else {
             UiFormModel formModel = getForm(refView.getLocation(), viewModel, refView.getForm());
             if (formModel != null) {
                 FieldSelectionBean subSelection = getFormSelection(formModel, getObjMeta(formModel, viewObjMeta));
-                selection.makeSubField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
             } else {
                 UiGridModel gridModel = getGrid(refView.getLocation(), viewModel, refView.getGrid());
                 if (gridModel != null) {
                     FieldSelectionBean subSelection = getListSelection(gridModel, getObjMeta(gridModel, viewObjMeta));
-                    selection.makeSubField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                    selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
                 }
             }
         }

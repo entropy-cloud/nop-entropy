@@ -3,7 +3,10 @@
 
     <grids>
         <grid id="list">
-
+            <cols>
+                <col id="sessionId" />
+                <col id="session.loginAddr" sortable="true"/>
+            </cols>
         </grid>
         <grid id="pick-list"/>
     </grids>
