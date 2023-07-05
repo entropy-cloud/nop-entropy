@@ -57,7 +57,9 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LIKE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LT;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_BLANK;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_CONTAINS;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_EMPTY;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_FALSE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_IN;
@@ -215,6 +217,17 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
         if (this == IS_FALSE)
             return IS_TRUE;
 
+        if (this == BETWEEN)
+            return NOT_BETWEEN;
+
+        if (this == NOT_BETWEEN)
+            return BETWEEN;
+
+        if (this == CONTAINS)
+            return NOT_CONTAINS;
+        if (this == NOT_CONTAINS)
+            return CONTAINS;
+
         if (includeMathCompare) {
             if (this == GT)
                 return LE;
@@ -308,22 +321,26 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
     public static final FilterOp LT = compareOp(FILTER_OP_LT, 34, FilterOpHelper::lt);
     public static final FilterOp LE = compareOp(FILTER_OP_LE, 35, FilterOpHelper::le);
     public static final FilterOp IN = compareOp(FILTER_OP_IN, 36, FilterOpHelper::in);
-    public static final FilterOp NOT_IN = compareOp(FILTER_OP_NOT_IN, 37, FilterOpHelper::in);
+    public static final FilterOp NOT_IN = compareOp(FILTER_OP_NOT_IN, 37, FilterOpHelper::notIn);
     public static final FilterOp STARTS_WITH = compareOp(FILTER_OP_STARTS_WITH, 38, FilterOpHelper::startsWith);
     public static final FilterOp ENDS_WITH = compareOp(FILTER_OP_ENDS_WITH, 39, FilterOpHelper::endsWith);
     public static final FilterOp CONTAINS = compareOp(FILTER_OP_CONTAINS, 40, FilterOpHelper::contains);
-    public static final FilterOp LENGTH = compareOp(FILTER_OP_LENGTH, 41, FilterOpHelper::length);
-    public static final FilterOp REGEX = compareOp(FILTER_OP_REGEX, 42, FilterOpHelper::regex);
-    public static final FilterOp ICONTAINS = compareOp(FILTER_OP_ICONTAINS, 43, FilterOpHelper::icontains);
-    public static final FilterOp LIKE = compareOp(FILTER_OP_LIKE, 44, FilterOpHelper::like);
+    public static final FilterOp NOT_CONTAINS = compareOp(FILTER_OP_NOT_CONTAINS, 41, FilterOpHelper::notContains);
+
+    public static final FilterOp LENGTH = compareOp(FILTER_OP_LENGTH, 42, FilterOpHelper::length);
+    public static final FilterOp REGEX = compareOp(FILTER_OP_REGEX, 43, FilterOpHelper::regex);
+    public static final FilterOp ICONTAINS = compareOp(FILTER_OP_ICONTAINS, 44, FilterOpHelper::icontains);
+    public static final FilterOp LIKE = compareOp(FILTER_OP_LIKE, 45, FilterOpHelper::like);
 
     public static final List<FilterOp> DEFAULT_COMPARE_OPS = buildImmutableList(EQ, NE, GT, GE, LT, LE, IN, NOT_IN,
-            STARTS_WITH, ENDS_WITH, CONTAINS, LENGTH, REGEX, ICONTAINS, LIKE);
+            STARTS_WITH, ENDS_WITH, CONTAINS, NOT_CONTAINS, LENGTH, REGEX, ICONTAINS, LIKE);
 
     public static final FilterOp BETWEEN = betweenOp(FILTER_OP_BETWEEN, 50, FilterOpHelper::between);
-    public static final FilterOp DATE_BETWEEN = betweenOp(FILTER_OP_DATE_BETWEEN, 51, FilterOpHelper::dateBetween);
-    public static final FilterOp DATETIME_BETWEEN = betweenOp(FILTER_OP_DATETIME_BETWEEN, 52,
+
+    public static final FilterOp NOT_BETWEEN = betweenOp(FILTER_OP_NOT_BETWEEN, 51, FilterOpHelper::notBetween);
+    public static final FilterOp DATE_BETWEEN = betweenOp(FILTER_OP_DATE_BETWEEN, 52, FilterOpHelper::dateBetween);
+    public static final FilterOp DATETIME_BETWEEN = betweenOp(FILTER_OP_DATETIME_BETWEEN, 53,
             FilterOpHelper::dateTimeBetween);
-    public static final FilterOp LENGTH_BETWEEN = betweenOp(FILTER_OP_LENGTH_BETWEEN, 53,
+    public static final FilterOp LENGTH_BETWEEN = betweenOp(FILTER_OP_LENGTH_BETWEEN, 54,
             FilterOpHelper::lengthBetween);
 }

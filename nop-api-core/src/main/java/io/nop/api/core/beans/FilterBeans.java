@@ -75,6 +75,10 @@ public class FilterBeans {
         return new TreeBean(FILTER_OP_BETWEEN).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
     }
 
+    public static TreeBean betweenOp(String op, String name, Object min, Object max) {
+        return new TreeBean(op).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
+    }
+
     public static TreeBean between(String name, Object min, Object max, boolean excludeMin, boolean excludeMax) {
         return between(name, min, max).attr(FILTER_ATTR_EXCLUDE_MIN, excludeMin).attr(FILTER_ATTR_EXCLUDE_MAX, excludeMax);
     }

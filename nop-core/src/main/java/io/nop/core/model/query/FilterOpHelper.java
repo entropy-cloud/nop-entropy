@@ -67,6 +67,10 @@ public class FilterOpHelper {
         return s1.indexOf(s2) >= 0;
     }
 
+    public static boolean notContains(Object v1, Object v2) {
+        return !contains(v1, v2);
+    }
+
     public static boolean icontains(Object v1, Object v2) {
         String s1 = ConvertHelper.toString(v1, "");
         String s2 = ConvertHelper.toString(v2, "");
@@ -214,6 +218,10 @@ public class FilterOpHelper {
             }
         }
         return true;
+    }
+
+    public static boolean notBetween(Object value, Object min, Object max, boolean excludeMin, boolean excludeMax) {
+        return !between(value, min, max, excludeMin, excludeMax);
     }
 
     public static boolean dateBetween(Object value, Object min, Object max, boolean excludeMin, boolean excludeMax) {

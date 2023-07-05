@@ -29,6 +29,8 @@ public interface FilterBeanConstants {
     String FILTER_ATTR_MAX_NAME = "maxName";
 
     String FILTER_OP_BETWEEN = "between";
+    String FILTER_OP_NOT_BETWEEN = "notBetween";
+
     String FILTER_OP_DATE_BETWEEN = "dateBetween";
     String FILTER_OP_DATETIME_BETWEEN = "dateTimeBetween";
     String FILTER_OP_LENGTH_BETWEEN = "lengthBetween";
@@ -44,6 +46,8 @@ public interface FilterBeanConstants {
      * 包含子字符串
      */
     String FILTER_OP_CONTAINS = "contains";
+
+    String FILTER_OP_NOT_CONTAINS = "notContains";
 
     /**
      * 包含字符串，大小写不敏感
