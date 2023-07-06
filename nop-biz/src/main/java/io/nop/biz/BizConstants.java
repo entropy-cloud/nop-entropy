@@ -80,6 +80,16 @@ public interface BizConstants {
 
     String TAG_PARENT = "parent";
 
+    /**
+     * 标记在关联属性上，表示关联表上的字段是否自动可查询
+     */
+    String TAG_QUERYABLE = "queryable";
+
+    /**
+     * 标记在关联属性上，表示关联表上的字段是否自动可排序
+     */
+    String TAG_SORTABLE = "sortable";
+
 
     String PROP_KIND_TO_ONE = "to-one";
     String PROP_KIND_TO_MANY = "to-many";

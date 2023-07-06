@@ -10,6 +10,8 @@ package io.nop.biz.crud;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
+import io.nop.biz.BizConstants;
+import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.query.FilterBeanValidator;
 import io.nop.core.model.query.FilterOp;
@@ -39,14 +41,16 @@ public class ObjMetaBasedFilterValidator extends FilterBeanValidator {
             FilterOp.IN.name());
 
     private final IObjMeta objMeta;
+    private final IBizObjectManager bizObjectManager;
 
-    public ObjMetaBasedFilterValidator(IObjMeta objMeta) {
+    public ObjMetaBasedFilterValidator(IObjMeta objMeta, IBizObjectManager bizObjectManager) {
         this.objMeta = objMeta;
+        this.bizObjectManager = bizObjectManager;
     }
 
     @Override
     protected void validateVarFilter(FilterOp filterOp, String name, ITreeBean filter, IVariableScope scope) {
-        IObjPropMeta propMeta = objMeta.getProp(name);
+        IObjPropMeta propMeta = BizObjMetaHelper.getPropMeta(objMeta, name, BizConstants.TAG_QUERYABLE, bizObjectManager);
         if (propMeta == null) {
             if (OrmConstants.PROP_ID.equals(name)) {
                 propMeta = objMeta.getIdProp();

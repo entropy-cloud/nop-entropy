@@ -30,6 +30,15 @@ class NopAuthUser {
 
 > 要求在meta中配置主要是从安全性考虑，避免暴露太多的功能给前端，出现安全漏洞。比如前端不断发起对关联的大表的各种复杂查询请求。
 
+### 为关联对象增加queryable和sortable标签
+
+如果关联的to-one属性上具有queryable标签则表示关联对象上的所有属性都可以参与查询。如果具有sortable标签，则表示关联对象上的所有属性都可以作为排序条件
+在Excel数据模型中增加对应标签即可。
+
+### 逐个配置可查询字段
+
+如果不想开放整个关联对象上的属性，在可以逐个指定。
+
 具体参见[NopAuthOpLog.xmeta](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/resources/_vfs/nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta)
 中的配置
 
@@ -44,6 +53,8 @@ class NopAuthUser {
 ````
 
 queryable表示该字段可查询，sortable表示该字段可排序。此外还可以设置insertable,updatable等属性。
+
+### 在前端使用关联属性
 
 在前端的XView模型中就可以使用session.loginAddr这样的字段了。
 

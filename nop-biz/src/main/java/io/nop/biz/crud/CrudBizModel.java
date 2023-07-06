@@ -88,7 +88,6 @@ import static io.nop.biz.BizErrors.ARG_ID;
 import static io.nop.biz.BizErrors.ARG_KEY;
 import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
-import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
@@ -99,8 +98,6 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
-import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_SORTABLE;
-import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_PROP;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
@@ -266,21 +263,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     protected void checkAllowQuery(QueryBean query, IObjMeta objMeta) {
         if (objMeta != null && query != null) {
             if (query.getFilter() != null)
-                new ObjMetaBasedFilterValidator(objMeta).visit(query.getFilter(), DisabledEvalScope.INSTANCE);
+                new ObjMetaBasedFilterValidator(objMeta, bizObjectManager).visit(query.getFilter(), DisabledEvalScope.INSTANCE);
 
             if (query.getOrderBy() != null) {
                 for (OrderFieldBean field : query.getOrderBy()) {
                     String name = field.getName();
-                    IObjPropMeta propMeta = objMeta.getProp(name);
-                    if (propMeta != null) {
-                        if (!propMeta.isSortable()) {
-                            throw new NopException(ERR_BIZ_PROP_NOT_SORTABLE).param(ARG_BIZ_OBJ_NAME, getBizObjName())
-                                    .param(ARG_PROP_NAME, propMeta.getName());
-                        }
-                    } else {
-                        throw new NopException(ERR_BIZ_UNKNOWN_PROP).param(ARG_BIZ_OBJ_NAME, getBizObjName())
-                                .param(ARG_PROP_NAME, name);
-                    }
+                    BizObjMetaHelper.checkPropSortable(getBizObjName(), objMeta, name, bizObjectManager);
                 }
             }
         }
