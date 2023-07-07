@@ -161,7 +161,8 @@ public class XCodeGenerator extends TemplateFileGenerator {
 
         Map<String, Object> vars = new HashMap<>();
         vars.put(CodeGenConstants.VAR_CODE_GEN_MODEL_PATH, fullPath);
-        ComponentModelLoader loader = ResourceComponentManager.instance().getComponentModelLoader(fullPath);
+        String fileType = StringHelper.fileType(fullPath);
+        ComponentModelLoader loader = ResourceComponentManager.instance().getComponentModelLoader(fileType);
         if (loader != null) {
             IComponentModel model = ResourceComponentManager.instance().loadComponentModel(fullPath);
             scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL, model);
