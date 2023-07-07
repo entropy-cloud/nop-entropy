@@ -12581,6 +12581,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getCr",
+        "parameterTypes": []
+      },
+      {
         "name": "getDown",
         "parameterTypes": []
       },
@@ -12703,6 +12707,10 @@
       },
       {
         "name": "getRp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRr",
         "parameterTypes": []
       },
       {
@@ -15121,6 +15129,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isRuntime",
+        "parameterTypes": []
+      },
+      {
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
@@ -15176,6 +15188,12 @@
       },
       {
         "name": "setOptional",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRuntime",
         "parameterTypes": [
           "boolean"
         ]
@@ -15415,6 +15433,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isRuntime",
+        "parameterTypes": []
+      },
+      {
         "name": "keySet_args",
         "parameterTypes": []
       },
@@ -15480,6 +15502,12 @@
         "name": "setOutputMode",
         "parameterTypes": [
           "io.nop.xlang.ast.XLangOutputMode"
+        ]
+      },
+      {
+        "name": "setRuntime",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {

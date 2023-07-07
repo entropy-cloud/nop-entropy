@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [63:10:0:0]/nop/schema/record/record-file.xdef <p>
+ * generate from [64:10:0:0]/nop/schema/record/record-file.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -40,7 +40,7 @@ public abstract class _RecordEnum extends io.nop.core.resource.component.Abstrac
      * xml name: valueType
      * 
      */
-    private java.lang.String _valueType ;
+    private io.nop.commons.type.StdDataType _valueType ;
     
     /**
      * 
@@ -131,12 +131,12 @@ public abstract class _RecordEnum extends io.nop.core.resource.component.Abstrac
      *  
      */
     
-    public java.lang.String getValueType(){
+    public io.nop.commons.type.StdDataType getValueType(){
       return _valueType;
     }
 
     
-    public void setValueType(java.lang.String value){
+    public void setValueType(io.nop.commons.type.StdDataType value){
         checkAllowChange();
         
         this._valueType = value;

@@ -177,6 +177,17 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
         return result != null ? result : (utf8 = new String(bytes, StringHelper.CHARSET_UTF8));
     }
 
+    public String toString(String encoding) {
+        if (encoding == null || encoding.equalsIgnoreCase(StringHelper.ENCODING_UTF8))
+            return utf8();
+
+        try {
+            return new String(bytes, encoding);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
+
     public String base64() {
         return StringHelper.encodeBase64(bytes);
     }

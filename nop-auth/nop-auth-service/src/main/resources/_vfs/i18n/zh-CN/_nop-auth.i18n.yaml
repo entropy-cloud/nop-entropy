@@ -58,6 +58,8 @@ prop:
       opResponse: 响应数据
       resultStatus: 操作状态
       session: 会话
+      session.loginAddr: 登录地址
+      session.loginDevice: 登录设备
       sessionId: 会话ID
       title: 标题
       usedTime: 操作时长

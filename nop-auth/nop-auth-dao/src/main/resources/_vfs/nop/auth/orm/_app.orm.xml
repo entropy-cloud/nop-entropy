@@ -471,7 +471,7 @@
                     </join>
                 </to-one>
                 <to-one displayName="子系统" name="site" refEntityName="io.nop.auth.dao.entity.NopAuthSite"
-                        refPropName="resources" tagSet="pub,ref-pub,cascade-delete,ref-connection"
+                        refPropName="resources" tagSet="pub,ref-pub,cascade-delete,ref-connection,queryable,sortable"
                         i18n-en:displayName="Site" ref-i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="siteId" rightProp="siteId"/>

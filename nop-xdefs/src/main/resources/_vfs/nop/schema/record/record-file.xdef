@@ -21,7 +21,8 @@
     -->
     <docRef xdef:value="string"/>
 
-    <param name="!string" type="!string" xdef:unique-attr="name" xdef:name="RecordParamMeta"/>
+    <param name="!string" type="!generic-type" mandatory="!boolean=false" stdDomain="xml-name"
+           xdef:unique-attr="name" xdef:name="RecordParamMeta"/>
 
     <xdef:define xdef:name="RecordObjectMeta">
         <param name="!string" xdef:ref="RecordParamMeta" xdef:unique-attr="name"/>
@@ -33,7 +34,7 @@
 
         <field name="!prop-name" xdef:ref="record-field.xdef" xdef:unique-attr="name"/>
 
-        <computed-field name="!prop-name" type="!string" xdef:name="RecordComputedFieldMeta" xdef:unique-attr="name">
+        <computed-field name="!prop-name" type="!generic-type" xdef:name="RecordComputedFieldMeta" xdef:unique-attr="name">
             <source xdef:value="xpl"/>
         </computed-field>
     </xdef:define>
@@ -60,7 +61,7 @@
     </types>
 
     <enums xdef:body-type="list" xdef:key-attr="name">
-        <enum name="!var-name" valueType="string" xdef:name="RecordEnum">
+        <enum name="!var-name" valueType="std-data-type" xdef:name="RecordEnum">
             <doc xdef:value="string"/>
             <option value="!string" label="!string" xdef:unique-attr="value" xdef:name="RecordEnumOption">
                 <doc xdef:value="string"/>

@@ -11,9 +11,10 @@ import io.nop.record.input.IRecordInputContext;
 import io.nop.record.input.IRecordTextInput;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.output.IRecordOutputContext;
+import io.nop.record.output.IRecordTextOutput;
 
 public interface IFieldTextEncoder {
     Object decode(IRecordTextInput input, RecordFieldMeta fieldMeta, IRecordInputContext context);
 
-    void encode(IRecordTextInput output, Object value, RecordFieldMeta fieldMeta, IRecordOutputContext context);
+    void encode(IRecordTextOutput output, Object value, RecordFieldMeta fieldMeta, IRecordOutputContext context);
 }

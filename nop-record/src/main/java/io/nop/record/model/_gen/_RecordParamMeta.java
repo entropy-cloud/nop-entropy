@@ -16,6 +16,13 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: mandatory
+     * 
+     */
+    private boolean _mandatory  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -23,10 +30,36 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: stdDomain
+     * 
+     */
+    private java.lang.String _stdDomain ;
+    
+    /**
+     *  
      * xml name: type
      * 
      */
-    private java.lang.String _type ;
+    private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     * 
+     * xml name: mandatory
+     *  
+     */
+    
+    public boolean isMandatory(){
+      return _mandatory;
+    }
+
+    
+    public void setMandatory(boolean value){
+        checkAllowChange();
+        
+        this._mandatory = value;
+           
+    }
+
     
     /**
      * 
@@ -49,16 +82,35 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: stdDomain
+     *  
+     */
+    
+    public java.lang.String getStdDomain(){
+      return _stdDomain;
+    }
+
+    
+    public void setStdDomain(java.lang.String value){
+        checkAllowChange();
+        
+        this._stdDomain = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: type
      *  
      */
     
-    public java.lang.String getType(){
+    public io.nop.core.type.IGenericType getType(){
       return _type;
     }
 
     
-    public void setType(java.lang.String value){
+    public void setType(io.nop.core.type.IGenericType value){
         checkAllowChange();
         
         this._type = value;
@@ -79,7 +131,9 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("mandatory",this.isMandatory());
         out.put("name",this.getName());
+        out.put("stdDomain",this.getStdDomain());
         out.put("type",this.getType());
     }
 }

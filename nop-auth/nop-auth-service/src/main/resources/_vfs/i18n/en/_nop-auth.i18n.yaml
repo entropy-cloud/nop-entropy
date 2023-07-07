@@ -62,6 +62,8 @@ prop:
       createdBy: Created By
       createTime: Create Time
       session: Session
+      session.loginAddr: null
+      session.loginDevice: null
     NopAuthPosition:
       positionId: Position ID
       name: Name

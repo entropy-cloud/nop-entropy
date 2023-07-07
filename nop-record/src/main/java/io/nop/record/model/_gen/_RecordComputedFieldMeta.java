@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [36:10:0:0]/nop/schema/record/record-file.xdef <p>
+ * generate from [37:10:0:0]/nop/schema/record/record-file.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -33,7 +33,7 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
      * xml name: type
      * 
      */
-    private java.lang.String _type ;
+    private io.nop.core.type.IGenericType _type ;
     
     /**
      * 
@@ -79,12 +79,12 @@ public abstract class _RecordComputedFieldMeta extends io.nop.core.resource.comp
      *  
      */
     
-    public java.lang.String getType(){
+    public io.nop.core.type.IGenericType getType(){
       return _type;
     }
 
     
-    public void setType(java.lang.String value){
+    public void setType(io.nop.core.type.IGenericType value){
         checkAllowChange();
         
         this._type = value;

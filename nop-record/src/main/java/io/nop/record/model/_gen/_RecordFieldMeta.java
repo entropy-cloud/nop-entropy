@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [16:2:0:0]/nop/schema/record/record-field.xdef <p>
+ * generate from [19:2:0:0]/nop/schema/record/record-field.xdef <p>
  * 定长记录的定义
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -93,10 +93,10 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     
     /**
      *  
-     * xml name: include
+     * xml name: includeTerminator
      * 解析结果是否包含terminator
      */
-    private boolean _include  = false;
+    private boolean _includeTerminator  = false;
     
     /**
      *  
@@ -115,14 +115,14 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: leftPad
-     * 
+     * 如果padding不为空且length大于0，则缺省在右侧增加pad。如果配置了leftPad=true，则在左侧增加pad。p
      */
     private boolean _leftPad  = false;
     
     /**
      *  
      * xml name: length
-     * 
+     * 缺省长度。如果padding不为空，则会补全到该长度
      */
     private int _length  = 0;
     
@@ -185,7 +185,7 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: padding
-     * 
+     * 用于padding的字符
      */
     private io.nop.commons.bytes.ByteString _padding ;
     
@@ -484,19 +484,19 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     
     /**
      * 
-     * xml name: include
+     * xml name: includeTerminator
      *  解析结果是否包含terminator
      */
     
-    public boolean isInclude(){
-      return _include;
+    public boolean isIncludeTerminator(){
+      return _includeTerminator;
     }
 
     
-    public void setInclude(boolean value){
+    public void setIncludeTerminator(boolean value){
         checkAllowChange();
         
-        this._include = value;
+        this._includeTerminator = value;
            
     }
 
@@ -542,7 +542,7 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: leftPad
-     *  
+     *  如果padding不为空且length大于0，则缺省在右侧增加pad。如果配置了leftPad=true，则在左侧增加pad。p
      */
     
     public boolean isLeftPad(){
@@ -561,7 +561,7 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: length
-     *  
+     *  缺省长度。如果padding不为空，则会补全到该长度
      */
     
     public int getLength(){
@@ -732,7 +732,7 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: padding
-     *  
+     *  用于padding的字符
      */
     
     public io.nop.commons.bytes.ByteString getPadding(){
@@ -1002,7 +1002,7 @@ public abstract class _RecordFieldMeta extends io.nop.core.resource.component.Ab
         out.put("excludeMax",this.getExcludeMax());
         out.put("excludeMin",this.getExcludeMin());
         out.put("ifExpr",this.getIfExpr());
-        out.put("include",this.isInclude());
+        out.put("includeTerminator",this.isIncludeTerminator());
         out.put("label",this.getLabel());
         out.put("lazy",this.isLazy());
         out.put("leftPad",this.isLeftPad());

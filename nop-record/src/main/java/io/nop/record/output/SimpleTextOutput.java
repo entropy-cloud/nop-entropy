@@ -7,11 +7,16 @@
  */
 package io.nop.record.output;
 
+import io.nop.commons.text.MutableString;
+
+import java.io.IOException;
+import java.io.Writer;
+
 public class SimpleTextOutput implements IRecordTextOutput {
-    private final StringBuilder buf;
+    private final Appendable buf;
     private int length;
 
-    public SimpleTextOutput(StringBuilder buf) {
+    public SimpleTextOutput(Appendable buf) {
         this.buf = buf;
     }
 
@@ -24,37 +29,53 @@ public class SimpleTextOutput implements IRecordTextOutput {
     }
 
     @Override
-    public IRecordTextOutput append(CharSequence str) {
+    public IRecordTextOutput append(CharSequence str) throws IOException {
         buf.append(str);
         length += str.length();
         return this;
     }
 
     @Override
-    public IRecordTextOutput append(CharSequence str, int start, int end) {
+    public IRecordTextOutput append(CharSequence str, int start, int end) throws IOException {
         buf.append(str, start, end);
         length += end - start;
         return this;
     }
 
     @Override
-    public IRecordTextOutput append(char[] chars) {
-        buf.append(chars);
-        length += chars.length;
-        return this;
+    public IRecordTextOutput append(char[] chars) throws IOException {
+        return append(chars, 0, chars.length);
     }
 
     @Override
-    public IRecordTextOutput append(char[] chars, int start, int end) {
-        buf.append(chars, start, end);
+    public IRecordTextOutput append(char[] chars, int start, int end) throws IOException {
+        if (buf instanceof StringBuilder) {
+            ((StringBuilder) buf).append(chars, start, end);
+        } else {
+            buf.append(new MutableString(chars, start, end), start, end);
+        }
         length += end - start;
         return this;
     }
 
     @Override
-    public IRecordTextOutput append(char c) {
+    public IRecordTextOutput append(char c) throws IOException {
         buf.append(c);
         length++;
         return this;
+    }
+
+    @Override
+    public void flush() throws IOException {
+        if (buf instanceof Writer) {
+            ((Writer) buf).flush();
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (buf instanceof Writer) {
+            ((Writer) buf).close();
+        }
     }
 }

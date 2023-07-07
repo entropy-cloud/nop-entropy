@@ -7,9 +7,12 @@
  */
 package io.nop.record.encoder;
 
+import io.nop.api.core.annotations.core.GlobalInstance;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@GlobalInstance
 public class FieldEncoderRegistry {
     public static FieldEncoderRegistry DEFAULT = new FieldEncoderRegistry();
 
@@ -31,5 +34,13 @@ public class FieldEncoderRegistry {
 
     public void unregisterBinaryEncoder(String name, IFieldBinaryEncoder encoder) {
         binaryEncoders.remove(name, encoder);
+    }
+
+    public IFieldTextEncoder getTextEncoder(String name) {
+        return textEncoders.get(name);
+    }
+
+    public IFieldBinaryEncoder getBinaryEncoder(String name) {
+        return binaryEncoders.get(name);
     }
 }
