@@ -131,6 +131,8 @@ public interface OrmErrors {
 
     String ARG_PROP_CLASS = "propClass";
 
+    String ARG_FRAGMENT_ID = "fragmentId";
+
     ErrorCode ERR_ORM_SESSION_CLOSED = define("nop.err.orm.session-closed", "session已关闭");
 
     ErrorCode ERR_ORM_READONLY_NOT_ALLOW_UPDATE = define("nop.err.orm.read-only-session-not-allow-update",
@@ -356,4 +358,7 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_NOT_SINGLETON_SET = define("nop.err.orm.not-singleton-set",
             "集合[{collectionName}]中的元素个数不是1，不是单例集合", ARG_COLLECTION_NAME, ARG_OWNER);
+
+    ErrorCode ERR_ORM_UNKNOWN_FRAGMENT = define("nop.err.orm.unknown-fragment",
+            "未知的SQL片段:{fragmentId}", ARG_FRAGMENT_ID);
 }

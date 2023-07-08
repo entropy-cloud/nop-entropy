@@ -12,7 +12,9 @@ import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.util.ReflectionHelper;
+import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.component.ComponentModelConfig;
@@ -35,7 +37,6 @@ import java.lang.reflect.Modifier;
 import static io.nop.orm.OrmErrors.ARG_PATH;
 import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
 import static io.nop.orm.OrmErrors.ERR_SQL_LIB_INVALID_SQL_NAME;
-import static io.nop.orm.OrmErrors.ERR_SQL_LIB_UNKNOWN_SQL_ITEM;
 import static io.nop.orm.OrmErrors.ERR_SQL_UNKNOWN_LIB_PATH;
 
 public class SqlLibManager implements ISqlLibManager {
@@ -80,18 +81,40 @@ public class SqlLibManager implements ISqlLibManager {
     @Override
     public SQL buildSql(String sqlName, IEvalContext context) {
         SqlItemModel item = getSqlItemModel(sqlName);
-        return item.buildSql(context);
+        IEvalScope scope = context.getEvalScope();
+        ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);
+        try {
+            scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
+            return item.buildSql(context);
+        } finally {
+            scope.restoreValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL, sqlLibVl);
+        }
     }
 
     @Override
     public Object invoke(String sqlName, LongRangeBean range, IEvalContext context) {
         SqlItemModel item = getSqlItemModel(sqlName);
-        return item.invoke(getExecutor(item.getType()), range, context);
+        IEvalScope scope = context.getEvalScope();
+        ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);
+        try {
+            scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
+            return item.invoke(getExecutor(item.getType()), range, context);
+        } finally {
+            scope.restoreValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL, sqlLibVl);
+        }
     }
 
-    public Object invoke(String sqlLibPath, String sqlName, LongRangeBean range, IEvalContext context) {
-        SqlItemModel item = getSqlItemModel(sqlLibPath, sqlName);
-        return item.invoke(getExecutor(item.getType()), range, context);
+    public Object invoke(String sqlLibPath, String sqlItemName, LongRangeBean range, IEvalContext context) {
+        SqlItemModel item = getSqlItemModel(sqlLibPath, sqlItemName);
+
+        IEvalScope scope = context.getEvalScope();
+        ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);
+        try {
+            scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
+            return item.invoke(getExecutor(item.getType()), range, context);
+        } finally {
+            scope.restoreValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL, sqlLibVl);
+        }
     }
 
     @Override
@@ -123,14 +146,16 @@ public class SqlLibManager implements ISqlLibManager {
         return buildSqlLibPathFromClassName(clazz.getName());
     }
 
-    public SqlItemModel getSqlItemModel(String sqlLibPath, String sqlItemName) {
+    private SqlLibModel requireSqlLib(String sqlLibPath) {
         SqlLibModel libModel = (SqlLibModel) ResourceComponentManager.instance().loadComponentModel(sqlLibPath);
         if (libModel == null)
             throw new NopException(ERR_SQL_UNKNOWN_LIB_PATH).param(ARG_PATH, sqlLibPath);
-        SqlItemModel item = libModel.getSql(sqlItemName);
-        if (item == null)
-            throw new NopException(ERR_SQL_LIB_UNKNOWN_SQL_ITEM).param(ARG_PATH, sqlLibPath).param(ARG_SQL_NAME,
-                    sqlItemName);
+        return libModel;
+    }
+
+    public SqlItemModel getSqlItemModel(String sqlLibPath, String sqlItemName) {
+        SqlLibModel libModel = requireSqlLib(sqlLibPath);
+        SqlItemModel item = libModel.requireSql(sqlItemName);
         return item;
     }
 

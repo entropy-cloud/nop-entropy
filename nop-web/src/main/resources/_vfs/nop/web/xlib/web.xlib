@@ -786,5 +786,13 @@
                 </group>
             </source>
         </HiddenAndLabel>
+
+        <GenValidator>
+            <attr name="metaPath" stdDomain="v-path" mandatory="true"/>
+
+            <source>
+                <c:include src="web/impl_GenValidator.xpl" />
+            </source>
+        </GenValidator>
     </tags>
 </lib>

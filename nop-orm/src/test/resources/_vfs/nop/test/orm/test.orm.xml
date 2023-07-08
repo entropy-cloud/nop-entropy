@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<orm x:schema="/nop/schema/orm/orm.xdef" x:dump="true"
+<orm x:schema="/nop/schema/orm/orm.xdef"
      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="/nop/schema/xpl.xdef">
     <x:gen-extends>
         <pdman:GenOrm src="test.pdma.json" xpl:lib="/nop/orm/xlib/pdman.xlib"

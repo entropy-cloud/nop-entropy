@@ -215,3 +215,34 @@ responseKey是Nop平台的ajaxFetch函数负责识别的，amis本身并不支�
         ]
       }
 ````
+
+## 将多个输入控件组织到一起，但是每个输入控件对应一个变量
+
+````json
+ {
+  "type": "input-group",
+  "name": "input-group",
+  "label": "输入组合校验",
+  "body": [
+    {
+      "type": "input-text",
+      "placeholder": "请输入长度不超过6的数字类型",
+      "name": "group-input1",
+      "label": "子元素一",
+      "validations": {
+        "isNumeric": true,
+        "maxLength": 6
+      }
+    },
+    {
+      "type": "input-text",
+      "placeholder": "请输入长度不少于5的文本",
+      "name": "group-input2",
+      "required": true,
+      "validations": {
+        "minLength": 5
+      }
+    }
+  ]
+}
+````

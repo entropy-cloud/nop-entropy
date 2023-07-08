@@ -30,5 +30,25 @@
                 </c:if>
             </source>
         </filter>
+
+        <fragment>
+            <attr name="id" mandatory="true"/>
+            <description>嵌入当前sql-lib库中定义的SQL片段</description>
+
+            <source>
+                return sqlLibModel.buildSqlFragment(id,$scope)
+            </source>
+        </fragment>
+
+        <when-dialect conditionTag="true">
+            <attr name="name" mandatory="true"/>
+            <attr name="dialect" implicit="true" mandatory="true"/>
+
+            <description>当数据库方言类型为指定类型时返回true</description>
+
+            <source>
+                return dialect.name == name
+            </source>
+        </when-dialect>
     </tags>
 </lib>

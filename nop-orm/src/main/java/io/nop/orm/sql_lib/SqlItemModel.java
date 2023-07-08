@@ -15,21 +15,21 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.dataset.BeanRowMapper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.ISqlExecutor;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.IFieldMapper;
 import io.nop.dataset.IRowMapper;
+import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.impl.BinderFieldMapper;
-import io.nop.core.dataset.BeanRowMapper;
 import io.nop.dataset.rowmapper.ColRowMapper;
 import io.nop.dataset.rowmapper.SmartRowMapper;
-import io.nop.dao.dialect.IDialect;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.sql_lib._gen._SqlItemModel;
@@ -42,13 +42,23 @@ import static io.nop.orm.OrmErrors.ARG_INDEX;
 import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
 import static io.nop.orm.OrmErrors.ERR_SQL_LIB_INVALID_COL_INDEX;
 
-public class SqlItemModel extends _SqlItemModel {
+public abstract class SqlItemModel extends _SqlItemModel {
+    private SqlLibModel sqlLibModel;
+
     public SqlItemModel() {
 
     }
 
     public boolean isColNameCamelCase() {
         return false;
+    }
+
+    public SqlLibModel getSqlLibModel() {
+        return sqlLibModel;
+    }
+
+    public void setSqlLibModel(SqlLibModel sqlLibModel) {
+        this.sqlLibModel = sqlLibModel;
     }
 
     public SQL buildSql(IEvalContext context) {

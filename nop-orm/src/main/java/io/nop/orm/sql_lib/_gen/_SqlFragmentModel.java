@@ -7,49 +7,49 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [61:10:0:0]/nop/schema/orm/sql-lib.xdef <p>
+ * generate from [52:10:0:0]/nop/schema/orm/sql-lib.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public abstract class _NativeSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
+public abstract class _SqlFragmentModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
-     * xml name: colNameCamelCase
-     * sql语句返回的列名是否按照下划线分隔变换成camelCase形式作为返回字段名
+     * xml name: id
+     * 
      */
-    private boolean _colNameCamelCase  = false;
+    private java.lang.String _id ;
     
     /**
      *  
-     * xml name: source
+     * xml name: 
      * 
      */
     private io.nop.core.lang.sql.ISqlGenerator _source ;
     
     /**
      * 
-     * xml name: colNameCamelCase
-     *  sql语句返回的列名是否按照下划线分隔变换成camelCase形式作为返回字段名
+     * xml name: id
+     *  
      */
     
-    public boolean isColNameCamelCase(){
-      return _colNameCamelCase;
+    public java.lang.String getId(){
+      return _id;
     }
 
     
-    public void setColNameCamelCase(boolean value){
+    public void setId(java.lang.String value){
         checkAllowChange();
         
-        this._colNameCamelCase = value;
+        this._id = value;
            
     }
 
     
     /**
      * 
-     * xml name: source
+     * xml name: 
      *  
      */
     
@@ -79,7 +79,7 @@ public abstract class _NativeSqlItemModel extends io.nop.orm.sql_lib.SqlItemMode
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("colNameCamelCase",this.isColNameCamelCase());
+        out.put("id",this.getId());
         out.put("source",this.getSource());
     }
 }

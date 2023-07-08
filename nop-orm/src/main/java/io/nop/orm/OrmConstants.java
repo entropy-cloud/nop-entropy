@@ -97,6 +97,8 @@ public interface OrmConstants {
     String PARAM_DIALECT = "dialect";
     String PARAM_SQL_ITEM_MODEL = "sqlItemModel";
 
+    String PARAM_SQL_LIB_MODEL = "sqlLibModel";
+
     String VAR_ENTITY = "entity";
 
     String VAR_EXCEPTION = "exception";
