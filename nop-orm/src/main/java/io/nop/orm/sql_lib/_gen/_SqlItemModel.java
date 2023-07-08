@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [17:6:0:0]/nop/schema/orm/sql-lib.xdef <p>
+ * generate from [20:6:0:0]/nop/schema/orm/sql-lib.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -23,15 +23,22 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: auth
+     * 
+     */
+    private io.nop.api.core.auth.ActionAuthMeta _auth ;
+    
+    /**
+     *  
      * xml name: batchLoadSelection
-     * 批量加载的属性
+     * 对应eql查询，获取到结果数据之后，会按照这里的配置自动批量加载结果对象上的关联属性
      */
     private io.nop.api.core.beans.FieldSelectionBean _batchLoadSelection ;
     
     /**
      *  
      * xml name: cacheKeyExpr
-     * 生成缓存key的表达式, 运行时可以访问按名称访问args，例如cacheKeyExpr="concat(x,'-',y)"
+     * 生成缓存key的表达式, 运行时可以根据传入的参数构造出缓存key，例如cacheKeyExpr="concat(x,'-',y)"
      */
     private io.nop.core.lang.eval.IEvalAction _cacheKeyExpr ;
     
@@ -101,7 +108,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: sqlMethod
-     * 应该使用ISqlExecutor接口上的什么方法去执行此sql，对应SqlMethod枚举，当使用类似MyBatis的Mapper映射时会用到这一配置。
+     * 指定使用ISqlExecutor接口上的什么方法去执行此sql，具体可选项在SqlMethod枚举类中定义，
      */
     private io.nop.orm.sql_lib.SqlMethod _sqlMethod ;
     
@@ -173,8 +180,27 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: auth
+     *  
+     */
+    
+    public io.nop.api.core.auth.ActionAuthMeta getAuth(){
+      return _auth;
+    }
+
+    
+    public void setAuth(io.nop.api.core.auth.ActionAuthMeta value){
+        checkAllowChange();
+        
+        this._auth = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: batchLoadSelection
-     *  批量加载的属性
+     *  对应eql查询，获取到结果数据之后，会按照这里的配置自动批量加载结果对象上的关联属性
      */
     
     public io.nop.api.core.beans.FieldSelectionBean getBatchLoadSelection(){
@@ -193,7 +219,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: cacheKeyExpr
-     *  生成缓存key的表达式, 运行时可以访问按名称访问args，例如cacheKeyExpr="concat(x,'-',y)"
+     *  生成缓存key的表达式, 运行时可以根据传入的参数构造出缓存key，例如cacheKeyExpr="concat(x,'-',y)"
      */
     
     public io.nop.core.lang.eval.IEvalAction getCacheKeyExpr(){
@@ -409,7 +435,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: sqlMethod
-     *  应该使用ISqlExecutor接口上的什么方法去执行此sql，对应SqlMethod枚举，当使用类似MyBatis的Mapper映射时会用到这一配置。
+     *  指定使用ISqlExecutor接口上的什么方法去执行此sql，具体可选项在SqlMethod枚举类中定义，
      */
     
     public io.nop.orm.sql_lib.SqlMethod getSqlMethod(){
@@ -491,6 +517,8 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         
            this._args = io.nop.api.core.util.FreezeHelper.deepFreeze(this._args);
             
+           this._auth = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auth);
+            
            this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
             
         }
@@ -500,6 +528,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         super.outputJson(out);
         
         out.put("args",this.getArgs());
+        out.put("auth",this.getAuth());
         out.put("batchLoadSelection",this.getBatchLoadSelection());
         out.put("cacheKeyExpr",this.getCacheKeyExpr());
         out.put("cacheName",this.getCacheName());

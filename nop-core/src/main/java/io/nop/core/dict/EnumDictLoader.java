@@ -17,6 +17,7 @@ import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.ReflectionManager;
@@ -39,7 +40,7 @@ public class EnumDictLoader implements IDictLoader {
     }
 
     @Override
-    public DictBean loadDict(String locale, String dictName) {
+    public DictBean loadDict(String locale, String dictName, IEvalContext ctx) {
         IClassModel classModel = loadEnumClass(dictName);
         try {
             return cache.computeIfAbsent(classModel.getRawClass(), clazz -> {

@@ -133,6 +133,10 @@ public interface OrmErrors {
 
     String ARG_FRAGMENT_ID = "fragmentId";
 
+    String ARG_PERMISSION = "permission";
+
+    String ARG_ROLES = "roles";
+
     ErrorCode ERR_ORM_SESSION_CLOSED = define("nop.err.orm.session-closed", "session已关闭");
 
     ErrorCode ERR_ORM_READONLY_NOT_ALLOW_UPDATE = define("nop.err.orm.read-only-session-not-allow-update",
@@ -361,4 +365,7 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_UNKNOWN_FRAGMENT = define("nop.err.orm.unknown-fragment",
             "未知的SQL片段:{fragmentId}", ARG_FRAGMENT_ID);
+
+    ErrorCode ERR_ORM_NO_PERMISSION_FOR_SQL = define("nop.err.orm.no-permission-for-sql",
+            "没有访问权限", ARG_PERMISSION, ARG_SQL_NAME);
 }

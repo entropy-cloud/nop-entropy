@@ -38,7 +38,7 @@ public class GenericTypeDomainOptions implements IStdDomainOptions {
         if (dictBean == null) {
             if (!genericType.isResolved())
                 genericType.resolve(DefaultClassResolver.INSTANCE);
-            dictBean = EnumDictLoader.INSTANCE.loadDict(null, genericType.getTypeName());
+            dictBean = EnumDictLoader.INSTANCE.loadDict(null, genericType.getTypeName(), null);
         }
         return dictBean;
     }

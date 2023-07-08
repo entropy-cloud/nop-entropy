@@ -22,8 +22,9 @@ import static io.nop.xlang.XLangErrors.ERR_BIZ_UNKNOWN_BIZ_VAR;
 public class BizExprHelper {
 
     public static DictBean getBizExprDict(ISecurityContext context) {
-        ICache<Object, Object> cache = context instanceof IServiceContext ? ((IServiceContext) context).getCache() : null;
-        DictBean dict = DictProvider.instance().getDict(null, BizFilterConstants.DICT_NAME_BIZ_VAR, cache);
+        IServiceContext ctx = context instanceof IServiceContext ? (IServiceContext) context : null;
+        ICache<Object, Object> cache = ctx != null ? ctx.getCache() : null;
+        DictBean dict = DictProvider.instance().getDict(null, BizFilterConstants.DICT_NAME_BIZ_VAR, cache, ctx);
         return dict;
     }
 

@@ -14,6 +14,7 @@ import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.dict.DictProvider;
@@ -54,7 +55,7 @@ public class ObjDictLoader implements IDictLoader {
     }
 
     @Override
-    public DictBean loadDict(String locale, String dictName) {
+    public DictBean loadDict(String locale, String dictName, IEvalContext ctx) {
         String operationName = StringHelper.removeHead(dictName, BizConstants.OBJ_DICT_PREFIX);
         if (!StringHelper.isValidJavaVarName(operationName))
             throw new NopException(ERR_BIZ_INVALID_OBJ_DICT_NAME).param(ARG_DICT_NAME, dictName);
@@ -71,7 +72,10 @@ public class ObjDictLoader implements IDictLoader {
 
         IBizObject bizObj = bizObjectManager.getBizObject(bizObjName);
 
-        IServiceContext context = new ServiceContextImpl();
+        IServiceContext context = IServiceContext.fromEvalContext(ctx);
+        if (context == null) {
+            context = new ServiceContextImpl();
+        }
         return (DictBean) FutureHelper.getResult(bizObj.invoke(action, null, null, context));
     }
 

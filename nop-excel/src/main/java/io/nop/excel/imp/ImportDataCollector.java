@@ -218,7 +218,7 @@ public class ImportDataCollector implements ITableDataEventListener {
             if (dict != null) {
                 DictBean dictBean;
                 try {
-                    dictBean = DictProvider.instance().requireDict(null, dict, cache);
+                    dictBean = DictProvider.instance().requireDict(null, dict, cache, scope);
                 } catch (NopException e) {
                     e.addXplStack("parse-cell-value:cellPos=" + CellPosition.toABString(rowIndex, colIndex) + ",sheet="
                             + sheetName);

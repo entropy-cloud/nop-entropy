@@ -12,6 +12,7 @@ import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.dict.IDictLoader;
 import io.nop.core.dict.IDictProvider;
@@ -50,7 +51,7 @@ public class SysDictLoader implements IDictLoader {
     }
 
     @Override
-    public DictBean loadDict(String locale, String dictName) {
+    public DictBean loadDict(String locale, String dictName, IEvalContext ctx) {
         IEntityDao<NopSysDictOption> dao = daoProvider.daoFor(NopSysDictOption.class);
 
         DictBean bean = new DictBean();

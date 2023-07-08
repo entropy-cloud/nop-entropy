@@ -48,7 +48,7 @@ public class DictStdDomainHandler implements IStdDomainHandler {
             return null;
 
         DictDomainOptions opts = (DictDomainOptions) options;
-        DictBean dict = opts.loadDictBean();
+        DictBean dict = opts.loadDictBean(null);
         if (dict.getOptionByValue(text) == null)
             throw new NopException(ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP).loc(loc).param(ARG_PROP_NAME, propName)
                     .when(dict.getOptionCount() < 50, e -> {

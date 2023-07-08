@@ -8,12 +8,16 @@
 package io.nop.orm.sql_lib;
 
 import io.nop.api.core.annotations.orm.SqlLibMapper;
+import io.nop.api.core.auth.ActionAuthMeta;
+import io.nop.api.core.auth.IActionAuthChecker;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.util.ReflectionHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.reflect.ReflectionManager;
@@ -23,6 +27,7 @@ import io.nop.dao.api.ISqlExecutor;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
+import io.nop.orm.OrmErrors;
 import io.nop.orm.sql_lib.proxy.SqlLibInvoker;
 import io.nop.xlang.xdsl.DslModelParser;
 import org.slf4j.Logger;
@@ -35,6 +40,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 import static io.nop.orm.OrmErrors.ARG_PATH;
+import static io.nop.orm.OrmErrors.ARG_PERMISSION;
+import static io.nop.orm.OrmErrors.ARG_ROLES;
 import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
 import static io.nop.orm.OrmErrors.ERR_SQL_LIB_INVALID_SQL_NAME;
 import static io.nop.orm.OrmErrors.ERR_SQL_UNKNOWN_LIB_PATH;
@@ -94,6 +101,7 @@ public class SqlLibManager implements ISqlLibManager {
     @Override
     public Object invoke(String sqlName, LongRangeBean range, IEvalContext context) {
         SqlItemModel item = getSqlItemModel(sqlName);
+        checkAuth(item, context);
         IEvalScope scope = context.getEvalScope();
         ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);
         try {
@@ -104,8 +112,42 @@ public class SqlLibManager implements ISqlLibManager {
         }
     }
 
+    void checkAuth(SqlItemModel item, IEvalContext context) {
+        ActionAuthMeta auth = item.getAuth();
+        if (auth == null)
+            return;
+
+        IServiceContext ctx = IServiceContext.fromEvalContext(context);
+        if (ctx == null)
+            return;
+
+        IUserContext userContext = ctx.getUserContext();
+        if (userContext == null)
+            return;
+
+        IActionAuthChecker checker = ctx.getActionAuthChecker();
+        if (checker == null)
+            return;
+
+        if (auth.getRoles() != null && !auth.getRoles().isEmpty()) {
+            if (userContext.isUserInAnyRole(auth.getRoles()))
+                return;
+        }
+
+        if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
+            if (checker.isPermissionSetSatisfied(auth.getPermissions(), ctx))
+                return;
+        }
+
+        throw new NopException(OrmErrors.ERR_ORM_NO_PERMISSION_FOR_SQL)
+                .param(ARG_PERMISSION, auth.getPermissions())
+                .param(ARG_ROLES, auth.getRoles())
+                .param(ARG_SQL_NAME, item.getName());
+    }
+
     public Object invoke(String sqlLibPath, String sqlItemName, LongRangeBean range, IEvalContext context) {
         SqlItemModel item = getSqlItemModel(sqlLibPath, sqlItemName);
+        checkAuth(item, context);
 
         IEvalScope scope = context.getEvalScope();
         ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);

@@ -104,6 +104,9 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
     void setContext(IContext context);
 
     static IServiceContext fromEvalContext(IEvalContext context) {
+        if (context == null)
+            return null;
+
         if (context instanceof IServiceContext)
             return (IServiceContext) context;
         return (IServiceContext) context.getEvalScope().getValue(CoreConstants.VAR_SVC_CTX);

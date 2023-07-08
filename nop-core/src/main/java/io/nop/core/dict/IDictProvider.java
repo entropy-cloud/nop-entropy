@@ -10,6 +10,7 @@ package io.nop.core.dict;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.cache.ICache;
+import io.nop.core.context.IEvalContext;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -20,11 +21,11 @@ import static io.nop.core.CoreErrors.ERR_DICT_UNKNOWN_DICT;
 public interface IDictProvider {
 
     @Nullable
-    DictBean getDict(String locale, String dictName, ICache<Object, Object> cache);
+    DictBean getDict(String locale, String dictName, ICache<Object, Object> cache, IEvalContext ctx);
 
     @Nonnull
-    default DictBean requireDict(String locale, String dictName, ICache<Object, Object> cache) {
-        DictBean dict = getDict(locale, dictName, cache);
+    default DictBean requireDict(String locale, String dictName, ICache<Object, Object> cache, IEvalContext ctx) {
+        DictBean dict = getDict(locale, dictName, cache, ctx);
         if (dict == null)
             throw new NopException(ERR_DICT_UNKNOWN_DICT).param(ARG_DICT_NAME, dictName);
         return dict;

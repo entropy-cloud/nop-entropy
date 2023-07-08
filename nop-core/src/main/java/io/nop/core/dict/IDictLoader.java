@@ -8,11 +8,12 @@
 package io.nop.core.dict;
 
 import io.nop.api.core.beans.DictBean;
+import io.nop.core.context.IEvalContext;
 
 public interface IDictLoader {
     boolean supportDict(String dictName);
 
-    DictBean loadDict(String locale, String dictName);
+    DictBean loadDict(String locale, String dictName, IEvalContext ctx);
 
     boolean existsDict(String dictName);
 }

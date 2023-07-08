@@ -12,6 +12,9 @@ import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreConstants;
+import io.nop.core.context.IEvalContext;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.dict.IDictLoader;
 import io.nop.core.dict.IDictProvider;
@@ -55,7 +58,7 @@ public class SqlLibDictLoader implements IDictLoader {
     }
 
     @Override
-    public DictBean loadDict(String locale, String dictName) {
+    public DictBean loadDict(String locale, String dictName, IEvalContext ctx) {
         String sqlName = StringHelper.removeHead(dictName, OrmConstants.SQL_DICT_PREFIX);
         checkDictSql(sqlName);
 
@@ -74,7 +77,11 @@ public class SqlLibDictLoader implements IDictLoader {
         dictBean.setName(dictName);
         dictBean.setValueType(dictValueType);
 
+        IServiceContext context = IServiceContext.fromEvalContext(ctx);
         IEvalScope scope = XLang.newEvalScope();
+        if (context != null)
+            scope.setLocalValue(CoreConstants.VAR_SVC_CTX, context);
+
         scope.setLocalValue(null, OrmConstants.SQL_ARG_LOCALE, locale);
         List<Object> options = (List<Object>) sqlLibManager.invoke(sqlName, null, scope);
         List<DictOptionBean> optionBeans = options.stream()

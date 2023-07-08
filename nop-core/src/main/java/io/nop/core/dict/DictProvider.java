@@ -15,6 +15,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.core.i18n.II18nMessageManager;
 import io.nop.core.resource.VirtualFileSystem;
@@ -89,7 +90,7 @@ public class DictProvider implements IDictProvider {
     }
 
     @Override
-    public DictBean getDict(String locale, String dictName, ICache<Object, Object> cache) {
+    public DictBean getDict(String locale, String dictName, ICache<Object, Object> cache, IEvalContext ctx) {
         if (locale == null)
             locale = AppConfig.appLocale();
 
@@ -105,9 +106,9 @@ public class DictProvider implements IDictProvider {
 
         IDictLoader dictLoader = getDictLoader(dictName);
         if (dictLoader != null) {
-            dict = dictLoader.loadDict(locale, dictName);
+            dict = dictLoader.loadDict(locale, dictName, ctx);
         } else {
-            dict = defaultLoadDictBean(locale, dictName);
+            dict = defaultLoadDictBean(locale, dictName,ctx);
         }
 
         if (dict == null)
@@ -140,7 +141,7 @@ public class DictProvider implements IDictProvider {
         return dictLoaders.get(prefix);
     }
 
-    protected DictBean defaultLoadDictBean(String locale, String dictName) {
+    protected DictBean defaultLoadDictBean(String locale, String dictName, IEvalContext ctx) {
         DictBean dict = staticDicts.get(dictName);
         if (dict != null) {
             LOG.debug("nop.dict.use-static-dict:dictName={},loc=", dictName, dict.getLocation());
@@ -148,7 +149,7 @@ public class DictProvider implements IDictProvider {
         }
 
         if (StringHelper.isValidClassName(dictName))
-            return EnumDictLoader.INSTANCE.loadDict(locale, dictName);
+            return EnumDictLoader.INSTANCE.loadDict(locale, dictName,ctx);
 
         String dictPath = getDefaultDictPath(dictName);
         DictModel model = (DictModel) ResourceComponentManager.instance().loadComponentModel(dictPath);

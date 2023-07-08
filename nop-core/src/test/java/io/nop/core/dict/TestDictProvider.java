@@ -35,13 +35,13 @@ public class TestDictProvider {
 
     @Test
     public void testLoad() {
-        DictBean dict = DictProvider.instance().requireDict("en", "test/my", null);
+        DictBean dict = DictProvider.instance().requireDict("en", "test/my", null, null);
         dict.getLabelByValue(1).equals("Item1");
     }
 
     @Test
     public void testEnum() {
-        DictBean dict = DictProvider.instance().requireDict("en", GenericClassKind.class.getName(), null);
+        DictBean dict = DictProvider.instance().requireDict("en", GenericClassKind.class.getName(), null, null);
         assertTrue(dict.getLabelByValue("interface").endsWith("INTERFACE"));
     }
 }

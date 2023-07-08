@@ -25,6 +25,6 @@ public class DictProviderBizModel {
     @Description("获取字典")
     public DictBean getDict(@Name("dictName") String dictName, IServiceContext context) {
         String locale = ContextProvider.currentLocale();
-        return DictProvider.instance().requireDict(locale, dictName, context.getCache());
+        return DictProvider.instance().requireDict(locale, dictName, context.getCache(), context);
     }
 }
