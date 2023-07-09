@@ -273,7 +273,7 @@ public class ObjMetaBasedValidator {
             String dictName = schema.getDict();
             if (dictName != null) {
                 DictBean dictBean = DictProvider.instance().requireDict(ContextProvider.currentLocale(), dictName,
-                        context.getCache());
+                        context.getCache(),context);
                 DictOptionBean option = dictBean.getOptionByValue(value);
                 if (option == null) {
                     String dict = dictName;
