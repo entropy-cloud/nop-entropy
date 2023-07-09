@@ -11,6 +11,7 @@ import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ReflectionHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.orm.sql_lib.SqlLibManager;
 import io.nop.xlang.api.XLang;
@@ -55,7 +56,15 @@ public class SqlLibInvoker implements InvocationHandler {
             return ReflectionHelper.invokeDefaultMethod(proxy, method, args);
         }
 
-        IEvalScope context = XLang.newEvalScope();
+        int contextIndex = findContext(method);
+
+        IEvalContext context = contextIndex >= 0 ? (IEvalContext) args[contextIndex] : null;
+        if (context == null) {
+            context = XLang.newEvalScope();
+        }
+
+        IEvalScope scope = context.getEvalScope().newChildScope();
+
         LongRangeBean range = null;
         Parameter[] params = method.getParameters();
         for (int i = 0, n = args.length; i < n; i++) {
@@ -64,11 +73,11 @@ public class SqlLibInvoker implements InvocationHandler {
                 range = (LongRangeBean) args[i];
             } else {
                 String name = ReflectionHelper.getParamName(param);
-                context.setLocalValue(null, name, args[i]);
+                scope.setLocalValue(null, name, args[i]);
             }
         }
 
-        Object ret = sqlLibManager.invoke(sqlLibPath, method.getName(), range, context);
+        Object ret = sqlLibManager.invoke(sqlLibPath, method.getName(), range, scope);
 
         // 忽略返回值
         if (method.getReturnType() == Void.TYPE || method.getReturnType() == Void.class)
@@ -77,5 +86,14 @@ public class SqlLibInvoker implements InvocationHandler {
         return ConvertHelper.convertTo(method.getReturnType(), ret, err -> {
             return new NopException(ERR_SQL_LIB_CONVERT_RETURN_TYPE_FAIL).param(ARG_METHOD, method);
         });
+    }
+
+    private int findContext(Method method) {
+        Parameter[] params = method.getParameters();
+        for (int i = 0, n = params.length; i < n; i++) {
+            if (IEvalContext.class.isAssignableFrom(params[i].getType()))
+                return i;
+        }
+        return -1;
     }
 }

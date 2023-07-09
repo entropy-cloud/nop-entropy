@@ -48,4 +48,8 @@ public interface OrmConfigs {
     @Description("根据ORM模型初始化数据库")
     IConfigReference<Boolean> CFG_INIT_DATABASE_SCHEMA = varRef("nop.orm.init-database-schema",
             Boolean.class, false);
+
+    @Description("启动的时候自动校验所有sql-lib中管理的SQL格式正确")
+    IConfigReference<Boolean> CFG_CHECK_ALL_SQL_LIB_WHEN_INIT =
+            varRef("nop.orm.check-all-sql-lib-when-init", Boolean.class, false);
 }

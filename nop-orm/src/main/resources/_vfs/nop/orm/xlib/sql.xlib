@@ -52,5 +52,16 @@
                 return dialect.name == name
             </source>
         </when-dialect>
+
+        <invoke>
+            <attr name="sqlName" mandatory="true" />
+            <attr name="range" />
+            <attr name="args" />
+
+            <source>
+                const sqlLibManager  = inject("nopSqlLibManager");
+                return sqlLibManager.invoke(sqlName, range, args, $scope);
+            </source>
+        </invoke>
     </tags>
 </lib>

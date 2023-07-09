@@ -20,7 +20,9 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.module.ModuleManager;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.dao.api.ISqlExecutor;
@@ -29,6 +31,7 @@ import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.OrmErrors;
 import io.nop.orm.sql_lib.proxy.SqlLibInvoker;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +41,10 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.Map;
 
+import static io.nop.orm.OrmConfigs.CFG_CHECK_ALL_SQL_LIB_WHEN_INIT;
 import static io.nop.orm.OrmErrors.ARG_PATH;
 import static io.nop.orm.OrmErrors.ARG_PERMISSION;
 import static io.nop.orm.OrmErrors.ARG_ROLES;
@@ -83,6 +89,16 @@ public class SqlLibManager implements ISqlLibManager {
             cancellable.cancel();
             cancellable = null;
         }
+    }
+
+    public void delayInit() {
+        if (CFG_CHECK_ALL_SQL_LIB_WHEN_INIT.get())
+            checkAllLibValid();
+    }
+
+    public void checkAllLibValid() {
+        List<IResource> resources = ModuleManager.instance().findModuleResources("/sql", OrmConstants.FILE_TYPE_SQL_LIB);
+        resources.forEach(resource -> checkLibValid(resource.getStdPath()));
     }
 
     @Override
@@ -150,13 +166,8 @@ public class SqlLibManager implements ISqlLibManager {
         checkAuth(item, context);
 
         IEvalScope scope = context.getEvalScope();
-        ValueWithLocation sqlLibVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL);
-        try {
-            scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
-            return item.invoke(getExecutor(item.getType()), range, context);
-        } finally {
-            scope.restoreValueLocation(OrmConstants.PARAM_SQL_LIB_MODEL, sqlLibVl);
-        }
+        scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
+        return item.invoke(getExecutor(item.getType()), range, context);
     }
 
     @Override
@@ -229,6 +240,30 @@ public class SqlLibManager implements ISqlLibManager {
                 continue;
 
             getSqlItemModel(sqlLibPath, method.getName());
+        }
+    }
+
+    @Override
+    public void checkLibValid(String sqlLibPath) {
+        SqlLibModel sqlLibModel = requireSqlLib(sqlLibPath);
+        for (SqlItemModel item : sqlLibModel.getSqls()) {
+            if (item.getValidateInput() != null) {
+                IEvalScope scope = XLang.newEvalScope();
+                Object input = item.getValidateInput().invoke(scope);
+                if (input != null) {
+                    if (input instanceof Map) {
+                        scope.setLocalValues((Map<String, Object>) input);
+                    } else {
+                        throw new IllegalArgumentException("nop.err.orm.validate-input-result-not-map");
+                    }
+                }
+
+                scope.setLocalValue(OrmConstants.PARAM_SQL_LIB_MODEL, item.getSqlLibModel());
+                SQL sql = item.buildSql(scope);
+                if (item.getType().equals(OrmConstants.SQL_TYPE_EQL)) {
+                    ormTemplate.getSessionFactory().compileSql(sql.getName(), sql.getText(), item.isDisableLogicalDelete());
+                }
+            }
         }
     }
 }

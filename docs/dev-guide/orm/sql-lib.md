@@ -1,6 +1,6 @@
 当我们需要构造比较复杂的SQL或者EQL语句的时候，通过一个外部模型文件对它们进行管理无疑是有着重要价值的。MyBatis提供了这样一种把SQL语句模型化的机制，但是仍然有很多人倾向于在Java代码中通过QueryDsl这样的方案来动态拼接SQL。这实际上是在说明**MyBatis的功能实现比较单薄，没有能够充分发挥模型化的优势**。
 
-在NopOrm中，我们通过sql-lib模型来统一管理所有复杂的SQL/EQL/DQL语句。在利用Nop平台已有基础设施的情况下，实现类似MyBatis的这一SQL语句管理机制，大概只需要200行代码。具体实现代码参见
+在NopOrm中，我们通过sql-lib模型来统一管理所有复杂的SQL/EQL/DQL语句。在利用Nop平台已有基础设施的情况下，实现类似MyBatis的这一SQL语句管理机制，大概只需要500行代码。具体实现代码参见
 
 [SqlLibManager](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/main/java/io/nop/orm/sql_lib/SqlLibManager.java)
 
@@ -208,4 +208,49 @@ XLang语言还内置了一些调试特性，方便在元编程阶段对问题进
 ```
 x = a.f().$(prefix) 实际对应于
 x = DebugHelper.v(location,prefix, "a.f()",a.f())
+```
+
+### 7. 根据Dialect生成对应的SQL语句
+
+利用标签库可以引入各种自定义的扩展逻辑。比如根据不同的数据库方言生成不同的SQL语句。
+
+```xml
+select 
+<sql:when-dialect name="h2">
+  ...
+</sql:when-dialect>
+from my_entity
+```
+
+
+
+## 与MyBatis的对比
+
+| MyBatis            | Nop平台                                            |
+| ------------------ | ------------------------------------------------ |
+| 通过XML配置动态SQL       | 通过统一的Delta定制实现配置修正                               |
+| 通过Mapper接口封装SQL的执行 | Nop平台使用统一的@Name注解定义参数名，通过IEvalContext来传递上下文对象    |
+| 通过标签函数生成动态SQ       | Nop平台中通过Xpl标签库引入自定义标签                            |
+| 通过表达式生成SQL参数       | 表达式使用通用的表达式引擎，利用Xpl模板语言的SQL输出模式将输出的表达式结果转换为SQL参数 |
+| 支持事务、结果数据缓存等       | 利用Dao层的JdbcTemplate，自动支持事务和结果缓存                  |
+| 管理SQL语句            | 同时管理EQL、SQL、DQL等各类查询语言                           |
+
+利用Nop平台的内置机制，还可以自动支持如下功能：
+
+1. 多数据源、多租户、分库分表
+
+2. 将SQL语句直接暴露为前台可访问的字典表，此时字典表名称格式为sql/{sqlName} 
+
+3. 使用EQL查询语言时支持批量属性加载，在获取到结果数据之后，可以直接指定加载结果数据中的关联属性。
+
+```xml
+<eql name="findActiveTasks">
+   <batchLoadSelection> 
+        relatedEntity.myProp, myParent.children 
+   </batchLoadSelection>
+   
+   <source>
+         select o from MyEntity o where o.status = 1
+   </source>
+</eql>
 ```

@@ -13,7 +13,6 @@ import io.nop.commons.cache.CacheRef;
 import io.nop.commons.text.marker.IMarkedString;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.dataset.BeanRowMapper;
 import io.nop.core.lang.eval.IEvalScope;
@@ -87,49 +86,42 @@ public abstract class SqlItemModel extends _SqlItemModel {
 
         IEvalScope scope = context.getEvalScope();
         IDialect dialect = executor.getDialectForQuerySpace(getQuerySpace());
-        ValueWithLocation dialectVl = scope.recordValueLocation(OrmConstants.PARAM_DIALECT);
-        ValueWithLocation modelVl = scope.recordValueLocation(OrmConstants.PARAM_SQL_ITEM_MODEL);
         scope.setLocalValue(null, OrmConstants.PARAM_DIALECT, dialect);
         scope.setLocalValue(null, OrmConstants.PARAM_SQL_ITEM_MODEL, this);
 
-        try {
-            SQL sql = buildSql(context);
-            SqlMethod method = getSqlMethod();
-            if (method == null) {
-                String text = StringHelper.trimLeft(sql.getText());
-                if (StringHelper.startsWithIgnoreCase(text, "select")) {
-                    if (range != null) {
-                        method = SqlMethod.findPage;
-                    } else {
-                        method = SqlMethod.findAll;
-                    }
+        SQL sql = buildSql(context);
+        SqlMethod method = getSqlMethod();
+        if (method == null) {
+            String text = StringHelper.trimLeft(sql.getText());
+            if (StringHelper.startsWithIgnoreCase(text, "select")) {
+                if (range != null) {
+                    method = SqlMethod.findPage;
                 } else {
-                    method = SqlMethod.execute;
+                    method = SqlMethod.findAll;
                 }
+            } else {
+                method = SqlMethod.execute;
             }
+        }
 
-            switch (method) {
-                case execute:
-                    return executor.executeMultiSql(sql);
-                case findAll:
-                    return processResult(executor.findAll(sql, buildRowMapper(executor, sql.getQuerySpace())), executor);
-                case findPage: {
-                    long offset = range == null ? 0 : range.getOffset();
-                    int limit = range == null ? 10 : (int) range.getLimit();
-                    List<Object> data = executor.findPage(sql, offset, limit,
-                            buildRowMapper(executor, sql.getQuerySpace()));
-                    return processResult(data, executor);
-                }
-                case findFirst:
-                    return executor.findFirst(sql, buildRowMapper(executor, sql.getQuerySpace()));
-                case exists:
-                    return executor.exists(sql);
-                default:
-                    throw new UnsupportedOperationException();
+        switch (method) {
+            case execute:
+                return executor.executeMultiSql(sql);
+            case findAll:
+                return processResult(executor.findAll(sql, buildRowMapper(executor, sql.getQuerySpace())), executor);
+            case findPage: {
+                long offset = range == null ? 0 : range.getOffset();
+                int limit = range == null ? 10 : (int) range.getLimit();
+                List<Object> data = executor.findPage(sql, offset, limit,
+                        buildRowMapper(executor, sql.getQuerySpace()));
+                return processResult(data, executor);
             }
-        } finally {
-            scope.restoreValueLocation(OrmConstants.PARAM_DIALECT, dialectVl);
-            scope.restoreValueLocation(OrmConstants.PARAM_SQL_ITEM_MODEL, modelVl);
+            case findFirst:
+                return executor.findFirst(sql, buildRowMapper(executor, sql.getQuerySpace()));
+            case exists:
+                return executor.exists(sql);
+            default:
+                throw new UnsupportedOperationException();
         }
     }
 

@@ -10,7 +10,7 @@
         <c:import class="io.nop.api.core.ApiConstants"/>
     </x:config>
 
-    <bean id="nopSqlLibManager" ioc:default="true" class="io.nop.orm.sql_lib.SqlLibManager">
+    <bean id="nopSqlLibManager" ioc:default="true" class="io.nop.orm.sql_lib.SqlLibManager" ioc:delay-method="delayInit">
     </bean>
 
     <bean id="nopDefaultTransactionListener" ioc:default="true"
