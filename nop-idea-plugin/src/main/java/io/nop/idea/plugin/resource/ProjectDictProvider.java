@@ -23,6 +23,7 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.cache.ICache;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.dict.DictModel;
 import io.nop.core.dict.DictModelParser;
 import io.nop.core.dict.IDictLoader;
@@ -37,7 +38,7 @@ import java.util.List;
 
 public class ProjectDictProvider implements IDictProvider {
     @Override
-    public DictBean getDict(String locale, String dictName, ICache<Object, Object> cache) {
+    public DictBean getDict(String locale, String dictName, ICache<Object, Object> cache, IEvalContext context) {
         return NopProjectService.get().getDict(dictName);
     }
 

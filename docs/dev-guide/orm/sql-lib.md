@@ -12,6 +12,8 @@
 
 [test.sql-lib.xml](https://gitee.com/canonical-entropy/nop-entropy/tree/master/nop-orm/src/test/resources/_vfs/nop/test/sql/test.sql-lib.xml)
 
+视频： [如何用500行代码实现类似MyBatis的功能](https://www.bilibili.com/video/BV1xX4y1e7Tv/)
+
 sql-lib提供了如下特性
 
 ### 1  统一管理SQL/EQL/DQL
@@ -53,6 +55,8 @@ sql-lib提供了如下特性
   </sqls>
 </sql-lib>
 ```
+
+
 
 ### 2. XPL模板的组件抽象能力
 
@@ -222,7 +226,19 @@ select
 from my_entity
 ```
 
+### 8. Mapper接口
 
+只要在Excel数据模型中为实体增加mapper标签，代码生成的时候就会自动生成类似MyBatis的强类型的Mapper接口，通过它可以调用SqlLibManager所管理的SQL模型文件。例如[LitemallGoodsMapper.java](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-dao/src/main/java/app/mall/dao/mapper/LitemallGoodsMapper.java)。
+
+```java
+@SqlLibMapper("/app/mall/sql/LitemallGoods.sql-lib.xml")
+public interface LitemallGoodsMapper {
+
+    void syncCartProduct(@Name("product") LitemallGoodsProduct product);
+}
+```
+
+通过SqlLibMapper注解可以指定当前接口所关联的SQL模型文件。
 
 ## 与MyBatis的对比
 
@@ -230,7 +246,7 @@ from my_entity
 | ------------------ | ------------------------------------------------ |
 | 通过XML配置动态SQL       | 通过统一的Delta定制实现配置修正                               |
 | 通过Mapper接口封装SQL的执行 | Nop平台使用统一的@Name注解定义参数名，通过IEvalContext来传递上下文对象    |
-| 通过标签函数生成动态SQ       | Nop平台中通过Xpl标签库引入自定义标签                            |
+| 通过标签函数生成动态SQL      | Nop平台中通过Xpl标签库引入自定义标签                            |
 | 通过表达式生成SQL参数       | 表达式使用通用的表达式引擎，利用Xpl模板语言的SQL输出模式将输出的表达式结果转换为SQL参数 |
 | 支持事务、结果数据缓存等       | 利用Dao层的JdbcTemplate，自动支持事务和结果缓存                  |
 | 管理SQL语句            | 同时管理EQL、SQL、DQL等各类查询语言                           |

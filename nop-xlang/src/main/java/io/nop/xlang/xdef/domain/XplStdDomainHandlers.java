@@ -140,7 +140,7 @@ public class XplStdDomainHandlers {
                 if (value instanceof String) {
                     String text = value.toString();
                     // 如果是复杂的xpl，则必须是完整的XML。否则认为是EL表达式
-                    if (text.startsWith("<")) {
+                    if (!isSupportContentScript() || text.startsWith("<")) {
                         XNodeParser.instance().forFragments(true).parseFromText(loc, text);
                     } else {
                         XLang.newCompileTool().parseFullExpr(loc, text);
@@ -151,6 +151,10 @@ public class XplStdDomainHandlers {
             } catch (Exception e) {
                 collector.addException(e);
             }
+        }
+
+        protected boolean isSupportContentScript() {
+            return outputMode == XLangOutputMode.none || outputMode == XLangOutputMode.xjson;
         }
 
         @Override

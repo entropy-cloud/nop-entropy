@@ -17,7 +17,7 @@
                 from my_entity
                 where
                 <sql:when-dialect name="h2">
-                     a = 1
+                    a = 1
                 </sql:when-dialect>
             </source>
         </sql>

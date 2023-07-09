@@ -1,10 +1,10 @@
-<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:sql="sql" xmlns:c="c">
     <sqls>
-        <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity">
+        <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity" >
             <fields>
                 <field index="0" stdSqlType="DATE"/>
             </fields>
-            <source>
+            <source> 
                 select d as my_date, a,b,c
                 from my_entity
                 where id = ${id}
@@ -46,8 +46,8 @@
             validate-input用于引入自动验证所需的输入数据
             -->
             <validate-input>
-                let result = {
-                ids: [1,2,3]
+               return {
+                    ids: [1,2,3]
                 }
             </validate-input>
 
