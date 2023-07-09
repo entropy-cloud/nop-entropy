@@ -33,10 +33,12 @@
 
         <fragment>
             <attr name="id" mandatory="true"/>
+            <attr name="sqlLibModel" implicit="true"/>
+
             <description>嵌入当前sql-lib库中定义的SQL片段</description>
 
             <source>
-                return sqlLibModel.buildSqlFragment(id,$scope)
+                return sqlLibModel.buildFragment(id,$scope)
             </source>
         </fragment>
 

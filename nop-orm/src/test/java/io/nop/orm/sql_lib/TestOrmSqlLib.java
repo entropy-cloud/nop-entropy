@@ -34,4 +34,10 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
             assertEquals("11", entity.getClassId());
         });
     }
+
+    @Test
+    public void checkDialectCondition() {
+        sqlLibManager.invoke("test2.findWithDialect",
+                LongRangeBean.of(0, 1), XLang.newEvalScope());
+    }
 }

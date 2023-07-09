@@ -84,20 +84,6 @@ public abstract class SqlItemModel extends _SqlItemModel {
     }
 
     public Object invoke(ISqlExecutor executor, LongRangeBean range, IEvalContext context) {
-        SQL sql = buildSql(context);
-        SqlMethod method = getSqlMethod();
-        if (method == null) {
-            String text = StringHelper.trimLeft(sql.getText());
-            if (StringHelper.startsWithIgnoreCase(text, "select")) {
-                if (range != null) {
-                    method = SqlMethod.findPage;
-                } else {
-                    method = SqlMethod.findAll;
-                }
-            } else {
-                method = SqlMethod.execute;
-            }
-        }
 
         IEvalScope scope = context.getEvalScope();
         IDialect dialect = executor.getDialectForQuerySpace(getQuerySpace());
@@ -107,6 +93,21 @@ public abstract class SqlItemModel extends _SqlItemModel {
         scope.setLocalValue(null, OrmConstants.PARAM_SQL_ITEM_MODEL, this);
 
         try {
+            SQL sql = buildSql(context);
+            SqlMethod method = getSqlMethod();
+            if (method == null) {
+                String text = StringHelper.trimLeft(sql.getText());
+                if (StringHelper.startsWithIgnoreCase(text, "select")) {
+                    if (range != null) {
+                        method = SqlMethod.findPage;
+                    } else {
+                        method = SqlMethod.findAll;
+                    }
+                } else {
+                    method = SqlMethod.execute;
+                }
+            }
+
             switch (method) {
                 case execute:
                     return executor.executeMultiSql(sql);

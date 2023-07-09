@@ -1,0 +1,25 @@
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:sql="sql">
+    <x:config>
+        <c:import from="/nop/orm/xlib/sql.xlib"/>
+    </x:config>
+
+    <fragments>
+        <fragment id="colList">
+            a, b, c
+        </fragment>
+    </fragments>
+
+    <sqls>
+        <sql name="findWithDialect">
+            <source>
+                select
+                <sql:fragment id="colList"/>
+                from my_entity
+                where
+                <sql:when-dialect name="h2">
+                     a = 1
+                </sql:when-dialect>
+            </source>
+        </sql>
+    </sqls>
+</sql-lib>
