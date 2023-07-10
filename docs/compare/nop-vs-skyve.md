@@ -442,3 +442,6 @@ Nop平台的开源地址：
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
 - [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)
+
+
+建议Skyvue将模型定制的逻辑进行标准化，这样在增加新的模型类型的时候不需要FileSystemRepository

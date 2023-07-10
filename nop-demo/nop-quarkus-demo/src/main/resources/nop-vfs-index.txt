@@ -549,11 +549,13 @@
 /nop/templates/xdsl/src/main/java/{objMeta.packagePath}/{objSchema.simpleClassName}.java.xgen
 /nop/web/beans/web-defaults.beans.xml
 /nop/web/xlib/control.xlib
+/nop/web/xlib/std.xlib
 /nop/web/xlib/web.xlib
 /nop/web/xlib/web/grid_crud.xpl
 /nop/web/xlib/web/impl_GenForm.xpl
 /nop/web/xlib/web/impl_GenGrid.xpl
 /nop/web/xlib/web/impl_GenPage.xpl
+/nop/web/xlib/web/impl_GenValidator.xpl
 /nop/web/xlib/web/init_grid_gen_scope.xpl
 /nop/web/xlib/web/page_crud.xpl
 /nop/web/xlib/web/page_picker.xpl
