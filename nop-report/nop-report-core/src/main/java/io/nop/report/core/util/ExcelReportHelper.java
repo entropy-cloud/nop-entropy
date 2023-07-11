@@ -41,11 +41,6 @@ public class ExcelReportHelper extends ExcelHelper {
     }
 
     public static void saveXlsxObject(IReportEngine reportEngine, String impModelPath, IResource resource,
-                                      Object obj, String renderType) {
-        saveXlsxObject(reportEngine, impModelPath, resource, obj, renderType, XLang.newEvalScope());
-    }
-
-    public static void saveXlsxObject(IReportEngine reportEngine, String impModelPath, IResource resource,
                                       Object obj, String renderType, IEvalScope scope) {
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
 

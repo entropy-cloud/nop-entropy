@@ -1,6 +1,7 @@
 package io.nop.biz.impl;
 
 import io.nop.api.core.util.CloneHelper;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
@@ -66,6 +67,22 @@ public class TestParseTreeTable extends BaseTestCase {
         scope.setLocalValue("indexYears", Arrays.asList(2001, 2002, 2003, 2004));
 
         ExcelReportHelper.saveXlsxObject("/nop/test/imp/test3.imp.xml", getTargetResource("test-exp3.xlsx"), bean, scope);
+
+        String html = ExcelReportHelper.getHtmlForXlsxObject("/nop/test/imp/test3.imp.xml", bean, scope);
+        FileHelper.writeText(getTargetFile("test-exp3.html"), html, null);
+        assertEquals(attachmentXmlText("test-exp3.html"), html);
+    }
+
+    @Test
+    public void testParse4() {
+        IResource resource = attachmentResource("test_imp4.test.xlsx");
+        Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test4.imp.xml", resource);
+        assertEquals(attachmentJsonText("imp-result4.json"), JsonTool.serialize(bean, true));
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("indexYears", Arrays.asList(2001, 2002, 2003, 2004));
+
+        ExcelReportHelper.saveXlsxObject("/nop/test/imp/test4.imp.xml", getTargetResource("test-exp4.xlsx"), bean, scope);
 
     }
 

@@ -9,12 +9,15 @@ package io.nop.excel.imp;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ProcessResult;
+import io.nop.commons.mutable.MutableBoolean;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
+import io.nop.core.model.table.IRowView;
 import io.nop.core.model.table.ITableView;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.model.IFieldContainer;
@@ -343,12 +346,37 @@ public class TableDataParser {
             // 字段值放置在下方
             rowIndex = rowIndex + cell.getRowSpan();
             maxColIndex = colIndex + cell.getMergeAcross();
+            maxRowIndex = findEmptyRowIndex(table, rowIndex, colIndex, maxRowIndex, maxColIndex);
         }
 
         parseFields(sheetName, fieldModel, table, rowIndex, colIndex, maxRowIndex, maxColIndex,
                 listener);
 
         return new CellRange(rowIndex, colIndex, maxRowIndex, maxColIndex);
+    }
+
+
+    private int findEmptyRowIndex(ITableView table, int rowIndex, int colIndex, int maxRowIndex, int maxColIndex) {
+        for (int i = rowIndex; i <= maxRowIndex; i++) {
+            IRowView row = table.getRow(rowIndex);
+            MutableBoolean empty = new MutableBoolean();
+            row.forEachRealCell(rowIndex, (cell, r, c) -> {
+                if (c > maxColIndex)
+                    return ProcessResult.STOP;
+
+                if (c < colIndex)
+                    return ProcessResult.CONTINUE;
+
+                if (!shouldIgnore(cell)) {
+                    empty.set(false);
+                    return ProcessResult.STOP;
+                }
+                return ProcessResult.STOP;
+            });
+            if (empty.get())
+                return i;
+        }
+        return maxRowIndex;
     }
 
     private CellRange parseSimpleField(ImportFieldModel fieldModel, String fieldLabel, ITableView table, int rowIndex,

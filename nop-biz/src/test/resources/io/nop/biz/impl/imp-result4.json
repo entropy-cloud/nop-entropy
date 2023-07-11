@@ -1,0 +1,471 @@
+{
+  "projectIndexA": {
+    "projectName": "AAAAAA",
+    "projectNo": "A0001",
+    "batchNo": "B0001",
+    "time": "202301",
+    "projectIndexValues": [
+      {
+        "name": "A1",
+        "level": 0,
+        "unit": "RMB",
+        "indexValues": [
+          {
+            "year": 2001,
+            "value": 100
+          },
+          {
+            "year": 2002,
+            "value": 200
+          },
+          {
+            "year": 2003,
+            "value": 300
+          },
+          {
+            "year": 2004,
+            "value": 400
+          }
+        ]
+      },
+      {
+        "name": "A2",
+        "level": 0,
+        "unit": "RMB",
+        "indexValues": [
+          {
+            "year": 2001,
+            "value": 100
+          },
+          {
+            "year": 2002,
+            "value": 200
+          },
+          {
+            "year": 2003,
+            "value": 300
+          },
+          {
+            "year": 2004,
+            "value": 400
+          }
+        ],
+        "children": [
+          {
+            "name": "A2-1",
+            "level": 1,
+            "unit": "RMB",
+            "indexValues": [
+              {
+                "year": 2001,
+                "value": 100
+              },
+              {
+                "year": 2002,
+                "value": 200
+              },
+              {
+                "year": 2003,
+                "value": 300
+              },
+              {
+                "year": 2004,
+                "value": 400
+              }
+            ],
+            "children": [
+              {
+                "name": "A2-1-1",
+                "level": 2,
+                "unit": "RMB",
+                "indexValues": [
+                  {
+                    "year": 2001,
+                    "value": 100
+                  },
+                  {
+                    "year": 2002,
+                    "value": 200
+                  },
+                  {
+                    "year": 2003,
+                    "value": 300
+                  },
+                  {
+                    "year": 2004,
+                    "value": 400
+                  }
+                ],
+                "children": [
+                  {
+                    "name": "A2-1-1-1",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  },
+                  {
+                    "name": "A2-1-1-2",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  },
+                  {
+                    "name": "A2-1-1-3",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "A2-1-2",
+                "level": 2,
+                "unit": "RMB",
+                "indexValues": [
+                  {
+                    "year": 2001,
+                    "value": 100
+                  },
+                  {
+                    "year": 2002,
+                    "value": 200
+                  },
+                  {
+                    "year": 2003,
+                    "value": 300
+                  },
+                  {
+                    "year": 2004,
+                    "value": 400
+                  }
+                ],
+                "children": [
+                  {
+                    "name": "A2-1-2-1",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  },
+                  {
+                    "name": "A2-1-2-2",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "A2-1-3",
+                "level": 2,
+                "unit": "RMB",
+                "indexValues": [
+                  {
+                    "year": 2001,
+                    "value": 100
+                  },
+                  {
+                    "year": 2002,
+                    "value": 200
+                  },
+                  {
+                    "year": 2003,
+                    "value": 300
+                  },
+                  {
+                    "year": 2004,
+                    "value": 400
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "A2-2",
+            "level": 1,
+            "unit": "RMB",
+            "indexValues": [
+              {
+                "year": 2001,
+                "value": 100
+              },
+              {
+                "year": 2002,
+                "value": 200
+              },
+              {
+                "year": 2003,
+                "value": 300
+              },
+              {
+                "year": 2004,
+                "value": 400
+              }
+            ],
+            "children": [
+              {
+                "name": "A2-2-1",
+                "level": 2,
+                "unit": "RMB",
+                "indexValues": [
+                  {
+                    "year": 2001,
+                    "value": 100
+                  },
+                  {
+                    "year": 2002,
+                    "value": 200
+                  },
+                  {
+                    "year": 2003,
+                    "value": 300
+                  },
+                  {
+                    "year": 2004,
+                    "value": 400
+                  }
+                ],
+                "children": [
+                  {
+                    "name": "A2-2-1-1",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  },
+                  {
+                    "name": "A2-2-1-2",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  },
+                  {
+                    "name": "A2-2-1-3",
+                    "level": 3,
+                    "unit": "RMB",
+                    "indexValues": [
+                      {
+                        "year": 2001,
+                        "value": 100
+                      },
+                      {
+                        "year": 2002,
+                        "value": 200
+                      },
+                      {
+                        "year": 2003,
+                        "value": 300
+                      },
+                      {
+                        "year": 2004,
+                        "value": 400
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "A2-2-2",
+                "level": 2,
+                "unit": "RMB",
+                "indexValues": [
+                  {
+                    "year": 2001,
+                    "value": 100
+                  },
+                  {
+                    "year": 2002,
+                    "value": 200
+                  },
+                  {
+                    "year": 2003,
+                    "value": 300
+                  },
+                  {
+                    "year": 2004,
+                    "value": 400
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "A2-3",
+            "level": 1,
+            "unit": "RMB",
+            "indexValues": [
+              {
+                "year": 2001,
+                "value": 100
+              },
+              {
+                "year": 2002,
+                "value": 200
+              },
+              {
+                "year": 2003,
+                "value": 300
+              },
+              {
+                "year": 2004,
+                "value": 400
+              }
+            ]
+          },
+          {
+            "name": "A2-4",
+            "level": 1,
+            "unit": "RMB",
+            "indexValues": [
+              {
+                "year": 2001,
+                "value": 100
+              },
+              {
+                "year": 2002,
+                "value": 200
+              },
+              {
+                "year": 2003,
+                "value": 300
+              },
+              {
+                "year": 2004,
+                "value": 400
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "projectIndexB": {
+    "projectName": "BBBBB",
+    "projectNo": "B0001",
+    "batchNo": "BB0001",
+    "time": "202302",
+    "devScope": {
+      "field1": "A001",
+      "field2": "A002",
+      "field3": "A003",
+      "field4": "A004"
+    }
+  }
+}

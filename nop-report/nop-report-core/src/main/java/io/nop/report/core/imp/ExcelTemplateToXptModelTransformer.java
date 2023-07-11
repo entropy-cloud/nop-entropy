@@ -150,8 +150,12 @@ public class ExcelTemplateToXptModelTransformer {
                     xptModel.setSheetNameExpr(getSheetNameExpr(sheetVarName, sheetModel.getSheetNameProp()));
             } else {
                 String sheetVarName = sheetModel.getSheetVarName();
-                if (sheetVarName == null)
+                if (sheetVarName == null && sheetModel.getFieldName() != null && !sheetModel.isList()) {
+                    sheetVarName = XptConstants.VAR_ENTITY + "." + sheetModel.getFieldName();
+                }
+                if (sheetVarName == null) {
                     sheetVarName = XptConstants.VAR_ENTITY;
+                }
                 xptModel.setSheetVarName(sheetVarName);
             }
         }
