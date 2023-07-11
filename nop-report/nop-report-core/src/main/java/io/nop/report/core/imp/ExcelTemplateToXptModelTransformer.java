@@ -108,6 +108,8 @@ public class ExcelTemplateToXptModelTransformer {
             int childIndex;
             int childCount;
 
+            String field;
+
             public FieldRange(int rowIndex, int colIndex, int maxRowIndex,
                               int maxColIndex, IFieldContainer container, RangeType rangeType) {
                 this.rowIndex = rowIndex;
@@ -272,6 +274,17 @@ public class ExcelTemplateToXptModelTransformer {
                 FieldRange parent = parents.get(parents.size() - 1);
                 range.childIndex = parent.childCount;
                 parent.childCount++;
+            } else {
+                String prop = fieldModel.getPropOrName();
+                if(!fieldModel.isList() && !(fieldModel instanceof ImportSheetModel)) {
+                    if (!parents.isEmpty()) {
+                        FieldRange parent = parents.get(parents.size() - 1);
+                        if (!parent.container.isList() && !(parent.container instanceof ImportSheetModel)) {
+                            prop = parent.field + '.' + prop;
+                        }
+                    }
+                    range.field = prop;
+                }
             }
             parents.add(range);
 
@@ -313,11 +326,15 @@ public class ExcelTemplateToXptModelTransformer {
                 cellModel.setValueExpr(action);
             } else {
                 if (!fieldModel.isVirtual()) {
+                    String prop = fieldModel.getPropOrName();
+                    if(parent.field != null)
+                        prop = parent.field + '.' + prop;
+
                     if (cellModel.getExpandType() != null) {
                         // 序号列对应于实际字段
-                        cellModel.setValueExpr(getExpandFieldAction(fieldModel.getPropOrName()));
+                        cellModel.setValueExpr(getExpandFieldAction(prop));
                     } else {
-                        initCellField(cellModel, parent, fieldModel.getPropOrName());
+                        initCellField(cellModel, parent, prop);
                     }
                 }
             }

@@ -70,7 +70,7 @@ public class TestParseTreeTable extends BaseTestCase {
 
         String html = ExcelReportHelper.getHtmlForXlsxObject("/nop/test/imp/test3.imp.xml", bean, scope);
         FileHelper.writeText(getTargetFile("test-exp3.html"), html, null);
-        assertEquals(attachmentXmlText("test-exp3.html"), html);
+        assertEquals(normalizeCRLF(attachmentText("test-exp3.html")), normalizeCRLF(html));
     }
 
     @Test

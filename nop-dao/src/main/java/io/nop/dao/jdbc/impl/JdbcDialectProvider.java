@@ -9,6 +9,7 @@ package io.nop.dao.jdbc.impl;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
@@ -29,7 +30,7 @@ public class JdbcDialectProvider implements IDialectProvider {
     private final Map<String, String> querySpaceToDialectMap = new ConcurrentHashMap<>();
 
     public JdbcDialectProvider(ITransactionTemplate transactionTemplate) {
-        this.transactionTemplate = transactionTemplate;
+        this.transactionTemplate = Guard.notNull(transactionTemplate, "transactionTemplate");
     }
 
     @Override
