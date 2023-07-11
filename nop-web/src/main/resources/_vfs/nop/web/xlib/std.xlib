@@ -16,5 +16,13 @@
 
             </source>
         </Col>
+
+        <GenValidator>
+            <attr name="metaPath" stdDomain="v-path"/>
+
+            <source>
+                <c:include src="std/impl_GenValidator.xpl"/>
+            </source>
+        </GenValidator>
     </tags>
 </lib>

@@ -550,6 +550,7 @@
 /nop/web/beans/web-defaults.beans.xml
 /nop/web/xlib/control.xlib
 /nop/web/xlib/std.xlib
+/nop/web/xlib/std/impl_GenValidator.xpl
 /nop/web/xlib/web.xlib
 /nop/web/xlib/web/grid_crud.xpl
 /nop/web/xlib/web/impl_GenForm.xpl

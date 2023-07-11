@@ -4312,6 +4312,155 @@
     "fields": [],
     "methods": [
       {
+        "name": "addBreakpoint",
+        "parameterTypes": [
+          "io.nop.api.debugger.Breakpoint"
+        ]
+      },
+      {
+        "name": "clearBreakpoints",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBreakpointAt",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation"
+        ]
+      },
+      {
+        "name": "getBreakpoints",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeBreakpoint",
+        "parameterTypes": [
+          "io.nop.api.debugger.Breakpoint"
+        ]
+      },
+      {
+        "name": "setBreakpoints",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.api.debugger.IBreakpointManager",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "close",
+        "parameterTypes": []
+      },
+      {
+        "name": "expandExprValue",
+        "parameterTypes": [
+          "long",
+          "int",
+          "java.lang.String",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "getExprValue",
+        "parameterTypes": [
+          "long",
+          "int",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFrameVariables",
+        "parameterTypes": [
+          "long",
+          "int"
+        ]
+      },
+      {
+        "name": "getScopeVariables",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getStackInfo",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getSuspendedThreads",
+        "parameterTypes": []
+      },
+      {
+        "name": "isBreakpointsMuted",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSuspended",
+        "parameterTypes": []
+      },
+      {
+        "name": "muteBreakpoints",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "resume",
+        "parameterTypes": []
+      },
+      {
+        "name": "runToPosition",
+        "parameterTypes": [
+          "io.nop.api.debugger.Breakpoint"
+        ]
+      },
+      {
+        "name": "stepInto",
+        "parameterTypes": []
+      },
+      {
+        "name": "stepOut",
+        "parameterTypes": []
+      },
+      {
+        "name": "stepOver",
+        "parameterTypes": []
+      },
+      {
+        "name": "suspend",
+        "parameterTypes": []
+      },
+      {
+        "name": "updateBreakpoints",
+        "parameterTypes": [
+          "java.util.List",
+          "boolean"
+        ]
+      },
+      {
+        "name": "waitSuspended",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.api.debugger.IDebugger",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getAccessCode",
         "parameterTypes": []
       },
@@ -15241,6 +15390,14 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadDict",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext"
         ]
       },
       {
@@ -40212,6 +40369,23 @@
         ]
       },
       {
+        "name": "checkAllLibValid",
+        "parameterTypes": []
+      },
+      {
+        "name": "checkAuth",
+        "parameterTypes": [
+          "io.nop.orm.sql_lib.SqlItemModel",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "checkLibValid",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "checkProxyMethods",
         "parameterTypes": [
           "java.lang.String",
@@ -40223,6 +40397,10 @@
         "parameterTypes": [
           "java.lang.Class"
         ]
+      },
+      {
+        "name": "delayInit",
+        "parameterTypes": []
       },
       {
         "name": "destroy",
@@ -40310,6 +40488,14 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadDict",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext"
         ]
       },
       {
@@ -43242,6 +43428,14 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadDict",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext"
         ]
       },
       {

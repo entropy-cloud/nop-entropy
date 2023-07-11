@@ -18,6 +18,46 @@ io.nop.api.core.exceptions.NopException: NopException[seq=4,status=-1,errorCode=
 3. page_simple.xpl在第7行调用了getFormSelection函数
 4. 在函数内部访问到LitemallGoods.view.xml模型文件，发现它的第114行的配置不正确。
 
+## 日志信息
+
+1. 配置项信息
+系统启动的时候会打印所有配置参数的值以及所在的配置文件（因为可能存在多个配置文件，而且高优先级的文件会覆盖低优先级的文件）
+````
+# [84:11:0:0]classpath:application.yaml
+quarkus.log.level=INFO
+````
+
+2. 模型文件解析
+所有模型文件解析时都会打印日志，并且会打印解析花费时间
+````
+2023-07-11 21:13:16,152 INFO  [io.nop.cor.res.com.par.AbstractResourceParser] (Quarkus Main Thread) nop.core.component.finish-parse-resource:usedTime=10,path=/nop/schema/beans.xdef,parser=class io.nop.core.lang.xml.parse.XNodeParser
+````
+
+3. 动态装配的bean
+NopIoC容器会先分析所有bean的存在条件，然后再创建bean。分析结果会打印到日志文件中。对于disabled的bean会打印出禁用的原因
+
+````
+disabled-bean:id=nopLoginService
+    loc=[15:6:0:0]/nop/auth/beans/sso-defaults.beans.xml,trace=null
+    check-if-property-fail:nop.auth.sso.enabled=null
+````
+
+在_dump目录下，/nop/main/beans/merged-app.beans.xml中输出了所有最终被激活的bean以及它们所对应的配置文件源码位置。
+
+4. 数据库访问
+所有的数据库访问SQL都会记录在日志中，并且显示SQL执行时间
+````
+2023-07-11 21:14:39,637 INFO  [io.nop.dao.jdb.imp.JdbcTemplateImpl] (Quarkus Main Thread) nop.jdbc.run:usedTime=1,querySpace=default,range=0,1,name=jdbc:null,sql=select o.SEQ_NAME as c1 
+from nop_sys_sequence as o 
+ where o.DEL_FLAG =  0 
+```` 
+
+5. 成功初始化
+Nop平台成功初始化之后会打印出初始化总共执行的时间，并且会打印banner
+````
+2023-07-11 21:14:40,562 INFO  [io.nop.cor.ini.CoreInitialization] (Quarkus Main Thread) nop.core.end-initialize:usedTime=87286
+````
+
 ## 日志打印
 
 1. XScript脚本中内置了logInfo/logDebug等函数
