@@ -7,6 +7,7 @@
  */
 package io.nop.excel.imp;
 
+import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
@@ -25,6 +26,11 @@ public interface ITableDataEventListener {
     }
 
     default void onFieldLabel(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+
+    }
+
+    default void onFieldEnd(int rowIndex, int colIndex, ICellView labelCell, ImportFieldModel field, String fieldLabel,
+                            CellRange range) {
 
     }
 

@@ -86,7 +86,9 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                 <comment xdef:value="string"/>
 
                                 <!--
-                                @expandInplaceCount 单元格展开时
+                                @expandInplaceCount 在模板中已经预留了几个展开单元格空间。如果展开表达式返回个数小于这个值，则不需要新增单元格。
+                                @rowExtendForSibling 同一行的兄弟单元格展开时是否自动拉伸本单元格
+                                @colExtendForSibling 同一列的兄弟单元格展开时是否自动拉伸本单元格
                                 @keepExpandEmpty 当展开集合为空时，缺省会删除模板中定义的单元格以及它所在的行或者列。
                                            但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。
                                 @exportFormattedValue 如果设置为true，则导出Excel时会应用formatExpr或者Excel配置的NumberFormat，
@@ -96,6 +98,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                        field="prop-name" ds="var-name" expandInplaceCount="int"
                                        expandType="enum:io.nop.excel.model.constants.XptExpandType"
                                        keepExpandEmpty="!boolean=false" exportFormattedValue="!boolean=false"
+                                       rowExtendForSibling="!boolean=false" colExtendForSibling="!boolean=false"
                                        rowParent="cell-pos" colParent="cell-pos">
                                     <rowTestExpr xdef:value="xpl-predicate"/>
                                     <colTestExpr xdef:value="xpl-predicate"/>

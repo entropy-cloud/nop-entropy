@@ -29,6 +29,19 @@ public class ExpandedRow implements IRowView {
     private boolean hidden;
     private boolean removed;
 
+    /**
+     * 单元格展开时新建的行
+     */
+    private boolean newlyCreated;
+
+    public boolean isNewlyCreated() {
+        return newlyCreated;
+    }
+
+    public void setNewlyCreated(boolean newlyCreated) {
+        this.newlyCreated = newlyCreated;
+    }
+
     @Override
     public String getId() {
         return id;

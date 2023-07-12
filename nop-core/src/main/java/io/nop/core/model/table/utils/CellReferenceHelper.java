@@ -93,6 +93,9 @@ public class CellReferenceHelper {
         if (StringHelper.isEmpty(abStr))
             return null;
 
+        if (CellPosition.NONE_NAME.equals(abStr))
+            return CellPosition.NONE;
+
         String str = abStr;
 
         int pos = abStr.indexOf(ABSOLUTE_REFERENCE_MARKER);

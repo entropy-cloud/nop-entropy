@@ -56,11 +56,12 @@ public abstract class AbstractCellExpander implements ICellExpander {
         xptRt.setCell(cell);
 
         if (model.getExpandExpr() == null) {
-            // 如果没有指定expandExpr，则根据ds.group(field)来获取数据
+            // 如果既没有指定expandExpr，也没有指定field，则本单元格相当于是不展开，仅仅是设置一下expandType
             String field = model.getField();
             if (field == null)
                 return Collections.singletonList(cell.getValue()).iterator();
 
+            // 如果没有指定expandExpr，则根据ds.group(field)来获取数据
             String dsName = model.getDs();
             if (dsName == null) {
                 return valueToIterator(xptRt.field(field));

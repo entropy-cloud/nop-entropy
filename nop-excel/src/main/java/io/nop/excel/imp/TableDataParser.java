@@ -264,15 +264,19 @@ public class TableDataParser {
                     .param(ARG_CELL_POS, getCellPosition(rowIndex, colIndex)).param(ARG_FIELD_NAME, name)
                     .param(ARG_ALLOWED_NAMES, fieldContainer.getFieldNameMap().keySet());
 
-        listener.onFieldLabel(rowIndex, colIndex, table.getCell(rowIndex, colIndex).getRealCell(), field, name);
+        ICellView cell = table.getCell(rowIndex, colIndex).getRealCell();
+        listener.onFieldLabel(rowIndex, colIndex, cell, field, name);
 
+        CellRange range;
         if (field.isList()) {
-            return parseListField(sheetName, field, table, rowIndex, colIndex, maxRowIndex, maxColIndex, listener);
+            range = parseListField(sheetName, field, table, rowIndex, colIndex, maxRowIndex, maxColIndex, listener);
         } else if (field.getFields() != null && !field.getFields().isEmpty()) {
-            return parseObjectField(sheetName, field, table, rowIndex, colIndex, maxRowIndex, maxColIndex, listener);
+            range = parseObjectField(sheetName, field, table, rowIndex, colIndex, maxRowIndex, maxColIndex, listener);
         } else {
-            return parseSimpleField(field, name, table, rowIndex, colIndex, listener);
+            range = parseSimpleField(field, name, table, rowIndex, colIndex, listener);
         }
+        listener.onFieldEnd(rowIndex, colIndex, cell, field, name, range);
+        return range;
     }
 
     private void parseNextFields(String sheetName, IFieldContainer fieldContainer, ITableView table,

@@ -25,6 +25,16 @@ public class ExpandedCol implements IColumnConfig {
     private ExpandedTable table;
     private boolean removed;
 
+    private boolean newlyCreated;
+
+    public boolean isNewlyCreated() {
+        return newlyCreated;
+    }
+
+    public void setNewlyCreated(boolean newlyCreated) {
+        this.newlyCreated = newlyCreated;
+    }
+
     public void forEachCell(Consumer<ExpandedCell> action) {
         ExpandedCell cell = firstCell;
         do {

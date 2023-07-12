@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [73:14:0:0]/nop/schema/schema/obj-schema.xdef <p>
+ * generate from [75:14:0:0]/nop/schema/schema/obj-schema.xdef <p>
  * 对应graphql的argument
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

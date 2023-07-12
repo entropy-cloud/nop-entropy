@@ -7,12 +7,19 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [95:34:0:0]/nop/schema/excel/workbook.xdef <p>
+ * generate from [97:34:0:0]/nop/schema/excel/workbook.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _XptCellModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: colExtendForSibling
+     * 同一列的兄弟单元格展开时是否自动拉伸本单元格
+     */
+    private boolean _colExtendForSibling  = false;
     
     /**
      *  
@@ -59,7 +66,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: expandInplaceCount
-     * 单元格展开时
+     * 在模板中已经预留了几个展开单元格空间。如果展开表达式返回个数小于这个值，则不需要新增单元格。
      */
     private java.lang.Integer _expandInplaceCount ;
     
@@ -116,6 +123,13 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: rowExtendForSibling
+     * 同一行的兄弟单元格展开时是否自动拉伸本单元格
+     */
+    private boolean _rowExtendForSibling  = false;
+    
+    /**
+     *  
      * xml name: rowParent
      * 
      */
@@ -148,6 +162,25 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
      * 
      */
     private java.lang.String _viewerId ;
+    
+    /**
+     * 
+     * xml name: colExtendForSibling
+     *  同一列的兄弟单元格展开时是否自动拉伸本单元格
+     */
+    
+    public boolean isColExtendForSibling(){
+      return _colExtendForSibling;
+    }
+
+    
+    public void setColExtendForSibling(boolean value){
+        checkAllowChange();
+        
+        this._colExtendForSibling = value;
+           
+    }
+
     
     /**
      * 
@@ -266,7 +299,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: expandInplaceCount
-     *  单元格展开时
+     *  在模板中已经预留了几个展开单元格空间。如果展开表达式返回个数小于这个值，则不需要新增单元格。
      */
     
     public java.lang.Integer getExpandInplaceCount(){
@@ -419,6 +452,25 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: rowExtendForSibling
+     *  同一行的兄弟单元格展开时是否自动拉伸本单元格
+     */
+    
+    public boolean isRowExtendForSibling(){
+      return _rowExtendForSibling;
+    }
+
+    
+    public void setRowExtendForSibling(boolean value){
+        checkAllowChange();
+        
+        this._rowExtendForSibling = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: rowParent
      *  
      */
@@ -525,6 +577,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("colExtendForSibling",this.isColExtendForSibling());
         out.put("colParent",this.getColParent());
         out.put("colTestExpr",this.getColTestExpr());
         out.put("domain",this.getDomain());
@@ -539,6 +592,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.put("formatExpr",this.getFormatExpr());
         out.put("keepExpandEmpty",this.isKeepExpandEmpty());
         out.put("linkExpr",this.getLinkExpr());
+        out.put("rowExtendForSibling",this.isRowExtendForSibling());
         out.put("rowParent",this.getRowParent());
         out.put("rowTestExpr",this.getRowTestExpr());
         out.put("styleIdExpr",this.getStyleIdExpr());

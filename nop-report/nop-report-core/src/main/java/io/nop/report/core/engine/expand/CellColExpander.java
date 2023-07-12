@@ -102,11 +102,14 @@ public class CellColExpander extends AbstractCellExpander {
             int newIndex = index + expandSpan * expandIndex;
 
             boolean needInsert = isNeedInsert(expandIndex,
-                    xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
+                    xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount())
+                    && !table.isNewlyCreatedCol(newIndex);
 
             ExpandedCol newCol = needInsert ? table.insertEmptyCol(newIndex) : table.makeCol(newIndex);
-            if(needInsert)
+            if (needInsert) {
+                newCol.setNewlyCreated(true);
                 newCol.setColModel(col.getColModel());
+            }
             duplicateCol(r, cell, expandIndex, expandValue, newCol, cellMap, processing);
 
         }

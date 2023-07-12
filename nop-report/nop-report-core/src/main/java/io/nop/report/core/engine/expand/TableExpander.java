@@ -62,8 +62,8 @@ public class TableExpander {
 
     ICellExpander getCellExpander(ExpandedCell cell) {
         XptExpandType expandType = cell.getExpandType();
-        if (expandType == XptExpandType.r)
-            return CellRowExpander.INSTANCE;
-        return CellColExpander.INSTANCE;
+        if (expandType == XptExpandType.c)
+            return CellColExpander.INSTANCE;
+        return CellRowExpander.INSTANCE;
     }
 }

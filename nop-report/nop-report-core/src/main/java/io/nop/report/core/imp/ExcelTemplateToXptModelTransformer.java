@@ -9,12 +9,14 @@ package io.nop.report.core.imp;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ProcessResult;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
+import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.imp.ITableDataEventListener;
@@ -96,6 +98,8 @@ public class ExcelTemplateToXptModelTransformer {
         private final ExcelSheet sheet;
         private final List<FieldRange> parents = new ArrayList<>();
 
+        private final List<ExcelCell> labelCells = new ArrayList<>();
+
         private final XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
 
         static class FieldRange {
@@ -134,6 +138,14 @@ public class ExcelTemplateToXptModelTransformer {
 
             XptSheetModel xptModel = new XptSheetModel();
             sheet.setModel(xptModel);
+
+            sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
+                ExcelCell ec = (ExcelCell) cell;
+                XptCellModel cellModel = ec.makeModel();
+                cellModel.setCellPosition(CellPosition.of(rowIndex, colIndex));
+                cellModel.setName(CellPosition.toABString(rowIndex, colIndex));
+                return ProcessResult.CONTINUE;
+            });
 
             XNode beforeExpandNode = XNode.fromValue(sheetModel.prop_get(XptConstants.EXT_PROP_XPT_BEFORE_EXPAND));
             if (beforeExpandNode != null) {
@@ -188,8 +200,7 @@ public class ExcelTemplateToXptModelTransformer {
 
             ExcelCell cell = (ExcelCell) getTable().getCell(rowIndex, colIndex);
             if (StringHelper.isNumber(cell.getText())) {
-                XptCellModel cellModel = new XptCellModel();
-                cell.setModel(cellModel);
+                XptCellModel cellModel = cell.makeModel();
                 initCellField(cellModel, range, fieldModel.getFieldName());
                 cellModel.setExpandType(XptExpandType.r);
                 cellModel.setValueExpr(getExpandIndexAction());
@@ -200,14 +211,23 @@ public class ExcelTemplateToXptModelTransformer {
         @Override
         public void onColHeader(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
             ExcelCell ec = (ExcelCell) cell;
-            XptCellModel cellModel = new XptCellModel();
-            ec.setModel(cellModel);
+            XptCellModel cellModel = ec.makeModel();
 
             XNode labelExpandExpr = (XNode) field.prop_get(XptConstants.EXT_PROP_XPT_LABEL_EXPAND_EXPR);
             if (labelExpandExpr != null) {
                 IEvalAction expandExpr = compileTool.compileTagBodyWithSource(labelExpandExpr, XLangOutputMode.none);
                 cellModel.setExpandType(XptExpandType.c);
                 cellModel.setExpandExpr(expandExpr);
+
+                if (!labelCells.isEmpty()) {
+                    ExcelCell labelCell = labelCells.get(labelCells.size() - 1);
+                    // 标签字段放在上方
+                    if (labelCell.getMergeDown() == 0) {
+                        // 不参与其他节点的展开
+                        labelCell.getModel().setColParent(CellPosition.NONE);
+                        cellModel.setColParent(labelCell.getModel().getCellPosition());
+                    }
+                }
             }
 
             initLabelField(cellModel, field);
@@ -216,10 +236,17 @@ public class ExcelTemplateToXptModelTransformer {
         @Override
         public void onFieldLabel(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
             ExcelCell ec = (ExcelCell) cell;
-            XptCellModel cellModel = new XptCellModel();
+            XptCellModel cellModel = ec.makeModel();
             ec.setModel(cellModel);
 
             initLabelField(cellModel, field);
+
+            labelCells.add(ec);
+        }
+
+        @Override
+        public void onFieldEnd(int rowIndex, int colIndex, ICellView labelCell, ImportFieldModel field, String fieldLabel, CellRange range) {
+            labelCells.remove(labelCells.size() - 1);
         }
 
         private void initLabelField(XptCellModel cellModel, ImportFieldModel field) {
@@ -276,7 +303,7 @@ public class ExcelTemplateToXptModelTransformer {
                 parent.childCount++;
             } else {
                 String prop = fieldModel.getPropOrName();
-                if(!fieldModel.isList() && !(fieldModel instanceof ImportSheetModel)) {
+                if (!fieldModel.isList() && !(fieldModel instanceof ImportSheetModel)) {
                     if (!parents.isEmpty()) {
                         FieldRange parent = parents.get(parents.size() - 1);
                         if (!parent.container.isList() && !(parent.container instanceof ImportSheetModel)) {
@@ -327,7 +354,7 @@ public class ExcelTemplateToXptModelTransformer {
             } else {
                 if (!fieldModel.isVirtual()) {
                     String prop = fieldModel.getPropOrName();
-                    if(parent.field != null)
+                    if (parent.field != null)
                         prop = parent.field + '.' + prop;
 
                     if (cellModel.getExpandType() != null) {

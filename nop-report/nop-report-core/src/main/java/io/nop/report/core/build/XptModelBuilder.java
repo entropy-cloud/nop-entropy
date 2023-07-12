@@ -129,8 +129,7 @@ public class XptModelBuilder {
                     xptModel = new XptCellModel();
                     ec.setModel(xptModel);
                 }
-                xptModel.setRowIndex(i);
-                xptModel.setColIndex(j);
+                xptModel.setCellPosition(CellPosition.of(i, j));
                 xptModel.setName(name);
 
                 normalizeValueExpr(ec);
@@ -225,6 +224,9 @@ public class XptModelBuilder {
     private ExcelCell getRowParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells) {
         XptCellModel xptModel = cell.getModel();
 
+        if (xptModel.getRowParent() == CellPosition.NONE)
+            return null;
+
         if (xptModel.getRowParent() != null) {
             return resolveRowParent(sheet, cell, cells, xptModel.getRowParent());
         } else {
@@ -250,7 +252,7 @@ public class XptModelBuilder {
                 return null;
             ExcelCell ec = (ExcelCell) firstCell.getRealCell();
             CellPosition pos = ec.getModel().getRowParent();
-            if (pos == null)
+            if (pos == null || pos == CellPosition.NONE)
                 return null;
             return resolveRowParent(sheet, cell, cells, pos);
         }
@@ -258,6 +260,9 @@ public class XptModelBuilder {
 
     private ExcelCell getColParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells) {
         XptCellModel xptModel = cell.getModel();
+
+        if (xptModel.getColParent() == CellPosition.NONE)
+            return null;
 
         if (xptModel.getColParent() != null) {
             return resolveColParent(sheet, cell, cells, xptModel.getColParent());
@@ -293,24 +298,24 @@ public class XptModelBuilder {
 
     private ExcelCell resolveRowParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells, CellPosition pos) {
         ExcelCell rowParent = cells.get(pos.toABString());
-        if (rowParent == null || rowParent.getModel().getExpandType() != XptExpandType.r) {
+        if (rowParent == null) {
             throw new NopException(ERR_XPT_INVALID_ROW_PARENT)
                     .param(ARG_SHEET_NAME, sheet.getName())
                     .param(ARG_CELL_POS, cell.getModel().getName())
                     .param(ARG_ROW_PARENT, pos);
         }
-        return rowParent;
+        return rowParent.getRealCell();
     }
 
     private ExcelCell resolveColParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells, CellPosition pos) {
         ExcelCell colParent = cells.get(pos.toABString());
-        if (colParent == null || colParent.getModel().getExpandType() != XptExpandType.c) {
+        if (colParent == null) {
             throw new NopException(ERR_XPT_INVALID_COL_PARENT)
                     .param(ARG_SHEET_NAME, sheet.getName())
                     .param(ARG_CELL_POS, cell.getModel().getName())
                     .param(ARG_COL_PARENT, pos.toABString());
         }
-        return colParent;
+        return colParent.getRealCell();
     }
 
     private void initDuplicateCells(ExcelSheet sheet, Map<String, ExcelCell> cells) {
@@ -446,7 +451,8 @@ public class XptModelBuilder {
             if (rcModel.getRowIndex() <= beginIndex
                     && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
                 if (!xptModel.getRowDuplicateCells().containsKey(name)) {
-                    xptModel.addRowExtendCell(rc);
+                    if (xptModel.getRowParent(name) != null || rcModel.isRowExtendForSibling())
+                        xptModel.addRowExtendCell(rc);
                 }
             }
         }
@@ -479,7 +485,8 @@ public class XptModelBuilder {
             if (rcModel.getColIndex() <= beginIndex
                     && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
                 if (!xptModel.getColDuplicateCells().containsKey(name)) {
-                    xptModel.addColExtendCell(rc);
+                    if (xptModel.getColParent(name) != null || rcModel.isColExtendForSibling())
+                        xptModel.addColExtendCell(rc);
                 }
             }
         }
@@ -522,7 +529,7 @@ public class XptModelBuilder {
                 if (ic != null && ic != cell && !ic.isProxyCell()) {
                     ExcelCell c = (ExcelCell) ic.getRealCell();
                     XptCellModel cm = c.getModel();
-                    if (cm.getColParent() == null ) {
+                    if (cm.getColParent() == null) {
                         if (cm.getColIndex() + c.getColSpan() <= cellModel.getColIndex()
                                 || cm.getColIndex() >= cellModel.getColIndex() + cell.getColSpan()) {
                             cm.setColParent(cellModel.getCellPosition());

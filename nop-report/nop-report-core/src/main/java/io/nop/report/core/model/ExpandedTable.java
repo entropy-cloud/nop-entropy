@@ -207,6 +207,20 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
         return cols.get(colIndex);
     }
 
+    public boolean isNewlyCreatedCol(int colIndex) {
+        if (colIndex >= cols.size()) {
+            return false;
+        }
+        return cols.get(colIndex).isNewlyCreated();
+    }
+
+    public boolean isNewlyCreatedRow(int rowIndex) {
+        if (rowIndex >= rows.size())
+            return false;
+
+        return rows.get(rowIndex).isNewlyCreated();
+    }
+
     public ExpandedRow makeRow(int index) {
         if (index < rows.size()) {
             return rows.get(index);

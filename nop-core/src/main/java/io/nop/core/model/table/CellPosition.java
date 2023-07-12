@@ -26,6 +26,10 @@ import static io.nop.core.model.table.utils.CellReferenceHelper.convertNumToColS
  */
 @DataBean
 public class CellPosition implements Serializable, Comparable<CellPosition>, IJsonString {
+    public static String NONE_NAME = "A0";
+    public static String NONE_RC_NAME = "R0C0";
+
+    public static CellPosition NONE = new CellPosition();
 
     private static final long serialVersionUID = 6640189410792108663L;
 
@@ -49,8 +53,15 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
         this.colIndex = colIndex;
     }
 
+    private CellPosition() {
+        this.rowIndex = -1;
+        this.colIndex = -1;
+    }
+
     @StaticFactoryMethod
     public static CellPosition fromRCString(String str) {
+        if (NONE_RC_NAME.equals(str))
+            return NONE;
         return CellReferenceHelper.parsePositionRCString(str);
     }
 
@@ -78,6 +89,10 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
         return toRCString(rowIndex, colIndex);
     }
 
+    public boolean isNone() {
+        return this == NONE;
+    }
+
     public boolean isWholeRow() {
         return colIndex < 0;
     }
@@ -99,8 +114,12 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
     }
 
     public static String toRCString(int r, int c) {
-        if (r < 0)
+        if (r < 0) {
+            if (r == -1 && c == -1)
+                return NONE_RC_NAME;
+
             return "C" + (c + 1);
+        }
         if (c < 0)
             return "R" + (r + 1);
         return "R" + (r + 1) + "C" + (c + 1);
@@ -111,6 +130,9 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
     }
 
     public static String toABString(int rowIndex, int colIndex, boolean rowAbs, boolean colAbs) {
+        if (rowIndex == -1 && colIndex == -1)
+            return NONE_NAME;
+
         StringBuilder sb = new StringBuilder(10);
         if (colIndex >= 0) {
             if (colAbs) {

@@ -21,8 +21,7 @@ public class XptCellModel extends _XptCellModel {
     }
 
     private String name;
-    private int rowIndex;
-    private int colIndex;
+    private CellPosition cellPosition;
 
     // 单元格及所有子单元格所构成的区块的起始位置（从当前index算起）
     private int rowExpandOffset;
@@ -54,27 +53,35 @@ public class XptCellModel extends _XptCellModel {
     private ExcelCell rowParentCell;
     private ExcelCell colParentCell;
 
+    public boolean isTopRowCell() {
+        return getRowParent() == null || getRowParent() == CellPosition.NONE;
+    }
+
+    public boolean isTopColCell() {
+        return getColParent() == null || getColParent() == CellPosition.NONE;
+    }
+
     @JsonIgnore
     public CellPosition getCellPosition() {
-        return CellPosition.of(rowIndex, colIndex);
+        return cellPosition;
+    }
+
+    public void setCellPosition(CellPosition cellPosition) {
+        this.cellPosition = cellPosition;
     }
 
     @JsonIgnore
     public int getRowIndex() {
-        return rowIndex;
-    }
-
-    public void setRowIndex(int rowIndex) {
-        this.rowIndex = rowIndex;
+        if (cellPosition == null)
+            return -1;
+        return cellPosition.getRowIndex();
     }
 
     @JsonIgnore
     public int getColIndex() {
-        return colIndex;
-    }
-
-    public void setColIndex(int colIndex) {
-        this.colIndex = colIndex;
+        if (cellPosition == null)
+            return -1;
+        return cellPosition.getColIndex();
     }
 
     public boolean isRowDuplicate(String name) {
