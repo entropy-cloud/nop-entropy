@@ -238,4 +238,15 @@ public class ExpandedRow implements IRowView {
     public int getRowIndex() {
         return table.getRows().indexOf(this);
     }
+
+    public void useNextRowStyle() {
+        ExpandedCell cell = this.firstCell;
+        while (cell != null) {
+            ExpandedCell down = cell.getDown();
+            if (down != null) {
+                cell.setStyleId(down.getStyleId());
+            }
+            cell = cell.getRight();
+        }
+    }
 }

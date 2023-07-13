@@ -104,6 +104,7 @@ public class ExpandedCell implements ICellView {
         }
     }
 
+    @JsonIgnore
     public Number getNumberValue() {
         Object value = getValue();
         if (value instanceof Number)
@@ -111,6 +112,7 @@ public class ExpandedCell implements ICellView {
         return null;
     }
 
+    @JsonIgnore
     public ReportDataSet getDs() {
         if (expandValue instanceof ReportDataSet)
             return (ReportDataSet) expandValue;
@@ -241,12 +243,14 @@ public class ExpandedCell implements ICellView {
         return getValue();
     }
 
+    @JsonIgnore
     public int getRowParentExpandIndex() {
         if (rowParent == null)
             return -1;
         return rowParent.getExpandIndex();
     }
 
+    @JsonIgnore
     public int getColParentExpandIndex() {
         if (colParent == null)
             return -1;
@@ -257,31 +261,56 @@ public class ExpandedCell implements ICellView {
         return realCell != null && realCell != this;
     }
 
+    @JsonIgnore
     public ExpandedTable getTable() {
         return getRow().getTable();
     }
 
+    @JsonIgnore
     public ExpandedCell getRowRoot() {
         if (rowParent == null)
             return this;
         return rowParent.getRowRoot();
     }
 
+    @JsonIgnore
     public ExpandedCell getColRoot() {
         if (colParent == null)
             return this;
         return colParent.getColRoot();
     }
 
+    @JsonIgnore
     public XptCellModel getModel() {
         return model;
     }
 
+    @JsonIgnore
     public boolean isExpandable() {
         XptCellModel model = getModel();
         if (model == null)
             return false;
         return model.getExpandType() != null;
+    }
+
+    @JsonIgnore
+    public boolean isRowParentExpandable() {
+        ExpandedCell rowParent = getRowParent();
+        if (rowParent == null)
+            return false;
+        if (rowParent.isExpandable())
+            return true;
+        return rowParent.isRowParentExpandable();
+    }
+
+    @JsonIgnore
+    public boolean isColParentExpandable() {
+        ExpandedCell colParent = getColParent();
+        if (colParent == null)
+            return false;
+        if (colParent.isExpandable())
+            return true;
+        return colParent.isColParentExpandable();
     }
 
     public String getStyleId() {
@@ -375,6 +404,7 @@ public class ExpandedCell implements ICellView {
         return this.colParent.getColClosest(cellName);
     }
 
+    @JsonIgnore
     public List<ExpandedCell> getRowChildren() {
         if (rowDescendants == null || rowDescendants.isEmpty())
             return Collections.emptyList();
@@ -393,6 +423,7 @@ public class ExpandedCell implements ICellView {
         return children;
     }
 
+    @JsonIgnore
     public List<ExpandedCell> getColChildren() {
         if (colDescendants == null || colDescendants.isEmpty())
             return Collections.emptyList();
@@ -411,6 +442,7 @@ public class ExpandedCell implements ICellView {
         return children;
     }
 
+    @JsonIgnore
     public ExpandedCell getColParent() {
         return colParent;
     }
@@ -433,26 +465,32 @@ public class ExpandedCell implements ICellView {
         return null;
     }
 
+    @JsonIgnore
     public ExpandedCell getRr() {
         return getRowRoot();
     }
 
+    @JsonIgnore
     public ExpandedCell getCr() {
         return getColRoot();
     }
 
+    @JsonIgnore
     public ExpandedCell getRp() {
         return getRowParent();
     }
 
+    @JsonIgnore
     public ExpandedCell getCp() {
         return getColParent();
     }
 
+    @JsonIgnore
     public Object getEv() {
         return getExpandValue();
     }
 
+    @JsonIgnore
     public int getEi() {
         return getExpandIndex();
     }
@@ -476,6 +514,7 @@ public class ExpandedCell implements ICellView {
         this.expandIndex = expandIndex;
     }
 
+    @JsonIgnore
     public ExpandedRow getRow() {
         return row;
     }
@@ -484,6 +523,7 @@ public class ExpandedCell implements ICellView {
         this.row = row;
     }
 
+    @JsonIgnore
     public ExpandedCol getCol() {
         return col;
     }
@@ -492,6 +532,7 @@ public class ExpandedCell implements ICellView {
         this.col = col;
     }
 
+    @JsonIgnore
     public Map<String, List<ExpandedCell>> getRowDescendants() {
         return rowDescendants;
     }
@@ -625,6 +666,7 @@ public class ExpandedCell implements ICellView {
         return mapA;
     }
 
+    @JsonIgnore
     public Map<String, List<ExpandedCell>> getColDescendants() {
         return colDescendants;
     }

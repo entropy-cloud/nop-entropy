@@ -157,4 +157,15 @@ public class ExpandedCol implements IColumnConfig {
             c3 = c3.getDown();
         }
     }
+
+    public void useNextColStyle() {
+        ExpandedCell cell = this.firstCell;
+        while (cell != null) {
+            ExpandedCell right = cell.getRight();
+            if (right != null) {
+                cell.setStyleId(right.getStyleId());
+            }
+            cell = cell.getDown();
+        }
+    }
 }

@@ -452,7 +452,7 @@ public class XptModelBuilder {
                     && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
                 if (!xptModel.getRowDuplicateCells().containsKey(name)) {
                     if (rcModel.isRowExtendForSibling()
-                            || rc.getRowSpan() > xptModel.getRowExpandSpan()
+                            || rcModel.getRowIndex() + rc.getRowSpan() > endIndex // 除非不延展就会被插入的新行撕裂
                             || xptModel.getRowParent(name) != null)
                         xptModel.addRowExtendCell(rc);
                 }
@@ -488,7 +488,7 @@ public class XptModelBuilder {
                     && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
                 if (!xptModel.getColDuplicateCells().containsKey(name)) {
                     if (rcModel.isColExtendForSibling()
-                            || rc.getColSpan() > xptModel.getColExpandSpan()
+                            ||  rcModel.getColIndex() + rc.getColSpan() > endIndex // 除非不延展就会被插入的新列撕裂
                             || xptModel.getColParent(name) != null)
                         xptModel.addColExtendCell(rc);
                 }

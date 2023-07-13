@@ -45,7 +45,7 @@ public abstract class AbstractCellExpander implements ICellExpander {
             cell.setExpandValue(value);
 
             int expandCount = duplicate(expandList, cell, processing);
-            if (expandCount > 1)
+            if (expandCount > 0)
                 extendCells(cell, expandCount);
         }
         //ExpandedTableToNode.dump(cell.getTable());
@@ -87,19 +87,18 @@ public abstract class AbstractCellExpander implements ICellExpander {
                             Deque<ExpandedCell> processing) {
 
         int expandIndex = 0;
-        int count = 1;
+        int count = 0;
         while (it.hasNext()) {
-            count++;
             expandIndex++;
             Object expandValue = it.next();
 
-            duplicateCell(cell, expandIndex, expandValue, processing);
+            count += duplicateCell(cell, expandIndex, expandValue, processing);
         }
 
         return count;
     }
 
-    protected abstract void duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue,
+    protected abstract int duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue,
                                           Collection<ExpandedCell> processing);
 
     protected Map<String, List<ExpandedCell>> getNewListMap(Map<String, List<ExpandedCell>> listMap, Map<ExpandedCell, ExpandedCell> cellMap) {

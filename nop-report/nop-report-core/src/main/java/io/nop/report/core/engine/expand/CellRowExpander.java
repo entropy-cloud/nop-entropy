@@ -46,7 +46,7 @@ public class CellRowExpander extends AbstractCellExpander {
     }
 
     @Override
-    protected void extendCells(ExpandedCell cell, int expandCount) {
+    protected void extendCells(ExpandedCell cell, int incSpan) {
         XptCellModel xptModel = cell.getModel();
         ExpandedRow row = cell.getRow();
         int rowIndex = row.getRowIndex();
@@ -73,11 +73,6 @@ public class CellRowExpander extends AbstractCellExpander {
             });
         }
 
-        int incSpan = expandSpan * (expandCount - 1);
-        if (xptModel != null && xptModel.getExpandInplaceCount() != null && xptModel.getExpandInplaceCount() > 0) {
-            incSpan -= xptModel.getExpandInplaceCount() - 1;
-        }
-
         for (ExpandedCell needExtend : needExtends.keySet()) {
             needExtend.setMergeDown(needExtend.getMergeDown() + incSpan);
             needExtend.markProxy();
@@ -85,7 +80,7 @@ public class CellRowExpander extends AbstractCellExpander {
     }
 
     @Override
-    protected void duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue, Collection<ExpandedCell> processing) {
+    protected int duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue, Collection<ExpandedCell> processing) {
         XptCellModel xptModel = cell.getModel();
         ExpandedRow row = cell.getRow();
         int rowIndex = row.getRowIndex();
@@ -99,20 +94,27 @@ public class CellRowExpander extends AbstractCellExpander {
 
         int startIndex = rowIndex + expandOffset;
 
+        int incSpan = 0;
+
         for (int i = 0; i < expandSpan; i++) {
             int index = startIndex + i;
             ExpandedRow r = table.getRow(index);
             int newIndex = index + expandSpan * expandIndex;
 
             boolean needInsert = isNeedInsert(expandIndex,
-                    xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount())
-                    && !table.isNewlyCreatedRow(newIndex);
+                    xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
+
+            if (needInsert) {
+                incSpan++;
+                needInsert = !isAllowReuse(cell, table, newIndex);
+            }
 
             ExpandedRow newRow = needInsert ? table.insertEmptyRow(newIndex) : table.makeRow(newIndex);
             if (needInsert) {
                 newRow.setNewlyCreated(true);
                 newRow.setHeight(r.getHeight());
                 newRow.setModel(r.getModel());
+                newRow.useNextRowStyle();
             }
             duplicateRow(r, cell, expandIndex, expandValue, newRow, cellMap, processing);
         }
@@ -134,7 +136,15 @@ public class CellRowExpander extends AbstractCellExpander {
                 newCell.getColParent().addColChild(newCell);
             }
         }
+        return incSpan;
     }
+
+    private boolean isAllowReuse(ExpandedCell cell, ExpandedTable table, int index) {
+        if (cell.isRowParentExpandable())
+            return false;
+        return table.isNewlyCreatedRow(index);
+    }
+
 
     // 如果是待复制单元格或者其子单元格，则复制，否则延展。
     private void duplicateRow(ExpandedRow row, ExpandedCell cell, int expandIndex,

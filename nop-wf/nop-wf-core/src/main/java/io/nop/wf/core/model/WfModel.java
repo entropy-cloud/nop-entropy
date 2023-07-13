@@ -7,14 +7,20 @@
  */
 package io.nop.wf.core.model;
 
+import io.nop.api.core.util.INeedInit;
 import io.nop.wf.core.model._gen._WfModel;
+import io.nop.wf.core.model.analyze.WfModelAnalyzer;
 
-public class WfModel extends _WfModel implements IWorkflowModel{
+public class WfModel extends _WfModel implements IWorkflowModel, INeedInit {
     public WfModel() {
 
     }
 
     public WfStepModel getStartStep() {
         return getStep(getStart().getStartStepName());
+    }
+
+    public void init() {
+        new WfModelAnalyzer().analyze(this);
     }
 }
