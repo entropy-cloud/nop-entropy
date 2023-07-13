@@ -57,6 +57,9 @@ public class TestParseTreeTable extends BaseTestCase {
     }
 
 
+    /**
+     * 动态展开的列
+     */
     @Test
     public void testParse3() {
         IResource resource = attachmentResource("test_imp3.test.xlsx");
@@ -73,6 +76,9 @@ public class TestParseTreeTable extends BaseTestCase {
         assertEquals(normalizeCRLF(attachmentText("test-exp3.html")), normalizeCRLF(html));
     }
 
+    /**
+     * 条件样式
+     */
     @Test
     public void testParse4() {
         IResource resource = attachmentResource("test_imp4.test.xlsx");
@@ -86,4 +92,21 @@ public class TestParseTreeTable extends BaseTestCase {
 
     }
 
+    /**
+     * 多个子表都具有动态展开的列
+     */
+    @Test
+    public void testParse5() {
+        IResource resource = attachmentResource("test_imp5.test.xlsx");
+        Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test5.imp.xml", resource);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("indexYears", Arrays.asList(2001, 2002, 2003, 2004));
+        scope.setLocalValue("jYears", Arrays.asList(2021,2022,2023,2024,2025));
+
+        String html = ExcelReportHelper.getHtmlForXlsxObject("/nop/test/imp/test5.imp.xml", bean, scope);
+        FileHelper.writeText(getTargetFile("test-exp5.html"), html, null);
+        assertEquals(normalizeCRLF(attachmentText("test-exp5.html")), normalizeCRLF(html));
+
+    }
 }

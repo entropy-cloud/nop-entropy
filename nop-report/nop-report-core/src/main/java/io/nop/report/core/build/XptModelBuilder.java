@@ -451,7 +451,9 @@ public class XptModelBuilder {
             if (rcModel.getRowIndex() <= beginIndex
                     && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
                 if (!xptModel.getRowDuplicateCells().containsKey(name)) {
-                    if (xptModel.getRowParent(name) != null || rcModel.isRowExtendForSibling())
+                    if (rcModel.isRowExtendForSibling()
+                            || rc.getRowSpan() > xptModel.getRowExpandSpan()
+                            || xptModel.getRowParent(name) != null)
                         xptModel.addRowExtendCell(rc);
                 }
             }
@@ -485,7 +487,9 @@ public class XptModelBuilder {
             if (rcModel.getColIndex() <= beginIndex
                     && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
                 if (!xptModel.getColDuplicateCells().containsKey(name)) {
-                    if (xptModel.getColParent(name) != null || rcModel.isColExtendForSibling())
+                    if (rcModel.isColExtendForSibling()
+                            || rc.getColSpan() > xptModel.getColExpandSpan()
+                            || xptModel.getColParent(name) != null)
                         xptModel.addColExtendCell(rc);
                 }
             }

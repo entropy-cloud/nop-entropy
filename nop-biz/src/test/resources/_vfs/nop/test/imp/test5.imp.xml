@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     templatePath="template5.test.xlsx"
+     xmlns:xpt="xpt">
+
+    <!--    <x:post-extends>-->
+    <!--        <imp-gen:TreeTableSupport xpl:lib="/nop/excel/xlib/imp-gen.xlib"/>-->
+    <!--    </x:post-extends>-->
+
+    <sheets>
+
+        <sheet name="指标3"  field="projectIndexC">
+            <fields>
+                <field name="projectName" displayName="项目名称" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="projectNo" displayName="项目号">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="batchNo" displayName="批次号">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="time" displayName="日期">
+                    <schema stdDomain="string"/>
+                </field>
+                <field name="msrp" displayName="价格"  list="true">
+                    <fields>
+                        <field name="derive" displayName="派生">
+                            <schema stdDomain="string"/>
+                        </field>
+                        <field name="indexValue" displayName="X年" virtual="true">
+                            <schema stdDomain="int"/>
+                            <valueExpr>
+                                // 如果是第一次访问indexValues属性，则自动创建一个List
+                                let list = record.makeList('indexValues')
+                                let year = fieldLabel.$removeTail('年').$toInt()
+                                list.add({ year, value})
+                            </valueExpr>
+
+                            <xpt:labelExpandExpr>
+                                <!-- 外部传入的年份列表数据 -->
+                                indexYears
+                            </xpt:labelExpandExpr>
+
+                            <!-- 根据展开表达式值动态构建字段标题 -->
+                            <xpt:labelValueExpr>
+                                cell.ev + '年'
+                            </xpt:labelValueExpr>
+
+                            <xpt:valueExpr>
+                                _.findWhere(cell.rp.ev.indexValues,'year',cell.cp.ev.$toInt()).value
+                            </xpt:valueExpr>
+
+                            <xpt:labelStyleIdExpr>
+                                cell.ev == 2002 ? 'red' : null
+                            </xpt:labelStyleIdExpr>
+
+                            <xpt:styleIdExpr>
+                                cell.value > 300 ? 'red' : null
+                                <!--cell.value == 'A2' ? 'red' : null-->
+                            </xpt:styleIdExpr>
+                        </field>
+                    </fields>
+                    <fieldDecider>
+                        fieldLabel.endsWith("年") ? "indexValue" : null
+                    </fieldDecider>
+                </field>
+                <field name="mix" displayName="结构"  list="true">
+                    <fields>
+                        <field name="derive" displayName="派生">
+                            <schema stdDomain="string"/>
+                        </field>
+                        <field name="indexValue" displayName="X年" virtual="true">
+                            <schema stdDomain="int"/>
+                            <valueExpr>
+                                // 如果是第一次访问indexValues属性，则自动创建一个List
+                                let list = record.makeList('indexValues')
+                                let year = fieldLabel.$removeTail('年').$toInt()
+                                list.add({ year, value})
+                            </valueExpr>
+                            <xpt:labelExpandExpr>
+                                <!-- 外部传入的年份列表数据 -->
+                                jYears
+                            </xpt:labelExpandExpr>
+                            <!-- 根据展开表达式值动态构建字段标题 -->
+                            <xpt:labelValueExpr>
+                                cell.ev + '年'
+                            </xpt:labelValueExpr>
+                            <xpt:valueExpr>
+                                _.findWhere(cell.rp.ev.indexValues,'year',cell.cp.ev.$toInt()).value
+                            </xpt:valueExpr>
+                            <xpt:labelStyleIdExpr>
+                                cell.ev == 2002 ? 'red' : null
+                            </xpt:labelStyleIdExpr>
+                            <xpt:styleIdExpr>
+                                cell.value > 300 ? 'red' : null
+                                <!--cell.value == 'A2' ? 'red' : null-->
+                            </xpt:styleIdExpr>
+                        </field>
+                    </fields>
+                    <fieldDecider>
+                        fieldLabel.endsWith("年") ? "indexValue" : null
+                    </fieldDecider>
+                </field>
+            </fields>
+        </sheet>
+
+    </sheets>
+</imp>
