@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.commons.cache.GlobalCacheRegistry;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 
 @Locale("zh-CN")
@@ -22,5 +23,11 @@ public class DevToolBizModel {
     public void clearComponentCache() {
         ResourceComponentManager.instance().clearAllCache();
         GlobalCacheRegistry.instance().clearAllCache();
+    }
+
+    @BizMutation
+    @Description("刷新虚拟文件系统")
+    public void refreshVirtualFileSystem() {
+        VirtualFileSystem.instance().refresh(true);
     }
 }

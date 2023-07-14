@@ -345,6 +345,7 @@ public class ClassHelper {
         try {
             return (clToUse != null ? clToUse.loadClass(name) : Class.forName(name));
         } catch (ClassNotFoundException ex) {
+            LOG.debug("nop.class-not-found:class={},classLoader={}",name,clToUse);
             int lastDotIndex = name.lastIndexOf(PACKAGE_SEPARATOR);
             if (lastDotIndex != -1) {
                 String innerClassName = name.substring(0, lastDotIndex) + INNER_CLASS_SEPARATOR

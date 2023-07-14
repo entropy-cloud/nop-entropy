@@ -45,9 +45,11 @@ public class XDefHelper {
 
     public static String buildPropName(Set<String> propNs, String name) {
         if (name.indexOf(':') > 0) {
-            String ns = StringHelper.getNamespace(name);
-            if (propNs.contains(ns)) {
-                return StringHelper.xmlNameToPropName(name);
+            if (propNs != null) {
+                String ns = StringHelper.getNamespace(name);
+                if (propNs.contains(ns)) {
+                    return StringHelper.xmlNameToPropName(name);
+                }
             }
             return name;
         }

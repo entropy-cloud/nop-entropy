@@ -99,6 +99,10 @@ public class XDefRefResolver {
                 resolveNode(localDef);
             }
 
+            if (def.getRefNode() != null)
+                resolveNode(def.getRefNode());
+
+            def.setRefResolved(true);
             resolveAttrs(def);
 
             resolveChildren(def);
@@ -199,6 +203,9 @@ public class XDefRefResolver {
             return;
 
         resolveRef(defNode);
+        if (defNode.getRefNode() != null)
+            resolveNode(defNode.getRefNode());
+        defNode.setRefResolved(true);
 
         resolveAttrs((XDefNode) defNode);
 
@@ -211,8 +218,6 @@ public class XDefRefResolver {
             return;
         }
 
-        defNode.setRefNode(refNode);
-        defNode.setRefResolved(true);
         mergeRefNodeProps(refNode, defNode);
         mergeAttrs(refNode, defNode);
     }
@@ -274,6 +279,9 @@ public class XDefRefResolver {
         if (defNode.getXdefUnknownTag() == null)
             defNode.setXdefUnknownTag((XDefNode) refNode.getXdefUnknownTag());
 
+        if (refNode.getChildren().isEmpty())
+            return;
+
         if (defNode.getChildren().isEmpty()) {
             defNode.setChildren((Map) refNode.getChildren());
         } else {
@@ -294,13 +302,16 @@ public class XDefRefResolver {
     }
 
     private void mergeNode(IXDefNode refNode, XDefNode defNode) {
+        if (refNode == defNode)
+            return;
         mergeRefNodeProps(refNode, defNode);
         mergeAttrs(refNode, defNode);
         mergeChildren(refNode, defNode);
     }
 
     private void resolveRef(IXDefNode defNode) {
-        defNode.setRefResolved(true);
+        if (defNode.getRefNode() != null)
+            return;
         IXDefNode refNode = getRefNode(defNode);
         if (refNode != null) {
             defNode.setRefNode(refNode);

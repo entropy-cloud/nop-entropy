@@ -14924,6 +14924,10 @@
       {
         "name": "clearComponentCache",
         "parameterTypes": []
+      },
+      {
+        "name": "refreshVirtualFileSystem",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.biz.dev.DevToolBizModel",
@@ -29978,6 +29982,20 @@
         ]
       },
       {
+        "name": "isTopColCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "isTopRowCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "setCellPosition",
+        "parameterTypes": [
+          "io.nop.core.model.table.CellPosition"
+        ]
+      },
+      {
         "name": "setColExpandLevel",
         "parameterTypes": [
           "int"
@@ -31315,6 +31333,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isColExtendForSibling",
+        "parameterTypes": []
+      },
+      {
         "name": "isExportFormattedValue",
         "parameterTypes": []
       },
@@ -31323,9 +31345,19 @@
         "parameterTypes": []
       },
       {
+        "name": "isRowExtendForSibling",
+        "parameterTypes": []
+      },
+      {
         "name": "outputJson",
         "parameterTypes": [
           "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setColExtendForSibling",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -31410,6 +31442,12 @@
         "name": "setLinkExpr",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setRowExtendForSibling",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -42833,6 +42871,10 @@
         ]
       },
       {
+        "name": "isColParentExpandable",
+        "parameterTypes": []
+      },
+      {
         "name": "isEvaluated",
         "parameterTypes": []
       },
@@ -42857,6 +42899,10 @@
         "parameterTypes": [
           "io.nop.report.core.model.ExpandedCell"
         ]
+      },
+      {
+        "name": "isRowParentExpandable",
+        "parameterTypes": []
       },
       {
         "name": "isStaticCell",
@@ -47673,6 +47719,52 @@
       }
     ],
     "name": "io.nop.web.page.WebPageHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addPrefix",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getPropType",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "propToField",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.IObjPropMeta"
+        ]
+      },
+      {
+        "name": "propToGroup",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.ISchema",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "schemaToFields",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      }
+    ],
+    "name": "io.nop.web.utils.ConditionSchemaHelper",
     "unsafeAllocated": false
   },
   {
@@ -54449,6 +54541,31 @@
       }
     ],
     "name": "java.lang.Iterable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.lang.Object",
     "unsafeAllocated": false
   },
   {

@@ -8,6 +8,7 @@
 package io.nop.core.resource;
 
 import io.nop.commons.lang.IDestroyable;
+import io.nop.commons.lang.IRefreshable;
 import io.nop.core.resource.impl.VirtualFile;
 
 import javax.annotation.Nonnull;
@@ -16,7 +17,7 @@ import java.util.Set;
 /**
  * 类似于Docker使用的差量文件系统，内部由多层IResourceStore组成，对外暴露为统一的路径空间，并支持差量定制。
  */
-public interface IVirtualFileSystem extends IResourceStore, IDestroyable {
+public interface IVirtualFileSystem extends IResourceStore, IDestroyable, IRefreshable {
 
     IResource getRawResource(String path, boolean returnNullIfExists);
 
@@ -32,4 +33,8 @@ public interface IVirtualFileSystem extends IResourceStore, IDestroyable {
      * GraalVM生成native镜像时不支持类路径扫描，需要将事先收集类路径下资源文件
      */
     Set<String> getClassPathResources();
+
+    default void refresh(boolean refreshDepends){
+
+    }
 }

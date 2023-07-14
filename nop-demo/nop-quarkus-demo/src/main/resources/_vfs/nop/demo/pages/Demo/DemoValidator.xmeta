@@ -1,0 +1,22 @@
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="propA" displayName="属性A">
+            <schema stdDomain="int"/>
+        </prop>
+
+        <prop name="propB" displayName="属性B">
+            <schema stdDomain="date"/>
+        </prop>
+
+        <prop name="related" displayName="关联对象">
+            <schema>
+                <props>
+                    <prop name="subProp1" displayName="子属性" />
+                    <prop name="subProp2" displayName="子属性2">
+                        <schema stdDomain="timestamp" />
+                    </prop>
+                </props>
+            </schema>
+        </prop>
+    </props>
+</meta>
