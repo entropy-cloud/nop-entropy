@@ -10,8 +10,11 @@ package io.nop.report.core.build;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.model.graph.DefaultDirectedGraph;
+import io.nop.core.model.graph.DefaultEdge;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
 import io.nop.excel.model.ExcelCell;
@@ -28,11 +31,8 @@ import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.initialize.TemplateReportExprStdDomainHandler;
 import io.nop.xlang.api.XLangCompileTool;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import static io.nop.report.core.XptConstants.EXCEL_MODEL_FIELD_PREFIX;
 import static io.nop.report.core.XptErrors.ARG_CELL_POS;
@@ -73,12 +73,11 @@ public class XptModelBuilder {
         if (sheet.getModel() == null)
             sheet.setModel(new XptSheetModel());
 
-        Map<String, ExcelCell> cells = new TreeMap<>();
         initCols(sheet);
-        initXptModels(sheet, cells);
-        initParentChildren(sheet, cells);
-        initDuplicateCells(sheet, cells);
-        initExtendCells(sheet, cells);
+        initXptModels(sheet);
+        initParentChildren(sheet);
+        initDuplicateCells(sheet);
+        initExtendCells(sheet);
 
         // new XptStructureToNode().buildNodeForSheet(sheet).dump();
     }
@@ -99,7 +98,7 @@ public class XptModelBuilder {
         }
     }
 
-    private void initXptModels(ExcelSheet sheet, Map<String, ExcelCell> cells) {
+    private void initXptModels(ExcelSheet sheet) {
         ExcelTable table = sheet.getTable();
         int colCount = table.getColCount();
         int rowCount = table.getRowCount();
@@ -122,7 +121,6 @@ public class XptModelBuilder {
 
                 ExcelCell ec = (ExcelCell) cell;
                 String name = CellPosition.toABString(i, j);
-                cells.put(name, ec);
 
                 XptCellModel xptModel = ec.getModel();
                 if (xptModel == null) {
@@ -196,11 +194,11 @@ public class XptModelBuilder {
         }
     }
 
-    private void initParentChildren(ExcelSheet sheet, Map<String, ExcelCell> cells) {
+    private void initParentChildren(ExcelSheet sheet) {
         sheet.getTable().forEachRealCell((ic, rowIndex, colIndex) -> {
             ExcelCell cell = (ExcelCell) ic;
             XptCellModel xptModel = cell.getModel();
-            ExcelCell rowParent = getRowParent(sheet, cell, cells);
+            ExcelCell rowParent = getRowParent(sheet, cell);
             if (rowParent != null) {
                 if (xptModel.getRowParent() == null) {
                     xptModel.setRowParent(rowParent.getModel().getCellPosition());
@@ -209,7 +207,7 @@ public class XptModelBuilder {
                 rowParent.getModel().addRowChildCell(cell);
             }
 
-            ExcelCell colParent = getColParent(sheet, cell, cells);
+            ExcelCell colParent = getColParent(sheet, cell);
             if (colParent != null) {
                 if (xptModel.getColParent() == null) {
                     xptModel.setColParent(colParent.getModel().getCellPosition());
@@ -221,14 +219,14 @@ public class XptModelBuilder {
         });
     }
 
-    private ExcelCell getRowParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells) {
+    private ExcelCell getRowParent(ExcelSheet sheet, ExcelCell cell) {
         XptCellModel xptModel = cell.getModel();
 
         if (xptModel.getRowParent() == CellPosition.NONE)
             return null;
 
         if (xptModel.getRowParent() != null) {
-            return resolveRowParent(sheet, cell, cells, xptModel.getRowParent());
+            return resolveRowParent(sheet, cell, xptModel.getRowParent());
         } else {
             if (xptModel.getColIndex() == 0) {
                 return null;
@@ -254,18 +252,23 @@ public class XptModelBuilder {
             CellPosition pos = ec.getModel().getRowParent();
             if (pos == null || pos == CellPosition.NONE)
                 return null;
-            return resolveRowParent(sheet, cell, cells, pos);
+
+            // 如果第一个单元格的父指向自身，则忽略
+            if (pos.equals(cell.getModel().getCellPosition()))
+                return null;
+
+            return resolveRowParent(sheet, cell, pos);
         }
     }
 
-    private ExcelCell getColParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells) {
+    private ExcelCell getColParent(ExcelSheet sheet, ExcelCell cell) {
         XptCellModel xptModel = cell.getModel();
 
         if (xptModel.getColParent() == CellPosition.NONE)
             return null;
 
         if (xptModel.getColParent() != null) {
-            return resolveColParent(sheet, cell, cells, xptModel.getColParent());
+            return resolveColParent(sheet, cell, xptModel.getColParent());
         } else {
             if (xptModel.getRowIndex() == 0) {
                 return null;
@@ -290,14 +293,19 @@ public class XptModelBuilder {
                 return null;
             ExcelCell ec = (ExcelCell) firstCell.getRealCell();
             CellPosition pos = ec.getModel().getColParent();
-            if (pos == null)
+            if (pos == null || pos == CellPosition.NONE)
                 return null;
-            return resolveColParent(sheet, cell, cells, pos);
+
+            // 如果第一个单元格的父指向自身，则忽略
+            if (pos.equals(cell.getModel().getCellPosition()))
+                return null;
+
+            return resolveColParent(sheet, cell, pos);
         }
     }
 
-    private ExcelCell resolveRowParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells, CellPosition pos) {
-        ExcelCell rowParent = cells.get(pos.toABString());
+    private ExcelCell resolveRowParent(ExcelSheet sheet, ExcelCell cell, CellPosition pos) {
+        ExcelCell rowParent = (ExcelCell) sheet.getTable().getCell(pos.getRowIndex(), pos.getColIndex());
         if (rowParent == null) {
             throw new NopException(ERR_XPT_INVALID_ROW_PARENT)
                     .param(ARG_SHEET_NAME, sheet.getName())
@@ -307,8 +315,8 @@ public class XptModelBuilder {
         return rowParent.getRealCell();
     }
 
-    private ExcelCell resolveColParent(ExcelSheet sheet, ExcelCell cell, Map<String, ExcelCell> cells, CellPosition pos) {
-        ExcelCell colParent = cells.get(pos.toABString());
+    private ExcelCell resolveColParent(ExcelSheet sheet, ExcelCell cell, CellPosition pos) {
+        ExcelCell colParent = (ExcelCell) sheet.getTable().getCell(pos.getRowIndex(), pos.getColIndex());
         if (colParent == null) {
             throw new NopException(ERR_XPT_INVALID_COL_PARENT)
                     .param(ARG_SHEET_NAME, sheet.getName())
@@ -318,31 +326,75 @@ public class XptModelBuilder {
         return colParent.getRealCell();
     }
 
-    private void initDuplicateCells(ExcelSheet sheet, Map<String, ExcelCell> cells) {
-        for (ExcelCell cell : cells.values()) {
+    private void initDuplicateCells(ExcelSheet sheet) {
+        checkLoop(sheet);
+
+        sheet.getTable().forEachRealCell((c, rowIndex, colIndex) -> {
+            ExcelCell cell = (ExcelCell) c;
             XptCellModel xptModel = cell.getModel();
             // 如果是最顶层的单元格
             if (xptModel.getRowParentCell() == null) {
-                collectRowChild(sheet, cell, new HashSet<>());
+                collectRowChild(sheet, cell);
                 if (xptModel.getExpandType() == XptExpandType.r)
                     addDefaultRowParents(cell, sheet.getTable());
             }
 
             if (xptModel.getColParentCell() == null) {
-                collectColChild(sheet, cell, new HashSet<>());
+                collectColChild(sheet, cell);
                 if (xptModel.getExpandType() == XptExpandType.c)
                     addDefaultColParents(cell, sheet.getTable());
+            }
+            return ProcessResult.CONTINUE;
+        });
+    }
+
+    private void checkLoop(ExcelSheet sheet) {
+        DefaultDirectedGraph<ExcelCell, DefaultEdge<ExcelCell>> rowDepends = DefaultDirectedGraph.create();
+
+        DefaultDirectedGraph<ExcelCell, DefaultEdge<ExcelCell>> colDepends = DefaultDirectedGraph.create();
+
+        sheet.getTable().forEachRealCell((c, rowIndex, colIndex) -> {
+            ExcelCell cell = (ExcelCell) c;
+            XptCellModel cellModel = cell.getModel();
+            rowDepends.addVertex(cell);
+            if (cellModel.getRowParentCell() != null) {
+                rowDepends.addEdge(cell, cellModel.getRowParentCell());
+            }
+
+            colDepends.addVertex(cell);
+            if (cellModel.getColParentCell() != null) {
+                colDepends.addEdge(cell, cellModel.getColParentCell());
+            }
+            return ProcessResult.CONTINUE;
+        });
+
+        Set<ExcelCell> rowCycles = rowDepends.findCycles();
+        Set<ExcelCell> colCycles = colDepends.findCycles();
+
+        if (!rowCycles.isEmpty()) {
+            ExcelCell cell = CollectionHelper.first(rowCycles);
+            if (cell.getModel().getRowParent(cell.getModelCellName()) != null) {
+                throw new NopException(ERR_XPT_ROW_PARENT_CONTAINS_LOOP)
+                        .source(sheet)
+                        .param(ARG_SHEET_NAME, sheet.getName())
+                        .param(ARG_CELL_POS, cell.getModel().getName())
+                        .param(ARG_ROW_PARENT, cell.getModel().getRowParent());
+            }
+        }
+
+        if (!colCycles.isEmpty()) {
+            ExcelCell cell = CollectionHelper.first(colCycles);
+            if (cell.getModel().getColParent(cell.getModelCellName()) != null) {
+                throw new NopException(ERR_XPT_COL_PARENT_CONTAINS_LOOP)
+                        .source(sheet)
+                        .param(ARG_SHEET_NAME, sheet.getName())
+                        .param(ARG_CELL_POS, cell.getModel().getName())
+                        .param(ARG_ROW_PARENT, cell.getModel().getRowParent());
             }
         }
     }
 
-    private void collectRowChild(ExcelSheet sheet, ExcelCell cell, Set<ExcelCell> visiting) {
-        if (!visiting.add(cell))
-            throw new NopException(ERR_XPT_ROW_PARENT_CONTAINS_LOOP)
-                    .param(ARG_SHEET_NAME, sheet.getName())
-                    .param(ARG_CELL_POS, cell.getModel().getName())
-                    .param(ARG_ROW_PARENT, cell.getModel().getRowParent());
-
+    private void collectRowChild(ExcelSheet sheet, ExcelCell cell) {
         XptCellModel xptModel = cell.getModel();
 
         if (xptModel.getRowChildCells().isEmpty()) {
@@ -363,7 +415,7 @@ public class XptModelBuilder {
             XptCellModel childModel = child.getModel();
             childModel.setRowExpandLevel(childLevel);
 
-            collectRowChild(sheet, child, visiting);
+            collectRowChild(sheet, child);
 
             xptModel.addRowDuplicateCells(childModel.getRowDuplicateCells());
 
@@ -376,13 +428,7 @@ public class XptModelBuilder {
         xptModel.setRowExpandSpan(maxRowIndex - minRowIndex);
     }
 
-    private void collectColChild(ExcelSheet sheet, ExcelCell cell, Set<ExcelCell> visiting) {
-        if (!visiting.add(cell))
-            throw new NopException(ERR_XPT_COL_PARENT_CONTAINS_LOOP)
-                    .param(ARG_SHEET_NAME, sheet.getName())
-                    .param(ARG_CELL_POS, cell.getModel().getName())
-                    .param(ARG_COL_PARENT, cell.getModel().getColParent());
-
+    private void collectColChild(ExcelSheet sheet, ExcelCell cell) {
         XptCellModel xptModel = cell.getModel();
 
         if (xptModel.getColChildCells().isEmpty()) {
@@ -402,7 +448,7 @@ public class XptModelBuilder {
         for (ExcelCell child : xptModel.getColChildCells().values()) {
             XptCellModel childModel = child.getModel();
             childModel.setColExpandLevel(childLevel);
-            collectColChild(sheet, child, visiting);
+            collectColChild(sheet, child);
 
             xptModel.addColDuplicateCells(childModel.getColDuplicateCells());
 
@@ -415,15 +461,17 @@ public class XptModelBuilder {
         xptModel.setColExpandSpan(maxColIndex - minColIndex);
     }
 
-    private void initExtendCells(ExcelSheet sheet, Map<String, ExcelCell> cells) {
-        for (ExcelCell cell : cells.values()) {
+    private void initExtendCells(ExcelSheet sheet) {
+        sheet.getTable().forEachRealCell((c, rowIndex, colIndex) -> {
+            ExcelCell cell = (ExcelCell) c;
             XptCellModel xptModel = cell.getModel();
             if (xptModel.getExpandType() == XptExpandType.r) {
                 collectRowExtendCells(sheet, cell);
             } else if (xptModel.getExpandType() == XptExpandType.c) {
                 collectColExtendCells(sheet, cell);
             }
-        }
+            return ProcessResult.CONTINUE;
+        });
     }
 
     private void collectRowExtendCells(ExcelSheet sheet, ExcelCell cell) {
@@ -488,7 +536,7 @@ public class XptModelBuilder {
                     && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
                 if (!xptModel.getColDuplicateCells().containsKey(name)) {
                     if (rcModel.isColExtendForSibling()
-                            ||  rcModel.getColIndex() + rc.getColSpan() > endIndex // 除非不延展就会被插入的新列撕裂
+                            || rcModel.getColIndex() + rc.getColSpan() > endIndex // 除非不延展就会被插入的新列撕裂
                             || xptModel.getColParent(name) != null)
                         xptModel.addColExtendCell(rc);
                 }

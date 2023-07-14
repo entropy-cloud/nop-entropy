@@ -95,4 +95,5 @@ public interface XptErrors {
 
     ErrorCode ERR_XPT_UNKNOWN_REPORT_MODEL =
             define("nop.err.xpt.unknown-report-model", "未知的报表模型：{reportName}", ARG_REPORT_NAME);
+
 }

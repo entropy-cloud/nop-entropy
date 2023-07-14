@@ -39,6 +39,14 @@ public class TestDirectedGraph extends BaseTestCase {
     }
 
     @Test
+    public void testLoop() {
+        StringGraph g = new StringGraph();
+        g.addEdge("b", "a");
+        g.addEdge("a", "a");
+        assertEquals(1, g.findCycles().size());
+    }
+
+    @Test
     public void testTopologicalOrder() {
         StringGraph g = newGraph(new String[]{"a", "b", "c", "d", "e", "f"}, new String[]{"b", "d", "x"},
                 new String[]{"y", "z", "e"});

@@ -35,6 +35,21 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         }
     }
 
+
+//    @EnableSnapshot
+//    @Test
+//    public void runOnce() {
+//        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
+//        String reportName = "/base/02-段落明细表.xpt.xlsx";
+//        String html = reportDemo.renderHtml(reportName);
+//        outputText(reportName + ".html", html);
+//
+//        WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
+//        File file = (File) result.getContent();
+//        FileHelper.copyFile(file, getTargetFile("test-report.xlsx"));
+//        file.delete();
+//    }
+
     @EnableSnapshot
     @Test
     public void testSingleReport() {
