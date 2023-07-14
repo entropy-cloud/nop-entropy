@@ -22,7 +22,7 @@
 @excludeMin 是否要求必须严格大于最小值。
 -->
 <schema xdef:ref="schema-node.xdef" typeValue="string" abstract="boolean"
-        xdef:name="ISchema" xdef:bean-package="io.nop.xlang.xmeta"
+        xdef:name="ISchema" xdef:bean-package="io.nop.xlang.xmeta.impl" xdef:bean-class="io.nop.xlang.xmeta.ISchema"
         interface="boolean" extendsType="generic-type" implementsTypes="generic-type-list"
         minProperties="int" supportExtends="boolean"
 
