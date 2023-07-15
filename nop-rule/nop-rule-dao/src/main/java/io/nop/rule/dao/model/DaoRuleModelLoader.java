@@ -67,16 +67,16 @@ public class DaoRuleModelLoader {
         node.setAttr(XDslKeys.DEFAULT.SCHEMA, RuleConstants.XDSL_SCHEMA_RULE);
 
         XNode inputs = node.makeChild("inputs");
-        for (NopRuleInput input : entity.getInputs()) {
-            XNode inputNode = buildInputNode(input);
-            inputs.appendChild(inputNode);
-        }
-
-        XNode outputs = node.makeChild("outputs");
-        for (NopRuleOutput output : entity.getOutputs()) {
-            XNode outputNode = buildOutputNode(output);
-            outputs.appendChild(outputNode);
-        }
+//        for (NopRuleInput input : entity.getInputs()) {
+//            XNode inputNode = buildInputNode(input);
+//            inputs.appendChild(inputNode);
+//        }
+//
+//        XNode outputs = node.makeChild("outputs");
+//        for (NopRuleOutput output : entity.getOutputs()) {
+//            XNode outputNode = buildOutputNode(output);
+//            outputs.appendChild(outputNode);
+//        }
 
         List<NopRuleNode> nodes = new ArrayList<>(entity.getRuleNodes());
         nodes.sort(Comparator.comparing(NopRuleNode::getSortNo));

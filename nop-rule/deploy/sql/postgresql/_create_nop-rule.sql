@@ -1,42 +1,4 @@
 
-CREATE TABLE nop_rule_input(
-  SID VARCHAR(32) NOT NULL ,
-  RULE_ID VARCHAR(32) NOT NULL ,
-  NAME VARCHAR(50) NOT NULL ,
-  IS_MANDATORY BOOLEAN NOT NULL ,
-  IS_COMPUTED BOOLEAN NOT NULL ,
-  DISPLAY_NAME VARCHAR(200) NOT NULL ,
-  DEFAULT_VALUE VARCHAR(1000)  ,
-  SCHEMA VARCHAR(4000)  ,
-  DESCRIPTION VARCHAR(4000)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_rule_input primary key (SID)
-);
-
-CREATE TABLE nop_rule_output(
-  SID VARCHAR(32) NOT NULL ,
-  RULE_ID VARCHAR(32) NOT NULL ,
-  NAME VARCHAR(50) NOT NULL ,
-  IS_MANDATORY BOOLEAN NOT NULL ,
-  AGG_METHOD VARCHAR(10) NOT NULL ,
-  DISPLAY_NAME VARCHAR(200) NOT NULL ,
-  DEFAULT_VALUE VARCHAR(1000)  ,
-  SCHEMA VARCHAR(4000)  ,
-  DESCRIPTION VARCHAR(4000)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_rule_output primary key (SID)
-);
-
 CREATE TABLE nop_rule_node(
   SID VARCHAR(32) NOT NULL ,
   RULE_ID VARCHAR(32) NOT NULL ,
@@ -82,7 +44,7 @@ CREATE TABLE nop_rule_log(
 CREATE TABLE nop_rule_definition(
   RULE_ID VARCHAR(32) NOT NULL ,
   RULE_NAME VARCHAR(500) NOT NULL ,
-  RULE_VERSION VARCHAR(50) NOT NULL ,
+  RULE_VERSION INT4 NOT NULL ,
   DISPLAY_NAME VARCHAR(200) NOT NULL ,
   RULE_GROUP VARCHAR(200) NOT NULL ,
   RULE_TYPE VARCHAR(10) NOT NULL ,
@@ -99,70 +61,6 @@ CREATE TABLE nop_rule_definition(
 );
 
 
-      COMMENT ON TABLE nop_rule_input IS '规则输入变量';
-                
-      COMMENT ON COLUMN nop_rule_input.SID IS '主键';
-                    
-      COMMENT ON COLUMN nop_rule_input.RULE_ID IS '规则ID';
-                    
-      COMMENT ON COLUMN nop_rule_input.NAME IS '名称';
-                    
-      COMMENT ON COLUMN nop_rule_input.IS_MANDATORY IS '非空';
-                    
-      COMMENT ON COLUMN nop_rule_input.IS_COMPUTED IS '自动计算';
-                    
-      COMMENT ON COLUMN nop_rule_input.DISPLAY_NAME IS '显示名称';
-                    
-      COMMENT ON COLUMN nop_rule_input.DEFAULT_VALUE IS '缺省值';
-                    
-      COMMENT ON COLUMN nop_rule_input.SCHEMA IS '结构定义';
-                    
-      COMMENT ON COLUMN nop_rule_input.DESCRIPTION IS '描述';
-                    
-      COMMENT ON COLUMN nop_rule_input.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_rule_input.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_rule_input.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_rule_input.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_rule_input.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_rule_input.REMARK IS '备注';
-                    
-      COMMENT ON TABLE nop_rule_output IS '规则输出变量';
-                
-      COMMENT ON COLUMN nop_rule_output.SID IS '主键';
-                    
-      COMMENT ON COLUMN nop_rule_output.RULE_ID IS '规则ID';
-                    
-      COMMENT ON COLUMN nop_rule_output.NAME IS '名称';
-                    
-      COMMENT ON COLUMN nop_rule_output.IS_MANDATORY IS '非空';
-                    
-      COMMENT ON COLUMN nop_rule_output.AGG_METHOD IS '汇总方式';
-                    
-      COMMENT ON COLUMN nop_rule_output.DISPLAY_NAME IS '显示名称';
-                    
-      COMMENT ON COLUMN nop_rule_output.DEFAULT_VALUE IS '缺省值';
-                    
-      COMMENT ON COLUMN nop_rule_output.SCHEMA IS '结构定义';
-                    
-      COMMENT ON COLUMN nop_rule_output.DESCRIPTION IS '描述';
-                    
-      COMMENT ON COLUMN nop_rule_output.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_rule_output.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_rule_output.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_rule_output.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_rule_output.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_rule_output.REMARK IS '备注';
-                    
       COMMENT ON TABLE nop_rule_node IS '规则节点';
                 
       COMMENT ON COLUMN nop_rule_node.SID IS 'SID';

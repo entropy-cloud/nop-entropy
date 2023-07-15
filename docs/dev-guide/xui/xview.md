@@ -296,7 +296,7 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 ## 10. 表单数据过多，希望采用tab页的形式显示
 
 ```xml
-<form id="view" layoutComponent="tabs" >...</form>
+<form id="view" layoutControl="tabs" >...</form>
 ```
 
 配置layoutComponent=tabs。

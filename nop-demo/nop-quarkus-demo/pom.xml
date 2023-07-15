@@ -68,31 +68,31 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-service</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-web</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rule-web</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-sys-service</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-sys-web</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-graphql-gateway</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
 
@@ -100,14 +100,12 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-report-demo</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <!-- 引入集算器支持。如果不需要可以删除 -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-report-spl</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>

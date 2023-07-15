@@ -1,7 +1,7 @@
 {
   "ruleId": "",
   "ruleName": "",
-  "ruleVersion": "",
+  "ruleVersion": 0,
   "displayName": "",
   "ruleGroup": "",
   "ruleType": "",
@@ -16,7 +16,5 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
-  "inputs": null,
-  "outputs": null,
   "ruleNodes": null
 }

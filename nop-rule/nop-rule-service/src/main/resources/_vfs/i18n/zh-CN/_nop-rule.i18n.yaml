@@ -16,9 +16,7 @@ prop:
       createdBy: 创建人
       description: 描述
       displayName: 显示名称
-      inputs: 规则输入变量
       modelText: 模型文本
-      outputs: 规则输出变量
       remark: 备注
       ruleGroup: 规则分组
       ruleId: 主键

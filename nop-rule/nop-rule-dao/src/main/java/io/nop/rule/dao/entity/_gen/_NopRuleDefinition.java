@@ -28,7 +28,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_ruleName = "ruleName";
     public static final int PROP_ID_ruleName = 2;
     
-    /* 规则版本: RULE_VERSION VARCHAR */
+    /* 规则版本: RULE_VERSION INTEGER */
     public static final String PROP_NAME_ruleVersion = "ruleVersion";
     public static final int PROP_ID_ruleVersion = 3;
     
@@ -83,12 +83,6 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
 
     private static int _PROP_ID_BOUND = 16;
 
-    
-    /* relation: 规则输入变量 */
-    public static final String PROP_NAME_inputs = "inputs";
-    
-    /* relation: 规则输出变量 */
-    public static final String PROP_NAME_outputs = "outputs";
     
     /* relation: 规则节点 */
     public static final String PROP_NAME_ruleNodes = "ruleNodes";
@@ -156,7 +150,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     private java.lang.String _ruleName;
     
     /* 规则版本: RULE_VERSION */
-    private java.lang.String _ruleVersion;
+    private java.lang.Integer _ruleVersion;
     
     /* 显示名称: DISPLAY_NAME */
     private java.lang.String _displayName;
@@ -341,9 +335,9 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
             }
         
             case PROP_ID_ruleVersion:{
-               java.lang.String typedValue = null;
+               java.lang.Integer typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
+                   typedValue = ConvertHelper.toInteger(value,
                        err-> newTypeConversionError(PROP_NAME_ruleVersion));
                }
                setRuleVersion(typedValue);
@@ -495,7 +489,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
         
             case PROP_ID_ruleVersion:{
                onInitProp(propId);
-               this._ruleVersion = (java.lang.String)value;
+               this._ruleVersion = (java.lang.Integer)value;
                
                break;
             }
@@ -631,7 +625,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     /**
      * 规则版本: RULE_VERSION
      */
-    public java.lang.String getRuleVersion(){
+    public java.lang.Integer getRuleVersion(){
          onPropGet(PROP_ID_ruleVersion);
          return _ruleVersion;
     }
@@ -639,7 +633,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     /**
      * 规则版本: RULE_VERSION
      */
-    public void setRuleVersion(java.lang.String value){
+    public void setRuleVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_ruleVersion,value)){
             this._ruleVersion = value;
             internalClearRefs(PROP_ID_ruleVersion);
@@ -875,26 +869,6 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
         }
     }
     
-    private final OrmEntitySet<io.nop.rule.dao.entity.NopRuleInput> _inputs = new OrmEntitySet<>(this, PROP_NAME_inputs,
-        io.nop.rule.dao.entity.NopRuleInput.PROP_NAME_ruleDefinition, null,io.nop.rule.dao.entity.NopRuleInput.class);
-
-    /**
-     * 规则输入变量。 refPropName: ruleDefinition, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.rule.dao.entity.NopRuleInput> getInputs(){
-       return _inputs;
-    }
-       
-    private final OrmEntitySet<io.nop.rule.dao.entity.NopRuleOutput> _outputs = new OrmEntitySet<>(this, PROP_NAME_outputs,
-        io.nop.rule.dao.entity.NopRuleOutput.PROP_NAME_ruleDefinition, null,io.nop.rule.dao.entity.NopRuleOutput.class);
-
-    /**
-     * 规则输出变量。 refPropName: ruleDefinition, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.rule.dao.entity.NopRuleOutput> getOutputs(){
-       return _outputs;
-    }
-       
     private final OrmEntitySet<io.nop.rule.dao.entity.NopRuleNode> _ruleNodes = new OrmEntitySet<>(this, PROP_NAME_ruleNodes,
         io.nop.rule.dao.entity.NopRuleNode.PROP_NAME_ruleDefinition, null,io.nop.rule.dao.entity.NopRuleNode.class);
 

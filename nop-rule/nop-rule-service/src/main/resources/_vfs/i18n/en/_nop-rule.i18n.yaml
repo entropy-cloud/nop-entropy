@@ -29,8 +29,6 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
-      inputs: Input Variables
-      outputs: Output Variables
       ruleNodes: Rule Nodes
     NopRuleInput:
       sid: SID
