@@ -8,6 +8,7 @@
 package io.nop.dao.txn.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.StringHelper;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionFactory;
@@ -48,6 +49,13 @@ public class DefaultTransactionManager implements ITransactionManager {
 
                 transactionFactoryMap.put(name, new JdbcTransactionFactory(ds));
             }
+        }
+    }
+
+    public void setTxnGroupMapConfig(String config) {
+        Map<String, String> map = StringHelper.parseStringMap(config, '=', ',');
+        if (map != null) {
+            txnGroupMap.putAll(map);
         }
     }
 

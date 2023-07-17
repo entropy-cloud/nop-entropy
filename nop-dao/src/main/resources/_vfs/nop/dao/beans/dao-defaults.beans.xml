@@ -18,6 +18,8 @@
         <property name="dataSourceMap">
             <ioc:collect-beans only-concrete-classes="true" as-map="true" name-prefix="nopDataSource_"/>
         </property>
+
+        <property name="txnGroupMapConfig" value="@cfg:nop.dao.config.txn-group-map|"/>
     </bean>
 
     <bean id="nopTransactionFactory" ioc:default="true"
