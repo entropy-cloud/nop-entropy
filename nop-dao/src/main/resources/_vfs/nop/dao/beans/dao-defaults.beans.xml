@@ -4,7 +4,8 @@
        xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc" xmlns:feature="feature">
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       xmlns:ioc="ioc" xmlns:feature="feature">
 
     <x:config>
         <c:import class="io.nop.api.core.ApiConstants"/>
@@ -13,6 +14,10 @@
     <bean id="nopTransactionManager" ioc:default="true"
           class="io.nop.dao.txn.impl.DefaultTransactionManager">
         <property name="defaultFactory" ref="nopTransactionFactory"/>
+
+        <property name="dataSourceMap">
+            <ioc:collect-beans only-concrete-classes="true" as-map="true" name-prefix="nopDataSource_"/>
+        </property>
     </bean>
 
     <bean id="nopTransactionFactory" ioc:default="true"
@@ -26,7 +31,7 @@
     <!--    </bean>-->
 
     <bean id="nopDataSource" ioc:default="true" feature:off="nop.dao.use-parent-data-source"
-          class="com.zaxxer.hikari.HikariDataSource" >
+          class="com.zaxxer.hikari.HikariDataSource">
         <constructor-arg index="0" ref="nopHikariConfig"/>
         <ioc:condition>
             <on-class>com.zaxxer.hikari.HikariDataSource</on-class>
@@ -52,7 +57,14 @@
           class="io.nop.dao.txn.impl.TransactionTemplateImpl"/>
 
     <bean id="nopJdbcTemplate" ioc:default="true"
-          class="io.nop.dao.jdbc.impl.JdbcTemplateImpl"/>
+          class="io.nop.dao.jdbc.impl.JdbcTemplateImpl">
+        <property name="dialectProvider" ref="nopDialectProvider"/>
+    </bean>
+
+    <bean id="nopDialectProvider" class="io.nop.dao.jdbc.impl.JdbcDialectProvider" ioc:default="true">
+        <constructor-arg index="0" ref="nopTransactionTemplate"/>
+        <property name="querySpaceToDialectConfig" value="@cfg:nop.dao.config.query-space-to-dialect|"/>
+    </bean>
 
     <bean id="nopTransactionalMethodInterceptor" ioc:default="true"
           class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor">

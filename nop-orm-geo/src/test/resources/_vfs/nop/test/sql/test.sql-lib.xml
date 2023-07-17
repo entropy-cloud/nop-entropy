@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <sqls>
+        <sql name="getAllLocations" querySpace="test" sqlMethod="findAll">
+            <source>
+                select location from test_geo
+            </source>
+        </sql>
+    </sqls>
+</sql-lib>

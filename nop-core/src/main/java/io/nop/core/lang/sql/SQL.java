@@ -153,7 +153,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
         if (LOG.isInfoEnabled()) {
             StringBuilder buf = new StringBuilder();
             SqlFormatter.formatSql(buf, this);
-            LOG.info("title={},name={},sql=\n{}", title, name, buf);
+            LOG.info("title={},querySpace={},name={},sql=\n{}", title, querySpace, name, buf);
         }
     }
 

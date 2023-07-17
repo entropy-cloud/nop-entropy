@@ -1,0 +1,4 @@
+nop:
+  dao:
+    config:
+      query-space-to-dialect:  test=h2gis

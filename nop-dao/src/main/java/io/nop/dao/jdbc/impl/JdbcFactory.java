@@ -8,8 +8,6 @@
 package io.nop.dao.jdbc.impl;
 
 import io.nop.commons.cache.ICacheProvider;
-import io.nop.dao.dialect.DialectManager;
-import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.IJdbcTemplateFactory;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
@@ -48,17 +46,16 @@ public class JdbcFactory implements IJdbcTemplateFactory {
         return jdbc;
     }
 
-    public TransactionTemplateImpl newTransactionTemplate(DataSource dataSource) {
+    public TransactionTemplateImpl newTransactionTemplate(DataSource dataSource, String dialectName) {
         TransactionTemplateImpl txn = new TransactionTemplateImpl();
         DefaultTransactionManager txnManager = new DefaultTransactionManager();
-        txnManager.setDefaultFactory(newTransactionFactory(dataSource));
+        txnManager.setDefaultFactory(newTransactionFactory(dataSource,dialectName));
         txn.setTransactionManager(txnManager);
         return txn;
     }
 
-    public JdbcTransactionFactory newTransactionFactory(DataSource dataSource) {
-        IDialect dialect = DialectManager.instance().getDialectForDataSource(dataSource);
-        JdbcTransactionFactory factory = new JdbcTransactionFactory(dataSource, dialect);
+    public JdbcTransactionFactory newTransactionFactory(DataSource dataSource, String dialectName) {
+        JdbcTransactionFactory factory = new JdbcTransactionFactory(dataSource, dialectName);
         return factory;
     }
 }

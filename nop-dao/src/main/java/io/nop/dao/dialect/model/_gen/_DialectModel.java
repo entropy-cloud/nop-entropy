@@ -86,6 +86,13 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: geometryParameterBinder
+     * JDBC使用这个类存取GEOMETRY类型数据。 IDataParameterBinder类型
+     */
+    private java.lang.String _geometryParameterBinder ;
+    
+    /**
+     *  
      * xml name: jdbcUrlPattern
      * 
      */
@@ -394,6 +401,25 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: geometryParameterBinder
+     *  JDBC使用这个类存取GEOMETRY类型数据。 IDataParameterBinder类型
+     */
+    
+    public java.lang.String getGeometryParameterBinder(){
+      return _geometryParameterBinder;
+    }
+
+    
+    public void setGeometryParameterBinder(java.lang.String value){
+        checkAllowChange();
+        
+        this._geometryParameterBinder = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: jdbcUrlPattern
      *  
      */
@@ -685,6 +711,7 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
         out.put("errorCodes",this.getErrorCodes());
         out.put("features",this.getFeatures());
         out.put("functions",this.getFunctions());
+        out.put("geometryParameterBinder",this.getGeometryParameterBinder());
         out.put("jdbcUrlPattern",this.getJdbcUrlPattern());
         out.put("keywordQuote",this.getKeywordQuote());
         out.put("keywordUnderscore",this.getKeywordUnderscore());

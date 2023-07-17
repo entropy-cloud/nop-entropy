@@ -91,7 +91,7 @@ public class SqlHelper {
 
         int pos = CharSequenceHelper.indexOf(str.getTextSequence(), 0, ';');
         if (pos < 0) {
-            return Collections.singletonList(SQL.begin().append(str).end());
+            return Collections.singletonList(creator.get().append(str).end());
         }
 
         List<SQL> ret = new ArrayList<>();
@@ -117,7 +117,7 @@ public class SqlHelper {
             }
             char c = statement.charAt(i);
             if (c == ';') {
-                SQL.SqlBuilder part = SQL.begin();
+                SQL.SqlBuilder part = creator.get();
                 part.appendRange(str, startPos, i);
                 ret.add(part.end());
                 i++;

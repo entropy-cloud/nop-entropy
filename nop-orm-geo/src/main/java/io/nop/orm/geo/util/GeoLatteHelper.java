@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.orm.geo;
+package io.nop.orm.geo.util;
 
 import io.nop.api.core.beans.PointBean;
 import org.geolatte.geom.C2D;

@@ -13,13 +13,13 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.text.CharacterCase;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
-import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dao.dialect.exception.ISQLExceptionTranslator;
 import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.dao.dialect.lock.LockOption;
 import io.nop.dao.dialect.model.DialectModel;
 import io.nop.dao.dialect.model.SqlDataTypeModel;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
+import io.nop.dataset.binder.IDataParameterBinder;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -36,6 +36,8 @@ public interface IDialect extends IComponentModel {
     SqlDataTypeModel getNativeType(String sqlTypeName);
 
     SQLDataType stdToNativeSqlType(StdSqlType sqlType, int precision, int scale);
+
+    IDataParameterBinder getGeometryDataParameterBinder();
 
     ISQLExceptionTranslator getSQLExceptionTranslator();
 

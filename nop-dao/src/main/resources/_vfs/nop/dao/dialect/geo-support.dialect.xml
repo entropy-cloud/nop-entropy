@@ -1,0 +1,101 @@
+<!--
+
+以下数据库具有GIS支持：
+PostgresSQL， Oracle 10g/11g，MySQL，SQLServer，H2GIS，DB2，CockroachDB
+-->
+<dialect x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <geometryParameterBinder>io.nop.orm.geo.binder.GeometryDataParameterBinder</geometryParameterBinder>
+
+    <functions>
+        <native name="st_dimension" returnType="INTEGER" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_geometrytype" returnType="VARCHAR" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_srid" returnType="INTEGER" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_envelope" returnType="GEOMETRY" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_astext" returnType="VARCHAR" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_asbinary" returnType="VARBINARY" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_isempty" returnType="BOOLEAN" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_issimple" returnType="BOOLEAN" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_boundary" returnType="GEOMETRY" argTypes="GEOMETRY">
+        </native>
+
+
+        <native name="st_equals" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_disjoint" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_intersects" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_touches" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_crosses" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_within" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_contains" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_overlaps" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_distance" returnType="DOUBLE" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_buffer" returnType="GEOMETRY" argTypes="GEOMETRY,DOUBLE">
+        </native>
+
+        <native name="st_convexhull" returnType="GEOMETRY" argTypes="GEOMETRY">
+        </native>
+
+        <native name="st_intersection" returnType="GEOMETRY" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_geomunion" returnType="GEOMETRY" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_difference" returnType="GEOMETRY" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+        <native name="st_symdifference" returnType="GEOMETRY" argTypes="GEOMETRY,GEOMETRY">
+        </native>
+
+
+        <native name="st_dwithin" returnType="BOOLEAN" argTypes="GEOMETRY,GEOMETRY,DOUBLE">
+            <description>Returns true if the geometries are within the specified distance of one another</description>
+        </native>
+
+        <native name="st_transform" returnType="GEOMETRY" argTypes="GEOMETRY,INTEGER">
+            <description>Returns a new geometry with its coordinates transformed to
+                the SRID referenced by the integer parameter
+            </description>
+        </native>
+
+        <native name="st_extent" returnType="GEOMETRY" argTypes="GEOMETRY">
+            <description>Returns a bounding box that bounds the set of returned geometries</description>
+        </native>
+
+    </functions>
+</dialect>

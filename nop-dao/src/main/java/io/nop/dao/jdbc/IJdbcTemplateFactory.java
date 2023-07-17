@@ -14,10 +14,18 @@ import javax.sql.DataSource;
 public interface IJdbcTemplateFactory {
 
     default IJdbcTemplate newJdbcTemplate(DataSource dataSource) {
-        return newJdbcTemplate(newTransactionTemplate(dataSource));
+        return newJdbcTemplate(dataSource, null);
     }
 
-    ITransactionTemplate newTransactionTemplate(DataSource dataSource);
+    default IJdbcTemplate newJdbcTemplate(DataSource dataSource, String dialectName) {
+        return newJdbcTemplate(newTransactionTemplate(dataSource, dialectName));
+    }
+
+    default ITransactionTemplate newTransactionTemplate(DataSource dataSource) {
+        return newTransactionTemplate(dataSource, null);
+    }
+
+    ITransactionTemplate newTransactionTemplate(DataSource dataSource, String dialectName);
 
     IJdbcTemplate newJdbcTemplate(ITransactionTemplate transactionTemplate);
 }

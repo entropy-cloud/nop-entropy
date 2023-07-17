@@ -8,6 +8,7 @@
 package io.nop.dao.txn.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionFactory;
 import io.nop.dao.txn.ITransactionListener;
@@ -17,6 +18,7 @@ import io.nop.dao.utils.DaoHelper;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.sql.DataSource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,6 +38,17 @@ public class DefaultTransactionManager implements ITransactionManager {
 
     public void setDefaultFactory(ITransactionFactory factory) {
         this.defaultFactory = factory;
+    }
+
+    public void setDataSourceMap(Map<String, DataSource> dataSourceMap) {
+        if (dataSourceMap != null) {
+            for (Map.Entry<String, DataSource> entry : dataSourceMap.entrySet()) {
+                String name = entry.getKey();
+                DataSource ds = entry.getValue();
+
+                transactionFactoryMap.put(name, new JdbcTransactionFactory(ds));
+            }
+        }
     }
 
     public ITransactionListener getDefaultListener() {

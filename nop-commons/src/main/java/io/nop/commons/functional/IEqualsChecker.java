@@ -11,6 +11,8 @@ import java.util.Objects;
 
 @FunctionalInterface
 public interface IEqualsChecker<T> {
+    IEqualsChecker<Object> OBJECT_EQUALS = Objects::equals;
+
     // 对象的toString结果值相等
     IEqualsChecker<Object> STRING_EQUALS = new IEqualsChecker<Object>() {
         @Override

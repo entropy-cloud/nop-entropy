@@ -8,15 +8,27 @@
 package io.nop.core.reflect.bean;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.commons.functional.IEqualsChecker;
+import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
 
 public class BeanDiffOptions {
     private IBeanModelManager beanModelManager = ReflectionManager.instance();
     private FieldSelectionBean selection;
-    private IEvalScope scope;
+    private IEvalScope scope = DisabledEvalScope.INSTANCE;
     private boolean includeSame;
     private boolean onlySerializable;
+
+    private IEqualsChecker equalsChecker = IEqualsChecker.OBJECT_EQUALS;
+
+    public IEqualsChecker getEqualsChecker() {
+        return equalsChecker;
+    }
+
+    public void setEqualsChecker(IEqualsChecker equalsChecker) {
+        this.equalsChecker = equalsChecker;
+    }
 
     public IBeanModelManager getBeanModelManager() {
         return beanModelManager;

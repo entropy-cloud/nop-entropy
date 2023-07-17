@@ -38,6 +38,8 @@ import io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler;
 import io.nop.dataset.binder.DataParameterBinders;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.impl.AutoConvertDataParameterBinder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -64,6 +66,7 @@ import static io.nop.dao.DaoErrors.ERR_DIALECT_INVALID_TPL_PARAM;
 import static io.nop.dao.DaoErrors.ERR_DIALECT_TPL_PARAM_NO_ARG;
 
 public class DialectImpl implements IDialect {
+    static final Logger LOG = LoggerFactory.getLogger(DialectImpl.class);
     private final DialectModel dialectModel;
     private final ISQLExceptionTranslator exceptionTranslator;
     private final IPaginationHandler paginationHandler;
@@ -74,6 +77,8 @@ public class DialectImpl implements IDialect {
     private final String currentTimestampSql;
 
     private final boolean convertStringToNull = CFG_AUTO_CONVERT_EMPTY_STRING_TO_NULL.get();
+
+    private final IDataParameterBinder geometryParameterBinder;
 
     public DialectImpl(DialectModel dialectModel) {
         this.dialectModel = dialectModel;
@@ -89,6 +94,14 @@ public class DialectImpl implements IDialect {
         if (dialectModel.getRename() != null) {
             this.renameMap.putAll(dialectModel.getRename());
         }
+
+        IDataParameterBinder binder = null;
+        try {
+            binder = newInstance(dialectModel.getGeometryParameterBinder(), null);
+        } catch (Exception e) {
+            LOG.warn("nop.err.dao.load-geometry-parameter-binder-fail", e);
+        }
+        this.geometryParameterBinder = binder;
     }
 
     static <T> T newInstance(String className, T defaultImpl) {
@@ -124,6 +137,11 @@ public class DialectImpl implements IDialect {
         ISQLFunction func = getFunction(funcName);
         String sql = func.buildFunctionExpr(null, Collections.emptyList(), this).getSqlString();
         return getSelectFromDualSql(sql);
+    }
+
+    @Override
+    public IDataParameterBinder getGeometryDataParameterBinder() {
+        return geometryParameterBinder;
     }
 
     public DialectModel getDialectModel() {
@@ -497,6 +515,9 @@ public class DialectImpl implements IDialect {
     public IDataParameterBinder getDataParameterBinder(StdDataType stdType, StdSqlType sqlType) {
         if (convertStringToNull && sqlType == StdSqlType.VARCHAR)
             return DataParameterBinders.STRING_EX;
+
+        if (sqlType == StdSqlType.GEOMETRY)
+            return getGeometryDataParameterBinder();
 
         IDataParameterBinder binder = DataParameterBinders.getDefaultBinder(sqlType.getName());
         if (binder == null)

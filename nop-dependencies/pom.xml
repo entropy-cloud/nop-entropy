@@ -432,8 +432,15 @@
             <dependency>
                 <groupId>org.geolatte</groupId>
                 <artifactId>geolatte-geom</artifactId>
-                <version>1.8.2</version>
+                <version>1.9.1</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.orbisgis</groupId>
+                <artifactId>h2gis</artifactId>
+                <version>2.2.0</version>
+            </dependency>
+
 
             <!--            <dependency>-->
             <!--                <groupId>com.opencsv</groupId>-->

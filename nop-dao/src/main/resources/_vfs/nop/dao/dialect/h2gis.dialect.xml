@@ -1,0 +1,5 @@
+<dialect x:extends="h2.dialect.xml,geo-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+>
+    
+</dialect>

@@ -21,13 +21,14 @@ public class JdbcTransactionFactory implements ITransactionFactory {
     private final IDialect dialect;
     private boolean eagerReleaseConnection = true;
 
-    public JdbcTransactionFactory(DataSource dataSource, IDialect dialect) {
+    public JdbcTransactionFactory(DataSource dataSource, String dialectName) {
         this.dataSource = dataSource;
-        this.dialect = dialect;
+        this.dialect = dialectName != null ? DialectManager.instance().getDialect(dialectName)
+                : DialectManager.instance().getDialectForDataSource(dataSource);
     }
 
     public JdbcTransactionFactory(DataSource dataSource) {
-        this(dataSource, DialectManager.instance().getDialectForDataSource(dataSource));
+        this(dataSource, null);
     }
 
     public void setEagerReleaseConnection(boolean eagerReleaseConnection) {

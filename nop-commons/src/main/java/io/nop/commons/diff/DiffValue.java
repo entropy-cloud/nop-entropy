@@ -19,6 +19,10 @@ public class DiffValue implements IDiffValue {
 
     private List<IDiffValue> elementDiffs;
 
+    private String keyProp;
+
+    private Map<String, IDiffValue> keyedElementDiffs;
+
     public DiffValue(DiffType diffType, Object oldValue, Object newValue) {
         this.diffType = diffType;
         this.oldValue = oldValue;
@@ -88,5 +92,21 @@ public class DiffValue implements IDiffValue {
 
     public void setElementDiffs(List<IDiffValue> elementDiffs) {
         this.elementDiffs = elementDiffs;
+    }
+
+    public String getKeyProp() {
+        return keyProp;
+    }
+
+    public void setKeyProp(String keyProp) {
+        this.keyProp = keyProp;
+    }
+
+    public Map<String, IDiffValue> getKeyedElementDiffs() {
+        return keyedElementDiffs;
+    }
+
+    public void setKeyedElementDiffs(Map<String, IDiffValue> keyedElementDiffs) {
+        this.keyedElementDiffs = keyedElementDiffs;
     }
 }

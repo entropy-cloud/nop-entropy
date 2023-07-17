@@ -13,8 +13,11 @@ import io.nop.commons.diff.DiffValue;
 import io.nop.commons.diff.IDiffValue;
 import io.nop.commons.util.CollectionHelper;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -146,12 +149,46 @@ public class BeanDiffer implements IBeanDiffer {
     }
 
     private IDiffValue diffArray(Object src, Object target, FieldSelectionBean selection, BeanDiffOptions options) {
-        return null;
+        return diffCollectionWithAdapter(src, target, selection, options, ArrayBeanCollectionAdapter.INSTANCE);
     }
 
     private IDiffValue diffCollection(Object src, Object target, FieldSelectionBean selection,
                                       BeanDiffOptions options) {
-        return null;
+        return diffCollectionWithAdapter(src, target, selection, options, BeanCollectionAdapter.INSTANCE);
+    }
+
+    private IDiffValue diffCollectionWithAdapter(Object src, Object target, FieldSelectionBean selection,
+                                                 BeanDiffOptions options, IBeanCollectionAdapter adapter) {
+        int srcLen = adapter.getSize(src);
+        int targetLen = adapter.getSize(target);
+        if (srcLen == 0) {
+            if (targetLen == 0) {
+                return DiffValue.same(src, target);
+            }
+
+            // 全部新增
+            return DiffValue.replace(src, target);
+        } else if (targetLen == 0) {
+            // 全部删除
+            return DiffValue.replace(src, target);
+        } else {
+            List<IDiffValue> diffs = new ArrayList<>();
+            Iterator<?> it1 = adapter.iterator(src);
+            Iterator<?> it2 = adapter.iterator(target);
+            while (it1.hasNext() && it2.hasNext()) {
+                Object v1 = it1.next();
+                Object v2 = it2.next();
+
+                IDiffValue diff = diffObject(v1, v2, selection, options);
+                if (diff == null)
+                    diff = DiffValue.same(v1, v2);
+                diffs.add(diff);
+            }
+
+            DiffValue ret = new DiffValue(DiffType.update, src, target);
+            ret.setElementDiffs(diffs);
+            return ret;
+        }
     }
 
     @Override

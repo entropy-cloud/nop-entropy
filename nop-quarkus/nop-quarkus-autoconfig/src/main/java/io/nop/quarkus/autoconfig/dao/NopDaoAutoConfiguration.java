@@ -35,7 +35,7 @@ public class NopDaoAutoConfiguration {
     @Produces
     public ITransactionFactory nopTransactionFactory(DataSource dataSource) {
         IDialect dialect = DialectManager.instance().getDialectForDataSource(dataSource);
-        JdbcTransactionFactory txnFactory = new JdbcTransactionFactory(dataSource, dialect);
+        JdbcTransactionFactory txnFactory = new JdbcTransactionFactory(dataSource, null);
         return txnFactory;
     }
 

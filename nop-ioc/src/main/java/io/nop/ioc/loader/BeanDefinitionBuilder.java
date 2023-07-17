@@ -114,6 +114,7 @@ import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_BEAN_PROP;
 import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_BEAN_REF;
 import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_CONCRETE_BEAN_REF;
 import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_DEPEND_REF;
+import static io.nop.xlang.XLangErrors.ARG_EXPECTED;
 import static io.nop.xlang.XLangErrors.ARG_METHOD_NAME;
 
 /**
@@ -488,7 +489,8 @@ public class BeanDefinitionBuilder {
         for (int i = 0, n = args.size(); i < n; i++) {
             BeanConstructorArgModel arg = args.get(i);
             if (arg.getIndex() != i)
-                throw new NopException(ERR_IOC_INVALID_CONSTRUCTOR_ARG_INDEX).source(arg).param(ARG_INDEX, i)
+                throw new NopException(ERR_IOC_INVALID_CONSTRUCTOR_ARG_INDEX).source(arg)
+                        .param(ARG_INDEX, arg.getIndex()).param(ARG_EXPECTED, i)
                         .param(ARG_BEAN_NAME, bean.getId()).param(ARG_BEAN, bean);
         }
     }

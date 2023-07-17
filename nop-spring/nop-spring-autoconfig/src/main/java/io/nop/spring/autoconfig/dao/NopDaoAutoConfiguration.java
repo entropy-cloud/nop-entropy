@@ -7,8 +7,6 @@
  */
 package io.nop.spring.autoconfig.dao;
 
-import io.nop.dao.dialect.DialectManager;
-import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.impl.JdbcTemplateImpl;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
@@ -41,8 +39,7 @@ public class NopDaoAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(ITransactionFactory.class)
     public ITransactionFactory nopTransactionFactory(DataSource dataSource) {
-        IDialect dialect = DialectManager.instance().getDialectForDataSource(dataSource);
-        JdbcTransactionFactory txnFactory = new JdbcTransactionFactory(dataSource, dialect);
+        JdbcTransactionFactory txnFactory = new JdbcTransactionFactory(dataSource, null);
         return txnFactory;
     }
 

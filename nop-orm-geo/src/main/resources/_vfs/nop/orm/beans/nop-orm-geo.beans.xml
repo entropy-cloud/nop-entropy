@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+       xmlns:ioc="ioc"
+>
+
+    <bean id="io.nop.orm.geo.dialect.h2gis.H2GisInitializer" ioc:type="@bean:id" init-method="init">
+        <ioc:condition>
+            <on-class>org.h2gis.functions.factory.H2GISFunctions</on-class>
+        </ioc:condition>
+    </bean>
+
+</beans>

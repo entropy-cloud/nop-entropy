@@ -1,0 +1,21 @@
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
+>
+
+    <bean id="nopDataSource_test"
+          class="com.zaxxer.hikari.HikariDataSource">
+        <constructor-arg index="0">
+            <bean class="com.zaxxer.hikari.HikariConfig">
+                <property name="driverClassName" value="org.h2.Driver"/>
+                <property name="jdbcUrl" value="jdbc:h2:mem:test"/>
+                <property name="username" value="sa"/>
+                <property name="password" value=""/>
+                <property name="maximumPoolSize" value="8"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+
+</beans>

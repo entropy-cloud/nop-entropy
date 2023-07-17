@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:i18n-en="i18n-en">
+
+    <entities>
+        <entity name="test.TestIndex" tableName="test_index" className="io.nop.orm.support.DynamicOrmEntity">
+            <columns>
+                <column name="sid" code="sid" propId="1" stdSqlType="VARCHAR" precision="20" primary="true"/>
+                <column name="name" code="name" propId="2" stdSqlType="VARCHAR" precision="20"/>
+                <column name="parentId" code="parent_id" propId="3" stdSqlType="VARCHAR" precision="20"/>
+                <column name="unit" code="unit" propId="4" stdSqlType="VARCHAR" precision="10"/>
+                <column name="value" code="value" propId="5" stdSqlType="INTEGER"/>
+            </columns>
+
+            <relations>
+                <to-one displayName="父指标" name="parent" refEntityName="test.TestIndex"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Index">
+                    <join>
+                        <on leftProp="parentId" rightProp="sid"/>
+                    </join>
+                </to-one>
+
+                <to-many displayName="子指标" name="children"
+                         refEntityName="test.TestIndex"
+                         refPropName="parent" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="Children">
+                    <join>
+                        <on leftProp="sid" rightProp="parentId"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+
+        <entity name="test.TestGeo" tableName="test_geo" className="io.nop.orm.support.DynamicOrmEntity" querySpace="test">
+            <columns>
+                <column name="sid" code="sid" propId="1" stdSqlType="VARCHAR" precision="20" primary="true"/>
+                <column name="name" code="name" propId="2" stdSqlType="VARCHAR" precision="20"/>
+                <column name="location" code="location" propId="5" stdSqlType="GEOMETRY"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
