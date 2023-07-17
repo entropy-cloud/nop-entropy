@@ -8,6 +8,8 @@
 
 # [事务管理](transaction.md)
 
+# [多数据源](multi-db.md)
+
 # [数据修改历史](data-change-log.md)
 
 # [多对多配置](many-to-many.md)
