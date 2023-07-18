@@ -9,6 +9,7 @@ package io.nop.dao.jdbc.txn;
 
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
+import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionFactory;
 
@@ -20,6 +21,7 @@ public class JdbcTransactionFactory implements ITransactionFactory {
     private final DataSource dataSource;
     private final IDialect dialect;
     private boolean eagerReleaseConnection = true;
+    private IDaoMetrics daoMetrics;
 
     public JdbcTransactionFactory(DataSource dataSource, String dialectName) {
         this.dataSource = dataSource;
@@ -35,6 +37,14 @@ public class JdbcTransactionFactory implements ITransactionFactory {
         this.eagerReleaseConnection = eagerReleaseConnection;
     }
 
+    public IDaoMetrics getDaoMetrics() {
+        return daoMetrics;
+    }
+
+    public void setDaoMetrics(IDaoMetrics daoMetrics) {
+        this.daoMetrics = daoMetrics;
+    }
+
     Connection getConnection() {
         try {
             return dataSource.getConnection();
@@ -45,6 +55,6 @@ public class JdbcTransactionFactory implements ITransactionFactory {
 
     @Override
     public ITransaction newTransaction(String querySpace) {
-        return new JdbcTransaction(querySpace, this::getConnection, dialect, eagerReleaseConnection);
+        return new JdbcTransaction(querySpace, this::getConnection, dialect, eagerReleaseConnection, daoMetrics);
     }
 }

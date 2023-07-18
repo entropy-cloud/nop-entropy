@@ -20,6 +20,7 @@
         </property>
 
         <property name="txnGroupMapConfig" value="@cfg:nop.dao.config.txn-group-map|"/>
+        <property name="transactionMetrics" ref="nopDaoMetrics"/>
     </bean>
 
     <bean id="nopTransactionFactory" ioc:default="true"
@@ -61,7 +62,10 @@
     <bean id="nopJdbcTemplate" ioc:default="true"
           class="io.nop.dao.jdbc.impl.JdbcTemplateImpl">
         <property name="dialectProvider" ref="nopDialectProvider"/>
+        <property name="daoMetrics" ref="nopDaoMetrics"/>
     </bean>
+
+    <bean id="nopDaoMetrics" class="io.nop.dao.metrics.DaoMetricsImpl" ioc:default="true"/>
 
     <bean id="nopDialectProvider" class="io.nop.dao.jdbc.impl.JdbcDialectProvider" ioc:default="true">
         <constructor-arg index="0" ref="nopTransactionTemplate"/>

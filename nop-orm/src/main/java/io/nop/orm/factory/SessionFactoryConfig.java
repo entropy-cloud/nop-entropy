@@ -42,8 +42,8 @@ import static io.nop.api.core.ApiConstants.CONFIG_BEAN_CONTAINER;
 public class SessionFactoryConfig {
 
     private String name;
-    private boolean useMetrics;
-    private boolean registerGlobalCache;
+    private boolean useMetrics = true;
+    private boolean registerGlobalCache = true;
 
     private IJdbcTemplate jdbcTemplate;
 

@@ -49,13 +49,15 @@ public class JdbcFactory implements IJdbcTemplateFactory {
     public TransactionTemplateImpl newTransactionTemplate(DataSource dataSource, String dialectName) {
         TransactionTemplateImpl txn = new TransactionTemplateImpl();
         DefaultTransactionManager txnManager = new DefaultTransactionManager();
-        txnManager.setDefaultFactory(newTransactionFactory(dataSource,dialectName));
+        txnManager.setTransactionMetrics(daoMetrics);
+        txnManager.setDefaultFactory(newTransactionFactory(dataSource, dialectName));
         txn.setTransactionManager(txnManager);
         return txn;
     }
 
     public JdbcTransactionFactory newTransactionFactory(DataSource dataSource, String dialectName) {
         JdbcTransactionFactory factory = new JdbcTransactionFactory(dataSource, dialectName);
+        factory.setDaoMetrics(daoMetrics);
         return factory;
     }
 }

@@ -9,18 +9,10 @@ package io.nop.dao.metrics;
 
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.txn.ITransactionMetrics;
 
-public interface IDaoMetrics {
+public interface IDaoMetrics extends ITransactionMetrics {
 
-    /**
-     * Counter: nop.dao.transactions result=success
-     */
-    void onTransactionSuccess();
-
-    /**
-     * Counter: nop.dao.transactions result=failure
-     */
-    void onTransactionFailure();
 
     /**
      * Counter: nop.dao.connections.obtained

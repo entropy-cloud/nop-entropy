@@ -46,7 +46,7 @@ public class IncludeTagCompiler implements IXplTagCompiler {
                 included.setTagName(tagName.getName());
             }
 
-            if (type != XplIncludeType.xpl) {
+            if (type != XplIncludeType.xpl && type != null) {
                 return PrintTagCompiler.INSTANCE.parseTag(included, cp, scope);
             }
 

@@ -14,10 +14,12 @@ import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.ICacheManagement;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.cache.LocalCacheProvider;
+import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.loader.JdbcQueryExecutor;
+import io.nop.orm.metrics.EmptyOrmMetricsImpl;
 import io.nop.orm.metrics.OrmMetricsImpl;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.loader.OrmModelLoader;
@@ -102,7 +104,11 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         if (this.getDefaultQueryExecutor() == null)
             impl.setDefaultQueryExecutor(new JdbcQueryExecutor(impl));
 
-        impl.setOrmMetrics(new OrmMetricsImpl());
+        if (isUseMetrics()) {
+            impl.setOrmMetrics(new OrmMetricsImpl(GlobalMeterRegistry.instance(), null));
+        } else {
+            impl.setOrmMetrics(new EmptyOrmMetricsImpl());
+        }
 
         this.sessionFactory = impl;
         reloadOrmModel();

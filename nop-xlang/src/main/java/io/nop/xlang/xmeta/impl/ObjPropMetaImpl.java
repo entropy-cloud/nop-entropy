@@ -45,11 +45,14 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
         if (authModel == null) {
             authModel = getAuth(ApiConstants.AUTH_FOR_ALL);
         }
-        if (authModel == null) {
-            writeAuth = NULL_AUTH;
-        } else {
+        if (authModel != null) {
             writeAuth = authModel.toActionAuthMeta();
         }
+        if(writeAuth == null)
+            writeAuth = NULL_AUTH;
+
+        if (writeAuth == NULL_AUTH)
+            return null;
         return writeAuth;
     }
 

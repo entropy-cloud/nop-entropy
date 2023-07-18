@@ -6064,6 +6064,10 @@
         ]
       },
       {
+        "name": "getGeometryDataParameterBinder",
+        "parameterTypes": []
+      },
+      {
         "name": "getHexValueLiteral",
         "parameterTypes": [
           "io.nop.commons.bytes.ByteString"
@@ -6297,7 +6301,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "buildFunctionSql",
@@ -6393,6 +6403,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getGeometryDataParameterBinder",
+        "parameterTypes": []
       },
       {
         "name": "getHexValueLiteral",
@@ -7239,6 +7253,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getGeometryParameterBinder",
+        "parameterTypes": []
+      },
+      {
         "name": "getJdbcUrlPattern",
         "parameterTypes": []
       },
@@ -7396,6 +7414,12 @@
         "name": "setFunctions",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setGeometryParameterBinder",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -12740,6 +12764,10 @@
         ]
       },
       {
+        "name": "isColParentExpandable",
+        "parameterTypes": []
+      },
+      {
         "name": "isEvaluated",
         "parameterTypes": []
       },
@@ -12764,6 +12792,10 @@
         "parameterTypes": [
           "io.nop.report.core.model.ExpandedCell"
         ]
+      },
+      {
+        "name": "isRowParentExpandable",
+        "parameterTypes": []
       },
       {
         "name": "isStaticCell",

@@ -8,29 +8,38 @@
 package io.nop.orm.metrics;
 
 public interface IOrmMetrics {
+    /**
+     * Counter: nop.orm.sessions.open
+     */
     void onSessionOpen();
 
+    /**
+     * Counter: nop.orm.sessions.closed
+     */
     void onSessionClosed();
 
+    /**
+     * Counter: nop.orm.sessions.flush
+     */
     void onFlush();
 
     /**
      * Counter: nop.orm.entities.load
      */
-    void onLogicalLoadEntity(String entityName);
+    void onLoadEntity(String entityName);
 
     /**
-     * Counter: nop.orm.entities.deletes
+     * Counter: nop.orm.entities.delete
      */
-    void onLogicalDeleteEntity(String entityName);
+    void onFlushDeleteEntity(String entityName);
 
     /**
-     * Counter: nop.orm.entities.updates
+     * Counter: nop.orm.entities.update
      */
-    void onLogicalUpdateEntity(String entityName);
+    void onFlushUpdateEntity(String entityName);
 
     /**
-     * Counter: nop.orm.entities.saves
+     * Counter: nop.orm.entities.save
      */
-    void onLogicalSaveEntity(String entityName);
+    void onFlushSaveEntity(String entityName);
 }

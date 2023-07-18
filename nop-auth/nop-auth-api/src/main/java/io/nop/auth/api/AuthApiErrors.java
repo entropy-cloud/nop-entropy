@@ -30,13 +30,14 @@ public interface AuthApiErrors {
 
     String ARG_FIELD_NAME = "fieldName";
 
-    String ARG_FIELD_DISPLAY_NAME = "{fieldDisplayName}";
+    String ARG_FIELD_DISPLAY_NAME = "fieldDisplayName";
+
     ErrorCode ERR_AUTH_NO_PERMISSION =
             define("nop.err.auth.no-permission",
                     "没有访问权限", ARG_PERMISSION);
 
     ErrorCode ERR_AUTH_NO_PERMISSION_FOR_FIELD =
-            define("nop.err.auth.no-permission",
+            define("nop.err.auth.no-permission-for-field",
                     "没有对字段[{fieldName}]的访问权限", ARG_PERMISSION, ARG_FIELD_NAME, ARG_OBJ_TYPE_NAME);
     ErrorCode ERR_AUTH_NO_ROLE =
             define("nop.err.auth.no-role",

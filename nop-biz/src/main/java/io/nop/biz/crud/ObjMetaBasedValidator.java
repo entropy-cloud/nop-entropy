@@ -226,6 +226,7 @@ public class ObjMetaBasedValidator {
         }
 
         throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
+                .source(propMeta)
                 .param(ARG_FIELD_NAME, propMeta.getName())
                 .param(ARG_PERMISSION, auth.getPermissions())
                 .param(ARG_ROLES, auth.getRoles())

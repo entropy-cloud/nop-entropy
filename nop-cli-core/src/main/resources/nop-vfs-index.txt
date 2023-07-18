@@ -42,7 +42,9 @@
 /nop/dao/dialect/db2.dialect.xml
 /nop/dao/dialect/default.dialect.xml
 /nop/dao/dialect/es.dialect.xml
+/nop/dao/dialect/geo-support.dialect.xml
 /nop/dao/dialect/h2.dialect.xml
+/nop/dao/dialect/h2gis.dialect.xml
 /nop/dao/dialect/mariadb.dialect.xml
 /nop/dao/dialect/mssql.dialect.xml
 /nop/dao/dialect/mysql.dialect.xml

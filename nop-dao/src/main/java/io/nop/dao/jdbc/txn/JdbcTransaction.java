@@ -10,6 +10,7 @@ package io.nop.dao.jdbc.txn;
 import io.nop.commons.util.IoHelper;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.impl.JdbcHelper;
+import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.impl.AbstractTransaction;
 
 import java.sql.Connection;
@@ -26,12 +27,15 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
 
     private Connection connection;
 
+    private final IDaoMetrics daoMetrics;
+
     public JdbcTransaction(String querySpace, Supplier<Connection> dataSource, IDialect dialect,
-                           boolean eagerReleaseConnection) {
+                           boolean eagerReleaseConnection, IDaoMetrics daoMetrics) {
         super(querySpace);
         this.dataSource = dataSource;
         this.dialect = dialect;
         this.eagerReleaseConnection = eagerReleaseConnection;
+        this.daoMetrics = daoMetrics;
     }
 
     Connection getConnection0() {
@@ -49,6 +53,9 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
                 if (JdbcHelper.getAutoCommit(connection, dialect)) {
                     JdbcHelper.setAutoCommit(connection, false, dialect);
                 }
+            }
+            if (daoMetrics != null) {
+                daoMetrics.onObtainConnection();
             }
         }
         return connection;
@@ -90,5 +97,6 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
         if (JdbcHelper.getAutoCommit(conn, dialect)) {
             JdbcHelper.setAutoCommit(conn, false, dialect);
         }
+
     }
 }

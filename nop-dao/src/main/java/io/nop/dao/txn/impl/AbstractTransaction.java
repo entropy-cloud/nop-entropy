@@ -356,6 +356,7 @@ public abstract class AbstractTransaction implements ITransaction {
     public void open() {
         if (opened)
             throw newError(ERR_TXN_ALREADY_STARTED);
+        invokeOpenListener();
         doOpen();
         opened = true;
     }
@@ -366,6 +367,18 @@ public abstract class AbstractTransaction implements ITransaction {
         closeSubTransactions();
         doClose();
         this.opened = false;
+    }
+
+    protected void invokeOpenListener() {
+        if (listeners != null) {
+            for (ITransactionListener listener : listeners) {
+                try {
+                    listener.onOpen(this);
+                } catch (Exception e) {
+                    LOG.error("nop.err.dao.txn.listener.onOpen.fail:txnId={},txnGroup={}", getTxnId(), txnGroup, e);
+                }
+            }
+        }
     }
 
     protected void invokeCloseListener() {

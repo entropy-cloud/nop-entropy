@@ -14,6 +14,7 @@ import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionFactory;
 import io.nop.dao.txn.ITransactionListener;
 import io.nop.dao.txn.ITransactionManager;
+import io.nop.dao.txn.ITransactionMetrics;
 import io.nop.dao.utils.DaoHelper;
 
 import javax.annotation.Nullable;
@@ -32,6 +33,26 @@ public class DefaultTransactionManager implements ITransactionManager {
     private ITransactionFactory defaultFactory;
 
     private ITransactionListener defaultListener;
+    private ITransactionMetrics transactionMetrics;
+    private ITransactionListener metricsListener = new ITransactionListener() {
+        @Override
+        public void onOpen(ITransaction txn) {
+            transactionMetrics.onTransactionOpen(txn.getTxnGroup());
+        }
+
+        @Override
+        public void onAfterCompletion(ITransaction txn, CompleteStatus status, Throwable exception) {
+            if (status == CompleteStatus.COMMIT) {
+                transactionMetrics.onTransactionSuccess(txn.getTxnGroup());
+            } else {
+                transactionMetrics.onTransactionFailure(txn.getTxnGroup());
+            }
+        }
+    };
+
+    public void setTransactionMetrics(ITransactionMetrics transactionMetrics) {
+        this.transactionMetrics = transactionMetrics;
+    }
 
     public void setTransactionFactoryMap(Map<String, ITransactionFactory> map) {
         this.transactionFactoryMap.putAll(map);
@@ -122,6 +143,9 @@ public class DefaultTransactionManager implements ITransactionManager {
         ITransaction txn = getTransactionFactory(querySpace).newTransaction(querySpace);
         if (defaultListener != null)
             txn.addListener(defaultListener);
+
+        if (transactionMetrics != null)
+            txn.addListener(metricsListener);
         return txn;
     }
 

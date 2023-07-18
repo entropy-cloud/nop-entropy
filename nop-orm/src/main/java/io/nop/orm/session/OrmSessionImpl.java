@@ -115,6 +115,9 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         this.cache = stateless ? new StatelessOrmSessionEntityCache(this) :
                 (env.getOrmModel().isAnyEntityUseTenant() ? new TenantOrmSessionEntityCache(this) : new OrmSessionEntityCache(this));
         this.interceptors = CollectionHelper.toNotNull(interceptors);
+
+
+        env.getOrmMetrics().onSessionOpen();
     }
 
     @Override
@@ -167,6 +170,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             LOG.debug("orm.exit-flush-when-session-is-readonly");
             return;
         }
+
+        env.getOrmMetrics().onFlush();
 
         interceptPreFlush();
         Throwable exp = null;
@@ -316,6 +321,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         IEntityPersister persister = requireEntityPersister(entity.orm_entityName());
         IEntityModel entityModel = persister.getEntityModel();
 
+        env.getOrmMetrics().onLoadEntity(entity.orm_entityName());
+
         if (!entity.orm_state().isManaged()) {
             for (int i = 0, n = values.length; i < n; i++) {
                 int propId = propIds.get(i);
@@ -370,7 +377,6 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public IOrmEntity load(String entityName, Object id) {
-        env.getOrmMetrics().onLogicalLoadEntity(entityName);
         return makeProxy(entityName, id);
     }
 
@@ -418,8 +424,6 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     public Object save(IOrmEntity entity) {
         checkValid();
         checkNotReadOnly();
-
-        env.getOrmMetrics().onLogicalSaveEntity(entity.orm_entityName());
 
         internalSave(entity);
 
@@ -505,7 +509,6 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         if (!this.contains(entity))
             throw newError(ERR_ORM_ENTITY_NOT_IN_SESSION, entity);
 
-        env.getOrmMetrics().onLogicalDeleteEntity(entity.orm_entityName());
         internalDelete(entity);
 
         if (this.isStateless())
@@ -628,6 +631,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     public void close() {
         if (closed)
             return;
+
+        env.getOrmMetrics().onSessionClosed();
 
         LOG.debug("orm.session_close:{}", this);
 
@@ -870,6 +875,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             return;
         }
 
+        env.getOrmMetrics().onFlushSaveEntity(entity.orm_entityName());
+
         LOG.trace("session.flushSave:entity={}", entity);
         IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
         persister.save(entity, this);
@@ -882,6 +889,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             return;
         }
 
+        env.getOrmMetrics().onFlushUpdateEntity(entity.orm_entityName());
+
         LOG.trace("session.flushUpdate:entity={}", entity);
         IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
         persister.update(entity, this);
@@ -893,6 +902,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             LOG.debug("session.preDelete_VETO:entity={}", entity);
             return;
         }
+
+        env.getOrmMetrics().onFlushDeleteEntity(entity.orm_entityName());
 
         LOG.trace("session.flushDelete:entity={}", entity);
         IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());

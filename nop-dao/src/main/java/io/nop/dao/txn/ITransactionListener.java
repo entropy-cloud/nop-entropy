@@ -49,6 +49,10 @@ public interface ITransactionListener extends IOrdered, Comparable<ITransactionL
     default void onAfterCompletion(ITransaction txn, CompleteStatus status, Throwable exception) {
     }
 
+    default void onOpen(ITransaction txn) {
+
+    }
+
     default void onClose(ITransaction txn) {
     }
 }

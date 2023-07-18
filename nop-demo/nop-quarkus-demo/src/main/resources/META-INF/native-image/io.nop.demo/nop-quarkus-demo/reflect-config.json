@@ -26161,6 +26161,10 @@
         ]
       },
       {
+        "name": "getGeometryDataParameterBinder",
+        "parameterTypes": []
+      },
+      {
         "name": "getHexValueLiteral",
         "parameterTypes": [
           "io.nop.commons.bytes.ByteString"
@@ -26415,7 +26419,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "buildFunctionSql",
@@ -26511,6 +26521,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getGeometryDataParameterBinder",
+        "parameterTypes": []
       },
       {
         "name": "getHexValueLiteral",
@@ -27361,6 +27375,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getGeometryParameterBinder",
+        "parameterTypes": []
+      },
+      {
         "name": "getJdbcUrlPattern",
         "parameterTypes": []
       },
@@ -27518,6 +27536,12 @@
         "name": "setFunctions",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setGeometryParameterBinder",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -28275,6 +28299,35 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDialectForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setQuerySpaceToDialectConfig",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setQuerySpaceToDialectMap",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.jdbc.impl.JdbcDialectProvider",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -28440,9 +28493,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getDaoMetrics",
+        "parameterTypes": []
+      },
+      {
         "name": "newTransaction",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDaoMetrics",
+        "parameterTypes": [
+          "io.nop.dao.metrics.IDaoMetrics"
         ]
       },
       {
@@ -28453,6 +28516,88 @@
       }
     ],
     "name": "io.nop.dao.jdbc.txn.JdbcTransactionFactory",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "beginBatchUpdate",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "beginExecuteUpdate",
+        "parameterTypes": [
+          "io.nop.core.lang.sql.SQL"
+        ]
+      },
+      {
+        "name": "beginQuery",
+        "parameterTypes": [
+          "io.nop.core.lang.sql.SQL",
+          "io.nop.api.core.beans.LongRangeBean"
+        ]
+      },
+      {
+        "name": "endBatchUpdate",
+        "parameterTypes": [
+          "java.lang.Object",
+          "long"
+        ]
+      },
+      {
+        "name": "endExecuteUpdate",
+        "parameterTypes": [
+          "java.lang.Object",
+          "long"
+        ]
+      },
+      {
+        "name": "endQuery",
+        "parameterTypes": [
+          "java.lang.Object",
+          "long",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getPrefix",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRegistry",
+        "parameterTypes": []
+      },
+      {
+        "name": "onObtainConnection",
+        "parameterTypes": []
+      },
+      {
+        "name": "onTransactionFailure",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "onTransactionOpen",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "onTransactionSuccess",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.metrics.DaoMetricsImpl",
     "unsafeAllocated": false
   },
   {
@@ -28574,6 +28719,12 @@
         ]
       },
       {
+        "name": "setDataSourceMap",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "setDefaultFactory",
         "parameterTypes": [
           "io.nop.dao.txn.ITransactionFactory"
@@ -28592,9 +28743,21 @@
         ]
       },
       {
+        "name": "setTransactionMetrics",
+        "parameterTypes": [
+          "io.nop.dao.txn.ITransactionMetrics"
+        ]
+      },
+      {
         "name": "setTxnGroupMap",
         "parameterTypes": [
           "java.util.Map"
+        ]
+      },
+      {
+        "name": "setTxnGroupMapConfig",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -37055,6 +37218,12 @@
         "parameterTypes": [
           "io.nop.orm.IOrmSessionFactory"
         ]
+      },
+      {
+        "name": "splitByQuerySpace",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
       }
     ],
     "name": "io.nop.orm.initialize.DataBaseSchemaInitializer",
@@ -44018,6 +44187,12 @@
         "name": "setRuleType",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
         ]
       },
       {
