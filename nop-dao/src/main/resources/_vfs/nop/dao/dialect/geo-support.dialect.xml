@@ -6,7 +6,7 @@ PostgresSQL， Oracle 10g/11g，MySQL，SQLServer，H2GIS，DB2，CockroachDB
 <dialect x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
 >
-    <geometryParameterBinder>io.nop.orm.geo.binder.GeometryDataParameterBinder</geometryParameterBinder>
+    <geometryTypeHandler>io.nop.orm.geo.type.GeometryTypeHandler</geometryTypeHandler>
 
     <functions>
         <native name="st_dimension" returnType="INTEGER" argTypes="GEOMETRY">

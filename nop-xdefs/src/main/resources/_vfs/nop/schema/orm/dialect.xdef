@@ -23,8 +23,8 @@
 
     <paginationHandler xdef:value="class-name"/>
 
-    <!-- JDBC使用这个类存取GEOMETRY类型数据。 IDataParameterBinder类型 -->
-    <geometryParameterBinder xdef:value="class-name"/>
+    <!-- JDBC使用这个类存取GEOMETRY类型数据。 IDataTypeHandler类型 -->
+    <geometryTypeHandler xdef:value="class-name"/>
 
     <!--
     @supportUpdateTableAlias update语句是否允许表别名。例如 update my_table a where ...

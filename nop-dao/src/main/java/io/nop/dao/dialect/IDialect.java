@@ -37,7 +37,7 @@ public interface IDialect extends IComponentModel {
 
     SQLDataType stdToNativeSqlType(StdSqlType sqlType, int precision, int scale);
 
-    IDataParameterBinder getGeometryDataParameterBinder();
+    IDataTypeHandler getGeometryTypeHandler();
 
     ISQLExceptionTranslator getSQLExceptionTranslator();
 

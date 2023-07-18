@@ -20,6 +20,7 @@ import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.dao.dialect.IDataTypeHandler;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.exception.ISQLExceptionTranslator;
@@ -78,7 +79,7 @@ public class DialectImpl implements IDialect {
 
     private final boolean convertStringToNull = CFG_AUTO_CONVERT_EMPTY_STRING_TO_NULL.get();
 
-    private final IDataParameterBinder geometryParameterBinder;
+    private final IDataTypeHandler geometryTypeHandler;
 
     public DialectImpl(DialectModel dialectModel) {
         this.dialectModel = dialectModel;
@@ -95,13 +96,13 @@ public class DialectImpl implements IDialect {
             this.renameMap.putAll(dialectModel.getRename());
         }
 
-        IDataParameterBinder binder = null;
+        IDataTypeHandler handler = null;
         try {
-            binder = newInstance(dialectModel.getGeometryParameterBinder(), null);
+            handler = newInstance(dialectModel.getGeometryTypeHandler(), null);
         } catch (Exception e) {
-            LOG.warn("nop.err.dao.load-geometry-parameter-binder-fail", e);
+            LOG.warn("nop.err.dao.load-geometry-type-handler-fail", e);
         }
-        this.geometryParameterBinder = binder;
+        this.geometryTypeHandler = handler;
     }
 
     static <T> T newInstance(String className, T defaultImpl) {
@@ -140,8 +141,8 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
-    public IDataParameterBinder getGeometryDataParameterBinder() {
-        return geometryParameterBinder;
+    public IDataTypeHandler getGeometryTypeHandler() {
+        return geometryTypeHandler;
     }
 
     public DialectModel getDialectModel() {
@@ -508,6 +509,10 @@ public class DialectImpl implements IDialect {
             return getDateTimeLiteral((LocalDateTime) value);
         if (value instanceof java.util.Date)
             return getDateTimeLiteral(ConvertHelper.toLocalDateTime(value));
+
+        IDataTypeHandler typeHandler = getGeometryTypeHandler();
+        if (typeHandler != null && typeHandler.isJavaType(value))
+            return typeHandler.toLiteral(value, this);
         return value.toString();
     }
 
@@ -517,7 +522,7 @@ public class DialectImpl implements IDialect {
             return DataParameterBinders.STRING_EX;
 
         if (sqlType == StdSqlType.GEOMETRY)
-            return getGeometryDataParameterBinder();
+            return getGeometryTypeHandler();
 
         IDataParameterBinder binder = DataParameterBinders.getDefaultBinder(sqlType.getName());
         if (binder == null)
