@@ -24,6 +24,7 @@ import io.nop.orm.factory.OrmSessionFactoryBean;
 import io.nop.orm.impl.OrmTemplateImpl;
 import io.nop.orm.mock.MockBeanProvider;
 import io.nop.orm.model.IEntityModel;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.util.ArrayList;
@@ -36,6 +37,8 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
     protected IOrmSessionFactory sessionFactory;
     private IOrmTemplate ormTemplate;
     private IDaoProvider daoProvider;
+
+    private OrmSessionFactoryBean sessionFactoryBean;
 
     @BeforeEach
     @Override
@@ -50,6 +53,8 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
         factoryBean.setColumnBinderEnhancer(new DefaultOrmColumnBinderEnhancer());
 
         factoryBean.init();
+
+        this.sessionFactoryBean = factoryBean;
 
         sessionFactory = factoryBean.getObject();
         ormTemplate = new OrmTemplateImpl(sessionFactory);
@@ -67,6 +72,13 @@ public class AbstractOrmTestCase extends AbstractJdbcTestCase {
         prepareData();
 
         prepareDataInTenant("100");
+    }
+
+    @AfterEach
+    public void tearDown() {
+        super.tearDown();
+        if (sessionFactoryBean != null)
+            sessionFactoryBean.destroy();
     }
 
     protected void createTables() {

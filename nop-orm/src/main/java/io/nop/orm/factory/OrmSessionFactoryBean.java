@@ -118,7 +118,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
             GlobalCacheRegistry.instance().register(cacheManagement);
         }
 
-        LOG.info("orm.end_init_session_factory");
+        LOG.info("orm.init_session_factory");
     }
 
     class OrmSessionFactoryCacheManagement implements ICacheManagement {
@@ -170,6 +170,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
 
     @PreDestroy
     public void destroy() {
+        LOG.info("nop.orm.destroy-session-factory");
         if (cacheManagement != null) {
             GlobalCacheRegistry.instance().unregister(cacheManagement);
         }

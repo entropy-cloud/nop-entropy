@@ -12,6 +12,7 @@
         <ioc:condition>
             <on-class>org.h2gis.functions.factory.H2GISFunctions</on-class>
         </ioc:condition>
+        <property name="querySpaceToDialectConfig" value="@cfg:nop.dao.config.query-space-to-dialect|" />
     </bean>
 
 </beans>

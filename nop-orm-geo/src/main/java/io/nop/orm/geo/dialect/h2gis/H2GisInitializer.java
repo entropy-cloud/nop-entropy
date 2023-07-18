@@ -5,12 +5,15 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import org.h2gis.functions.factory.H2GISFunctions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.sql.SQLException;
 import java.util.Map;
 
 public class H2GisInitializer {
+    static final Logger LOG = LoggerFactory.getLogger(H2GisInitializer.class);
 
     @Inject
     IJdbcTemplate jdbcTemplate;
@@ -27,6 +30,7 @@ public class H2GisInitializer {
                 String dialect = entry.getValue();
                 String querySpace = entry.getKey();
                 if ("h2gis".equals(dialect)) {
+                    LOG.info("nop.orm.init-h2gis");
                     SQL sql = SQL.begin().sql(querySpace).sql("init").end();
                     jdbcTemplate.runWithConnection(sql, conn -> {
                         try {
