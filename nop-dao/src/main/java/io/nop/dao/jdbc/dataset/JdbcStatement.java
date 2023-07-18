@@ -29,6 +29,15 @@ public class JdbcStatement implements IJdbcStatement {
     }
 
     @Override
+    public Object getNativeConnection() {
+        try {
+            return statement.getConnection();
+        } catch (SQLException e) {
+            throw dialect.getSQLExceptionTranslator().translate("getConnection", e);
+        }
+    }
+
+    @Override
     public long executeUpdate() {
         try {
             if (dialect.isSupportExecuteLargeUpdate())

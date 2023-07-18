@@ -12,7 +12,7 @@ import io.nop.commons.type.StdSqlType;
 
 public interface IDataParameterBinder {
     StdSqlType getStdSqlType();
-
+    
     default StdDataType getStdDataType() {
         return getStdSqlType().getStdDataType();
     }

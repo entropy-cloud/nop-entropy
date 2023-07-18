@@ -52,6 +52,15 @@ public class JdbcDataSet implements IDataSet, IDataRow {
         this.dialect = dialect;
     }
 
+    @Override
+    public Object getNativeConnection() {
+        try {
+            return rs.getStatement().getConnection();
+        } catch (SQLException e) {
+            throw dialect.getSQLExceptionTranslator().translate("getConnection", e);
+        }
+    }
+
     public IDataSetMeta getMeta() {
         if (meta == null) {
             try {

@@ -229,6 +229,7 @@
 /nop/dao/dialect/mssql.dialect.xml
 /nop/dao/dialect/mysql.dialect.xml
 /nop/dao/dialect/oracle.dialect.xml
+/nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml
 /nop/dao/dialect/selector/db2.selector.yaml
 /nop/dao/dialect/selector/h2.selector.yaml

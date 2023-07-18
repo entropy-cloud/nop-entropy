@@ -18,6 +18,7 @@ import org.geolatte.geom.codec.Wkb;
 import org.geolatte.geom.codec.WkbDecoder;
 import org.geolatte.geom.codec.WkbEncoder;
 import org.geolatte.geom.codec.Wkt;
+import org.geolatte.geom.codec.WktDecoder;
 import org.geolatte.geom.crs.CoordinateReferenceSystems;
 import org.geolatte.geom.jts.JTS;
 
@@ -51,13 +52,20 @@ public class GeometryTypeHandler implements IDataTypeHandler {
         return ByteOrder.NDR;
     }
 
+    protected boolean isLiteralIncludeSRID() {
+        return true;
+    }
+
     @Override
     public String toLiteral(Object value, IDialect dialect) {
         Geometry geom = toGeometry(value);
         StringBuilder sb = new StringBuilder();
         sb.append(getGeomFromTextFunc());
         sb.append("('").append(Wkt.toWkt(geom, getWktDialect()));
-        sb.append("',").append(Math.max(geom.getSRID(), 0));
+        sb.append("'");
+        if (isLiteralIncludeSRID()) {
+            sb.append('.').append(Math.max(geom.getSRID(), 0));
+        }
         sb.append(')');
         return sb.toString();
     }
@@ -76,12 +84,12 @@ public class GeometryTypeHandler implements IDataTypeHandler {
     @Override
     public Object getValue(IDataParameters params, int index) {
         Object value = params.getObject(index);
-        return fromValue(value);
+        return parseDbValue(value);
     }
 
     @Override
     public void setValue(IDataParameters params, int index, Object value) {
-        final Geometry geom = (Geometry) value;
+        final Geometry geom = toGeometry(value);
         params.setBytes(index, toBytes(geom, getWkbDialect(), getByteOrder()));
     }
 
@@ -91,7 +99,7 @@ public class GeometryTypeHandler implements IDataTypeHandler {
         return (buffer == null ? null : buffer.toByteArray());
     }
 
-    protected Geometry fromValue(Object object) {
+    protected Geometry parseDbValue(Object object) {
         if (object == null) {
             return null;
         }
@@ -99,7 +107,7 @@ public class GeometryTypeHandler implements IDataTypeHandler {
             if (object instanceof org.locationtech.jts.geom.Geometry) {
                 return JTS.from((org.locationtech.jts.geom.Geometry) object);
             }
-            final WkbDecoder decoder = Wkb.newDecoder(Wkb.Dialect.POSTGIS_EWKB_1);
+            final WkbDecoder decoder = Wkb.newDecoder(getWkbDialect());
             if (object instanceof Blob) {
                 return decoder.decode(toByteBuffer((Blob) object));
             } else if (object instanceof byte[]) {
@@ -124,15 +132,24 @@ public class GeometryTypeHandler implements IDataTypeHandler {
         return new Polygon<C2D>(ps, CoordinateReferenceSystems.PROJECTED_2D_METER);
     }
 
-    private static ByteBuffer toByteBuffer(Blob blob) {
+    protected static ByteBuffer toByteBuffer(Blob blob) {
+        return ByteBuffer.from(toByteArray(blob));
+    }
+
+    protected static byte[] toByteArray(Blob blob) {
         InputStream is = null;
         try {
             is = blob.getBinaryStream();
-            return ByteBuffer.from(IoHelper.readBytes(is));
+            return IoHelper.readBytes(is);
         } catch (Exception e) {
             throw NopException.adapt(e);
         } finally {
             IoHelper.safeCloseObject(is);
         }
+    }
+
+    protected Geometry parseWkt(String text) {
+        final WktDecoder decoder = Wkt.newDecoder(getWktDialect());
+        return decoder.decode(text);
     }
 }

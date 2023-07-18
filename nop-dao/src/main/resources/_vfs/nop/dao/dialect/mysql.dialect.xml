@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+<dialect x:extends="default.dialect.xml,geo-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
          maxStringSize="1048576" maxBytesSize="1048576"
          defaultNullsFirst="true"
@@ -11,6 +11,8 @@
     <jdbcUrlPattern>
         jdbc:mysql://{host}:{port}/{db}?serverTimezone={timezone}&amp;useUnicode=true&amp;characterEncoding=utf-8&amp;autoReconnect=true
     </jdbcUrlPattern>
+
+    <geometryTypeHandler>io.nop.orm.geo.dialect.mysql.MySqlGeometryTypeHandler</geometryTypeHandler>
 
     <reservedKeywords>
         ACCESSIBLE, ADD, ALL, ALTER, ANALYZE,

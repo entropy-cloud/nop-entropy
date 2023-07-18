@@ -1,0 +1,10 @@
+<dialect x:extends="postgresql.dialect.xml,geo-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <geometryTypeHandler>io.nop.orm.geo.dialect.postgis.PostgisGeometryTypeHandler</geometryTypeHandler>
+
+    <sqlDataTypes>
+        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+    </sqlDataTypes>
+</dialect>

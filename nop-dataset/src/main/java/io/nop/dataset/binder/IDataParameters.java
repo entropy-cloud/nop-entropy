@@ -33,6 +33,9 @@ import static io.nop.api.core.convert.ConvertHelper.toShort;
 import static io.nop.api.core.convert.ConvertHelper.toTimestamp;
 
 public interface IDataParameters {
+    default Object getNativeConnection() {
+        return null;
+    }
 
     Object getObject(int index);
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<dialect x:extends="default.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+<dialect x:extends="default.dialect.xml,geo-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
          keywordQuote="&quot;" keywordUnderscore="false" defaultNullsFirst="false"
 >
@@ -10,6 +10,8 @@
     <jdbcUrlPattern>jdbc:oracle:thin:@192.168.1.250:1521:devdb</jdbcUrlPattern>
 
     <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>
+
+    <geometryTypeHandler>io.nop.orm.geo.dialect.oracle.OracleGeometryTypeHandler</geometryTypeHandler>
 
     <rename>
         ROWID="rowid"
@@ -94,7 +96,7 @@
         </errorCode>
     </errorCodes>
 
-    <features supportSequence="true" supportNullsFirst="true" />
+    <features supportSequence="true" supportNullsFirst="true"/>
 
     <sqls escapeSlash="false">
         <dropTable>drop table {tableName}</dropTable>
