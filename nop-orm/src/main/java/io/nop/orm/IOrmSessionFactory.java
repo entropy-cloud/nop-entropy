@@ -11,6 +11,7 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.ICacheProvider;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
+import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.model.IOrmModel;
@@ -30,6 +31,8 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
     void clearQueryCacheFor(String cacheName);
 
     void evictQueryCache(String cacheName, Serializable cacheKey);
+
+    IJdbcTemplate getJdbcTemplate();
 
     IOrmSession openSession(boolean stateless);
 

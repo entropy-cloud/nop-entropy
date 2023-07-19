@@ -286,9 +286,8 @@ public class FutureHelper {
      */
     public static void bindCancel(CompletionStage<?> promise, Future<?> future) {
         promise.whenComplete((value, ex) -> {
-            if (isCancellationException(ex)) {
+            if (!future.isDone())
                 future.cancel(true);
-            }
         });
     }
 

@@ -52,12 +52,18 @@
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="BEGIN Time"/>
                 <column code="END_TIME" displayName="结束时间" name="endTime" propId="9" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="End Time"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="200" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
+                <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="1000" propId="11"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
+                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="1000" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
             <relations>
                 <to-many displayName="分支事务记录" name="branchRecords"
@@ -99,28 +105,38 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Request Data"/>
                 <column code="ERROR_CODE" displayName="错误码" name="errorCode" precision="200" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
-                <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="200" propId="13"
+                <column code="ERROR_MESSAGE" displayName="错误消息" name="errorMessage" precision="1000" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Message"/>
-                <column code="BEGIN_TIME" displayName="开始时间" mandatory="true" name="beginTime" propId="14"
+                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="1000" propId="14"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
+                <column code="BEGIN_TIME" displayName="开始时间" mandatory="true" name="beginTime" propId="15"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Begin Time"/>
-                <column code="END_TIME" displayName="结束时间" name="endTime" propId="15" stdDataType="timestamp"
+                <column code="END_TIME" displayName="结束时间" name="endTime" propId="16" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="End Time"/>
                 <column code="COMMIT_ERROR_CODE" displayName="提交阶段错误码" name="commitErrorCode" precision="200"
-                        propId="16" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Commit Error Code"/>
-                <column code="COMMIT_ERROR_MESSAGE" displayName="提交阶段错误消息" name="commitErrorMessage" precision="200"
-                        propId="17" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Commit Error Message"/>
-                <column code="RETRY_TIMES" displayName="重试次数" name="retryTimes" propId="18" stdDataType="int"
+                        propId="17" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Commit Error Code"/>
+                <column code="COMMIT_ERROR_MESSAGE" displayName="提交阶段错误消息" name="commitErrorMessage" precision="1000"
+                        propId="18" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Commit Error Message"/>
+                <column code="COMMIT_ERROR_STACK" displayName="提交阶段错误堆栈" name="commitErrorStack" precision="1000"
+                        propId="19" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Commit Error Stack"/>
+                <column code="CANCEL_ERROR_CODE" displayName="取消阶段错误码" name="cancelErrorCode" precision="200"
+                        propId="20" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cancel Error Code"/>
+                <column code="CANCEL_ERROR_MESSAGE" displayName="取消阶段错误消息" name="cancelErrorMessage" precision="1000"
+                        propId="21" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cancel Error Message"/>
+                <column code="CANCEL_ERROR_STACK" displayName="取消阶段错误堆栈" name="cancelErrorStack" precision="1000"
+                        propId="22" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cancel Error Stack"/>
+                <column code="RETRY_TIMES" displayName="重试次数" name="retryTimes" propId="23" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Retry Times"/>
-                <column code="MAX_RETRY_TIMES" displayName="最大重试次数" mandatory="true" name="maxRetryTimes" propId="19"
+                <column code="MAX_RETRY_TIMES" displayName="最大重试次数" mandatory="true" name="maxRetryTimes" propId="24"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Max Retry Times"/>
-                <column code="NEXT_RETRY_TIME" displayName="下次重试时间" name="nextRetryTime" propId="20"
+                <column code="NEXT_RETRY_TIME" displayName="下次重试时间" name="nextRetryTime" propId="25"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Next Retry Time"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="21"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="26"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="22" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="27" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="23" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                        propId="28" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
             <relations>
                 <to-one displayName="事务记录" name="tccRecord" refEntityName="io.nop.tcc.dao.entity.NopTccRecord"

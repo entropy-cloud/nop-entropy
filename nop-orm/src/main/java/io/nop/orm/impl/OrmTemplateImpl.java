@@ -11,17 +11,18 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.time.IEstimatedClock;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.ICacheProvider;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.AbstractSqlExecutor;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.rowmapper.SmartRowMapper;
-import io.nop.dao.dialect.IDialect;
 import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmSession;
@@ -294,6 +295,27 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     }
 
     @Override
+    public Object saveDirectly(IOrmEntity entity) {
+        return runInSession(session -> session.saveDirectly(entity));
+    }
+
+    @Override
+    public void updateDirectly(IOrmEntity entity) {
+        runInSession(session -> {
+            session.updateDirectly(entity);
+            return null;
+        });
+    }
+
+    @Override
+    public void deleteDirectly(IOrmEntity entity) {
+        runInSession(session -> {
+            session.deleteDirectly(entity);
+            return null;
+        });
+    }
+
+    @Override
     public void saveOrUpdate(IOrmEntity entity) {
         runInSession(session -> {
             session.saveOrUpdate(entity);
@@ -482,5 +504,10 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     @Override
     public void cachePut(Object key, Object value) {
         requireSession().getSessionCache().put(key, value);
+    }
+
+    @Override
+    public IEstimatedClock getDbEstimatedClock(String querySpace) {
+        return sessionFactory.getJdbcTemplate().getDbEstimatedClock(querySpace);
     }
 }

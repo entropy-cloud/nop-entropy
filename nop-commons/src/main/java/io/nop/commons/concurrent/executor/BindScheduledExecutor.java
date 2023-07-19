@@ -40,6 +40,14 @@ public class BindScheduledExecutor implements IScheduledExecutor {
     }
 
     @Override
+    public IScheduledExecutor executeOn(Executor executor) {
+        if (this.executor == executor)
+            return this;
+
+        return new BindScheduledExecutor(timer, executor);
+    }
+
+    @Override
     public <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         CompletableFuture<V> future = new CompletableFuture<>();
         timer.schedule(() -> {

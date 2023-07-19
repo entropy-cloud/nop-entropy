@@ -156,6 +156,29 @@ CREATE TABLE nop_sys_ext_field(
   constraint PK_nop_sys_ext_field primary key (ENTITY_NAME,ENTITY_ID,FIELD_NAME)
 );
 
+CREATE TABLE nop_sys_lock(
+  LOCK_GROUP VARCHAR(200) NOT NULL    COMMENT '分组',
+  LOCK_NAME VARCHAR(200) NOT NULL    COMMENT '锁名称',
+  LOCK_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '锁定时间',
+  EXPIRE_AT TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '过期时间',
+  LOCK_REASON VARCHAR(200) NULL    COMMENT '锁定原因',
+  HOLDER_ID VARCHAR(100) NOT NULL    COMMENT '锁的持有者',
+  HOLDER_ADDER VARCHAR(100) NOT NULL    COMMENT '持有者地址',
+  APP_ID VARCHAR(100) NOT NULL    COMMENT '应用ID',
+  constraint PK_nop_sys_lock primary key (LOCK_GROUP,LOCK_NAME)
+);
+
+CREATE TABLE nop_sys_cluster_leader(
+  CLUSTER_ID VARCHAR(200) NOT NULL    COMMENT '集群ID',
+  LEADER_ID VARCHAR(100) NOT NULL    COMMENT '主服务器ID',
+  LEADER_ADDER VARCHAR(100) NOT NULL    COMMENT '主服务器地址',
+  LEADER_EPOCH BIGINT NOT NULL    COMMENT '选举世代',
+  ELECT_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '选举时间',
+  EXPIRE_AT TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '过期时间',
+  APP_ID VARCHAR(100) NOT NULL    COMMENT '应用ID',
+  constraint PK_nop_sys_cluster_leader primary key (CLUSTER_ID)
+);
+
 CREATE TABLE nop_sys_dict(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   DICT_NAME VARCHAR(150) NOT NULL    COMMENT '字典名',
@@ -188,6 +211,10 @@ CREATE TABLE nop_sys_dict(
    ALTER TABLE nop_sys_variable COMMENT '系统变量';
                 
    ALTER TABLE nop_sys_ext_field COMMENT '扩展字段';
+                
+   ALTER TABLE nop_sys_lock COMMENT '资源锁';
+                
+   ALTER TABLE nop_sys_cluster_leader COMMENT '集群选举';
                 
    ALTER TABLE nop_sys_dict COMMENT '字典表';
                 

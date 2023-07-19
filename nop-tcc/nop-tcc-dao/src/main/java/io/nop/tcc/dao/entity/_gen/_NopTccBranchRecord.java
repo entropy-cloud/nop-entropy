@@ -72,48 +72,68 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_errorMessage = "errorMessage";
     public static final int PROP_ID_errorMessage = 13;
     
+    /* 错误堆栈: ERROR_STACK VARCHAR */
+    public static final String PROP_NAME_errorStack = "errorStack";
+    public static final int PROP_ID_errorStack = 14;
+    
     /* 开始时间: BEGIN_TIME TIMESTAMP */
     public static final String PROP_NAME_beginTime = "beginTime";
-    public static final int PROP_ID_beginTime = 14;
+    public static final int PROP_ID_beginTime = 15;
     
     /* 结束时间: END_TIME TIMESTAMP */
     public static final String PROP_NAME_endTime = "endTime";
-    public static final int PROP_ID_endTime = 15;
+    public static final int PROP_ID_endTime = 16;
     
     /* 提交阶段错误码: COMMIT_ERROR_CODE VARCHAR */
     public static final String PROP_NAME_commitErrorCode = "commitErrorCode";
-    public static final int PROP_ID_commitErrorCode = 16;
+    public static final int PROP_ID_commitErrorCode = 17;
     
     /* 提交阶段错误消息: COMMIT_ERROR_MESSAGE VARCHAR */
     public static final String PROP_NAME_commitErrorMessage = "commitErrorMessage";
-    public static final int PROP_ID_commitErrorMessage = 17;
+    public static final int PROP_ID_commitErrorMessage = 18;
+    
+    /* 提交阶段错误堆栈: COMMIT_ERROR_STACK VARCHAR */
+    public static final String PROP_NAME_commitErrorStack = "commitErrorStack";
+    public static final int PROP_ID_commitErrorStack = 19;
+    
+    /* 取消阶段错误码: CANCEL_ERROR_CODE VARCHAR */
+    public static final String PROP_NAME_cancelErrorCode = "cancelErrorCode";
+    public static final int PROP_ID_cancelErrorCode = 20;
+    
+    /* 取消阶段错误消息: CANCEL_ERROR_MESSAGE VARCHAR */
+    public static final String PROP_NAME_cancelErrorMessage = "cancelErrorMessage";
+    public static final int PROP_ID_cancelErrorMessage = 21;
+    
+    /* 取消阶段错误堆栈: CANCEL_ERROR_STACK VARCHAR */
+    public static final String PROP_NAME_cancelErrorStack = "cancelErrorStack";
+    public static final int PROP_ID_cancelErrorStack = 22;
     
     /* 重试次数: RETRY_TIMES INTEGER */
     public static final String PROP_NAME_retryTimes = "retryTimes";
-    public static final int PROP_ID_retryTimes = 18;
+    public static final int PROP_ID_retryTimes = 23;
     
     /* 最大重试次数: MAX_RETRY_TIMES INTEGER */
     public static final String PROP_NAME_maxRetryTimes = "maxRetryTimes";
-    public static final int PROP_ID_maxRetryTimes = 19;
+    public static final int PROP_ID_maxRetryTimes = 24;
     
     /* 下次重试时间: NEXT_RETRY_TIME TIMESTAMP */
     public static final String PROP_NAME_nextRetryTime = "nextRetryTime";
-    public static final int PROP_ID_nextRetryTime = 20;
+    public static final int PROP_ID_nextRetryTime = 25;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 21;
+    public static final int PROP_ID_version = 26;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 22;
+    public static final int PROP_ID_createTime = 27;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 23;
+    public static final int PROP_ID_updateTime = 28;
     
 
-    private static int _PROP_ID_BOUND = 24;
+    private static int _PROP_ID_BOUND = 29;
 
     
     /* relation: 事务记录 */
@@ -123,7 +143,7 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_branchId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_branchId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[24];
+    private static final String[] PROP_ID_TO_NAME = new String[29];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -166,6 +186,9 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_errorMessage] = PROP_NAME_errorMessage;
           PROP_NAME_TO_ID.put(PROP_NAME_errorMessage, PROP_ID_errorMessage);
       
+          PROP_ID_TO_NAME[PROP_ID_errorStack] = PROP_NAME_errorStack;
+          PROP_NAME_TO_ID.put(PROP_NAME_errorStack, PROP_ID_errorStack);
+      
           PROP_ID_TO_NAME[PROP_ID_beginTime] = PROP_NAME_beginTime;
           PROP_NAME_TO_ID.put(PROP_NAME_beginTime, PROP_ID_beginTime);
       
@@ -177,6 +200,18 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_commitErrorMessage] = PROP_NAME_commitErrorMessage;
           PROP_NAME_TO_ID.put(PROP_NAME_commitErrorMessage, PROP_ID_commitErrorMessage);
+      
+          PROP_ID_TO_NAME[PROP_ID_commitErrorStack] = PROP_NAME_commitErrorStack;
+          PROP_NAME_TO_ID.put(PROP_NAME_commitErrorStack, PROP_ID_commitErrorStack);
+      
+          PROP_ID_TO_NAME[PROP_ID_cancelErrorCode] = PROP_NAME_cancelErrorCode;
+          PROP_NAME_TO_ID.put(PROP_NAME_cancelErrorCode, PROP_ID_cancelErrorCode);
+      
+          PROP_ID_TO_NAME[PROP_ID_cancelErrorMessage] = PROP_NAME_cancelErrorMessage;
+          PROP_NAME_TO_ID.put(PROP_NAME_cancelErrorMessage, PROP_ID_cancelErrorMessage);
+      
+          PROP_ID_TO_NAME[PROP_ID_cancelErrorStack] = PROP_NAME_cancelErrorStack;
+          PROP_NAME_TO_ID.put(PROP_NAME_cancelErrorStack, PROP_ID_cancelErrorStack);
       
           PROP_ID_TO_NAME[PROP_ID_retryTimes] = PROP_NAME_retryTimes;
           PROP_NAME_TO_ID.put(PROP_NAME_retryTimes, PROP_ID_retryTimes);
@@ -238,6 +273,9 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     /* 错误消息: ERROR_MESSAGE */
     private java.lang.String _errorMessage;
     
+    /* 错误堆栈: ERROR_STACK */
+    private java.lang.String _errorStack;
+    
     /* 开始时间: BEGIN_TIME */
     private java.sql.Timestamp _beginTime;
     
@@ -249,6 +287,18 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     
     /* 提交阶段错误消息: COMMIT_ERROR_MESSAGE */
     private java.lang.String _commitErrorMessage;
+    
+    /* 提交阶段错误堆栈: COMMIT_ERROR_STACK */
+    private java.lang.String _commitErrorStack;
+    
+    /* 取消阶段错误码: CANCEL_ERROR_CODE */
+    private java.lang.String _cancelErrorCode;
+    
+    /* 取消阶段错误消息: CANCEL_ERROR_MESSAGE */
+    private java.lang.String _cancelErrorMessage;
+    
+    /* 取消阶段错误堆栈: CANCEL_ERROR_STACK */
+    private java.lang.String _cancelErrorStack;
     
     /* 重试次数: RETRY_TIMES */
     private java.lang.Integer _retryTimes;
@@ -377,6 +427,9 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
             case PROP_ID_errorMessage:
                return getErrorMessage();
         
+            case PROP_ID_errorStack:
+               return getErrorStack();
+        
             case PROP_ID_beginTime:
                return getBeginTime();
         
@@ -388,6 +441,18 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
         
             case PROP_ID_commitErrorMessage:
                return getCommitErrorMessage();
+        
+            case PROP_ID_commitErrorStack:
+               return getCommitErrorStack();
+        
+            case PROP_ID_cancelErrorCode:
+               return getCancelErrorCode();
+        
+            case PROP_ID_cancelErrorMessage:
+               return getCancelErrorMessage();
+        
+            case PROP_ID_cancelErrorStack:
+               return getCancelErrorStack();
         
             case PROP_ID_retryTimes:
                return getRetryTimes();
@@ -548,6 +613,16 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_errorStack:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errorStack));
+               }
+               setErrorStack(typedValue);
+               break;
+            }
+        
             case PROP_ID_beginTime:{
                java.sql.Timestamp typedValue = null;
                if(value != null){
@@ -585,6 +660,46 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_commitErrorMessage));
                }
                setCommitErrorMessage(typedValue);
+               break;
+            }
+        
+            case PROP_ID_commitErrorStack:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_commitErrorStack));
+               }
+               setCommitErrorStack(typedValue);
+               break;
+            }
+        
+            case PROP_ID_cancelErrorCode:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_cancelErrorCode));
+               }
+               setCancelErrorCode(typedValue);
+               break;
+            }
+        
+            case PROP_ID_cancelErrorMessage:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_cancelErrorMessage));
+               }
+               setCancelErrorMessage(typedValue);
+               break;
+            }
+        
+            case PROP_ID_cancelErrorStack:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_cancelErrorStack));
+               }
+               setCancelErrorStack(typedValue);
                break;
             }
         
@@ -748,6 +863,13 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_errorStack:{
+               onInitProp(propId);
+               this._errorStack = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_beginTime:{
                onInitProp(propId);
                this._beginTime = (java.sql.Timestamp)value;
@@ -772,6 +894,34 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
             case PROP_ID_commitErrorMessage:{
                onInitProp(propId);
                this._commitErrorMessage = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_commitErrorStack:{
+               onInitProp(propId);
+               this._commitErrorStack = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_cancelErrorCode:{
+               onInitProp(propId);
+               this._cancelErrorCode = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_cancelErrorMessage:{
+               onInitProp(propId);
+               this._cancelErrorMessage = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_cancelErrorStack:{
+               onInitProp(propId);
+               this._cancelErrorStack = (java.lang.String)value;
                
                break;
             }
@@ -1072,6 +1222,25 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
     }
     
     /**
+     * 错误堆栈: ERROR_STACK
+     */
+    public java.lang.String getErrorStack(){
+         onPropGet(PROP_ID_errorStack);
+         return _errorStack;
+    }
+
+    /**
+     * 错误堆栈: ERROR_STACK
+     */
+    public void setErrorStack(java.lang.String value){
+        if(onPropSet(PROP_ID_errorStack,value)){
+            this._errorStack = value;
+            internalClearRefs(PROP_ID_errorStack);
+            
+        }
+    }
+    
+    /**
      * 开始时间: BEGIN_TIME
      */
     public java.sql.Timestamp getBeginTime(){
@@ -1143,6 +1312,82 @@ public class _NopTccBranchRecord extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_commitErrorMessage,value)){
             this._commitErrorMessage = value;
             internalClearRefs(PROP_ID_commitErrorMessage);
+            
+        }
+    }
+    
+    /**
+     * 提交阶段错误堆栈: COMMIT_ERROR_STACK
+     */
+    public java.lang.String getCommitErrorStack(){
+         onPropGet(PROP_ID_commitErrorStack);
+         return _commitErrorStack;
+    }
+
+    /**
+     * 提交阶段错误堆栈: COMMIT_ERROR_STACK
+     */
+    public void setCommitErrorStack(java.lang.String value){
+        if(onPropSet(PROP_ID_commitErrorStack,value)){
+            this._commitErrorStack = value;
+            internalClearRefs(PROP_ID_commitErrorStack);
+            
+        }
+    }
+    
+    /**
+     * 取消阶段错误码: CANCEL_ERROR_CODE
+     */
+    public java.lang.String getCancelErrorCode(){
+         onPropGet(PROP_ID_cancelErrorCode);
+         return _cancelErrorCode;
+    }
+
+    /**
+     * 取消阶段错误码: CANCEL_ERROR_CODE
+     */
+    public void setCancelErrorCode(java.lang.String value){
+        if(onPropSet(PROP_ID_cancelErrorCode,value)){
+            this._cancelErrorCode = value;
+            internalClearRefs(PROP_ID_cancelErrorCode);
+            
+        }
+    }
+    
+    /**
+     * 取消阶段错误消息: CANCEL_ERROR_MESSAGE
+     */
+    public java.lang.String getCancelErrorMessage(){
+         onPropGet(PROP_ID_cancelErrorMessage);
+         return _cancelErrorMessage;
+    }
+
+    /**
+     * 取消阶段错误消息: CANCEL_ERROR_MESSAGE
+     */
+    public void setCancelErrorMessage(java.lang.String value){
+        if(onPropSet(PROP_ID_cancelErrorMessage,value)){
+            this._cancelErrorMessage = value;
+            internalClearRefs(PROP_ID_cancelErrorMessage);
+            
+        }
+    }
+    
+    /**
+     * 取消阶段错误堆栈: CANCEL_ERROR_STACK
+     */
+    public java.lang.String getCancelErrorStack(){
+         onPropGet(PROP_ID_cancelErrorStack);
+         return _cancelErrorStack;
+    }
+
+    /**
+     * 取消阶段错误堆栈: CANCEL_ERROR_STACK
+     */
+    public void setCancelErrorStack(java.lang.String value){
+        if(onPropSet(PROP_ID_cancelErrorStack,value)){
+            this._cancelErrorStack = value;
+            internalClearRefs(PROP_ID_cancelErrorStack);
             
         }
     }

@@ -156,6 +156,29 @@ CREATE TABLE nop_sys_ext_field(
   constraint PK_nop_sys_ext_field primary key (ENTITY_NAME,ENTITY_ID,FIELD_NAME)
 );
 
+CREATE TABLE nop_sys_lock(
+  LOCK_GROUP VARCHAR2(200) NOT NULL ,
+  LOCK_NAME VARCHAR2(200) NOT NULL ,
+  LOCK_TIME TIMESTAMP NOT NULL ,
+  EXPIRE_AT TIMESTAMP NOT NULL ,
+  LOCK_REASON VARCHAR2(200)  ,
+  HOLDER_ID VARCHAR2(100) NOT NULL ,
+  HOLDER_ADDER VARCHAR2(100) NOT NULL ,
+  APP_ID VARCHAR2(100) NOT NULL ,
+  constraint PK_nop_sys_lock primary key (LOCK_GROUP,LOCK_NAME)
+);
+
+CREATE TABLE nop_sys_cluster_leader(
+  CLUSTER_ID VARCHAR2(200) NOT NULL ,
+  LEADER_ID VARCHAR2(100) NOT NULL ,
+  LEADER_ADDER VARCHAR2(100) NOT NULL ,
+  LEADER_EPOCH NUMBER(20) NOT NULL ,
+  ELECT_TIME TIMESTAMP NOT NULL ,
+  EXPIRE_AT TIMESTAMP NOT NULL ,
+  APP_ID VARCHAR2(100) NOT NULL ,
+  constraint PK_nop_sys_cluster_leader primary key (CLUSTER_ID)
+);
+
 CREATE TABLE nop_sys_dict(
   SID VARCHAR2(32) NOT NULL ,
   DICT_NAME VARCHAR2(150) NOT NULL ,
@@ -430,6 +453,40 @@ CREATE TABLE nop_sys_dict(
       COMMENT ON COLUMN nop_sys_ext_field.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_sys_ext_field.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_sys_lock IS '资源锁';
+                
+      COMMENT ON COLUMN nop_sys_lock.LOCK_GROUP IS '分组';
+                    
+      COMMENT ON COLUMN nop_sys_lock.LOCK_NAME IS '锁名称';
+                    
+      COMMENT ON COLUMN nop_sys_lock.LOCK_TIME IS '锁定时间';
+                    
+      COMMENT ON COLUMN nop_sys_lock.EXPIRE_AT IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_sys_lock.LOCK_REASON IS '锁定原因';
+                    
+      COMMENT ON COLUMN nop_sys_lock.HOLDER_ID IS '锁的持有者';
+                    
+      COMMENT ON COLUMN nop_sys_lock.HOLDER_ADDER IS '持有者地址';
+                    
+      COMMENT ON COLUMN nop_sys_lock.APP_ID IS '应用ID';
+                    
+      COMMENT ON TABLE nop_sys_cluster_leader IS '集群选举';
+                
+      COMMENT ON COLUMN nop_sys_cluster_leader.CLUSTER_ID IS '集群ID';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.LEADER_ID IS '主服务器ID';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.LEADER_ADDER IS '主服务器地址';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.LEADER_EPOCH IS '选举世代';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.ELECT_TIME IS '选举时间';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.EXPIRE_AT IS '过期时间';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.APP_ID IS '应用ID';
                     
       COMMENT ON TABLE nop_sys_dict IS '字典表';
                 

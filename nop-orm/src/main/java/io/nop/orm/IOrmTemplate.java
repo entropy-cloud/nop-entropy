@@ -10,6 +10,7 @@ package io.nop.orm;
 import io.nop.api.core.annotations.core.Internal;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.time.IEstimatedClock;
 import io.nop.commons.cache.ICache;
 import io.nop.dao.api.ISqlExecutor;
 import io.nop.dataset.IRowMapper;
@@ -115,6 +116,12 @@ public interface IOrmTemplate extends ISqlExecutor {
      * @return
      */
     Object save(IOrmEntity entity);
+
+    Object saveDirectly(IOrmEntity entity);
+
+    void updateDirectly(IOrmEntity entity);
+
+    void deleteDirectly(IOrmEntity entity);
 
     /**
      * 如果session已存在，则更新，否则新建
@@ -259,4 +266,6 @@ public interface IOrmTemplate extends ISqlExecutor {
      * @param referenceName 对应entityName或collectionRole
      */
     void clearGlobalCacheFor(String referenceName);
+
+    IEstimatedClock getDbEstimatedClock(String querySpace);
 }

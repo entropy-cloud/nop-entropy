@@ -35,6 +35,10 @@ public interface ApiConfigs {
     IConfigReference<Boolean> CFG_DEBUG =
             varRef("nop.debug", Boolean.class, false);
 
+    @Description("每次应用启动都会被分配唯一ID")
+    IConfigReference<String> CFG_HOST_ID =
+            varRef("nop.server.host-id", String.class, null);
+
     @Description("每一个启动的Nop应用程序应该指定一个唯一名称用于区分")
     IConfigReference<String> CFG_APPLICATION_NAME =
             varRef("nop.application.name", String.class, "nop-app");

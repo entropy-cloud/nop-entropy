@@ -25,24 +25,24 @@ public class DbEstimatedClock implements IEstimatedClock {
     private volatile boolean fetching;
 
     static class TimeData {
-        final long fetchBeginTime;
-        final long fetchEndTime;
+        final long fetchBeginNanos;
+        final long fetchEndNanos;
         final long dbTime;
 
         volatile long elapsedTime;
 
-        public TimeData(long fetchBeginTime, long fetchEndTime, long dbTime) {
-            this.fetchBeginTime = fetchBeginTime;
-            this.fetchEndTime = fetchEndTime;
+        public TimeData(long fetchBeginNanos, long fetchEndNanos, long dbTime) {
+            this.fetchBeginNanos = fetchBeginNanos;
+            this.fetchEndNanos = fetchEndNanos;
             this.dbTime = dbTime;
         }
 
         long getMax() {
-            return dbTime + Math.max(0, CoreMetrics.currentTimeMillis() - fetchBeginTime);
+            return dbTime + Math.max(0, CoreMetrics.nanoToMillis(CoreMetrics.nanoTime() - fetchBeginNanos));
         }
 
         long getMin() {
-            return dbTime + Math.max(0, CoreMetrics.currentTimeMillis() - fetchEndTime);
+            return dbTime + Math.max(0, CoreMetrics.nanoToMillis(CoreMetrics.nanoTime() - fetchEndNanos));
         }
     }
 
@@ -72,11 +72,11 @@ public class DbEstimatedClock implements IEstimatedClock {
         if (data == null)
             return true;
         // 如果获取数据库耗费的时间过长，则认为它已经超时，重新获取
-        if (data.fetchEndTime - data.fetchBeginTime > 200)
+        if (CoreMetrics.nanoToMillis(data.fetchEndNanos - data.fetchBeginNanos) > 200)
             return true;
 
         // 如果出现时钟回拨，或者超过允许的最大缓存时间，则重新获取
-        long diff = CoreMetrics.currentTimeMillis() - data.fetchBeginTime;
+        long diff = CoreMetrics.nanoToMillis(CoreMetrics.nanoTime() - data.fetchBeginNanos);
         long elapsed = data.elapsedTime;
         if (diff < elapsed || diff > cacheTimeout.get())
             return true;
@@ -109,14 +109,10 @@ public class DbEstimatedClock implements IEstimatedClock {
     }
 
     private TimeData _fetchFromDb() {
-        long beginTime = CoreMetrics.currentTimeMillis();
+        long beginTime = CoreMetrics.nanoTime();
         long dbTime = jdbc.getDbCurrentTimestamp(querySpace).getTime();
-        long endTime = CoreMetrics.currentTimeMillis();
+        long endTime = CoreMetrics.nanoTime();
 
-        // 防止时钟调整导致错误
-        if (beginTime > endTime) {
-            beginTime = endTime;
-        }
         return this.timeData = new TimeData(beginTime, endTime, dbTime);
     }
 }

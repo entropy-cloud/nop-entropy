@@ -19,10 +19,15 @@ prop:
       requestData: Request Data
       errorCode: Error Code
       errorMessage: Error Message
+      errorStack: Error Stack
       beginTime: Begin Time
       endTime: End Time
       commitErrorCode: Commit Error Code
       commitErrorMessage: Commit Error Message
+      commitErrorStack: Commit Error Stack
+      cancelErrorCode: Cancel Error Code
+      cancelErrorMessage: Cancel Error Message
+      cancelErrorStack: Cancel Error Stack
       retryTimes: Retry Times
       maxRetryTimes: Max Retry Times
       nextRetryTime: Next Retry Time
@@ -41,6 +46,9 @@ prop:
       appData: App Data
       beginTime: BEGIN Time
       endTime: End Time
+      errorCode: Error Code
+      errorMessage: Error Message
+      errorStack: Error Stack
       version: Version
       createTime: Create Time
       updateTime: Update Time

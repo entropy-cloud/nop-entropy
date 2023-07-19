@@ -1,10 +1,12 @@
 entity:
   label:
+    NopSysClusterLeader: Cluster Leader
     NopSysCodeRule: Code Rule
     NopSysDict: Dictionary
     NopSysDictOption: Dictionay Item
     NopSysExtField: Extension Field
     NopSysI18n: I18n Message
+    NopSysLock: Lock
     NopSysMakerCheckerRecord: Maker Checker Record
     NopSysNoticeTemplate: Notice Template
     NopSysSequence: Sequence
@@ -12,6 +14,14 @@ entity:
     NopSysVariable: System Variable
 prop:
   label:
+    NopSysClusterLeader:
+      clusterId: Cluster ID
+      leaderId: Leader ID
+      leaderAdder: Leader Addr
+      leaderEpoch: Leader Epoch
+      electTime: Elect Time
+      expireAt: Expire At
+      appId: App ID
     NopSysCodeRule:
       sid: SID
       name: Name
@@ -82,6 +92,15 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+    NopSysLock:
+      lockGroup: Lock Group
+      lockName: Lock Name
+      lockTime: Lock Time
+      expireAt: Expire At
+      lockReason: Lock Reason
+      holderId: Holder ID
+      holderAdder: Holder Addr
+      appId: App ID
     NopSysMakerCheckerRecord:
       sid: SID
       bizObjName: Biz Object Name

@@ -56,20 +56,32 @@ public class _NopTccRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_endTime = "endTime";
     public static final int PROP_ID_endTime = 9;
     
+    /* 错误码: ERROR_CODE VARCHAR */
+    public static final String PROP_NAME_errorCode = "errorCode";
+    public static final int PROP_ID_errorCode = 10;
+    
+    /* 错误消息: ERROR_MESSAGE VARCHAR */
+    public static final String PROP_NAME_errorMessage = "errorMessage";
+    public static final int PROP_ID_errorMessage = 11;
+    
+    /* 错误堆栈: ERROR_STACK VARCHAR */
+    public static final String PROP_NAME_errorStack = "errorStack";
+    public static final int PROP_ID_errorStack = 12;
+    
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 10;
+    public static final int PROP_ID_version = 13;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 11;
+    public static final int PROP_ID_createTime = 14;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 12;
+    public static final int PROP_ID_updateTime = 15;
     
 
-    private static int _PROP_ID_BOUND = 13;
+    private static int _PROP_ID_BOUND = 16;
 
     
     /* relation: 分支事务记录 */
@@ -79,7 +91,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_txnId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_txnId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[13];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -109,6 +121,15 @@ public class _NopTccRecord extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_endTime] = PROP_NAME_endTime;
           PROP_NAME_TO_ID.put(PROP_NAME_endTime, PROP_ID_endTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_errorCode] = PROP_NAME_errorCode;
+          PROP_NAME_TO_ID.put(PROP_NAME_errorCode, PROP_ID_errorCode);
+      
+          PROP_ID_TO_NAME[PROP_ID_errorMessage] = PROP_NAME_errorMessage;
+          PROP_NAME_TO_ID.put(PROP_NAME_errorMessage, PROP_ID_errorMessage);
+      
+          PROP_ID_TO_NAME[PROP_ID_errorStack] = PROP_NAME_errorStack;
+          PROP_NAME_TO_ID.put(PROP_NAME_errorStack, PROP_ID_errorStack);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -148,6 +169,15 @@ public class _NopTccRecord extends DynamicOrmEntity{
     
     /* 结束时间: END_TIME */
     private java.sql.Timestamp _endTime;
+    
+    /* 错误码: ERROR_CODE */
+    private java.lang.String _errorCode;
+    
+    /* 错误消息: ERROR_MESSAGE */
+    private java.lang.String _errorMessage;
+    
+    /* 错误堆栈: ERROR_STACK */
+    private java.lang.String _errorStack;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -254,6 +284,15 @@ public class _NopTccRecord extends DynamicOrmEntity{
         
             case PROP_ID_endTime:
                return getEndTime();
+        
+            case PROP_ID_errorCode:
+               return getErrorCode();
+        
+            case PROP_ID_errorMessage:
+               return getErrorMessage();
+        
+            case PROP_ID_errorStack:
+               return getErrorStack();
         
             case PROP_ID_version:
                return getVersion();
@@ -365,6 +404,36 @@ public class _NopTccRecord extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_errorCode:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errorCode));
+               }
+               setErrorCode(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errorMessage:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errorMessage));
+               }
+               setErrorMessage(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errorStack:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errorStack));
+               }
+               setErrorStack(typedValue);
+               break;
+            }
+        
             case PROP_ID_version:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -463,6 +532,27 @@ public class _NopTccRecord extends DynamicOrmEntity{
             case PROP_ID_endTime:{
                onInitProp(propId);
                this._endTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errorCode:{
+               onInitProp(propId);
+               this._errorCode = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errorMessage:{
+               onInitProp(propId);
+               this._errorMessage = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errorStack:{
+               onInitProp(propId);
+               this._errorStack = (java.lang.String)value;
                
                break;
             }
@@ -661,6 +751,63 @@ public class _NopTccRecord extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
+            
+        }
+    }
+    
+    /**
+     * 错误码: ERROR_CODE
+     */
+    public java.lang.String getErrorCode(){
+         onPropGet(PROP_ID_errorCode);
+         return _errorCode;
+    }
+
+    /**
+     * 错误码: ERROR_CODE
+     */
+    public void setErrorCode(java.lang.String value){
+        if(onPropSet(PROP_ID_errorCode,value)){
+            this._errorCode = value;
+            internalClearRefs(PROP_ID_errorCode);
+            
+        }
+    }
+    
+    /**
+     * 错误消息: ERROR_MESSAGE
+     */
+    public java.lang.String getErrorMessage(){
+         onPropGet(PROP_ID_errorMessage);
+         return _errorMessage;
+    }
+
+    /**
+     * 错误消息: ERROR_MESSAGE
+     */
+    public void setErrorMessage(java.lang.String value){
+        if(onPropSet(PROP_ID_errorMessage,value)){
+            this._errorMessage = value;
+            internalClearRefs(PROP_ID_errorMessage);
+            
+        }
+    }
+    
+    /**
+     * 错误堆栈: ERROR_STACK
+     */
+    public java.lang.String getErrorStack(){
+         onPropGet(PROP_ID_errorStack);
+         return _errorStack;
+    }
+
+    /**
+     * 错误堆栈: ERROR_STACK
+     */
+    public void setErrorStack(java.lang.String value){
+        if(onPropSet(PROP_ID_errorStack,value)){
+            this._errorStack = value;
+            internalClearRefs(PROP_ID_errorStack);
             
         }
     }

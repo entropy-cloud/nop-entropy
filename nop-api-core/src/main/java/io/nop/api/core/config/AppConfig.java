@@ -8,12 +8,16 @@
 package io.nop.api.core.config;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.util.ApiStringHelper;
+
+import java.util.UUID;
 
 import static io.nop.api.core.ApiConfigs.CFG_APPLICATION_LOCALE;
 import static io.nop.api.core.ApiConfigs.CFG_APPLICATION_NAME;
 import static io.nop.api.core.ApiConfigs.CFG_APPLICATION_TIMEZONE;
 import static io.nop.api.core.ApiConfigs.CFG_APPLICATION_VERSION;
 import static io.nop.api.core.ApiConfigs.CFG_DEBUG;
+import static io.nop.api.core.ApiConfigs.CFG_HOST_ID;
 import static io.nop.api.core.ApiConfigs.CFG_PROFILE;
 
 @SuppressWarnings("PMD.TooManyStaticImports")
@@ -37,6 +41,19 @@ public class AppConfig {
         return CFG_APPLICATION_VERSION.get();
     }
 
+    public static String hostId() {
+        String hostId = CFG_HOST_ID.get();
+        if (ApiStringHelper.isEmpty(hostId)) {
+            synchronized (CFG_HOST_ID) {
+                hostId = CFG_HOST_ID.get();
+                if (ApiStringHelper.isEmpty(hostId)) {
+                    hostId = UUID.randomUUID().toString();
+                    s_provider.updateConfigValue(CFG_HOST_ID, hostId);
+                }
+            }
+        }
+        return hostId;
+    }
 
     public static String appLocale() {
         return CFG_APPLICATION_LOCALE.get();

@@ -13,6 +13,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.IEstimatedClock;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.ListFunctions;
 import io.nop.commons.util.StringHelper;
@@ -209,6 +210,24 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     public void deleteEntity(T entity) {
         checkEntityNameMatch(entity);
         orm().delete(entity);
+    }
+
+    @Override
+    public void saveEntityDirectly(T entity) {
+        checkEntityNameMatch(entity);
+        orm().saveDirectly(entity);
+    }
+
+    @Override
+    public void updateEntityDirectly(T entity) {
+        checkEntityNameMatch(entity);
+        orm().updateDirectly(entity);
+    }
+
+    @Override
+    public void deleteEntityDirectly(T entity) {
+        checkEntityNameMatch(entity);
+        orm().deleteDirectly(entity);
     }
 
     @Override
@@ -659,5 +678,10 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     @Override
     public void clearEntityGlobalCache() {
         orm().clearGlobalCacheFor(getEntityName());
+    }
+
+    @Override
+    public IEstimatedClock getDbEstimatedClock() {
+        return orm().getDbEstimatedClock(getEntityModel().getQuerySpace());
     }
 }

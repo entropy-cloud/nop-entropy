@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.time.IEstimatedClock;
 import io.nop.commons.collections.iterator.FindNextPageIterator;
 import io.nop.commons.collections.iterator.SelectNextIterator;
 import io.nop.commons.util.StringHelper;
@@ -86,6 +87,17 @@ public interface IEntityDao<T extends IDaoEntity> {
     void saveEntity(T entity);
 
     void updateEntity(T entity);
+
+    /**
+     * 立刻保存到数据库中，不存入session
+     *
+     * @param entity
+     */
+    void saveEntityDirectly(T entity);
+
+    void updateEntityDirectly(T entity);
+
+    void deleteEntityDirectly(T entity);
 
     void saveOrUpdateEntity(T entity);
 
@@ -271,4 +283,6 @@ public interface IEntityDao<T extends IDaoEntity> {
      * 清空本实体类对应的二级缓存
      */
     void clearEntityGlobalCache();
+
+    IEstimatedClock getDbEstimatedClock();
 }

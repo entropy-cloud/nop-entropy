@@ -1,10 +1,12 @@
 entity:
   label:
+    NopSysClusterLeader: 集群选举
     NopSysCodeRule: 编码规则
     NopSysDict: 字典表
     NopSysDictOption: 字典明细
     NopSysExtField: 扩展字段
     NopSysI18n: 多语言消息
+    NopSysLock: 资源锁
     NopSysMakerCheckerRecord: MakerChecker审批记录
     NopSysNoticeTemplate: 通知模板
     NopSysSequence: 序列号
@@ -12,6 +14,14 @@ entity:
     NopSysVariable: 系统变量
 prop:
   label:
+    NopSysClusterLeader:
+      appId: 应用ID
+      clusterId: 集群ID
+      electTime: 选举时间
+      expireAt: 过期时间
+      leaderAdder: 主服务器地址
+      leaderEpoch: 选举世代
+      leaderId: 主服务器ID
     NopSysCodeRule:
       codePattern: 编码模式
       createTime: 创建时间
@@ -82,6 +92,15 @@ prop:
       updatedBy: 修改人
       value: 值
       version: 数据版本
+    NopSysLock:
+      appId: 应用ID
+      expireAt: 过期时间
+      holderAdder: 持有者地址
+      holderId: 锁的持有者
+      lockGroup: 分组
+      lockName: 锁名称
+      lockReason: 锁定原因
+      lockTime: 锁定时间
     NopSysMakerCheckerRecord:
       bizObjId: 业务对象ID
       bizObjName: 业务对象名

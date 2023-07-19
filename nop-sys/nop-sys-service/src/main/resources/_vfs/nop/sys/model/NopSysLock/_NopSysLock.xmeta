@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="资源锁"
+      i18n-en:displayName="Lock">
+
+    <entityName>io.nop.sys.dao.entity.NopSysLock</entityName>
+
+    <primaryKey>lockGroup,lockName</primaryKey>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="lockGroup" displayName="分组" i18n-en:displayName="Lock Group" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="lockName" displayName="锁名称" i18n-en:displayName="Lock Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="lockTime" displayName="锁定时间" i18n-en:displayName="Lock Time" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="expireAt" displayName="过期时间" i18n-en:displayName="Expire At" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="lockReason" displayName="锁定原因" i18n-en:displayName="Lock Reason" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="holderId" displayName="锁的持有者" i18n-en:displayName="Holder ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="holderAdder" displayName="持有者地址" i18n-en:displayName="Holder Addr" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="appId" displayName="应用ID" i18n-en:displayName="App ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+    </props>
+</meta>

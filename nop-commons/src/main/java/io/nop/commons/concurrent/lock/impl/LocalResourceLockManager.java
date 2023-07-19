@@ -9,6 +9,7 @@ package io.nop.commons.concurrent.lock.impl;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.lock.IResourceLock;
 import io.nop.commons.concurrent.lock.IResourceLockManager;
@@ -19,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.annotation.Resource;
 import java.sql.Timestamp;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -39,7 +39,6 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
 
     private volatile long lastCleanUpTime;
 
-    @Resource(name = "defaultTimer")
     private IScheduledExecutor timer;
 
     Future<?> schedulePromise;
@@ -100,6 +99,8 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
     @PostConstruct
     public void init() {
         Guard.checkArgument(schedulePromise == null, "nop.lock.lock-manager-already-inited");
+        if (timer == null)
+            timer = GlobalExecutors.globalTimer();
         schedulePromise = timer.scheduleWithFixedDelay(this::checkTimeout, expireInterval, expireInterval,
                 TimeUnit.MILLISECONDS);
     }

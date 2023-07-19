@@ -8,5 +8,7 @@ drop table nop_sys_notice_template;
 drop table nop_sys_user_variable;
 drop table nop_sys_variable;
 drop table nop_sys_ext_field;
+drop table nop_sys_lock;
+drop table nop_sys_cluster_leader;
 drop table nop_sys_dict;
 

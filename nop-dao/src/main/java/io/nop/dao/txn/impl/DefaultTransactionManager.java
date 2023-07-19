@@ -9,6 +9,7 @@ package io.nop.dao.txn.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.dao.DaoConstants;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionFactory;
@@ -94,8 +95,13 @@ public class DefaultTransactionManager implements ITransactionManager {
     @Override
     public String getMainTxnGroup(String querySpace) {
         if (querySpace == null)
-            return null;
-        return txnGroupMap.get(querySpace);
+            return DaoConstants.DEFAULT_TXN_GROUP;
+
+        // 如果没有明确指定事务分组，则实际上都归于缺省事务组
+        String txnGroup = txnGroupMap.get(querySpace);
+        if (txnGroup == null)
+            txnGroup = DaoConstants.DEFAULT_TXN_GROUP;
+        return txnGroup;
     }
 
     public void setTxnGroupMap(Map<String, String> txnGroupMap) {

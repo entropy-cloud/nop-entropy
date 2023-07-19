@@ -433,6 +433,58 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         return entity.get_id();
     }
 
+    @Override
+    public Object saveDirectly(IOrmEntity entity) {
+        checkValid();
+        checkNotReadOnly();
+
+        OrmEntityState state = entity.orm_state();
+        LOG.debug("session.internalSave:{}", entity);
+
+        if (!state.isTransient())
+            throw newError(ERR_ORM_SAVE_ENTITY_NOT_TRANSIENT, entity).param(ARG_STATUS, state);
+
+        IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
+        entity.orm_state(OrmEntityState.SAVING);
+        entity.orm_entityModel(persister.getEntityModel());
+
+        initEntityId(persister, entity);
+
+        // 新建实体不会有延迟加载属性
+        entity.orm_markFullyLoaded();
+
+        flushSave(entity);
+
+        return entity.get_id();
+    }
+
+    @Override
+    public void updateDirectly(IOrmEntity entity) {
+        checkValid();
+        checkNotReadOnly();
+
+        OrmEntityState state = entity.orm_state();
+        if (!state.isManaged())
+            throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
+
+        if (!entity.orm_dirty())
+            return;
+
+        flushUpdate(entity);
+    }
+
+    @Override
+    public void deleteDirectly(IOrmEntity entity) {
+        checkValid();
+        checkNotReadOnly();
+
+        OrmEntityState state = entity.orm_state();
+        if (!state.isManaged())
+            throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
+
+        flushDelete(entity);
+    }
+
     private void update(IOrmEntity entity) {
         checkValid();
         checkNotReadOnly();

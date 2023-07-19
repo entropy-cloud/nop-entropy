@@ -64,7 +64,11 @@
         </prop>
         <prop name="errorMessage" displayName="错误消息" i18n-en:displayName="Error Message" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="errorStack" displayName="错误堆栈" i18n-en:displayName="Error Stack" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="beginTime" displayName="开始时间" i18n-en:displayName="Begin Time" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -80,7 +84,23 @@
         </prop>
         <prop name="commitErrorMessage" displayName="提交阶段错误消息" i18n-en:displayName="Commit Error Message"
               queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="commitErrorStack" displayName="提交阶段错误堆栈" i18n-en:displayName="Commit Error Stack" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="cancelErrorCode" displayName="取消阶段错误码" i18n-en:displayName="Cancel Error Code" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="cancelErrorMessage" displayName="取消阶段错误消息" i18n-en:displayName="Cancel Error Message"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="cancelErrorStack" displayName="取消阶段错误堆栈" i18n-en:displayName="Cancel Error Stack" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="retryTimes" displayName="重试次数" i18n-en:displayName="Retry Times" queryable="true" sortable="true"
               insertable="true" updatable="true">

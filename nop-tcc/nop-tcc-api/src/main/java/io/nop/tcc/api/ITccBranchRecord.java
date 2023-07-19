@@ -18,7 +18,7 @@ public interface ITccBranchRecord {
 
     String getBranchId();
 
-    int getBranchNo();
+    Integer getBranchNo();
 
     String getParentBranchId();
 
@@ -34,9 +34,9 @@ public interface ITccBranchRecord {
 
     TccStatus getBranchStatus();
 
-    int getMaxRetry();
+    Integer getMaxRetryTimes();
 
-    int getRetry();
+    Integer getRetryTimes();
 
     Timestamp getCreateTime();
 

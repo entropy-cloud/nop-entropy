@@ -8,14 +8,19 @@ prop:
       beginTime: 开始时间
       branchId: 事务分支ID
       branchNo: 事务分支序号
+      cancelErrorCode: 取消阶段错误码
+      cancelErrorMessage: 取消阶段错误消息
+      cancelErrorStack: 取消阶段错误堆栈
       cancelMethod: 取消方法
       commitErrorCode: 提交阶段错误码
       commitErrorMessage: 提交阶段错误消息
+      commitErrorStack: 提交阶段错误堆栈
       confirmMethod: 确认方法
       createTime: 创建时间
       endTime: 结束时间
       errorCode: 错误码
       errorMessage: 错误消息
+      errorStack: 错误堆栈
       expireTime: 过期时间
       maxRetryTimes: 最大重试次数
       nextRetryTime: 下次重试时间
@@ -37,6 +42,9 @@ prop:
       branchRecords: 分支事务记录
       createTime: 创建时间
       endTime: 结束时间
+      errorCode: 错误码
+      errorMessage: 错误消息
+      errorStack: 错误堆栈
       expireTime: 过期时间
       status: 状态
       status_label: 状态

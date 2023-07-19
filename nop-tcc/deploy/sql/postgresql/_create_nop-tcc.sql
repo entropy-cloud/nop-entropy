@@ -12,11 +12,16 @@ CREATE TABLE nop_tcc_branch_record(
   CANCEL_METHOD VARCHAR(200)  ,
   REQUEST_DATA TEXT  ,
   ERROR_CODE VARCHAR(200)  ,
-  ERROR_MESSAGE VARCHAR(200)  ,
+  ERROR_MESSAGE VARCHAR(1000)  ,
+  ERROR_STACK VARCHAR(1000)  ,
   BEGIN_TIME TIMESTAMP NOT NULL ,
   END_TIME TIMESTAMP  ,
   COMMIT_ERROR_CODE VARCHAR(200)  ,
-  COMMIT_ERROR_MESSAGE VARCHAR(200)  ,
+  COMMIT_ERROR_MESSAGE VARCHAR(1000)  ,
+  COMMIT_ERROR_STACK VARCHAR(1000)  ,
+  CANCEL_ERROR_CODE VARCHAR(200)  ,
+  CANCEL_ERROR_MESSAGE VARCHAR(1000)  ,
+  CANCEL_ERROR_STACK VARCHAR(1000)  ,
   RETRY_TIMES INT4  ,
   MAX_RETRY_TIMES INT4 NOT NULL ,
   NEXT_RETRY_TIME TIMESTAMP  ,
@@ -36,6 +41,9 @@ CREATE TABLE nop_tcc_record(
   APP_DATA VARCHAR(2000)  ,
   BEGIN_TIME TIMESTAMP NOT NULL ,
   END_TIME TIMESTAMP  ,
+  ERROR_CODE VARCHAR(200)  ,
+  ERROR_MESSAGE VARCHAR(1000)  ,
+  ERROR_STACK VARCHAR(1000)  ,
   VERSION INT4 NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
@@ -71,6 +79,8 @@ CREATE TABLE nop_tcc_record(
                     
       COMMENT ON COLUMN nop_tcc_branch_record.ERROR_MESSAGE IS '错误消息';
                     
+      COMMENT ON COLUMN nop_tcc_branch_record.ERROR_STACK IS '错误堆栈';
+                    
       COMMENT ON COLUMN nop_tcc_branch_record.BEGIN_TIME IS '开始时间';
                     
       COMMENT ON COLUMN nop_tcc_branch_record.END_TIME IS '结束时间';
@@ -78,6 +88,14 @@ CREATE TABLE nop_tcc_record(
       COMMENT ON COLUMN nop_tcc_branch_record.COMMIT_ERROR_CODE IS '提交阶段错误码';
                     
       COMMENT ON COLUMN nop_tcc_branch_record.COMMIT_ERROR_MESSAGE IS '提交阶段错误消息';
+                    
+      COMMENT ON COLUMN nop_tcc_branch_record.COMMIT_ERROR_STACK IS '提交阶段错误堆栈';
+                    
+      COMMENT ON COLUMN nop_tcc_branch_record.CANCEL_ERROR_CODE IS '取消阶段错误码';
+                    
+      COMMENT ON COLUMN nop_tcc_branch_record.CANCEL_ERROR_MESSAGE IS '取消阶段错误消息';
+                    
+      COMMENT ON COLUMN nop_tcc_branch_record.CANCEL_ERROR_STACK IS '取消阶段错误堆栈';
                     
       COMMENT ON COLUMN nop_tcc_branch_record.RETRY_TIMES IS '重试次数';
                     
@@ -110,6 +128,12 @@ CREATE TABLE nop_tcc_record(
       COMMENT ON COLUMN nop_tcc_record.BEGIN_TIME IS '开始时间';
                     
       COMMENT ON COLUMN nop_tcc_record.END_TIME IS '结束时间';
+                    
+      COMMENT ON COLUMN nop_tcc_record.ERROR_CODE IS '错误码';
+                    
+      COMMENT ON COLUMN nop_tcc_record.ERROR_MESSAGE IS '错误消息';
+                    
+      COMMENT ON COLUMN nop_tcc_record.ERROR_STACK IS '错误堆栈';
                     
       COMMENT ON COLUMN nop_tcc_record.VERSION IS '数据版本';
                     

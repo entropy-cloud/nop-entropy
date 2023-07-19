@@ -12,6 +12,7 @@ import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.commons.metrics.GlobalMeterRegistry;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ExecutorHelper {
     static Executor SYNC_EXECUTOR = task -> task.run();
@@ -192,5 +194,35 @@ public class ExecutorHelper {
                 new ExecutorServiceMetrics(executor, config.getName(), Collections.emptyList()).bindTo(registry);
             }
         }
+    }
+
+    public static <T> CompletableFuture<T> scheduleWithRandomDelay(
+            IScheduledExecutor executor, Runnable task, long initialDelay,
+            long minDelay, long maxDelay,
+            TimeUnit timeUnit) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+
+        AtomicReference<Future<?>> ref = new AtomicReference<>();
+        Callable<Void> command = new Callable<>() {
+            @Override
+            public Void call() {
+                try {
+                    task.run();
+                    ref.set(executor.schedule(this, MathHelper.random().nextLong(minDelay, maxDelay), timeUnit));
+                } catch (Throwable e) {
+                    future.completeExceptionally(e);
+                }
+                return null;
+            }
+        };
+
+        Future<?> f = executor.schedule(command, initialDelay, timeUnit);
+        ref.set(f);
+
+        future.exceptionally(ex -> {
+            ref.get().cancel(false);
+            return null;
+        });
+        return future;
     }
 }

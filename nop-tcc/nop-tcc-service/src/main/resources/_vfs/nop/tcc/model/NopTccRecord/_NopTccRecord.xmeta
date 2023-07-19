@@ -50,6 +50,18 @@
               insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
+        <prop name="errorCode" displayName="错误码" i18n-en:displayName="Error Code" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="errorMessage" displayName="错误消息" i18n-en:displayName="Error Message" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="errorStack" displayName="错误堆栈" i18n-en:displayName="Error Stack" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true">
             <schema domain="version" type="java.lang.Integer"/>
