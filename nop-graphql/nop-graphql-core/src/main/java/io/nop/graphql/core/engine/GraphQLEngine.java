@@ -51,6 +51,7 @@ import javax.inject.Inject;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
@@ -397,5 +398,11 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Override
     public boolean cancel(String requestId) {
         return cancelTokenManager.cancel(requestId);
+    }
+
+
+    @Override
+    public Flow.Publisher<GraphQLResponseBean> subscribeGraphQL(IGraphQLExecutionContext context) {
+        return null;
     }
 }

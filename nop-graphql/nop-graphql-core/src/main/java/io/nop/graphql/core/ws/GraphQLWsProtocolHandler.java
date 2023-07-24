@@ -66,6 +66,7 @@ public class GraphQLWsProtocolHandler extends AbstractGraphQLWebsocketHandler {
                     case CONNECTION_ACK:
                     case NEXT:
                     case ERROR:
+                        LOG.debug("nop.websocket.ignore-error", message);
                         break;
                 }
             } catch (IOException e) {

@@ -26,6 +26,7 @@ import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 public interface IGraphQLEngine {
     IGraphQLSchemaLoader getSchemaLoader();
@@ -82,6 +83,8 @@ public interface IGraphQLEngine {
     boolean cancel(String requestId);
 
     CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext context);
+
+    Flow.Publisher<GraphQLResponseBean> subscribeGraphQL(IGraphQLExecutionContext context);
 
     default GraphQLResponseBean executeGraphQL(IGraphQLExecutionContext context) {
         return FutureHelper.syncGet(executeGraphQLAsync(context));

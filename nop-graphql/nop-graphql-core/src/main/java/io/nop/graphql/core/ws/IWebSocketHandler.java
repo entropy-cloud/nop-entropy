@@ -30,5 +30,4 @@ public interface IWebSocketHandler {
 
     void onClose();
 
-    void onEnd();
 }

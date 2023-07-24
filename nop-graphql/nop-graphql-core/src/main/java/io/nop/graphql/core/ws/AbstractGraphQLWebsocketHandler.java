@@ -71,8 +71,8 @@ public abstract class AbstractGraphQLWebsocketHandler implements IWebSocketHandl
 
     @Override
     public void onMessage(String text) {
-        if (LOG.isTraceEnabled()) {
-            LOG.trace("<<< " + text);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("<<< " + text);
         }
         onMessage(getMessageAsJsonObject(text));
     }
@@ -95,10 +95,6 @@ public abstract class AbstractGraphQLWebsocketHandler implements IWebSocketHandl
         if (keepAliveSender != null) {
             keepAliveSender.cancel(false);
         }
-    }
-
-    @Override
-    public void onEnd() {
     }
 
     protected void sendConnectionAckMessage() throws IOException {
@@ -133,6 +129,7 @@ public abstract class AbstractGraphQLWebsocketHandler implements IWebSocketHandl
         try {
             return (Map<String, Object>) JSON.parse(text);
         } catch (Exception ex) {
+            LOG.info("nop.err.graphql.parse-json-fail", ex);
             session.close((short) 4400, ex.getMessage());
             return null;
         }
@@ -179,12 +176,12 @@ public abstract class AbstractGraphQLWebsocketHandler implements IWebSocketHandl
         String opId = (String) message.get("id");
         boolean cancelled = cancelOperation(opId);
         if (cancelled) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("nop.websocket.cancel-operation:{}", opId);
+            if (LOG.isInfoEnabled()) {
+                LOG.info("nop.websocket.cancel-operation:opId={}", opId);
             }
         } else {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("nop.websocket.cancel-operation-not-active:{}", opId);
+            if (LOG.isInfoEnabled()) {
+                LOG.info("nop.websocket.cancel-operation-not-active:opId={}", opId);
             }
         }
     }
@@ -210,7 +207,7 @@ public abstract class AbstractGraphQLWebsocketHandler implements IWebSocketHandl
         }
 
         if (activeOperations.size() >= maxActiveOperations) {
-            LOG.warn("nop.websocket.too-many-active-operations:{}", operationId);
+            LOG.warn("nop.websocket.too-many-active-operations:opId={}", operationId);
             GraphQLResponseBean response = new GraphQLResponseBean();
             GraphQLErrorBean error = new GraphQLErrorBean();
             error.setMessage("too many active operations");
@@ -268,6 +265,8 @@ public abstract class AbstractGraphQLWebsocketHandler implements IWebSocketHandl
                     LOG.warn("nop.websocket.send-next-fail", e);
                 }
                 subscription.get().request(1);
+            }else{
+                LOG.debug("nop.websocket.ignore-response");
             }
         }
 
