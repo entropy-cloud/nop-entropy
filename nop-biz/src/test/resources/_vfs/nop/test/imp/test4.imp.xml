@@ -23,7 +23,7 @@
                 <field name="time" displayName="日期">
                     <schema stdDomain="string"/>
                 </field>
-                <field name="projectIndexValues" displayName="项目指标" list="true" keyProp="name">
+                <field name="projectIndexValues" displayName="项目指标" list="true" >
                     <fields>
                         <field name="name" displayName="指标" mandatory="true"/>
                         <field name="level" displayName="层级" mandatory="true"/>

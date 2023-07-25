@@ -52,7 +52,7 @@
         ],
         "children": [
           {
-            "name": "A2-1",
+            "name": "A2",
             "level": 1,
             "unit": "RMB",
             "indexValues": [
@@ -265,7 +265,7 @@
             ]
           },
           {
-            "name": "A2-2",
+            "name": "A2",
             "level": 1,
             "unit": "RMB",
             "indexValues": [
@@ -430,7 +430,7 @@
             ]
           },
           {
-            "name": "A2-4",
+            "name": "A2",
             "level": 1,
             "unit": "RMB",
             "indexValues": [
