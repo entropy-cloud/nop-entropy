@@ -15,6 +15,7 @@ import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.HttpApiConstants;
+import io.nop.http.api.HttpStatus;
 import io.nop.http.api.client.DownloadOptions;
 import io.nop.http.api.client.HttpClientConfig;
 import io.nop.http.api.client.HttpRequest;
@@ -215,6 +216,10 @@ public class JdkHttpClient implements IHttpClient {
     }
 
     IHttpResponse toHttpResponse(HttpResponse<byte[]> response) {
+        // 某些MAC系统或者JDK版本中连接不上也不会抛出connect异常，而是会返回503错误码
+        if (response.statusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE)
+            throw new NopConnectException(ERR_HTTP_CONNECT_FAIL);
+
         DefaultHttpResponse ret = new DefaultHttpResponse();
         ret.setHttpStatus(response.statusCode());
         ret.setBodyAsBytes(response.body());
