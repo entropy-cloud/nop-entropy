@@ -115,7 +115,7 @@ public class TestXplTask extends BaseTestCase {
 
         // 依赖文件修改导致xtask自动重新运行，产生不同的输出文件
         String text = ResourceHelper.readText(resultResource);
-        if(text.equals(value)){
+        if(text.equals(value.toString())){
             try {
                 Thread.sleep(500);
             } catch (Exception e) {
