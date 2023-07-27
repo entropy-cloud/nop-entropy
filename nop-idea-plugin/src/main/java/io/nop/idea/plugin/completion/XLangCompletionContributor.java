@@ -174,7 +174,7 @@ public class XLangCompletionContributor extends CompletionContributor implements
         } else if (XDefConstants.STD_DOMAIN_ENUM.equals(type.getStdDomain())) {
             String dictName = type.getDictName();
             if (dictName != null) {
-                DictBean dict = DictProvider.instance().getDict(null, dictName, null,null);
+                DictBean dict = DictProvider.instance().getDict(null, dictName, null);
                 if (dict != null && dict.getOptions() != null) {
                     for (DictOptionBean optionBean : dict.getOptions()) {
                         if (optionBean.isInternal())

@@ -38,7 +38,7 @@ import java.util.List;
 
 public class ProjectDictProvider implements IDictProvider {
     @Override
-    public DictBean getDict(String locale, String dictName, ICache<Object, Object> cache, IEvalContext context) {
+    public DictBean getDict(String locale, String dictName, ICache<Object, Object> cache) {
         return NopProjectService.get().getDict(dictName);
     }
 

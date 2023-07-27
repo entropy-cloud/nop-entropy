@@ -190,7 +190,7 @@ public class XLangAnnotator implements Annotator {
         if (attrType.getStdDomain().equals(XDefConstants.STD_DOMAIN_ENUM)) {
             String dictName = attrType.getDictName();
             if (dictName != null) {
-                DictBean dict = DictProvider.instance().getDict(null, dictName, null,null);
+                DictBean dict = DictProvider.instance().getDict(null, dictName, null);
                 if (dict != null) {
                     if (dict.getOptionByValue(value) == null) {
                         String desc = "value not in " + dict.getValues();
