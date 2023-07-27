@@ -16,7 +16,7 @@
         level="string" size="string" required="csv-list"
         target="string" redirect="string" reload="string" countDown="int" countDownTpl="string"
         link="string" url="string" blank="boolean" copyFormat="string" content="string"
-        xdef:name="UiActionModel" xdef:bean-tag-prop="type">
+        xdef:name="UiActionModel" xdef:bean-tag-prop="type" xdef:check-ns="xui,gql">
 
     <confirmText xdef:value="string"/>
     <disabledOn xdef:value="string"/>

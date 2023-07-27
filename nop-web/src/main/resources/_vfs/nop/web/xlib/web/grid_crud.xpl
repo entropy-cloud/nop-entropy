@@ -9,9 +9,13 @@
         let listSelection = XuiHelper.getListSelection(gridModel,objMeta);
         let pageSelection = 'total,page,items{ ' + listSelection +' }';
 
-        const genScope = {listSelection,pageSelection}
-        $.notNull(pageModel.table.api.url,"pageModel.table.api.url is null, page:"+pageModel.name+',view='+viewModel.resourcePath());
+        const genScope = {listSelection,pageSelection,fixedProps: fixedProps.$toCsvSet()}
+        let gridApi = pageModel.table.api || gridModel.api
 
+        $.notNull(gridApi.url,"pageModel.table.api.url is null, page:"+pageModel.name+',view='+viewModel.resourcePath());
+        gridApi.url = XuiHelper.appendFilterProps(gridApi.url,fixedProps)
+
+        let filter = gridModel.filter;
     ]]></c:script>
 
     <c:if test="${pageModel.type == 'picker'}">
@@ -19,7 +23,7 @@
         <!--
         amis的picker控件要求source同时提供获取初始值和查询列表的功能，而没有使用pickerSchema中定义的api
         -->
-        <source xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api,genScope)" valueField="id" labelField="${objMeta?.displayProp}" filter="${gridModel.filter?.toJsonObject()}"/>
+        <source xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" valueField="id" labelField="${objMeta?.displayProp}" filter="${filter?.toJsonObject()}"/>
     </c:if>
 
     <!--
@@ -52,7 +56,7 @@
             <pagination id="pagination"/>
         </footerToolbar>
 
-        <api xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table.api || gridModel.api,genScope)" filter="${gridModel.filter?.toJsonObject()}"/>
+        <api xpl:attrs="xpl('thisLib:NormalizeApi',gridApi,genScope)" filter="${filter?.toJsonObject()}"/>
 
         <saveOrderApi xpl:attrs="xpl('thisLib:NormalizeApi',pageModel.table?.saveOrderApi || gridModel.saveOrderApi,genScope)"
                       xpl:if="pageModel.table?.saveOrderApi || gridModel.saveOrderApi"/>
@@ -70,7 +74,7 @@
         </filter>
 
         <columns j:list="true">
-            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}"/>
+            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.fixedProps}"/>
             <operation label="@i18n:common.operation" id="operation" width="${pageModel.table?.operationSize || '110px'}"
                        toggled="@:true" fixed="right" labelClassName="text-center"
                        xpl:if="!pageModel.table?.noOperations">

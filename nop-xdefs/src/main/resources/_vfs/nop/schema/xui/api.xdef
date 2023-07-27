@@ -13,9 +13,9 @@
 @withFormData 明确在data部分中包含form表单中的字段
 -->
 <api xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
-     xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-class="java.util.Map"
+     xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-class="java.util.Map" xdef:check-ns="gql" xmlns:gql="gql"
      url="#!string" method="string" convertKeyToPath="boolean"
-     dataType="string" cache="int" responseType="string"
+     dataType="string" cache="int" responseType="string" gql:selection="string"
      replaceData="boolean" autoRefresh="boolean" trackExpression="string" withFormData="boolean">
 
     <headers xdef:value="xjson"/>

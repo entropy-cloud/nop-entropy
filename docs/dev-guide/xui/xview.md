@@ -300,3 +300,30 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 ```
 
 配置layoutComponent=tabs。
+
+
+## 11. 点击行上按钮弹出关联子表的增删改查页面
+
+````xml
+<action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
+    <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
+        <data>
+            <ruleId>$ruleId</ruleId>
+            <ruleDefinition>
+                <displayName>$displayName</displayName>
+            </ruleDefinition>
+        </data>
+    </dialog>
+</action>
+````
+
+弹出对话框时通过data段指定在弹出页面中哪些字段的值为固定值。
+
+> ruleId字段转换为使用查看控件显示时，需要使用ruleDefinition.displayName作为显示文本，所以需要传入这个值
+
+在弹出页面文件 ref-ruleDefinition.page.yaml中我们可以引用已有的crud页面，但是通过fixedProps指定哪些字段使用固定值，不允许用户编辑
+
+````yaml
+x:gen-extends: |
+  <web:GenPage view="NopRuleNode.view.xml" page="main" fixedProps="ruleId" xpl:lib="/nop/web/xlib/web.xlib" />
+````

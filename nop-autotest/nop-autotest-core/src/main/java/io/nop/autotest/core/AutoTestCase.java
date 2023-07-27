@@ -7,6 +7,7 @@
  */
 package io.nop.autotest.core;
 
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
@@ -155,6 +156,7 @@ public class AutoTestCase extends BaseTestCase {
         context.setUserId("autotest");
         context.setUserName("autotest-name");
         context.setUserRefNo("autotest-ref");
+        IUserContext.set(null);
     }
 
     protected void configLocalDb() {

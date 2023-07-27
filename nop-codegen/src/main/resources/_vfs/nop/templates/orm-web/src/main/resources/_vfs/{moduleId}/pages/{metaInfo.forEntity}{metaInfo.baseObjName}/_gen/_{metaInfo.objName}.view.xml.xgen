@@ -1,5 +1,5 @@
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="${metaInfo.objName}"
-xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
     <c:script>
       let objMeta = metaInfo.objMeta;
     </c:script>
@@ -88,7 +88,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
             x:abstract="true">
 
             <table autoFillHeight="true" xpl:if="!childrenProp">
-                <api url="@query:${metaInfo.objName}__findPage/{@pageSelection}" />
+                <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}" />
             </table>
 
 
@@ -96,7 +96,8 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
                 <!--
                 在url中可以通过{@gql:listSelection}来引用后台根据grid配置生成的字段选择列表
                 -->
-                <api url="@query:${metaInfo.objName}__findList/{@listSelection}?filter_${parentProp}=__null"/>
+                <api url="@query:${metaInfo.objName}__findList?filter_${parentProp}=__null"
+                    gql:selection="{@listSelection}"/>
             </table>
 
             <listActions>
@@ -156,7 +157,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
         <picker name="picker" grid="pick-list"  asideFilterForm="asideFilter"
             filterForm="query" x:abstract="true">
             <table>
-                <api url="@query:${metaInfo.objName}__findPage/{@pageSelection}"/>
+                <api url="@query:${metaInfo.objName}__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>
 
@@ -165,11 +166,11 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
         </simple>
 
         <simple name="view" form="view">
-            <initApi url="@query:${metaInfo.objName}__get/{@formSelection}?id=$id" />
+            <initApi url="@query:${metaInfo.objName}__get?id=$id" gql:selection="{@formSelection}" />
         </simple>
 
         <simple name="update" form="edit" xpl:if="supportUpdate">
-            <initApi url="@query:${metaInfo.objName}__get/{@formSelection}?id=$id" />
+            <initApi url="@query:${metaInfo.objName}__get?id=$id" gql:selection="{@formSelection}"/>
             <api url="@mutation:${metaInfo.objName}__update/id?id=$id" withFormData="true" />
         </simple>
 

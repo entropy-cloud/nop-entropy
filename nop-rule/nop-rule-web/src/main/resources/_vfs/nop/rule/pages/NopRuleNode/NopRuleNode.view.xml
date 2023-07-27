@@ -14,5 +14,11 @@
     <pages>
         <crud name="main"/>
         <picker name="picker"/>
+
+        <crud name="ref-ruleDefinition" x:prototype="main">
+            <table loadDataOnce="true">
+
+            </table>
+        </crud>
     </pages>
 </view>

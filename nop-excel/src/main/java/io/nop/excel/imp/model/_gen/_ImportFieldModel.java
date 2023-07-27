@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [59:18:0:0]/nop/schema/excel/imp.xdef <p>
+ * generate from [60:18:0:0]/nop/schema/excel/imp.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -66,7 +66,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     /**
      *  
      * xml name: keyProp
-     * 
+     * 当list=true时，keyProp表示集合中每个对象采用这个属性作为唯一键。解析的得到的列表会使用KeyedList对象
      */
     private java.lang.String _keyProp ;
     
@@ -325,7 +325,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: keyProp
-     *  
+     *  当list=true时，keyProp表示集合中每个对象采用这个属性作为唯一键。解析的得到的列表会使用KeyedList对象
      */
     
     public java.lang.String getKeyProp(){

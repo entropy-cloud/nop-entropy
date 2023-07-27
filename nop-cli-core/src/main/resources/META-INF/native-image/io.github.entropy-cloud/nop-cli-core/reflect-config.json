@@ -6068,6 +6068,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getGeometryTypeHandler",
+        "parameterTypes": []
+      },
+      {
         "name": "getHexValueLiteral",
         "parameterTypes": [
           "io.nop.commons.bytes.ByteString"
@@ -6406,6 +6410,10 @@
       },
       {
         "name": "getGeometryDataParameterBinder",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGeometryTypeHandler",
         "parameterTypes": []
       },
       {
@@ -7257,6 +7265,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getGeometryTypeHandler",
+        "parameterTypes": []
+      },
+      {
         "name": "getJdbcUrlPattern",
         "parameterTypes": []
       },
@@ -7418,6 +7430,12 @@
       },
       {
         "name": "setGeometryParameterBinder",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setGeometryTypeHandler",
         "parameterTypes": [
           "java.lang.String"
         ]
