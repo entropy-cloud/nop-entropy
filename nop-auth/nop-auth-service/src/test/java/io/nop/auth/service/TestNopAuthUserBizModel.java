@@ -8,6 +8,7 @@
 package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.util.FutureHelper;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 
+@NopTestConfig(enableActionAuth = "false")
 public class TestNopAuthUserBizModel extends JunitAutoTestCase {
 
     @Inject

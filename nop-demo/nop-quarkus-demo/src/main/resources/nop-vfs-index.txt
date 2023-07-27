@@ -295,6 +295,7 @@
 /nop/rule/auth/_nop-rule.action-auth.xml
 /nop/rule/auth/nop-rule.action-auth.xml
 /nop/rule/auth/nop-rule.data-auth.xml
+/nop/rule/beans/_api-impl.beans.xml
 /nop/rule/beans/_dao.beans.xml
 /nop/rule/beans/_service.beans.xml
 /nop/rule/beans/app-service.beans.xml
@@ -539,6 +540,7 @@
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/{serviceModel.name}.java.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/impl/{serviceModel.name}Impl.java.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/{serviceModel.name}Spi.java.xgen
+/nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/beans/_api-impl.beans.xml.xgen
 /nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/_{messageModel.name}.xmeta.xgen
 /nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/model/{serviceModel.name}/{messageModel.name}.xmeta.xgen
 /nop/templates/ast/@init.xrun

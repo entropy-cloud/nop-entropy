@@ -9,9 +9,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.dao.entity.NopRuleDefinition;
-import io.nop.rule.dao.entity.NopRuleInput;
 import io.nop.rule.dao.entity.NopRuleNode;
-import io.nop.rule.dao.entity.NopRuleOutput;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslParseHelper;
@@ -125,33 +123,33 @@ public class DaoRuleModelLoader {
      * </var>
      * }</pre>
      */
-    private XNode buildInputNode(NopRuleInput input) {
-        XNode node = XNode.make("input");
-        node.setAttr("name", input.getName());
-        node.setAttr("displayName", input.getDisplayName());
-        node.makeChild("description").content(input.getDescription());
-        node.makeChild("defaultExpr").content(input.getDefaultValue());
-        node.setAttr("computed", Boolean.TRUE.equals(input.getIsComputed()));
-        node.setAttr("mandatory", Boolean.TRUE.equals(input.getIsMandatory()));
-
-        if (!StringHelper.isBlank(input.getSchema())) {
-            XNode schema = XDslParseHelper.parseSchema(null, input.getSchema());
-            node.appendChild(schema);
-        }
-        return node;
-    }
-
-    private XNode buildOutputNode(NopRuleOutput output) {
-        XNode node = XNode.make("output");
-        node.setAttr("name", output.getName());
-        node.setAttr("displayName", output.getDisplayName());
-        node.makeChild("description").content(output.getDescription());
-        node.makeChild("defaultExpr").content(output.getDefaultValue());
-
-        if (!StringHelper.isBlank(output.getSchema())) {
-            XNode schema = XDslParseHelper.parseSchema(null, output.getSchema());
-            node.appendChild(schema);
-        }
-        return node;
-    }
+//    private XNode buildInputNode(NopRuleInput input) {
+//        XNode node = XNode.make("input");
+//        node.setAttr("name", input.getName());
+//        node.setAttr("displayName", input.getDisplayName());
+//        node.makeChild("description").content(input.getDescription());
+//        node.makeChild("defaultExpr").content(input.getDefaultValue());
+//        node.setAttr("computed", Boolean.TRUE.equals(input.getIsComputed()));
+//        node.setAttr("mandatory", Boolean.TRUE.equals(input.getIsMandatory()));
+//
+//        if (!StringHelper.isBlank(input.getSchema())) {
+//            XNode schema = XDslParseHelper.parseSchema(null, input.getSchema());
+//            node.appendChild(schema);
+//        }
+//        return node;
+//    }
+//
+//    private XNode buildOutputNode(NopRuleOutput output) {
+//        XNode node = XNode.make("output");
+//        node.setAttr("name", output.getName());
+//        node.setAttr("displayName", output.getDisplayName());
+//        node.makeChild("description").content(output.getDescription());
+//        node.makeChild("defaultExpr").content(output.getDefaultValue());
+//
+//        if (!StringHelper.isBlank(output.getSchema())) {
+//            XNode schema = XDslParseHelper.parseSchema(null, output.getSchema());
+//            node.appendChild(schema);
+//        }
+//        return node;
+//    }
 }

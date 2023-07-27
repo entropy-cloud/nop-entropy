@@ -6,6 +6,8 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
+    <import resource="_api-impl.beans.xml" />
+
     <bean id="nopRuleManager" class="io.nop.rule.core.execute.RuleManager" />
 
 </beans>
