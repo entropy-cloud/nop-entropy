@@ -19,7 +19,7 @@
                     function filter_cond(){
                         if(objMeta.tree.levelProp)
                             return 'filter_' + objMeta.tree.levelProp + '=' + (objMeta.tree.rootLevelValue ?? '__null');
-                        return 'filter_' + objMeta.tree.parentProp + '=_null';
+                        return 'filter_' + objMeta.tree.parentProp + '=__null';
                     }
                 ]]></c:script>
                 <!--

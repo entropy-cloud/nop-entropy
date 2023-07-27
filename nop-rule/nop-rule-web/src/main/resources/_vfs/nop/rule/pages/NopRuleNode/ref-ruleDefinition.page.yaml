@@ -1,3 +1,3 @@
-
+# fixedProps用于指定关联属性，表示这是一个关联子表的crud页面。在本页面中ruleId字段的值固定为传入的值，界面上对应的编辑控件被转换为查看控件
 x:gen-extends: |
   <web:GenPage view="NopRuleNode.view.xml" page="main" fixedProps="ruleId" xpl:lib="/nop/web/xlib/web.xlib" />
