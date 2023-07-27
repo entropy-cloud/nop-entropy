@@ -126,6 +126,14 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
                     }
                     state.newlyCreated = true;
                 }
+            } else {
+                txn = transactionManager.getRegisteredTransaction(txnGroup);
+                if (txn == null && allowCreate) {
+                    // 只是新建事务对象，但是并没有调用open打开事务
+                    txn = transactionManager.newTransaction(txnGroup);
+                    state.newlyCreated = true;
+                    state.prevTxn = transactionManager.registerTransaction(txn);
+                }
             }
             state.txn = txn;
             state.groupTxn = groupTxn;

@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<?xml version="1.0" encoding="UTF-8" ?>
-
 <!--
  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
       Map对应props配置,  List对应item配置, Union对应oneOf配置
