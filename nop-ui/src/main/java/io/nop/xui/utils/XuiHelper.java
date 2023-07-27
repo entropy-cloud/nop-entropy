@@ -8,6 +8,7 @@
 package io.nop.xui.utils;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.StringHelper;
@@ -26,7 +27,9 @@ import io.nop.xui.model.UiGridModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static io.nop.xui.XuiConstants.DATA_TYPE_ANY;
@@ -92,10 +95,10 @@ public class XuiHelper {
         }
 
         String prop = propMeta != null ? propMeta.getName() : (dispMeta == null ? null : dispMeta.getId());
-        if(editMode != null && !editMode.endsWith(MODE_VIEW) && tag != null && tag.getTagName().equals("view-any")){
+        if (editMode != null && !editMode.endsWith(MODE_VIEW) && tag != null && tag.getTagName().equals("view-any")) {
             LOG.warn("nop.xui.no-control-defined-for-prop:controlTag={},prop={},domain={},stdDomain={},stdDataType={},mode={}",
                     tag == null ? null : tag.getTagName(), prop, domain, stdDomain, stdDataType, editMode);
-        }else {
+        } else {
             LOG.debug("nop.xui.resolve-control-tag:controlTag={},prop={},domain={},stdDomain={},stdDataType={},mode={}",
                     tag == null ? null : tag.getTagName(), prop, domain, stdDomain, stdDataType, editMode);
         }
@@ -275,5 +278,27 @@ public class XuiHelper {
         String bizObjName = getRefBizObjName(relProp);
         String moduleId = ResourceHelper.getModuleId(objMeta.resourcePath());
         return '/' + moduleId + "/pages/" + bizObjName + "/picker.page.yaml";
+    }
+
+    /**
+     * 弹出关联集合页面时在子表的查询链接中拼接关联过滤条件
+     */
+    public static String appendFilterProps(String url, Object fixedProps) {
+        Set<String> props = ConvertHelper.toCsvSet(fixedProps);
+        if (props == null || props.isEmpty())
+            return url;
+
+        int pos = url.indexOf('?');
+        Map<String, Object> query;
+        if (pos < 0) {
+            query = new LinkedHashMap<>();
+        } else {
+            query = StringHelper.parseQuery(url.substring(pos + 1), StringHelper.ENCODING_UTF8);
+            url = url.substring(0, pos);
+        }
+        for (String prop : props) {
+            query.put("filter_" + prop, '$'+prop);
+        }
+        return url + '?' + StringHelper.encodeQuery(query);
     }
 }

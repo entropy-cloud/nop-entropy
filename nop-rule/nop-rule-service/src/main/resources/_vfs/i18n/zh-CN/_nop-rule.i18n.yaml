@@ -1,10 +1,8 @@
 entity:
   label:
     NopRuleDefinition: 规则模型定义
-    NopRuleInput: 规则输入变量
     NopRuleLog: 规则执行日志
     NopRuleNode: 规则节点
-    NopRuleOutput: 规则输出变量
     NopRuleRole: 规则角色
     RuleKeyBean: 规则唯一标识
     RuleMetaBean: 规则元数据
@@ -27,25 +25,6 @@ prop:
       ruleVersion: 规则版本
       status: 状态
       status_label: 状态
-      updateTime: 修改时间
-      updatedBy: 修改人
-      version: 数据版本
-    NopRuleInput:
-      createTime: 创建时间
-      createdBy: 创建人
-      defaultValue: 缺省值
-      description: 描述
-      displayName: 显示名称
-      isComputed: 自动计算
-      isMandatory: 非空
-      name: 名称
-      remark: 备注
-      ruleDefinition: 规则定义
-      ruleDefinition.displayName: 规则定义
-      ruleId: 规则ID
-      schema: 结构定义
-      schemaComponent: null
-      sid: 主键
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -78,25 +57,6 @@ prop:
       ruleId: 规则ID
       sid: SID
       sortNo: 排序序号
-      updateTime: 修改时间
-      updatedBy: 修改人
-      version: 数据版本
-    NopRuleOutput:
-      aggMethod: 汇总方式
-      createTime: 创建时间
-      createdBy: 创建人
-      defaultValue: 缺省值
-      description: 描述
-      displayName: 显示名称
-      isMandatory: 非空
-      name: 名称
-      remark: 备注
-      ruleDefinition: 规则定义
-      ruleDefinition.displayName: 规则定义
-      ruleId: 规则ID
-      schema: 结构定义
-      schemaComponent: null
-      sid: 主键
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

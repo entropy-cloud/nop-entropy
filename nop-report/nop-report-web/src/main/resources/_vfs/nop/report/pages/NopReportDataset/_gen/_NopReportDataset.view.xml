@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopReportDataset" xmlns:i18n-en="i18n-en"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
 
     <objMeta>/nop/report/model/NopReportDataset/NopReportDataset.xmeta</objMeta>
 
@@ -93,7 +93,7 @@
     <pages>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
-                <api url="@query:NopReportDataset__findPage/{@pageSelection}"/>
+                <api url="@query:NopReportDataset__findPage" gql:selection="{@pageSelection}"/>
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
@@ -128,17 +128,17 @@
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table>
-                <api url="@query:NopReportDataset__findPage/{@pageSelection}"/>
+                <api url="@query:NopReportDataset__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>
         <simple name="add" form="add">
             <api url="@mutation:NopReportDataset__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:NopReportDataset__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopReportDataset__get?id=$id" gql:selection="{@formSelection}"/>
         </simple>
         <simple name="update" form="edit">
-            <initApi url="@query:NopReportDataset__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopReportDataset__get?id=$id" gql:selection="{@formSelection}"/>
             <api url="@mutation:NopReportDataset__update/id?id=$id" withFormData="true"/>
         </simple>
     </pages>

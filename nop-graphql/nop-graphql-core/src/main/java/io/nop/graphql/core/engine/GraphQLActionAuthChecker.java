@@ -50,7 +50,7 @@ public class GraphQLActionAuthChecker {
             if (subSelection == null)
                 continue;
 
-            checkAuth(objTypeName, selection, checker, context);
+            checkAuth(objTypeName, selection, checker, context, true);
 
             checkSelectionSet(selection.getSelectionSet(), subSelection, checker, userContext, context);
         }
@@ -74,14 +74,15 @@ public class GraphQLActionAuthChecker {
                 if (subSelection == null)
                     continue;
 
-                checkAuth(objTypeName, fieldSelection, checker, context);
+                checkAuth(objTypeName, fieldSelection, checker, context, false);
 
                 checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, userContext, context);
             }
         }
     }
 
-    void checkAuth(String objTypeName, GraphQLFieldSelection selection, IActionAuthChecker checker, IGraphQLExecutionContext context) {
+    void checkAuth(String objTypeName, GraphQLFieldSelection selection, IActionAuthChecker checker,
+                   IGraphQLExecutionContext context, boolean action) {
         GraphQLFieldDefinition field = selection.getFieldDefinition();
         ActionAuthMeta auth = field.getAuth();
         if (auth == null)
@@ -100,10 +101,18 @@ public class GraphQLActionAuthChecker {
                 return;
         }
 
-        throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
-                .param(AuthApiErrors.ARG_FIELD_NAME, field.getName())
-                .param(ARG_PERMISSION, auth.getPermissions())
-                .param(ARG_ROLES, auth.getRoles())
-                .param(ARG_OBJ_TYPE_NAME, objTypeName);
+        if (action) {
+            throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)
+                    .param(AuthApiErrors.ARG_ACTION_NAME, field.getName())
+                    .param(ARG_PERMISSION, auth.getPermissions())
+                    .param(ARG_ROLES, auth.getRoles())
+                    .param(ARG_OBJ_TYPE_NAME, objTypeName);
+        } else {
+            throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
+                    .param(AuthApiErrors.ARG_FIELD_NAME, field.getName())
+                    .param(ARG_PERMISSION, auth.getPermissions())
+                    .param(ARG_ROLES, auth.getRoles())
+                    .param(ARG_OBJ_TYPE_NAME, objTypeName);
+        }
     }
 }

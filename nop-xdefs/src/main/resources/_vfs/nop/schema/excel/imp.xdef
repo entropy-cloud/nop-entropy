@@ -51,6 +51,7 @@
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <!--
                 @list 是否列表定义，解析得到List类型，内部fields定义的是列表条目对象的属性。
+                @keyProp 当list=true时，keyProp表示集合中每个对象采用这个属性作为唯一键。解析的得到的列表会使用KeyedList对象
                 @computed 是否计算字段。计算字段不需要从文件读取，而是通过valueExpr计算
                 @virtual 虚拟字段不会设置到实体上。只是会运行valueExpr表达式
                 @prop 实际设置到record上的属性名，如果为空，则prop与name相同

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<view x:extends="_gen/_NopRuleDefinition.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<view x:extends="_gen/_NopRuleDefinition.view.xml" x:schema="/nop/schema/xui/xview.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef">
 
     <grids>
         <grid id="list"/>
@@ -32,7 +33,23 @@
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main">
+            <rowActions>
+                <actionGroup id="row-more-button">
+                    <action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
+                        <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
+                            <data>
+                                <ruleId>$ruleId</ruleId>
+                                <ruleDefinition>
+                                    <displayName>$displayName</displayName>
+                                </ruleDefinition>
+                            </data>
+                        </dialog>
+                    </action>
+                    <action id="row-update-button"/>
+                </actionGroup>
+            </rowActions>
+        </crud>
         <picker name="picker"/>
     </pages>
 </view>

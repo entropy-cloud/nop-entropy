@@ -7,6 +7,8 @@
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="page" mandatory="true" type="String"/>
             <attr name="forPicker" type="Boolean" optional="true"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
+
             <source>
                 <c:include src="web/impl_GenPage.xpl"/>
             </source>
@@ -16,6 +18,7 @@
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="form" mandatory="true" type="string"/>
             <attr name="skipForm" optional="true" type="boolean" />
+            <attr name="fixedProps" optional="true" stdDomain="csv-set" />
 
             <slot name="default" outputMode="xjson">
                 <arg name="objMeta"/>
@@ -36,6 +39,7 @@
             <attr name="i18nRoot" implicit="true" />
             <attr name="bizObjName" implicit="true" />
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
 
             <source>
                 <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FormDefaultAttrs',formModel)"  xpl:skipIf="skipForm">
@@ -48,6 +52,7 @@
         <GenGrid outputMode="xjson">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="grid" mandatory="true" type="string"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
 
             <source>
                 <c:include src="web/impl_GenGrid.xpl"/>
@@ -61,6 +66,7 @@
             <attr name="bizObjName" implicit="true" />
             <attr name="i18nRoot" implicit="true" />
             <attr name="controlLib" implicit="true" />
+            <attr name="fixedProps" implicit="true" optional="true" />
 
             <source>
                 <crud xpl:attrs="xpl('thisLib:GridDefaultAttrs', gridModel)"
@@ -74,7 +80,7 @@
 
 
                     <columns j:list="true">
-                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}"/>
+                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" fixedProps="${fixedProps}"/>
                     </columns>
                 </crud>
             </source>
@@ -110,6 +116,8 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" />
+
             <source>
                 <body j:list="true">
                     <c:choose>
@@ -133,7 +141,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-
+            <attr name="fixedProps" implicit="true" optional="true" />
             <source>
                 <collapse-group activeKey="${['1']}" id="${formModel.id}">
                     <thisLib:GenAccordionBody layoutGroups="${formModel.layout.groups}"/>
@@ -148,6 +156,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" />
 
             <source>
                 <body>
@@ -171,6 +180,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" />
 
             <source>
                 <c:for var="group" items="${layoutGroups}">
@@ -187,6 +197,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" />
 
             <source>
                 <tabs>
@@ -218,6 +229,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" />
 
             <source>
                 <c:choose>
@@ -266,6 +278,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" />
 
             <source>
                 <c:choose>
@@ -295,6 +308,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" />
 
             <source>
                 <c:choose>
@@ -315,14 +329,21 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <c:script><![CDATA[
                     let cellModel = formModel.getCell(formCell.id);
                     let propMeta = objMeta?.getProp(cellModel?.prop || formCell.id);
-                    const rd = formCell.readonly || cellModel?.readonly
+                    let rd = formCell.readonly || cellModel?.readonly
                                  || (formModel.editMode == 'update' && !propMeta?.updatable)
-                                 || (formModel.editMode == 'add' && !propMeta?.insertable)
+                                 || (formModel.editMode == 'add' && !propMeta?.insertable);
+
+                    // 在编辑关联表时会明确指定字段的值固定，此时自动输出hidden字段
+                    if(!rd and fixedProps?.contains(formCell.id)){
+                       rd = true;
+                       $out.appendChild(location(),"hidden",{name:formCell.id})
+                    }
 
                     let mode = cellModel?.editMode || (rd? 'view' : formModel.editMode) || 'view'
                     const labelKey = '@i18n:cell.'+i18nRoot+"."+formCell.id+(cellModel?.label ? '' : ',prop.label.'
@@ -380,6 +401,7 @@
         <GenGridCols outputMode="xjson">
             <attr name="gridModel" mandatory="true"/>
             <attr name="objMeta" mandatory="true"/>
+            <attr name="ignoreCols" optional="true" />
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
@@ -388,6 +410,7 @@
                 <c:for var="col" items="${gridModel.cols}" index="colIndex">
                     <c:script>
                         if(col.hidden) continue;
+                        if(ignoreCols and ignoreCols.contains(col.id)) continue;
                     </c:script>
                     <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}"/>
                 </c:for>
@@ -672,15 +695,18 @@
                 const iconOnly = action.iconOnly && action.icon;
 
                 if(action.api){
-                   api = {...action.api, url: action.api.url.$renderTemplateForScope('{@','}',genScope)}
+                   api = _.filterNull({...action.api, url: action.api.url.$renderTemplateForScope('{@','}',genScope),
+                      "gql:selection": action.api['gql:selection']?.$renderTemplateForScope('{@','}',genScope)
+                   })
                 }
 
 
                 if(actionType == 'dialog'){
-                    dialog = xpl('thisLib:LoadPage',action.dialog.page, action.dialog)
+                    dialog = xpl('thisLib:LoadPage',action.dialog.page, action.dialog,genScope?.fixedProps)
                 }else if(actionType == 'drawer'){
                     dialog = null;
-                    drawer = xpl('thisLib:LoadPage',(action.drawer || action.dialog).page, action.drawer||action.dialog)
+                    drawer = xpl('thisLib:LoadPage',(action.drawer || action.dialog).page,
+                                action.drawer||action.dialog,genScope?.fixedProps)
                 }
 
                 if(action.feedback?.page){
@@ -705,6 +731,7 @@
         <LoadPage>
             <attr name="page" mandatory="true"/>
             <attr name="dialog" optional="true"/>
+            <attr name="fixedProps" optional="true" />
             <attr name="viewModel" implicit="true"/>
 
             <source><![CDATA[
@@ -734,7 +761,9 @@
                   return  { 'x:extends': path, ...dlgProps}
                }
 
-               const gen = xpl `<c:collect outputMode="xjson"><thisLib:GenPage view="${viewModel.resourcePath()}" page="${page}" /></c:collect>`
+               const gen = xpl `<c:collect outputMode="xjson">
+                                  <thisLib:GenPage view="${viewModel.resourcePath()}" page="${page}" fixedProps="${fixedProps}" />
+                               </c:collect>`
                if(dlgProps != null)
                    gen.putAll(dlgProps);
                if(dialog?.data){
@@ -747,11 +776,13 @@
         <NormalizeApi>
             <attr name="api"/>
             <attr name="genScope"/>
+
             <source><![CDATA[
                 if(!api) return null;
 
                 return _.filterNull({...api,
                     url:api.url.$renderTemplateForScope("{@","}",genScope),
+                    "gql:selection": api['gql:selection']?.$renderTemplateForScope('{@','}',genScope),
                     data: api.withFormData ? genScope.formData : api.data
                 })
             ]]></source>

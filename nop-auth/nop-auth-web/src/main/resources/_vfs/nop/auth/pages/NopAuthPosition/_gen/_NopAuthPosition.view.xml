@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthPosition" xmlns:i18n-en="i18n-en"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
 
     <objMeta>/nop/auth/model/NopAuthPosition/NopAuthPosition.xmeta</objMeta>
 
@@ -64,7 +64,7 @@
     <pages>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
-                <api url="@query:NopAuthPosition__findPage/{@pageSelection}"/>
+                <api url="@query:NopAuthPosition__findPage" gql:selection="{@pageSelection}"/>
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
@@ -99,17 +99,17 @@
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table>
-                <api url="@query:NopAuthPosition__findPage/{@pageSelection}"/>
+                <api url="@query:NopAuthPosition__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>
         <simple name="add" form="add">
             <api url="@mutation:NopAuthPosition__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:NopAuthPosition__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopAuthPosition__get?id=$id" gql:selection="{@formSelection}"/>
         </simple>
         <simple name="update" form="edit">
-            <initApi url="@query:NopAuthPosition__get/{@formSelection}?id=$id"/>
+            <initApi url="@query:NopAuthPosition__get?id=$id" gql:selection="{@formSelection}"/>
             <api url="@mutation:NopAuthPosition__update/id?id=$id" withFormData="true"/>
         </simple>
     </pages>
