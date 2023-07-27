@@ -3,6 +3,7 @@
     import java.util.concurrent.CompletionStage;
     import io.nop.core.context.IServiceContext;
     import io.nop.api.core.util.FutureHelper;
+    import io.nop.api.core.beans.FieldSelectionBean;
     import io.nop.api.core.annotations.biz.BizModel;
     import io.nop.api.core.annotations.biz.BizQuery;
     import io.nop.api.core.annotations.biz.BizMutation;
@@ -23,7 +24,8 @@
             <when test="${method.tagSet?.contains('sync')}"><![CDATA[
      @${method.mutation?'BizMutation':'BizQuery'}
      @Override
-     public ${method.simpleResponseMessage} ${method.name}(@RequestBean ${method.simpleRequestMessage} request, IServiceContext ctx){
+     public ${method.simpleResponseMessage} ${method.name}(@RequestBean ${method.simpleRequestMessage} request,
+          FieldSelectionBean selection, IServiceContext ctx){
         ${method.simpleResponseMessage != 'void' ? 'return null;': ''}
      }
             ]]></when>
@@ -31,7 +33,7 @@
      @${method.mutation?'BizMutation':'BizQuery'}
      @Override
      public CompletionStage<${method.simpleResponseMessage == 'void' ? 'Void' : method.simpleResponseMessage}> ${method.name}Async(
-         @RequestBean ${method.simpleRequestMessage} request, IServiceContext ctx){
+         @RequestBean ${method.simpleRequestMessage} request, FieldSelectionBean selection, IServiceContext ctx){
         return FutureHelper.success(null);
      }
             ]]></otherwise>

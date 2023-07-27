@@ -3,6 +3,7 @@
 
     import java.util.concurrent.CompletionStage;
     import io.nop.core.context.IServiceContext;
+    import io.nop.api.core.beans.FieldSelectionBean;
 
     <gen:CollectApiMessageImports xpl:lib="/nop/codegen/xlib/gen.xlib"
                                   serviceModel="${serviceModel}" xpl:return="types" />
@@ -19,13 +20,15 @@
      /**
       * ${method.displayName} ${method.description}
       */
-     ${method.simpleResponseMessage} ${method.name}(${method.simpleRequestMessage} request, IServiceContext ctx);
+     ${method.simpleResponseMessage} ${method.name}(${method.simpleRequestMessage} request,
+            FieldSelectionBean selection, IServiceContext ctx);
             ]]></when>
             <otherwise><![CDATA[
      /**
       * ${method.displayName} ${method.description}
       */
-     CompletionStage<${method.simpleResponseMessage}> ${method.name}Async(${method.simpleRequestMessage} request, IServiceContext ctx);
+     CompletionStage<${method.simpleResponseMessage}> ${method.name}Async(${method.simpleRequestMessage} request,
+            FieldSelectionBean selection, IServiceContext ctx);
             ]]></otherwise>
         </c:choose>
     </c:for>

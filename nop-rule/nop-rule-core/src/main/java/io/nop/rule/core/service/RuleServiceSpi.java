@@ -3,6 +3,7 @@
 
     import java.util.concurrent.CompletionStage;
     import io.nop.core.context.IServiceContext;
+    import io.nop.api.core.beans.FieldSelectionBean;
 
     
         import io.nop.rule.api.beans.RuleRequestBean;
@@ -19,11 +20,13 @@
      /**
       * 执行规则 
       */
-     java.util.Map executeRule(RuleRequestBean request, IServiceContext ctx);
+     java.util.Map executeRule(RuleRequestBean request,
+            FieldSelectionBean selection, IServiceContext ctx);
             
      /**
       * 得到规则元数据 
       */
-     RuleMetaBean getRuleMeta(RuleKeyBean request, IServiceContext ctx);
+     RuleMetaBean getRuleMeta(RuleKeyBean request,
+            FieldSelectionBean selection, IServiceContext ctx);
             
     }
