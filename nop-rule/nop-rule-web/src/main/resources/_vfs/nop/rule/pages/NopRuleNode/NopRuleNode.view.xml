@@ -15,10 +15,15 @@
         <crud name="main"/>
         <picker name="picker"/>
 
-        <crud name="ref-ruleDefinition" x:prototype="main">
-            <table loadDataOnce="true">
-
-            </table>
-        </crud>
+        <simple name="add-child">
+            <!-- 一旦设置data就不会继承外部环境中的数据，因此这里需要手工传递一下 -->
+            <data>
+                <parentId>$id</parentId>
+                <ruleId>$ruleId</ruleId>
+                <ruleDefinition>
+                    <displayName>$ruleDefinition.displayName</displayName>
+                </ruleDefinition>
+            </data>
+        </simple>
     </pages>
 </view>
