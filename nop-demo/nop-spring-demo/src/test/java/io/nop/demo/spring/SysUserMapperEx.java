@@ -10,4 +10,5 @@ public interface SysUserMapperEx extends SysUserMapper {
      * @return 用户对象信息
      */
     public SysUser selectUserById(String userId);
+
 }
