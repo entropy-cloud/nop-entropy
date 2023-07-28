@@ -41,7 +41,7 @@ public class CoreInitialization {
     private static List<ICoreInitializer> initializers;
     private static int initializationLevel = -1;
     private static boolean initialized;
-    private static Map<String, Object> bootstrapConfig;
+    private static Map<String, Object> bootstrapConfig = null;
 
     private static final Object lock = new Object();
     private static List<Runnable> cleanups;
@@ -55,22 +55,31 @@ public class CoreInitialization {
     }
 
     public static synchronized void initialize() {
-        if (isInitialized()) {
-            LOG.info("nop.core.already-initialized");
+        initializeTo(Integer.MAX_VALUE);
+    }
+
+    public static synchronized void initializeTo(int level) {
+        if (initializationLevel >= level)
             return;
-        }
 
         try {
             long beginTime = CoreMetrics.currentTimeMillis();
-            LOG.info("nop.core.begin-initialize:workDir={}", FileHelper.currentDir());
+            LOG.info("nop.core.begin-initialize:workDir={},initializationLevel={}",
+                    FileHelper.currentDir(), initializationLevel);
+
             loadBootstrapConfig();
 
             if (initializers == null)
                 initializers = loadInitializers();
 
-            int maxLevel = CFG_CORE_MAX_INITIALIZE_LEVEL.get();
+            int maxLevel = Math.min(CFG_CORE_MAX_INITIALIZE_LEVEL.get(), level);
+
+            int fromLevel = initializationLevel;
 
             for (ICoreInitializer initializer : initializers) {
+                if (initializer.order() <= fromLevel)
+                    continue;
+
                 if (initializer.order() <= maxLevel) {
                     LOG.info("nop.core.run-initializer:class={}", initializer.getClass().getName());
                     initializer.initialize();
@@ -81,7 +90,8 @@ public class CoreInitialization {
                 }
             }
 
-            LOG.info("nop.core.end-initialize:usedTime={}", CoreMetrics.currentTimeMillis() - beginTime);
+            LOG.info("nop.core.end-initialize:usedTime={},initializationLevel={}",
+                    CoreMetrics.currentTimeMillis() - beginTime, initializationLevel);
 
             initialized = true;
         } catch (Exception e) {
@@ -122,6 +132,8 @@ public class CoreInitialization {
     }
 
     public static synchronized void destroy() {
+        bootstrapConfig = null;
+
         List<ICoreInitializer> list = initializers;
         if (list == null)
             return;
@@ -226,6 +238,9 @@ public class CoreInitialization {
     }
 
     private static void loadBootstrapConfig() {
+        if (bootstrapConfig != null)
+            return;
+
         bootstrapConfig = Collections.emptyMap();
         IResource resource = new ClassPathResource("classpath:bootstrap.yaml");
         if (resource.exists()) {

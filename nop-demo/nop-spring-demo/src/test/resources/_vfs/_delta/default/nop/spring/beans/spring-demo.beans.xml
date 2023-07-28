@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       x:extends="super">
+
+    <bean id="sysUserMapper">
+        <property name="mapperTypeEx" value="io.nop.demo.spring.SysUserMapperEx"/>
+    </bean>
+</beans>

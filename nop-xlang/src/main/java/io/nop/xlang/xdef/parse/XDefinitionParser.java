@@ -380,13 +380,15 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         defNode.setAttributes(attrs);
         Map<String, XDefNode> children = parseChildren(node, beanPackage, keyAttr);
         defNode.setChildren(children);
-        if (!attrs.isEmpty()) {
-            children.values().forEach(child -> {
-                if (attrs.containsKey(child.getTagName()))
-                    throw new NopException(ERR_XDEF_TAG_NAME_CONFLICT_WITH_ATTR_NAME).source(child).param(ARG_TAG_NAME,
-                            child.getTagName());
-            });
-        }
+
+        // 暂时先取消attr和child名称的重复性检查
+//        if (!attrs.isEmpty()) {
+//            children.values().forEach(child -> {
+//                if (attrs.containsKey(child.getTagName()))
+//                    throw new NopException(ERR_XDEF_TAG_NAME_CONFLICT_WITH_ATTR_NAME).source(child).param(ARG_TAG_NAME,
+//                            child.getTagName());
+//            });
+//        }
 
         parseXdefChildren(node, defNode);
 

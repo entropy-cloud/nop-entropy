@@ -583,6 +583,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-spring-delta</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-auth-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<mapper namespace="class-name" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+        xmlns:xdef="/nop/schema/xdef.xdef">
+    <cache-ref namespace="!class-name"/>
+
+    <cache type="string" evication="string" flushInterval="int" size="int" readOnly="boolean" blocking="boolean">
+        <property xdef:unique-attr="name" name="!string" value="!string"/>
+    </cache>
+
+    <resultMap id="!string" xdef:unique-attr="id" type="class-name" extends="generic-type" autoMapping="boolean">
+        <constructor>
+            <idArg name="!string" xdef:unique-attr="name" javaType="string"
+                   column="string" jdbcType="string" typeHandler="class-name"
+                   select="string" resultMap="string"/>
+            <arg name="!string" xdef:unique-attr="name" javaType="string"
+                 column="string" jdbcType="string" typeHandler="class-name"
+                 select="string" resultMap="string"/>
+        </constructor>
+        <id property="!string" xdef:unique-attr="property" javaType="string"
+            column="string" jdbcType="string" typeHandler="class-name"/>
+        <result property="!string" xdef:unique-attr="property" javaType="string"
+                column="string" jdbcType="string" typeHandler="class-name"/>
+
+        <association property="!string" xdef:unique-attr="property" column="string" javaType="string"
+                     jdbcType="string" typeHandler="class-name"
+                     select="string" resultMap="string" notNullColumn="string" columnPrefix="string"
+                     resultSet="string" foreignColumn="string" autoMapping="boolean" fetchType="string"/>
+        <!--
+        @fetchType eager or lazy
+        -->
+        <collection property="!string" xdef:unique-attr="property" column="string" javaType="string"
+                    jdbcType="string" typeHandler="class-name" ofType="class-name"
+                    select="string" resultMap="string" notNullColumn="string" columnPrefix="string"
+                    resultSet="string" foreignColumn="string" autoMapping="boolean" fetchType="string">
+
+        </collection>
+        <discriminator column="string" jdbcType="!string" javaType="class-name" typeHandler="class-name"/>
+    </resultMap>
+
+    <parameterMap id="!string" xdef:unique-attr="id" type="string">
+        <parameter property="!string" xdef:unique-attr="property" javaType="class-name" jdbcType="string"
+                   mode="string" resultMap="string" scale="int" typeHandler="class-name"/>
+    </parameterMap>
+
+    <sql xdef:unique-attr="id" id="!string" lang="string" databaseId="string" xdef:value="xml"/>
+
+    <insert xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" timeout="int"
+            flushCache="boolean" statementType="string" keyProperty="string" useGeneratedKeys="boolean"
+            keyColumn="string" databaseId="string" lang="string" xdef:value="xml"/>
+
+    <update xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" timeout="int"
+            flushCache="boolean" statementType="string" keyProperty="string" useGeneratedKeys="boolean"
+            keyColumn="string" databaseId="string" lang="string" xdef:value="xml"/>
+
+
+    <delete xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" timeout="int"
+            flushCache="boolean" statementType="string" databaseId="string" lang="string" xdef:value="xml"/>
+
+    <!--
+    @resultSetType FORWARD_ONLY | SCROLL_INSENSITIVE | SCROLL_SENSITIVE
+    @statementType STATEMENT|PREPARED|CALLABLE
+    -->
+    <select xdef:unique-attr="id" id="!string" parameterMap="string" parameterType="class-name" resultMap="string"
+            resultType="class-name" resultSetType="string" statementType="string" fetchSize="int" timeout="int"
+            flushCache="boolean" useCache="boolean" databaseId="string" lang="string" resultOrdered="boolean"
+            resultSets="string" xdef:value="xml"/>
+</mapper>
+

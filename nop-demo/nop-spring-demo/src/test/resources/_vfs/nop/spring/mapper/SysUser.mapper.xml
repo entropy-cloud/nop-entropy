@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<mapper namespace="io.nop.demo.spring.SysUserMapper" x:schema="/nop/spring/schema/mapper.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef" x:extends="_gen/_SysUser.mapper.xml">
+
+    <resultMap id="SysUserResult">
+        <association property="dept" column="dept_id" javaType="io.nop.demo.spring.domain.SysDept"
+                     resultMap="deptResult"/>
+        <collection property="roles" javaType="java.util.List" resultMap="RoleResult"/>
+    </resultMap>
+
+    <update id="resetUserPwd" parameterType="io.nop.demo.spring.domain.SysUser">
+        update sys_user set password = #{password} where user_name = #{userName}
+    </update>
+</mapper>

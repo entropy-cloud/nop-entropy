@@ -7,6 +7,8 @@
  */
 package io.nop.demo.spring;
 
+import io.nop.core.CoreConstants;
+import io.nop.core.initialize.CoreInitialization;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -14,6 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class SpringDemoMain {
 
     public static void main(String[] args) {
+        CoreInitialization.initializeTo(CoreConstants.INITIALIZER_PRIORITY_REGISTER_COMPONENT);
         SpringApplication.run(SpringDemoMain.class, args);
     }
 }

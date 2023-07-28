@@ -72,3 +72,19 @@ nop.orm.use-parent-data-source=true
 ## 集成Nop平台的AMIS前端
 仿照[nop-for-ruoyi项目](https://gitee.com/canonical-entropy/nop-for-ruoyi)的相关配置.
 B站视频: [在若依(Ruoyi)框架中集成Nop平台](https://www.bilibili.com/video/BV1Av4y157D7/)
+
+## 为Spring和MyBatis增加Delta定制能力
+引入 nop-spring-delta模块，然后模块目录下的`beans/spring-*.beans.xml`文件以及`mapper/*.mapper.xml`文件支持Delta定制。
+
+nop-spring-delta对于Java中的Mapper接口也增加了定制能力
+
+````xml
+    <bean id="sysUserMapper" parent="nopBaseMapper">
+        <property name="mapperInterface" value="io.nop.demo.spring.SysUserMapper" />
+        <property name="mapperTypeEx" value="io.nop.demo.spring.SysUserMapperEx"/>
+    </bean>
+````
+
+mapperInterface对应于Mapper XML文件中的namespace配置，一般情况下mapperTypeEx与namespace相同，但是在扩展模块中我们可以配置mapperTypeEx使用扩展接口。
+
+具体设计原理参加 [spring-delta.md](spring-spring-delta.md)

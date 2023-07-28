@@ -1,0 +1,15 @@
+<mapper x:extends="super" x:schema="/nop/spring/schema/mapper.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!-- 定制使用nop_auth_user表 -->
+    <sql id="selectUserVo">
+        select u.user_id, u.dept_id, u.user_name, u.nick_name
+        from nop_auth_user u
+    </sql>
+
+    <delete id="deleteUserByIds" parameterType="Long">
+        update sys_user set del_flag = '2' where user_id in
+        <foreach collection="array" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+</mapper>
