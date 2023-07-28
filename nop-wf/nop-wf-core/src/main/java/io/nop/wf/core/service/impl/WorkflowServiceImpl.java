@@ -10,6 +10,7 @@ package io.nop.wf.core.service.impl;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.RequestBean;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.WfReference;
@@ -40,7 +41,8 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
 
     @BizMutation
     @Override
-    public WfStartResponseBean startWorkflow(@RequestBean WfStartRequestBean request, IServiceContext ctx) {
+    public WfStartResponseBean startWorkflow(@RequestBean WfStartRequestBean request,
+                                             FieldSelectionBean selection, IServiceContext ctx) {
         IWorkflow wf = workflowManager.newWorkflow(request.getWfName(), request.getWfVersion());
         wf.start(request.getArgs(), ctx);
 
@@ -61,7 +63,8 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
 
     @BizMutation
     @Override
-    public void notifySubFlowEnd(@RequestBean WfSubFlowEndRequestBean request, IServiceContext ctx) {
+    public void notifySubFlowEnd(@RequestBean WfSubFlowEndRequestBean request,
+                                 FieldSelectionBean selection, IServiceContext ctx) {
         WfReference wfRef = new WfReference(request.getWfName(), request.getWfVersion(), request.getWfId());
         WfStepReference parentStep = new WfStepReference(request.getParentWfName(), request.getParentWfVersion(),
                 request.getParentWfId(), request.getParentWfStepId());
@@ -72,7 +75,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
     @BizMutation
     @Override
     public CompletionStage<Object> invokeActionAsync(
-            @RequestBean WfActionRequestBean request, IServiceContext ctx) {
+            @RequestBean WfActionRequestBean request, FieldSelectionBean selection, IServiceContext ctx) {
         IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
         IWorkflowStep step = wf.getStepById(request.getStepId());
         Object result = step.invokeAction(request.getActionName(), request.getArgs(), ctx);
@@ -81,21 +84,24 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
 
     @BizMutation
     @Override
-    public void killWorkflow(@RequestBean WfCommandRequestBean request, IServiceContext ctx) {
+    public void killWorkflow(@RequestBean WfCommandRequestBean request,
+                             FieldSelectionBean selection, IServiceContext ctx) {
         IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
         wf.kill(request.getArgs(), ctx);
     }
 
     @BizMutation
     @Override
-    public void suspendWorkflow(@RequestBean WfCommandRequestBean request, IServiceContext ctx) {
+    public void suspendWorkflow(@RequestBean WfCommandRequestBean request,
+                                FieldSelectionBean selection, IServiceContext ctx) {
         IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
         wf.suspend(request.getArgs(), ctx);
     }
 
     @BizMutation
     @Override
-    public void resumeWorkflow(@RequestBean WfCommandRequestBean request, IServiceContext ctx) {
+    public void resumeWorkflow(@RequestBean WfCommandRequestBean request,
+                               FieldSelectionBean selection, IServiceContext ctx) {
         IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
         wf.resume(request.getArgs(), ctx);
     }
