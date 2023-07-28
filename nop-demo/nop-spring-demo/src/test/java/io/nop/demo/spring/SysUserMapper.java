@@ -10,14 +10,7 @@ import java.util.List;
  *
  * @author ruoyi
  */
-public interface SysUserMapper {
-    /**
-     * 根据条件分页查询用户列表
-     *
-     * @param sysUser 用户信息
-     * @return 用户信息集合信息
-     */
-    public List<SysUser> selectUserList(SysUser sysUser);
+public interface SysUserMapper extends BaseMapper<SysUser> {
 
     /**
      * 根据条件分页查询已配用户角色列表
@@ -43,14 +36,6 @@ public interface SysUserMapper {
      */
     public SysUser selectUserByUserName(String userName);
 
-
-    /**
-     * 新增用户信息
-     *
-     * @param user 用户信息
-     * @return 结果
-     */
-    public String insertUser(SysUser user);
 
     /**
      * 修改用户信息
