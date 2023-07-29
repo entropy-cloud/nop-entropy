@@ -3,6 +3,7 @@ package io.nop.rule.dao.model;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.tree.TreeIndex;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -60,11 +61,17 @@ public class DaoRuleModelLoader {
     }
 
     public XNode buildRuleModelNode(NopRuleDefinition entity) {
-        XNode node = XNode.make("rule");
+        XNode node;
+        if (StringHelper.isEmpty(entity.getModelText())) {
+            node = XNode.make("rule");
+        } else {
+            node = XNodeParser.instance().parseFromText(null, entity.getModelText());
+        }
+
         node.setAttr("displayName", entity.getDisplayName());
         node.setAttr(XDslKeys.DEFAULT.SCHEMA, RuleConstants.XDSL_SCHEMA_RULE);
 
-        XNode inputs = node.makeChild("inputs");
+//        XNode inputs = node.makeChild("inputs");
 //        for (NopRuleInput input : entity.getInputs()) {
 //            XNode inputNode = buildInputNode(input);
 //            inputs.appendChild(inputNode);

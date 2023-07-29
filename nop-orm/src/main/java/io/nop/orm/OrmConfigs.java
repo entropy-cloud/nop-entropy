@@ -52,4 +52,8 @@ public interface OrmConfigs {
     @Description("启动的时候自动校验所有sql-lib中管理的SQL格式正确")
     IConfigReference<Boolean> CFG_CHECK_ALL_SQL_LIB_WHEN_INIT =
             varRef("nop.orm.check-all-sql-lib-when-init", Boolean.class, false);
+
+    @Description("dao资源文件检查数据库实体的间隔时间，单位为毫秒")
+    IConfigReference<Long> CFG_DAO_RESOURCE_CHECK_INTERVAL =
+            varRef("nop.orm.dao-resource-check-interval", Long.class, 5000L);
 }

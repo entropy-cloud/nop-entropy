@@ -120,4 +120,6 @@ public interface OrmConstants {
     String SQL_ARG_LOCALE = "locale";
 
     String USER_NAME_SYS = "sys";
+
+    String NAMESPACE_NS = "dao";
 }

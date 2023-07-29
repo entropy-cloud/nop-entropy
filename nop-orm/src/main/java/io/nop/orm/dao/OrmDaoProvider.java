@@ -7,6 +7,7 @@
  */
 package io.nop.orm.dao;
 
+import io.nop.dao.api.DaoProvider;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -31,6 +32,10 @@ public class OrmDaoProvider implements IDaoProvider {
     @Override
     public Set<String> getEntityNames() {
         return ormTemplate.getOrmModel().getEntityNames();
+    }
+
+    public void register() {
+        DaoProvider.registerInstance(this);
     }
 
     @Override

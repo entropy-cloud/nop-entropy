@@ -2,6 +2,7 @@ package io.nop.xlang.initialize;
 
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.IComponentModel;
@@ -178,6 +179,11 @@ public class RegisterModelDiscovery {
     }
 
     IResourceObjectLoader buildDefaultResolveLoader(Object resolveHandler) {
+        String beanName = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderBean");
+        if (!StringHelper.isEmpty(beanName)) {
+            LOG.info("nop.use-default-loader-bean:beanName={}", beanName);
+            return path -> ((IResourceObjectLoader) BeanContainer.instance().getBean(beanName)).loadObjectFromPath(path);
+        }
         String className = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderClass");
         if (StringHelper.isEmpty(className))
             return null;

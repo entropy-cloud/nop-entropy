@@ -368,4 +368,10 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_NO_PERMISSION_FOR_SQL = define("nop.err.orm.no-permission-for-sql",
             "没有访问权限", ARG_PERMISSION, ARG_SQL_NAME);
+
+    ErrorCode ERR_ORM_ENTITY_NO_UPDATE_TIME_COL = define("nop.err.orm.nop-update-time-col",
+            "实体[{entityName}]没有定义修改时间字段", ARG_ENTITY_NAME);
+
+    ErrorCode ERR_ORM_INVALID_DAO_PATH = define("nop.err.orm.nop-update-time-col",
+            "实体[{entityName}]没有定义修改时间字段", ARG_ENTITY_NAME);
 }

@@ -35,9 +35,9 @@
 
     <bean id="nopOrmSessionFactory" class="io.nop.orm.factory.OrmSessionFactoryBean"
           ioc:bean-method="getObject" ioc:default="true">
-        <property name="name" value="app-orm" />
-        <property name="registerGlobalCache" value="true" />
-        <property name="sequenceGenerator" ref="nopSequenceGenerator" />
+        <property name="name" value="app-orm"/>
+        <property name="registerGlobalCache" value="true"/>
+        <property name="sequenceGenerator" ref="nopSequenceGenerator"/>
 
         <property name="interceptors">
             <ioc:collect-beans by-type="io.nop.orm.IOrmInterceptor"/>
@@ -50,7 +50,7 @@
     <bean id="nopOrmTemplate" class="io.nop.orm.impl.OrmTemplateImpl" ioc:default="true">
     </bean>
 
-    <bean id="nopDaoProvider" class="io.nop.orm.dao.OrmDaoProvider" ioc:default="true">
+    <bean id="nopDaoProvider" class="io.nop.orm.dao.OrmDaoProvider" ioc:default="true" init-method="register">
         <constructor-arg index="0" ref="nopOrmTemplate"/>
     </bean>
 
@@ -72,4 +72,7 @@
     </bean>
 
     <bean id="io.nop.orm.sql_lib.dict.SqlLibDictLoader" ioc:type="@bean:id"/>
+
+    <bean id="nopDaoResourceNamespaceHandler" class="io.nop.orm.resource.DaoResourceNamespaceHandler"
+          init-method="register" destroy-method="unregister"/>
 </beans>

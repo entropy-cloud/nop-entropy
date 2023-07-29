@@ -10,8 +10,10 @@
     1. 尝试加载/nop/rule/xxx.rule.xml
     2. 尝试加载/nop/rule/xxx.rule.xlsx
     3. 尝试使用defaultLoader来加载
+
+    这里resolve-为特殊的前缀，它可以拼接在任意的modelType前面表示执行对应模型的resolve功能。
     -->
-    <resolve-handler resolveInDir="!v-path" defaultLoaderClass="class-name"/>
+    <resolve-handler resolveInDir="!v-path" defaultLoaderClass="class-name" defaultLoaderBean="string" />
 
     <loaders xdef:body-type="list" xdef:key-attr="fileType">
         <xdsl-loader fileType="!file-type" schemaPath="!v-path" xdef:bean-tag-prop="type"/>

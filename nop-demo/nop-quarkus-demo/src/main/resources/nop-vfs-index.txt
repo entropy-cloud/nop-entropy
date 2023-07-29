@@ -392,6 +392,7 @@
 /nop/schema/xlib.xdef
 /nop/schema/xmeta-ext.xdef
 /nop/schema/xmeta.xdef
+/nop/schema/xml.xdef
 /nop/schema/xpl.xdef
 /nop/schema/xt.xdef
 /nop/schema/xui/action-group.xdef
