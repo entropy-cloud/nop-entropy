@@ -202,6 +202,7 @@
 /nop/core/_module
 /nop/core/app.module.yaml
 /nop/core/registry/api.register-model.xml
+/nop/core/registry/dao-rule.register-model.xml
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
 /nop/core/registry/gateway.register-model.xml
@@ -298,6 +299,7 @@
 /nop/rule/beans/_api-impl.beans.xml
 /nop/rule/beans/_dao.beans.xml
 /nop/rule/beans/_service.beans.xml
+/nop/rule/beans/app-rule-dao.beans.xml
 /nop/rule/beans/app-service.beans.xml
 /nop/rule/beans/rule-defaults.beans.xml
 /nop/rule/imp/rule.imp.xml

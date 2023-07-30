@@ -46448,6 +46448,61 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [
+      {
+        "name": "buildRuleModelNode",
+        "parameterTypes": [
+          "io.nop.rule.dao.entity.NopRuleDefinition"
+        ]
+      },
+      {
+        "name": "getDaoProvider",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadObjectFromPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "loadRuleDefinition",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setDaoProvider",
+        "parameterTypes": [
+          "io.nop.dao.api.IDaoProvider"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.dao.model.DaoRuleModelLoader",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {

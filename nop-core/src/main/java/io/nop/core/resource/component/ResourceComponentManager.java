@@ -20,6 +20,7 @@ import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.lang.impl.Cancellable;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.core.resource.IResource;
@@ -38,6 +39,7 @@ import io.nop.core.resource.impl.UnknownResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE;
@@ -67,6 +70,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRA
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
+import static io.nop.core.resource.component.ResourceVersionHelper.isVersionFile;
 
 @GlobalInstance
 public class ResourceComponentManager implements IResourceComponentManager, IConfigRefreshable {
@@ -234,6 +238,20 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 IResource resource = VirtualFileSystem.instance().getResource(fullPath + "." + fileType);
                 if (resource.exists())
                     return Pair.of(resource.getPath(), entry.getValue());
+            }
+
+            // 如果支持版本且当前传入的路径没有包含版本，则尝试查找版本号最大的数据返回
+            if (config.isSupportVersion() && !ResourceVersionHelper.endsWithIntegerVersion(subName)) {
+                for (Map.Entry<String, IResourceObjectLoader<? extends IComponentModel>> entry : config.getLoaders().entrySet()) {
+                    String fileType = entry.getKey();
+                    Collection<? extends IResource> resources = VirtualFileSystem.instance().getChildren(fullPath);
+                    resources = resources.stream().filter(res -> isVersionFile(res, fileType))
+                            .sorted(ResourceVersionHelper::compareResourceVersion).collect(Collectors.toList());
+                    if (!resources.isEmpty()) {
+                        IResource resource = CollectionHelper.first(resources);
+                        return Pair.of(resource.getPath(), entry.getValue());
+                    }
+                }
             }
 
             if (config.getResolveDefaultLoader() != null) {
@@ -626,7 +644,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public void traceDepends(String depResourcePath) {
-        dependsManager.addDependency(depResourcePath,changeChecker);
+        dependsManager.addDependency(depResourcePath, changeChecker);
     }
 
     @Override

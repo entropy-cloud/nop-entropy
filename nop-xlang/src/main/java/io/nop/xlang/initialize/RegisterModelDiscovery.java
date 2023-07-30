@@ -1,6 +1,7 @@
 package io.nop.xlang.initialize;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.Guard;
@@ -24,10 +25,14 @@ import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.IComponentTransformer;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.XLangConstants;
+import io.nop.xlang.delta.DeltaMerger;
 import io.nop.xlang.feature.XModelInclude;
+import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xmeta.SchemaLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +83,8 @@ public class RegisterModelDiscovery {
         XNode models = node.makeChild("models");
         Map<String, XNode> modelMap = new HashMap<>();
 
+        IXDefinition xdef = SchemaLoader.loadXDefinition(XDslConstants.XDSL_SCHEMA_REGISTER_MODEL);
+
         for (IResource resource : resources) {
             XNode modelNode = XModelInclude.instance().loadActiveNodeFromResource(resource);
             modelNode.removeAttr("xmlns:x");
@@ -92,29 +99,27 @@ public class RegisterModelDiscovery {
                 modelMap.put(name, modelNode);
                 models.appendChild(modelNode);
             } else {
-                mergeChild(existing, modelNode, "loaders");
-                mergeChild(existing, modelNode, "transformers");
-                XNode resolveHandler = existing.childByTag("resolve-handler");
-                if (resolveHandler != null) {
-                    modelNode.makeChild("resolve-handler")._assignAttrs(resolveHandler.attrValueLocs());
+                new DeltaMerger(XDslKeys.DEFAULT).merge(existing, modelNode, xdef.getRefNode(), false);
+                if (AppConfig.isDebugMode()) {
+                    existing.dump("merge-register-model");
                 }
             }
         }
         return node;
     }
-
-    private void mergeChild(XNode nodeA, XNode nodeB, String childName) {
-        XNode childB = nodeB.childByTag(childName);
-        if (childB == null)
-            return;
-
-        XNode childA = nodeA.childByTag(childName);
-        if (childA == null) {
-            nodeA.appendChild(childB.detach());
-        } else {
-            childA.appendChildren(childB.detachChildren());
-        }
-    }
+//
+//    private void mergeChild(XNode nodeA, XNode nodeB, String childName) {
+//        XNode childB = nodeB.childByTag(childName);
+//        if (childB == null)
+//            return;
+//
+//        XNode childA = nodeA.childByTag(childName);
+//        if (childA == null) {
+//            nodeA.appendChild(childB.detach());
+//        } else {
+//            childA.appendChildren(childB.detachChildren());
+//        }
+//    }
 
     private void processModel(Object registry, ICancellable cancellable) {
         Object models = BeanTool.getProperty(registry, "models");
@@ -135,12 +140,17 @@ public class RegisterModelDiscovery {
         String name = (String) BeanTool.getProperty(model, "name");
         config.setModelType(name);
 
+        boolean supportVersion = true;
+
         Object resolveHandler = BeanTool.getProperty(model, "resolveHandler");
         if (resolveHandler != null) {
             String resolveInDir = (String) BeanTool.getProperty(resolveHandler, "resolveInDir");
             config.setResolveInDir(resolveInDir);
             config.setResolveDefaultLoader(buildDefaultResolveLoader(resolveHandler));
+            supportVersion = ConvertHelper.toPrimitiveBoolean(
+                    BeanTool.getProperty(resolveHandler, "supportVersion"), true, NopException::new);
         }
+        config.setSupportVersion(supportVersion);
 
         List<Object> loaders = (List<Object>) BeanTool.getProperty(model, "loaders");
         if (loaders != null) {

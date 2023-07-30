@@ -30,11 +30,19 @@ public class DaoEntityResource extends AbstractResource {
 
     public DaoEntityResource(String entityName, String entityId, long checkInterval,
                              IDaoProvider daoProvider) {
-        super("dao:" + entityName + "/" + entityId);
+        super(makeDaoResourcePath(entityName, entityId));
         this.entityName = Guard.notEmpty(entityName, "entityName");
         this.entityId = Guard.notEmpty(entityId, "entityId");
         this.checkInterval = checkInterval;
         this.daoProvider = daoProvider;
+    }
+
+    public static String makeDaoResourcePath(String entityName, String entityId) {
+        return "dao:" + entityName + "/" + entityId;
+    }
+
+    public static String makeDaoResource(IOrmEntity entity) {
+        return makeDaoResourcePath(entity.orm_entityName(), entity.orm_idString());
     }
 
     protected IEntityDao<?> dao() {

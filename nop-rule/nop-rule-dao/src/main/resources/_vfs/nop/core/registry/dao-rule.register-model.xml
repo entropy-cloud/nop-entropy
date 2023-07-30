@@ -1,0 +1,4 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="rule">
+    <resolve-handler defaultLoaderBean="nopDaoLoaderBean"/>
+</model>

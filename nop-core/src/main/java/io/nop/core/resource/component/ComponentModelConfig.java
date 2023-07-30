@@ -19,6 +19,8 @@ public class ComponentModelConfig {
     private String resolveInDir;
     private IResourceObjectLoader<? extends IComponentModel> resolveDefaultLoader;
 
+    private boolean supportVersion;
+
     /**
      * 模型可以存在多种存储格式，每种格式对应一个文件类型，采用一种特定的加载器加载
      * <p>
@@ -31,6 +33,14 @@ public class ComponentModelConfig {
     private IComponentGenerator generator;
 
     private Map<String, IComponentTransformer> transformers;
+
+    public boolean isSupportVersion() {
+        return supportVersion;
+    }
+
+    public void setSupportVersion(boolean supportVersion) {
+        this.supportVersion = supportVersion;
+    }
 
     public ComponentModelConfig modelType(String modelType) {
         this.setModelType(modelType);

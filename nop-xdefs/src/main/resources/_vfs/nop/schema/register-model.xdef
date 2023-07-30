@@ -13,7 +13,8 @@
 
     这里resolve-为特殊的前缀，它可以拼接在任意的modelType前面表示执行对应模型的resolve功能。
     -->
-    <resolve-handler resolveInDir="!v-path" defaultLoaderClass="class-name" defaultLoaderBean="string" />
+    <resolve-handler resolveInDir="!v-path" defaultLoaderClass="class-name" defaultLoaderBean="string"
+                     supportVersion="!boolean=true" />
 
     <loaders xdef:body-type="list" xdef:key-attr="fileType">
         <xdsl-loader fileType="!file-type" schemaPath="!v-path" xdef:bean-tag-prop="type"/>
