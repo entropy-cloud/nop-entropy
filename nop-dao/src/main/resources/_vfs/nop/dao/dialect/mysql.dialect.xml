@@ -152,6 +152,7 @@
         <sqlDataType name="BIGINT" stdSqlType="BIGINT" alias="BIGINT UNSIGNED"/>
         <sqlDataType name="TINYTEXT" precision="255" stdSqlType="VARCHAR" allowPrecision="false" deprecated="true"/>
         <sqlDataType name="VARCHAR" precision="16383" stdSqlType="VARCHAR"/>
+        <sqlDataType name="NVARCHAR" precision="16383" stdSqlType="VARCHAR"/>
         <sqlDataType name="TEXT" precision="65535" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="MEDIUMTEXT" precision="16777215" allowPrecision="false" stdSqlType="VARCHAR"/>
         <sqlDataType name="LONGTEXT" allowPrecision="false" stdSqlType="VARCHAR"/>

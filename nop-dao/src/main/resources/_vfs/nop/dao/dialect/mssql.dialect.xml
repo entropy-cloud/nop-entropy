@@ -187,6 +187,7 @@
         <sqlDataType name="SMALLINT" stdSqlType="SMALLINT"/>
         <sqlDataType name="BIGINT" stdSqlType="BIGINT"/>
         <sqlDataType name="VARCHAR" precision="8000" stdSqlType="VARCHAR"/>
+        <sqlDataType name="NVARCHAR" precision="8000" stdSqlType="VARCHAR"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
