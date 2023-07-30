@@ -8,18 +8,22 @@
 >
 
     <bean id="io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean" ioc:type="@bean:id" name="nopDataSource"
-        feature:off="nop.datasource.disabled">
+          feature:off="nop.datasource.disabled || nop.dao.use-parent-data-source">
         <ioc:condition>
             <if-property name="nop.datasource.enabled" enableIfMissing="true"/>
         </ioc:condition>
 
         <property name="config">
             <bean class="io.nop.quarkus.core.dao.DataSourceConfig">
-                <property name="maxSize" value="5"/>
+                <property name="maxSize" value="@cfg:nop.datasource.max-size|8"/>
+                <property name="minSize" value="@cfg:nop.datasource.min-size|4"/>
                 <property name="driverClassName" value="${nop.datasource.driver-class-name}"/>
                 <property name="jdbcUrl" value="${nop.datasource.jdbc-url}"/>
                 <property name="username" value="${nop.datasource.username}"/>
                 <property name="password" value="${nop.datasource.password:}"/>
+                <property name="connectionTimeout" value="@cfg:nop.datasource.connection-timeout|2000"/>
+                <property name="idleTimeout" value="@cfg:nop.datasource.idle-timeout|600000" />
+                <property name="maxLifetime" value="@cfg:nop.datasource.max-lifetime|3600000" />
             </bean>
         </property>
     </bean>

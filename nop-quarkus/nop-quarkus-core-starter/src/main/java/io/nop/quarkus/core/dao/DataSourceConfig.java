@@ -19,21 +19,21 @@ public class DataSourceConfig {
     private int minSize;
     private int initialSize;
     private boolean metricsEnabled;
-    private Duration acquisitionTimeout;
+    private Duration connectionTimeout;
     private Duration backgroundValidationInterval;
-    private Duration idleRemovalInterval;
+    private Duration idleTimeout;
     private Duration maxLifetime;
 
     private String validationQuerySql;
 
     private Map<String, String> properties;
 
-    public Duration getIdleRemovalInterval() {
-        return idleRemovalInterval;
+    public Duration getIdleTimeout() {
+        return idleTimeout;
     }
 
-    public void setIdleRemovalInterval(Duration idleRemovalInterval) {
-        this.idleRemovalInterval = idleRemovalInterval;
+    public void setIdleTimeout(Duration idleTimeout) {
+        this.idleTimeout = idleTimeout;
     }
 
     public Duration getMaxLifetime() {
@@ -76,12 +76,12 @@ public class DataSourceConfig {
         this.initialSize = initialSize;
     }
 
-    public Duration getAcquisitionTimeout() {
-        return acquisitionTimeout;
+    public Duration getConnectionTimeout() {
+        return connectionTimeout;
     }
 
-    public void setAcquisitionTimeout(Duration acquisitionTimeout) {
-        this.acquisitionTimeout = acquisitionTimeout;
+    public void setConnectionTimeout(Duration connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
     }
 
     public Map<String, String> getProperties() {

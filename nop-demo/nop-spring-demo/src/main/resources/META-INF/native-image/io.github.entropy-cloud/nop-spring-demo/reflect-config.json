@@ -28108,6 +28108,10 @@
       {
         "name": "getEntityNames",
         "parameterTypes": []
+      },
+      {
+        "name": "register",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.orm.dao.OrmDaoProvider",
@@ -32121,6 +32125,36 @@
       }
     ],
     "name": "io.nop.orm.model._gen._OrmUniqueKeyModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getNamespace",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResourceStore"
+        ]
+      },
+      {
+        "name": "register",
+        "parameterTypes": []
+      },
+      {
+        "name": "unregister",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.resource.DaoResourceNamespaceHandler",
     "unsafeAllocated": false
   },
   {

@@ -73,8 +73,8 @@ public class AgroalDataSourceFactoryBean {
             poolConfiguration.initialSize(config.getInitialSize());
         }
 
-        if (config.getAcquisitionTimeout() != null) {
-            poolConfiguration.acquisitionTimeout(config.getAcquisitionTimeout());
+        if (config.getConnectionTimeout() != null) {
+            poolConfiguration.acquisitionTimeout(config.getConnectionTimeout());
         }
 
         poolConfiguration.connectionValidator(AgroalConnectionPoolConfiguration.ConnectionValidator.defaultValidator());
@@ -100,8 +100,8 @@ public class AgroalDataSourceFactoryBean {
                 }
             });
         }
-        if (config.getIdleRemovalInterval() != null) {
-            poolConfiguration.reapTimeout(config.getIdleRemovalInterval());
+        if (config.getIdleTimeout() != null) {
+            poolConfiguration.reapTimeout(config.getIdleTimeout());
         }
 
         if (config.getMaxLifetime() != null) {

@@ -41,6 +41,9 @@
         </ioc:condition>
     </bean>
 
+    <!--
+    数据源通用的配置使用nop.datasource.max-size等，而hikari独特的配置可以使用nop.datasource.hikari.xx
+    -->
     <bean id="nopHikariConfig" ioc:default="true" ioc:config-prefix="nop.datasource.hikari"
           class="com.zaxxer.hikari.HikariConfig" feature:off="nop.dao.use-parent-data-source">
         <ioc:condition>
@@ -53,9 +56,9 @@
         <property name="password" value="@cfg:nop.datasource.password|"/>
         <property name="maximumPoolSize" value="@cfg:nop.datasource.max-size|8"/>
         <property name="minimumIdle" value="@cfg:nop.datasource.min-size|4" />
-        <property name="connectionTimeout" value="@cfg:nop.datasource.connection-timeout|1000"/>
+        <property name="connectionTimeout" value="@cfg:nop.datasource.connection-timeout|2000"/>
         <property name="idleTimeout" value="@cfg:nop.datasource.idle-timeout|600000" />
-        <property name="maxLifetime" value="@cfg.nop.datasource.max-lifetime|3600000" />
+        <property name="maxLifetime" value="@cfg:nop.datasource.max-lifetime|3600000" />
     </bean>
 
     <alias name="dataSource" alias="nopDataSource" feature:on="nop.dao.use-parent-data-source"/>

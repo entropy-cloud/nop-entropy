@@ -36559,6 +36559,10 @@
       {
         "name": "getEntityNames",
         "parameterTypes": []
+      },
+      {
+        "name": "register",
+        "parameterTypes": []
       }
     ],
     "name": "io.nop.orm.dao.OrmDaoProvider",
@@ -40748,6 +40752,36 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getNamespace",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResourceStore"
+        ]
+      },
+      {
+        "name": "register",
+        "parameterTypes": []
+      },
+      {
+        "name": "unregister",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.resource.DaoResourceNamespaceHandler",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -42338,11 +42372,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getConnectionTimeout",
+        "parameterTypes": []
+      },
+      {
         "name": "getDriverClassName",
         "parameterTypes": []
       },
       {
         "name": "getIdleRemovalInterval",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIdleTimeout",
         "parameterTypes": []
       },
       {
@@ -42398,6 +42440,12 @@
         ]
       },
       {
+        "name": "setConnectionTimeout",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
         "name": "setDriverClassName",
         "parameterTypes": [
           "java.lang.String"
@@ -42405,6 +42453,12 @@
       },
       {
         "name": "setIdleRemovalInterval",
+        "parameterTypes": [
+          "java.time.Duration"
+        ]
+      },
+      {
+        "name": "setIdleTimeout",
         "parameterTypes": [
           "java.time.Duration"
         ]
@@ -43959,6 +44013,179 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.rule.api.beans.RuleKeyBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rule.api.beans.RuleMetaBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rule.api.beans.RuleRequestBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getRuleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "setRuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.api.beans._gen._RuleKeyBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setInputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setOutputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.api.beans._gen._RuleMetaBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getInputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "setInputs",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setRuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.api.beans._gen._RuleRequestBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "executeRule",
@@ -44015,6 +44242,33 @@
       }
     ],
     "name": "io.nop.rule.core.model.compile.RuleExcelModelLoader",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "executeRule",
+        "parameterTypes": [
+          "io.nop.rule.api.beans.RuleRequestBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "getRuleMeta",
+        "parameterTypes": [
+          "io.nop.rule.api.beans.RuleKeyBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.service.impl.RuleServiceImpl",
     "unsafeAllocated": false
   },
   {
@@ -46195,7 +46449,15 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "getConditionFields",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.rule.service.entity.NopRuleDefinitionBizModel",
     "unsafeAllocated": false
   },
