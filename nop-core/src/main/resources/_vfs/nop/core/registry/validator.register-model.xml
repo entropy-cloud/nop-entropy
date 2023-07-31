@@ -1,5 +1,5 @@
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       name="orm">
+       name="validator">
     <loaders>
         <xdsl-loader fileType="validator.xml" schemaPath="/nop/schema/validator.xdef"/>
     </loaders>
