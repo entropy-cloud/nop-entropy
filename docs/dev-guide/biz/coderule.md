@@ -29,6 +29,7 @@ ICodeRule接口支持定义一组变量模式，然后解析编码模板，替�
 | minute     | {@minute}             | 分钟，固定两位数字                                    |
 | second     | {@second}             | 秒,固定两位数字                                     |
 | randNumber | {@randNumber:3}       | 随机数，通过options声明生成几位的随机数字                     |
+ | seq        | {@seq:3}              | 根据顺序号递增，取固定3位数字                              |
 | prop       | {@prop:entity.type,3} | 表示从上下文对象的哪个属性中获取变量值，可以通过一个可选的长度字段来固定返回的字符串长度 |
 
 ## 注册扩展变量
