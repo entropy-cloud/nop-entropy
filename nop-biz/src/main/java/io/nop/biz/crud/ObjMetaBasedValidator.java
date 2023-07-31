@@ -20,7 +20,6 @@ import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.auth.api.AuthApiErrors;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
-import io.nop.commons.lang.Undefined;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
@@ -37,7 +36,6 @@ import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
-import io.nop.xlang.xmeta.impl.ObjConditionExpr;
 import io.nop.xlang.xmeta.impl.ObjSelectionMeta;
 
 import java.util.ArrayList;
@@ -274,7 +272,7 @@ public class ObjMetaBasedValidator {
             String dictName = schema.getDict();
             if (dictName != null) {
                 DictBean dictBean = DictProvider.instance().requireDict(ContextProvider.currentLocale(), dictName,
-                        context.getCache(),context);
+                        context.getCache(), context);
                 DictOptionBean option = dictBean.getOptionByValue(value);
                 if (option == null) {
                     String dict = dictName;
@@ -333,43 +331,13 @@ public class ObjMetaBasedValidator {
     public Map<String, Object> validateForSave(Map<String, Object> data, FieldSelectionBean selection) {
         Map<String, Object> ret = validateAndConvert(data, selection, (propMeta, sel) -> selection != null
                 ? selection.hasField(propMeta.getName()) : propMeta.isInsertable());
-        runAutoExpr(BizConstants.METHOD_SAVE, ret);
         return ret;
     }
 
     public Map<String, Object> validateForUpdate(Map<String, Object> data, FieldSelectionBean selection) {
         Map<String, Object> ret = validateAndConvert(data, selection,
                 (propMeta, sel) -> selection != null ? selection.hasField(propMeta.getName()) : propMeta.isUpdatable());
-        runAutoExpr(BizConstants.METHOD_UPDATE, ret);
         return ret;
-    }
-
-    /**
-     * 运行自动初始化表达式
-     */
-    void runAutoExpr(String action, Map<String, Object> data) {
-        IEvalScope scope = context.getEvalScope().newChildScope();
-        scope.setLocalValue(null, BizConstants.VAR_DATA, data);
-
-        for (IObjPropMeta propMeta : objMeta.getProps()) {
-            ObjConditionExpr autoExpr = propMeta.getAutoExpr();
-            if (autoExpr == null)
-                continue;
-
-            if (data.containsKey(propMeta.getName()))
-                continue;
-
-            if (autoExpr.getWhen() != null && !autoExpr.getWhen().contains(action))
-                continue;
-
-            Object value = null;
-            if (autoExpr.getSource() != null) {
-                value = autoExpr.getSource().invoke(scope);
-            }
-
-            if (value != Undefined.undefined)
-                data.put(propMeta.getName(), value);
-        }
     }
 
     public Map<String, Object> validateForSelection(Map<String, Object> data, String selectionId) {

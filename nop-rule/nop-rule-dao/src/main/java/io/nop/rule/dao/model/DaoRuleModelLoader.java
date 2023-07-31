@@ -104,7 +104,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         return entity;
     }
 
-    private RuleModel buildRuleModel(NopRuleDefinition entity) {
+    public RuleModel buildRuleModel(NopRuleDefinition entity) {
         XNode node = buildRuleModelNode(entity);
         return compileRuleModel(node);
     }

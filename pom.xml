@@ -493,5 +493,6 @@
         <module>nop-orm-tdengine</module>
         <module>nop-router</module>
         <module>nop-biz-batch</module>
+        <module>nop-web-page</module>
     </modules>
 </project>

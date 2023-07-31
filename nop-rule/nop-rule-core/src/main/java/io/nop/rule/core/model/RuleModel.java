@@ -3,9 +3,13 @@ package io.nop.rule.core.model;
 import io.nop.api.core.util.INeedInit;
 import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.model._gen._RuleModel;
+import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
+import io.nop.xlang.xmeta.impl.SchemaImpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RuleModel extends _RuleModel implements INeedInit {
@@ -13,6 +17,8 @@ public class RuleModel extends _RuleModel implements INeedInit {
     private final Map<String, RuleOutputDefineModel> outputVars = new HashMap<>();
 
     private IExecutableRule executableRule;
+
+    private ISchema inputSchema;
 
     public RuleModel() {
 
@@ -42,6 +48,26 @@ public class RuleModel extends _RuleModel implements INeedInit {
         return outputVars.get(varName);
     }
 
+    public ISchema getInputSchema() {
+        if (inputSchema != null)
+            return inputSchema;
+
+        SchemaImpl schema = new SchemaImpl();
+        List<ObjPropMetaImpl> props = new ArrayList<>();
+        for (RuleInputDefineModel input : getInputs()) {
+            ObjPropMetaImpl prop = new ObjPropMetaImpl();
+            prop.setLocation(input.getLocation());
+            prop.setName(input.getName());
+            prop.setDisplayName(input.getDisplayName());
+            prop.setSchema(input.getSchema());
+            prop.setMandatory(input.isMandatory());
+            props.add(prop);
+        }
+        schema.setProps(props);
+        this.inputSchema = schema;
+        return schema;
+    }
+
     public void initVarMap() {
         if (getInputs() == null)
             setInputs(new ArrayList<>());
@@ -66,6 +92,7 @@ public class RuleModel extends _RuleModel implements INeedInit {
 
     @Override
     public void init() {
+        initVarMap();
         RuleDecisionTreeModel tree = getDecisionTree();
         if (tree != null) {
             tree.calcLeafIndex(0);

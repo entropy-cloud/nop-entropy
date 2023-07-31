@@ -27,11 +27,13 @@ import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionListener;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmEntity;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.id.IEntityIdGenerator;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.utils.OrmModelHelper;
 import io.nop.orm.session.IOrmSessionImplementor;
 
 import java.util.ArrayList;
@@ -341,7 +343,14 @@ public class EntityPersisterImpl implements IEntityPersister {
 
             Object value = entity.orm_propValue(propModel.getPropId());
             if (value == null) {
-                if (propModel.getDefaultValue() != null) {
+                if (propModel.containsTag(OrmConstants.TAG_SEQ)) {
+                    // 如果指定了seq标签，且字段非空，则自动根据sequence配置生成
+                    String propKey = OrmModelHelper.buildEntityPropKey(propModel);
+                    Object seqValue = propModel.getStdDataType().isNumericType() ?
+                            env.getSequenceGenerator().generateLong(propKey, true)
+                            : env.getSequenceGenerator().generateString(propKey, true);
+                    entity.orm_propValue(propModel.getPropId(), seqValue);
+                } else if (propModel.getDefaultValue() != null) {
                     entity.orm_propValue(propModel.getPropId(), propModel.getDefaultValue());
                 } else {
                     throw newError(ERR_ORM_MANDATORY_PROP_IS_NULL, entity).param(ARG_PROP_NAME, propModel.getName());

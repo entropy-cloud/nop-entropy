@@ -12,7 +12,7 @@
                     <condition-builder name="condition" embed="@:false"
                                        title="@i18n:common.conditionConfig|条件配置">
                         <c:script>
-                            import io.nop.web.utils.ConditionSchemaHelper;
+                            import io.nop.web.page.condition.ConditionSchemaHelper;
                             import io.nop.xlang.xmeta.SchemaLoader;
 
                             const objMeta = SchemaLoader.loadXMeta(metaPath);

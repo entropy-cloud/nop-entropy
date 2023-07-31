@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static io.nop.api.core.ApiErrors.ARG_MESSAGE;
@@ -237,7 +238,12 @@ public class ApiStringHelper {
     }
 
     public static String renderTemplate(String message, String placeholderStart,
-                                        String placeholderEnd, Function<String, Object> transformer) {
+                                        String placeHolderEnd, Function<String, Object> transformer) {
+        return renderTemplate2(message, placeholderStart, placeHolderEnd, (name, sb) -> transformer.apply(name));
+    }
+
+    public static String renderTemplate2(String message, String placeholderStart,
+                                         String placeholderEnd, BiFunction<String, StringBuilder, Object> transformer) {
         if (message == null)
             return null;
 
@@ -257,14 +263,14 @@ public class ApiStringHelper {
             // 增加非空判断，可用于调试诊断
             if (name.endsWith("!")) {
                 name = name.substring(0, name.length() - 1);
-                Object result = transformer.apply(name);
+                Object result = transformer.apply(name, sb);
                 if (result == null)
                     throw new NopException(ERR_UTILS_TEMPLATE_VAR_NOT_ALLOW_NULL)
                             .param(ARG_MESSAGE, message)
                             .param(ARG_VAR_NAME, name);
                 sb.append(result);
             } else {
-                Object result = transformer.apply(name);
+                Object result = transformer.apply(name, sb);
                 if (result != null) {
                     sb.append(result);
                 }

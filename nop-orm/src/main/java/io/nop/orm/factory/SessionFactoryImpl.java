@@ -21,6 +21,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.metrics.IDaoMetrics;
+import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.shard.EmptyShardSelector;
 import io.nop.dao.shard.IShardSelector;
 import io.nop.dao.txn.ITransactionTemplate;
@@ -113,6 +114,17 @@ public class SessionFactoryImpl implements IPersistEnv {
     private SqlExprMetaCache sqlExprMetaCache;
 
     private IEqlAstTransformer eqlAstTransformer;
+
+    private ISequenceGenerator sequenceGenerator;
+
+    @Override
+    public ISequenceGenerator getSequenceGenerator() {
+        return sequenceGenerator;
+    }
+
+    public void setSequenceGenerator(ISequenceGenerator sequenceGenerator) {
+        this.sequenceGenerator = sequenceGenerator;
+    }
 
     public IOrmColumnBinderEnhancer getColumnBinderEnhancer() {
         return columnBinderEnhancer;

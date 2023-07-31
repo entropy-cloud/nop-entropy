@@ -62,6 +62,7 @@ public class RegisterModelDiscovery {
     }
 
     private void dumpModel(XNode node) {
+        node.dump("register-model");
         if (AppConfig.isDebugMode()) {
             String dumpPath = ResourceHelper.getDumpPath(CoreConstants.MAIN_REGISTRY_PATH);
 
@@ -99,7 +100,7 @@ public class RegisterModelDiscovery {
                 modelMap.put(name, modelNode);
                 models.appendChild(modelNode);
             } else {
-                new DeltaMerger(XDslKeys.DEFAULT).merge(existing, modelNode, xdef.getRefNode(), false);
+                new DeltaMerger(XDslKeys.DEFAULT).merge(existing, modelNode, xdef.getRootNode(), false);
                 if (AppConfig.isDebugMode()) {
                     existing.dump("merge-register-model");
                 }

@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.sys.dao.coderule;
+package io.nop.dao.coderule;
 
 public interface ICodeRuleGenerator {
     String generate(String ruleName, Object bean);

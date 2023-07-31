@@ -100,7 +100,8 @@ public class DialectImpl implements IDialect {
         try {
             handler = newInstance(dialectModel.getGeometryTypeHandler(), null);
         } catch (Exception e) {
-            LOG.debug("nop.err.dao.load-geometry-type-handler-fail", e);
+            LOG.info("nop.dao.no-geometry-type-handler:{}", dialectModel.getGeometryTypeHandler());
+            LOG.trace("nop.err.dao.load-geometry-type-handler-fail", e);
         }
         this.geometryTypeHandler = handler;
     }

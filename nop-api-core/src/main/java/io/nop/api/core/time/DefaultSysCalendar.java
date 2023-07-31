@@ -13,6 +13,10 @@ import java.time.LocalDateTime;
 public class DefaultSysCalendar implements ISysCalendar {
     public static DefaultSysCalendar INSTANCE = new DefaultSysCalendar();
 
+    public static DefaultSysCalendar instance() {
+        return INSTANCE;
+    }
+
     @Override
     public boolean isWorkDay(LocalDate date) {
         return true;

@@ -5,6 +5,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmModelConstants;
 
@@ -33,7 +34,15 @@ public class OrmModelHelper {
     }
 
     public static String buildRelationName(String entityName, String propName) {
+        return buildEntityPropKey(entityName, propName);
+    }
+
+    public static String buildEntityPropKey(String entityName, String propName) {
         return entityName + '@' + propName;
+    }
+
+    public static String buildEntityPropKey(IEntityPropModel propModel) {
+        return buildEntityPropKey(propModel.getOwnerEntityModel().getName(), propModel.getName());
     }
 
     public static String buildRelationName(IEntityRelationModel rel) {

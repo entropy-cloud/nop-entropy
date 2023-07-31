@@ -96,8 +96,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     /**
      * 实现代码发生变化时将会重新编译
      */
-    private final ResourceCacheEntryWithLoader<CompiledTag> cachedCompiledTag = new ResourceCacheEntryWithLoader<>("XplLibTagCompiler",
-            path -> this.buildCompiledTag(null));
+    private final ResourceCacheEntryWithLoader<CompiledTag> cachedCompiledTag;
 
     /**
      * 强制按照node输出模式编译.当输出模式为xml的标签被用在x:exp-extends段中时会使用这里的编译结果
@@ -108,6 +107,8 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     public XplLibTagCompiler(XplTagLib lib, XplTag tag) {
         this.tag = tag;
         this.lib = lib;
+        this.cachedCompiledTag = new ResourceCacheEntryWithLoader<>(lib.resourcePath()+"/@" + tag.getTagName(),
+                path -> this.buildCompiledTag(null));
     }
 
     static class CompiledTag implements IObjectChangeDetectable {

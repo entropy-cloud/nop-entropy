@@ -16,6 +16,7 @@ import io.nop.orm.OrmErrors;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.utils.OrmModelHelper;
 import io.nop.orm.support.OrmEntityHelper;
 
 import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
@@ -41,10 +42,11 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             } else if (col.containsTag(OrmConstants.TAG_SEQ)) {
                 Object value = OrmEntityHelper.getPropValue(col, entity);
                 if (value == null) {
+                    String key = OrmModelHelper.buildEntityPropKey(col);
                     if (col.getStdDataType().isNumericType()) {
-                        value = sequenceGenerator.generateLong(entityModel.getName(), true);
+                        value = sequenceGenerator.generateLong(key, true);
                     } else {
-                        value = sequenceGenerator.generateString(entityModel.getName(), true);
+                        value = sequenceGenerator.generateString(key, true);
                     }
                     OrmEntityHelper.setPropValue(col, entity, value);
                 }

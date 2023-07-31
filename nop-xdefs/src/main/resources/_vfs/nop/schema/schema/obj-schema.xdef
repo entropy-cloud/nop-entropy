@@ -10,9 +10,9 @@
         xdef:name="ObjSchemaImpl" xdef:bean-package="io.nop.xlang.xmeta.impl"
         interface="boolean" extendsType="generic-type" implementsTypes="generic-type-list"
         minProperties="int" maxProperties="int" supportExtends="boolean"
-        uniqueProp="string" xdef:check-ns="graphql,ui"
+        uniqueProp="string" xdef:check-ns="graphql,ui,biz"
 
-        x:schema="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:graphql="graphql"
+        x:schema="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:graphql="graphql" xmlns:biz="biz"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
     <props xdef:body-type="list" xdef:key-attr="name">
@@ -44,7 +44,7 @@
               readable="!boolean=true"
               published="!boolean=true" allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
-              xml:mapper="string" graphql:mapper="string"
+              xml:mapper="string" graphql:mapper="string" biz:codeRule="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
               graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
               graphql:connectionProp="prop-name" graphql:maxFetchSize="int"

@@ -5,11 +5,15 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.sys.dao.coderule;
+package io.nop.dao.coderule;
 
 import java.time.LocalDateTime;
 import java.util.function.LongSupplier;
 
 public interface ICodeRule {
+    void addVariable(String name, ICodeRuleVariable variable);
+
+    void removeVariable(String name, ICodeRuleVariable variable);
+
     String generate(String codeRulePattern, LocalDateTime now, LongSupplier seqGenerator, Object bean);
 }

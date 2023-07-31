@@ -46457,6 +46457,12 @@
     ],
     "methods": [
       {
+        "name": "buildRuleModel",
+        "parameterTypes": [
+          "io.nop.rule.dao.entity.NopRuleDefinition"
+        ]
+      },
+      {
         "name": "buildRuleModelNode",
         "parameterTypes": [
           "io.nop.rule.dao.entity.NopRuleDefinition"
@@ -46503,7 +46509,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ruleModelLoader"
+      }
+    ],
     "methods": [
       {
         "name": "getConditionFields",
@@ -51348,6 +51360,52 @@
       }
     ],
     "name": "io.nop.web.page.WebPageHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addPrefix",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getPropType",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "propToField",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.IObjPropMeta"
+        ]
+      },
+      {
+        "name": "propToGroup",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.ISchema",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "schemaToFields",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.condition.ConditionSchemaHelper",
     "unsafeAllocated": false
   },
   {

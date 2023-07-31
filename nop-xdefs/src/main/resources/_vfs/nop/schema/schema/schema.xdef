@@ -33,7 +33,8 @@
         excludeMin="boolean" excludeMax="boolean"
         minLength="int" maxLength="int" multipleOf="int"
 
-        x:schema="/nop/schema/xdef.xdef"
+        x:schema="/nop/schema/xdef.xdef" xmlns:biz="biz" xdef:check-ns="graphql,ui,biz"
+        xmlns:graphql="graphql" xmlns:ui="ui"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
 
@@ -67,7 +68,12 @@
               childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
               tagSet="tag-set" lazy="!boolean=false"
               insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false"
-              published="!boolean=true" allowFilterOp="word-set"
+              published="!boolean=true" allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
+              ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
+              xml:mapper="string" graphql:mapper="string" biz:codeRule="string"
+              graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
+              graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
+              graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
         >
             <description xdef:value="string"/>
 

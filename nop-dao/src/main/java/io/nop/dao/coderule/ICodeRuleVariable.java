@@ -5,11 +5,8 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.sys.dao.coderule;
-
-import java.time.LocalDateTime;
-import java.util.function.LongSupplier;
+package io.nop.dao.coderule;
 
 public interface ICodeRuleVariable {
-    String resolve(String options, LocalDateTime now, LongSupplier seqGenerator, Object bean);
+    String resolve(String options, CodeRuleParams params);
 }

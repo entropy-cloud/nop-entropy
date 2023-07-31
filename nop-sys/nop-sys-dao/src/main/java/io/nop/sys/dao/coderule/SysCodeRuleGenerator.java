@@ -10,6 +10,8 @@ package io.nop.sys.dao.coderule;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.ISysCalendar;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.coderule.ICodeRule;
+import io.nop.dao.coderule.ICodeRuleGenerator;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.sys.dao.entity.NopSysCodeRule;
 
@@ -56,7 +58,8 @@ public class SysCodeRuleGenerator implements ICodeRuleGenerator {
         }
 
         LocalDateTime now = sysCalendar.getSysDateTime();
-        LongSupplier seqGenerator = () -> sequenceGenerator.generateLong(rule.getSeqName(), false);
+        String seqName = rule.getSeqName() == null ? rule.getName() : rule.getSeqName();
+        LongSupplier seqGenerator = () -> sequenceGenerator.generateLong(seqName, false);
         return codeRule.generate(rule.getCodePattern(), now, seqGenerator, bean);
     }
 }

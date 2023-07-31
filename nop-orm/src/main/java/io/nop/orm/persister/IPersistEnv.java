@@ -12,6 +12,7 @@ import io.nop.core.model.graph.TopoEntry;
 import io.nop.core.reflect.bean.IBeanConstructor;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.metrics.IDaoMetrics;
+import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.IOrmComponent;
@@ -55,6 +56,8 @@ public interface IPersistEnv extends IOrmSessionFactory {
     ITransactionTemplate txn();
 
     IJdbcTemplate jdbc();
+
+    ISequenceGenerator getSequenceGenerator();
 
     IOrmColumnBinderEnhancer getColumnBinderEnhancer();
 

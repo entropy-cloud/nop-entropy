@@ -1,4 +1,4 @@
-package io.nop.web.utils;
+package io.nop.web.page.condition;
 
 import io.nop.commons.type.StdDataType;
 import io.nop.xlang.xdef.IStdDomainHandler;

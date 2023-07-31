@@ -7,8 +7,18 @@
 
     <bean id="io.nop.sys.dao.dict.SysDictLoader" ioc:type="@bean:id" ioc:before="nopBizObjectManager"/>
 
-    <bean id="io.nop.sys.dao.i18n.SysI18nMessageLoader" ioc:type="@bean:id" />
+    <bean id="io.nop.sys.dao.i18n.SysI18nMessageLoader" ioc:type="@bean:id"/>
 
-    <bean id="nopSequenceGenerator" class="io.nop.sys.dao.seq.SysSequenceGenerator" ioc:delay-method="lazyInit" />
+    <bean id="nopSequenceGenerator" class="io.nop.sys.dao.seq.SysSequenceGenerator" ioc:delay-method="lazyInit"/>
 
+    <bean id="nopCodeRuleGenerator" class="io.nop.sys.dao.coderule.SysCodeRuleGenerator" ioc:default="true"/>
+
+    <bean id="nopSysCalendar" class="io.nop.api.core.time.DefaultSysCalendar" factory-method="instance"/>
+
+    <bean id="nopCodeRule" class="io.nop.sys.dao.coderule.DefaultCodeRule">
+        <property name="variables">
+            <ioc:collect-beans as-map="true" name-prefix="nopCodeRuleVariable_"
+                               by-type="io.nop.dao.coderule.ICodeRuleVariable"/>
+        </property>
+    </bean>
 </beans>

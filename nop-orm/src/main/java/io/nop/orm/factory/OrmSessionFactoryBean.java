@@ -165,6 +165,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         sessionFactory.setEntityPersisters(entityPersisters);
         sessionFactory.setCollectionPersisters(collectionPersisters);
         sessionFactory.setOrmModel(ormModel);
+        sessionFactory.setSequenceGenerator(getSequenceGenerator());
         sessionFactory.reloadOrmModel();
     }
 

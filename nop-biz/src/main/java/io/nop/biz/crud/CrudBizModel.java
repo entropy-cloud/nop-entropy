@@ -339,7 +339,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         checkUniqueForSave(entityData);
 
         new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
-                entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName());
+                entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
+                BizConstants.METHOD_SAVE, context.getEvalScope());
 
         checkDataAuth(BizConstants.METHOD_SAVE, entityData.getEntity(), context);
 
@@ -510,7 +511,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         checkDataAuth(BizConstants.METHOD_UPDATE, entityData.getEntity(), context);
 
         new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
-                entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName());
+                entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
+                BizConstants.METHOD_UPDATE, context.getEvalScope());
 
         if (prepareUpdate != null)
             prepareUpdate.accept(entityData, context);
@@ -910,11 +912,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         if (inputSelection != null) {
             newEntity = dao.newEntity();
             new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entity,
-                    newEntity, inputSelection, entityData.getObjMeta(), getBizObjName());
+                    newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
+                    BizConstants.METHOD_SAVE, context.getEvalScope());
         } else {
             newEntity = (T) entity.cloneInstance();
             new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
-                    newEntity, null, entityData.getObjMeta(), getBizObjName());
+                    newEntity, null, entityData.getObjMeta(), getBizObjName(),
+                    BizConstants.METHOD_SAVE, context.getEvalScope());
         }
 
         return newEntity;

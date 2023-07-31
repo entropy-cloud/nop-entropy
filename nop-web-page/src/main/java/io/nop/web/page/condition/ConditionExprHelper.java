@@ -1,4 +1,4 @@
-package io.nop.web.utils;
+package io.nop.web.page.condition;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
