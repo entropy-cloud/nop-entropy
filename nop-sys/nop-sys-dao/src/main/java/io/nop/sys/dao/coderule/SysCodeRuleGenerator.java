@@ -9,6 +9,7 @@ package io.nop.sys.dao.coderule;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.ISysCalendar;
+import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.coderule.ICodeRule;
 import io.nop.dao.coderule.ICodeRuleGenerator;
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.function.LongSupplier;
 
 import static io.nop.sys.dao.NopSysErrors.ARG_RULE_NAME;
+import static io.nop.sys.dao.NopSysErrors.ERR_SYS_CODE_RULE_EMPTY_SEQ_NAME;
 import static io.nop.sys.dao.NopSysErrors.ERR_SYS_UNKNOWN_CODE_RULE;
 
 public class SysCodeRuleGenerator implements ICodeRuleGenerator {
@@ -58,7 +60,10 @@ public class SysCodeRuleGenerator implements ICodeRuleGenerator {
         }
 
         LocalDateTime now = sysCalendar.getSysDateTime();
-        String seqName = rule.getSeqName() == null ? rule.getName() : rule.getSeqName();
+        String seqName = rule.getSeqName();
+        if (StringHelper.isEmpty(seqName))
+            throw new NopException(ERR_SYS_CODE_RULE_EMPTY_SEQ_NAME)
+                    .param(ARG_RULE_NAME, ruleName);
         LongSupplier seqGenerator = () -> sequenceGenerator.generateLong(seqName, false);
         return codeRule.generate(rule.getCodePattern(), now, seqGenerator, bean);
     }

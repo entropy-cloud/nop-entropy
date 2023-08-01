@@ -143,6 +143,8 @@ public class ObjMetaToGraphQLDefinition {
 
     public GraphQLType toGraphQLType(String thisObjName, ISchema schema, boolean mandatory,
                                      TypeRegistry typeRegistry, boolean input) {
+        if (schema == null)
+            return GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
         IGenericType type = schema.getType();
         String bizObjName = schema.getBizObjName();
         if (GraphQLConstants.BIZ_OBJ_NAME_THIS_OBJ.equals(bizObjName))

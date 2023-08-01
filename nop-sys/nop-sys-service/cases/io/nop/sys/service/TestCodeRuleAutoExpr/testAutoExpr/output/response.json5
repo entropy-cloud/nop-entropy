@@ -1,0 +1,6 @@
+{
+  "bizFatal": false,
+  "code": "nop.err.xlang.exec.scope-var-is-undefined",
+  "msg": "scope变量[propModel]没有定义",
+  "status": -1
+}

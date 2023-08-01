@@ -1,5 +1,5 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-   xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql"
+   xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
     displayName="${entityModel.displayName}" i18n-en:displayName="${entityModel['i18n-en:displayName']}" tagSet="${_.join(entityModel.tagSet,',')}">
     <entityName>${entityModel.name}</entityName>
 
@@ -63,6 +63,7 @@
                 insertable="${xpl('meta-gen:IsColInsertable',col)}"  updatable="${xpl('meta-gen:IsColUpdatable',col)}"
                 internal="${xpl('meta-gen:IsColInternal',col)||null}" graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
                 ext:show="${col['ext:show']}" ext:control="${col['ext:control'] || buildColControl(col)}"
+                  biz:codeRule="${col?.tagSet.contains('code')?entityModel.shortName+'@'+col.name:null}"
                 ext:relation="${col.columnRefs?.[0]?.name}" defaultValue="${col.defaultValue}" x:override="${col.tagSet?.contains('del') ? 'remove':null}"
              >
                 <schema stdDomain="${col.stdDomain}" domain="${col.domain}" type="${col.javaTypeName}"

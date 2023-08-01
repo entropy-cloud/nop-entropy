@@ -38,6 +38,7 @@
                     <props>
                         <thisLib:GenDictLabelFields/>
                         <thisLib:GenConnectionFields/>
+                        <thisLib:GenCodeRuleAutoExpr/>
                     </props>
                 </meta>
             </source>
@@ -89,12 +90,46 @@
 
                     <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}"
                           internal="true" graphql:connectionProp="${name}">
-                        <graphql:inputType xpl:ignoreTag="true">io.nop.api.core.beans.graphql.GraphQLConnectionInput</graphql:inputType>
+                        <graphql:inputType xpl:ignoreTag="true">io.nop.api.core.beans.graphql.GraphQLConnectionInput
+                        </graphql:inputType>
                         <schema type="io.nop.api.core.beans.graphql.GraphQLConnection&lt;${prop.childAttr('schema','type').$parseGenericComponentType()}>"
                                 bizObjName="${prop.childAttr('schema','bizObjName')}"/>
                     </prop>
                 </c:for>
             </source>
         </GenConnectionFields>
+
+        <GenCodeRuleAutoExpr outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                    <c:script><![CDATA[
+                        if(!prop.getAttr('biz:codeRule'))
+                            continue;
+
+                        if(prop.childByTag('autoExpr'))
+                            continue;
+                    ]]></c:script>
+
+                    <prop name="${prop.getAttr('name')}">
+                        <autoExpr when="save">
+                            <c:print>
+                                <biz-gen:CreateWithCodeRule xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+                            </c:print>
+                        </autoExpr>
+                    </prop>
+                </c:for>
+            </source>
+        </GenCodeRuleAutoExpr>
+
+        <CreateWithCodeRule>
+            <attr name="propMeta" implicit="true" />
+
+            <source>
+                const codeRuleGenerator = inject('nopCodeRuleGenerator')
+                return codeRuleGenerator.generate(propModel['biz:codeRule'],$scope);
+            </source>
+        </CreateWithCodeRule>
     </tags>
 </lib>

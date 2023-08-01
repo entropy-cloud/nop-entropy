@@ -32,4 +32,8 @@ public interface NopSysErrors {
 
     ErrorCode ERR_SYS_UNKNOWN_CODE_RULE =
             define("nop.err.sys.unknown-code-rule", "未定义的编码规则:{ruleName}", ARG_RULE_NAME);
+
+    ErrorCode ERR_SYS_CODE_RULE_EMPTY_SEQ_NAME =
+            define("nop.err.sys.code-rule-empty-seq-name",
+                    "编码规则中用到了顺序号，但是没有配置对应序列名称：{ruleName}", ARG_RULE_NAME);
 }
