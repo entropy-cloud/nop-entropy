@@ -424,6 +424,9 @@ public class JdbcMetaDiscovery {
                     boolean asc = "A".equals(rs.getString("ASC_OR_DESC"));
                     boolean unique = !rs.getBoolean("NON_UNIQUE");
 
+                    if (StringHelper.isEmpty(columnName))
+                        continue;
+
                     tableName = normalizeTableName(tableName);
                     columnName = normalizeColName(columnName);
 
