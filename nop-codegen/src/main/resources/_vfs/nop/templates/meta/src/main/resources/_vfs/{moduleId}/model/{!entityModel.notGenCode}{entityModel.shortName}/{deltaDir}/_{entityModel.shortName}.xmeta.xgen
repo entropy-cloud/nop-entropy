@@ -63,7 +63,7 @@
                 insertable="${xpl('meta-gen:IsColInsertable',col)}"  updatable="${xpl('meta-gen:IsColUpdatable',col)}"
                 internal="${xpl('meta-gen:IsColInternal',col)||null}" graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
                 ext:show="${col['ext:show']}" ext:control="${col['ext:control'] || buildColControl(col)}"
-                  biz:codeRule="${col?.tagSet.contains('code')?entityModel.shortName+'@'+col.name:null}"
+                  biz:codeRule="${col?.tagSet?.contains('code')?entityModel.shortName+'@'+col.name:null}"
                 ext:relation="${col.columnRefs?.[0]?.name}" defaultValue="${col.defaultValue}" x:override="${col.tagSet?.contains('del') ? 'remove':null}"
              >
                 <schema stdDomain="${col.stdDomain}" domain="${col.domain}" type="${col.javaTypeName}"

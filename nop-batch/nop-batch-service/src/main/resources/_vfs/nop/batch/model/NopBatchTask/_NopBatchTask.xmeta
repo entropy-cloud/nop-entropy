@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="批处理任务"
-      i18n-en:displayName="Batch Task">
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="批处理任务" i18n-en:displayName="Batch Task">
 
     <entityName>io.nop.batch.dao.entity.NopBatchTask</entityName>
 

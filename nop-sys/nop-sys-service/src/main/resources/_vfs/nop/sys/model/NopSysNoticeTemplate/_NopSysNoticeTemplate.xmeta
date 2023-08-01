@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="通知模板"
-      i18n-en:displayName="Notice Template" tagSet="use-ext-field">
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="通知模板" i18n-en:displayName="Notice Template" tagSet="use-ext-field">
 
     <entityName>io.nop.sys.dao.entity.NopSysNoticeTemplate</entityName>
 

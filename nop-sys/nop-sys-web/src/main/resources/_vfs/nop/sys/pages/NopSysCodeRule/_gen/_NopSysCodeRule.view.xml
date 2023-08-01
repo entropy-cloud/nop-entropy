@@ -62,7 +62,6 @@
  displayName[显示名称]
  codePattern[编码模式]
  seqName[序列号名称]
- createTime[创建时间]
  remark[备注]
 </layout>
         </form>

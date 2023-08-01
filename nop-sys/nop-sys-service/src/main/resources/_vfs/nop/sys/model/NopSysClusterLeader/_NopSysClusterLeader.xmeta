@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" displayName="集群选举"
-      i18n-en:displayName="Cluster Leader">
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="集群选举" i18n-en:displayName="Cluster Leader">
 
     <entityName>io.nop.sys.dao.entity.NopSysClusterLeader</entityName>
 

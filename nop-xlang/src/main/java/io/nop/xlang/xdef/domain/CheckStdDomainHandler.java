@@ -9,6 +9,7 @@ package io.nop.xlang.xdef.domain;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.CoreConstants;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainOptions;
 
@@ -22,6 +23,8 @@ public abstract class CheckStdDomainHandler extends StringStdDomainHandler {
     public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
                             XLangCompileTool cp) {
         String text = value.toString();
+        if(CoreConstants.XML_PROP_BODY.equals(propName))
+            text = text.trim();
         if (!isValid(text)) {
             throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc).param(ARG_PROP_NAME, propName)
                     .param(ARG_STD_DOMAIN, getName()).param(ARG_VALUE, text);
