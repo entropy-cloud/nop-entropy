@@ -1,2 +1,2 @@
 _chgType,SID,NAME,DISPLAY_NAME,CODE_PATTERN,SEQ_NAME,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
-A,@var:NopSysCodeRule@sid,test,Test,"D{@year}{@prop:entity.name,3}{@seq:3}",default,0,0,autotest-ref,2023-08-01 09:07:13.739,autotest-ref,*,
+A,@var:NopSysCodeRule@sid,test,Test,"D{@year}{@prop:entity.name,3}{@seq:3}",default,0,0,autotest-ref,*,autotest-ref,*,

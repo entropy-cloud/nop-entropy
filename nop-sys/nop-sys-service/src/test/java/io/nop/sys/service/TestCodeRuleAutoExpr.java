@@ -25,6 +25,7 @@ public class TestCodeRuleAutoExpr extends JunitAutoTestCase {
     IDaoProvider daoProvider;
 
     @Test
+    @EnableSnapshot
     public void testAutoExpr() {
         IEntityDao<NopSysCodeRule> dao = daoProvider.daoFor(NopSysCodeRule.class);
         NopSysCodeRule rule = new NopSysCodeRule();
