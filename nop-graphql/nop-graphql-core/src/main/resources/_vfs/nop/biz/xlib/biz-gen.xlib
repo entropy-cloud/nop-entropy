@@ -128,7 +128,7 @@
 
             <source>
                 const codeRuleGenerator = inject('nopCodeRuleGenerator')
-                return codeRuleGenerator.generate(propModel['biz:codeRule'],$scope);
+                return codeRuleGenerator.generate(propMeta['biz:codeRule'],$scope);
             </source>
         </CreateWithCodeRule>
     </tags>

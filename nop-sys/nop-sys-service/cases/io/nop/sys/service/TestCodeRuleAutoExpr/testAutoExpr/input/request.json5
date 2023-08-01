@@ -2,6 +2,7 @@
   data: {
     data: {
       "name": "123",
+      "tplType": 1,
       "content": "xyz",
       "remark": "sss",
       "extFldA": "x"

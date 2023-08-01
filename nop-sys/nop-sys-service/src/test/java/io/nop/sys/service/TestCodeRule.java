@@ -3,7 +3,6 @@ package io.nop.sys.service;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.dao.api.DaoProvider;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.coderule.ICodeRuleGenerator;

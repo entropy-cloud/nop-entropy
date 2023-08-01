@@ -1,0 +1,2 @@
+_chgType,SID,NAME,TPL_TYPE,CONTENT,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopSysNoticeTemplate@sid,123,1,xyz,0,0,autotest-ref,*,autotest-ref,*,sss

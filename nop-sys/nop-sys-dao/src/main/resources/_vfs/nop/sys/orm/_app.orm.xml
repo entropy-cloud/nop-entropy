@@ -250,10 +250,10 @@
             </columns>
             <comment>对重要的业务数据可以要求启用MakerChecker机制，要求在实际修改数据库之前必须经过审批确认</comment>
         </entity>
-        <entity className="io.nop.sys.dao.entity.NopSysCodeRule" createrProp="createdBy" deleteFlagProp="delFlag"
-                displayName="编码规则" name="io.nop.sys.dao.entity.NopSysCodeRule" registerShortName="true"
-                tableName="nop_sys_code_rule" updateTimeProp="updateTime" updaterProp="updatedBy"
-                useLogicalDelete="true" versionProp="version" i18n-en:displayName="Code Rule">
+        <entity className="io.nop.sys.dao.entity.NopSysCodeRule" createTimeProp="createTime" createrProp="createdBy"
+                deleteFlagProp="delFlag" displayName="编码规则" name="io.nop.sys.dao.entity.NopSysCodeRule"
+                registerShortName="true" tableName="nop_sys_code_rule" updateTimeProp="updateTime"
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Code Rule">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
@@ -274,7 +274,7 @@
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
-                <column code="CREATE_TIME" displayName="创建时间" domain="updateTime" mandatory="true" name="createTime"
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
                         propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"

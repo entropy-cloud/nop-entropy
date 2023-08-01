@@ -49,8 +49,8 @@
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema domain="updateTime" type="java.sql.Timestamp"/>
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false">
