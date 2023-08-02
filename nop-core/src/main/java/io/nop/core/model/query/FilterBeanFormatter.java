@@ -35,6 +35,13 @@ public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
     private int depth;
     private boolean skipIndent;
 
+    public FilterBeanFormatter() {
+    }
+
+    public FilterBeanFormatter(Function<String, String> nameTransformer) {
+        this.nameTransformer = nameTransformer;
+    }
+
     public String format(ITreeBean filter) {
         this.buf = new StringBuilder();
         visit(filter, DisabledEvalScope.INSTANCE);

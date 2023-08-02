@@ -9,6 +9,8 @@ public class VarMetaBean {
     private String name;
     private String displayName;
     private boolean mandatory;
+
+    private boolean computed;
     private String description;
     private String type;
     private Map<String, Object> schema;
@@ -60,6 +62,14 @@ public class VarMetaBean {
 
     public void setSchema(Map<String, Object> schema) {
         this.schema = schema;
+    }
+
+    public boolean isComputed() {
+        return computed;
+    }
+
+    public void setComputed(boolean computed) {
+        this.computed = computed;
     }
 
     public String getDefaultValue() {

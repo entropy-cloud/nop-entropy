@@ -4,6 +4,7 @@ import io.nop.api.core.util.INeedInit;
 import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.model._gen._RuleModel;
 import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.ObjMetaHelper;
 import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
 import io.nop.xlang.xmeta.impl.SchemaImpl;
 
@@ -46,6 +47,10 @@ public class RuleModel extends _RuleModel implements INeedInit {
 
     public RuleOutputDefineModel getOutputVar(String varName) {
         return outputVars.get(varName);
+    }
+
+    public String getInputVarDisplayName(String varName) {
+        return ObjMetaHelper.getDisplayName(getInputSchema(), varName);
     }
 
     public ISchema getInputSchema() {

@@ -19,9 +19,13 @@ import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.dao.entity.NopRuleDefinition;
 import io.nop.rule.dao.entity.NopRuleNode;
+import io.nop.xlang.XLangConstants;
+import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslParseHelper;
+import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.SchemaLoader;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -31,11 +35,9 @@ import java.util.List;
 import static io.nop.api.core.beans.FilterBeans.eq;
 import static io.nop.rule.dao.NopRuleDaoConstants.RULE_STATUS_ACTIVE;
 import static io.nop.rule.dao.NopRuleErrors.ARG_PATH;
-import static io.nop.rule.dao.NopRuleErrors.ARG_RULE_GROUP;
 import static io.nop.rule.dao.NopRuleErrors.ARG_RULE_NAME;
 import static io.nop.rule.dao.NopRuleErrors.ERR_RULE_INVALID_DAO_RESOURCE_PATH;
 import static io.nop.rule.dao.NopRuleErrors.ERR_RULE_UNKNOWN_RULE_DEFINITION;
-import static io.nop.rule.dao.entity._gen._NopRuleDefinition.PROP_NAME_ruleGroup;
 import static io.nop.rule.dao.entity._gen._NopRuleDefinition.PROP_NAME_ruleName;
 import static io.nop.rule.dao.entity._gen._NopRuleDefinition.PROP_NAME_ruleVersion;
 import static io.nop.rule.dao.entity._gen._NopRuleDefinition.PROP_NAME_status;
@@ -54,38 +56,35 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
     @Override
     public RuleModel loadObjectFromPath(String path) {
-        Guard.checkArgument(path.startsWith("resolve-dao:"), "path not startsWith resolve-dao:");
-        String subPath = path.substring("resolve-dao:".length());
+        Guard.checkArgument(path.startsWith("resolve-rule:"), "path not startsWith resolve-rule:");
+        String subPath = path.substring("resolve-rule:".length());
         List<String> list = StringHelper.split(subPath, '/');
-        if (list.size() != 2 || list.size() != 3)
+        if (list.size() != 1 || list.size() != 2)
             throw new NopException(ERR_RULE_INVALID_DAO_RESOURCE_PATH)
                     .param(ARG_PATH, path);
 
-        String ruleGroup = list.get(0);
         String ruleName = list.get(1);
         Integer ruleVersion = null;
         if (list.size() > 2) {
             ruleVersion = ResourceVersionHelper.getIntegerVersion(list.get(2));
         }
-        return loadRule(ruleGroup, ruleName, ruleVersion);
+        return loadRule(ruleName, ruleVersion);
     }
 
-    public RuleModel loadRule(String ruleGroup, String ruleName, Integer ruleVersion) {
-        NopRuleDefinition entity = loadRuleDefinition(ruleGroup, ruleName, ruleVersion);
+    public RuleModel loadRule(String ruleName, Integer ruleVersion) {
+        NopRuleDefinition entity = loadRuleDefinition(ruleName, ruleVersion);
         RuleModel model = buildRuleModel(entity);
         String path = DaoEntityResource.makeDaoResource(entity);
         model.setLocation(SourceLocation.fromPath(path));
         return model;
     }
 
-    public NopRuleDefinition loadRuleDefinition(String ruleGroup, String ruleName, Integer ruleVersion) {
-        Guard.notEmpty(ruleGroup, "ruleGroup");
+    public NopRuleDefinition loadRuleDefinition(String ruleName, Integer ruleVersion) {
         Guard.notEmpty(ruleName, "ruleName");
 
         IEntityDao<NopRuleDefinition> dao = daoProvider.daoFor(NopRuleDefinition.class);
 
         List<TreeBean> filters = new ArrayList<>();
-        filters.add(eq(PROP_NAME_ruleGroup, ruleGroup));
         filters.add(eq(PROP_NAME_ruleName, ruleName));
         filters.add(eq(PROP_NAME_status, RULE_STATUS_ACTIVE));
         if (ruleVersion != null) {
@@ -99,10 +98,37 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
         if (entity == null)
             throw new NopException(ERR_RULE_UNKNOWN_RULE_DEFINITION)
-                    .param(ARG_RULE_GROUP, ruleGroup)
                     .param(ARG_RULE_NAME, ruleName);
         return entity;
     }
+
+    public ISchema buildRuleInputSchema(NopRuleDefinition entity) {
+        if (StringHelper.isEmpty(entity.getModelText()))
+            return null;
+
+        XNode node = XNodeParser.instance().parseFromText(null, entity.getModelText());
+        XNode inputsNode = node.childByTag("inputs");
+        if (inputsNode == null || !inputsNode.hasChild()) {
+            return null;
+        }
+
+        XNode schemaNode = XNode.make("schema");
+        XNode propsNode = schemaNode.makeChild("props");
+        for (XNode inputNode : inputsNode.getChildren()) {
+            XNode propNode = XNode.make("prop");
+            propNode.setLocation(inputNode.getLocation());
+            propNode.setAttr("name", inputNode.getAttr("name"));
+            propNode.setAttr("displayName", inputNode.getAttr("displayName"));
+            propNode.setAttr("mandatory", inputNode.getAttr("mandatory"));
+            propNode.setAttr("computed", inputNode.getAttr("computed"));
+            propNode.setAttr("schema", inputNode.removeChildByTag("schema"));
+            propsNode.appendChild(propNode);
+        }
+
+        IXDefinition xdef = SchemaLoader.loadXDefinition(XLangConstants.XDSL_SCHEMA_SCHEMA);
+        return (ISchema) new DslModelParser().parseWithXDef(xdef, schemaNode);
+    }
+
 
     public RuleModel buildRuleModel(NopRuleDefinition entity) {
         XNode node = buildRuleModelNode(entity);

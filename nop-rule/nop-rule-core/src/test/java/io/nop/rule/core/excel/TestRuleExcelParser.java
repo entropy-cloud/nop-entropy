@@ -49,14 +49,14 @@ public class TestRuleExcelParser extends BaseTestCase {
         IRuleRuntime ruleRt = ruleManager.newRuntime();
         ruleRt.getEvalScope().setLocalValue("season", "Winter");
         ruleRt.getEvalScope().setLocalValue("guestCount", 4);
-        Map<String, Object> output = ruleManager.executeRule("test/test-table", ruleRt);
+        Map<String, Object> output = ruleManager.executeRule("test/test-table", null, ruleRt);
         System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
         assertEquals("Roastbeef", output.get("dish"));
 
         ruleRt = ruleManager.newRuntime();
         ruleRt.getEvalScope().setLocalValue("season", "Summer");
         ruleRt.getEvalScope().setLocalValue("guestCount", 4);
-        output = ruleManager.executeRule("test/test-table", ruleRt);
+        output = ruleManager.executeRule("test/test-table", null, ruleRt);
         assertEquals("Light Salad and nice Steak", output.get("dish"));
     }
 
@@ -72,13 +72,13 @@ public class TestRuleExcelParser extends BaseTestCase {
 
         ruleRt.getEvalScope().setLocalValue("baseInfo", baseInfo);
 
-        Map<String, Object> output = ruleManager.executeRule("test/test-matrix", ruleRt);
+        Map<String, Object> output = ruleManager.executeRule("test/test-matrix", null, ruleRt);
         System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
         assertEquals(9, output.get("result"));
 
         baseInfo.put("age", 50);
-        ruleRt.getEvalScope().setLocalValue("是否已婚","未婚");
-        output = ruleManager.executeRule("test/test-matrix", ruleRt);
+        ruleRt.getEvalScope().setLocalValue("是否已婚", "未婚");
+        output = ruleManager.executeRule("test/test-matrix", null, ruleRt);
         assertEquals("A", output.get("type"));
         assertEquals(14, output.get("result"));
     }

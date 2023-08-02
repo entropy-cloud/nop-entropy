@@ -7,7 +7,7 @@
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="ruleVersion" displayName="规则版本" i18n-en:displayName="Rule Version">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="java.lang.Integer"/>
         </prop>
         <prop name="inputs" displayName="输入参数" i18n-en:displayName="Inputs">
             <schema type="java.util.Map&lt;java.lang.String,java.lang.Object&gt;" precision="160000"/>

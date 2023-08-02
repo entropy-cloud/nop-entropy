@@ -12,7 +12,6 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.IRuleManager;
 import io.nop.rule.core.IRuleRuntime;
-import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model.RuleModel;
 
 import java.util.Map;
@@ -25,17 +24,22 @@ public class RuleManager implements IRuleManager {
     }
 
     @Override
-    public IExecutableRule getRule(String ruleName) {
-        String path = RuleConstants.RESOLVE_RULE_NS_PREFIX + ruleName;
-        RuleModel ruleModel = (RuleModel) ResourceComponentManager.instance().loadComponentModel(path);
-        return ruleModel.getExecutableRule();
+    public IExecutableRule getRule(String ruleName, Integer ruleVersion) {
+        return getRuleModel(ruleName, ruleVersion).getExecutableRule();
     }
 
     @Override
-    public Map<String, Object> executeRule(String ruleName, IRuleRuntime ruleRt) {
+    public RuleModel getRuleModel(String ruleName, Integer ruleVersion) {
+        String path = RuleServiceHelper.buildResolveRulePath(ruleName, ruleVersion);
+        RuleModel ruleModel = (RuleModel) ResourceComponentManager.instance().loadComponentModel(path);
+        return ruleModel;
+    }
+
+    @Override
+    public Map<String, Object> executeRule(String ruleName, Integer ruleVersion, IRuleRuntime ruleRt) {
         ruleRt.clearOutputs();
 
-        IExecutableRule rule = getRule(ruleName);
+        IExecutableRule rule = getRule(ruleName, ruleVersion);
         if (!rule.execute(ruleRt))
             return null;
 

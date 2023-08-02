@@ -4131,6 +4131,47 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "INSTANCE"
+      }
+    ],
+    "methods": [
+      {
+        "name": "getSysDate",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSysDateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "instance",
+        "parameterTypes": []
+      },
+      {
+        "name": "isWorkDay",
+        "parameterTypes": [
+          "java.time.LocalDate"
+        ]
+      },
+      {
+        "name": "nextWorkDay",
+        "parameterTypes": [
+          "java.time.LocalDate"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.time.DefaultSysCalendar",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -46576,6 +46617,122 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.rule.service.entity.NopRuleRoleBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MAX_COUNT"
+      }
+    ],
+    "methods": [
+      {
+        "name": "addVariable",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.coderule.ICodeRuleVariable"
+        ]
+      },
+      {
+        "name": "generate",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.time.LocalDateTime",
+          "java.util.function.LongSupplier",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "generateFromProp",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.coderule.CodeRuleParams"
+        ]
+      },
+      {
+        "name": "generateRand",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.coderule.CodeRuleParams"
+        ]
+      },
+      {
+        "name": "generateSeq",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.coderule.CodeRuleParams"
+        ]
+      },
+      {
+        "name": "pad",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "removeVariable",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.coderule.ICodeRuleVariable"
+        ]
+      },
+      {
+        "name": "setVariables",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.sys.dao.coderule.DefaultCodeRule",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "daoProvider"
+      }
+    ],
+    "methods": [
+      {
+        "name": "generate",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCodeRule",
+        "parameterTypes": [
+          "io.nop.dao.coderule.ICodeRule"
+        ]
+      },
+      {
+        "name": "setSequenceGenerator",
+        "parameterTypes": [
+          "io.nop.dao.seq.ISequenceGenerator"
+        ]
+      },
+      {
+        "name": "setSysCalendar",
+        "parameterTypes": [
+          "io.nop.api.core.time.ISysCalendar"
+        ]
+      }
+    ],
+    "name": "io.nop.sys.dao.coderule.SysCodeRuleGenerator",
     "unsafeAllocated": false
   },
   {

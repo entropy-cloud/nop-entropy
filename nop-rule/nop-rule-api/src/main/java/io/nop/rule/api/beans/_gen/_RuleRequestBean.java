@@ -21,19 +21,19 @@
             this._ruleName = value;
         }
     
-        private String _ruleVersion;
+        private Integer _ruleVersion;
 
         /**
          * 规则版本 
          */
-        public String getRuleVersion(){
+        public Integer getRuleVersion(){
             return _ruleVersion;
         }
 
         /**
          * 规则版本 
          */
-        public void setRuleVersion(String value){
+        public void setRuleVersion(Integer value){
             this._ruleVersion = value;
         }
     
