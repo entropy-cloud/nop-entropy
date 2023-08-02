@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public interface ICommand {
+
     int execute(Map<String, Object> params);
 
     default CompletionStage<Integer> executeAsync(Map<String, Object> params) {

@@ -13,9 +13,11 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.command.args.CommandLineArgs;
 import io.nop.core.command.args.SimpleCommandLineArgsParser;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.core.resource.impl.FileResource;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +26,8 @@ import java.util.Map;
  * 识别exec命令,将--command参数解析为CommandBean，并调用appCommandExecutor来执行命令
  */
 public class ExecCommandProcessor {
+    static final Logger LOG = LoggerFactory.getLogger(ExecCommandProcessor.class);
+
     private final boolean exitAfterExec;
 
     public ExecCommandProcessor(boolean exitAfterExec) {
@@ -40,11 +44,10 @@ public class ExecCommandProcessor {
     }
 
     public boolean process(CommandLineArgs cmdArgs) {
-        if (!cmdArgs.isSubCommand("exec")) {
-            return false;
-        }
-
         List<String> commands = cmdArgs.getOptionValues("command");
+        if (commands.isEmpty()) {
+            System.out.print("no --command argument");
+        }
         for (String command : commands) {
             if (command == null || StringHelper.isEmpty(command))
                 continue;
@@ -52,12 +55,16 @@ public class ExecCommandProcessor {
             CommandBean commandBean;
             if (command.endsWith(".json") || command.endsWith(".json5") || command.endsWith(".yaml")) {
                 // run command json file
-                FileResource resource = new FileResource(new File(command));
+                IResource resource = ResourceHelper.resolveRelativePathResource(command);
                 Object o = JsonTool.parseBeanFromResource(resource, CommandBean.class);
                 commandBean = (CommandBean) o;
-            } else {
+            } else if (command.startsWith("{")) {
                 Object o = JsonTool.parseBeanFromText(command, CommandBean.class);
                 commandBean = (CommandBean) o;
+            } else {
+                commandBean = new CommandBean();
+                commandBean.setCommand(command);
+                commandBean.setParams(cmdArgs.getArgs());
             }
             execCommand(commandBean);
         }
@@ -75,15 +82,19 @@ public class ExecCommandProcessor {
         if (params == null)
             params = new HashMap<>();
 
+        LOG.info("nop.exec:command={},params={}", commandBean.getCommand(), commandBean.getParams());
+
         int exitCode;
-        String commandBeanName = commandBean.getCommand() + "Command";
+        String commandBeanName = ICommandExecutor.NOP_COMMAND_BEAN_PREFIX + commandBean.getCommand();
         if (BeanContainer.instance().containsBean(commandBeanName)) {
             ICommand cmd = (ICommand) BeanContainer.instance().getBean(commandBeanName);
             exitCode = cmd.execute(params);
         } else {
-            ICommandExecutor executor = (ICommandExecutor) BeanContainer.instance().getBean("appCommandExecutor");
+            ICommandExecutor executor = (ICommandExecutor) BeanContainer.instance().getBean(ICommandExecutor.NOP_COMMAND_EXECUTOR_BEAN);
             exitCode = executor.execute(commandBean.getCommand(), params);
         }
+
+        LOG.info("nop.exec-result:command={},exitCode={}", commandBean.getCommand(), exitCode);
 
         if (exitCode != 0) {
             System.exit(exitCode);

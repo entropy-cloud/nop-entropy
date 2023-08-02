@@ -25,6 +25,10 @@ public interface CoreConfigs {
     String CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE = "nop.core.component.resource-cache.{name}.support-serialize";
     String CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL = "nop.core.component.resource-cache.{name}.refresh-min-interval";
 
+    @Description("是否启用命令行支持")
+    IConfigReference<Boolean> CFG_CORE_NOP_COMMAND_EXECUTOR_ENABLED = varRef("nop.core.nop-command-executor.enabled",
+            Boolean.class, true);
+
     @Description("缺省启用的多语言类型，会自动装载相应的i18n.yaml文件")
     IConfigReference<String> CFG_CORE_I18N_ENABLED_LOCALES = varRef("nop.core.i18n.enabled-locales", String.class,
             "zh-CN,en");

@@ -16,6 +16,10 @@ import java.util.concurrent.CompletionStage;
  * 执行命令行指令。返回值为exe的exitCode，0表示成功，-1表示失败
  */
 public interface ICommandExecutor {
+    String NOP_EXEC_COMMAND = "nop-exec";
+
+    String NOP_COMMAND_BEAN_PREFIX = "nopCommand_";
+    String NOP_COMMAND_EXECUTOR_BEAN = "nopCommandExecutor";
 
     int execute(String command, Map<String, Object> params);
 

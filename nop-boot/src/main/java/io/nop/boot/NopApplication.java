@@ -8,7 +8,10 @@
 package io.nop.boot;
 
 import io.nop.commons.service.ShutdownHook;
+import io.nop.core.CoreConfigs;
 import io.nop.core.command.ApplicationArguments;
+import io.nop.core.command.ExecCommandProcessor;
+import io.nop.core.command.ICommandExecutor;
 import io.nop.core.command.args.SimpleCommandLineArgsParser;
 import io.nop.core.initialize.CoreInitialization;
 import org.slf4j.Logger;
@@ -39,6 +42,17 @@ public class NopApplication {
 
         new NopBanner(bannerPath).print();
         infoLogger.logStarted(LOG);
+
+        if (args.length > 0 && CoreConfigs.CFG_CORE_NOP_COMMAND_EXECUTOR_ENABLED.get()) {
+            if (args[0].equals(ICommandExecutor.NOP_EXEC_COMMAND)) {
+                try {
+                    new ExecCommandProcessor(true).process(ApplicationArguments.get());
+                    return 0;
+                } finally {
+                    CoreInitialization.destroy();
+                }
+            }
+        }
 
         int ret = task.getAsInt();
 

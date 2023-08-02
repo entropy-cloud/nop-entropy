@@ -95,6 +95,10 @@ public interface IGraphQLEngine {
      */
     CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext context);
 
+    default ApiResponse<?> executeRpc(IGraphQLExecutionContext context) {
+        return FutureHelper.syncGet(executeRpcAsync(context));
+    }
+
     void initRpcContext(IGraphQLExecutionContext context, GraphQLOperationType opType,
                         String operationName, ApiRequest<?> request);
 

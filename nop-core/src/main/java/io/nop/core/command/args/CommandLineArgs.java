@@ -19,6 +19,7 @@ package io.nop.core.command.args;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,21 @@ public class CommandLineArgs {
         if (optionValue != null) {
             this.optionArgs.get(optionName).add(optionValue);
         }
+    }
+
+    public Map<String, Object> getArgs() {
+        Map<String, Object> args = new LinkedHashMap<>();
+        optionArgs.forEach((name, value) -> {
+            if (name.equals("command"))
+                return;
+
+            if (value.isEmpty()) {
+                args.put(name, "");
+            } else {
+                args.put(name, value.get(0));
+            }
+        });
+        return args;
     }
 
     /**
