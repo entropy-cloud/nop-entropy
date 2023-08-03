@@ -494,5 +494,6 @@
         <module>nop-router</module>
         <module>nop-biz-batch</module>
         <module>nop-web-page</module>
+        <module>nop-file</module>
     </modules>
 </project>

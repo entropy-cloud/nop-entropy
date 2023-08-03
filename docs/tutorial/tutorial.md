@@ -616,11 +616,13 @@ Nop平台内置的差量化软件生产线如下图所示：
 
 $$
 \begin{aligned}
-XPage &=  Generator\langle XView\rangle  + \Delta XPage\\
-XView &= Generator\langle XMeta\rangle  + \Delta XView \\
+XORM   &= Generator\langle XExcel \rangle + \Delta XORM  \\
 XMeta &= Generator\langle XORM \rangle + \Delta XMeta \\
-XORM   &= Generator\langle XExcel \rangle + \Delta XORM\ \  \\
 GraphQL &= Builder\langle XMeta\rangle + BizModel\\
+
+XView &= Generator\langle XMeta\rangle  + \Delta XView \\
+XPage &=  Generator\langle XView\rangle  + \Delta XPage\\
+
 \end{aligned}
 $$
 

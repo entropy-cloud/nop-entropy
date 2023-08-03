@@ -9,7 +9,6 @@ package io.nop.core.resource.store;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.progress.IStepProgressListener;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.impl.FileResource;
@@ -58,15 +57,14 @@ public class LocalResourceStore implements IResourceStore {
 
     @Override
     public boolean supportSave(String path) {
-        return true;
+        return path.startsWith(basePath);
     }
 
     @Override
     public String saveResource(String path, IResource resource, IStepProgressListener listener,
                                Map<String, Object> options) {
-        String fullPath = StringHelper.appendPath(path, resource.getName());
-        IResource targetResource = getResource(fullPath);
+        IResource targetResource = getResource(path);
         resource.saveToResource(targetResource);
-        return fullPath;
+        return path;
     }
 }
