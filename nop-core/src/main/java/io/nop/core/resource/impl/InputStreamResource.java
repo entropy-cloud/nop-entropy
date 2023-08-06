@@ -11,7 +11,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.IoHelper;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -63,13 +62,7 @@ public class InputStreamResource extends AbstractResource {
 
     @Override
     public long length() {
-        if (length > 0)
-            return length;
-        try {
-            return is.available();
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
+        return length;
     }
 
     @Override

@@ -7,6 +7,7 @@
  */
 package io.nop.orm.persister;
 
+import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.cache.ICache;
 import io.nop.core.model.graph.TopoEntry;
 import io.nop.core.reflect.bean.IBeanConstructor;
@@ -14,13 +15,13 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.dao.txn.ITransactionTemplate;
-import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.driver.ICollectionPersistDriver;
 import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.eql.ICompiledSql;
+import io.nop.orm.eql.binder.IOrmColumnBinderEnhancer;
 import io.nop.orm.eql.meta.EntityTableMeta;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.metrics.IOrmMetrics;
@@ -64,4 +65,6 @@ public interface IPersistEnv extends IOrmSessionFactory {
     IOrmDaoListener getDaoListener();
 
     long newSessionRevVer();
+
+    IBeanProvider getBeanProvider();
 }

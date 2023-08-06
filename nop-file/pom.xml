@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<?xml version="1.0" encoding="UTF-8" ?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
         <artifactId>nop-entropy</artifactId>
@@ -10,10 +11,18 @@
     </parent>
 
     <artifactId>nop-file</artifactId>
+
     <packaging>pom</packaging>
+
     <modules>
         <module>nop-file-core</module>
+        <module>nop-file-codegen</module>
+        <module>nop-file-api</module>
+        <module>nop-file-dao</module>
+        <module>nop-file-service</module>
+        <module>nop-file-web</module>
+        <module>nop-file-app</module>
+        <module>nop-file-quarkus</module>
+        <module>nop-file-spring</module>
     </modules>
-
-
 </project>

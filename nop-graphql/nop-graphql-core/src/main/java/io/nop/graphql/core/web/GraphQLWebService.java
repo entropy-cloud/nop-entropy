@@ -21,6 +21,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
+import io.nop.core.resource.IResource;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
@@ -37,6 +38,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
@@ -184,18 +186,9 @@ public class GraphQLWebService {
     }
 
     protected Response buildJaxrsRestResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {
-        String str = JSON.stringify(res.cloneInstance(false));
-        LOG.debug("nop.graphql.response:{}", str);
-
-        int status = res.getHttpStatus();
-        if (status == 0)
-            status = 200;
-
-        Response.ResponseBuilder builder = Response.status(status).entity(str);
-        if (res.getHeaders() != null) {
-            res.getHeaders().forEach(builder::header);
-        }
-        return builder.build();
+        Response response = JaxrsHelper.buildJaxrsResponse(res);
+        LOG.debug("nop.graphql.response:{}", response.getEntity());
+        return response;
     }
 
 
@@ -304,7 +297,7 @@ public class GraphQLWebService {
         return builder.build();
     }
 
-    private void buildContent(Response.ResponseBuilder builder, String contentType, Object content, String fileName) {
+    protected void buildContent(Response.ResponseBuilder builder, String contentType, Object content, String fileName) {
         builder.header(ApiConstants.HEADER_CONTENT_TYPE, contentType);
         if (content instanceof String) {
             LOG.debug("nop.graphql.response:{}", content);
@@ -318,10 +311,25 @@ public class GraphQLWebService {
 //            if(content instanceof File){
 //                builder.header(HttpHeaders.CONTENT_LENGTH,((File) content).length());
 //            }
+        } else if (content instanceof IResource) {
+            if (!StringHelper.isEmpty(fileName)) {
+                String encoded = StringHelper.encodeURL(fileName);
+                builder.header("Content-Disposition", "attachment;filename=" + encoded);
+            }
+            buildResourceContent(builder, (IResource) content);
         } else {
             String str = JSON.stringify(content);
             LOG.debug("nop.graphql.response:{}", str);
             builder.entity(str);
+        }
+    }
+
+    protected void buildResourceContent(Response.ResponseBuilder builder, IResource content) {
+        File file = content.toFile();
+        if (file != null) {
+            builder.entity(content);
+        } else {
+            builder.entity((StreamingOutput) content::writeToStream);
         }
     }
 

@@ -38,6 +38,10 @@ public abstract class AbstractOrmComponent implements IOrmComponent {
         return propId;
     }
 
+    protected boolean orm_propDirty(int propId) {
+        return owner.orm_propDirty(propId);
+    }
+
     protected void internalSetPropValue(String propName, Object value) {
         owner.orm_propValue(getColPropId(propName), value);
     }

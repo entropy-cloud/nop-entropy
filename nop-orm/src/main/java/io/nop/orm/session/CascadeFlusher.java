@@ -8,12 +8,10 @@
 package io.nop.orm.session;
 
 import io.nop.api.core.util.Guard;
-import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.OrmEntityState;
 import io.nop.orm.exceptions.OrmException;
-import io.nop.orm.model.IEntityComponentModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -184,14 +182,7 @@ public class CascadeFlusher {
     }
 
     void flushComponent(IOrmEntity entity, IEntityModel entityModel) {
-        for (IEntityComponentModel compModel : entityModel.getComponents()) {
-            if (!compModel.isNeedFlush())
-                continue;
-
-            Object comp = entity.orm_propValueByName(compModel.getName());
-            if (comp instanceof IOrmComponent)
-                ((IOrmComponent) comp).flushToEntity();
-        }
+        entity.orm_flushComponent();
     }
 
     // 针对单个实体的修改生成sql语句，送入执行队列

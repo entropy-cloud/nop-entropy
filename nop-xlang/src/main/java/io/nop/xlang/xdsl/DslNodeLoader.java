@@ -15,6 +15,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xdef.IXDefinition;
@@ -33,6 +34,10 @@ public class DslNodeLoader implements IXDslNodeLoader {
     public XDslExtendResult loadFromResource(IResource resource, String requiredSchema, XDslExtendPhase phase) {
         // 处理feature:on和feature:off开关
         XNode node = XModelInclude.instance().keepComment(true).loadActiveNodeFromResource(resource);
+//        if (!node.hasAttr("x:schema") && !node.hasAttr("xmlns:x") && requiredSchema != null) {
+//            node.setAttr("x:schema", requiredSchema);
+//            node.setAttr("xmlns:x", XLangConstants.XDSL_SCHEMA_XDSL);
+//        }
 
         return loadFromNode(node, requiredSchema, phase);
     }

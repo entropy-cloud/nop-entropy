@@ -36,7 +36,7 @@ public class NopBeansAutoConfiguration {
                 if (!resource.getName().startsWith("spring-"))
                     continue;
 
-                XDslExtendResult result = DslNodeLoader.INSTANCE.loadFromResource(resource);
+                XDslExtendResult result = DslNodeLoader.INSTANCE.loadFromResource(resource,"/nop/schema/beans.xdef");
                 XNode node = result.getNode();
                 node.removeAttr("xmlns:x");
 

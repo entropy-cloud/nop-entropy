@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.net.URI;
 import java.net.URL;
 
 /**
@@ -153,6 +154,17 @@ public interface IResource extends IResourceReference {
      * 如果资源不能采用URL表达，则返回null
      */
     URL toURL();
+
+    default URI toURI() {
+        URL url = toURL();
+        if (url == null)
+            return null;
+        try {
+            return url.toURI();
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+    }
 
     /**
      * 将资源文件内容转存到本地文件中

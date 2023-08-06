@@ -16,10 +16,12 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.resource.IResource;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.web.GraphQLWebService;
+import io.nop.spring.core.resource.SpringResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
@@ -209,13 +211,15 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         if (content instanceof String) {
             LOG.debug("nop.graphql.response:{}", content);
             return content;
-        } else if (content instanceof InputStream || content instanceof File) {
+        } else if (content instanceof InputStream || content instanceof File || content instanceof IResource) {
             if (!StringHelper.isEmpty(fileName)) {
                 String encoded = StringHelper.encodeURL(fileName);
                 headers.set("Content-Disposition", "attachment; filename=" + encoded);
             }
             if (content instanceof InputStream) {
                 return new InputStreamResource((InputStream) content, fileName);
+            } else if (content instanceof IResource) {
+                return new SpringResource((IResource) content);
             }
             return new FileSystemResource((File) content);
         } else {
