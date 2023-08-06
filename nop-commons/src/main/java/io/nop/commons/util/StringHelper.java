@@ -4200,6 +4200,7 @@ public class StringHelper extends ApiStringHelper {
         return false;
     }
 
+    @Deterministic
     public static String parseGenericComponentType(String text) {
         if (StringHelper.isEmpty(text))
             return null;
@@ -4211,4 +4212,16 @@ public class StringHelper extends ApiStringHelper {
             return null;
         return text.substring(pos + 1, endPos).trim();
     }
+
+    /**
+     * Converts the given object into a string representation by calling {@link Object#toString()}
+     * and formatting (possibly nested) arrays and {@code null}.
+     *
+     * <p>See {@link Arrays#deepToString(Object[])} for more information about the used format.
+     */
+    public static String arrayAwareToString(Object o) {
+        final String arrayString = Arrays.deepToString(new Object[]{o});
+        return arrayString.substring(1, arrayString.length() - 1);
+    }
+
 }

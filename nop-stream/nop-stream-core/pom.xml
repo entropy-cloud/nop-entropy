@@ -10,6 +10,16 @@
     </parent>
 
     <artifactId>nop-stream-core</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-commons</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-core</artifactId>
+        </dependency>
+    </dependencies>
 
 
 </project>
