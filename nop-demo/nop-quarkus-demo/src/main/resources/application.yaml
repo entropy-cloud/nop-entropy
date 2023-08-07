@@ -19,11 +19,11 @@ nop:
     web:
       validate-page-model: true
 
-    orm:
-      init-database-schema: true
-
     jwt:
       enc-key: dij3)(4ldt[]erq=2mfKID
+
+  orm:
+    init-database-schema: true
 
   datasource:
     #    driver-class-name: org.h2.Driver

@@ -2528,8 +2528,18 @@
         "parameterTypes": []
       },
       {
+        "name": "isComputed",
+        "parameterTypes": []
+      },
+      {
         "name": "isMandatory",
         "parameterTypes": []
+      },
+      {
+        "name": "setComputed",
+        "parameterTypes": [
+          "boolean"
+        ]
       },
       {
         "name": "setDefaultValue",
@@ -44102,6 +44112,12 @@
       {
         "name": "setRuleVersion",
         "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
           "java.lang.String"
         ]
       }
@@ -44173,6 +44189,12 @@
       {
         "name": "setRuleVersion",
         "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
           "java.lang.String"
         ]
       }
@@ -44214,6 +44236,12 @@
       {
         "name": "setRuleVersion",
         "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
           "java.lang.String"
         ]
       }
@@ -44236,9 +44264,31 @@
         ]
       },
       {
+        "name": "executeRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Integer",
+          "io.nop.rule.core.IRuleRuntime"
+        ]
+      },
+      {
         "name": "getRule",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "getRuleModel",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Integer"
         ]
       },
       {
@@ -44306,6 +44356,12 @@
           "io.nop.rule.api.beans.RuleKeyBean",
           "io.nop.api.core.beans.FieldSelectionBean",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "setRuleManager",
+        "parameterTypes": [
+          "io.nop.rule.core.IRuleManager"
         ]
       }
     ],
@@ -46498,6 +46554,12 @@
     ],
     "methods": [
       {
+        "name": "buildRuleInputSchema",
+        "parameterTypes": [
+          "io.nop.rule.dao.entity.NopRuleDefinition"
+        ]
+      },
+      {
         "name": "buildRuleModel",
         "parameterTypes": [
           "io.nop.rule.dao.entity.NopRuleDefinition"
@@ -46523,6 +46585,20 @@
         "name": "loadRule",
         "parameterTypes": [
           "java.lang.String",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "loadRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "loadRuleDefinition",
+        "parameterTypes": [
           "java.lang.String",
           "java.lang.Integer"
         ]
@@ -46594,8 +46670,22 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "ruleModelLoader"
+      }
+    ],
+    "methods": [
+      {
+        "name": "getPredicateDisplayText",
+        "parameterTypes": [
+          "io.nop.rule.dao.entity.NopRuleNode",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
     "name": "io.nop.rule.service.entity.NopRuleNodeBizModel",
     "unsafeAllocated": false
   },
