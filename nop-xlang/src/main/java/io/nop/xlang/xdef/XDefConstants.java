@@ -76,6 +76,10 @@ public interface XDefConstants {
     String STD_DOMAIN_XJSON = "xjson";
     String STD_DOMAIN_XJSON_LIST = "xjson-list";
 
+    String STD_DOMAIN_FILE = "file";
+
+    String STD_DOMAIN_FILE_LIST = "file-list";
+
     String STD_DOMAIN_GENERIC_TYPE = "generic-type";
     String STD_DOMAIN_DEF_TYPE = "def-type";
     String STD_DOMAIN_FIELD_SELECTION = "field-selection";

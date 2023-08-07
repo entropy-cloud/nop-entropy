@@ -48,13 +48,13 @@ public class _NopFileRecord extends DynamicOrmEntity{
     public static final String PROP_NAME_fileLastModified = "fileLastModified";
     public static final int PROP_ID_fileLastModified = 7;
     
-    /* 实体名: ENTITY_NAME VARCHAR */
-    public static final String PROP_NAME_entityName = "entityName";
-    public static final int PROP_ID_entityName = 8;
+    /* 对象名: BIZ_OBJ_NAME VARCHAR */
+    public static final String PROP_NAME_bizObjName = "bizObjName";
+    public static final int PROP_ID_bizObjName = 8;
     
-    /* 实体ID: ENTITY_ID VARCHAR */
-    public static final String PROP_NAME_entityId = "entityId";
-    public static final int PROP_ID_entityId = 9;
+    /* 对象ID: BIZ_OBJ_ID VARCHAR */
+    public static final String PROP_NAME_bizObjId = "bizObjId";
+    public static final int PROP_ID_bizObjId = 9;
     
     /* 字段名: FIELD_NAME VARCHAR */
     public static final String PROP_NAME_fieldName = "fieldName";
@@ -109,11 +109,11 @@ public class _NopFileRecord extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_fileLastModified] = PROP_NAME_fileLastModified;
           PROP_NAME_TO_ID.put(PROP_NAME_fileLastModified, PROP_ID_fileLastModified);
       
-          PROP_ID_TO_NAME[PROP_ID_entityName] = PROP_NAME_entityName;
-          PROP_NAME_TO_ID.put(PROP_NAME_entityName, PROP_ID_entityName);
+          PROP_ID_TO_NAME[PROP_ID_bizObjName] = PROP_NAME_bizObjName;
+          PROP_NAME_TO_ID.put(PROP_NAME_bizObjName, PROP_ID_bizObjName);
       
-          PROP_ID_TO_NAME[PROP_ID_entityId] = PROP_NAME_entityId;
-          PROP_NAME_TO_ID.put(PROP_NAME_entityId, PROP_ID_entityId);
+          PROP_ID_TO_NAME[PROP_ID_bizObjId] = PROP_NAME_bizObjId;
+          PROP_NAME_TO_ID.put(PROP_NAME_bizObjId, PROP_ID_bizObjId);
       
           PROP_ID_TO_NAME[PROP_ID_fieldName] = PROP_NAME_fieldName;
           PROP_NAME_TO_ID.put(PROP_NAME_fieldName, PROP_ID_fieldName);
@@ -154,11 +154,11 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /* 文件修改时间: FILE_LAST_MODIFIED */
     private java.sql.Timestamp _fileLastModified;
     
-    /* 实体名: ENTITY_NAME */
-    private java.lang.String _entityName;
+    /* 对象名: BIZ_OBJ_NAME */
+    private java.lang.String _bizObjName;
     
-    /* 实体ID: ENTITY_ID */
-    private java.lang.String _entityId;
+    /* 对象ID: BIZ_OBJ_ID */
+    private java.lang.String _bizObjId;
     
     /* 字段名: FIELD_NAME */
     private java.lang.String _fieldName;
@@ -266,11 +266,11 @@ public class _NopFileRecord extends DynamicOrmEntity{
             case PROP_ID_fileLastModified:
                return getFileLastModified();
         
-            case PROP_ID_entityName:
-               return getEntityName();
+            case PROP_ID_bizObjName:
+               return getBizObjName();
         
-            case PROP_ID_entityId:
-               return getEntityId();
+            case PROP_ID_bizObjId:
+               return getBizObjId();
         
             case PROP_ID_fieldName:
                return getFieldName();
@@ -368,23 +368,23 @@ public class _NopFileRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_entityName:{
+            case PROP_ID_bizObjName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_entityName));
+                       err-> newTypeConversionError(PROP_NAME_bizObjName));
                }
-               setEntityName(typedValue);
+               setBizObjName(typedValue);
                break;
             }
         
-            case PROP_ID_entityId:{
+            case PROP_ID_bizObjId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_entityId));
+                       err-> newTypeConversionError(PROP_NAME_bizObjId));
                }
-               setEntityId(typedValue);
+               setBizObjId(typedValue);
                break;
             }
         
@@ -496,16 +496,16 @@ public class _NopFileRecord extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_entityName:{
+            case PROP_ID_bizObjName:{
                onInitProp(propId);
-               this._entityName = (java.lang.String)value;
+               this._bizObjName = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_entityId:{
+            case PROP_ID_bizObjId:{
                onInitProp(propId);
-               this._entityId = (java.lang.String)value;
+               this._bizObjId = (java.lang.String)value;
                
                break;
             }
@@ -685,39 +685,39 @@ public class _NopFileRecord extends DynamicOrmEntity{
     }
     
     /**
-     * 实体名: ENTITY_NAME
+     * 对象名: BIZ_OBJ_NAME
      */
-    public java.lang.String getEntityName(){
-         onPropGet(PROP_ID_entityName);
-         return _entityName;
+    public java.lang.String getBizObjName(){
+         onPropGet(PROP_ID_bizObjName);
+         return _bizObjName;
     }
 
     /**
-     * 实体名: ENTITY_NAME
+     * 对象名: BIZ_OBJ_NAME
      */
-    public void setEntityName(java.lang.String value){
-        if(onPropSet(PROP_ID_entityName,value)){
-            this._entityName = value;
-            internalClearRefs(PROP_ID_entityName);
+    public void setBizObjName(java.lang.String value){
+        if(onPropSet(PROP_ID_bizObjName,value)){
+            this._bizObjName = value;
+            internalClearRefs(PROP_ID_bizObjName);
             
         }
     }
     
     /**
-     * 实体ID: ENTITY_ID
+     * 对象ID: BIZ_OBJ_ID
      */
-    public java.lang.String getEntityId(){
-         onPropGet(PROP_ID_entityId);
-         return _entityId;
+    public java.lang.String getBizObjId(){
+         onPropGet(PROP_ID_bizObjId);
+         return _bizObjId;
     }
 
     /**
-     * 实体ID: ENTITY_ID
+     * 对象ID: BIZ_OBJ_ID
      */
-    public void setEntityId(java.lang.String value){
-        if(onPropSet(PROP_ID_entityId,value)){
-            this._entityId = value;
-            internalClearRefs(PROP_ID_entityId);
+    public void setBizObjId(java.lang.String value){
+        if(onPropSet(PROP_ID_bizObjId,value)){
+            this._bizObjId = value;
+            internalClearRefs(PROP_ID_bizObjId);
             
         }
     }

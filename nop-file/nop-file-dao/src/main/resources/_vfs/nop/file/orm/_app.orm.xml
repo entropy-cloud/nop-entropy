@@ -48,10 +48,10 @@
                         stdSqlType="BIGINT" i18n-en:displayName="File Length"/>
                 <column code="FILE_LAST_MODIFIED" displayName="文件修改时间" name="fileLastModified" propId="7"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Last Modified"/>
-                <column code="ENTITY_NAME" displayName="实体名" name="entityName" precision="200" propId="8"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Name"/>
-                <column code="ENTITY_ID" displayName="实体ID" name="entityId" precision="200" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity ID"/>
+                <column code="BIZ_OBJ_NAME" displayName="对象名" name="bizObjName" precision="200" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjName"/>
+                <column code="BIZ_OBJ_ID" displayName="对象ID" name="bizObjId" precision="200" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjId"/>
                 <column code="FIELD_NAME" displayName="字段名" name="fieldName" precision="100" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Field Name"/>
                 <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="11"

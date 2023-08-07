@@ -107,7 +107,9 @@ Nop平台内置的表名都具有前缀`nop_`。
 * ref-cascade-delete: 删除父表的时候自动删除子表集合对象
 * ref-insertable: 主表提交的时候允许也同时提交子表数据，一次性插入
 * ref-updatable: 主表提交的时候允许同时更新子表数据
+* ref-grid: 自动生成界面时在主表编辑页面上增加子表表格，子表数据和主表数据一起提交
 
+ref-xx表示的是在父表中对应子表的属性上所增加的标签。例如在子表的关联上增加ref-pub标签，对应于在parent.children这个属性上增加了pub标签。
 
 对象属性名会根据数据库字段名自动生成。假设当前表为PurchaseOrder,它具有一个字段supplier_id，关联到父表 Supplier。则逆向工程时会为PurchaseOrder表生成一个
 to-one关联，属性名为supplier（对应于java中Supplier getSupplier()方法）。关联属性名是父表实体中对应于子表实体的集合属性名，除非我们需要在内存中使用该集合，否则不要设置关联属性名。特别是当子表集合中条目数超过1000时，

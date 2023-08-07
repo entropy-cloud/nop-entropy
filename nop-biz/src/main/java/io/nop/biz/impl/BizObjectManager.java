@@ -7,6 +7,8 @@
  */
 package io.nop.biz.impl;
 
+import io.nop.api.core.auth.IBizAuthChecker;
+import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
@@ -60,7 +62,7 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
 
-public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader {
+public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader, IBizAuthChecker {
     private List<Object> bizModelBeans;
 
     private TypeRegistry typeRegistry;
@@ -300,5 +302,11 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         objDef.setName(opType.getTypeName());
         objDef.setFields(fields);
         return objDef;
+    }
+
+    @Override
+    public boolean isPermitted(String bizObjName, String objId, String fieldName, ISecurityContext context) {
+
+        return true;
     }
 }

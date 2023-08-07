@@ -7,8 +7,8 @@ CREATE TABLE nop_file_record(
   MIME_TYPE VARCHAR(100) NOT NULL ,
   FILE_LENGTH INT8  ,
   FILE_LAST_MODIFIED TIMESTAMP  ,
-  ENTITY_NAME VARCHAR(200)  ,
-  ENTITY_ID VARCHAR(200)  ,
+  BIZ_OBJ_NAME VARCHAR(200)  ,
+  BIZ_OBJ_ID VARCHAR(200)  ,
   FIELD_NAME VARCHAR(100)  ,
   DEL_FLAG INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -34,9 +34,9 @@ CREATE TABLE nop_file_record(
                     
       COMMENT ON COLUMN nop_file_record.FILE_LAST_MODIFIED IS '文件修改时间';
                     
-      COMMENT ON COLUMN nop_file_record.ENTITY_NAME IS '实体名';
+      COMMENT ON COLUMN nop_file_record.BIZ_OBJ_NAME IS '对象名';
                     
-      COMMENT ON COLUMN nop_file_record.ENTITY_ID IS '实体ID';
+      COMMENT ON COLUMN nop_file_record.BIZ_OBJ_ID IS '对象ID';
                     
       COMMENT ON COLUMN nop_file_record.FIELD_NAME IS '字段名';
                     

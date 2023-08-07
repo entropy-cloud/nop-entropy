@@ -443,6 +443,61 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class FileType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_FILE;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            if (text == null)
+                return true;
+            if (text.indexOf('<') >= 0 || text.indexOf('>') >= 0 || text.indexOf("..") >= 0)
+                return false;
+            return true;
+        }
+    }
+
+
+    public static class FileListType extends SimpleStdDomainHandler {
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_FILE_LIST;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return PredefinedGenericTypes.LIST_STRING_TYPE;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (text instanceof List)
+                return text;
+
+            JsonParseOptions opts = new JsonParseOptions();
+            opts.setKeepLocation(true);
+            Object o;
+            try {
+                o = JsonTool.instance().parseFromText(loc, text.toString(), opts);
+            } catch (Exception e) {
+                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN, e).loc(loc)
+                        .param(ARG_STD_DOMAIN, getName()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, text);
+            }
+            if (!(o instanceof List))
+                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
+                        .param(ARG_STD_DOMAIN, getName()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, text);
+            return o;
+        }
+    }
+
     public static class JsonType extends SimpleStdDomainHandler {
         @Override
         public boolean isFixedType() {
@@ -470,7 +525,7 @@ public class SimpleStdDomainHandlers {
             try {
                 return JsonTool.instance().parseFromText(loc, text.toString(), opts);
             } catch (Exception e) {
-                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
+                throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN, e).loc(loc)
                         .param(ARG_STD_DOMAIN, getName()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, text);
             }
         }
@@ -602,7 +657,7 @@ public class SimpleStdDomainHandlers {
                 try {
                     node = XNodeParser.instance().parseFromText(loc, text.toString());
                 } catch (Exception e) {
-                    throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
+                    throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN, e).loc(loc)
                             .param(ARG_STD_DOMAIN, getName()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, text);
                 }
             }
