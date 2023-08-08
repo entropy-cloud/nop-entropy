@@ -1,0 +1,20 @@
+entity:
+  label:
+    NopFileRecord: File Record
+prop:
+  label:
+    NopFileRecord:
+      fileId: File ID
+      fileName: File Name
+      filePath: File Path
+      fileExt: File Ext
+      mimeType: Mime Type
+      fileLength: File Length
+      fileLastModified: Last Modified
+      bizObjName: BizObjName
+      bizObjId: BizObjId
+      fieldName: Field Name
+      delFlag: Deleted
+      createdBy: Created By
+      createTime: Create Time
+      remark: Remark

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopFileRecord" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/file/model/NopFileRecord/NopFileRecord.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--文件ID-->
+                <col id="fileId" mandatory="true" sortable="true"/>
+
+                <!--文件名-->
+                <col id="fileName" sortable="true"/>
+
+                <!--文件路径-->
+                <col id="filePath" mandatory="true" sortable="true"/>
+
+                <!--扩展名-->
+                <col id="fileExt" sortable="true"/>
+
+                <!--内容类型-->
+                <col id="mimeType" mandatory="true" sortable="true"/>
+
+                <!--文件长度-->
+                <col id="fileLength" sortable="true"/>
+
+                <!--文件修改时间-->
+                <col id="fileLastModified" sortable="true"/>
+
+                <!--对象名-->
+                <col id="bizObjName" sortable="true"/>
+
+                <!--对象ID-->
+                <col id="bizObjId" sortable="true"/>
+
+                <!--字段名-->
+                <col id="fieldName" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-文件记录" i18n-en:title="View File Record">
+            <layout>
+ fileId[文件ID] fileName[文件名]
+ filePath[文件路径] fileExt[扩展名]
+ mimeType[内容类型] fileLength[文件长度]
+ fileLastModified[文件修改时间] bizObjName[对象名]
+ bizObjId[对象ID] fieldName[字段名]
+ createdBy[创建人] createTime[创建时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-文件记录" i18n-en:title="Add File Record" x:prototype="edit"/>
+        <form id="edit" editMode="update" title="编辑-文件记录" i18n-en:title="Edit File Record">
+            <layout>
+ fileId[文件ID] fileName[文件名]
+ filePath[文件路径] fileExt[扩展名]
+ mimeType[内容类型] fileLength[文件长度]
+ fileLastModified[文件修改时间] bizObjName[对象名]
+ bizObjId[对象ID] fieldName[字段名]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-文件记录" i18n-en:title="Update File Record">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopFileRecord__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopFileRecord__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopFileRecord__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopFileRecord__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopFileRecord__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopFileRecord__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopFileRecord__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopFileRecord__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopFileRecord__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

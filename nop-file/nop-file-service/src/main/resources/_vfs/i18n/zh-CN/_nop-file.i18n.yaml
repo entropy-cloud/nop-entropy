@@ -1,0 +1,20 @@
+entity:
+  label:
+    NopFileRecord: 文件记录
+prop:
+  label:
+    NopFileRecord:
+      bizObjId: 对象ID
+      bizObjName: 对象名
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      fieldName: 字段名
+      fileExt: 扩展名
+      fileId: 文件ID
+      fileLastModified: 文件修改时间
+      fileLength: 文件长度
+      fileName: 文件名
+      filePath: 文件路径
+      mimeType: 内容类型
+      remark: 备注

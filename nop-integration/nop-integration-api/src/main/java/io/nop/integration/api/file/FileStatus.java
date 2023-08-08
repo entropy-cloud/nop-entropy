@@ -13,15 +13,25 @@ import io.nop.api.core.annotations.data.DataBean;
 public class FileStatus {
     private String name;
     private long size;
+    private long lastModified;
     private String permissions;
 
     public FileStatus() {
     }
 
-    public FileStatus(String name, long size, String permissions) {
+    public FileStatus(String name, long size, long lastModified, String permissions) {
         this.name = name;
         this.size = size;
+        this.lastModified = lastModified;
         this.permissions = permissions;
+    }
+
+    public long getLastModified() {
+        return lastModified;
+    }
+
+    public void setLastModified(long lastModified) {
+        this.lastModified = lastModified;
     }
 
     public String getName() {

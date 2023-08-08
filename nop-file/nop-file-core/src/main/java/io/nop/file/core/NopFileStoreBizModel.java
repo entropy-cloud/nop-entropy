@@ -21,9 +21,11 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.file.core.FileErrors.ARG_ALLOWED_FILE_EXTS;
+import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.file.core.FileErrors.ARG_FILE_EXT;
 import static io.nop.file.core.FileErrors.ARG_LENGTH;
 import static io.nop.file.core.FileErrors.ARG_MAX_LENGTH;
+import static io.nop.file.core.FileErrors.ERR_FILE_INVALID_BIZ_OBJ_NAME;
 import static io.nop.file.core.FileErrors.ERR_FILE_LENGTH_EXCEED_LIMIT;
 import static io.nop.file.core.FileErrors.ERR_FILE_NOT_ALLOW_FILE_EXT;
 
@@ -75,10 +77,17 @@ public class NopFileStoreBizModel {
         }
     }
 
+    protected void checkBizObjName(String bizObjName) {
+        if (!StringHelper.isValidSimpleVarName(bizObjName))
+            throw new NopException(ERR_FILE_INVALID_BIZ_OBJ_NAME)
+                    .param(ARG_BIZ_OBJ_NAME, bizObjName);
+    }
+
     @BizMutation
     public ApiResponse<?> upload(@RequestBean UploadRequestBean record, IServiceContext context) {
         checkMaxLength(record.getLength());
         checkFileExt(record.getFileExt());
+        checkBizObjName(record.getBizObjName());
 
         String fileId = fileStore.saveFile(record, maxFileLength);
 

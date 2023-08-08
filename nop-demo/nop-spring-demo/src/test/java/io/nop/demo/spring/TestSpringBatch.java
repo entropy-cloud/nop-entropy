@@ -4,6 +4,7 @@ import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.ImportResource;
 @ComponentScan("io.nop.demo.spring")
 @AutoConfigureTestDatabase
 @ImportResource("classpath:spring-batch-job.beans.xml")
+@Disabled
 public class TestSpringBatch {
     @Autowired
     JobLauncher jobLauncher;

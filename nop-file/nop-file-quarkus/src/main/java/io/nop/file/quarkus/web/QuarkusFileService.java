@@ -46,6 +46,7 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                                                      @Context HttpServerRequest request) {
         Map<String, List<InputPart>> uploadForm = input.getFormDataMap();
         List<InputPart> inputParts = uploadForm.get("file");
+        String bizObjName = request.getParam(FileConstants.PARAM_BIZ_OBJ_NAME);
 
         String locale = ContextProvider.currentLocale();
         CompletionStage<ApiResponse<?>> res = null;
@@ -61,6 +62,8 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
 
                 String mimeType = MediaTypeHelper.getMimeType(contentType, StringHelper.fileExt(fileName));
                 UploadRequestBean fileInput = new UploadRequestBean(inputStream, fileName, inputStream.available(), mimeType);
+                fileInput.setBizObjName(bizObjName);
+
                 res = uploadAsync(buildRequest(request, fileInput));
                 break;
             }

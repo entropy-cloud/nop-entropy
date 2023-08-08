@@ -86,16 +86,39 @@ public class SftpClient implements IFileServiceClient {
             for (ChannelSftp.LsEntry file : files) {
                 String name = file.getFilename();
                 SftpATTRS attrs = file.getAttrs();
-                String permissions = attrs.getPermissionsString();
-                long size = attrs.getSize();
 
-                ret.add(new FileStatus(name, size, permissions));
+                ret.add(newFileStatus(name, attrs));
             }
             return ret;
         } catch (Exception e) {
             throw new NopException(ERR_SFTP_LIST_FILE_FAIL, e)
                     .param(ARG_REMOTE_PATH, remoteDir);
         }
+    }
+
+    private FileStatus newFileStatus(String name, SftpATTRS attrs) {
+        String permissions = attrs.getPermissionsString();
+        long size = attrs.getSize();
+
+        return new FileStatus(name, size, attrs.getMTime() * 1000L, permissions);
+    }
+
+    @Override
+    public FileStatus getFileStatus(String remotePath) {
+        try {
+            SftpATTRS attrs = channel.lstat(remotePath);
+            return newFileStatus(getFileName(remotePath), attrs);
+        } catch (Exception e) {
+            throw new NopException(ERR_SFTP_LIST_FILE_FAIL, e)
+                    .param(ARG_REMOTE_PATH, remotePath);
+        }
+    }
+
+    private String getFileName(String path) {
+        int pos = path.lastIndexOf('/');
+        if (pos < 0)
+            return path;
+        return path.substring(pos + 1);
     }
 
     @Override

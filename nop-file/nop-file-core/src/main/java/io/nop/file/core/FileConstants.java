@@ -5,7 +5,9 @@ public interface FileConstants {
 
     String PATH_DOWNLOAD = "/f/download";
 
-    String TEMP_BIZ_OBJ = "TEMP";
+    String PARAM_BIZ_OBJ_NAME = "bizObjName";
+
+    String TEMP_BIZ_OBJ_ID = "__TEMP__";
 
     String MEDIA_TYPE_CONFIG_PATH = "/nop/file/media-type.json";
 

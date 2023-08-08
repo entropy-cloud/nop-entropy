@@ -342,6 +342,18 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-file-quarkus</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-file-spring</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-nosql</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -395,11 +407,11 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-<!--            <dependency>-->
-<!--                <groupId>io.github.entropy-cloud</groupId>-->
-<!--                <artifactId>nop-web-vertx</artifactId>-->
-<!--                <version>${nop-entropy.version}</version>-->
-<!--            </dependency>-->
+            <!--            <dependency>-->
+            <!--                <groupId>io.github.entropy-cloud</groupId>-->
+            <!--                <artifactId>nop-web-vertx</artifactId>-->
+            <!--                <version>${nop-entropy.version}</version>-->
+            <!--            </dependency>-->
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
@@ -692,6 +704,18 @@
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-integration-api</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-integration-file-local</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-integration-oss</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 

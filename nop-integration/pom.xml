@@ -19,6 +19,8 @@
         <module>nop-integration-sms-tencent</module>
         <module>nop-integration-email-java</module>
         <module>nop-integration-email-tencent</module>
+        <module>nop-integration-file-local</module>
+        <module>nop-integration-oss</module>
     </modules>
 
 

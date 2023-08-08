@@ -11,7 +11,7 @@ import java.io.InputStream;
 public class UploadRequestBean {
     private InputStream inputStream;
     private String fileName;
-
+    private String bizObjName;
     private String mimeType;
     private long length;
 
@@ -26,6 +26,14 @@ public class UploadRequestBean {
         this.length = length;
         this.mimeType = mimeType;
         this.lastModified = CoreMetrics.currentTimeMillis();
+    }
+
+    public String getBizObjName() {
+        return bizObjName;
+    }
+
+    public void setBizObjName(String bizObjName) {
+        this.bizObjName = bizObjName;
     }
 
     public void setInputStream(InputStream inputStream) {

@@ -1,5 +1,7 @@
 package io.nop.file.dao.store;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
@@ -9,26 +11,37 @@ import io.nop.core.resource.store.LocalResourceStore;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.file.core.FileConstants;
-import io.nop.file.core.UploadRequestBean;
 import io.nop.file.core.IFileRecord;
 import io.nop.file.core.IFileStore;
+import io.nop.file.core.UploadRequestBean;
 import io.nop.file.dao.entity.NopFileRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.Objects;
 
+import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.file.core.FileErrors.ARG_FILE_ID;
+import static io.nop.file.core.FileErrors.ARG_FILE_OBJ_NAME;
+import static io.nop.file.core.FileErrors.ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ;
+
 /**
  * 将上传文件存放在本地目录下
  */
-public class DaoLocalFileStore implements IFileStore {
-    static final Logger LOG = LoggerFactory.getLogger(DaoLocalFileStore.class);
+public class DaoResourceFileStore implements IFileStore {
+    static final Logger LOG = LoggerFactory.getLogger(DaoResourceFileStore.class);
     private IDaoProvider daoProvider;
 
     private IResourceStore resourceStore;
+
+    @PostConstruct
+    public void init() {
+        Guard.notNull(resourceStore, "resourceStore");
+    }
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
@@ -66,9 +79,10 @@ public class DaoLocalFileStore implements IFileStore {
         entity.setFileName(record.getFileName());
         entity.setFileExt(record.getFileExt());
         // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
-        entity.setBizObjName(FileConstants.TEMP_BIZ_OBJ);
+        entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
+        entity.setBizObjName(record.getBizObjName());
         String fileId = newFileId();
-        String filePath = newPath(fileId);
+        String filePath = newPath(record.getBizObjName(), fileId);
         entity.setFileId(fileId);
         entity.setFilePath(filePath);
 
@@ -98,9 +112,10 @@ public class DaoLocalFileStore implements IFileStore {
         return StringHelper.generateUUID();
     }
 
-    protected String newPath(String fileId) {
+    protected String newPath(String bizObjName, String fileId) {
         LocalDate now = DateHelper.currentDate();
         StringBuilder sb = new StringBuilder();
+        sb.append('/').append(bizObjName);
         sb.append("/").append(StringHelper.leftPad(String.valueOf(now.getYear()), 4, '0'));
         sb.append('/').append(StringHelper.leftPad(String.valueOf(now.getMonthValue()), 2, '0'));
         sb.append('/').append(StringHelper.leftPad(String.valueOf(now.getDayOfMonth()), 2, '0'));
@@ -126,7 +141,9 @@ public class DaoLocalFileStore implements IFileStore {
     public void attachFile(String fileId, String bizObjName, String objId, String fieldName) {
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
         NopFileRecord record = dao.requireEntityById(fileId);
-        record.setBizObjName(bizObjName);
+        if (!Objects.equals(record.getBizObjName(), bizObjName))
+            throw new NopException(ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ)
+                    .param(ARG_FILE_ID, fileId).param(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_FILE_OBJ_NAME, record.getBizObjName());
         record.setBizObjId(objId);
         record.setFieldName(fieldName);
         dao.saveEntity(record);

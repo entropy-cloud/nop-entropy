@@ -60,6 +60,7 @@ prop:
       children: Children
       predicateComponent: null
       outputsComponent: null
+      predicateDisplayText: null
     NopRuleRole:
       sid: SID
       ruleId: Rule ID

@@ -28,6 +28,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-integration-api</artifactId>
+        </dependency>
+
+        <dependency>
             <artifactId>nop-file-codegen</artifactId>
             <groupId>io.github.entropy-cloud</groupId>
             <version>2.0.0-SNAPSHOT</version>

@@ -19,6 +19,9 @@ public interface FileErrors {
     String ARG_BIZ_OBJ_ID = "bizObjId";
 
     String ARG_FIELD_NAME = "fieldName";
+
+    String ARG_FILE_OBJ_NAME = "fileObjName";
+
     ErrorCode ERR_FILE_LENGTH_EXCEED_LIMIT = define("nop.err.file.length-exceed-limit",
             "上传文件长度{}超过限制{maxLength}", ARG_LENGTH, ARG_MAX_LENGTH);
 
@@ -28,4 +31,11 @@ public interface FileErrors {
 
     ErrorCode ERR_FILE_NOT_ALLOW_ACCESS_FILE = define("nop.err.file.not-allow-access-file",
             "没有访问文件的权限:{}", ARG_FILE_ID);
+
+    ErrorCode ERR_FILE_INVALID_BIZ_OBJ_NAME = define("nop.err.file.invalid-biz-obj-name",
+            "非法的对象名:{bizObjName}", ARG_BIZ_OBJ_NAME);
+
+    ErrorCode ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ = define("nop.err.file.attach-file-not-same-obj",
+            "文件与实体绑定时指定的对象名不一致:bizObjName={bizObjName},fileId={fileId},fileObj={fileObjName}",
+            ARG_BIZ_OBJ_NAME, ARG_FILE_ID, ARG_FILE_OBJ_NAME);
 }

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="nopOssFileServiceClientFactory" ioc:default="true"
+          class="io.nop.integration.oss.OssFileServiceClientFactory">
+        <ioc:condition>
+            <on-property name="nop.integration.oss.enabled" matchIfMissing="false"/>
+        </ioc:condition>
+
+        <property name="ossConfig" ref="nopOssConfig"/>
+    </bean>
+
+    <bean id="nopOssResourceStore" ioc:default="true"
+          class="io.nop.integration.file.local.FileServiceResourceStore">
+        <ioc:condition>
+            <on-property name="nop.integration.oss.enabled" matchIfMissing="false"/>
+        </ioc:condition>
+
+        <property name="fileServiceClientFactory" ref="nopOssFileServiceClientFactory"/>
+    </bean>
+
+    <bean id="nopOssConfig" class="io.nop.integration.oss.OssConfig" ioc:config-prefix="nop.integration.oss">
+
+    </bean>
+</beans>

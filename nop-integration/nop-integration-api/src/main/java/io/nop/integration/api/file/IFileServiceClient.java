@@ -17,6 +17,8 @@ public interface IFileServiceClient extends AutoCloseable {
 
     void deleteFile(String remotePath);
 
+    FileStatus getFileStatus(String remotePath);
+
     /**
      * @param localPath  本地文件路径
      * @param remotePath 远程文件路径
@@ -24,6 +26,13 @@ public interface IFileServiceClient extends AutoCloseable {
      */
     String uploadFile(String localPath, String remotePath);
 
+    /**
+     * 下载文件到本地
+     *
+     * @param remotePath 远程文件路径
+     * @param localPath  本地文件路径
+     * @return 本地文件的绝对路径
+     */
     String downloadFile(String remotePath, String localPath);
 
     String uploadResource(IResourceReference file, String remotePath);

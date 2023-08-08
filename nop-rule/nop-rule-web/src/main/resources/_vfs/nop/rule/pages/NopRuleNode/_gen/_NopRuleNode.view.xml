@@ -45,6 +45,9 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--判断条件-->
+                <col id="predicateDisplayText"/>
             </cols>
         </grid>
         <grid id="tree-list" x:prototype="list">
@@ -63,6 +66,7 @@
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
+ predicateDisplayText[判断条件] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-规则节点" i18n-en:title="Add Rule Node" x:prototype="edit"/>
@@ -76,6 +80,7 @@
  parentId[父ID]
  isLeaf[是否叶子节点]
  remark[备注]
+ predicateDisplayText[判断条件]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

@@ -38,6 +38,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
             String fileName = StringHelper.fileFullName(file.getOriginalFilename());
             String mimeType = MediaTypeHelper.getMimeType(file.getContentType(), StringHelper.fileExt(fileName));
             UploadRequestBean input = new UploadRequestBean(is, fileName, file.getSize(), mimeType);
+            input.setBizObjName(request.getParameter(FileConstants.PARAM_BIZ_OBJ_NAME));
             res = uploadAsync(buildRequest(request, input));
         } catch (IOException e) {
             res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
