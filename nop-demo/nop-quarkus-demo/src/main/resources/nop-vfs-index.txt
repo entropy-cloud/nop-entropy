@@ -252,8 +252,12 @@
 /nop/demo/validator/process-card.validator.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
+/nop/file/beans/_dao.beans.xml
 /nop/file/beans/app-file-core.beans.xml
+/nop/file/beans/app-file-dao.beans.xml
 /nop/file/beans/app-file-quarkus.beans.xml
+/nop/file/orm/_app.orm.xml
+/nop/file/orm/app.orm.xml
 /nop/gateway/beans/gateway-defaults.beans.xml
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql

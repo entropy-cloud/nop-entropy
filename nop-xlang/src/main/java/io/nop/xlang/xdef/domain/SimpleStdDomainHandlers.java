@@ -560,8 +560,11 @@ public class SimpleStdDomainHandlers {
         @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
-            throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP).loc(loc).param(ARG_STD_DOMAIN, getName())
-                    .param(ARG_PROP_NAME, propName);
+            if (!CoreConstants.XML_PROP_BODY.equals(propName)) {
+                throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP).loc(loc).param(ARG_STD_DOMAIN, getName())
+                        .param(ARG_PROP_NAME, propName);
+            }
+            return text;
         }
 
         @Override

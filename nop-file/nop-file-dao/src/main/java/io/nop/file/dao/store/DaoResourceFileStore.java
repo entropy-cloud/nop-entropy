@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import javax.ws.rs.core.MediaType;
 import java.io.File;
 import java.time.LocalDate;
 import java.util.Objects;
@@ -81,6 +82,10 @@ public class DaoResourceFileStore implements IFileStore {
         // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
         entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
         entity.setBizObjName(record.getBizObjName());
+        entity.setMimeType(record.getMimeType());
+        if(StringHelper.isEmpty(entity.getMimeType()))
+            entity.setMimeType(MediaType.APPLICATION_OCTET_STREAM);
+
         String fileId = newFileId();
         String filePath = newPath(record.getBizObjName(), fileId);
         entity.setFileId(fileId);

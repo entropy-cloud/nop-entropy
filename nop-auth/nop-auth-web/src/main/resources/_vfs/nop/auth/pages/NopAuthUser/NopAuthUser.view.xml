@@ -20,6 +20,7 @@
                 ===========>baseInfo[基本信息]======
                 userName status[用户状态]
                 nickName[昵称] deptId[部门]
+                avatar
                 userType[用户类型] gender[性别]
                 email[邮件] phone[电话]
                 openId[用户外部标识]
@@ -40,6 +41,7 @@
                 ============>baseInfo[基本信息]======
                 userName status[用户状态]
                 nickName[昵称] deptId[部门]
+                avatar
                 userType[用户类型] gender[性别]
                 password[密码] *__password2[重复密码]
                 email[邮件] phone[电话]
@@ -68,6 +70,7 @@
                 ============>baseInfo[基本信息]======
                 userName status[用户状态]
                 nickName[昵称] deptId[部门]
+                avatar
                 userType[用户类型] gender[性别]
                 email[邮件] phone[电话]
                 expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]

@@ -57,7 +57,7 @@ public class NopFileStoreBizModel {
     }
 
 
-    @InjectValue("@cfg:nop.file.upload.allowed-file-exts:")
+    @InjectValue("@cfg:nop.file.upload.allowed-file-exts|")
     public void setAllowedFileExts(Set<String> allowedFileExts) {
         this.allowedFileExts = allowedFileExts;
     }

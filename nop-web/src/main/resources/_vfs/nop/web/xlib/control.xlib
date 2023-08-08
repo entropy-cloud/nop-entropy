@@ -510,14 +510,46 @@
         <edit-image>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
+            <attr name="bizObjName" mandatory="true"/>
+            <source>
+                <thisLib:edit-file dispMeta="${dispMeta}" propMeta="${propMeta}" bizObjName="${bizObjName}"
+                    accept=".jpg,.png,.gif,.icon,.svg,.bmp"/>
+            </source>
+        </edit-image>
+
+        <edit-file>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="bizObjName" mandatory="true"/>
+            <attr name="accept" optional="true" />
 
             <source><![CDATA[
-                return {
-                    "type": "input-text",
-                    "placeholder": "输入图片链接"
-                }
+              const name = propMeta.name
+              const uploadUrl = $config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName
+              return {
+                        "type": "input-group",
+                        "name": "__group_" + name,
+                        "body": [
+                          {
+                            "type": "checkbox",
+                            "name": "__switch_" + name
+                          },
+                          {
+                            "type": "input-text",
+                            "name": name,
+                            "visibleOn": '${__switch_' + name + '}'
+                          },
+                          {
+                            "type": "input-file",
+                            "name": name,
+                            "visibleOn": '${!__switch_' + name + '}',
+                            "accept":accept,
+                            "receiver": uploadUrl
+                          }
+                        ]
+                      }
             ]]></source>
-        </edit-image>
+        </edit-file>
 
         <view-images>
             <attr name="dispMeta"/>
