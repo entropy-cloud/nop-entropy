@@ -6,5 +6,5 @@ package io.nop.api.core.auth;
  * 内部可能通过IActionAuthChecker和IDataAuthChecker实现。
  */
 public interface IBizAuthChecker {
-    boolean isPermitted(String bizObjName, String objId, String fieldName, ISecurityContext context);
+    void checkAuth(String bizObjName, String objId, String fieldName, ISecurityContext context);
 }

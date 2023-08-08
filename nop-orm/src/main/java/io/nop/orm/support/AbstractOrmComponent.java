@@ -30,7 +30,7 @@ public abstract class AbstractOrmComponent implements IOrmComponent {
         return owner.orm_propValue(getColPropId(propName));
     }
 
-    private int getColPropId(String propName) {
+    protected int getColPropId(String propName) {
         Integer propId = propToColPropIds.get(propName);
         if (propId == null)
             throw new OrmException(ERR_ORM_MODEL_UNKNOWN_COMPONENT_PROP)

@@ -19,6 +19,8 @@ public interface OrmConstants {
 
     String FILE_TYPE_ORM_XLSX = "orm.xlsx";
 
+    String BEAN_ORM_ENTITY_FILE_STORE = "nopOrmEntityFileStore";
+
     char COMPOSITE_PK_SEPARATOR = '~';
 
 

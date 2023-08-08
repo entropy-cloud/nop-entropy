@@ -21,14 +21,10 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.file.core.FileErrors.ARG_ALLOWED_FILE_EXTS;
-import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_ID;
-import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_NAME;
-import static io.nop.file.core.FileErrors.ARG_FIELD_NAME;
 import static io.nop.file.core.FileErrors.ARG_FILE_EXT;
 import static io.nop.file.core.FileErrors.ARG_LENGTH;
 import static io.nop.file.core.FileErrors.ARG_MAX_LENGTH;
 import static io.nop.file.core.FileErrors.ERR_FILE_LENGTH_EXCEED_LIMIT;
-import static io.nop.file.core.FileErrors.ERR_FILE_NOT_ALLOW_ACCESS_FILE;
 import static io.nop.file.core.FileErrors.ERR_FILE_NOT_ALLOW_FILE_EXT;
 
 @BizModel("NopFileStore")
@@ -41,6 +37,7 @@ public class NopFileStoreBizModel {
     private IBizAuthChecker bizAuthChecker;
 
     private Set<String> allowedFileExts;
+
     @Inject
     @Nullable
     public void setBizAuthChecker(IBizAuthChecker bizAuthChecker) {
@@ -104,11 +101,7 @@ public class NopFileStoreBizModel {
     protected IFileRecord loadFileRecord(String fileId, IServiceContext ctx) {
         IFileRecord record = fileStore.getFile(fileId);
         if (bizAuthChecker != null) {
-            if (!bizAuthChecker.isPermitted(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx))
-                throw new NopException(ERR_FILE_NOT_ALLOW_ACCESS_FILE)
-                        .param(ARG_BIZ_OBJ_NAME, record.getBizObjName())
-                        .param(ARG_BIZ_OBJ_ID, record.getBizObjId())
-                        .param(ARG_FIELD_NAME, record.getFileName());
+            bizAuthChecker.checkAuth(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx);
         }
         return record;
     }

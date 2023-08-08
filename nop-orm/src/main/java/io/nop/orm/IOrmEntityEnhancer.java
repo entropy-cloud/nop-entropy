@@ -7,6 +7,8 @@
  */
 package io.nop.orm;
 
+import io.nop.api.core.ioc.IBeanProvider;
+
 import java.util.Map;
 
 public interface IOrmEntityEnhancer {
@@ -34,4 +36,6 @@ public interface IOrmEntityEnhancer {
     IOrmComponent newComponent(String componentName);
 
     IOrmEntity internalLoad(String entityName, Object id);
+
+    IBeanProvider getBeanProvider();
 }

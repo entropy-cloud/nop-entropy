@@ -10,6 +10,7 @@
             <source>
                 <thisLib:JsonComponentSupport/>
                 <thisLib:ExtFieldsSupport/>
+                <thisLib:FileComponentSupport/>
             </source>
         </DefaultPostExtends>
 
@@ -159,6 +160,50 @@
                 </entity>
             </source>
         </GenLocalExtFieldSupport>
+
+        <FileComponentSupport  outputMode="node">
+            <!--
+             _dsl_root为元编程阶段可访问的配置文件根节点
+            -->
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <orm>
+                    <entities>
+                        <c:for var="entityNode" items="${_dsl_root.childByTag('entities').children}">
+                            <c:script><![CDATA[
+                                if(entityNode.attrBoolean('x:abstract'))
+                                    continue;
+                                if(entityNode.attrText('x:override') == 'remove')
+                                    continue;
+                                let fileCols = entityNode.childByTag('columns').children.filter(colNode=>{
+                                      return colNode.getAttr('stdDomain') == 'file';
+                                   });
+                            ]]></c:script>
+                            <!--
+                            标记了是json字段，则追加component定义。
+                            -->
+                            <entity name="${entityNode.getAttr('name')}" xpl:if="!fileCols.empty">
+                                <components>
+                                    <c:for var="colNode" items="${fileCols}">
+                                        <c:script>
+                                            const pub =
+                                            !colNode.attrCsvSet('tagSet')?.contains('no-pub')
+                                        </c:script>
+                                        <component name="${colNode.getAttr('name')}Component" needFlush="true"
+                                                   notGenCode="${colNode.getAttr('notGenCode')}"
+                                                   tagSet="json${pub and ',pub'}"
+                                                   className="io.nop.orm.support.OrmFileComponent">
+                                            <prop name="filePath" column="${colNode.getAttr('name')}"/>
+                                        </component>
+                                    </c:for>
+                                </components>
+                            </entity>
+                        </c:for>
+                    </entities>
+                </orm>
+            </source>
+        </FileComponentSupport>
 
         <GenFromExcel  outputMode="node">
             <attr name="path" type="string"/>

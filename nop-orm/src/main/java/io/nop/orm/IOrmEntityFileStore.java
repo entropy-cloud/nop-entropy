@@ -1,6 +1,6 @@
-package io.nop.biz.api;
+package io.nop.orm;
 
-public interface IBizEntityFileStore {
+public interface IOrmEntityFileStore {
     /**
      * 根据文件id获取
      * @param fileId

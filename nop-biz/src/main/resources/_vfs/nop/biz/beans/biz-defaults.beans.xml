@@ -41,6 +41,8 @@
         </property>
     </bean>
 
+    <bean id="nopBizAuthChecker" class="io.nop.biz.impl.DefaultBizAuthChecker" ioc:default="true" />
+
     <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer">
         <ioc:condition>
             <on-bean>nopOrmTemplate</on-bean>

@@ -1,11 +1,11 @@
 package io.nop.file.core;
 
 import io.nop.api.core.util.FutureHelper;
-import io.nop.biz.api.IBizEntityFileStore;
+import io.nop.orm.IOrmEntityFileStore;
 
 import java.util.concurrent.CompletionStage;
 
-public interface IFileStore extends IBizEntityFileStore {
+public interface IFileStore extends IOrmEntityFileStore {
     default CompletionStage<String> saveFileAsync(UploadRequestBean record, long maxLength) {
         return FutureHelper.futureCall(() -> saveFile(record, maxLength));
     }

@@ -12,6 +12,7 @@ import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.ProcessResult;
@@ -383,6 +384,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     @Override
     public IOrmEntity internalLoad(String entityName, Object id) {
         return makeProxy(entityName, id);
+    }
+
+    @Override
+    public IBeanProvider getBeanProvider() {
+        return this.env.getBeanProvider();
     }
 
     @Override

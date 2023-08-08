@@ -13,8 +13,8 @@ import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.AuthApiErrors;
+import io.nop.core.context.IServiceContext;
 import io.nop.graphql.core.IGraphQLExecutionContext;
-import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLFragmentSelection;
 import io.nop.graphql.core.ast.GraphQLOperation;
@@ -81,10 +81,16 @@ public class GraphQLActionAuthChecker {
         }
     }
 
-    void checkAuth(String objTypeName, GraphQLFieldSelection selection, IActionAuthChecker checker,
-                   IGraphQLExecutionContext context, boolean action) {
-        GraphQLFieldDefinition field = selection.getFieldDefinition();
-        ActionAuthMeta auth = field.getAuth();
+    public static void checkAuth(String objTypeName, GraphQLFieldSelection fieldSelection, IActionAuthChecker checker,
+                                 IServiceContext context, boolean action) {
+        checkAuth(objTypeName, fieldSelection.getName(), fieldSelection.getFieldDefinition().getAuth(), checker, context, action);
+    }
+
+    public static void checkAuth(String objTypeName, String fieldName, ActionAuthMeta auth, IActionAuthChecker checker,
+                                 IServiceContext context, boolean action) {
+        if (checker == null)
+            return;
+
         if (auth == null)
             return;
 
@@ -103,13 +109,13 @@ public class GraphQLActionAuthChecker {
 
         if (action) {
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)
-                    .param(AuthApiErrors.ARG_ACTION_NAME, field.getName())
+                    .param(AuthApiErrors.ARG_ACTION_NAME, fieldName)
                     .param(ARG_PERMISSION, auth.getPermissions())
                     .param(ARG_ROLES, auth.getRoles())
                     .param(ARG_OBJ_TYPE_NAME, objTypeName);
         } else {
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
-                    .param(AuthApiErrors.ARG_FIELD_NAME, field.getName())
+                    .param(AuthApiErrors.ARG_FIELD_NAME, fieldName)
                     .param(ARG_PERMISSION, auth.getPermissions())
                     .param(ARG_ROLES, auth.getRoles())
                     .param(ARG_OBJ_TYPE_NAME, objTypeName);
