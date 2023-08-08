@@ -251,6 +251,9 @@
 /nop/demo/pages/Demo/test-validator.page.yaml
 /nop/demo/validator/process-card.validator.xml
 /nop/excel/xlib/imp-gen.xlib
+/nop/file/_module
+/nop/file/beans/app-file-core.beans.xml
+/nop/file/beans/app-file-quarkus.beans.xml
 /nop/gateway/beans/gateway-defaults.beans.xml
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql

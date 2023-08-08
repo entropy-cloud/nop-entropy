@@ -15691,6 +15691,32 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "checkAuth",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.api.core.auth.ISecurityContext"
+        ]
+      },
+      {
+        "name": "setBizObjectManager",
+        "parameterTypes": [
+          "io.nop.biz.api.IBizObjectManager"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.impl.DefaultBizAuthChecker",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -32314,6 +32340,163 @@
       }
     ],
     "name": "io.nop.excel.model.constants.XptExpandType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "IGNORE_HEADERS"
+      }
+    ],
+    "methods": [
+      {
+        "name": "downloadAsync",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ApiRequest"
+        ]
+      },
+      {
+        "name": "getGraphQLEngine",
+        "parameterTypes": []
+      },
+      {
+        "name": "shouldIgnoreHeader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "uploadAsync",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ApiRequest"
+        ]
+      }
+    ],
+    "name": "io.nop.file.core.AbstractGraphQLFileService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "fileStore"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "maxFileLength"
+      }
+    ],
+    "methods": [
+      {
+        "name": "checkBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkFileExt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkMaxLength",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadFileRecord",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "setAllowedFileExts",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setBizAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IBizAuthChecker"
+        ]
+      },
+      {
+        "name": "setFileStore",
+        "parameterTypes": [
+          "io.nop.file.core.IFileStore"
+        ]
+      },
+      {
+        "name": "setMaxFileLength",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "upload",
+        "parameterTypes": [
+          "io.nop.file.core.UploadRequestBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
+    "name": "io.nop.file.core.NopFileStoreBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildRequest",
+        "parameterTypes": [
+          "io.vertx.core.http.HttpServerRequest",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.vertx.core.http.HttpServerRequest"
+        ]
+      },
+      {
+        "name": "uploadFileAsync",
+        "parameterTypes": [
+          "org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput",
+          "io.vertx.core.http.HttpServerRequest"
+        ]
+      }
+    ],
+    "name": "io.nop.file.quarkus.web.QuarkusFileService",
     "unsafeAllocated": false
   },
   {

@@ -5,6 +5,10 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="io.nop.file.core.NopFileStoreBizModel" ioc:type="@bean:id" ioc:default="true">
+        <ioc:condition>
+            <on-bean>nopFileStore</on-bean>
+        </ioc:condition>
+
         <property name="fileStore" ref="nopFileStore" />
     </bean>
 </beans>
