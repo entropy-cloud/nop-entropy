@@ -7,7 +7,6 @@ import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.auth.IBizAuthChecker;
-import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
@@ -16,8 +15,6 @@ import io.nop.core.context.IServiceContext;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.ws.rs.core.MediaType;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import static io.nop.file.core.FileErrors.ARG_ALLOWED_FILE_EXTS;
@@ -84,17 +81,17 @@ public class NopFileStoreBizModel {
     }
 
     @BizMutation
-    public ApiResponse<?> upload(@RequestBean UploadRequestBean record, IServiceContext context) {
+    public UploadResponseBean upload(@RequestBean UploadRequestBean record, IServiceContext context) {
         checkMaxLength(record.getLength());
         checkFileExt(record.getFileExt());
         checkBizObjName(record.getBizObjName());
 
         String fileId = fileStore.saveFile(record, maxFileLength);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("value", fileStore.getFileLink(fileId));
-        ApiResponse<Map<String, Object>> res = ApiResponse.buildSuccess(data);
-        return res;
+        UploadResponseBean ret = new UploadResponseBean();
+        ret.setValue(fileStore.getFileLink(fileId));
+        ret.setFilename(record.getFileName());
+        return ret;
     }
 
     @BizQuery

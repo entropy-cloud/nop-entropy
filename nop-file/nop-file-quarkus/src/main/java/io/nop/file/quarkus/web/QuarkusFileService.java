@@ -21,6 +21,7 @@ import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -111,6 +112,7 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
     }
 
     @Path(FileConstants.PATH_DOWNLOAD + "/{fileId}")
+    @GET
     public CompletionStage<Response> download(@PathParam("fileId") String fileId,
                                               @DefaultValue("") @QueryParam("contentType") String contentType,
                                               @Context HttpServerRequest req) {
