@@ -7,6 +7,6 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <c:for var="entityModel" items="${ormModel.entityModels}">
-    <bean id="${basePackageName}.service.entity.${entityModel.shortName}BizModel" ioc:type="@bean:id" ioc:default="true" />
+    <bean id="${basePackageName}.service.entity.${entityModel.shortName}BizModel" ioc:type="@bean:id" ioc:default="true" xpl:if="!entityModel.notGenCode"/>
     </c:for>
 </beans>
