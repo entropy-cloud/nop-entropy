@@ -168,6 +168,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /* relation: 代理人映射 */
     public static final String PROP_NAME_substitutionMappings = "substitutionMappings";
     
+    /* component:  */
+    public static final String PROP_NAME_avatarComponent = "avatarComponent";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId};
@@ -1822,6 +1825,23 @@ public class _NopAuthUser extends DynamicOrmEntity{
        return _substitutionMappings;
     }
        
+   private io.nop.orm.support.OrmFileComponent _avatarComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_avatarComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_avatarComponent.put(io.nop.orm.support.OrmFileComponent.PROP_NAME_filePath,PROP_ID_avatar);
+      
+   }
+
+   public io.nop.orm.support.OrmFileComponent getAvatarComponent(){
+      if(_avatarComponent == null){
+          _avatarComponent = new io.nop.orm.support.OrmFileComponent();
+          _avatarComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_avatarComponent);
+      }
+      return _avatarComponent;
+   }
+
         public List<io.nop.auth.dao.entity.NopAuthRole> getRelatedRoleList(){
             return (List<io.nop.auth.dao.entity.NopAuthRole>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthUserRole.PROP_NAME_role);
         }

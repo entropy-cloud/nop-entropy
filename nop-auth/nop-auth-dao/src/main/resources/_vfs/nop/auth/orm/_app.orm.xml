@@ -11,7 +11,7 @@
 
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
-        <domain name="image" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdDomain="file" stdSqlType="VARCHAR"/>
         <domain name="email" precision="100" stdSqlType="VARCHAR"/>
         <domain name="phone" precision="100" stdSqlType="VARCHAR"/>
         <domain name="roleId" precision="100" stdSqlType="VARCHAR"/>
@@ -56,7 +56,8 @@
                 <column code="GENDER" displayName="性别" mandatory="true" name="gender" propId="8" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Gender" ext:dict="auth/gender"/>
                 <column code="AVATAR" displayName="头像" domain="image" name="avatar" precision="100" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Avatar" ext:show="X"/>
+                        stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="Avatar"
+                        ext:show="X"/>
                 <column code="EMAIL" displayName="邮件" domain="email" name="email" precision="100" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Email" ext:show="L"/>
                 <column code="EMAIL_VERIFIED" defaultValue="0" displayName="电话已验证" domain="boolFlag"

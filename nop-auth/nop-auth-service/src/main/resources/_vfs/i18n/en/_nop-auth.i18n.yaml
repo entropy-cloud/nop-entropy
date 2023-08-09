@@ -264,6 +264,7 @@ prop:
       position.name: Position
       roleMappings: RoleMappings
       substitutionMappings: Substitution Mappings
+      avatarComponent: null
       relatedRoleList: Role List
       relatedRoleIdList: Role List
       relatedRoleList_label: Role List

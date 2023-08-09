@@ -12043,6 +12043,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_avatarComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_birthday"
       },
       {
@@ -12248,6 +12253,10 @@
       },
       {
         "name": "getAvatar",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAvatarComponent",
         "parameterTypes": []
       },
       {
@@ -59364,6 +59373,14 @@
       {
         "name": "getRelationPickerUrl",
         "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjPropMeta",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
+        "name": "getRelationPickerUrl",
+        "parameterTypes": [
+          "io.nop.xui.model.IUiDisplayMeta",
           "io.nop.xlang.xmeta.IObjPropMeta",
           "io.nop.xlang.xmeta.IObjMeta"
         ]

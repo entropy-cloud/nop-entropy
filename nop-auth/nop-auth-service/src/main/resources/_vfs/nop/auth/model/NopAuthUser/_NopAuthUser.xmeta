@@ -53,7 +53,7 @@
         </prop>
         <prop name="avatar" displayName="头像" i18n-en:displayName="Avatar" queryable="true" sortable="true"
               insertable="true" updatable="true" internal="true" ext:show="X">
-            <schema domain="image" type="java.lang.String" precision="100"/>
+            <schema stdDomain="file" domain="image" type="java.lang.String" precision="100"/>
         </prop>
         <prop name="email" displayName="邮件" i18n-en:displayName="Email" queryable="true" sortable="true"
               insertable="true" updatable="true" ext:show="L">
@@ -181,6 +181,10 @@
               ext:joinRightProp="userId" insertable="false" updatable="false" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthUserSubstitution&gt;"
                     bizObjName="NopAuthUserSubstitution"/>
+        </prop>
+        <prop name="avatarComponent" ext:kind="component" internal="true" insertable="true" updatable="true" lazy="true"
+              published="false">
+            <schema type="io.nop.orm.support.OrmFileComponent"/>
         </prop>
         <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
               internal="true" lazy="true">

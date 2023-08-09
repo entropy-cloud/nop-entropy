@@ -223,6 +223,7 @@ prop:
       version: 数据版本
     NopAuthUser:
       avatar: 头像
+      avatarComponent: null
       birthday: 生日
       changePwdAtLogin: 登陆后立刻修改密码
       clientId: 设备ID

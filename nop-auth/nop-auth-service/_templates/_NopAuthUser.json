@@ -41,6 +41,7 @@
   "position.name": "",
   "roleMappings": null,
   "substitutionMappings": null,
+  "avatarComponent": null,
   "relatedRoleList": null,
   "relatedRoleIdList": null,
   "relatedRoleList_label": ""
