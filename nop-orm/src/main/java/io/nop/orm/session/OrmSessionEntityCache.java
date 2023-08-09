@@ -139,7 +139,7 @@ public class OrmSessionEntityCache implements IOrmSessionEntityCache {
         if (visiting && tempEntityCaches != null) {
             IOrmEntity entity = _get(this.tempEntityCaches, entityName, id);
             if (entity != null)
-                return null;
+                return entity;
         }
 
         return _get(this.entityCaches, entityName, id);
