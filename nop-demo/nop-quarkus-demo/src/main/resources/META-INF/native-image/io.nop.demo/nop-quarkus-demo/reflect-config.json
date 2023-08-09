@@ -32508,6 +32508,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "maxFileLength"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "maxFileSize"
       }
     ],
     "methods": [
@@ -32525,6 +32530,12 @@
       },
       {
         "name": "checkMaxLength",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "checkMaxSize",
         "parameterTypes": [
           "long"
         ]
@@ -32563,6 +32574,12 @@
       },
       {
         "name": "setMaxFileLength",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setMaxFileSize",
         "parameterTypes": [
           "long"
         ]
@@ -57763,6 +57780,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getMaxUploadSize",
+        "parameterTypes": []
+      },
+      {
         "name": "getMinLength",
         "parameterTypes": []
       },
@@ -58008,6 +58029,12 @@
         "name": "setMaxLength",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setMaxUploadSize",
+        "parameterTypes": [
+          "java.lang.Long"
         ]
       },
       {
@@ -59319,6 +59346,13 @@
         "parameterTypes": [
           "io.nop.xui.model.UiGridModel",
           "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
+        "name": "getMaxUploadSize",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjPropMeta",
+          "io.nop.xui.model.IUiDisplayMeta"
         ]
       },
       {

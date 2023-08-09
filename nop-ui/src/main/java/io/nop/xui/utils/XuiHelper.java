@@ -32,6 +32,8 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.xui.XuiConfigs.CFG_FILE_UPLOAD_MAX_SIZE;
+import static io.nop.xui.XuiConstants.BIZ_MODULE_ID;
 import static io.nop.xui.XuiConstants.DATA_TYPE_ANY;
 import static io.nop.xui.XuiConstants.EXT_KIND;
 import static io.nop.xui.XuiConstants.KIND_TO_MANY;
@@ -40,6 +42,7 @@ import static io.nop.xui.XuiConstants.MODE_EDIT;
 import static io.nop.xui.XuiConstants.MODE_LIST_EDIT;
 import static io.nop.xui.XuiConstants.MODE_LIST_VIEW;
 import static io.nop.xui.XuiConstants.MODE_VIEW;
+import static io.nop.xui.XuiConstants.UI_PICKER_URL;
 import static io.nop.xui.XuiErrors.ARG_PROP_NAME;
 import static io.nop.xui.XuiErrors.ARG_RELATION_NAME;
 import static io.nop.xui.XuiErrors.ERR_XUI_INVALID_EXT_RELATION;
@@ -271,12 +274,31 @@ public class XuiHelper {
         return KIND_TO_ONE.equals(kind) || KIND_TO_MANY.equals(kind);
     }
 
+    public static String getRelationPickerUrl(IUiDisplayMeta dispMeta, IObjPropMeta propMeta, IObjMeta objMeta) {
+        String pickerUrl = null;
+        if (dispMeta != null) {
+            pickerUrl = (String) dispMeta.prop_get(UI_PICKER_URL);
+        }
+        if (StringHelper.isEmpty(pickerUrl) && propMeta != null) {
+            pickerUrl = (String) propMeta.prop_get(UI_PICKER_URL);
+        }
+        if (!StringHelper.isEmpty(pickerUrl))
+            return pickerUrl;
+
+        return getRelationPickerUrl(propMeta, objMeta);
+    }
+
     public static String getRelationPickerUrl(IObjPropMeta propMeta, IObjMeta objMeta) {
         IObjPropMeta relProp = getRelationProp(propMeta, objMeta);
         if (relProp == null)
             return null;
         String bizObjName = getRefBizObjName(relProp);
-        String moduleId = ResourceHelper.getModuleId(objMeta.resourcePath());
+        String moduleId = (String) relProp.prop_get(BIZ_MODULE_ID);
+        if (propMeta != relProp && StringHelper.isEmpty(moduleId)) {
+            moduleId = (String) propMeta.prop_get(BIZ_MODULE_ID);
+        }
+        if (StringHelper.isEmpty(moduleId))
+            moduleId = ResourceHelper.getModuleId(objMeta.resourcePath());
         return '/' + moduleId + "/pages/" + bizObjName + "/picker.page.yaml";
     }
 
@@ -297,8 +319,32 @@ public class XuiHelper {
             url = url.substring(0, pos);
         }
         for (String prop : props) {
-            query.put("filter_" + prop, '$'+prop);
+            query.put("filter_" + prop, '$' + prop);
         }
         return url + '?' + StringHelper.encodeQuery(query);
+    }
+
+    public static Long getMaxUploadSize(IObjPropMeta propMeta, IUiDisplayMeta dispMeta) {
+        Long value = null;
+        if (dispMeta != null) {
+            value = dispMeta.getMaxUploadSize();
+        }
+        if (value == null && propMeta != null) {
+            Object v = propMeta.prop_get(XuiConstants.UI_MAX_UPLOAD_SIZE);
+            if (v instanceof Number) {
+                value = ((Number) v).longValue();
+            } else if (v != null) {
+                value = StringHelper.parseSize(v.toString());
+            }
+        }
+        Long maxSize = CFG_FILE_UPLOAD_MAX_SIZE.get();
+        if (maxSize != null) {
+            if (value == null) {
+                value = maxSize;
+            } else {
+                value = Math.min(maxSize, value);
+            }
+        }
+        return value;
     }
 }

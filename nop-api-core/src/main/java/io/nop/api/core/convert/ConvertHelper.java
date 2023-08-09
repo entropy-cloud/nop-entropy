@@ -764,7 +764,26 @@ public class ConvertHelper {
     public static Long stringToLong(String str, Function<ErrorCode, NopException> errorFactory) {
         if (isEmpty(str))
             return null;
+
+        if (str.charAt(0) != '-') {
+            char c = str.charAt(str.length() - 1);
+            if (c == 'G' || c == 'g') {
+                str = str.substring(0, str.length() - 1);
+                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024 * 1024);
+                return value;
+            } else if (c == 'M' || c == 'm') {
+                str = str.substring(0, str.length() - 1);
+                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024);
+                return value;
+            } else if (c == 'K' || c == 'k') {
+                str = str.substring(0, str.length() - 1);
+                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024);
+                return value;
+            }
+        }
+
         try {
+
             return Long.parseLong(str);
         } catch (Exception e) {
             return handleError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL, e, Long.class, str, errorFactory);

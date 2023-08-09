@@ -22,4 +22,8 @@ public interface IOrmComponent extends IDaoComponent {
      * 将组件对象上缓存的属性变化更新到底层的实体对象上
      */
     void flushToEntity();
+
+    default void onEntityFlush() {
+        flushToEntity();
+    }
 }

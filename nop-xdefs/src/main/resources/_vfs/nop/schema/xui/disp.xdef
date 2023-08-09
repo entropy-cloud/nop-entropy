@@ -10,17 +10,19 @@
 @custom 如果为false，则id必须是meta中定义的字段名。如果不是，则会报错。
   用于防止拼写错误或者字段从数据模型中删除后出现无效引用
 @selectFirst 对于Options选项，默认选中第一个
+@ui:supportFileLink 允许直接输入文件链接作为附件或者图片
 -->
 <disp id="!string" label="string" editMode="xml-name" prop="string" custom="!boolean=false"
       depends="csv-set" width="string"
       domain="xml-name" stdDomain="std-domain" control="xml-name"
       maxLength="int" minLength="int" minRows="int" charCase="string"
       matchRegexp="string" uploadUrl="string" defaultValue="string"
-      selectFirst="boolean"
+      selectFirst="boolean" maxUploadSize="long-size" ui:supportFileLink="boolean"
+      ui:pickerUrl="string" biz:moduleId="string"
       filterOp="string" sourceUrl="string" multiValue="!boolean=false" joinValues="!boolean=true"
       xdef:name="UiDisplayMeta" xdef:bean-package="io.nop.xui.model"
       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
-      xmlns:xdef="/nop/schema/xdef.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:biz="biz"
 >
     <bizObjName xdef:value="string"/>
 

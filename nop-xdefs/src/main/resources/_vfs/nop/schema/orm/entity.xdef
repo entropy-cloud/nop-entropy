@@ -163,7 +163,7 @@
         @needFlush 如果needFlush为true，则保存到数据库之前需要调用IOrmComponent.flushToEntity将组件内部的变换更新到实体字段上
         -->
         <component xdef:name="OrmComponentModel" name="!string" displayName="string" className="!class-name"
-                   notGenCode="!boolean=false" needFlush="!boolean=false" tagSet="tag-set"
+                   notGenCode="!boolean=false" needFlush="!boolean=true" tagSet="tag-set"
                    xdef:body-type="list" xdef:key-attr="name" xdef:bean-body-prop="props">
             <prop name="!var-name" column="!var-name" xdef:name="OrmComponentPropModel"/>
         </component>

@@ -35,6 +35,11 @@ public interface XuiConstants {
     String EXT_JOIN_RIGHT_DISPLAY_PROP = "ext:joinRightDisplayProp";
     String EXT_REF_DISPLAY_PROP = "ext:refDisplayProp";
 
+    String UI_MAX_UPLOAD_SIZE = "ui:maxUploadSize";
+
+    String UI_PICKER_URL = "ui:pickerUrl";
+    String BIZ_MODULE_ID = "biz:moduleId";
+
     String KIND_TO_ONE = "to-one";
     String KIND_TO_MANY = "to-many";
 

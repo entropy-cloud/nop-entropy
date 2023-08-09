@@ -40,7 +40,7 @@ public abstract class _OrmComponentModel extends io.nop.core.resource.component.
      * xml name: needFlush
      * 如果needFlush为true，则保存到数据库之前需要调用IOrmComponent.flushToEntity将组件内部的变换更新到实体字段上
      */
-    private boolean _needFlush  = false;
+    private boolean _needFlush  = true;
     
     /**
      *  

@@ -192,7 +192,6 @@
                                         </c:script>
                                         <component name="${colNode.getAttr('name')}Component" needFlush="true"
                                                    notGenCode="${colNode.getAttr('notGenCode')}"
-                                                   tagSet="json${pub and ',pub'}"
                                                    className="io.nop.orm.support.OrmFileComponent">
                                             <prop name="filePath" column="${colNode.getAttr('name')}"/>
                                         </component>

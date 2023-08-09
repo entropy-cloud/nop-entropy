@@ -59,4 +59,6 @@ public interface IUiDisplayMeta extends IExtensibleObject {
     IEvalAction getGenControl();
 
     String getMatchRegexp();
+
+    Long getMaxUploadSize();
 }

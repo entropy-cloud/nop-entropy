@@ -31,7 +31,7 @@ public class NopFileStoreBizModel {
 
     protected IFileStore fileStore;
 
-    protected long maxFileLength;
+    protected long maxFileSize;
 
     private IBizAuthChecker bizAuthChecker;
 
@@ -48,9 +48,14 @@ public class NopFileStoreBizModel {
         this.fileStore = fileStore;
     }
 
-    @InjectValue("@cfg:nop.file.upload.max-length|16777216")
-    public void setMaxFileLength(long maxFileLength) {
-        this.maxFileLength = maxFileLength;
+    /**
+     * 这里配置的变量名需要和XuiConfigs中的配置名一致
+     *
+     * @param maxFileSize 最大允许上传的文件大小
+     */
+    @InjectValue("@cfg:nop.file.upload.max-size|16777216")
+    public void setMaxFileSize(long maxFileSize) {
+        this.maxFileSize = maxFileSize;
     }
 
 
@@ -60,10 +65,10 @@ public class NopFileStoreBizModel {
     }
 
 
-    protected void checkMaxLength(long length) {
-        if (length > maxFileLength)
+    protected void checkMaxSize(long length) {
+        if (length > maxFileSize)
             throw new NopException(ERR_FILE_LENGTH_EXCEED_LIMIT)
-                    .param(ARG_LENGTH, length).param(ARG_MAX_LENGTH, maxFileLength);
+                    .param(ARG_LENGTH, length).param(ARG_MAX_LENGTH, maxFileSize);
     }
 
     protected void checkFileExt(String fileExt) {
@@ -82,11 +87,11 @@ public class NopFileStoreBizModel {
 
     @BizMutation
     public UploadResponseBean upload(@RequestBean UploadRequestBean record, IServiceContext context) {
-        checkMaxLength(record.getLength());
+        checkMaxSize(record.getLength());
         checkFileExt(record.getFileExt());
         checkBizObjName(record.getBizObjName());
 
-        String fileId = fileStore.saveFile(record, maxFileLength);
+        String fileId = fileStore.saveFile(record, maxFileSize);
 
         UploadResponseBean ret = new UploadResponseBean();
         ret.setValue(fileStore.getFileLink(fileId));

@@ -8,8 +8,6 @@
 package io.nop.cli;
 
 import io.nop.api.core.config.AppConfig;
-import io.nop.commons.util.FileHelper;
-import io.nop.commons.util.MavenDirHelper;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -103,9 +101,9 @@ public class NopCliTasks {
     }
 
     @Test
-    public void testExportDb(){
+    public void testExportDb() {
         String[] args = new String[]{"export-db", "../nop-cli/demo/export.json",
-                "-o","target/data"
+                "-o", "target/data"
         };
         NopCliApplication app = new NopCliApplication();
         app.factory = factory;
@@ -113,9 +111,20 @@ public class NopCliTasks {
     }
 
     @Test
-    public void testImportDb(){
+    public void testImportDb() {
         String[] args = new String[]{"import-db", "../nop-cli/demo/import.json",
-                "-i","target/data"
+                "-i", "target/data"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.factory = factory;
+        assertEquals(0, app.run(args));
+    }
+
+    @Test
+    public void testExternalTable() {
+        String[] args = new String[]{"gen", "../nop-cli/demo/test-app.orm.xlsx",
+                "-t", "/nop/templates/orm",
+                "-o", "target/data"
         };
         NopCliApplication app = new NopCliApplication();
         app.factory = factory;

@@ -524,8 +524,13 @@
             <attr name="accept" optional="true" />
 
             <source><![CDATA[
+              import io.nop.xui.utils.XuiHelper;
               const name = propMeta.name
-              const uploadUrl = $config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName
+              const maxSize = XuiHelper.getMaxUploadSize(propMeta,dispMeta);
+              const uploadUrl = dispMeta?.uploadUrl || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName)
+              const supportFileLink = dispMeta?.['ui:supportFileLink'] || propMeta?.['ui:supportFileLink']
+
+              if(supportFileLink){
               return {
                         "type": "input-group",
                         "name": "__group_" + name,
@@ -537,17 +542,27 @@
                           {
                             "type": "input-text",
                             "name": name,
-                            "visibleOn": '${__switch_' + name + '}'
+                            "visibleOn": '${__switch_' + name + '}',
+                            placeholder: "输入文件链接"
                           },
                           {
                             "type": "input-file",
                             "name": name,
+                            "maxSize":maxSize,
                             "visibleOn": '${!__switch_' + name + '}',
                             "accept":accept,
                             "receiver": uploadUrl
                           }
                         ]
                       }
+              }else{
+                 return {
+                            "type": "input-file",
+                            "maxSize":maxSize,
+                            "accept":accept,
+                            "receiver": uploadUrl
+                          }
+              }
             ]]></source>
         </edit-file>
 
@@ -726,7 +741,7 @@
 
                 return _.filterNull({
                     type: 'picker',
-                    'x:extends': XuiHelper.getRelationPickerUrl(propMeta,objMeta),
+                    'x:extends': XuiHelper.getRelationPickerUrl(dispMeta,propMeta,objMeta),
                     valueField: relProp['ext:joinRightProp'],
                     labelField: relProp['ext:joinRightDisplayProp'] || relProp['ext:joinRightProp'],
                     source: _.filterNull({

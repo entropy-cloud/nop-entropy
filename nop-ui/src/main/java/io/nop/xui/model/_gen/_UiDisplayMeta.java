@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [14:2:0:0]/nop/schema/xui/disp.xdef <p>
+ * generate from [15:2:0:0]/nop/schema/xui/disp.xdef <p>
  * 单个字段对应的界面描述
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -182,6 +182,13 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
      * 
      */
     private java.lang.Integer _maxLength ;
+    
+    /**
+     *  
+     * xml name: maxUploadSize
+     * 
+     */
+    private java.lang.Long _maxUploadSize ;
     
     /**
      *  
@@ -755,6 +762,25 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: maxUploadSize
+     *  
+     */
+    
+    public java.lang.Long getMaxUploadSize(){
+      return _maxUploadSize;
+    }
+
+    
+    public void setMaxUploadSize(java.lang.Long value){
+        checkAllowChange();
+        
+        this._maxUploadSize = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: minLength
      *  
      */
@@ -1103,6 +1129,7 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
         out.put("label",this.getLabel());
         out.put("matchRegexp",this.getMatchRegexp());
         out.put("maxLength",this.getMaxLength());
+        out.put("maxUploadSize",this.getMaxUploadSize());
         out.put("minLength",this.getMinLength());
         out.put("minRows",this.getMinRows());
         out.put("multiValue",this.isMultiValue());

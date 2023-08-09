@@ -79,6 +79,7 @@
                   ext:control="${rel['ext:control']}"  defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
                   ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}" ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
                   ext:joinRightDisplayProp="${rel.singleColumnJoin?.rightDisplayPropModel?.name}"
+                  biz:moduleId="${rel.refEntityModel['biz:moduleId']}"
                   insertable="${rel.tagSet?.contains('insertable')}" updatable="${rel.tagSet?.contains('updatable')}"
                   mandatory="${(rel.toOneRelation and rel.mandatory) || null}" lazy="true" published="${rel.tagSet?.contains('pub') ? null :false}">
                 <schema type="${rel.javaTypeName}" bizObjName="${rel.refEntityName.$lastPart('.')}" />

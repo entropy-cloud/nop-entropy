@@ -42,7 +42,7 @@ import java.util.concurrent.CompletionStage;
 public class QuarkusFileService extends AbstractGraphQLFileService {
     @Path(FileConstants.PATH_UPLOAD)
     @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Consumes(MediaType.MULTIPART_FORM_DATA+"; charset=UTF-8")
     public CompletionStage<Response> uploadFileAsync(MultipartFormDataInput input,
                                                      @Context HttpServerRequest request) {
         Map<String, List<InputPart>> uploadForm = input.getFormDataMap();

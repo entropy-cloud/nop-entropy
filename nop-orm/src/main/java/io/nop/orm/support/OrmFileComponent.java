@@ -19,7 +19,7 @@ public class OrmFileComponent extends AbstractOrmComponent {
     }
 
     @Override
-    public void flushToEntity() {
+    public void onEntityFlush() {
         IOrmEntity entity = orm_owner();
         int propId = getColPropId(PROP_NAME_filePath);
         if (entity.orm_state().isUnsaved() || entity.orm_propDirty(propId)) {
@@ -33,8 +33,13 @@ public class OrmFileComponent extends AbstractOrmComponent {
             String bizObjName = getBizObjName();
 
             if (!StringHelper.isEmpty(oldValue)) {
-                fileStore.detachFile(fileId, bizObjName, entity.orm_idString(), propName);
-            } else {
+                String oldFileId = fileStore.decodeFileId(oldValue);
+                if (!StringHelper.isEmpty(oldFileId)) {
+                    fileStore.detachFile(oldFileId, bizObjName, entity.orm_idString(), propName);
+                }
+            }
+
+            if (!StringHelper.isEmpty(fileId)) {
                 fileStore.attachFile(fileId, bizObjName, entity.orm_idString(), propName);
             }
         }

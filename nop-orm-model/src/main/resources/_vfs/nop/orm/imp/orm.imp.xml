@@ -8,7 +8,7 @@
         <sheet name="配置">
             <fields>
                 <field name="ext:extends" displayName="extends">
-                    <schema stdDomain="string" />
+                    <schema stdDomain="string"/>
                 </field>
 
                 <field name="ext:registerShortName" displayName="registerShortName">
@@ -51,8 +51,8 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="ext:deltaDir" displayName="deltaDir" >
-                    <schema stdDomain="xml-name" />
+                <field name="ext:deltaDir" displayName="deltaDir">
+                    <schema stdDomain="xml-name"/>
                 </field>
 
             </fields>
@@ -196,7 +196,7 @@
                 </field>
 
                 <field name="className" displayName="类名">
-                    <schema stdDomain="class-name" />
+                    <schema stdDomain="class-name"/>
                     <valueExpr>
                         value?.$fullClassName(rootRecord['ext:entityPackageName'])
                     </valueExpr>
@@ -221,12 +221,16 @@
                     <schema stdDomain="csv-set"/>
                 </field>
 
+                <field name="biz:moduleId" displayName="所属模块">
+                    <schema stdDomain="string"/>
+                </field>
+
                 <field name="comment" displayName="备注">
                     <schema stdDomain="string"/>
                 </field>
 
                 <field name="ext:minPropId" displayName="propId的起始值">
-                    <schema stdDomain="int" />
+                    <schema stdDomain="int"/>
                 </field>
 
                 <field name="columns" displayName="字段列表" list="true" keyProp="name">

@@ -64,7 +64,11 @@ public class DaoResourceFileStore implements IFileStore {
 
     @Override
     public String decodeFileId(String fileLink) {
-        return StringHelper.lastPart(fileLink, '/');
+        if(StringHelper.isEmpty(fileLink))
+            return null;
+        if (fileLink.startsWith(FileConstants.PATH_DOWNLOAD))
+            return StringHelper.lastPart(fileLink, '/');
+        return null;
     }
 
     @Override
@@ -83,7 +87,7 @@ public class DaoResourceFileStore implements IFileStore {
         entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
         entity.setBizObjName(record.getBizObjName());
         entity.setMimeType(record.getMimeType());
-        if(StringHelper.isEmpty(entity.getMimeType()))
+        if (StringHelper.isEmpty(entity.getMimeType()))
             entity.setMimeType(MediaType.APPLICATION_OCTET_STREAM);
 
         String fileId = newFileId();

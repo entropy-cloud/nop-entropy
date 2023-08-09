@@ -660,7 +660,7 @@ public abstract class OrmEntity implements IOrmEntity {
             if (compM.isNeedFlush()) {
                 Object comp = orm_propValueByName(compM.getName());
                 if (comp instanceof IOrmComponent)
-                    ((IOrmComponent) comp).flushToEntity();
+                    ((IOrmComponent) comp).onEntityFlush();
             }
         }
     }
