@@ -284,6 +284,25 @@ api:{
 
 通过`@graphql:`前缀来表示graphql请求，此时需要使用完整的grapqhl语法，参数需要指定类型。 通过data属性可以传递graphql请求所需的variables参数。
 
+## 使用Vue3实现AMIS控件
+
+````javascript
+import appva from '../../views/breadcrumb_example/Elbutton.vue'
+ function CustomComponent(props) {
+    let dom = React.useRef(null);
+    React.useEffect(function () {
+      var app = createApp({ render: () => h(appva) })
+      app.mount(dom.current);
+      return () => app.unmount()
+    });
+    return React.createElement('div', {
+      ref: dom
+    });
+  }
+  amisLib.Renderer({
+    test: /(^|\/)my-custom/
+  })(CustomComponent);
+````  
 
 
 ## 问题
