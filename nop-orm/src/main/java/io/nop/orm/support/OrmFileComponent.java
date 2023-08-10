@@ -45,6 +45,23 @@ public class OrmFileComponent extends AbstractOrmComponent {
         }
     }
 
+    @Override
+    public void onEntityDelete() {
+        IOrmEntity entity = orm_owner();
+        IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+        IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+
+        String fileId = fileStore.decodeFileId(getFilePath());
+        if (!StringHelper.isEmpty(fileId)) {
+            int propId = getColPropId(PROP_NAME_filePath);
+            String propName = entity.orm_propName(propId);
+
+            String bizObjName = getBizObjName();
+
+            fileStore.detachFile(fileId, bizObjName, entity.orm_idString(), propName);
+        }
+    }
+
     public String getBizObjName() {
         IOrmEntity entity = orm_owner();
         return StringHelper.lastPart(entity.orm_entityName(), '.');

@@ -26,4 +26,8 @@ public interface IOrmComponent extends IDaoComponent {
     default void onEntityFlush() {
         flushToEntity();
     }
+
+    default void onEntityDelete() {
+
+    }
 }

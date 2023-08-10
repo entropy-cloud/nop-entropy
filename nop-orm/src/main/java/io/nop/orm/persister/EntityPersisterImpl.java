@@ -25,6 +25,7 @@ import io.nop.dao.DaoConstants;
 import io.nop.dao.shard.ShardSelection;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionListener;
+import io.nop.orm.IOrmComponent;
 import io.nop.orm.IOrmDaoListener;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmConstants;
@@ -32,6 +33,7 @@ import io.nop.orm.driver.IEntityPersistDriver;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.id.IEntityIdGenerator;
 import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityComponentModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.utils.OrmModelHelper;
 import io.nop.orm.session.IOrmSessionImplementor;
@@ -308,6 +310,14 @@ public class EntityPersisterImpl implements IEntityPersister {
         if (entityModel.isUseRevision()) {
             OrmRevisionHelper.onRevDelete(entityModel, entity, this, session);
             return;
+        }
+
+        for (IEntityComponentModel componentModel : entityModel.getComponents()) {
+            if (componentModel.isNeedFlush()) {
+                Object component = entity.orm_propValueByName(componentModel.getName());
+                if (component instanceof IOrmComponent)
+                    ((IOrmComponent) component).onEntityDelete();
+            }
         }
 
         queueDelete(entity, session);
