@@ -46,7 +46,10 @@ public class OrmFileComponent extends AbstractOrmComponent {
     }
 
     @Override
-    public void onEntityDelete() {
+    public void onEntityDelete(boolean logicalDelete) {
+        if (logicalDelete)
+            return;
+
         IOrmEntity entity = orm_owner();
         IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
         IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);

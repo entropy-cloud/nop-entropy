@@ -528,7 +528,7 @@
               const name = propMeta.name
               const maxSize = XuiHelper.getMaxUploadSize(propMeta,dispMeta);
               const uploadUrl = dispMeta?.uploadUrl || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName)
-              const supportFileLink = dispMeta?.['ui:supportFileLink'] || propMeta?.['ui:supportFileLink']
+              const supportFileLink = dispMeta?.['ui:supportFileLink'] ?? propMeta?.['ui:supportFileLink'] ?? true
 
               if(supportFileLink){
               return {

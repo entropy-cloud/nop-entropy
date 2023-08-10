@@ -29,6 +29,10 @@ import java.util.concurrent.CompletionStage;
 
 @RestController
 public class SpringFileService extends AbstractGraphQLFileService {
+    public SpringFileService(){
+
+    }
+
     @PostMapping(FileConstants.PATH_UPLOAD)
     public CompletionStage<ResponseEntity<Object>> upload(MultipartFile file, HttpServletRequest request) {
         String locale = ContextProvider.currentLocale();
@@ -43,7 +47,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
         } catch (IOException e) {
             res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
         }
-        return res.thenApply(response -> SpringWebHelper.buildResponse(response.getStatus(), response));
+        return res.thenApply(response -> SpringWebHelper.buildResponse(response.getHttpStatus(), response));
     }
 
     protected <T> ApiRequest<T> buildRequest(HttpServletRequest req, T data) {

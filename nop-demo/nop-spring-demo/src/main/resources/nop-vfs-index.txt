@@ -1,5 +1,3 @@
-/_delta/default/nop/spring/beans/spring-demo.beans.xml
-/_delta/default/nop/spring/mapper/SysUser.mapper.xml
 /dict/auth/gender.dict.yaml
 /dict/auth/login-status.dict.yaml
 /dict/auth/login-type.dict.yaml
@@ -227,6 +225,13 @@
 /nop/dao/dialect/tdengine.dialect.xml
 /nop/demo/app.action-auth.xml
 /nop/excel/xlib/imp-gen.xlib
+/nop/file/_module
+/nop/file/beans/_dao.beans.xml
+/nop/file/beans/app-file-core.beans.xml
+/nop/file/beans/app-file-dao.beans.xml
+/nop/file/beans/app-file-spring.beans.xml
+/nop/file/orm/_app.orm.xml
+/nop/file/orm/app.orm.xml
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/imp/api.imp.xml
@@ -323,9 +328,6 @@
 /nop/schema/xui/xview.xdef
 /nop/spring/_module
 /nop/spring/beans/spring-base.beans.xml
-/nop/spring/beans/spring-demo.beans.xml
-/nop/spring/mapper/SysUser.mapper.xml
-/nop/spring/mapper/_gen/_SysUser.mapper.xml
 /nop/spring/schema/mapper.xdef
 /nop/sys/_module
 /nop/sys/auth/_nop-sys.action-auth.xml
@@ -535,7 +537,7 @@
 /nop/templates/orm/{appName}-service/pom.xml.xgen
 /nop/templates/orm/{appName}-service/postcompile/gen-i18n.xgen.xgen
 /nop/templates/orm/{appName}-service/precompile/gen-meta.xgen.xgen
-/nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/entity/{entityModel.shortName}BizModel.java.xgen
+/nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/entity/{!entityModel.notGenCode}{entityModel.shortName}BizModel.java.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Configs.java.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Constants.java.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Errors.java.xgen
@@ -543,8 +545,8 @@
 /nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/auth/{moduleName}.data-auth.xml.xgen
 /nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/beans/_service.beans.xml.xgen
 /nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/beans/app-service.beans.xml.xgen
-/nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/model/{entityModel.shortName}/_{entityModel.shortName}.xbiz.xgen
-/nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/model/{entityModel.shortName}/{entityModel.shortName}.xbiz.xgen
+/nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/_{entityModel.shortName}.xbiz.xgen
+/nop/templates/orm/{appName}-service/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xbiz.xgen
 /nop/templates/orm/{appName}-web/pom.xml.xgen
 /nop/templates/orm/{appName}-web/precompile/gen-page.xgen.xgen
 /nop/templates/orm/{appName}-web/src/main/resources/_vfs/{moduleId}/_module

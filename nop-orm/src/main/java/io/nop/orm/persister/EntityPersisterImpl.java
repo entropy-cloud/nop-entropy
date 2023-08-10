@@ -301,6 +301,7 @@ public class EntityPersisterImpl implements IEntityPersister {
         // 如果是逻辑删除，则转为调用修改操作
         if (entityModel.isUseLogicalDelete() && !entity.orm_disableLogicalDelete()) {
             entity.orm_propValue(entityModel.getDeleteFlagPropId(), DaoConstants.YES_VALUE);
+            syncComponentWhenDelete(entity, true);
             update(entity, session);
             return;
         }
@@ -309,18 +310,22 @@ public class EntityPersisterImpl implements IEntityPersister {
 
         if (entityModel.isUseRevision()) {
             OrmRevisionHelper.onRevDelete(entityModel, entity, this, session);
+            syncComponentWhenDelete(entity, true);
             return;
         }
 
+        syncComponentWhenDelete(entity, false);
+        queueDelete(entity, session);
+    }
+
+    void syncComponentWhenDelete(IOrmEntity entity, boolean logicalDelete) {
         for (IEntityComponentModel componentModel : entityModel.getComponents()) {
             if (componentModel.isNeedFlush()) {
                 Object component = entity.orm_propValueByName(componentModel.getName());
                 if (component instanceof IOrmComponent)
-                    ((IOrmComponent) component).onEntityDelete();
+                    ((IOrmComponent) component).onEntityDelete(logicalDelete);
             }
         }
-
-        queueDelete(entity, session);
     }
 
     void processOptimisticLockVersion(IOrmEntity entity) {

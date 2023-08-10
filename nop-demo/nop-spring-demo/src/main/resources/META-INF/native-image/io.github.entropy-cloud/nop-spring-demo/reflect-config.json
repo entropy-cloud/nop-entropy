@@ -987,10 +987,20 @@
     "fields": [],
     "methods": [
       {
+        "name": "addHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "cloneInstance",
         "parameterTypes": [
           "boolean"
         ]
+      },
+      {
+        "name": "copyHeaders",
+        "parameterTypes": []
       },
       {
         "name": "getData",
@@ -1005,6 +1015,12 @@
       {
         "name": "getHeaders",
         "parameterTypes": []
+      },
+      {
+        "name": "getSelectedHeaders",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
       },
       {
         "name": "removeHeader",
@@ -1123,6 +1139,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isWrapper",
+        "parameterTypes": []
+      },
+      {
         "name": "setBizFatal",
         "parameterTypes": [
           "java.lang.Boolean"
@@ -1178,6 +1198,18 @@
       },
       {
         "name": "setTryResponse",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setWrapper",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "wrap",
         "parameterTypes": [
           "java.lang.Object"
         ]
@@ -2297,6 +2329,10 @@
         "parameterTypes": []
       },
       {
+        "name": "hasChild",
+        "parameterTypes": []
+      },
+      {
         "name": "replaceChild",
         "parameterTypes": [
           "io.nop.api.core.beans.TreeBean",
@@ -2343,6 +2379,12 @@
       {
         "name": "toJsonObject",
         "parameterTypes": []
+      },
+      {
+        "name": "toJsonObject",
+        "parameterTypes": [
+          "boolean"
+        ]
       },
       {
         "name": "toQueryBean",
@@ -2859,6 +2901,10 @@
         ]
       },
       {
+        "name": "getBizFatal",
+        "parameterTypes": []
+      },
+      {
         "name": "getData",
         "parameterTypes": []
       },
@@ -2891,6 +2937,12 @@
       {
         "name": "hasError",
         "parameterTypes": []
+      },
+      {
+        "name": "setBizFatal",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
       },
       {
         "name": "setData",
@@ -2934,6 +2986,10 @@
         "parameterTypes": [
           "int"
         ]
+      },
+      {
+        "name": "toApiResponse",
+        "parameterTypes": []
       },
       {
         "name": "toErrorBean",
@@ -3420,6 +3476,87 @@
       }
     ],
     "name": "io.nop.api.core.beans.query.QuerySourceBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "activeProfile",
+        "parameterTypes": []
+      },
+      {
+        "name": "appLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "appName",
+        "parameterTypes": []
+      },
+      {
+        "name": "appTimezone",
+        "parameterTypes": []
+      },
+      {
+        "name": "appVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "defaultLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getConfigProvider",
+        "parameterTypes": []
+      },
+      {
+        "name": "hostId",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDebugMode",
+        "parameterTypes": []
+      },
+      {
+        "name": "registerConfigProvider",
+        "parameterTypes": [
+          "io.nop.api.core.config.IConfigProvider"
+        ]
+      },
+      {
+        "name": "var",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "var",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "varRef",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Class",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "withOverride",
+        "parameterTypes": [
+          "io.nop.api.core.config.IConfigReference",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.config.AppConfig",
     "unsafeAllocated": false
   },
   {
@@ -10652,6 +10789,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_avatarComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_birthday"
       },
       {
@@ -10837,6 +10979,10 @@
       },
       {
         "name": "getAvatar",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAvatarComponent",
         "parameterTypes": []
       },
       {
@@ -27222,6 +27368,732 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.excel.initializer.ExcelCoreInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "IGNORE_HEADERS"
+      }
+    ],
+    "methods": [
+      {
+        "name": "downloadAsync",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ApiRequest"
+        ]
+      },
+      {
+        "name": "getGraphQLEngine",
+        "parameterTypes": []
+      },
+      {
+        "name": "shouldIgnoreHeader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "uploadAsync",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ApiRequest"
+        ]
+      }
+    ],
+    "name": "io.nop.file.core.AbstractGraphQLFileService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "fileStore"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "maxFileSize"
+      }
+    ],
+    "methods": [
+      {
+        "name": "checkBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkFileExt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkMaxSize",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadFileRecord",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "setAllowedFileExts",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setBizAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IBizAuthChecker"
+        ]
+      },
+      {
+        "name": "setFileStore",
+        "parameterTypes": [
+          "io.nop.file.core.IFileStore"
+        ]
+      },
+      {
+        "name": "setMaxFileSize",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "upload",
+        "parameterTypes": [
+          "io.nop.file.core.UploadRequestBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      }
+    ],
+    "name": "io.nop.file.core.NopFileStoreBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileExt",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputStream",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLastModified",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLength",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMimeType",
+        "parameterTypes": []
+      },
+      {
+        "name": "setBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setInputStream",
+        "parameterTypes": [
+          "java.io.InputStream"
+        ]
+      },
+      {
+        "name": "setLastModified",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setLength",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setMimeType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.file.core.UploadRequestBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getFilename",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "setFilename",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.file.core.UploadResponseBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.file.dao.entity.NopFileRecord",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_IDS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_NAMES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_bizObjId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_bizObjName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_delFlag"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fieldName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileExt"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileLastModified"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileLength"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_fileName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_filePath"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_mimeType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_bizObjId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_bizObjName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_delFlag"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fieldName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileExt"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileLastModified"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileLength"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_fileName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_filePath"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_mimeType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_remark"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizObjId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDelFlag",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFieldName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileExt",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileLastModified",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileLength",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilePath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMimeType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_entityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalSet",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_isPrimary",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propIdBound",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setBizObjId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setCreateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDelFlag",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setFieldName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileExt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileLastModified",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setFileLength",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
+        "name": "setFileName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFilePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMimeType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.file.dao.entity._gen._NopFileRecord",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "attachFile",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "decodeFileId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "detachFile",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFile",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFileLink",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "newFileId",
+        "parameterTypes": []
+      },
+      {
+        "name": "newPath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "saveFile",
+        "parameterTypes": [
+          "io.nop.file.core.UploadRequestBean",
+          "long"
+        ]
+      },
+      {
+        "name": "setDaoProvider",
+        "parameterTypes": [
+          "io.nop.dao.api.IDaoProvider"
+        ]
+      },
+      {
+        "name": "setLocalDir",
+        "parameterTypes": [
+          "java.io.File"
+        ]
+      },
+      {
+        "name": "setResourceStore",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceStore"
+        ]
+      }
+    ],
+    "name": "io.nop.file.dao.store.DaoResourceFileStore",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildRequest",
+        "parameterTypes": [
+          "javax.servlet.http.HttpServletRequest",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "javax.servlet.http.HttpServletRequest"
+        ]
+      },
+      {
+        "name": "upload",
+        "parameterTypes": [
+          "org.springframework.web.multipart.MultipartFile",
+          "javax.servlet.http.HttpServletRequest"
+        ]
+      }
+    ],
+    "name": "io.nop.file.spring.web.SpringFileService",
     "unsafeAllocated": false
   },
   {
@@ -45654,6 +46526,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getMaxUploadSize",
+        "parameterTypes": []
+      },
+      {
         "name": "getMinLength",
         "parameterTypes": []
       },
@@ -45877,6 +46753,12 @@
         "name": "setMaxLength",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setMaxUploadSize",
+        "parameterTypes": [
+          "java.lang.Long"
         ]
       },
       {
@@ -47165,6 +48047,13 @@
         ]
       },
       {
+        "name": "getMaxUploadSize",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjPropMeta",
+          "io.nop.xui.model.IUiDisplayMeta"
+        ]
+      },
+      {
         "name": "getRefBizObjName",
         "parameterTypes": [
           "io.nop.xlang.xmeta.IObjPropMeta"
@@ -47173,6 +48062,14 @@
       {
         "name": "getRelationPickerUrl",
         "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjPropMeta",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
+        "name": "getRelationPickerUrl",
+        "parameterTypes": [
+          "io.nop.xui.model.IUiDisplayMeta",
           "io.nop.xlang.xmeta.IObjPropMeta",
           "io.nop.xlang.xmeta.IObjMeta"
         ]
