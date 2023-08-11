@@ -1,6 +1,7 @@
 package io.nop.integration.oss;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -12,6 +13,8 @@ import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.integration.api.file.FileStatus;
 import io.nop.integration.api.file.IFileServiceClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MediaType;
 import java.io.File;
@@ -22,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OssFileServiceClient implements IFileServiceClient {
+    static final Logger LOG = LoggerFactory.getLogger(OssFileServiceClient.class);
     private final AmazonS3 client;
     private final OssConfig ossConfig;
 
@@ -31,14 +35,23 @@ public class OssFileServiceClient implements IFileServiceClient {
     }
 
     private void makeBucket(String bucketName) {
-        if (!client.doesBucketExistV2(bucketName)) {
-            client.createBucket((bucketName));
+        if (ossConfig.isAutoCreateBucket()) {
+            // minio对于doesBucketExistsV2总是返回true
+            try {
+                boolean b = client.doesBucketExist(bucketName);
+                if (b)
+                    return;
+            } catch (AmazonS3Exception e) {
+                LOG.debug("nop.oss.check-bucket-exists-fail", e);
+            }
+            client.createBucket(bucketName);
         }
     }
 
     @Override
     public List<FileStatus> listFiles(String remotePath) {
-        ObjectListing listing = client.listObjects(remotePath, "/");
+        remotePath = normalizePath(remotePath);
+        ObjectListing listing = client.listObjects(getBucketName(remotePath), remotePath);
         List<FileStatus> ret = new ArrayList<>();
         for (S3ObjectSummary summary : listing.getObjectSummaries()) {
             FileStatus status = new FileStatus();
@@ -56,11 +69,14 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public void deleteFile(String remotePath) {
+        remotePath = normalizePath(remotePath);
         client.deleteObject(getBucketName(remotePath), remotePath);
     }
 
     @Override
     public FileStatus getFileStatus(String remotePath) {
+        remotePath = normalizePath(remotePath);
+
         ObjectMetadata obj = client.getObjectMetadata(getBucketName(remotePath), remotePath);
 
         FileStatus status = new FileStatus();
@@ -72,12 +88,18 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public String uploadFile(String localPath, String remotePath) {
-        client.putObject(getBucketName(remotePath), remotePath, new File(localPath));
+        remotePath = normalizePath(remotePath);
+
+        String bucketName = getBucketName(remotePath);
+        makeBucket(bucketName);
+        client.putObject(bucketName, remotePath, new File(localPath));
         return remotePath;
     }
 
     @Override
     public String downloadFile(String remotePath, String localPath) {
+        remotePath = normalizePath(remotePath);
+
         GetObjectRequest req = new GetObjectRequest(getBucketName(remotePath), remotePath);
         client.getObject(req, new File(localPath));
         return localPath;
@@ -85,12 +107,15 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public String uploadResource(IResourceReference file, String remotePath) {
+        remotePath = normalizePath(remotePath);
         InputStream is = file.getInputStream();
         try {
             ObjectMetadata meta = new ObjectMetadata();
             meta.setContentLength(file.length());
             meta.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            client.putObject(getBucketName(remotePath), remotePath, is, meta);
+            String bucketName = getBucketName(remotePath);
+            makeBucket(bucketName);
+            client.putObject(bucketName, remotePath, is, meta);
         } finally {
             IoHelper.safeCloseObject(is);
         }
@@ -98,8 +123,15 @@ public class OssFileServiceClient implements IFileServiceClient {
         return remotePath;
     }
 
+    protected String normalizePath(String path){
+        if(path.startsWith("/"))
+            return path.substring(1);
+        return path;
+    }
+
     @Override
     public void downloadToStream(String remotePath, OutputStream out) {
+        remotePath = normalizePath(remotePath);
         GetObjectRequest req = new GetObjectRequest(getBucketName(remotePath), remotePath);
         S3Object obj = client.getObject(req);
         try {

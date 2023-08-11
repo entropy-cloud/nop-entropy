@@ -64,7 +64,7 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                 InputStream inputStream = inputPart.getBody(InputStream.class, null);
 
                 String mimeType = MediaTypeHelper.getMimeType(contentType, StringHelper.fileExt(fileName));
-                UploadRequestBean fileInput = new UploadRequestBean(inputStream, fileName, inputStream.available(), mimeType);
+                UploadRequestBean fileInput = new UploadRequestBean(inputStream, fileName, -1, mimeType);
                 fileInput.setBizObjName(bizObjName);
 
                 res = uploadAsync(buildRequest(request, fileInput));

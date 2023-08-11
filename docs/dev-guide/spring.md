@@ -87,4 +87,4 @@ nop-spring-delta对于Java中的Mapper接口也增加了定制能力
 
 mapperInterface对应于Mapper XML文件中的namespace配置，一般情况下mapperTypeEx与namespace相同，但是在扩展模块中我们可以配置mapperTypeEx使用扩展接口。
 
-具体设计原理参加 [spring-delta.md](spring-spring-delta.md)
+具体设计原理参加 [spring-delta.md](spring/spring-delta.md)

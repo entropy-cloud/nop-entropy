@@ -187,6 +187,7 @@
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-gateway.beans
 /nop/autoconfig/nop-http-client-jdk.beans
+/nop/autoconfig/nop-integration-oss.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-quarkus-web-starter.beans
 /nop/autoconfig/nop-report-spl.beans
@@ -265,6 +266,7 @@
 /nop/graphql/imp/template.api.xlsx
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
+/nop/integration/beans/oss-defaults.beans.xml
 /nop/js/libs/nop-server-tool.mjs
 /nop/main/app.gateway.xml
 /nop/orm/beans/orm-defaults.beans.xml

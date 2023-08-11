@@ -2,10 +2,13 @@ package io.nop.file.dao.store;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.io.stream.LimitedInputStream;
 import io.nop.commons.util.DateHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.InputStreamResource;
 import io.nop.core.resource.store.LocalResourceStore;
 import io.nop.dao.api.IDaoProvider;
@@ -22,13 +25,17 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.ws.rs.core.MediaType;
 import java.io.File;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Objects;
 
 import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.file.core.FileErrors.ARG_FILE_ID;
 import static io.nop.file.core.FileErrors.ARG_FILE_OBJ_NAME;
+import static io.nop.file.core.FileErrors.ARG_LENGTH;
+import static io.nop.file.core.FileErrors.ARG_MAX_LENGTH;
 import static io.nop.file.core.FileErrors.ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ;
+import static io.nop.file.core.FileErrors.ERR_FILE_LENGTH_EXCEED_LIMIT;
 
 /**
  * 将上传文件存放在本地目录下
@@ -64,7 +71,7 @@ public class DaoResourceFileStore implements IFileStore {
 
     @Override
     public String decodeFileId(String fileLink) {
-        if(StringHelper.isEmpty(fileLink))
+        if (StringHelper.isEmpty(fileLink))
             return null;
         if (fileLink.startsWith(FileConstants.PATH_DOWNLOAD))
             return StringHelper.lastPart(fileLink, '/');
@@ -79,10 +86,13 @@ public class DaoResourceFileStore implements IFileStore {
     }
 
     public String saveFile(UploadRequestBean record, long maxLength) {
+        checkMaxSize(record.getLength(), maxLength);
+
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
         NopFileRecord entity = dao.newEntity();
         entity.setFileName(record.getFileName());
         entity.setFileExt(record.getFileExt());
+        entity.setFileLength(record.getLength());
         // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
         entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
         entity.setBizObjName(record.getBizObjName());
@@ -95,17 +105,40 @@ public class DaoResourceFileStore implements IFileStore {
         entity.setFileId(fileId);
         entity.setFilePath(filePath);
 
+        IResource tempResource = null;
+        InputStream is = null;
         try {
-            filePath = resourceStore.saveResource(filePath, new InputStreamResource(filePath, record.getInputStream(), record.getLastModified()), null, null);
-            entity.setFilePath(filePath);
+            is = record.getInputStream();
+            if (record.getLength() > 0) {
+                filePath = resourceStore.saveResource(filePath, new InputStreamResource(filePath, is, record.getLastModified(), record.getLength()), null, null);
+            } else {
+                tempResource = ResourceHelper.getTempResource("upload-file");
+                if (maxLength > 0) {
+                    is = new LimitedInputStream(is, maxLength);
+                }
+                ResourceHelper.writeStream(tempResource, is);
+                filePath = resourceStore.saveResource(filePath, tempResource, null, null);
+            }
 
+            entity.setFilePath(filePath);
             dao.saveEntity(entity);
             return entity.getFileId();
         } catch (Exception e) {
             removeResource(filePath);
-            throw e;
+            throw NopException.adapt(e);
+        } finally {
+            IoHelper.safeCloseObject(is);
+            if (tempResource != null)
+                tempResource.delete();
         }
     }
+
+    protected void checkMaxSize(long length, long maxFileSize) {
+        if (maxFileSize > 0 && length > maxFileSize)
+            throw new NopException(ERR_FILE_LENGTH_EXCEED_LIMIT)
+                    .param(ARG_LENGTH, length).param(ARG_MAX_LENGTH, maxFileSize);
+    }
+
 
     private boolean removeResource(String path) {
         try {

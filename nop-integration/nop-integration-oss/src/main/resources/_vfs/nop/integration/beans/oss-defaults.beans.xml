@@ -7,7 +7,7 @@
     <bean id="nopOssFileServiceClientFactory" ioc:default="true"
           class="io.nop.integration.oss.OssFileServiceClientFactory">
         <ioc:condition>
-            <on-property name="nop.integration.oss.enabled" matchIfMissing="false"/>
+            <if-property name="nop.integration.oss.enabled" enableIfMissing="false"/>
         </ioc:condition>
 
         <property name="ossConfig" ref="nopOssConfig"/>
@@ -16,7 +16,7 @@
     <bean id="nopOssResourceStore" ioc:default="true"
           class="io.nop.integration.file.local.FileServiceResourceStore">
         <ioc:condition>
-            <on-property name="nop.integration.oss.enabled" matchIfMissing="false"/>
+            <if-property name="nop.integration.oss.enabled" enableIfMissing="false"/>
         </ioc:condition>
 
         <property name="fileServiceClientFactory" ref="nopOssFileServiceClientFactory"/>

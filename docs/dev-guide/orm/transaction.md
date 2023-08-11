@@ -6,6 +6,10 @@
 ````
 @Inject
 ITransactionTemplate transactionTemlate;
+
+public void myMethod(){
+   transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn-> doSomething());
+}
 ````
 
 因为Nop平台的JdbcTransaction的实现做了如下优化：
@@ -15,3 +19,29 @@ ITransactionTemplate transactionTemlate;
 # @Transactional注解
 在应用代码中可以通过 @Transactional注解来标记Java方法需要在事务环境中执行。限制条件是AOP增强由NopIoC引擎负责执行，因此只有在beans.xml文件中注册的bean才具有事务支持。
 而且AOP会提前生成代码，
+
+# @BizMutation
+NopGraphQL引擎对应mutation操作会自动开启事务。所以只要方法上增加了@BizMutation注解就不用再额外增肌@Transactional注解。
+
+````java
+@BizModel("NopAuthUser")
+@Locale("zh-CN")
+public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
+    @Description("@i18n:common.resetUserPassword")
+    @BizMutation
+    @BizAudit(logRequestFields = "userId")
+    public void resetUserPassword(@Name("userId") String userId,
+                                  @Name("password") String password,
+                                  IServiceContext context) {
+        NopAuthUser user = this.get(userId, false, context);
+        ...
+    }
+}
+````
+
+# 多数据源事务 
+参见 [multi-db.md](multi-db.md)
+
+NopORM引擎支持同时使用多个数据源，例如一些表存放在数据库A中，另一些表存放在数据库B中，它们映射到实体对象后可以存在于同一个OrmSession中。
+缺省情况下，所有的的数据源都属于同一个事务组(txnGroup=default)，当打开事务的时候会认为打开的是事务组，然后不同数据源的事务都挂接在这一个事务组中。
+事务组提交的时候会逐一提交打开的下层数据源的事务。

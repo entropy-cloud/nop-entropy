@@ -39,7 +39,18 @@ nop:
     http-filter:
       enabled: true
 
+  file:
+    #store-impl: oss
+
+  integration:
+    oss:
+      enabled: false
+      endpoint: http://localhost:9000
+      access-key: nop
+      secret-key: nop-test
+
 # 开发模式配置
+
 "%dev":
   nop:
     debug: true

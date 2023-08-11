@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  */
 public class FileServiceResourceStore implements IResourceStore {
     private IFileServiceClientFactory fileServiceClientFactory;
-    private String basePath;
+    private String basePath = "/";
 
     public void setBasePath(String basePath) {
         this.basePath = basePath;

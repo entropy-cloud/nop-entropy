@@ -69,6 +69,8 @@ public interface CommonErrors {
     String ARG_QUERY = "query";
     String ARG_PARAM_NAME = "paramName";
 
+    String ARG_MAX_SIZE = "maxSize";
+
     ErrorCode ERR_IO_UNEXPECTED_EOF = define("nop.err.commons.io.unexpected-eof", "数据流已关闭，无法读取到更多数据");
 
     ErrorCode ERR_IO_NOT_FIND_EXPECTED_BYTE = define("nop.err.commons.io.not-find-expected-byte",
@@ -88,6 +90,9 @@ public interface CommonErrors {
 
     ErrorCode ERR_IO_URL_NOT_RESOLVE_TO_FILE = define("nop.err.commons.io.url-not-resolve-to-file",
             "URL无法被转换为文件对象:{url}", ARG_URL);
+
+    ErrorCode ERR_IO_STREAM_SIZE_EXCEED_LIMIT = define("nop.err.commons.io.size-exceed-limit",
+            "数据流长度超过最大限制:{maxSize}", ARG_MAX_SIZE);
 
     ErrorCode ERR_SCAN_READ_FAIL = define("nop.err.commons.text.scan-read-fail", "读取数据失败", ARG_READER_STATE);
 

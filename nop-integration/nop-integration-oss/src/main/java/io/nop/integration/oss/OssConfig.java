@@ -13,13 +13,22 @@ public class OssConfig {
 
     private String accessKey;
     private String secretKey;
-    private boolean secure;
 
     private String appId;
     private String region;
-    private Boolean pathStyleAccess;
+    private Boolean pathStyleAccess = true;
 
-    private String defaultBucketName;
+    private String defaultBucketName = "nop-file";
+
+    private boolean autoCreateBucket = false;
+
+    public boolean isAutoCreateBucket() {
+        return autoCreateBucket;
+    }
+
+    public void setAutoCreateBucket(boolean autoCreateBucket) {
+        this.autoCreateBucket = autoCreateBucket;
+    }
 
     public String getCustomDomain() {
         return customDomain;
@@ -75,14 +84,6 @@ public class OssConfig {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
-    }
-
-    public boolean isSecure() {
-        return secure;
-    }
-
-    public void setSecure(boolean secure) {
-        this.secure = secure;
     }
 
     public String getDefaultBucketName() {

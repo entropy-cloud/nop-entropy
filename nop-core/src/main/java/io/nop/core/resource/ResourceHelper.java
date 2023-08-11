@@ -658,6 +658,20 @@ public class ResourceHelper {
         }
     }
 
+    public static void writeStream(IResource resource, InputStream is) {
+        LOG.info("resource.writeStream:resource={}", resource);
+
+        OutputStream os = resource.getOutputStream();
+        try {
+            IoHelper.copy(is, os);
+            os.flush();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        } finally {
+            IoHelper.safeClose(os);
+        }
+    }
+
     public static Properties readProperties(IResource resource) {
         LOG.info("resource.readProperties:resource={}", resource);
 

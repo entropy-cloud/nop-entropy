@@ -24840,6 +24840,13 @@
         ]
       },
       {
+        "name": "writeStream",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.io.InputStream"
+        ]
+      },
+      {
         "name": "writeText",
         "parameterTypes": [
           "io.nop.core.resource.IResource",
@@ -33103,6 +33110,13 @@
         ]
       },
       {
+        "name": "checkMaxSize",
+        "parameterTypes": [
+          "long",
+          "long"
+        ]
+      },
+      {
         "name": "decodeFileId",
         "parameterTypes": [
           "java.lang.String"
@@ -34745,6 +34759,194 @@
       }
     ],
     "name": "io.nop.http.client.jdk.JdkHttpClient",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getChildren",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "newResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.integration.api.file.FileStatus"
+        ]
+      },
+      {
+        "name": "saveResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResource",
+          "io.nop.api.core.util.progress.IStepProgressListener",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setBasePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFileServiceClientFactory",
+        "parameterTypes": [
+          "io.nop.integration.api.file.IFileServiceClientFactory"
+        ]
+      },
+      {
+        "name": "supportSave",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.integration.file.local.FileServiceResourceStore",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAccessKey",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAppId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCustomDomain",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDefaultBucketName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEndpoint",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPathStyleAccess",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRegion",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSecretKey",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAutoCreateBucket",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAccessKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setAppId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setAutoCreateBucket",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setCustomDomain",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDefaultBucketName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEndpoint",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPathStyleAccess",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setRegion",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSecretKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.integration.oss.OssConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "newClient",
+        "parameterTypes": []
+      },
+      {
+        "name": "setOssConfig",
+        "parameterTypes": [
+          "io.nop.integration.oss.OssConfig"
+        ]
+      }
+    ],
+    "name": "io.nop.integration.oss.OssFileServiceClientFactory",
     "unsafeAllocated": false
   },
   {
