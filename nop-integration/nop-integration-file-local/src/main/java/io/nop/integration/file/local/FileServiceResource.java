@@ -53,6 +53,17 @@ public class FileServiceResource extends AbstractResource {
     }
 
     @Override
+    public boolean delete() {
+        IFileServiceClient client = factory.newClient();
+        try {
+            client.deleteFile(remotePath);
+            return true;
+        } finally {
+            IoHelper.safeClose(client);
+        }
+    }
+
+    @Override
     public long length() {
         return getFileStatus().getSize();
     }

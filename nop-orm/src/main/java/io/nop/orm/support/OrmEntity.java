@@ -297,11 +297,10 @@ public abstract class OrmEntity implements IOrmEntity {
     public Object orm_propOldValue(int propId) {
         if (oldValues != null) {
             Object value = oldValues.get(propId);
-            if (value == null && !oldValues.containsKey(propId)) {
-                // 如果没有被修改过，则返回当前值
-                return orm_propValue(propId);
-            }
+            if(value != null || oldValues.containsKey(propId))
+                return value;
         }
+        // 如果没有被修改过，则返回当前值
         return orm_propValue(propId);
     }
 

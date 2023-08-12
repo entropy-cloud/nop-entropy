@@ -46,6 +46,12 @@ public class DaoResourceFileStore implements IFileStore {
 
     private IResourceStore resourceStore;
 
+    private boolean keepFileExt = true;
+
+    public void setKeepFileExt(boolean keepFileExt) {
+        this.keepFileExt = keepFileExt;
+    }
+
     @PostConstruct
     public void init() {
         Guard.notNull(resourceStore, "resourceStore");
@@ -73,9 +79,12 @@ public class DaoResourceFileStore implements IFileStore {
     public String decodeFileId(String fileLink) {
         if (StringHelper.isEmpty(fileLink))
             return null;
+        String fileId = fileLink;
         if (fileLink.startsWith(FileConstants.PATH_DOWNLOAD))
-            return StringHelper.lastPart(fileLink, '/');
-        return null;
+            fileId = StringHelper.lastPart(fileLink, '/');
+        // 除去文件后缀名
+        fileId = StringHelper.firstPart(fileId, '.');
+        return fileId;
     }
 
     @Override
@@ -101,7 +110,7 @@ public class DaoResourceFileStore implements IFileStore {
             entity.setMimeType(MediaType.APPLICATION_OCTET_STREAM);
 
         String fileId = newFileId();
-        String filePath = newPath(record.getBizObjName(), fileId);
+        String filePath = newPath(record.getBizObjName(), fileId, entity.getFileExt());
         entity.setFileId(fileId);
         entity.setFilePath(filePath);
 
@@ -117,6 +126,7 @@ public class DaoResourceFileStore implements IFileStore {
                     is = new LimitedInputStream(is, maxLength);
                 }
                 ResourceHelper.writeStream(tempResource, is);
+                entity.setFileLength(tempResource.length());
                 filePath = resourceStore.saveResource(filePath, tempResource, null, null);
             }
 
@@ -154,7 +164,7 @@ public class DaoResourceFileStore implements IFileStore {
         return StringHelper.generateUUID();
     }
 
-    protected String newPath(String bizObjName, String fileId) {
+    protected String newPath(String bizObjName, String fileId, String fileExt) {
         LocalDate now = DateHelper.currentDate();
         StringBuilder sb = new StringBuilder();
         sb.append('/').append(bizObjName);
@@ -162,6 +172,8 @@ public class DaoResourceFileStore implements IFileStore {
         sb.append('/').append(StringHelper.leftPad(String.valueOf(now.getMonthValue()), 2, '0'));
         sb.append('/').append(StringHelper.leftPad(String.valueOf(now.getDayOfMonth()), 2, '0'));
         sb.append('/').append(fileId);
+        if (keepFileExt && !StringHelper.isEmpty(fileExt))
+            sb.append('.').append(fileExt);
         return sb.toString();
     }
 

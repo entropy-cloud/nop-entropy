@@ -527,8 +527,8 @@
               import io.nop.xui.utils.XuiHelper;
               const name = propMeta.name
               const maxSize = XuiHelper.getMaxUploadSize(propMeta,dispMeta);
-              const uploadUrl = dispMeta?.uploadUrl || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName)
-              const supportFileLink = dispMeta?.['ui:supportFileLink'] ?? propMeta?.['ui:supportFileLink'] ?? true
+              const uploadUrl = dispMeta?.uploadUrl || propMeta?.['ui:uploadUrl'] || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName)
+              const supportFileLink = dispMeta?.['ui:supportFileLink'] ?? propMeta?.['ui:supportFileLink'] ?? false
 
               if(supportFileLink){
               return {
