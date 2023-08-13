@@ -32564,6 +32564,14 @@
         ]
       },
       {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "loadFileRecord",
         "parameterTypes": [
           "java.lang.String",

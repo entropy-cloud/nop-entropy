@@ -10,6 +10,7 @@ CREATE TABLE nop_file_record(
   BIZ_OBJ_NAME VARCHAR2(200)  ,
   BIZ_OBJ_ID VARCHAR2(200)  ,
   FIELD_NAME VARCHAR2(100)  ,
+  FILE_HASH VARCHAR2(200)  ,
   DEL_FLAG SMALLINT NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -39,6 +40,8 @@ CREATE TABLE nop_file_record(
       COMMENT ON COLUMN nop_file_record.BIZ_OBJ_ID IS '对象ID';
                     
       COMMENT ON COLUMN nop_file_record.FIELD_NAME IS '字段名';
+                    
+      COMMENT ON COLUMN nop_file_record.FILE_HASH IS '文件摘要';
                     
       COMMENT ON COLUMN nop_file_record.DEL_FLAG IS '删除标识';
                     

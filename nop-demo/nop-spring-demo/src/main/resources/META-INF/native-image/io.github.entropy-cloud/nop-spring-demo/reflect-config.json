@@ -27484,6 +27484,14 @@
         ]
       },
       {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "loadFileRecord",
         "parameterTypes": [
           "java.lang.String",
@@ -27695,6 +27703,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_fileHash"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_fileId"
       },
       {
@@ -27765,6 +27778,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_fileHash"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_fileId"
       },
       {
@@ -27829,6 +27847,10 @@
       },
       {
         "name": "getFileExt",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFileHash",
         "parameterTypes": []
       },
       {
@@ -27956,6 +27978,12 @@
         ]
       },
       {
+        "name": "setFileHash",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setFileId",
         "parameterTypes": [
           "java.lang.String"
@@ -28024,6 +28052,13 @@
         ]
       },
       {
+        "name": "checkMaxSize",
+        "parameterTypes": [
+          "long",
+          "long"
+        ]
+      },
+      {
         "name": "decodeFileId",
         "parameterTypes": [
           "java.lang.String"
@@ -28066,6 +28101,14 @@
         ]
       },
       {
+        "name": "newPath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "saveFile",
         "parameterTypes": [
           "io.nop.file.core.UploadRequestBean",
@@ -28076,6 +28119,12 @@
         "name": "setDaoProvider",
         "parameterTypes": [
           "io.nop.dao.api.IDaoProvider"
+        ]
+      },
+      {
+        "name": "setKeepFileExt",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
@@ -28101,6 +28150,13 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "buildApiRequest",
+        "parameterTypes": [
+          "javax.servlet.http.HttpServletRequest",
+          "java.lang.Object"
+        ]
+      },
       {
         "name": "buildRequest",
         "parameterTypes": [

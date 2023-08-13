@@ -11,6 +11,7 @@ prop:
       delFlag: 删除标识
       fieldName: 字段名
       fileExt: 扩展名
+      fileHash: 文件摘要
       fileId: 文件ID
       fileLastModified: 文件修改时间
       fileLength: 文件长度

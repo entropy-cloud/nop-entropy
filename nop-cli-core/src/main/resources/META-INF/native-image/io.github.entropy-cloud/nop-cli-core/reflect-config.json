@@ -4957,6 +4957,13 @@
         ]
       },
       {
+        "name": "writeStream",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.io.InputStream"
+        ]
+      },
+      {
         "name": "writeText",
         "parameterTypes": [
           "io.nop.core.resource.IResource",

@@ -14,6 +14,7 @@ prop:
       bizObjName: BizObjName
       bizObjId: BizObjId
       fieldName: Field Name
+      fileHash: File Hash
       delFlag: Deleted
       createdBy: Created By
       createTime: Create Time

@@ -54,6 +54,10 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
+        <prop name="fileHash" displayName="文件摘要" i18n-en:displayName="File Hash" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
         <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="true" internal="true" ext:show="X">
             <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
