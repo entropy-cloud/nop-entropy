@@ -52,8 +52,8 @@ public class LocalFileServiceClientFactory implements IFileServiceClientFactory,
     }
 
     @Override
-    public void deleteFile(String remotePath) {
-        resourceStore.getResource(remotePath).delete();
+    public boolean deleteFile(String remotePath) {
+        return resourceStore.getResource(remotePath).delete();
     }
 
     @Override

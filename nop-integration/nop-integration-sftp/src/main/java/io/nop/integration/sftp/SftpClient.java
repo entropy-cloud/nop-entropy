@@ -179,7 +179,7 @@ public class SftpClient implements IFileServiceClient {
         }
     }
 
-    public void deleteFile(String remotePath) {
+    public boolean deleteFile(String remotePath) {
         LOG.info("nop.sftp.delete:remotePath={}", remotePath);
         try {
             channel.rm(remotePath);
@@ -187,6 +187,7 @@ public class SftpClient implements IFileServiceClient {
             throw new NopException(ERR_SFTP_DELETE_FILE_FAIL, e)
                     .param(ARG_REMOTE_PATH, remotePath);
         }
+        return true;
     }
 
     /**

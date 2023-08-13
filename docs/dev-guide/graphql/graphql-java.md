@@ -346,3 +346,7 @@ NopAuthDept_findList{
 ```
 
 `@TreeChild(max=5)`表示按照本层的结构最多嵌套5层。
+
+## 文件上传下载
+
+参见[upload.md](upload.md)

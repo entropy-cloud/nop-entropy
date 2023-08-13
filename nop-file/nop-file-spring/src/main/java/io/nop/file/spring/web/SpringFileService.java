@@ -43,14 +43,14 @@ public class SpringFileService extends AbstractGraphQLFileService {
             String mimeType = MediaTypeHelper.getMimeType(file.getContentType(), StringHelper.fileExt(fileName));
             UploadRequestBean input = new UploadRequestBean(is, fileName, file.getSize(), mimeType);
             input.setBizObjName(request.getParameter(FileConstants.PARAM_BIZ_OBJ_NAME));
-            res = uploadAsync(buildRequest(request, input));
+            res = uploadAsync(buildApiRequest(request, input));
         } catch (IOException e) {
             res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
         }
         return res.thenApply(response -> SpringWebHelper.buildResponse(response.getHttpStatus(), response));
     }
 
-    protected <T> ApiRequest<T> buildRequest(HttpServletRequest req, T data) {
+    protected <T> ApiRequest<T> buildApiRequest(HttpServletRequest req, T data) {
         ApiRequest<T> ret = new ApiRequest<>();
         Enumeration<String> it = req.getHeaderNames();
         while (it.hasMoreElements()) {
@@ -71,7 +71,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
         DownloadRequestBean req = new DownloadRequestBean();
         req.setFileId(fileId);
         req.setContentType(contentType);
-        CompletionStage<ApiResponse<WebContentBean>> future = downloadAsync(buildRequest(request, req));
+        CompletionStage<ApiResponse<WebContentBean>> future = downloadAsync(buildApiRequest(request, req));
         return future.thenApply(res -> {
             if (!res.isOk()) {
                 int status = res.getHttpStatus();

@@ -68,9 +68,10 @@ public class OssFileServiceClient implements IFileServiceClient {
     }
 
     @Override
-    public void deleteFile(String remotePath) {
+    public boolean deleteFile(String remotePath) {
         remotePath = normalizePath(remotePath);
         client.deleteObject(getBucketName(remotePath), remotePath);
+        return true;
     }
 
     @Override

@@ -101,8 +101,8 @@ public class NopFileStoreBizModel {
 
     @BizQuery
     public WebContentBean download(@Name("fileId") String fileId,
-                                   @Name("contentType") String contentType) {
-        IFileRecord record = fileStore.getFile(fileId);
+                                   @Name("contentType") String contentType, IServiceContext ctx) {
+        IFileRecord record = loadFileRecord(fileId,ctx);
         if (StringHelper.isEmpty(contentType))
             contentType = MediaType.APPLICATION_OCTET_STREAM;
 

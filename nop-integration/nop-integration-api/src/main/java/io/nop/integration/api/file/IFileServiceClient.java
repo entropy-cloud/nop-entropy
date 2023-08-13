@@ -15,7 +15,7 @@ import java.util.List;
 public interface IFileServiceClient extends AutoCloseable {
     List<FileStatus> listFiles(String remotePath);
 
-    void deleteFile(String remotePath);
+    boolean deleteFile(String remotePath);
 
     FileStatus getFileStatus(String remotePath);
 
