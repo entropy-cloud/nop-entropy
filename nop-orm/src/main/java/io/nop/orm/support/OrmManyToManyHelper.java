@@ -47,6 +47,10 @@ public class OrmManyToManyHelper {
             return relatedObjProp.getRefEntityName();
         }
 
+        public IEntityModel getRelatedEntityModel(){
+            return relatedObjProp.getRefEntityModel();
+        }
+
         public String getRelatedDisplayName() {
             return relatedObjProp.getDisplayName();
         }

@@ -551,7 +551,8 @@
                             "maxSize":maxSize,
                             "visibleOn": '${!__switch_' + name + '}',
                             "accept":accept,
-                            "receiver": uploadUrl
+                            "receiver": uploadUrl,
+                            "useChunk":false
                           }
                         ]
                       }
@@ -560,7 +561,8 @@
                             "type": "input-file",
                             "maxSize":maxSize,
                             "accept":accept,
-                            "receiver": uploadUrl
+                            "receiver": uploadUrl,
+                            "useChunk":false
                           }
               }
             ]]></source>

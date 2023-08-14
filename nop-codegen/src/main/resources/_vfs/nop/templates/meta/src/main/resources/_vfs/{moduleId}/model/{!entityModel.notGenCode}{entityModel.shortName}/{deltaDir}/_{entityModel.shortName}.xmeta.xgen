@@ -133,6 +133,7 @@
             ]]></c:script>
             <prop name="${refOnePropInfo.relatedObjPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
                   i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}" ext:kind="to-one"
+                  biz:moduleId="${refOnePropInfo.relatedEntityModel['biz:moduleId']}"
                   xpl:if="refOnePropInfo" internal="true" lazy="true">
                 <schema type="${refOnePropInfo.relatedEntityName}" bizObjName="${refOnePropInfo.bizObjName}" />
             </prop>
@@ -150,6 +151,7 @@
             </prop>
             <prop name="${refManyPropInfo.relatedObjListPropName}" displayName="${refManyPropInfo.relatedDisplayName}列表"
                   i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}" ext:kind="to-many"
+                  biz:moduleId="${refManyPropInfo.relatedEntityModel['biz:moduleId']}"
                   xpl:if="refManyPropInfo" internal="true" lazy="true">
                 <schema type="List&lt;${refManyPropInfo.relatedEntityName}>" >
                     <item bizObjName="${refManyPropInfo.bizObjName}" />

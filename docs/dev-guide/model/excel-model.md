@@ -161,3 +161,9 @@ nop_auth_user表是定义在nop-auth模块中的，所以需要重新使用全�
 
 因为是外部表，不需要为该表生成代码，所以增加not-gen标签。同时需要指定这个表所在的模块，模块ID的格式为A/B这种形式，对应于二级目录结构。
 例如nop-auth这个包生成的资源文件都存放在/_vfs/nop/auth目录下，它对应的模块名是nop/auth
+
+Excel模型中如果定义了`所属模型`整个参数，则会在自动生成`_app.orm.xml`和关联字段的meta定义中都增加`biz:moduleId`配置。
+
+前端页面使用的控件缺省由control.xlib库根据meta配置来自动推定。edit-relation控件会调用XuiHelper.getRelationPickerUrl
+函数来生成picker页面对应的链接，链接格式为  `'/' + moduleId + "/pages/" + bizObjName + "/picker.page.yaml"`。如果关联子表的meta配置中
+设置了`biz:moduleId`属性，则moduleId以设置的值为准，否则会自动根据meta文件的路径推定它所在的模块。
