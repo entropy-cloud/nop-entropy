@@ -72,6 +72,7 @@ import java.util.function.Predicate;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
+import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE;
 import static io.nop.biz.BizConstants.ACTION_ARG_ENTITY;
 import static io.nop.biz.BizConstants.BIZ_OBJ_NAME_THIS_OBJ;
 import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
@@ -352,6 +353,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         return entityData.getEntity();
     }
 
+    @BizAction
     protected void checkUniqueForSave(EntityData<T> entityData) {
         IObjMeta objMeta = entityData.getObjMeta();
         if (objMeta.getKeys() != null) {
@@ -445,6 +447,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         return values;
     }
 
+    @BizAction
     protected void checkDataAuth(String action, T entity, IServiceContext context) {
         IDataAuthChecker dataAuthChecker = context.getDataAuthChecker();
         if (dataAuthChecker == null)
@@ -453,6 +456,18 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         String bizObjName = getBizObjName();
         if (!dataAuthChecker.isPermitted(bizObjName, action, entity, context)) {
             throw new NopException(ERR_AUTH_NO_DATA_AUTH).param(ARG_BIZ_OBJ_NAME, bizObjName);
+        }
+    }
+
+    @BizAction
+    protected void checkDataAuthAfterUpdate(T entity, IServiceContext context) {
+        IDataAuthChecker dataAuthChecker = context.getDataAuthChecker();
+        if (dataAuthChecker == null)
+            return;
+
+        String bizObjName = getBizObjName();
+        if (!dataAuthChecker.isPermitted(bizObjName, BizConstants.METHOD_UPDATE, entity, context)) {
+            throw new NopException(ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE).param(ARG_BIZ_OBJ_NAME, bizObjName);
         }
     }
 
@@ -516,6 +531,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         if (prepareUpdate != null)
             prepareUpdate.accept(entityData, context);
+
+        checkDataAuthAfterUpdate(entityData.getEntity(), context);
 
         doUpdateEntity(entityData, context);
 
@@ -811,6 +828,23 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         batchDelete(delIds, context);
     }
 
+    @Description("@i18n:biz.saveOrUpdate|如果没有id就修改记录，否则就新增记录")
+    @BizMutation
+    public T save_update(@Name("data") Map<String, Object> data, IServiceContext context) {
+        if (CollectionHelper.isEmptyMap(data))
+            throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+
+        T result;
+        Object id = data.get(OrmConstants.PROP_ID);
+        if (StringHelper.isEmptyObject(id) || ConvertHelper.toBoolean(data.get(OrmConstants.FOR_ADD))) {
+            result = save(data, context);
+        } else {
+            // 具有id属性，且没有标记为_forAdd，则是update
+            result = update(data, context);
+        }
+        return result;
+    }
+
     @Description("@i18n:biz.deleted_findPage|分页查询已删除记录")
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
@@ -897,6 +931,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context) {
+        if (CollectionHelper.isEmptyMap(data))
+            throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+        return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, context);
+    }
+
+    protected T doCopyForNew(@Name("data") Map<String, Object> data, @Name("copySelection") String copySelection, IServiceContext context) {
         Object id = data.get(OrmConstants.PROP_ID);
 
         IEntityDao<T> dao = dao();
@@ -904,7 +944,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         IObjMeta objMeta = getThisObj().requireObjMeta();
         checkEntityFilter(entity, objMeta, context);
 
-        FieldSelectionBean inputSelection = objMeta.getFieldSelection(BizConstants.SELECTION_COPY_FOR_NEW);
+        FieldSelectionBean inputSelection = objMeta.getFieldSelection(copySelection);
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
         entityData.getValidatedData().remove(OrmConstants.PROP_ID);
 
@@ -916,14 +956,17 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
                     BizConstants.METHOD_SAVE, context.getEvalScope());
         } else {
             newEntity = (T) entity.cloneInstance();
-            new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
-                    newEntity, null, entityData.getObjMeta(), getBizObjName(),
-                    BizConstants.METHOD_SAVE, context.getEvalScope());
         }
 
+        new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
+                newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
+                BizConstants.METHOD_SAVE, context.getEvalScope());
+
+        this.doSaveEntity(entityData, context);
         return newEntity;
     }
 
+    @BizAction
     protected <R extends IOrmEntity> void removeRelation(Class<R> relationClass,
                                                          String leftProp, String rightProp,
                                                          Object leftValue, Object rightValue) {
@@ -938,6 +981,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         }
     }
 
+    @BizAction
     protected <R extends IOrmEntity> void removeRelations(Class<R> relationClass,
                                                           String leftProp, String rightProp,
                                                           Object leftValue, Collection<?> rightValues) {
@@ -966,6 +1010,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         updateRelations(relationClass, fixedProps, null, true, rightProp, rightValues);
     }
 
+    @BizAction
     protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
                                                           Map<String, Object> fixedProps,
                                                           Predicate<R> filter,

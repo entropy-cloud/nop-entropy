@@ -113,6 +113,14 @@ public class GlobalFunctions {
         return TemplateMacroImpls.xml(scope, expr);
     }
 
+
+    @Description("编译并执行xpl语言片段，outputMode=sql")
+    @Macro
+    public static Expression sql(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
+        return TemplateMacroImpls.xml(scope, expr);
+    }
+
+
     @Description("编译并返回JPath对象")
     @Macro(resultType = JPath.class)
     public static Expression jpath(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {

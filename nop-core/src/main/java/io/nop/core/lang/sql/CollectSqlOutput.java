@@ -13,6 +13,8 @@ import io.nop.commons.text.marker.IMarkedString;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
 import io.nop.core.lang.eval.IEvalOutput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
@@ -20,6 +22,8 @@ import java.util.Collection;
  * 收集xpl模板语言在XLangOutputMode=sql时的输出。 作为value输出的变量将被作为sql变量保存，而不是直接作为sql字符串拼接，从而避免sql注入攻击。
  */
 public class CollectSqlOutput implements IEvalOutput {
+    static final Logger LOG = LoggerFactory.getLogger(CollectSqlOutput.class);
+
     private SQL.SqlBuilder sb = new SQL.SqlBuilder();
 
     @Override
@@ -51,6 +55,8 @@ public class CollectSqlOutput implements IEvalOutput {
             } else {
                 sb.markValue("?", value, false);
             }
+        } else {
+            LOG.info("nop.sql.ignore-null-output:loc={}", loc);
         }
     }
 

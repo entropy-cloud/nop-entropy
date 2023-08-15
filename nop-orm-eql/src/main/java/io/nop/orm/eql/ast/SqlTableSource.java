@@ -78,7 +78,7 @@ public abstract class SqlTableSource extends _SqlTableSource {
 
     public boolean isEntityTableSource() {
         if (this instanceof SqlSingleTableSource) {
-            return ((SqlSingleTableSource) this).getResolvedTableMeta() instanceof EntityTableMeta;
+            return getResolvedTableMeta() instanceof EntityTableMeta;
         }
         return false;
     }

@@ -8,6 +8,7 @@
 package io.nop.orm;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.reflect.hook.IPropMakeMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
@@ -28,6 +29,13 @@ public interface IOrmEntitySet<T extends IOrmEntity>
      */
     @Nonnull
     IOrmEntity orm_owner();
+
+    /**
+     * 得到集合中的第一个元素
+     */
+    default T get__first() {
+        return CollectionHelper.first(this);
+    }
 
     /**
      * 本集合对应owner对象上的哪个属性。例如dept.children，owner为dept, propName为children

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpl="xpl">
+
+    <tags>
+        <sql outputMode="node">
+            <slot name="default" outputMode="sql"/>
+
+            <source>
+                <c:collect outputMode="sql" xpl:return="sql">
+                    <c:script>
+                        slot_default();
+                    </c:script>
+                </c:collect>
+                <sql value="${sql}"/>
+            </source>
+        </sql>
+    </tags>
+</lib>

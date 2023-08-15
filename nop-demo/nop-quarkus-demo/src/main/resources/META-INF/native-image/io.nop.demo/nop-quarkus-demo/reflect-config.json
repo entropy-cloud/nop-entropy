@@ -45752,7 +45752,12 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "getRoleIds",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.rule.dao.entity.NopRuleDefinition",
     "unsafeAllocated": false
   },
@@ -45960,6 +45965,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_ruleRoles"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_ruleType"
       },
       {
@@ -46039,6 +46049,10 @@
       },
       {
         "name": "getRuleNodes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleRoles",
         "parameterTypes": []
       },
       {
@@ -48012,6 +48026,20 @@
       }
     ],
     "methods": [
+      {
+        "name": "defaultPrepareSave",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "defaultPrepareUpdate",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
       {
         "name": "getConditionFields",
         "parameterTypes": [

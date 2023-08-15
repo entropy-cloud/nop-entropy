@@ -7,7 +7,7 @@
  */
 package io.nop.api.core.auth;
 
-import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.ITreeBean;
 
 /**
  * 数据权限检查
@@ -30,5 +30,5 @@ public interface IDataAuthChecker {
      * @param bizObj  业务对象名
      * @param context 上下文对象，可以获取到IUserContext
      */
-    TreeBean getFilter(String bizObj, String action, ISecurityContext context);
+    ITreeBean getFilter(String bizObj, String action, ISecurityContext context);
 }

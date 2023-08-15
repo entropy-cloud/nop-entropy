@@ -9,7 +9,7 @@ package io.nop.auth.api.utils;
 
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.auth.ISecurityContext;
-import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IWithIdentifier;
@@ -29,7 +29,7 @@ public class AuthHelper {
         if (checker == null || context.getUserContext() == null)
             return query;
 
-        TreeBean filter = checker.getFilter(bizObjName, action, context);
+        ITreeBean filter = checker.getFilter(bizObjName, action, context);
         if (filter == null)
             return query;
 

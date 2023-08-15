@@ -46,4 +46,8 @@ public interface AuthApiErrors {
     ErrorCode ERR_AUTH_NO_DATA_AUTH =
             define("nop.err.auth.no-data-auth",
                     "没有访问类型为[{bizObjName}]的指定实体的权限");
+
+    ErrorCode ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE =
+            define("nop.err.auth.no-data-auth-after-update",
+                    "修改操作不能改变对象的数据权限，导致当前用户无法访问该对象");
 }

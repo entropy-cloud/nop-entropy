@@ -2,6 +2,7 @@ package io.nop.auth.service.auth;
 
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.auth.ISecurityContext;
+import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.model.DataAuthModel;
@@ -100,7 +101,7 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
     }
 
     @Override
-    public TreeBean getFilter(String bizObj, String action, ISecurityContext context) {
+    public ITreeBean getFilter(String bizObj, String action, ISecurityContext context) {
         ObjDataAuthModel objAuth = getObjAuth(bizObj);
         if (objAuth == null)
             return null;

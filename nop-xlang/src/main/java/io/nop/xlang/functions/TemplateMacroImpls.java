@@ -20,13 +20,13 @@ import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.CallExpression;
 import io.nop.xlang.ast.Expression;
-import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.Literal;
 import io.nop.xlang.ast.ObjectExpression;
 import io.nop.xlang.ast.PropertyAssignment;
 import io.nop.xlang.ast.TemplateStringLiteral;
 import io.nop.xlang.ast.XLangASTKind;
 import io.nop.xlang.ast.XLangASTNode;
+import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xpath.XPathHelper;
 import io.nop.xlang.xpl.IXplTagCompiler;
@@ -134,6 +134,21 @@ public class TemplateMacroImpls {
         XNode node = XNodeParser.instance().parseFromText(arg.getLocation(), tpl);
         node.freeze(true);
         return Literal.valueOf(arg.getLocation(), node);
+    }
+
+    public static Expression sql(IXLangCompileScope scope, CallExpression expr) {
+        String tpl = getTemplateLiteralArg(expr);
+        if (StringHelper.isBlank(tpl))
+            return Literal.nullValue(expr.getLocation());
+
+        XNode node = XNodeParser.instance().forFragments(true).parseFromText(expr.getArgument(0).getLocation(), tpl);
+        XLangOutputMode oldMode = scope.getOutputMode();
+        scope.setOutputMode(XLangOutputMode.sql);
+        try {
+            return scope.getCompiler().parseTagBody(node, scope);
+        } finally {
+            scope.setOutputMode(oldMode);
+        }
     }
 
     public static Expression jpath(IXLangCompileScope scope, CallExpression expr) {

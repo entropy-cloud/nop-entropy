@@ -127,6 +127,11 @@ public class OrmEntityCopier {
                 if (from == null)
                     from = name;
 
+                if (src instanceof Map) {
+                    if (!((Map<?, ?>) src).containsKey(from))
+                        continue;
+                }
+
                 IObjPropMeta propMeta = getProp(objMeta, from);
                 if (propMeta != null && propMeta.getAutoExpr() != null) {
                     ignoreProps.add(propMeta.getName());

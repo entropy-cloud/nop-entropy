@@ -102,3 +102,27 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
   </cells>
 </form>
 ````
+
+### E. 采用子查询进行过滤
+
+````xml
+<filter>
+    <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
+        o.id in (select t.task.id from MyTask t where t.userId = ${$context.userId || '1'})
+    </filter:sql>    
+</filter>
+````
+
+`<filter:sql>`会生成`<sql value="SQL" />`这样的过滤条件。
+
+> sql节点的value属性必须是SQL类型，不能是简单的文本字符串，这样约定的目的是避免前台提交filter查询条件插入子查询形成SQL注入攻击。要求value必须是SQL类型，就只能是在后台通过程序来构造。
+
+在Java程序中可以通过如下方式追加子查询条件
+
+````java
+QueryBean query= ...;
+SQL sql = SQL.begin().sql("o.id in (select t.task.id from MyTask t where t.userId = ?",userId).end();
+query.addFilter(FilterBeans.assertOp("sql",sql));
+````
+
+SQL.begin()会返回一个SqlBuilder对象，它提供了很多帮助函数用于简化SQL语句的拼接。

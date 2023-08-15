@@ -132,6 +132,7 @@ import io.nop.xlang.exec.CallFuncExecutable;
 import io.nop.xlang.exec.CallFuncWithClosureExecutable;
 import io.nop.xlang.exec.CloneLiteralExecutable;
 import io.nop.xlang.exec.CollectNodeExecutable;
+import io.nop.xlang.exec.CollectSqlExecutable;
 import io.nop.xlang.exec.CollectTextExecutable;
 import io.nop.xlang.exec.CompareOpExecutable;
 import io.nop.xlang.exec.ConcatExecutable;
@@ -1511,6 +1512,9 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
             return new CollectNodeExecutable(node.getLocation(), bodyExpr, node.getSingleNode());
         if (node.getOutputMode() == XLangOutputMode.xjson) {
             return new GenXJsonExecutable(bodyExpr);
+        }
+        if(node.getOutputMode() == XLangOutputMode.sql){
+            return new CollectSqlExecutable(bodyExpr);
         }
         return new CollectTextExecutable(node.getLocation(), bodyExpr);
     }

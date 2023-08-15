@@ -51,8 +51,8 @@ public class ObjDataAuthModel extends _ObjDataAuthModel {
         return priority != Integer.MAX_VALUE;
     }
 
-    public TreeBean getFilter(String action, ISecurityContext context) {
-        TreeBean filter = new TreeBean(FilterBeanConstants.FILTER_OP_AND);
+    public XNode getFilter(String action, ISecurityContext context) {
+        XNode filter = XNode.make(FilterBeanConstants.FILTER_OP_AND);
 
         IUserContext userContext = context.getUserContext();
 
@@ -77,11 +77,9 @@ public class ObjDataAuthModel extends _ObjDataAuthModel {
                 XNode node = roleAuth.getFilter().generateNode(scope);
                 if (node != null) {
                     if (node.isDummyNode()) {
-                        for (XNode child : node.getChildren()) {
-                            filter.addChild(child.toTreeBean());
-                        }
+                        filter.appendChildren(node.detachChildren());
                     } else {
-                        filter.addChild(node.toTreeBean());
+                        filter.appendChild(node);
                     }
                 }
             }

@@ -63,4 +63,14 @@ public class BizObjMetaHelper {
                     .param(ARG_PROP_NAME, propName);
         }
     }
+//
+//    public static ITreeBean getFilter(IObjMeta objMeta, IServiceContext context) {
+//        if (objMeta.getFilter() == null)
+//            return null;
+//
+//        IEvalScope scope = XLang.newEvalScope();
+//        scope.setLocalValue(BizConstants.VAR_USER_CONTEXT, context.getUserContext());
+//        scope.setLocalValue(CoreConstants.VAR_SVC_CTX, context);
+//        return objMeta.getFilter().generateNode(scope);
+//    }
 }
