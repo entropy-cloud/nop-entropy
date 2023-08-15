@@ -127,7 +127,8 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     }
 
     protected void endBraceBlock() {
-        endBlock();
+        decIndent();
+        println();
         print(')');
     }
 
@@ -203,7 +204,8 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             for (int i = 0, n = list.size(); i < n; i++) {
                 if (i != 0) {
                     print(separator);
-                    println();
+                    if (pretty)
+                        println();
                 }
                 visit(list.get(i));
             }
@@ -320,8 +322,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     @Override
     public void visitSqlUpdate(SqlUpdate node) {
         printUpdateKeyword();
+        beginBlock();
         visitSqlTableName(node.getTableName());
-        println();
+        endBlock();
         print("set ");
         beginBlock();
         printList(node.getAssignments(), ",");
@@ -332,7 +335,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     }
 
     protected void printUpdateKeyword() {
-        print("update ");
+        print("update");
     }
 
     @Override
@@ -349,11 +352,11 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlDelete(SqlDelete node) {
-        print("delete from ");
-        println();
+        print("delete\nfrom");
+        beginBlock();
         visitSqlTableName(node.getTableName());
+        endBlock();
         if (node.getWhere() != null) {
-            print(" ");
             visitSqlWhere(node.getWhere());
         }
     }

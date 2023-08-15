@@ -21,8 +21,10 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         ICompiledSql sql = factory.compileSql("test",
                 "update io.nop.app.SimsClass o set o.className='x'", false);
 
-        assertEquals("update sims_class\n" +
-                "set CLASS_NAME= 'x' ",sql.getSql().getText());
+        assertEquals("update\n" +
+                "  sims_class\n" +
+                "set \n" +
+                "  CLASS_NAME= 'x' \n",sql.getSql().getText());
     }
 
     @Test
@@ -31,8 +33,10 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         ICompiledSql sql = factory.compileSql("test",
                 "update io.nop.app.SimsClass set className='x'", false);
 
-        assertEquals("update sims_class\n" +
-                "set CLASS_NAME= 'x' ",sql.getSql().getText());
+        assertEquals("update\n" +
+                "  sims_class\n" +
+                "set \n" +
+                "  CLASS_NAME= 'x' \n",sql.getSql().getText());
     }
 
     @Test
@@ -41,8 +45,11 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         ICompiledSql sql = factory.compileSql("test",
                 "delete from io.nop.app.SimsClass o where o.className='x'", false);
 
-        assertEquals("delete from \n" +
-                "sims_class where CLASS_NAME =  'x' ",sql.getSql().getText());
+        assertEquals("delete\n" +
+                "from\n" +
+                "  sims_class\n" +
+                "where \n" +
+                "  CLASS_NAME =  'x' \n",sql.getSql().getText());
     }
 
     @Test
@@ -51,7 +58,10 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         ICompiledSql sql = factory.compileSql("test",
                 "delete from io.nop.app.SimsClass where className='x'", false);
 
-        assertEquals("delete from \n" +
-                "sims_class where CLASS_NAME =  'x' ",sql.getSql().getText());
+        assertEquals("delete\n" +
+                "from\n" +
+                "  sims_class\n" +
+                "where \n" +
+                "  CLASS_NAME =  'x' \n",sql.getSql().getText());
     }
 }
