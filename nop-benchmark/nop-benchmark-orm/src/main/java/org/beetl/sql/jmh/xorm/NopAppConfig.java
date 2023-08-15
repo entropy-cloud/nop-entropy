@@ -7,6 +7,7 @@
  */
 package org.beetl.sql.jmh.xorm;
 
+import io.nop.dao.txn.ITransactionListener;
 import org.beetl.sql.jmh.DataSourceHelper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -20,4 +21,13 @@ public class NopAppConfig {
         return DataSourceHelper.ins();
     }
 
+    @Bean
+    public ITransactionListener defaultListener() {
+        return new ITransactionListener() {
+            @Override
+            public int compareTo(ITransactionListener o) {
+                return ITransactionListener.super.compareTo(o);
+            }
+        };
+    }
 }

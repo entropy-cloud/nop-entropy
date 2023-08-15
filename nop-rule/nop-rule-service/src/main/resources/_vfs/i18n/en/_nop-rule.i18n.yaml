@@ -28,6 +28,7 @@ prop:
       updateTime: Update Time
       remark: Remark
       ruleNodes: Rule Nodes
+      ruleRoles: Rule Roles
     NopRuleLog:
       sid: SID
       ruleId: RULE ID

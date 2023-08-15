@@ -20,6 +20,7 @@ prop:
       ruleId: 主键
       ruleName: 规则名称
       ruleNodes: 规则节点
+      ruleRoles: 规则角色
       ruleType: 规则类型
       ruleType_label: 规则类型
       ruleVersion: 规则版本

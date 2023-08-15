@@ -87,6 +87,9 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     /* relation: 规则节点 */
     public static final String PROP_NAME_ruleNodes = "ruleNodes";
     
+    /* relation: 规则角色 */
+    public static final String PROP_NAME_ruleRoles = "ruleRoles";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_ruleId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_ruleId};
@@ -877,6 +880,16 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
      */
     public IOrmEntitySet<io.nop.rule.dao.entity.NopRuleNode> getRuleNodes(){
        return _ruleNodes;
+    }
+       
+    private final OrmEntitySet<io.nop.rule.dao.entity.NopRuleRole> _ruleRoles = new OrmEntitySet<>(this, PROP_NAME_ruleRoles,
+        io.nop.rule.dao.entity.NopRuleRole.PROP_NAME_ruleDefinition, null,io.nop.rule.dao.entity.NopRuleRole.class);
+
+    /**
+     * 规则角色。 refPropName: ruleDefinition, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.rule.dao.entity.NopRuleRole> getRuleRoles(){
+       return _ruleRoles;
     }
        
 }

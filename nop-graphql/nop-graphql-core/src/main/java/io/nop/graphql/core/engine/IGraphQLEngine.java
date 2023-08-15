@@ -112,4 +112,6 @@ public interface IGraphQLEngine {
     GraphQLResponseBean buildGraphQLResponse(Object result, Throwable err, IGraphQLExecutionContext context);
 
     ApiResponse<?> buildRpcResponse(Object result, Throwable err, IGraphQLExecutionContext context);
+
+    <T> T makeRpcProxy(Class<T> rpcClass);
 }

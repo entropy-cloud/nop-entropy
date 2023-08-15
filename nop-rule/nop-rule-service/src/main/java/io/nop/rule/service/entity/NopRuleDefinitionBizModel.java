@@ -4,7 +4,10 @@ package io.nop.rule.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.biz.crud.EntityData;
 import io.nop.core.context.IServiceContext;
 import io.nop.orm.OrmConstants;
 import io.nop.rule.core.model.RuleModel;
@@ -15,6 +18,12 @@ import io.nop.web.page.condition.ConditionSchemaHelper;
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static io.nop.rule.service.NopRuleErrors.ARG_RULE_NAME;
+import static io.nop.rule.service.NopRuleErrors.ARG_USER_ROLES;
+import static io.nop.rule.service.NopRuleErrors.ERR_RULE_CREATER_MUST_IN_ROLE_SET;
+import static io.nop.rule.service.NopRuleErrors.ERR_RULE_NOT_ASSIGN_ROLES_FOR_RULE;
 
 @BizModel("NopRuleDefinition")
 public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
@@ -31,5 +40,32 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
         NopRuleDefinition rule = get(ruleId, false, context);
         RuleModel ruleModel = ruleModelLoader.buildRuleModel(rule);
         return ConditionSchemaHelper.schemaToFields(null, ruleModel.getInputSchema());
+    }
+
+    @Override
+    protected void defaultPrepareSave(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+
+        NopRuleDefinition entity = entityData.getEntity();
+        checkRoles(entity, context);
+    }
+
+    @Override
+    protected void defaultPrepareUpdate(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
+        super.defaultPrepareUpdate(entityData, context);
+        checkRoles(entityData.getEntity(), context);
+    }
+
+    private void checkRoles(NopRuleDefinition entity, IServiceContext context) {
+        IUserContext userContext = context.getUserContext();
+        Set<String> roleIds = entity.getRoleIds();
+        if (roleIds.isEmpty())
+            throw new NopException(ERR_RULE_NOT_ASSIGN_ROLES_FOR_RULE)
+                    .param(ARG_RULE_NAME, entity.getRuleName());
+
+        if (!userContext.isUserInAnyRole(roleIds))
+            throw new NopException(ERR_RULE_CREATER_MUST_IN_ROLE_SET)
+                    .param(ARG_RULE_NAME, entity.getRuleName())
+                    .param(ARG_USER_ROLES, userContext.getRoles());
     }
 }

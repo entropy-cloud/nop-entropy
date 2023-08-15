@@ -7,6 +7,7 @@
  */
 package io.nop.graphql.core.engine;
 
+import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.beans.ApiRequest;
@@ -38,6 +39,7 @@ import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 import io.nop.graphql.core.parse.GraphQLDocumentParser;
+import io.nop.graphql.core.rpc.RpcServiceOnGraphQL;
 import io.nop.graphql.core.schema.BuiltinSchemaLoader;
 import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
@@ -404,5 +406,18 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Override
     public Flow.Publisher<GraphQLResponseBean> subscribeGraphQL(IGraphQLExecutionContext context) {
         return null;
+    }
+
+    @Override
+    public <T> T makeRpcProxy(Class<T> rpcClass) {
+        BizModel bizModel = rpcClass.getAnnotation(BizModel.class);
+        String serviceName;
+        if (bizModel != null) {
+            serviceName = bizModel.value();
+        } else {
+            serviceName = rpcClass.getSimpleName();
+        }
+        RpcServiceOnGraphQL service = new RpcServiceOnGraphQL(this, serviceName, Collections.emptyList());
+        return service.asProxy(rpcClass);
     }
 }

@@ -88,6 +88,13 @@
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
                 </to-many>
+                <to-many displayName="规则角色" name="ruleRoles" refEntityName="io.nop.rule.dao.entity.NopRuleRole"
+                         refPropName="ruleDefinition" tagSet="pub,cascade-delete,insertable,updatable"
+                         i18n-en:displayName="Rule Roles">
+                    <join>
+                        <on leftProp="ruleId" rightProp="ruleId"/>
+                    </join>
+                </to-many>
             </relations>
         </entity>
         <entity className="io.nop.rule.dao.entity.NopRuleNode" createTimeProp="createTime" createrProp="createdBy"
@@ -185,9 +192,9 @@
             <comment>具有指定规则访问权限的角色列表</comment>
             <relations>
                 <to-one displayName="规则定义" name="ruleDefinition"
-                        refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleNodes"
+                        refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleRoles"
                         tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
-                        i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Rule Nodes">
+                        i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Rule Roles">
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>

@@ -1,9 +1,13 @@
 
-    package io.nop.rule.api.beans;
+package io.nop.rule.api.beans;
 
-    import io.nop.rule.api.beans._gen._RuleKeyBean;
+import io.nop.rule.api.beans._gen._RuleKeyBean;
 
-    public class RuleKeyBean extends _RuleKeyBean{
-        public RuleKeyBean(){
-        }
+public class RuleKeyBean extends _RuleKeyBean {
+    public RuleKeyBean() {
     }
+
+    public RuleKeyBean(String ruleName) {
+        setRuleName(ruleName);
+    }
+}

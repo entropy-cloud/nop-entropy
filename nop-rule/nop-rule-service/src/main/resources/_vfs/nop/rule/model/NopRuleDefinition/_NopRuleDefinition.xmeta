@@ -82,5 +82,10 @@
               updatable="true" lazy="true">
             <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.rule.dao.entity.NopRuleNode&gt;" bizObjName="NopRuleNode"/>
         </prop>
+        <prop name="ruleRoles" displayName="规则角色" i18n-en:displayName="Rule Roles"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="ruleId" ext:joinRightProp="ruleId" insertable="true" updatable="true" lazy="true">
+            <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.rule.dao.entity.NopRuleRole&gt;" bizObjName="NopRuleRole"/>
+        </prop>
     </props>
 </meta>
