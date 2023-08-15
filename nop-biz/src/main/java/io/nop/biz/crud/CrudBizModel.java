@@ -354,7 +354,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     }
 
     @BizAction
-    protected void checkUniqueForSave(EntityData<T> entityData) {
+    protected void checkUniqueForSave(@Name("entityData") EntityData<T> entityData) {
         IObjMeta objMeta = entityData.getObjMeta();
         if (objMeta.getKeys() != null) {
             Map<String, Object> data = entityData.getValidatedData();
@@ -448,7 +448,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     }
 
     @BizAction
-    protected void checkDataAuth(String action, T entity, IServiceContext context) {
+    protected void checkDataAuth(@Name("action") String action, @Name("entity") T entity, IServiceContext context) {
         IDataAuthChecker dataAuthChecker = context.getDataAuthChecker();
         if (dataAuthChecker == null)
             return;
@@ -460,7 +460,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     }
 
     @BizAction
-    protected void checkDataAuthAfterUpdate(T entity, IServiceContext context) {
+    protected void checkDataAuthAfterUpdate(@Name("entity") T entity, IServiceContext context) {
         IDataAuthChecker dataAuthChecker = context.getDataAuthChecker();
         if (dataAuthChecker == null)
             return;
@@ -966,7 +966,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         return newEntity;
     }
 
-    @BizAction
     protected <R extends IOrmEntity> void removeRelation(Class<R> relationClass,
                                                          String leftProp, String rightProp,
                                                          Object leftValue, Object rightValue) {
@@ -981,7 +980,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         }
     }
 
-    @BizAction
     protected <R extends IOrmEntity> void removeRelations(Class<R> relationClass,
                                                           String leftProp, String rightProp,
                                                           Object leftValue, Collection<?> rightValues) {
@@ -1010,7 +1008,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         updateRelations(relationClass, fixedProps, null, true, rightProp, rightValues);
     }
 
-    @BizAction
     protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
                                                           Map<String, Object> fixedProps,
                                                           Predicate<R> filter,

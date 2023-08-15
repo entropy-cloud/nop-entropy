@@ -107,13 +107,21 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
 
 ````xml
 <filter>
+    <eq name="type" value="${3}" />
     <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
         o.id in (select t.task.id from MyTask t where t.userId = ${$context.userId || '1'})
     </filter:sql>    
 </filter>
 ````
 
-`<filter:sql>`会生成`<sql value="SQL" />`这样的过滤条件。
+`<filter:sql>`会生成`<sql value="SQL" />`这样的过滤条件。 
+
+这里的o表示当前实体类，整个filter段会被翻译为where条件，例如上面的过滤条件会被翻译为
+
+````sql
+o.type = 3
+and o.id in (select t.task.id from MyTask t where t.userId = ${$context.userId || '1'})
+````
 
 > sql节点的value属性必须是SQL类型，不能是简单的文本字符串，这样约定的目的是避免前台提交filter查询条件插入子查询形成SQL注入攻击。要求value必须是SQL类型，就只能是在后台通过程序来构造。
 
