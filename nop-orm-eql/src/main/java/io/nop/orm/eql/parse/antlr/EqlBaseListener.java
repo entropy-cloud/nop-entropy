@@ -221,13 +221,37 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlSelect(EqlParser.SqlSelectContext ctx) { }
+	@Override public void enterSqlUnionSelect_ex(EqlParser.SqlUnionSelect_exContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlSelect(EqlParser.SqlSelectContext ctx) { }
+	@Override public void exitSqlUnionSelect_ex(EqlParser.SqlUnionSelect_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -365,13 +389,37 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlTableSource(EqlParser.SqlTableSourceContext ctx) { }
+	@Override public void enterSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlTableSource(EqlParser.SqlTableSourceContext ctx) { }
+	@Override public void exitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -396,18 +444,6 @@ public class EqlBaseListener implements EqlListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

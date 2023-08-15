@@ -86,7 +86,7 @@ unreservedWord_:
     | TABLE_NAME | TYPE
     | UNCOMMITTED | UNNAMED
     | VALUE | POSITION
-    | LEVEL | SESSION
+    | LEVEL | SESSION |COUNT |COALESCE|YEAR|MONTH
     ;
 
 // variable

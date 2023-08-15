@@ -137,7 +137,21 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitSqlSelect(EqlParser.SqlSelectContext ctx) { return visitChildren(ctx); }
+	@Override public T visitSqlUnionSelect_ex(EqlParser.SqlUnionSelect_exContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -221,7 +235,21 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitSqlTableSource(EqlParser.SqlTableSourceContext ctx) { return visitChildren(ctx); }
+	@Override public T visitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -236,13 +264,6 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

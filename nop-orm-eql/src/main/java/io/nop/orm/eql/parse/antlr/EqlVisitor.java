@@ -113,11 +113,26 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlCteStatements_(EqlParser.SqlCteStatements_Context ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlSelect}.
+	 * Visit a parse tree produced by the {@code SqlUnionSelect_ex}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlSelect(EqlParser.SqlSelectContext ctx);
+	T visitSqlUnionSelect_ex(EqlParser.SqlUnionSelect_exContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlQuerySelect_ex}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlUnionSelect_ex2}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlUnionSelect}.
 	 * @param ctx the parse tree
@@ -185,11 +200,26 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTableSources_(EqlParser.TableSources_Context ctx);
 	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlTableSource}.
+	 * Visit a parse tree produced by the {@code SqlJoinTableSource}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlTableSource(EqlParser.SqlTableSourceContext ctx);
+	T visitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlSingleTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SqlSubqueryTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
@@ -202,12 +232,6 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlJoinTableSource}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#joinType_}.
 	 * @param ctx the parse tree

@@ -188,6 +188,27 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlJoinTableSource visitSqlJoinTableSource(SqlJoinTableSourceContext ctx){
+          io.nop.orm.eql.ast.SqlJoinTableSource ret = new io.nop.orm.eql.ast.SqlJoinTableSource();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.left != null){
+               ret.setLeft((visitSqlTableSource(ctx.left)));
+            }
+            if(ctx.joinType != null){
+               ret.setJoinType((SqlJoinTableSource_joinType(ctx.joinType)));
+            }
+            if(ctx.right != null){
+               ret.setRight((visitSqlTableSource_joinRight(ctx.right)));
+            }
+            if(ctx.condition != null){
+               ret.setCondition((visitSqlExpr(ctx.condition)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlLikeExpr visitSqlLikeExpr(SqlLikeExprContext ctx){
           io.nop.orm.eql.ast.SqlLikeExpr ret = new io.nop.orm.eql.ast.SqlLikeExpr();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -233,6 +254,44 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
             }
             if(ctx.right != null){
                ret.setRight((visitSqlExpr(ctx.right)));
+            }
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
+        public io.nop.orm.eql.ast.SqlQuerySelect visitSqlQuerySelect_ex(SqlQuerySelect_exContext ctx){
+           SqlQuerySelectContext node = ctx.sqlQuerySelect();
+           return node == null ? null : visitSqlQuerySelect(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlSingleTableSource visitSqlSingleTableSource_ex(SqlSingleTableSource_exContext ctx){
+           SqlSingleTableSourceContext node = ctx.sqlSingleTableSource();
+           return node == null ? null : visitSqlSingleTableSource(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlSubqueryTableSource visitSqlSubqueryTableSource_ex(SqlSubqueryTableSource_exContext ctx){
+           SqlSubqueryTableSourceContext node = ctx.sqlSubqueryTableSource();
+           return node == null ? null : visitSqlSubqueryTableSource(node);
+        }
+      
+        public io.nop.orm.eql.ast.SqlUnionSelect visitSqlUnionSelect_ex(SqlUnionSelect_exContext ctx){
+           SqlUnionSelectContext node = ctx.sqlUnionSelect();
+           return node == null ? null : visitSqlUnionSelect(node);
+        }
+      
+      public io.nop.orm.eql.ast.SqlUnionSelect visitSqlUnionSelect_ex2(SqlUnionSelect_ex2Context ctx){
+          io.nop.orm.eql.ast.SqlUnionSelect ret = new io.nop.orm.eql.ast.SqlUnionSelect();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.left != null){
+               ret.setLeft((visitSqlSelect(ctx.left)));
+            }
+            if(ctx.unionType != null){
+               ret.setUnionType((SqlUnionSelect_unionType(ctx.unionType)));
+            }
+            if(ctx.right != null){
+               ret.setRight((visitSqlSelect(ctx.right)));
             }
             ret.normalize();
             ret.validate();
@@ -786,27 +845,6 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlInValues_(SqlInValues_
           return ret;
       }
             
-      public io.nop.orm.eql.ast.SqlJoinTableSource visitSqlJoinTableSource(SqlJoinTableSourceContext ctx){
-          io.nop.orm.eql.ast.SqlJoinTableSource ret = new io.nop.orm.eql.ast.SqlJoinTableSource();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
-          
-            if(ctx.left != null){
-               ret.setLeft((visitSqlSingleTableSource(ctx.left)));
-            }
-            if(ctx.joinType != null){
-               ret.setJoinType((SqlJoinTableSource_joinType(ctx.joinType)));
-            }
-            if(ctx.right != null){
-               ret.setRight((visitSqlTableSource_joinRight(ctx.right)));
-            }
-            if(ctx.condition != null){
-               ret.setCondition((visitSqlExpr(ctx.condition)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
-      }
-            
       public io.nop.orm.eql.ast.SqlLimit visitSqlLimit(SqlLimitContext ctx){
           io.nop.orm.eql.ast.SqlLimit ret = new io.nop.orm.eql.ast.SqlLimit();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1038,7 +1076,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlProjection> buildSqlProjections_(Sql
             
       public io.nop.orm.eql.ast.SqlSelect visitSqlSelect(SqlSelectContext ctx){
         
-            return (io.nop.orm.eql.ast.SqlSelect)this.visitChildren(ctx);
+            return (io.nop.orm.eql.ast.SqlSelect)ctx.accept(this);
           
       }
             
@@ -1163,7 +1201,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlStatement> buildSqlStatements_(SqlSt
             
       public io.nop.orm.eql.ast.SqlTableSource visitSqlTableSource(SqlTableSourceContext ctx){
         
-            return (io.nop.orm.eql.ast.SqlTableSource)this.visitChildren(ctx);
+            return (io.nop.orm.eql.ast.SqlTableSource)ctx.accept(this);
           
       }
             
@@ -1417,7 +1455,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract io.nop.orm.eql.enums.SqlIntervalUnit SqlIntervalExpr_intervalUnit(ParseTree node);
 
   /**
-   * rules: sqlJoinTableSource
+   * rules: SqlJoinTableSource
    */
   public abstract io.nop.orm.eql.enums.SqlJoinType SqlJoinTableSource_joinType(ParseTree node);
 
@@ -1442,7 +1480,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract io.nop.orm.eql.enums.SqlOperator SqlUnaryExpr_operator(org.antlr.v4.runtime.Token token);
 
   /**
-   * rules: sqlUnionSelect
+   * rules: SqlUnionSelect_ex2,sqlUnionSelect
    */
   public abstract io.nop.orm.eql.enums.SqlUnionType SqlUnionSelect_unionType(ParseTree node);
 

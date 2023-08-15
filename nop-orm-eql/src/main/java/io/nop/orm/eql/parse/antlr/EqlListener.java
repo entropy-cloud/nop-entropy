@@ -178,15 +178,41 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlCteStatements_(EqlParser.SqlCteStatements_Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlSelect}.
+	 * Enter a parse tree produced by the {@code SqlUnionSelect_ex}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlSelect(EqlParser.SqlSelectContext ctx);
+	void enterSqlUnionSelect_ex(EqlParser.SqlUnionSelect_exContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlSelect}.
+	 * Exit a parse tree produced by the {@code SqlUnionSelect_ex}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlSelect(EqlParser.SqlSelectContext ctx);
+	void exitSqlUnionSelect_ex(EqlParser.SqlUnionSelect_exContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlQuerySelect_ex}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlQuerySelect_ex}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlUnionSelect_ex2}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlUnionSelect_ex2}
+	 * labeled alternative in {@link EqlParser#sqlSelect}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlUnionSelect}.
 	 * @param ctx the parse tree
@@ -298,15 +324,41 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitTableSources_(EqlParser.TableSources_Context ctx);
 	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlTableSource}.
+	 * Enter a parse tree produced by the {@code SqlJoinTableSource}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlTableSource(EqlParser.SqlTableSourceContext ctx);
+	void enterSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlTableSource}.
+	 * Exit a parse tree produced by the {@code SqlJoinTableSource}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlTableSource(EqlParser.SqlTableSourceContext ctx);
+	void exitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlSingleTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlSingleTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlSingleTableSource_ex(EqlParser.SqlSingleTableSource_exContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code SqlSubqueryTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code SqlSubqueryTableSource_ex}
+	 * labeled alternative in {@link EqlParser#sqlTableSource}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlSubqueryTableSource_ex(EqlParser.SqlSubqueryTableSource_exContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlSingleTableSource}.
 	 * @param ctx the parse tree
@@ -327,16 +379,6 @@ public interface EqlListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSqlSubqueryTableSource(EqlParser.SqlSubqueryTableSourceContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlJoinTableSource}.
-	 * @param ctx the parse tree
-	 */
-	void enterSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlJoinTableSource}.
-	 * @param ctx the parse tree
-	 */
-	void exitSqlJoinTableSource(EqlParser.SqlJoinTableSourceContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#joinType_}.
 	 * @param ctx the parse tree

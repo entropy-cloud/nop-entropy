@@ -81,7 +81,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     protected final SQL.SqlBuilder sb;
 
     private int indentLevel;
-    private boolean pretty;
+    private boolean pretty = true;
 
     public AstToEqlGenerator(SQL.SqlBuilder sb) {
         this.sb = sb;
@@ -99,6 +99,11 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         this.pretty = pretty;
     }
 
+    public AstToEqlGenerator pretty(boolean pretty) {
+        this.pretty = pretty;
+        return this;
+    }
+
     public SQL.SqlBuilder getSql() {
         return sb;
     }
@@ -111,9 +116,29 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         sb.append(text);
     }
 
+    protected void beginBlock() {
+        incIndent();
+        println();
+    }
+
+    protected void beginBraceBlock() {
+        print('(');
+        beginBlock();
+    }
+
+    protected void endBraceBlock() {
+        endBlock();
+        print(')');
+    }
+
+    protected void endBlock() {
+        decIndent();
+        println();
+    }
+
     protected void printAlias(SqlAlias alias) {
         if (alias != null) {
-            print(' ');
+            print(" as ");
             print(alias.getAlias());
         }
     }
@@ -178,6 +203,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
             for (int i = 0, n = list.size(); i < n; i++) {
                 if (i != 0) {
                     print(separator);
+                    println();
                 }
                 visit(list.get(i));
             }
@@ -266,9 +292,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
         print("into ");
         visitSqlTableName(node.getTableName());
-        print("(");
+        beginBraceBlock();
         printList(node.getColumns(), ",");
-        print(")");
+        endBraceBlock();
         if (node.getSelect() != null) {
             visit(node.getSelect());
         } else {
@@ -284,7 +310,10 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     public void visitSqlValues(SqlValues node) {
         println();
         print("values(");
+        beginBlock();
         printList(node.getValues(), ",");
+        endBlock();
+        println();
         print(")");
     }
 
@@ -294,7 +323,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         visitSqlTableName(node.getTableName());
         println();
         print("set ");
+        beginBlock();
         printList(node.getAssignments(), ",");
+        endBlock();
         if (node.getWhere() != null) {
             visitSqlWhere(node.getWhere());
         }
@@ -332,9 +363,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getExpr() == null)
             return;
         print("where ");
-        incIndent();
+        beginBlock();
         visit(node.getExpr());
-        decIndent();
+        endBlock();
     }
 
     @Override
@@ -366,53 +397,48 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     protected void printSelect(SqlQuerySelect node) {
         print("select ");
+        beginBlock();
         if (node.getDistinct()) {
             print("distinct ");
         }
         printList(node.getProjections(), ",");
+        endBlock();
+
         if (node.getFrom() != null) {
-            println();
             visitSqlFrom(node.getFrom());
         }
 
         printWhere(node);
 
         if (node.getGroupBy() != null) {
-            println();
             visitSqlGroupBy(node.getGroupBy());
         }
 
         if (node.getHaving() != null) {
-            println();
             visitSqlHaving(node.getHaving());
         }
 
         if (node.getOrderBy() != null) {
-            println();
             visitSqlOrderBy(node.getOrderBy());
         }
 
         if (node.getForUpdate()) {
-            print(" for update");
+            println();
+            print("for update");
         }
     }
 
     protected void printWhere(SqlQuerySelect node) {
         if (node.getWhere() != null) {
-            println();
             visitSqlWhere(node.getWhere());
         }
     }
 
     @Override
     public void visitSqlSubQueryExpr(SqlSubQueryExpr node) {
-        print('(');
-        println();
-        incIndent();
+        beginBraceBlock();
         visit(node.getSelect());
-        decIndent();
-        println();
-        print(')');
+        endBraceBlock();
     }
 
     @Override
@@ -423,7 +449,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     @Override
     public void visitSqlHaving(SqlHaving node) {
         print("having ");
+        beginBlock();
         visit(node.getExpr());
+        endBlock();
     }
 
 //    @Override
@@ -433,22 +461,26 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlUnionSelect(SqlUnionSelect node) {
+        beginBraceBlock();
         visit(node.getLeft());
-        if (node.getUnionType() == SqlUnionType.UNION) {
+        endBraceBlock();
+
+        println();
+        if (node.getUnionType() == SqlUnionType.UNION_ALL) {
             sb.append(" union all ");
         } else {
             sb.append(" union ");
         }
+        println();
+        beginBraceBlock();
         visit(node.getRight());
+        endBraceBlock();
     }
 
     @Override
     public void visitSqlExprProjection(SqlExprProjection node) {
         visit(node.getExpr());
-        if (node.getAlias() != null) {
-            print(" as ");
-            visitSqlAlias(node.getAlias());
-        }
+        visitSqlAlias(node.getAlias());
     }
 
     @Override
@@ -463,13 +495,17 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     @Override
     public void visitSqlOrderBy(SqlOrderBy node) {
         print("order by ");
+        beginBlock();
         printList(node.getItems(), ",");
+        endBlock();
     }
 
     @Override
     public void visitSqlGroupBy(SqlGroupBy node) {
         print("group by ");
+        beginBlock();
         printList(node.getItems(), ",");
+        endBlock();
     }
 
     @Override
@@ -509,9 +545,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     @Override
     public void visitSqlFrom(SqlFrom node) {
         print("from ");
-        incIndent();
+        beginBlock();
         printList(node.getTableSources(), ",");
-        decIndent();
+        endBlock();
     }
 
     @Override
@@ -536,7 +572,9 @@ public class AstToEqlGenerator extends EqlASTVisitor {
     @Override
     public void visitSqlSubqueryTableSource(SqlSubqueryTableSource node) {
         print('(');
+        beginBlock();
         visit(node.getQuery());
+        endBlock();
         print(')');
         printAlias(node.getAlias());
     }
@@ -696,7 +734,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlLikeExpr(SqlLikeExpr node) {
-        printBinaryExpr(node.getExpr(), node.getIgnoreCase() ? SqlOperator.ILIKE: SqlOperator.LIKE, node.getValue());
+        printBinaryExpr(node.getExpr(), node.getIgnoreCase() ? SqlOperator.ILIKE : SqlOperator.LIKE, node.getValue());
     }
 
     @Override

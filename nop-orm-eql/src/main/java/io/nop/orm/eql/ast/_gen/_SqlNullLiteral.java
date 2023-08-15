@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 // tell cpd to start ignoring code - CPD-OFF
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
-public abstract class _SqlNullLiteral extends io.nop.orm.eql.ast.SqlExpr {
+public abstract class _SqlNullLiteral extends io.nop.orm.eql.ast.SqlLiteral {
     
 
     public _SqlNullLiteral(){

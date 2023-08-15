@@ -73,12 +73,14 @@ sqlCteStatements_
     ;
 
 sqlSelect
-    : sqlUnionSelect
-    | sqlQuerySelect
+    :
+     sqlQuerySelect #SqlQuerySelect_ex
+     | sqlUnionSelect #SqlUnionSelect_ex
+     | left=sqlSelect unionType=unionType_  LP_ right=sqlSelect RP_  #SqlUnionSelect_ex2
     ;
 
 sqlUnionSelect
-    : decorators=sqlDecorators_? LP_ left=sqlQuerySelect RP_ <br> unionType=unionType_ <br> LP_ right=sqlSelect RP_
+    : decorators=sqlDecorators_? LP_ left=sqlQuerySelect RP_ unionType=unionType_  LP_ right=sqlSelect RP_
     ;
 
 unionType_:
@@ -135,7 +137,10 @@ tableSources_
 //    ;
 
 sqlTableSource:
-    sqlSingleTableSource|sqlSubqueryTableSource|sqlJoinTableSource;
+    sqlSingleTableSource  #SqlSingleTableSource_ex
+    | sqlSubqueryTableSource #SqlSubqueryTableSource_ex
+    | left=sqlTableSource  joinType=joinType_ right=sqlTableSource_joinRight  (ON condition=sqlExpr)? #SqlJoinTableSource
+    ;
 
 sqlSingleTableSource:
     tableName=sqlTableName AS? alias=sqlAlias? decorators=sqlDecorators_?;
@@ -143,9 +148,11 @@ sqlSingleTableSource:
 sqlSubqueryTableSource:
    lateral=LATERAL? LP_  query=sqlSelect RP_ AS? alias=sqlAlias;
 
-sqlJoinTableSource
-    : left=sqlSingleTableSource <indent> joinType=joinType_ right=sqlTableSource_joinRight <indent> (ON condition=sqlExpr)?
-    ;
+//sqlJoinTableSource
+//    : left=sqlSingleTableSource <indent> joinType=joinType_ right=sqlTableSource_joinRight <indent> (ON condition=sqlExpr)?
+//     | left=sqlJoinTableSource <indent> joinType=joinType_ right=sqlTableSource_joinRight <indent> (ON condition=sqlExpr)?
+//    ;
+
 
 joinType_:
     innerJoin_ | leftJoin_ | rightJoin_ | fullJoin_;

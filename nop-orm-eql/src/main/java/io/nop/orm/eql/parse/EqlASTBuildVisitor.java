@@ -23,6 +23,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import java.util.Locale;
+
 import static io.nop.antlr4.common.ParseTreeHelper.isToken;
 import static io.nop.antlr4.common.ParseTreeHelper.loc;
 import static io.nop.antlr4.common.ParseTreeHelper.text;
@@ -251,7 +253,7 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
      * rules: sqlTypeExpr
      */
     public java.lang.String SqlTypeExpr_name(ParseTree node) {
-        String name = ParseTreeHelper.text(node);
+        String name = text(node).toUpperCase(Locale.ROOT);
         if (StdSqlType.fromStdName(name) == null)
             throw new NopException(ERR_EQL_INVALID_SQL_TYPE).loc(ParseTreeHelper.loc(node)).param(ARG_SQL_TYPE, name)
                     .param(ARG_ALLOWED_NAMES, StdSqlType.getNames());

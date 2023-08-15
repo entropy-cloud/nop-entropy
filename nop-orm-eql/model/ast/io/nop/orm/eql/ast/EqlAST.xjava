@@ -331,7 +331,7 @@ class EqlAST {
         boolean value;
     }
 
-    class SqlNullLiteral extends SqlExpr {
+    class SqlNullLiteral extends SqlLiteral {
     }
 
     class SqlBinaryExpr extends SqlExpr {
