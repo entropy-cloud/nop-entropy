@@ -36,6 +36,20 @@
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+        <grid id="sub-grid-edit" x:prototype="list" editMode="list-edit">
+            <cols>
+                <col id="ruleId" x:abstract="true"/>
+                <col id="createdBy" x:abstract="true"/>
+                <col id="createTime" x:abstract="true"/>
+                <col id="updatedBy" x:abstract="true"/>
+                <col id="updateTime" x:abstract="true"/>
+            </cols>
+        </grid>
+        <grid id="sub-grid-view" x:prototype="list" editMode="list-view">
+            <cols>
+                <col id="ruleId" x:abstract="true"/>
+            </cols>
+        </grid>
     </grids>
 
     <forms>

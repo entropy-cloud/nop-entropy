@@ -405,6 +405,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
+            <attr name="editMode" optional="true" />
 
             <source>
                 <c:for var="col" items="${gridModel.cols}" index="colIndex">
@@ -412,7 +413,7 @@
                         if(col.hidden) continue;
                         if(ignoreCols and ignoreCols.contains(col.id)) continue;
                     </c:script>
-                    <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}"/>
+                    <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}" editMode="${editMode}"/>
                 </c:for>
             </source>
         </GenGridCols>
@@ -423,6 +424,7 @@
             <attr name="colModel"/>
             <attr name="colIndex"/>
             <attr name="objMeta"/>
+            <attr name="editMode" optional="true" />
             <attr name="gridModel" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
 
@@ -451,7 +453,7 @@
                     };
                     let colXpl = colModel.genControl;
                     let control = null;
-                    let mode = colModel.editMode || gridModel.editMode || 'list-view'
+                    let mode = editMode || colModel.editMode || gridModel.editMode || 'list-view'
                     if(colXpl != null){
                         control = eval(colXpl,{ dispMeta:colModel,objMeta, propMeta,
                               mandatory: colModel.mandatory ?? propMeta?.mandatory,

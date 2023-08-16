@@ -77,6 +77,7 @@ public class DeltaMerger implements IDeltaMerger {
         switch (overrideB) {
             case REMOVE:
                 overrideRemove(xa, xb);
+                xa.setAttr(keys.ABSTRACT,true);
                 break;
             case REPLACE:
                 overrideReplace(xa, xb);

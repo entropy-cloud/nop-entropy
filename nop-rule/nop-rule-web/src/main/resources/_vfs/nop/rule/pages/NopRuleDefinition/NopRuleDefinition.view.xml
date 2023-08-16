@@ -8,17 +8,15 @@
     </grids>
 
     <forms>
-        <form id="view"/>
-        <form id="edit" layoutControl="tabs">
+        <form id="view" x:prototype="edit"/>
+
+        <form id="edit" layoutControl="tabs" size="xl">
             <layout>
                 ==>baseInfo[基本信息]====
-                ruleName[规则名称]
-                ruleVersion[规则版本]
-                displayName[显示名称]
-                ruleGroup[规则分组]
-                ruleType[规则类型]
+                ruleName[规则名称] ruleVersion[规则版本]
+                displayName[显示名称]  ruleGroup[规则分组]
+                ruleType[规则类型]  status[状态]
                 description[描述]
-                status[状态]
                 remark[备注]
 
                 ==authConfig[权限配置]===

@@ -302,6 +302,20 @@ public class XuiHelper {
         return '/' + moduleId + "/pages/" + bizObjName + "/picker.page.yaml";
     }
 
+    public static String getRelationViewUrl(IObjPropMeta propMeta, IObjMeta objMeta) {
+        IObjPropMeta relProp = getRelationProp(propMeta, objMeta);
+        if (relProp == null)
+            return null;
+        String bizObjName = getRefBizObjName(relProp);
+        String moduleId = (String) relProp.prop_get(BIZ_MODULE_ID);
+        if (propMeta != relProp && StringHelper.isEmpty(moduleId)) {
+            moduleId = (String) propMeta.prop_get(BIZ_MODULE_ID);
+        }
+        if (StringHelper.isEmpty(moduleId))
+            moduleId = ResourceHelper.getModuleId(objMeta.resourcePath());
+        return '/' + moduleId + "/pages/" + bizObjName + "/"+bizObjName+".view.xml";
+    }
+
     /**
      * 弹出关联集合页面时在子表的查询链接中拼接关联过滤条件
      */
