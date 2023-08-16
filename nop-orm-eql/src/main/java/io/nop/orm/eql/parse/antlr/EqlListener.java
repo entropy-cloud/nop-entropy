@@ -202,27 +202,17 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code SqlUnionSelect_ex2}
+	 * Enter a parse tree produced by the {@code SqlSelect_ex}
 	 * labeled alternative in {@link EqlParser#sqlSelect}.
 	 * @param ctx the parse tree
 	 */
-	void enterSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx);
+	void enterSqlSelect_ex(EqlParser.SqlSelect_exContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code SqlUnionSelect_ex2}
+	 * Exit a parse tree produced by the {@code SqlSelect_ex}
 	 * labeled alternative in {@link EqlParser#sqlSelect}.
 	 * @param ctx the parse tree
 	 */
-	void exitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx);
-	/**
-	 * Enter a parse tree produced by {@link EqlParser#sqlUnionSelect}.
-	 * @param ctx the parse tree
-	 */
-	void enterSqlUnionSelect(EqlParser.SqlUnionSelectContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link EqlParser#sqlUnionSelect}.
-	 * @param ctx the parse tree
-	 */
-	void exitSqlUnionSelect(EqlParser.SqlUnionSelectContext ctx);
+	void exitSqlSelect_ex(EqlParser.SqlSelect_exContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link EqlParser#unionType_}.
 	 * @param ctx the parse tree

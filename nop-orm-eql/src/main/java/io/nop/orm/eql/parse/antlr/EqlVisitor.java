@@ -127,18 +127,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlQuerySelect_ex(EqlParser.SqlQuerySelect_exContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code SqlUnionSelect_ex2}
+	 * Visit a parse tree produced by the {@code SqlSelect_ex}
 	 * labeled alternative in {@link EqlParser#sqlSelect}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx);
-	/**
-	 * Visit a parse tree produced by {@link EqlParser#sqlUnionSelect}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSqlUnionSelect(EqlParser.SqlUnionSelectContext ctx);
+	T visitSqlSelect_ex(EqlParser.SqlSelect_exContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link EqlParser#unionType_}.
 	 * @param ctx the parse tree

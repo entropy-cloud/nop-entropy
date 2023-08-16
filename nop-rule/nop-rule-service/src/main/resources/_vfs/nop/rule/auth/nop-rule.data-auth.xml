@@ -14,7 +14,9 @@
                     </check>
 
                     <filter>
-
+                        <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
+                            o.id in (select t.ruleId from NopRuleRole t where t.roleId in ${userContext.roles})
+                        </filter:sql>
                     </filter>
                 </role-auth>
             </role-auths>

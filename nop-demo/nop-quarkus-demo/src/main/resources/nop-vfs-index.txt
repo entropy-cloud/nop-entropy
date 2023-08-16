@@ -181,6 +181,7 @@
 /nop/auth/sql/NopAuthExtLogin.sql-lib.xml
 /nop/auth/sql/NopAuthRole.sql-lib.xml
 /nop/auth/sql/NopAuthUser.sql-lib.xml
+/nop/auth/xlib/auth-gen.xlib
 /nop/autoconfig/nop-auth-core.beans
 /nop/autoconfig/nop-auth-sso.beans
 /nop/autoconfig/nop-biz.beans

@@ -4229,4 +4229,16 @@ public class StringHelper extends ApiStringHelper {
         return arrayString.substring(1, arrayString.length() - 1);
     }
 
+    public static boolean isSecretVar(String varName) {
+        if (varName == null)
+            return false;
+        return varName.endsWith("secret") || varName.endsWith("password");
+    }
+
+    public static String maskValue(String varName, Object value) {
+        if (isSecretVar(varName)) {
+            return "***";
+        }
+        return toString(value, null);
+    }
 }

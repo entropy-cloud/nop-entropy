@@ -245,25 +245,13 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx) { }
+	@Override public void enterSqlSelect_ex(EqlParser.SqlSelect_exContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterSqlUnionSelect(EqlParser.SqlUnionSelectContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitSqlUnionSelect(EqlParser.SqlUnionSelectContext ctx) { }
+	@Override public void exitSqlSelect_ex(EqlParser.SqlSelect_exContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

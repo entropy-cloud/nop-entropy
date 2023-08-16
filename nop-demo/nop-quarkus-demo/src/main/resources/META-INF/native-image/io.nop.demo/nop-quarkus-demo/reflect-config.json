@@ -3734,6 +3734,15 @@
       {
         "name": "varRef",
         "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String",
+          "java.lang.Class",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "varRef",
+        "parameterTypes": [
           "java.lang.String",
           "java.lang.Class",
           "java.lang.Object"
@@ -3742,6 +3751,14 @@
       {
         "name": "withOverride",
         "parameterTypes": [
+          "io.nop.api.core.config.IConfigReference",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "withOverride",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
           "io.nop.api.core.config.IConfigReference",
           "java.lang.String"
         ]
@@ -23854,6 +23871,63 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "_instance"
+      }
+    ],
+    "methods": [
+      {
+        "name": "clear",
+        "parameterTypes": []
+      },
+      {
+        "name": "discover",
+        "parameterTypes": []
+      },
+      {
+        "name": "findModuleResources",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAllModuleResources",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getEnabledModuleIds",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "instance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.module.ModuleManager",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -24927,6 +25001,37 @@
     "fields": [],
     "methods": [
       {
+        "name": "instance",
+        "parameterTypes": []
+      },
+      {
+        "name": "isInitialized",
+        "parameterTypes": []
+      },
+      {
+        "name": "registerInstance",
+        "parameterTypes": [
+          "io.nop.core.resource.IVirtualFileSystem"
+        ]
+      },
+      {
+        "name": "unregisterInstance",
+        "parameterTypes": [
+          "io.nop.core.resource.IVirtualFileSystem"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.VirtualFileSystem",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "checkAllowChange",
         "parameterTypes": []
       },
@@ -25788,6 +25893,84 @@
     "fields": [],
     "methods": [
       {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildren",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getClassPathResources",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "refresh",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "registerNamespaceHandler",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceNamespaceHandler"
+        ]
+      },
+      {
+        "name": "saveResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResource",
+          "io.nop.api.core.util.progress.IStepProgressListener",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setTenantResourceStoreSupplier",
+        "parameterTypes": [
+          "io.nop.core.resource.store.ITenantResourceStoreSupplier"
+        ]
+      },
+      {
+        "name": "supportSave",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "unregisterNamespaceHandler",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceNamespaceHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.store.DefaultVirtualFileSystem",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "generateToStream",
         "parameterTypes": [
           "java.io.OutputStream",
@@ -25855,6 +26038,174 @@
       }
     ],
     "name": "io.nop.core.type.IGenericType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSuperType",
+        "parameterTypes": []
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "resolve",
+        "parameterTypes": [
+          "io.nop.core.type.IRawTypeResolver"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.type.impl.AbstractGenericType",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getComponentType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncArgTypes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFuncReturnType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "getGenericType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapKeyType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMapValueType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStdDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSuperType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTypeParameters",
+        "parameterTypes": []
+      },
+      {
+        "name": "isArray",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCollectionLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isFunctionalClass",
+        "parameterTypes": []
+      },
+      {
+        "name": "isListLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMapLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "isResolved",
+        "parameterTypes": []
+      },
+      {
+        "name": "isSetLike",
+        "parameterTypes": []
+      },
+      {
+        "name": "refine",
+        "parameterTypes": [
+          "io.nop.core.type.ITypeScope"
+        ]
+      },
+      {
+        "name": "resolve",
+        "parameterTypes": [
+          "io.nop.core.type.IRawTypeResolver"
+        ]
+      }
+    ],
+    "name": "io.nop.core.type.impl.GenericParameterizedType",
     "unsafeAllocated": false
   },
   {
@@ -62436,6 +62787,103 @@
     "fields": [],
     "methods": [
       {
+        "name": "ceiling",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "descendingIterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "descendingSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "floor",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "higher",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "lower",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "pollFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "pollLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean",
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      }
+    ],
+    "name": "java.util.NavigableSet",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "add",
         "parameterTypes": [
           "java.lang.Object"
@@ -62636,6 +63084,185 @@
       }
     ],
     "name": "java.util.Set",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "comparator",
+        "parameterTypes": []
+      },
+      {
+        "name": "first",
+        "parameterTypes": []
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "last",
+        "parameterTypes": []
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "java.util.SortedSet",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "ceiling",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "clear",
+        "parameterTypes": []
+      },
+      {
+        "name": "comparator",
+        "parameterTypes": []
+      },
+      {
+        "name": "contains",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "descendingIterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "descendingSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "first",
+        "parameterTypes": []
+      },
+      {
+        "name": "floor",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "higher",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "last",
+        "parameterTypes": []
+      },
+      {
+        "name": "lower",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "pollFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "pollLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "remove",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      },
+      {
+        "name": "spliterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean",
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      }
+    ],
+    "name": "java.util.TreeMap$KeySet",
     "unsafeAllocated": false
   }
 ]

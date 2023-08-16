@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
-      displayName="规则角色" i18n-en:displayName="Rule Role" tagSet="many-to-many">
+      displayName="规则角色" i18n-en:displayName="Rule Role">
 
     <entityName>io.nop.rule.dao.entity.NopRuleRole</entityName>
 
@@ -55,8 +55,8 @@
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
         <prop name="ruleDefinition" displayName="规则定义" i18n-en:displayName="Rule Definition"
-              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
-              queryable="true" ext:joinLeftProp="ruleId" ext:joinRightProp="ruleId"
+              tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="ruleId" ext:joinRightProp="ruleId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema type="io.nop.rule.dao.entity.NopRuleDefinition" bizObjName="NopRuleDefinition"/>
         </prop>

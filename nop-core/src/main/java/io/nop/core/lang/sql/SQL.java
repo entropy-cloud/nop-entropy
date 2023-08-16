@@ -624,7 +624,7 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
         public SqlBuilder spreadParams(Collection<?> c) {
             if (c == null || c.isEmpty()) {
-                append("NULL");
+                append("(NULL)");
             } else {
                 Iterator<?> entryIter = c.iterator();
                 int k = 0;

@@ -89,7 +89,7 @@
                     </join>
                 </to-many>
                 <to-many displayName="规则角色" name="ruleRoles" refEntityName="io.nop.rule.dao.entity.NopRuleRole"
-                         refPropName="ruleDefinition" tagSet="pub,cascade-delete,insertable,updatable"
+                         refPropName="ruleDefinition" tagSet="pub,grid,cascade-delete,insertable,updatable"
                          i18n-en:displayName="Rule Roles">
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
@@ -162,8 +162,8 @@
         </entity>
         <entity className="io.nop.rule.dao.entity.NopRuleRole" createTimeProp="createTime" createrProp="createdBy"
                 displayName="规则角色" name="io.nop.rule.dao.entity.NopRuleRole" registerShortName="true"
-                tableName="nop_rule_role" tagSet="many-to-many" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="Rule Role">
+                tableName="nop_rule_role" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Rule Role">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
@@ -193,7 +193,7 @@
             <relations>
                 <to-one displayName="规则定义" name="ruleDefinition"
                         refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleRoles"
-                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable"
+                        tagSet="pub,ref-pub,ref-grid,ref-cascade-delete,ref-insertable,ref-updatable"
                         i18n-en:displayName="Rule Definition" ref-i18n-en:displayName="Rule Roles">
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>

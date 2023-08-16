@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:auth-gen="auth-gen" xmlns:xpl="xpl" xpl:ignoreTag="true">
 
-<data-auth x:extends="${moduleName}.data-auth.xml" x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
-    <objs>
-
-    </objs>
+    <x:gen-extends>
+        <auth-gen:GenFromModules xpl:lib="/nop/auth/xlib/auth-gen.xlib"/>
+    </x:gen-extends>
 </data-auth>

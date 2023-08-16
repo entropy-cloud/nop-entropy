@@ -759,6 +759,56 @@
             ]]></source>
         </edit-relation>
 
+        <edit-roleId>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'picker',
+                    'x:extends': '/nop/auth/pages/NopAuthRole/picker.page.yaml',
+                    valueField: 'roleId',
+                    labelField: 'roleName',
+                    source: {
+                       // 前端AMIS控件在初始化数据的时候会把source转换成loadOptions调用，
+                       // 但此时无法自动获取到外层的valueField配置，所以这里只能重复设置一下。
+                       valueField: 'roleId',
+                       labelField: 'roleName',
+                    },
+                    joinValues: false,
+                    extractValue:true,
+                    multiple: false
+                }
+            ]]></source>
+        </edit-roleId>
+
+        <edit-userId>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+
+            <source><![CDATA[
+                return {
+                    type: 'picker',
+                    'x:extends': '/nop/auth/pages/NopAuthUser/picker.page.yaml',
+                    valueField: 'userId',
+                    labelField: 'userName',
+                    source: {
+                       // 前端AMIS控件在初始化数据的时候会把source转换成loadOptions调用，
+                       // 但此时无法自动获取到外层的valueField配置，所以这里只能重复设置一下。
+                       valueField: 'userId',
+                       labelField: 'userName',
+                    },
+                    joinValues: false,
+                    extractValue:true,
+                    multiple: false
+                }
+            ]]></source>
+        </edit-userId>
+
         <view-relation>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>

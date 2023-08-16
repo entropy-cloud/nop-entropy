@@ -141,7 +141,7 @@ public class SourceLocation implements Serializable, IJsonString {
     }
 
     public static SourceLocation fromClass(Class clazz) {
-        return fromPath("class:" + clazz);
+        return fromPath("class:" + clazz.getCanonicalName());
     }
 
     public static SourceLocation fromPath(String path) {

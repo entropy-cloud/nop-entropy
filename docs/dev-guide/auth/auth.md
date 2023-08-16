@@ -1,7 +1,10 @@
 # 启用权限
 
 * 配置 nop.auth.enable-action-auth=true后启用操作权限。字段级别权限也利用这一开关
-* 配置 nop.auth.enabled-data-auth=true后启用数据权限。
+* 配置 nop.auth.enable-data-auth=true后启用数据权限。
+* 配置 nop.auth.use-data-auth-table=true启用数据权限配置表 NopAuthRoleDataAuth，数据库中配置的数据权限规则可以和配置文件中的权限规则合并
+
+> 平台在调试模式下启动时会打印出所有已知配置变量以及它对应的配置位置
 
 # 核心接口
 
@@ -121,6 +124,8 @@ public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标�
     </objs>
 </data-auth>
 ````
+
+* 针对不同的角色可以设置不同的数据权限规则。一个用户只会匹配优先级最高的一条规则（如果规则优先级相同，则按照顺序检查用户是否具有指定角色）
 
 在filter段中可以编写权限过滤条件，其中value部分可以使用`@biz:`为前缀的表达式变量，例如`@biz:userId, @biz:deptId`等。
 全部可用的变量在[biz-var.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/resources/_vfs/nop/dict/biz/biz-var.dict.yaml)

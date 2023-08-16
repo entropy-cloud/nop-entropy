@@ -265,6 +265,11 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlQuerySelect(node);
         }
       
+        public io.nop.orm.eql.ast.SqlSelect visitSqlSelect_ex(SqlSelect_exContext ctx){
+           SqlSelectContext node = ctx.sqlSelect();
+           return node == null ? null : visitSqlSelect(node);
+        }
+      
         public io.nop.orm.eql.ast.SqlSingleTableSource visitSqlSingleTableSource_ex(SqlSingleTableSource_exContext ctx){
            SqlSingleTableSourceContext node = ctx.sqlSingleTableSource();
            return node == null ? null : visitSqlSingleTableSource(node);
@@ -275,18 +280,19 @@ public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
            return node == null ? null : visitSqlSubqueryTableSource(node);
         }
       
-        public io.nop.orm.eql.ast.SqlUnionSelect visitSqlUnionSelect_ex(SqlUnionSelect_exContext ctx){
-           SqlUnionSelectContext node = ctx.sqlUnionSelect();
-           return node == null ? null : visitSqlUnionSelect(node);
-        }
-      
-      public io.nop.orm.eql.ast.SqlUnionSelect visitSqlUnionSelect_ex2(SqlUnionSelect_ex2Context ctx){
+      public io.nop.orm.eql.ast.SqlUnionSelect visitSqlUnionSelect_ex(SqlUnionSelect_exContext ctx){
           io.nop.orm.eql.ast.SqlUnionSelect ret = new io.nop.orm.eql.ast.SqlUnionSelect();
           ret.setLocation(ParseTreeHelper.loc(ctx));
           
             if(ctx.left != null){
                ret.setLeft((visitSqlSelect(ctx.left)));
             }
+            if(ctx.decorators != null){
+               ret.setDecorators((buildSqlDecorators_(ctx.decorators)));
+            }else{
+               ret.setDecorators(Collections.emptyList());
+            }
+            
             if(ctx.unionType != null){
                ret.setUnionType((SqlUnionSelect_unionType(ctx.unionType)));
             }
@@ -1256,30 +1262,6 @@ public java.util.List<io.nop.orm.eql.ast.SqlStatement> buildSqlStatements_(SqlSt
           return ret;
       }
             
-      public io.nop.orm.eql.ast.SqlUnionSelect visitSqlUnionSelect(SqlUnionSelectContext ctx){
-          io.nop.orm.eql.ast.SqlUnionSelect ret = new io.nop.orm.eql.ast.SqlUnionSelect();
-          ret.setLocation(ParseTreeHelper.loc(ctx));
-          
-            if(ctx.decorators != null){
-               ret.setDecorators((buildSqlDecorators_(ctx.decorators)));
-            }else{
-               ret.setDecorators(Collections.emptyList());
-            }
-            
-            if(ctx.left != null){
-               ret.setLeft((visitSqlQuerySelect(ctx.left)));
-            }
-            if(ctx.unionType != null){
-               ret.setUnionType((SqlUnionSelect_unionType(ctx.unionType)));
-            }
-            if(ctx.right != null){
-               ret.setRight((visitSqlSelect(ctx.right)));
-            }
-            ret.normalize();
-            ret.validate();
-          return ret;
-      }
-            
       public io.nop.orm.eql.ast.SqlUpdate visitSqlUpdate(SqlUpdateContext ctx){
           io.nop.orm.eql.ast.SqlUpdate ret = new io.nop.orm.eql.ast.SqlUpdate();
           ret.setLocation(ParseTreeHelper.loc(ctx));
@@ -1480,7 +1462,7 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract io.nop.orm.eql.enums.SqlOperator SqlUnaryExpr_operator(org.antlr.v4.runtime.Token token);
 
   /**
-   * rules: SqlUnionSelect_ex2,sqlUnionSelect
+   * rules: SqlUnionSelect_ex
    */
   public abstract io.nop.orm.eql.enums.SqlUnionType SqlUnionSelect_unionType(ParseTree node);
 

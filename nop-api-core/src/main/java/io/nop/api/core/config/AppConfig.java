@@ -9,6 +9,7 @@ package io.nop.api.core.config;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.util.ApiStringHelper;
+import io.nop.api.core.util.SourceLocation;
 
 import java.util.UUID;
 
@@ -76,12 +77,12 @@ public class AppConfig {
         return CFG_PROFILE.get();
     }
 
-    public static <T> IConfigReference<T> varRef(String name, Class<T> valueType, T defaultValue) {
-        return s_provider.getConfigReference(name, valueType, defaultValue);
+    public static <T> IConfigReference<T> varRef(SourceLocation loc, String name, Class<T> valueType, T defaultValue) {
+        return s_provider.getConfigReference(name, valueType, defaultValue, loc);
     }
 
-    public static <T> IConfigReference<T> withOverride(IConfigReference<T> defaultRef, String name) {
-        return new OverrideConfigReference<>(varRef(name, defaultRef.getValueType(), null), defaultRef);
+    public static <T> IConfigReference<T> withOverride(SourceLocation loc, IConfigReference<T> defaultRef, String name) {
+        return new OverrideConfigReference<>(varRef(loc, name, defaultRef.getValueType(), null), defaultRef);
     }
 
     public static Object var(String name) {

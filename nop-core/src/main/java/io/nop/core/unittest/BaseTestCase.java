@@ -10,6 +10,7 @@ package io.nop.core.unittest;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
@@ -40,6 +41,7 @@ import static io.nop.api.core.ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE;
  * attachmentXXX方法提供了从测试类所在目录读取文件的能力
  */
 public class BaseTestCase {
+    static final SourceLocation s_loc = SourceLocation.fromClass(BaseTestCase.class);
     private File attachmentDir;
     private File targetDir;
 
@@ -88,7 +90,7 @@ public class BaseTestCase {
     }
 
     public static void setTestConfig(String name, Object value) {
-        IConfigReference<Object> var = AppConfig.varRef(name, (Class) value.getClass(), null);
+        IConfigReference<Object> var = AppConfig.varRef(s_loc, name, (Class) value.getClass(), null);
         setTestConfig(var, value);
     }
 

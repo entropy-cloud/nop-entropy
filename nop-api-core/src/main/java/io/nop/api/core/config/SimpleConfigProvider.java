@@ -38,7 +38,7 @@ public class SimpleConfigProvider implements IConfigProvider {
     @Override
     public void assignConfigValue(String name, Object value) {
         Class<?> valueClass = value == null ? Object.class : value.getClass();
-        DefaultConfigReference df = getConfigRef(name, valueClass, null);
+        DefaultConfigReference df = getConfigRef(null, name, valueClass, null);
         value = ConvertHelper.convertTo(df.getValueType(), value, err -> new NopException(err)
                 .param(ARG_VAR, name));
         df.updateValue(null, StaticValue.valueOf(value));
@@ -48,14 +48,14 @@ public class SimpleConfigProvider implements IConfigProvider {
         value = ConvertHelper.convertTo(ref.getValueType(), value,
                 err -> new NopException(err).param(ARG_VAR, ref.getName()));
 
-        DefaultConfigReference<T> df = getConfigRef(ref.getName(), ref.getValueType(), ref.getDefaultValue());
+        DefaultConfigReference<T> df = getConfigRef(null, ref.getName(), ref.getValueType(), ref.getDefaultValue());
         df.updateValue(ref.getLocation(), StaticValue.valueOf(value));
     }
 
     public void updateConfig(Map<String, IConfigReference<?>> refs) {
         for (Map.Entry<String, IConfigReference<?>> entry : refs.entrySet()) {
             IConfigReference ref = entry.getValue();
-            DefaultConfigReference oldRef = getConfigRef(entry.getKey(), ref.getValueType(), ref.getDefaultValue());
+            DefaultConfigReference oldRef = getConfigRef(null, entry.getKey(), ref.getValueType(), ref.getDefaultValue());
             if (oldRef.getValueType() != ref.getValueType())
                 throw new NopException(ERR_CONFIG_VALUE_TYPE_NOT_ALLOW_CHANGE)
                         .param(ARG_VAR, ref.getName())
@@ -77,11 +77,11 @@ public class SimpleConfigProvider implements IConfigProvider {
         return ret;
     }
 
-    <T> DefaultConfigReference<T> getConfigRef(String varName, Class<T> clazz, T defaultValue) {
+    <T> DefaultConfigReference<T> getConfigRef(SourceLocation loc, String varName, Class<T> clazz, T defaultValue) {
         return (DefaultConfigReference<T>) refs.computeIfAbsent(varName, key -> {
             String prop = System.getProperty(varName);
             T value = convertValue(varName, clazz, prop);
-            DefaultConfigReference<T> valueRef = new DefaultConfigReference<>(null, varName, clazz,
+            DefaultConfigReference<T> valueRef = new DefaultConfigReference<>(loc, varName, clazz,
                     defaultValue, StaticValue.valueOf(value));
             return valueRef;
         });
@@ -107,8 +107,8 @@ public class SimpleConfigProvider implements IConfigProvider {
     }
 
     @Override
-    public <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue) {
-        IConfigReference<?> ref = getConfigRef(varName, clazz, defaultValue);
+    public <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
+        IConfigReference<?> ref = getConfigRef(loc, varName, clazz, defaultValue);
 
         if (ref.getValueType() != clazz)
             throw new NopException(ERR_CONFIG_VALUE_TYPE_NOT_ALLOW_CHANGE)

@@ -7,6 +7,8 @@
  */
 package io.nop.api.core.config;
 
+import io.nop.api.core.util.SourceLocation;
+
 import java.util.Map;
 
 /**
@@ -15,7 +17,8 @@ import java.util.Map;
 public interface IConfigProvider {
     Map<String, DefaultConfigReference<?>> getConfigReferences();
 
-    <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue);
+    <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc);
+
 
     <T> void updateConfigValue(IConfigReference<T> ref, T value);
 

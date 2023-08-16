@@ -14,7 +14,9 @@
             <ref bean="nopGraphQLOperationInvoker" ioc:optional="true"/>
         </property>
         <property name="enableActionAuth" value="@cfg:nop.auth.enable-action-auth|false"/>
-        <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|true"/>
+
+        <!-- 与ApiConfigs中的常量定义保持一致 -->
+        <property name="enableDataAuth" value="@cfg:nop.auth.enable-data-auth|false"/>
     </bean>
 
     <bean id="nopGraphQLOperationInvoker" class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
@@ -41,7 +43,7 @@
         </property>
     </bean>
 
-    <bean id="nopBizAuthChecker" class="io.nop.biz.impl.DefaultBizAuthChecker" ioc:default="true" />
+    <bean id="nopBizAuthChecker" class="io.nop.biz.impl.DefaultBizAuthChecker" ioc:default="true"/>
 
     <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer">
         <ioc:condition>

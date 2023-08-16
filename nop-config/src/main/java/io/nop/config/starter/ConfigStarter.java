@@ -20,7 +20,6 @@ import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.config.ConfigConstants;
 import io.nop.config.enhancer.DefaultConfigValueEnhancer;
 import io.nop.config.enhancer.IConfigValueEnhancer;
@@ -64,8 +63,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 import static io.nop.config.ConfigConstants.CFG_KEY_FILE_CONFIG_SOURCE_PATHS;
 import static io.nop.config.ConfigConstants.CFG_KEY_FILE_CONFIG_SOURCE_REFRESH_INTERVAL;
@@ -426,35 +423,11 @@ public class ConfigStarter extends LifeCycleSupport {
     }
 
     protected void updateConfigSource(IConfigSource configSource) {
-        traceConfigVars(configSource);
+//        traceConfigVars(configSource);
 
         configProvider.changeConfigSource(configSource);
         changeApplier = new ConfigChangeApplier(configExecutor, this::applyChange);
         configSource.addOnChange(changeApplier::requestUpdate);
-    }
-
-    protected void traceConfigVars(IConfigSource configSource) {
-        boolean debug = configSource.getConfigValue(ApiConfigs.CFG_DEBUG.getName(), false);
-        boolean trace = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_TRACE, debug);
-        if (trace) {
-            Map<String, ValueWithLocation> vars = new TreeMap<>(configSource.getConfigValues());
-            StringBuilder sb = new StringBuilder();
-            for (Map.Entry<String, ValueWithLocation> entry : vars.entrySet()) {
-                // 跳过properties中的某些配置变量
-                if (entry.getKey().startsWith("java."))
-                    continue;
-
-                if (entry.getKey().indexOf('.') < 0)
-                    continue;
-
-                ValueWithLocation vl = entry.getValue();
-                if (vl.getLocation() != null) {
-                    sb.append("# ").append(vl.getLocation()).append('\n');
-                }
-                sb.append(entry.getKey()).append('=').append(ConvertHelper.toString(vl.getValue(), "")).append("\n");
-            }
-            LOG.debug("nop.config.vars=\n{}", sb.toString());
-        }
     }
 
     protected void applyChange() {

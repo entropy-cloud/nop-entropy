@@ -151,14 +151,7 @@ public class EqlBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements Eq
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitSqlUnionSelect_ex2(EqlParser.SqlUnionSelect_ex2Context ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
-	@Override public T visitSqlUnionSelect(EqlParser.SqlUnionSelectContext ctx) { return visitChildren(ctx); }
+	@Override public T visitSqlSelect_ex(EqlParser.SqlSelect_exContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

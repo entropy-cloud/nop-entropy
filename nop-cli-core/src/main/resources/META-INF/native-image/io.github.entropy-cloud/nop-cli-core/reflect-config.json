@@ -13230,6 +13230,13 @@
         ]
       },
       {
+        "name": "sql",
+        "parameterTypes": [
+          "io.nop.xlang.api.IXLangCompileScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
         "name": "static_eval",
         "parameterTypes": [
           "io.nop.xlang.api.IXLangCompileScope",

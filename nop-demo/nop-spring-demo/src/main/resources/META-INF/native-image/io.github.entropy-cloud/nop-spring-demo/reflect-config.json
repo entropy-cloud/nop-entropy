@@ -12994,6 +12994,13 @@
         ]
       },
       {
+        "name": "checkDataAuthAfterUpdate",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "checkEntityFilter",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -13090,6 +13097,14 @@
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
           "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doCopyForNew",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -13270,6 +13285,13 @@
       },
       {
         "name": "save",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "save_update",
         "parameterTypes": [
           "java.util.Map",
           "io.nop.core.context.IServiceContext"
@@ -27620,11 +27642,21 @@
         "parameterTypes": []
       },
       {
+        "name": "getUrl",
+        "parameterTypes": []
+      },
+      {
         "name": "getValue",
         "parameterTypes": []
       },
       {
         "name": "setFilename",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUrl",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -28327,6 +28359,12 @@
         "name": "isIntrospection",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperation"
+        ]
+      },
+      {
+        "name": "makeRpcProxy",
+        "parameterTypes": [
+          "java.lang.Class"
         ]
       },
       {
@@ -42334,6 +42372,13 @@
       },
       {
         "name": "selection",
+        "parameterTypes": [
+          "io.nop.xlang.api.IXLangCompileScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
+        "name": "sql",
         "parameterTypes": [
           "io.nop.xlang.api.IXLangCompileScope",
           "io.nop.xlang.ast.CallExpression"

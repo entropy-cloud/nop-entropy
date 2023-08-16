@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <GenFromModules outputMode="node">
+            <attr name="excludeModuleIds" optional="true" stdDomain="csv-set" displayName="排除的模块列表">
+            </attr>
+
+            <description>
+                收集所有模块中的数据权限配置文件，自动引入。可以通过配置排除一些模块，忽略这些模块中的数据权限配置文件
+            </description>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.module.ModuleManager;
+                    import io.nop.core.resource.VirtualFileSystem;
+
+                    const moduleAuthFiles = [];
+                    ModuleManager.instance().enabledModuleIds.forEach(moduleId=>{
+                        if(!excludeModuleIds?.contains(moduleId)){
+                            const path = '/' + moduleId + '/auth/' + moduleId.$replace('/','-') + '.data-auth.xml';
+                            const resource = VirtualFileSystem.instance().getResource(path);
+                            if(resource.exists())
+                              moduleAuthFiles.push(path)
+                        }
+                    });
+                ]]></c:script>
+
+                <data-auth xdsl:extends="${_.join(moduleAuthFiles,',')}"/>
+            </source>
+        </GenFromModules>
+    </tags>
+</lib>

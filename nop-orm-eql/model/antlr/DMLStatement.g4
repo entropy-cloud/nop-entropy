@@ -75,13 +75,15 @@ sqlCteStatements_
 sqlSelect
     :
      sqlQuerySelect #SqlQuerySelect_ex
-     | sqlUnionSelect #SqlUnionSelect_ex
-     | left=sqlSelect unionType=unionType_  LP_ right=sqlSelect RP_  #SqlUnionSelect_ex2
+     | LP_ sqlSelect RP_ # SqlSelect_ex
+     | left=sqlSelect decorators=sqlDecorators_? unionType=unionType_  right=sqlSelect #SqlUnionSelect_ex
     ;
 
-sqlUnionSelect
-    : decorators=sqlDecorators_? LP_ left=sqlQuerySelect RP_ unionType=unionType_  LP_ right=sqlSelect RP_
-    ;
+
+//sqlUnionSelect
+//    : left=sqlQuerySelect decorators=sqlDecorators_? unionType=unionType_  right=sqlSelect #SQLUnionSelect_ex2
+//    | LP_ sqlQuerySelect RP_ decorators=sqlDecorators_? unionType=unionType_  right=sqlSelect #SQLUnionSelect_ex2
+//    ;
 
 unionType_:
     UNION (ALL)?;

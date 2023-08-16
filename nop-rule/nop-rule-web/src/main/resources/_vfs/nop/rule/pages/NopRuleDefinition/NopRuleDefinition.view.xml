@@ -21,6 +21,9 @@
                 status[状态]
                 remark[备注]
 
+                ==authConfig[权限配置]===
+                !ruleRoles
+
                 ==>inputsOutputs[输入输出]===
 
             </layout>

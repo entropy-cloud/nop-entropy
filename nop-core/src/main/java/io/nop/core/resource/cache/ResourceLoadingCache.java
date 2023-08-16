@@ -11,6 +11,7 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.CacheStats;
 import io.nop.commons.cache.ICacheManagement;
@@ -39,6 +40,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL;
  * @param <V>
  */
 public class ResourceLoadingCache<V> implements ICacheManagement<String>, IStateSerializable, IConfigRefreshable {
+    static final SourceLocation s_loc = SourceLocation.fromClass(ResourceLoadingCache.class);
     private final String name;
     private final LocalCache<String, ResourceCacheEntry<V>> cache;
     private final IResourceObjectLoader<V> loader;
@@ -56,16 +58,16 @@ public class ResourceLoadingCache<V> implements ICacheManagement<String>, IState
         this.loader = loader;
         this.listener = listener;
 
-        this.cacheMaxSize = AppConfig.withOverride(CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE,
+        this.cacheMaxSize = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_PER_TYPE_SIZE,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_SIZE));
-        this.cacheNull = AppConfig.withOverride(CFG_COMPONENT_RESOURCE_CACHE_NULL,
+        this.cacheNull = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_NULL,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_CACHE_NULL));
-        this.checkChanged = AppConfig.withOverride(CFG_COMPONENT_RESOURCE_CACHE_CHECK_CHANGED,
+        this.checkChanged = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_CACHE_CHECK_CHANGED,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_RELOADABLE));
-        this.supportSerialize = AppConfig.withOverride(CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE,
+        this.supportSerialize = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_SUPPORT_SERIALIZE));
 
-        this.cacheRefreshMinInterval = AppConfig.withOverride(CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL,
+        this.cacheRefreshMinInterval = AppConfig.withOverride(s_loc, CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL,
                 configVar(CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL));
         this.cache = createCache();
     }
