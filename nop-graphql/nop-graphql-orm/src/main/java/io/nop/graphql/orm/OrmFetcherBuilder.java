@@ -213,7 +213,7 @@ public class OrmFetcherBuilder {
                 throw new NopException(ERR_GRAPHQL_FIELD_NOT_SCALAR).source(fieldDef)
                         .param(ARG_OBJ_NAME, objDef.getName()).param(ARG_FIELD_NAME, fieldDef.getName());
 
-            fetcher = buildColumFetcher((IColumnModel) propModel, scalarType);
+            fetcher = buildColumnFetcher((IColumnModel) propModel, scalarType);
         } else if (propModel.isToOneRelation()) {
             fetcher = new OrmEntityRefFetcher(ormTemplate, name);
         } else if (propModel.isToManyRelation()) {
@@ -224,7 +224,7 @@ public class OrmFetcherBuilder {
         return fetcher;
     }
 
-    private IDataFetcher buildColumFetcher(IColumnModel col, GraphQLScalarType type) {
+    private IDataFetcher buildColumnFetcher(IColumnModel col, GraphQLScalarType type) {
         StdDataType colType = col.getStdDataType();
         StdDataType fieldType = type.getStdDataType();
         IDataFetcher fetcher = getColumnFetcher(col.getPropId());

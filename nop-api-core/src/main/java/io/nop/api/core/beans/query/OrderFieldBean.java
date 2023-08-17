@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
+import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.convert.ConvertHelper;
 
 import java.io.Serializable;
 
@@ -42,6 +44,14 @@ public class OrderFieldBean implements Serializable {
 
     public static OrderFieldBean forField(String name) {
         return forField(name, false);
+    }
+
+    public static OrderFieldBean fromTreeBean(ITreeBean tree) {
+        OrderFieldBean ret = new OrderFieldBean();
+        ret.setName((String) tree.getAttr("name"));
+        ret.setDesc(ConvertHelper.toPrimitiveBoolean(tree.getAttr("desc")));
+        ret.setNullsFirst(ConvertHelper.toBoolean(tree.getAttr("nullsFirst")));
+        return ret;
     }
 
     public OrderFieldBean reverse() {

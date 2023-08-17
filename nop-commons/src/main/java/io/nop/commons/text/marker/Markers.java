@@ -109,15 +109,21 @@ public class Markers {
 
         private final String name;
         private final Supplier<?> provider;
+        private final boolean masked;
 
-        public ProviderMarker(int textStart, int textEnd, String name, Supplier<?> provider) {
+        public ProviderMarker(int textStart, int textEnd, String name, Supplier<?> provider, boolean masked) {
             super(textStart, textEnd);
             this.name = name;
             this.provider = provider;
+            this.masked = masked;
         }
 
-        public ProviderMarker(int pos, Supplier<?> provider) {
-            this(pos, pos + 1, null, provider);
+        public ProviderMarker(int pos, Supplier<?> provider, boolean masked) {
+            this(pos, pos + 1, null, provider,masked);
+        }
+
+        public boolean isMasked(){
+            return masked;
         }
 
         public String getName() {
@@ -128,7 +134,7 @@ public class Markers {
         public final ProviderMarker offset(int offset) {
             if (offset == 0)
                 return this;
-            return new ProviderMarker(textBegin + offset, textEnd + offset, name, provider);
+            return new ProviderMarker(textBegin + offset, textEnd + offset, name, provider,masked);
         }
 
         public Supplier<?> getProvider() {
@@ -146,7 +152,7 @@ public class Markers {
 
         public final ValueMarker buildValueMarker() {
             Object value = provider.get();
-            return new ValueMarker(textBegin, textEnd, name, value, false);
+            return new ValueMarker(textBegin, textEnd, name, value, masked);
         }
     }
 }

@@ -4235,7 +4235,7 @@ public class StringHelper extends ApiStringHelper {
         return varName.endsWith("secret") || varName.endsWith("password");
     }
 
-    public static String maskValue(String varName, Object value) {
+    public static String maskSecretVar(String varName, Object value) {
         if (isSecretVar(varName)) {
             return "***";
         }

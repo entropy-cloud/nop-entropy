@@ -193,7 +193,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                     }
                     EqlHelper.appendCol(sb, dialect, alias, entityModel.getTenantColumn());
                     sb.append('=');
-                    sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId());
+                    sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId(),false);
                     first = false;
                 }
             }

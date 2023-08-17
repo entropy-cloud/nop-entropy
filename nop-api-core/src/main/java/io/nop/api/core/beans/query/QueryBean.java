@@ -103,12 +103,9 @@ public class QueryBean implements Serializable {
     public void addFilter(ITreeBean filter) {
         if (filter == null)
             return;
-        TreeBean tree;
-        if (filter instanceof TreeBean) {
-            tree = (TreeBean) filter;
-        } else {
-            tree = filter.toTreeBean();
-        }
+
+        TreeBean tree = FilterBeans.normalizeFilterBean(filter);
+
         if (this.filter == null) {
             this.filter = tree;
         } else {
@@ -261,6 +258,14 @@ public class QueryBean implements Serializable {
         }
     }
 
+    public void addOrderField(OrderFieldBean field) {
+        if (!hasOrderField(field.getName())) {
+            if (orderBy == null)
+                orderBy = new ArrayList<>();
+            orderBy.add(field);
+        }
+    }
+
     public void addOrderBy(List<OrderFieldBean> orderBy) {
         if (orderBy == null)
             return;
@@ -269,6 +274,17 @@ public class QueryBean implements Serializable {
                 if (this.orderBy == null)
                     this.orderBy = new ArrayList<>();
                 this.orderBy.add(orderField);
+            }
+        }
+    }
+
+    public void addOrderByNode(ITreeBean orderBy) {
+        if (orderBy != null) {
+            List<? extends ITreeBean> children = orderBy.getChildren();
+            if (children != null) {
+                for (ITreeBean child : children) {
+                    addOrderField(OrderFieldBean.fromTreeBean(child));
+                }
             }
         }
     }

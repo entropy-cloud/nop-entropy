@@ -11,6 +11,15 @@ import io.nop.orm.eql.ast._gen._SqlParameterMarker;
 
 public class SqlParameterMarker extends _SqlParameterMarker {
     private int paramIndex;
+    private boolean masked;
+
+    public boolean isMasked() {
+        return masked;
+    }
+
+    public void setMasked(boolean masked) {
+        this.masked = masked;
+    }
 
     public int getParamIndex() {
         return paramIndex;

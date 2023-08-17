@@ -253,7 +253,7 @@ public class GenSqlHelper {
         for (IColumnModel col : entityModel.getColumns()) {
             if (col.isInsertable()) {
                 params.add(col.getPropId());
-                sb.typeParam(binders[col.getPropId()], null, col.containsTag(OrmConstants.TAG_MASK));
+                sb.typeParam(binders[col.getPropId()], null, col.containsTag(OrmConstants.TAG_MASKED));
                 if (colCount % 5 == 4)
                     sb.append('\n');
                 colCount++;
@@ -344,7 +344,7 @@ public class GenSqlHelper {
                 sb.append('=');
                 if (join.getLeftPropModel() != null) {
                     sb.typeParam(binders[join.getRightPropModel().getColumnPropId()], null,
-                            rightCol.containsTag(OrmConstants.TAG_MASK));
+                            rightCol.containsTag(OrmConstants.TAG_MASKED));
                     paramPropIds.add(join.getLeftPropModel().getColumnPropId());
                 } else {
                     sb.append(dialect.getValueLiteral(join.getLeftValue()));
@@ -432,7 +432,7 @@ public class GenSqlHelper {
                 sb.and();
             appendCol(sb, dialect, owner, tenantCol);
             sb.append('=');
-            sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId());
+            sb.markWithProvider("?", OrmEqlConstants.MARKER_TENANT_ID, () -> ContextProvider.currentTenantId(),false);
             append = true;
             needAnd = true;
         }
@@ -641,7 +641,7 @@ public class GenSqlHelper {
                                 IDataParameterBinder binder, Object value) {
         appendCol(sb, dialect, owner, col);
         sb.append("=");
-        sb.typeParam(binder, value, col.containsTag(OrmConstants.TAG_MASK)).append(' ');
+        sb.typeParam(binder, value, col.containsTag(OrmConstants.TAG_MASKED)).append(' ');
     }
 
     public static Object cast(IOrmEntity entity, IColumnModel col, Object value) {

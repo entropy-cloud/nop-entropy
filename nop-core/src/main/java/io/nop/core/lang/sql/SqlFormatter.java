@@ -7,13 +7,13 @@
  */
 package io.nop.core.lang.sql;
 
-import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.text.marker.MarkedStringBuilder;
 import io.nop.commons.text.marker.Marker;
 import io.nop.commons.text.marker.Markers;
 import io.nop.commons.text.marker.Markers.ValueMarker;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreConfigs;
 
 import java.sql.Time;
 import java.time.LocalDate;
@@ -51,7 +51,7 @@ public class SqlFormatter {
             toSqlText(sb, vm.getValue(), vm.isMasked());
         } else if (marker instanceof Markers.ProviderMarker) {
             Markers.ProviderMarker pm = (Markers.ProviderMarker) marker;
-            toSqlText(sb, pm.getValue(), false);
+            toSqlText(sb, pm.getValue(), pm.isMasked());
         }
     }
 
@@ -62,30 +62,46 @@ public class SqlFormatter {
         }
         if (o instanceof String) {
             String str = o.toString();
-            if (masked && !AppConfig.isDebugMode()) {
-                sb.append("****");
-            } else {
-                if (str.length() > 1000)
-                    str = str.substring(0, 1000) + "<...>";
-                sb.append('\'');
-                sb.append(StringHelper.escapeSql(str, true));
-                sb.append('\'');
-            }
+
+            if (str.length() > 1000)
+                str = str.substring(0, 1000) + "<...>";
+            str = defaultMask(str, masked);
+            sb.append('\'');
+            sb.append(StringHelper.escapeSql(str, true));
+            sb.append('\'');
             return;
         }
         if (o instanceof LocalDate || o instanceof java.sql.Date) {
-            String s = ConvertHelper.toString(o);
-            sb.append("DATE '").append(s).append("'");
+            String str = ConvertHelper.toString(o);
+            str = defaultMask(str, masked);
+            sb.append("DATE '").append(str).append("'");
             return;
         } else if (o instanceof LocalTime || o instanceof Time) {
-            String s = ConvertHelper.toString(o);
-            sb.append("TIME '").append(s).append("'");
+            String str = ConvertHelper.toString(o);
+            str = defaultMask(str, masked);
+            sb.append("TIME '").append(str).append("'");
             return;
         } else if (o instanceof Date || o instanceof LocalDateTime) {
-            String s = ConvertHelper.toString(o);
-            sb.append("TIMESTAMP '").append(s).append("'");
+            String str = ConvertHelper.toString(o);
+            str = defaultMask(str, masked);
+            sb.append("TIMESTAMP '").append(str).append("'");
             return;
         }
         sb.append(o);
+    }
+
+    static String defaultMask(String value, boolean masked) {
+        if (!masked)
+            return value;
+        if (value.isEmpty())
+            return value;
+
+        String last = value;
+        int keep = CoreConfigs.CFG_DEFAULT_MASKING_KEEP_CHARS.get();
+        if (keep <= 0) {
+            return StringHelper.repeat("*", value.length());
+        }
+
+        return StringHelper.maskPattern(value, "*" + keep);
     }
 }

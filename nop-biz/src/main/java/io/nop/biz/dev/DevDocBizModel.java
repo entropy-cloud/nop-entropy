@@ -219,10 +219,10 @@ public class DevDocBizModel {
             bean.setName(var.getName());
             bean.setLocation(StringHelper.toString(var.getLocation(), null));
             bean.setType(var.getValueType().getCanonicalName());
-            bean.setDefaultValue(StringHelper.maskValue(var.getName(), var.getDefaultValue()));
+            bean.setDefaultValue(StringHelper.maskSecretVar(var.getName(), var.getDefaultValue()));
 
             // 避免泄露密码等敏感信息
-            bean.setValue(StringHelper.maskValue(var.getName(), var.get()));
+            bean.setValue(StringHelper.maskSecretVar(var.getName(), var.get()));
             ret.add(bean);
         });
 

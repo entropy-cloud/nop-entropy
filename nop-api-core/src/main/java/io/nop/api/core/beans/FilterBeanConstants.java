@@ -108,4 +108,7 @@ public interface FilterBeanConstants {
     String FILTER_OP_SQL = "sql";
 
     String FILTER_OP_EXPR = "expr";
+
+    String DUMMY_TAG_NAME = "_";
+    String FILTER_TAG_NAME = "filter";
 }

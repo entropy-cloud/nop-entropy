@@ -332,8 +332,8 @@ Nop平台的设计目标是成为一个通用的领域语言工作台(Domain Spe
 
 ## 参考
 
-关于本文中介绍的Antlr自动解析AST技术，具体的配置实例可以参见 [XLangAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/precompile/@model/ast/io/nop/xlang/ast/XLangAST.xjava) [XLangParser.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/precompile/@model/antlr/XLangParser.g4)
+关于本文中介绍的Antlr自动解析AST技术，具体的配置实例可以参见 [XLangAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/ast/io/nop/xlang/ast/XLangAST.xjava) [XLangParser.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/model/antlr/XLangParser.g4)
 
-[EqlAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/precompile/@model/ast/io/nop/orm/eql/ast/EqlAST.xjava) [DMLStatement.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/precompile/@model/antlr/DMLStatement.g4)
+[EqlAST.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava) [DMLStatement.g4](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm-eql/model/antlr/DMLStatement.g4)
 
 

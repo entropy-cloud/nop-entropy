@@ -39,6 +39,7 @@
                         <thisLib:GenDictLabelFields/>
                         <thisLib:GenConnectionFields/>
                         <thisLib:GenCodeRuleAutoExpr/>
+                        <thisLib:GenMasking/>
                     </props>
                 </meta>
             </source>
@@ -131,5 +132,24 @@
                 return codeRuleGenerator.generate(propMeta['biz:codeRule'],$scope);
             </source>
         </CreateWithCodeRule>
+
+        <GenMasking outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                    <c:script><![CDATA[
+                        if(!prop.getAttr('ui:maskPattern'))
+                            continue;
+                    ]]></c:script>
+
+                    <prop name="${prop.getAttr('name')}">
+                        <transformOut>
+                            value?.toString().$maskPattern("${prop.getAttr('ui:maskPattern')}")
+                        </transformOut>
+                    </prop>
+                </c:for>
+            </source>
+        </GenMasking>
     </tags>
 </lib>

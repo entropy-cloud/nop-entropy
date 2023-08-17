@@ -16,6 +16,8 @@ import java.util.Map;
 public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter {
     String getTagName();
 
+    void setTagName(String tagName);
+
     Map<String, Object> getAttrs();
 
     Object getAttr(String name);

@@ -446,7 +446,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlParameterMarker(SqlParameterMarker node) {
-        sb.markValue("?", null, false);
+        sb.markValue("?", null, node.isMasked());
     }
 
     @Override

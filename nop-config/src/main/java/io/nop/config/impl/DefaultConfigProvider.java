@@ -157,11 +157,11 @@ public class DefaultConfigProvider implements IConfigProvider {
                 Object value;
                 if (vl.isDynamic()) {
                     value = vl.getDefaultValue();
-                    value = StringHelper.maskValue(entry.getKey(), value);
+                    value = StringHelper.maskSecretVar(entry.getKey(), value);
                     sb.append(entry.getKey()).append('=').append("@dynamic:" + value).append("\n");
                 } else {
                     value = vl.get();
-                    value = StringHelper.maskValue(entry.getKey(), value);
+                    value = StringHelper.maskSecretVar(entry.getKey(), value);
                     sb.append(entry.getKey()).append('=').append(ConvertHelper.toString(value, "")).append("\n");
                 }
             }

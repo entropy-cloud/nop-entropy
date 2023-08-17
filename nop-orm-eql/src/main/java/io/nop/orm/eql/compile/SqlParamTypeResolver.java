@@ -8,9 +8,9 @@
 package io.nop.orm.eql.compile;
 
 import io.nop.commons.type.StdSqlType;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.binder.DataParameterBinders;
 import io.nop.dataset.binder.IDataParameterBinder;
-import io.nop.dao.dialect.IDialect;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
 import io.nop.orm.eql.ast.SqlAssignment;
@@ -52,6 +52,7 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
             case SqlAssignment: {
                 SqlAssignment assign = (SqlAssignment) parent;
                 resolvedMeta = assign.getColumnName().getResolvedExprMeta();
+                node.setMasked(assign.getColumnName().isMasked());
                 break;
             }
             case SqlBinaryExpr: {

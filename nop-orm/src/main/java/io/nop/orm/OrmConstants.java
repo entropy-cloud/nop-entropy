@@ -7,6 +7,8 @@
  */
 package io.nop.orm;
 
+import io.nop.orm.model.OrmModelConstants;
+
 public interface OrmConstants {
     String XDSL_SCHEMA_ORM = "/nop/schema/orm/orm.xdef";
     String XDSL_SCHEMA_SQL_LIB = "/nop/schema/orm/sql-lib.xdef";
@@ -50,7 +52,7 @@ public interface OrmConstants {
     /**
      * 标记字段为敏感字段，打印到log文件中时需要做mask处理，不能直接输出
      */
-    String TAG_MASK = "mask";
+    String TAG_MASKED = OrmModelConstants.TAG_MASKED;
 
     /**
      * 标记字段允许使用ISequenceGenerator机制来生成

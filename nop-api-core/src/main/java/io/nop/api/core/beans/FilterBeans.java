@@ -39,6 +39,7 @@ import static io.nop.api.core.ApiConstants.FILTER_OP_NOT;
 import static io.nop.api.core.ApiConstants.FILTER_OP_OR;
 import static io.nop.api.core.ApiConstants.FILTER_OP_REGEX;
 import static io.nop.api.core.ApiConstants.FILTER_OP_STARTS_WITH;
+import static io.nop.api.core.beans.FilterBeanConstants.DUMMY_TAG_NAME;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_NAME;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATETIME_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATE_BETWEEN;
@@ -46,6 +47,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LENGTH_BETWEEN
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_BLANK;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_EMPTY;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_NULL;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_TAG_NAME;
 
 @SuppressWarnings("PMD.TooManyStaticImports")
 public class FilterBeans {
@@ -264,5 +266,17 @@ public class FilterBeans {
         TreeBean ret = new TreeBean(FILTER_OP_OR);
         ret.setChildren(filters);
         return ret;
+    }
+
+    public static TreeBean normalizeFilterBean(ITreeBean filter) {
+        if (filter == null)
+            return null;
+        TreeBean tree = filter.toTreeBean();
+        if (tree.getTagName().equals(DUMMY_TAG_NAME) || tree.getTagName().equals(FILTER_TAG_NAME)) {
+            if (tree == filter)
+                tree = tree.cloneInstance();
+            tree.setTagName(FILTER_OP_AND);
+        }
+        return tree;
     }
 }

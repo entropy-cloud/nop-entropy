@@ -18,6 +18,11 @@ public interface OrmModelConstants {
      */
     String TAG_DISP = "disp";
 
+    /**
+     * 标记需要掩码的字段
+     */
+    String TAG_MASKED = "masked";
+
 
     /**
      * 在to-one关联的tagSet可以通过ref-xxx来为一对多一侧的关联对象指定tagSet。在orm模型中，可以只在to-one一侧定义关联对象，在OrmModel

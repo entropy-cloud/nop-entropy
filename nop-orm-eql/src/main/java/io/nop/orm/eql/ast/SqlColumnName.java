@@ -10,6 +10,7 @@ package io.nop.orm.eql.ast;
 import io.nop.core.lang.ast.ASTNode;
 import io.nop.orm.eql.ast._gen._SqlColumnName;
 import io.nop.orm.model.IEntityPropModel;
+import io.nop.orm.model.OrmModelConstants;
 
 public class SqlColumnName extends _SqlColumnName {
     private SqlTableSource tableSource;
@@ -29,6 +30,12 @@ public class SqlColumnName extends _SqlColumnName {
         SqlColumnName col = (SqlColumnName) node;
         col.tableSource = tableSource;
         col.propModel = propModel;
+    }
+
+    public boolean isMasked(){
+        if(propModel == null)
+            return false;
+        return propModel.containsTag(OrmModelConstants.TAG_MASKED);
     }
 
     @Override

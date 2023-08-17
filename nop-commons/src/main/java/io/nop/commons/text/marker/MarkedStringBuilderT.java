@@ -291,12 +291,12 @@ public abstract class MarkedStringBuilderT<T extends MarkedStringBuilderT<T>> im
         return appendMarker(new Markers.NameMarker(start, end, name));
     }
 
-    public T markWithProvider(String text, String name, Supplier<?> provider) {
+    public T markWithProvider(String text, String name, Supplier<?> provider, boolean masked) {
         StringBuilder buf = this.makeBuf();
         int start = buf.length();
         buf.append(text);
         int end = buf.length();
-        return appendMarker(new Markers.ProviderMarker(start, end, name, provider));
+        return appendMarker(new Markers.ProviderMarker(start, end, name, provider,masked));
     }
 
     public T markValue(String text, Object value, boolean masked) {
