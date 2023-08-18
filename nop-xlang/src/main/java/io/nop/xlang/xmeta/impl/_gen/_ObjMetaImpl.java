@@ -52,7 +52,8 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     /**
      *  
      * xml name: filter
-     * 过滤条件。会追加到GraphQL的query查询条件中
+     * 过滤条件。会追加到GraphQL的query查询条件中。因为在update和view的时候也会使用检查这里的过滤条件，
+     * 所以一般就是简单的等于条件的过滤，暂时不考虑更复杂的查询条件。更复杂的业务相关的查询条件应该写在Biz文件中或者
      */
     private io.nop.core.lang.xml.XNode _filter ;
     
@@ -264,7 +265,8 @@ public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl
     /**
      * 
      * xml name: filter
-     *  过滤条件。会追加到GraphQL的query查询条件中
+     *  过滤条件。会追加到GraphQL的query查询条件中。因为在update和view的时候也会使用检查这里的过滤条件，
+     * 所以一般就是简单的等于条件的过滤，暂时不考虑更复杂的查询条件。更复杂的业务相关的查询条件应该写在Biz文件中或者
      */
     
     public io.nop.core.lang.xml.XNode getFilter(){

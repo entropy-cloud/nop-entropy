@@ -7,6 +7,7 @@
  */
 package io.nop.biz.model;
 
+import io.nop.api.core.util.INeedInit;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizActionModel;
 import io.nop.biz.model._gen._BizActionModel;
@@ -14,11 +15,22 @@ import io.nop.core.context.action.IServiceAction;
 import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 
-public class BizActionModel extends _BizActionModel implements IBizActionModel {
+public class BizActionModel extends _BizActionModel implements IBizActionModel, INeedInit {
     private IServiceAction executable;
 
     public BizActionModel() {
 
+    }
+
+    @Override
+    public void init() {
+        for (BizActionArgModel argModel : getArgs()) {
+            argModel.init();
+        }
+
+        if (getReturn() != null) {
+            getReturn().init();
+        }
     }
 
     public GraphQLOperationType getOperationType() {

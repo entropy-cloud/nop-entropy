@@ -2,62 +2,169 @@
 
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <DoFindPage>
-            <attr name="query" optional="true" />
-            <attr name="selection" optional="true" />
-            <attr name="thisObj" implicit="true" />
+        <Get>
+            <attr name="id"/>
+            <attr name="ignoreUnknown" optional="true"/>
+            <attr name="thisObj" implicit="true"/>
+            <attr name="svcCtx" implicit="true"/>
 
-            <slot name="filter" outputMode="xpl-node" >
+            <description>
+                根据id获取实体，会自动验证数据权限
+            </description>
+
+            <source>
+                <c:script>
+                    return thisObj.invoke('get',{id,ignoreUnknown},null,svcCtx);
+                </c:script>
+            </source>
+        </Get>
+
+        <BatchGet>
+            <attr name="ids"/>
+            <attr name="ignoreUnknown" optional="true"/>
+            <attr name="thisObj" implicit="true"/>
+            <attr name="svcCtx" implicit="true"/>
+
+            <description>
+                根据id获取实体，会自动验证数据权限
+            </description>
+
+            <source>
+                <c:script>
+                    return thisObj.invoke('batchGet',{ids},null,svcCtx);
+                </c:script>
+            </source>
+        </BatchGet>
+
+
+        <DoFindPage>
+            <attr name="query" optional="true" type="io.nop.api.core.beans.query.QueryBean"/>
+            <attr name="selection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
+            <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
+            <slot name="filter" outputMode="node">
+                <arg name="query"/>
+                <arg name="svcCtx"/>
+
                 <description>
                     过滤条件，一般符合filter-bean格式要求，元模型为filter.xdef
                 </description>
             </slot>
 
-            <slot name="orderBy" outputMode="xpl-node" />
-            <slot name="prepareQuery" outputMode="xpl" />
+            <slot name="orderBy" outputMode="node"/>
 
-            <attr name="svcCtx" implicit="true" />
+            <slot name="prepareQuery" outputMode="none">
+                <arg name="query"/>
+                <arg name="svcCtx"/>
+            </slot>
+
 
             <source>
-                <thisLib:_PrepareQuery query="${query}" filter="${slot_filter}"
-                                       orderBy="${slot_orderBy}"
-                                       prepareQuery="${slot_prepareQuery}" xpl:return="query" />
-
-                <c:script>
-                    thisObj.doFindPage({query,prepareQuery:(qry,ctx)=>{
-                        xpl('thisLib:_PrepareQuery',{query:qry,filter:slot_filter,orderBy:slot_orderBy})
-                    }},selection,svcCtx);
-                </c:script>
+                <thisLib:_DoFindByQuery query="${query}" action="doFindPage" filter="${slot_filter}"
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
             </source>
         </DoFindPage>
 
-        <_PrepareQuery>
-            <attr name="query" />
-            <attr name="filter" />
-            <attr name="orderBy" />
-            <attr name="prepareQuery" />
-            <attr name="svcCtx" implicit="true" />
+        <DoFindFirst x:prototype="DoFindPage">
+            <source>
+                <thisLib:_DoFindByQuery query="${query}" action="doFindFirst" filter="${slot_filter}"
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
+            </source>
+        </DoFindFirst>
+
+        <DoFindList x:prototype="DoFindPage">
+            <source>
+                <thisLib:_DoFindByQuery query="${query}" action="doFindList" filter="${slot_filter}"
+                                        orderBy="${slot_orderBy}" prepareQuery="${slot_prepareQuery}"/>
+            </source>
+        </DoFindList>
+
+
+        <_DoFindByQuery>
+            <attr name="query"/>
+            <attr name="filter"/>
+            <attr name="orderBy"/>
+            <attr name="prepareQuery"/>
+            <attr name="action"/>
+            <attr name="selection" implicit="true"/>
+            <attr name="thisObj" implicit="true"/>
+            <attr name="svcCtx" implicit="true"/>
 
             <source>
-                <c:script>
+                <c:script><![CDATA[
                     import io.nop.api.core.beans.query.QueryBean;
                     query = query || new QueryBean();
 
-                    if(filter){
-                        query.addFilter(filter.generateNode(svcCtx));
-                    }
+                    return thisObj.invoke(action,{query,prepareQuery:(qry,ctx)=>{
+                        if(filter){
+                            query.addFilter(filter(query,svcCtx));
+                        }
 
-                    if(orderBy){
-                        query.addOrderByNode(orderBy.generateNode($ctx));
-                    }
+                        if(orderBy){
+                            query.addOrderByNode(orderBy(svcCtx));
+                        }
 
-                    if(prepareQuery != null){
-                       prepareQuery(query,svcCtx);
-                    }
+                        if(prepareQuery != null){
+                            prepareQuery(query,svcCtx);
+                        }
+                    }},selection,svcCtx);
+                ]]></c:script>
+            </source>
+        </_DoFindByQuery>
 
-                    return query
+        <DoSave>
+            <attr name="data" type="Map"/>
+            <attr name="inputSelection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
+            <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
+            <slot name="prepareSave" outputMode="none">
+                <arg name="entityData"/>
+                <arg name="svcCtx"/>
+            </slot>
+
+            <source>
+                <c:script>
+                    thisObj.invoke('doSave',{data,inputSelection,prepareUpdate:slot_prepareSave}, null,svcCtx);
                 </c:script>
             </source>
-        </_PrepareQuery>
+        </DoSave>
+
+        <DoUpdate>
+            <attr name="data" type="Map"/>
+            <attr name="inputSelection" optional="true" type="io.nop.api.core.beans.FieldSelectionBean"/>
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
+            <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
+            <slot name="prepareSave" outputMode="none">
+                <arg name="entityData"/>
+                <arg name="svcCtx"/>
+            </slot>
+
+            <source>
+                <c:script>
+                    thisObj.invoke('doSave',{data,inputSelection,prepareUpdate:slot_prepareSave}, null,svcCtx);
+                </c:script>
+            </source>
+        </DoUpdate>
+
+        <DoDelete>
+            <attr name="id" type="String"/>
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
+            <attr name="svcCtx" implicit="true" type="io.nop.core.context.IServiceContext"/>
+
+            <slot name="prepareDelete" outputMode="none">
+                <arg name="entity"/>
+                <arg name="svcCtx"/>
+            </slot>
+
+            <source>
+                <c:script>
+                    thisObj.invoke('doDelete',{data,inputSelection,prepareDelete:slot_prepareDelete}, null,svcCtx);
+                </c:script>
+            </source>
+        </DoDelete>
+
     </tags>
 </lib>

@@ -451,7 +451,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlHaving(SqlHaving node) {
-        print("having ");
+        print(" having ");
         beginBlock();
         visit(node.getExpr());
         endBlock();
@@ -497,7 +497,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlOrderBy(SqlOrderBy node) {
-        print("order by ");
+        print(" order by ");
         beginBlock();
         printList(node.getItems(), ",");
         endBlock();

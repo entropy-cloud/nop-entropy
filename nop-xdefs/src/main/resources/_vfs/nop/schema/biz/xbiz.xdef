@@ -49,14 +49,14 @@
             </cache-evicts>
 
             <arg xdef:name="BizActionArgModel" name="!var-name" mandatory="!boolean=false"
-                 displayName="string" xdef:unique-attr="name"
+                 displayName="string" xdef:unique-attr="name" type="generic-type"
                  kind="enum:io.nop.api.core.annotations.biz.BizActionArgKind">
                 <description xdef:value="string"/>
                 <defaultExpr xdef:value="xpl" />
                 <schema xdef:ref="../schema/schema.xdef"/>
             </arg>
 
-            <return xdef:name="BizReturnModel" name="string" mandatory="!boolean=false">
+            <return xdef:name="BizReturnModel" name="string" mandatory="!boolean=false" type="generic-type">
                 <schema xdef:ref="../schema/schema.xdef"/>
             </return>
 

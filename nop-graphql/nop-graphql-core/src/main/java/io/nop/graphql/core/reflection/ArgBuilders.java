@@ -10,15 +10,21 @@ package io.nop.graphql.core.reflection;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.reflect.converter.FunctionalInterfaceConverter;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 
 import java.util.function.Function;
 
+import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
+
 public class ArgBuilders {
+    static final SourceLocation s_loc = SourceLocation.fromClass(ArgBuilders.class);
 
     public static IServiceActionArgBuilder getActionArgFromRequest(String name, IGenericType type) {
         return (req, selection, ctx) -> {
@@ -40,6 +46,10 @@ public class ArgBuilders {
                 if (type.isDataBean()) {
                     return JsonTool.parseBeanFromText(value.toString(), type);
                 }
+            }
+            if (value instanceof IEvalFunction) {
+                return FunctionalInterfaceConverter.convertToFunctional(s_loc, (IEvalFunction) value,
+                        type.getRawClass(), ctx.getEvalScope(), err -> new NopException(err).param(ARG_ARG_NAME, name));
             }
             return BeanTool.castBeanToType(value, type);
         };

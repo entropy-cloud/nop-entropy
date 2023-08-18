@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:extends="super" x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xpl="xpl" xmlns:bo="bo">
+
+    <actions>
+        <query name="my_findPage">
+            <arg name="query" type="io.nop.api.core.beans.query.QueryBean" />
+
+            <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean" kind="FieldSelection"/>
+
+            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext" />
+
+            <return type="PageBean&lt;io.nop.auth.dao.entity.NopAuthUser>" />
+
+            <source>
+                <bo:DoFindPage query="${query}" selection="${selection}" xpl:lib="/nop/biz/xlib/bo.xlib">
+                    <filter>
+                        <eq name="status" value="2"/>
+                    </filter>
+                </bo:DoFindPage>
+            </source>
+        </query>
+    </actions>
+</biz>

@@ -294,13 +294,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
                        @Name("selection") FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
-        return doFindFirst(query, selection, this::defaultPrepareQuery, context);
+        return doFindFirst(query, this::defaultPrepareQuery, selection, context);
     }
 
     @BizAction
     public T doFindFirst(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
-                         @Name("selection") FieldSelectionBean selection,
-                         @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery, IServiceContext context) {
+                         @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                         FieldSelectionBean selection, IServiceContext context) {
         query = prepareFindFirstQuery(query, METHOD_FIND_FIRST, context);
         if (prepareQuery != null) {
             prepareQuery.accept(query, context);
@@ -511,13 +511,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     @BizMakerChecker(tryMethod = METHOD_TRY_UPDATE)
     public T update(@Name("data") Map<String, Object> data, IServiceContext context) {
-        return doUpdate(data, this::defaultPrepareUpdate, null, context);
+        return doUpdate(data, null, this::defaultPrepareUpdate, context);
     }
 
     @BizAction
     public T doUpdate(@Name("data") Map<String, Object> data,
-                      @Name("prepareUpdate") BiConsumer<EntityData<T>, IServiceContext> prepareUpdate,
-                      @Name("inputSelection") FieldSelectionBean inputSelection, IServiceContext context) {
+                      @Name("inputSelection") FieldSelectionBean inputSelection,
+                      @Name("prepareUpdate") BiConsumer<EntityData<T>, IServiceContext> prepareUpdate, IServiceContext context) {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
@@ -914,7 +914,17 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     @Description("@i18n:biz.findList|根据查询条件返回列表数据。与findPage的不同在于,findPage返回PageBean类型，支持分页，而这个函数返回List类型，而且缺省不分页")
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public List<T> findList(@Name("query") QueryBean query, IServiceContext context) {
+    public List<T> findList(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
+        if (query != null)
+            query.setDisableLogicalDelete(false);
+        return doFindList(query, this::defaultPrepareQuery, selection, context);
+    }
+
+    @BizAction
+    public List<T> doFindList(@Name("query") QueryBean query,
+                              @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
+                              FieldSelectionBean selection,
+                              IServiceContext context) {
         if (query == null)
             query = new QueryBean();
 
@@ -922,6 +932,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
             query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
 
         query = prepareFindPageQuery(query, METHOD_FIND_LIST, context);
+        if (prepareQuery != null) {
+            prepareQuery.accept(query, context);
+        }
 
         List<T> ret = dao().findPageByQuery(query);
         return ret;

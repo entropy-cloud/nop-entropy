@@ -174,7 +174,8 @@ public class PredefinedGenericTypes {
             Pair.of("void",PRIMITIVE_VOID_TYPE),
             Pair.of("List", LIST_TYPE),
             Pair.of("Set", SET_TYPE),
-            Pair.of("Collection", COLLECTION_TYPE)
+            Pair.of("Collection", COLLECTION_TYPE),
+            Pair.of("PageBean", PAGE_BEAN_TYPE)
             );
 
     // Java的类型推导存在问题，自动推导非常慢无法结束

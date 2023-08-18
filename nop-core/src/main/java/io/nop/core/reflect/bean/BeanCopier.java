@@ -626,6 +626,9 @@ public class BeanCopier implements IBeanCopier {
         } else if (targetType.isMapLike() || targetType.isCollectionLike()) {
             target = targetModel.newInstance();
         } else {
+//            if (src instanceof IEvalFunction)
+//                return convert(src, targetType);
+
             if (!(src instanceof Map))
                 throw new NopException(ERR_REFLECT_CAST_VALUE_TO_TARGET_TYPE_FAIL).param(ARG_SRC_TYPE, src.getClass())
                         .param(ARG_TARGET_TYPE, targetType);

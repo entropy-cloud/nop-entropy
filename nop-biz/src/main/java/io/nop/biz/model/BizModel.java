@@ -22,5 +22,9 @@ public class BizModel extends _BizModel implements IBizModel, INeedInit {
         StateMachineModel stm = getStateMachine();
         if (stm != null)
             stm.init();
+
+        for (BizActionModel actionModel : getActions()) {
+            actionModel.init();
+        }
     }
 }

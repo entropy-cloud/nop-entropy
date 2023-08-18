@@ -65,6 +65,13 @@ public abstract class _BizActionArgModel extends io.nop.core.resource.component.
     private io.nop.xlang.xmeta.ISchema _schema ;
     
     /**
+     *  
+     * xml name: type
+     * 
+     */
+    private io.nop.core.type.IGenericType _type ;
+    
+    /**
      * 
      * xml name: defaultExpr
      *  
@@ -198,6 +205,25 @@ public abstract class _BizActionArgModel extends io.nop.core.resource.component.
     }
 
     
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getType(){
+      return _type;
+    }
+
+    
+    public void setType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -220,6 +246,7 @@ public abstract class _BizActionArgModel extends io.nop.core.resource.component.
         out.put("mandatory",this.isMandatory());
         out.put("name",this.getName());
         out.put("schema",this.getSchema());
+        out.put("type",this.getType());
     }
 }
  // resume CPD analysis - CPD-ON

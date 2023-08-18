@@ -28,6 +28,7 @@ import io.nop.commons.util.objects.OptionalValue;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.functions.EvalFunctionalAdapter;
 import io.nop.core.lang.json.jpath.JPath;
 import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XNode;
@@ -345,5 +346,16 @@ public class GlobalFunctions {
     @Description("获取系统缺省的多语言设置")
     public static String g_default_locale() {
         return AppConfig.defaultLocale();
+    }
+
+
+    @Description("将IEvalFunction接口适配为Consumer/Supplier/Function等Java内置函数式接口")
+    @EvalMethod
+    public static EvalFunctionalAdapter functional(IEvalScope scope, IEvalFunction fn) {
+        if (fn == null)
+            return null;
+        if (fn instanceof EvalFunctionalAdapter)
+            return (EvalFunctionalAdapter) fn;
+        return new EvalFunctionalAdapter(null, fn, scope);
     }
 }

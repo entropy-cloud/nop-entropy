@@ -79,7 +79,7 @@ public interface ApiErrors {
             "目标类型[{targetType}]的类型转换器已经存在", ARG_TARGET_TYPE);
 
     ErrorCode ERR_CONVERT_TO_TYPE_FAIL = define("nop.err.api.convert-to-type-fail",
-            "数据类型转换错误，无法将值[{value}}转化到类型[{targetType}]", ARG_TARGET_TYPE, ARG_VALUE);
+            "数据类型转换错误，无法将值[{value}]转化到类型[{targetType}]", ARG_TARGET_TYPE, ARG_VALUE);
 
 
     ErrorCode ERR_INVALID_GEO_POINT_STRING =

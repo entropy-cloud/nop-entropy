@@ -8,6 +8,7 @@
 package io.nop.api.core.beans.query;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
@@ -280,11 +281,15 @@ public class QueryBean implements Serializable {
 
     public void addOrderByNode(ITreeBean orderBy) {
         if (orderBy != null) {
-            List<? extends ITreeBean> children = orderBy.getChildren();
-            if (children != null) {
-                for (ITreeBean child : children) {
-                    addOrderField(OrderFieldBean.fromTreeBean(child));
+            if (orderBy.getChildCount() > 0 || orderBy.getTagName().equals(ApiConstants.DUMMY_TAG_NAME)) {
+                List<? extends ITreeBean> children = orderBy.getChildren();
+                if (children != null) {
+                    for (ITreeBean child : children) {
+                        addOrderField(OrderFieldBean.fromTreeBean(child));
+                    }
                 }
+            } else {
+                addOrderField(OrderFieldBean.fromTreeBean(orderBy));
             }
         }
     }

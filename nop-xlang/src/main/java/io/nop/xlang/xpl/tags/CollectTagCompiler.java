@@ -40,6 +40,9 @@ public class CollectTagCompiler implements IXplTagCompiler {
             scope.setOutputMode(outputMode);
 
             Expression body = cp.parseTagBody(node, scope);
+            if (body == null)
+                return null;
+
             return CollectOutputExpression.valueOf(node.getLocation(), outputMode, singleNode, body);
         } finally {
             scope.setOutputMode(oldMode);

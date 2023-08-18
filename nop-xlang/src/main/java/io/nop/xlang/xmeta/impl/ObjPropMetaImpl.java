@@ -13,6 +13,7 @@ import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
+import io.nop.core.type.IGenericType;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchemaNode;
 import io.nop.xlang.xmeta.impl._gen._ObjPropMetaImpl;
@@ -48,7 +49,7 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
         if (authModel != null) {
             writeAuth = authModel.toActionAuthMeta();
         }
-        if(writeAuth == null)
+        if (writeAuth == null)
             writeAuth = NULL_AUTH;
 
         if (writeAuth == NULL_AUTH)

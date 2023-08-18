@@ -13,6 +13,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.util.Guard;
 
 import java.io.Serializable;
 
@@ -84,7 +85,7 @@ public class OrderFieldBean implements Serializable {
     }
 
     public void setName(String name) {
-        this.name = name;
+        this.name = Guard.notEmpty(name, "name");
     }
 
     public boolean isDesc() {

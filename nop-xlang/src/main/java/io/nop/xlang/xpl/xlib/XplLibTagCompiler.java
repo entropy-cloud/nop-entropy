@@ -35,6 +35,7 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.ArrowFunctionExpression;
 import io.nop.xlang.ast.CallExpression;
 import io.nop.xlang.ast.ChainExpression;
+import io.nop.xlang.ast.CollectOutputExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.Literal;
@@ -107,7 +108,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
     public XplLibTagCompiler(XplTagLib lib, XplTag tag) {
         this.tag = tag;
         this.lib = lib;
-        this.cachedCompiledTag = new ResourceCacheEntryWithLoader<>(lib.resourcePath()+"/@" + tag.getTagName(),
+        this.cachedCompiledTag = new ResourceCacheEntryWithLoader<>(lib.resourcePath() + "/@" + tag.getTagName(),
                 path -> this.buildCompiledTag(null));
     }
 
@@ -399,6 +400,13 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         expr.setParams(parseSlotScope(child, slot, scope));
 
         Expression body = cp.parseTagBody(child, scope);
+        if (body != null) {
+            // 如果slot设置了outputMode=node或者xjson，则使用collect调用包装，确保通过返回值返回
+            if (slot.getOutputMode() == XLangOutputMode.node || slot.getOutputMode() == XLangOutputMode.xjson
+                    || slot.getOutputMode() == XLangOutputMode.sql) {
+                body = CollectOutputExpression.valueOf(child.getLocation(), slot.getOutputMode(), false, body);
+            }
+        }
         expr.setBody(body);
 
         if (tag.isMacro() && slot.isRuntime()) {
