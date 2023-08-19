@@ -8,6 +8,7 @@
 package io.nop.api.core.beans.graphql;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.graphql.GraphQLInput;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 
@@ -17,6 +18,7 @@ import java.util.List;
  * 针对关联子表的查询条件，属性命名与GraphQL标准的Connection保持一致
  */
 @DataBean
+@GraphQLInput
 public class GraphQLConnectionInput {
     /**
      * first表示从afterCursor开始向后取n条数据

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<c:script>
-// 根据ORM模型生成xmeta
-codeGenerator.renderModel('/nop/auth/orm/app.orm.xml','/nop/templates/meta', '/',$scope);
-// 从xmeta中抽取i18n配置
-codeGenerator.withTplDir('/nop/templates/i18n').execute("/",{ moduleId: "nop/auth" },$scope);
-</c:script>

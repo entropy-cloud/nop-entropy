@@ -51,7 +51,7 @@ Nop平台提供了一个IDEA插件[nop-idea-plugin](https://gitee.com/canonical-
 	  x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
 
 	<x:post-extends>
-		<biz-gen:GenDictLabelFields xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+		<biz-gen:GenDictLabelFields xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
 	</x:post-extends>	
 </meta>
 ```

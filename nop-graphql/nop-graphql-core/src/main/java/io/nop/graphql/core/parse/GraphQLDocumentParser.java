@@ -416,6 +416,10 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         return var;
     }
 
+    public GraphQLType parseType(SourceLocation loc, String type) {
+        return type(TextScanner.fromString(loc, type));
+    }
+
     private GraphQLType type(TextScanner sc) {
         SourceLocation loc = sc.location();
         GraphQLType ret;

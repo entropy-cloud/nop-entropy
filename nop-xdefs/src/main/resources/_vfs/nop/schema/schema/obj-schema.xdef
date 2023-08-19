@@ -51,7 +51,7 @@
               xml:mapper="string" graphql:mapper="string" biz:codeRule="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
               graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
-              graphql:connectionProp="prop-name" graphql:maxFetchSize="int"
+              graphql:connectionProp="prop-name" graphql:findFirst="boolean" graphql:maxFetchSize="int"
         >
             <description xdef:value="string"/>
 

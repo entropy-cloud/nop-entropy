@@ -1,0 +1,90 @@
+entity:
+  label:
+    NopRuleDefinition: 规则模型定义
+    NopRuleLog: 规则执行日志
+    NopRuleNode: 规则节点
+    NopRuleRole: 规则角色
+    RuleKeyBean: 规则唯一标识
+    RuleMetaBean: 规则元数据
+    RuleRequestBean: 规则执行请求
+prop:
+  label:
+    NopRuleDefinition:
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      displayName: 显示名称
+      modelText: 模型文本
+      remark: 备注
+      ruleGroup: 规则分组
+      ruleId: 主键
+      ruleName: 规则名称
+      ruleNodes: 规则节点
+      ruleRoles: 规则角色
+      ruleType: 规则类型
+      ruleType_label: 规则类型
+      ruleVersion: 规则版本
+      status: 状态
+      status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopRuleLog:
+      createTime: 创建时间
+      createdBy: 创建人
+      logLevel: 日志级别
+      logLevel_label: 日志级别
+      logMsg: 日志消息
+      ruleDefinition: 规则定义
+      ruleDefinition.displayName: 规则定义
+      ruleId: 规则ID
+      sid: 日志ID
+    NopRuleNode:
+      children: 子节点
+      createTime: 创建时间
+      createdBy: 创建人
+      isLeaf: 是否叶子节点
+      label: 显示标签
+      outputs: 输出结果
+      outputsComponent: null
+      parent: 父节点
+      parent.label: 父节点
+      parentId: 父ID
+      predicate: 判断条件
+      predicateComponent: null
+      remark: 备注
+      ruleDefinition: 规则定义
+      ruleDefinition.displayName: 规则定义
+      ruleId: 规则ID
+      sid: SID
+      sortNo: 排序序号
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopRuleRole:
+      createTime: 创建时间
+      createdBy: 创建人
+      isAdmin: 是否管理者
+      remark: 备注
+      roleId: Role ID
+      ruleDefinition: 规则定义
+      ruleDefinition.displayName: 规则定义
+      ruleId: Rule ID
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    RuleKeyBean:
+      ruleName: 规则名称
+      ruleVersion: 规则版本
+    RuleMetaBean:
+      description: 描述
+      displayName: 显示名称
+      inputs: 输入数据类型
+      outputs: 输出数据类型
+      ruleName: 规则名称
+      ruleVersion: 规则版本
+    RuleRequestBean:
+      inputs: 输入参数
+      ruleName: 规则名称
+      ruleVersion: 规则版本

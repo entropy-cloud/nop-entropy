@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 规则类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 决策树
+    value: TREE
+    description: 
+  
+  - label: 决策矩阵
+    value: MATX
+    description: 
+  

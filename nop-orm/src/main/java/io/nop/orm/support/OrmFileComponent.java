@@ -24,6 +24,10 @@ public class OrmFileComponent extends AbstractOrmComponent {
         int propId = getColPropId(PROP_NAME_filePath);
         if (entity.orm_state().isUnsaved() || entity.orm_propDirty(propId)) {
             IBeanProvider beanProvider = entity.orm_enhancer().getBeanProvider();
+            // 有可能没有引入file store支持
+            if(!beanProvider.containsBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE))
+                return;
+
             IOrmEntityFileStore fileStore = (IOrmEntityFileStore) beanProvider.getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
             String oldValue = (String) entity.orm_propOldValue(propId);
 

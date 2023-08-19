@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="文件记录" i18n-en:displayName="File Record">
+
+    <entityName>io.nop.file.dao.entity.NopFileRecord</entityName>
+
+    <primaryKey>fileId</primaryKey>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="fileId" displayName="文件ID" i18n-en:displayName="File ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="fileName" displayName="文件名" i18n-en:displayName="File Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="300"/>
+        </prop>
+        <prop name="filePath" displayName="文件路径" i18n-en:displayName="File Path" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="fileExt" displayName="扩展名" i18n-en:displayName="File Ext" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="mimeType" displayName="内容类型" i18n-en:displayName="Mime Type" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="fileLength" displayName="文件长度" i18n-en:displayName="File Length" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="fileLastModified" displayName="文件修改时间" i18n-en:displayName="Last Modified" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="bizObjName" displayName="对象名" i18n-en:displayName="BizObjName" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="bizObjId" displayName="对象ID" i18n-en:displayName="BizObjId" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="fieldName" displayName="字段名" i18n-en:displayName="Field Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="fileHash" displayName="文件摘要" i18n-en:displayName="File Hash" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="true" internal="true" ext:show="X">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+    </props>
+</meta>

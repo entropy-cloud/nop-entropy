@@ -1,4 +1,4 @@
-<meta x:extends="super" x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<meta x:extends="super" x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
 
     <props>
         <prop name="extConfig">

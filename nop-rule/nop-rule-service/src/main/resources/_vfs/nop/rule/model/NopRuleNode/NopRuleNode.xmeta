@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopRuleNode.xmeta">
-
-    <props>
-        <prop name="predicateDisplayText" displayName="判断条件" published="true">
-            <schema type="String"/>
-        </prop>
-    </props>
-</meta>

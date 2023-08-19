@@ -8,6 +8,7 @@
                 <module xml:multiple="true">${appName}-codegen</module>
                 <module xml:multiple="true">${appName}-api</module>
                 <module xml:multiple="true">${appName}-dao</module>
+                <module xml:multiple="true">${appName}-meta</module>
                 <module xml:multiple="true">${appName}-service</module>
                 <module xml:multiple="true">${appName}-web</module>
                 <module xml:multiple="true">${appName}-app</module>
@@ -37,6 +38,7 @@
         <module>${appName}-codegen</module>
         <module>${appName}-api</module>
         <module>${appName}-dao</module>
+        <module>${appName}-meta</module>
         <module>${appName}-service</module>
         <module>${appName}-web</module>
         <module>${appName}-app</module>

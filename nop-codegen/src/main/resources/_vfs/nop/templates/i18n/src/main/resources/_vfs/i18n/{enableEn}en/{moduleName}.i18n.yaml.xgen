@@ -1,5 +1,5 @@
-<c:out xpl:outputMode="text">
+<c:unit xpl:outputMode="text">
 "x:extends": _${moduleName}.i18n.yaml
 
 # key: "value"
-</c:out>
+</c:unit>

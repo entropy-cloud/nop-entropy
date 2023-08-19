@@ -27,5 +27,6 @@
         <module>nop-auth-service</module>
         <module>nop-auth-web</module>
         <module>nop-auth-app</module>
+        <module>nop-auth-meta</module>
     </modules>
 </project>

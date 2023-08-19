@@ -4,48 +4,7 @@
     <site id="main">
         <resource id="test-orm-nop-batch" displayName="测试nop-batch" icon="ion:grid-outline" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-nop-batch" component="layouts/default/index">
-            <children>
-                <resource id="NopBatchFile-main" displayName="批处理文件" orderNo="10001" i18n-en:displayName="Batch File"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/batch/pages/NopBatchFile/main.page.yaml">
-                    <children>
-                        <resource id="FNPT:NopBatchFile:query" displayName="查询批处理文件" orderNo="10002" resourceType="FNPT">
-                            <permissions>NopBatchFile:query</permissions>
-                        </resource>
-                        <resource id="FNPT:NopBatchFile:mutation" displayName="修改批处理文件" orderNo="10003"
-                                  resourceType="FNPT">
-                            <permissions>NopBatchFile:mutation</permissions>
-                        </resource>
-                    </children>
-                </resource>
-                <resource id="NopBatchRecordResult-main" displayName="批处理记录结果" orderNo="10004"
-                          i18n-en:displayName="Batch Record Result" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/batch/pages/NopBatchRecordResult/main.page.yaml">
-                    <children>
-                        <resource id="FNPT:NopBatchRecordResult:query" displayName="查询批处理记录结果" orderNo="10005"
-                                  resourceType="FNPT">
-                            <permissions>NopBatchRecordResult:query</permissions>
-                        </resource>
-                        <resource id="FNPT:NopBatchRecordResult:mutation" displayName="修改批处理记录结果" orderNo="10006"
-                                  resourceType="FNPT">
-                            <permissions>NopBatchRecordResult:mutation</permissions>
-                        </resource>
-                    </children>
-                </resource>
-                <resource id="NopBatchTask-main" displayName="批处理任务" orderNo="10007" i18n-en:displayName="Batch Task"
-                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
-                          url="/nop/batch/pages/NopBatchTask/main.page.yaml">
-                    <children>
-                        <resource id="FNPT:NopBatchTask:query" displayName="查询批处理任务" orderNo="10008" resourceType="FNPT">
-                            <permissions>NopBatchTask:query</permissions>
-                        </resource>
-                        <resource id="FNPT:NopBatchTask:mutation" displayName="修改批处理任务" orderNo="10009"
-                                  resourceType="FNPT">
-                            <permissions>NopBatchTask:mutation</permissions>
-                        </resource>
-                    </children>
-                </resource>
-            </children>
+            <children/>
         </resource>
     </site>
 </auth>

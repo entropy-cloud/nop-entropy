@@ -36,7 +36,8 @@ public class OrmTransactionListener implements ITransactionListener {
             IOrmSession session = ormTemplate.currentSession();
             // 如果执行过程中出现异常，则清空session缓存。这个行为与Spring+Hibernate类似。
             // 如果不清空，则可能因为各种原因导致session中的数据与数据库中的数据不一致，难以处理
-            session.clear();
+            if (session != null)
+                session.clear();
         }
     }
 }

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="工作流步骤实例" i18n-en:displayName="Workflow Step Instance">
+
+    <entityName>io.nop.wf.dao.entity.NopWfStepInstance</entityName>
+
+    <primaryKey>stepId</primaryKey>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="stepId" displayName="步骤ID" i18n-en:displayName="Step ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="wfId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="wfInstance">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="stepType" displayName="步骤类型" i18n-en:displayName="Step Type" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10" dict="wf/wf-step-type"/>
+        </prop>
+        <prop name="stepName" displayName="步骤名称" i18n-en:displayName="Step Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="wf/wf-step-status"/>
+        </prop>
+        <prop name="appState" displayName="应用状态" i18n-en:displayName="App State" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="subWfId" displayName="子工作流ID" i18n-en:displayName="Sub Flow ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X" ext:relation="subWfInstance">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="subWfName" displayName="子工作流名" i18n-en:displayName="Sub Flow Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="subWfVersion" displayName="子流程版本" i18n-en:displayName="Sub Flow Version" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="isRead" displayName="是否已读" i18n-en:displayName="Is Read" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="actorType" displayName="参与者类型" i18n-en:displayName="Actor Type" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
+        <prop name="actorId" displayName="参与者ID" i18n-en:displayName="Actor ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="actorDeptId" displayName="参与者部门ID" i18n-en:displayName="Actor Dept ID" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="actorName" displayName="参与者姓名" i18n-en:displayName="Actor Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="ownerId" displayName="拥有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="ownerName" displayName="拥有者姓名" i18n-en:displayName="Owner Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="assignerId" displayName="分配者ID" i18n-en:displayName="Assigner ID" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="assignerName" displayName="分配者姓名" i18n-en:displayName="Assigner Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="callerId" displayName="调用者ID" i18n-en:displayName="Caller ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="callerName" displayName="调用者姓名" i18n-en:displayName="Caller Name" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="cancellerId" displayName="取消人ID" i18n-en:displayName="Canceller ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="cancellerName" displayName="取消人姓名" i18n-en:displayName="Canceller Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="fromAction" displayName="来源操作" i18n-en:displayName="From Action" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="lastAction" displayName="最后一次操作" i18n-en:displayName="Last Action" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="startTime" displayName="开始时间" i18n-en:displayName="Start Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="finishTime" displayName="结束时间" i18n-en:displayName="Finish Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="dueTime" displayName="到期时间" i18n-en:displayName="Due Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="readTime" displayName="读取时间" i18n-en:displayName="Read Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="priority" displayName="优先级" i18n-en:displayName="Priority" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="joinTrace" displayName="汇聚路径" i18n-en:displayName="Join Trace" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="tagSet" displayName="标签" i18n-en:displayName="Tags" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="SL">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="wfId" ext:joinRightProp="wfId"
+              ext:joinRightDisplayProp="title" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopWfInstance"/>
+        </prop>
+        <prop name="wfInstance.title" displayName="工作流实例" i18n-en:displayName="Workflow Instance" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="subWfInstance" displayName="子流程实例" i18n-en:displayName="Sub Workflow Instance" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="subWfId" ext:joinRightProp="wfId"
+              ext:joinRightDisplayProp="title" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopWfInstance"/>
+        </prop>
+        <prop name="subWfInstance.title" displayName="子流程实例" i18n-en:displayName="Sub Workflow Instance" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

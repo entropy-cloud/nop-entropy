@@ -1,0 +1,182 @@
+entity:
+  label:
+    NopSysClusterLeader: Cluster Leader
+    NopSysCodeRule: Code Rule
+    NopSysDict: Dictionary
+    NopSysDictOption: Dictionay Item
+    NopSysExtField: Extension Field
+    NopSysI18n: I18n Message
+    NopSysLock: Lock
+    NopSysMakerCheckerRecord: Maker Checker Record
+    NopSysNoticeTemplate: Notice Template
+    NopSysSequence: Sequence
+    NopSysUserVariable: User Variable
+    NopSysVariable: System Variable
+prop:
+  label:
+    NopSysClusterLeader:
+      clusterId: Cluster ID
+      leaderId: Leader ID
+      leaderAdder: Leader Addr
+      leaderEpoch: Leader Epoch
+      electTime: Elect Time
+      expireAt: Expire At
+      appId: App ID
+    NopSysCodeRule:
+      sid: SID
+      name: Name
+      displayName: Display Name
+      codePattern: Code Pattern
+      seqName: Seq Name
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysDict:
+      sid: SID
+      dictName: Name
+      displayName: Display Name
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dictOptions: null
+    NopSysDictOption:
+      sid: SID
+      dictId: Dictionary
+      label: Label
+      value: Value
+      codeValue: Code
+      groupName: Group
+      isInternal: Is Internal
+      isDeprecated: Is Parent
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dict: Dictionary
+      dict.displayName: Dictionary
+    NopSysExtField:
+      entityName: Entity Name
+      entityId: Entity ID
+      fieldName: Field Name
+      fieldType: Field Type
+      decimalScale: Decimal Scale
+      decimalValue: Decimal Value
+      dateValue: Date Value
+      timestampValue: Timestamp Value
+      stringValue: String Value
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysI18n:
+      i18nKey: I18n Key
+      i18nLocale: Locale
+      i18nLocale_label: null
+      value: Value
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysLock:
+      lockGroup: Lock Group
+      lockName: Lock Name
+      lockTime: Lock Time
+      expireAt: Expire At
+      lockReason: Lock Reason
+      holderId: Holder ID
+      holderAdder: Holder Addr
+      appId: App ID
+    NopSysMakerCheckerRecord:
+      sid: SID
+      bizObjName: Biz Object Name
+      bizObjId: Biz Object ID
+      makerId: Maker ID
+      makerName: Maker Name
+      requestAction: Request Action
+      requestData: Request Data
+      requestTime: Request Time
+      checkerId: Checker ID
+      checkerName: Checker Name
+      checkTime: Check Time
+      tryResult: Try Result
+      inputPage: Input Page
+      status: Status
+      cancelAction: Cancel Action
+      cbErrCode: Callback Error Code
+      ceErrMsg: Callback Error Message
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysNoticeTemplate:
+      sid: SID
+      name: Name
+      tplType: Type
+      content: Content
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      extFields: null
+      extCode: null
+      extFldA: null
+    NopSysSequence:
+      seqName: Name
+      seqType: Type
+      isUuid: Is UUID
+      nextValue: Next Value
+      stepSize: Step Size
+      cacheSize: Cache Size
+      maxValue: Max Value
+      resetType: Reset Type
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysUserVariable:
+      userId: User ID
+      varName: Var Name
+      varValue: Var Value
+      stdDomain: Std Domain
+      varType: Var Type
+      varType_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopSysVariable:
+      varName: Var Name
+      varValue: Var Value
+      stdDomain: Std Domain
+      varType: Var Type
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark

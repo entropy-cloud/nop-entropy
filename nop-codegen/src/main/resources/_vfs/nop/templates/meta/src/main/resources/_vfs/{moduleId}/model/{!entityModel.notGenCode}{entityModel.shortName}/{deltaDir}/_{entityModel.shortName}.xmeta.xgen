@@ -9,7 +9,7 @@
 
      <c:print>
       <x:post-extends>
-        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib" />
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" />
       </x:post-extends>
      </c:print>
 
@@ -82,7 +82,10 @@
                   biz:moduleId="${rel.refEntityModel['biz:moduleId']}"
                   insertable="${rel.tagSet?.contains('insertable')}" updatable="${rel.tagSet?.contains('updatable')}"
                   mandatory="${(rel.toOneRelation and rel.mandatory) || null}" lazy="true" published="${rel.tagSet?.contains('pub') ? null :false}">
-                <schema type="${rel.javaTypeName}" bizObjName="${rel.refEntityName.$lastPart('.')}" />
+                <schema bizObjName="${rel.refEntityName.$lastPart('.')}" xpl:if="rel.toOneRelation"/>
+                <schema xpl:if="rel.toManyRelation">
+                    <item bizObjName="${rel.refEntityName.$lastPart('.')}" />
+                </schema>
             </prop>
             <c:if test="${rel.tagSet?.contains('pub') and rel.toOneRelation and rel.singleColumnJoin?.rightDisplayPropModel}">
                 <prop name="${rel.name}.${rel.singleColumnJoin.rightDisplayPropModel.name}" displayName="${rel.displayName}" i18n-en:displayName="${rel['i18n-en:displayName']}"
@@ -135,7 +138,7 @@
                   i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}" ext:kind="to-one"
                   biz:moduleId="${refOnePropInfo.relatedEntityModel['biz:moduleId']}"
                   xpl:if="refOnePropInfo" internal="true" lazy="true">
-                <schema type="${refOnePropInfo.relatedEntityName}" bizObjName="${refOnePropInfo.bizObjName}" />
+                <schema bizObjName="${refOnePropInfo.bizObjName}" />
             </prop>
             <prop name="${refOnePropInfo.relatedColPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
                   i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
@@ -153,7 +156,7 @@
                   i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}" ext:kind="to-many"
                   biz:moduleId="${refManyPropInfo.relatedEntityModel['biz:moduleId']}"
                   xpl:if="refManyPropInfo" internal="true" lazy="true">
-                <schema type="List&lt;${refManyPropInfo.relatedEntityName}>" >
+                <schema>
                     <item bizObjName="${refManyPropInfo.bizObjName}" />
                 </schema>
             </prop>

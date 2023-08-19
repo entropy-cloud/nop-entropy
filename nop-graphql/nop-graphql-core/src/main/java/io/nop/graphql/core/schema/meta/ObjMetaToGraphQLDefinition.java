@@ -23,6 +23,7 @@ import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLUnionTypeDefinition;
 import io.nop.graphql.core.fetcher.PropGetterFetcher;
+import io.nop.graphql.core.parse.GraphQLDocumentParser;
 import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
 import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -90,7 +91,7 @@ public class ObjMetaToGraphQLDefinition {
         if (propMeta.getDescription() == null)
             field.setDescription(propMeta.getDisplayName());
 
-        field.setType(toGraphQLType(thisObjName, propMeta.getSchema(), propMeta.isMandatory(), typeRegistry, input));
+        field.setType(toGraphQLType(thisObjName, propMeta, propMeta.isMandatory(), typeRegistry));
 
         String inputType = ConvertHelper.toString(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_INPUT_TYPE));
         if (!StringHelper.isEmpty(inputType)) {
@@ -139,6 +140,16 @@ public class ObjMetaToGraphQLDefinition {
         if (propArg.getDescription() == null)
             arg.setDescription(propArg.getDisplayName());
         return arg;
+    }
+
+    public GraphQLType toGraphQLType(String thisObjName, IObjPropMeta propMeta, boolean mandatory,
+                                     TypeRegistry typeRegistry) {
+        String graphqlType = (String) propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE);
+        if (!StringHelper.isEmpty(graphqlType)) {
+            GraphQLType type = new GraphQLDocumentParser().parseType(propMeta.getLocation(), graphqlType);
+            return typeRegistry.processSpecialType(type);
+        }
+        return toGraphQLType(thisObjName, propMeta.getSchema(), mandatory, typeRegistry, false);
     }
 
     public GraphQLType toGraphQLType(String thisObjName, ISchema schema, boolean mandatory,

@@ -167,27 +167,27 @@ public class FileHelper {
         }
     }
 
-    public static boolean atomicMoveFile(File srcFile, File dstFile) {
-        try {
-            Files.move(srcFile.toPath(), dstFile.toPath(), StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.COPY_ATTRIBUTES);
-            return true;
-        } catch (IOException outer) {
-            try {
-                Files.move(srcFile.toPath(), dstFile.toPath(), StandardCopyOption.COPY_ATTRIBUTES);
-                return true;
-            } catch (FileAlreadyExistsException e) {
-                LOG.debug("nop.commons.io.atomic-move-file-fail:src={},dest={}", srcFile, dstFile, e);
-                return false;
-            } catch (DirectoryNotEmptyException e) {
-                LOG.debug("nop.commons.io.atomic-move-file-fail:src={},dest={}", srcFile, dstFile, e);
-                return false;
-
-            } catch (IOException e) {
-                throw NopException.adapt(e);
-            }
-        }
-    }
+//    public static boolean atomicMoveFile(File srcFile, File dstFile) {
+//        try {
+//            Files.move(srcFile.toPath(), dstFile.toPath(), StandardCopyOption.ATOMIC_MOVE,
+//                    StandardCopyOption.COPY_ATTRIBUTES);
+//            return true;
+//        } catch (IOException outer) {
+//            try {
+//                Files.move(srcFile.toPath(), dstFile.toPath(), StandardCopyOption.COPY_ATTRIBUTES);
+//                return true;
+//            } catch (FileAlreadyExistsException e) {
+//                LOG.debug("nop.commons.io.atomic-move-file-fail:src={},dest={}", srcFile, dstFile, e);
+//                return false;
+//            } catch (DirectoryNotEmptyException e) {
+//                LOG.debug("nop.commons.io.atomic-move-file-fail:src={},dest={}", srcFile, dstFile, e);
+//                return false;
+//
+//            } catch (IOException e) {
+//                throw NopException.adapt(e);
+//            }
+//        }
+//    }
 
     /**
      * Creates a symbolic link at {@code link} whose target will be the {@code target}. Depending on the underlying

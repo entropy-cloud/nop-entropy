@@ -196,7 +196,7 @@
 /nop/autoconfig/nop-rule-core.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
-/nop/biz/xlib/biz-gen.xlib
+/nop/core/xlib/biz-gen.xlib
 /nop/biz/xlib/bo.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib

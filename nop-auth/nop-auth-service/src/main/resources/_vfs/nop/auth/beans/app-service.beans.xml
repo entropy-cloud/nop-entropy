@@ -14,7 +14,7 @@
     <!--    </x:post-extends>-->
 
     <!--    <x:gen-extends>-->
-    <!--        <c:import from="/nop/biz/xlib/biz-gen.xlib"/>-->
+    <!--        <c:import from="/nop/core/xlib/biz-gen.xlib"/>-->
     <!--        <beans>-->
     <!--            <biz-gen:BizService class="io.nop.auth.api.LoginApi" bizObjName="LoginApi"/>-->
     <!--        </beans>-->

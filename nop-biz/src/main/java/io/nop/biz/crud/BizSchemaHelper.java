@@ -50,6 +50,10 @@ public class BizSchemaHelper {
 
         ISchema schema = null;
         String bizObjName = propMeta.getBizObjName();
+
+        if(bizObjName == null && list)
+            bizObjName = propMeta.getItemBizObjName();
+
         if (bizObjName != null) {
             IBizObject bizObj = bizObjectManager.getBizObject(bizObjName);
             IObjMeta objMeta = bizObj.getObjMeta();

@@ -27,5 +27,6 @@
         <module>nop-batch-web</module>
         <module>nop-batch-app</module>
         <module>nop-batch-jdbc</module>
+        <module>nop-batch-meta</module>
     </modules>
 </project>

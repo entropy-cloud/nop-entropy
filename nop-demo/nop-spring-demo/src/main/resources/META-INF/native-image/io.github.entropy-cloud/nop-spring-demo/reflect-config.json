@@ -1858,6 +1858,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "DUMMY_TAG_NAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "FILTER_ATTR_EXCLUDE_MAX"
       },
       {
@@ -2109,6 +2114,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "FILTER_OP_STARTS_WITH"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "FILTER_TAG_NAME"
       }
     ],
     "methods": [],
@@ -3057,6 +3067,12 @@
         ]
       },
       {
+        "name": "fromTreeBean",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ITreeBean"
+        ]
+      },
+      {
         "name": "getName",
         "parameterTypes": []
       },
@@ -3151,6 +3167,18 @@
         "name": "addOrderBy",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "addOrderByNode",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ITreeBean"
+        ]
+      },
+      {
+        "name": "addOrderField",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.OrderFieldBean"
         ]
       },
       {
@@ -13133,6 +13161,24 @@
         ]
       },
       {
+        "name": "doFindFirst",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doFindList",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "java.util.function.BiConsumer",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "doFindPage",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
@@ -13161,6 +13207,15 @@
         "name": "doUpdate",
         "parameterTypes": [
           "java.util.Map",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "java.util.function.BiConsumer",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "doUpdate",
+        "parameterTypes": [
+          "java.util.Map",
           "java.util.function.BiConsumer",
           "io.nop.api.core.beans.FieldSelectionBean",
           "io.nop.core.context.IServiceContext"
@@ -13175,6 +13230,14 @@
       },
       {
         "name": "findFirst",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.api.core.beans.FieldSelectionBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "findList",
         "parameterTypes": [
           "io.nop.api.core.beans.query.QueryBean",
           "io.nop.api.core.beans.FieldSelectionBean",
@@ -42293,6 +42356,13 @@
       },
       {
         "name": "eval_node",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.core.lang.eval.IEvalFunction"
+        ]
+      },
+      {
+        "name": "functional",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
           "io.nop.core.lang.eval.IEvalFunction"

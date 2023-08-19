@@ -23,5 +23,6 @@
         <module>nop-tcc-api</module>
         <module>nop-tcc-service</module>
         <module>nop-tcc-app</module>
+        <module>nop-tcc-meta</module>
     </modules>
 </project>

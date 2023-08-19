@@ -22,5 +22,6 @@
         <module>nop-rule-service</module>
         <module>nop-rule-web</module>
         <module>nop-rule-app</module>
+        <module>nop-rule-meta</module>
     </modules>
 </project>

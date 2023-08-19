@@ -22,5 +22,6 @@
         <module>nop-wf-dao</module>
         <module>nop-wf-service</module>
         <module>nop-wf-app</module>
+        <module>nop-wf-meta</module>
     </modules>
 </project>

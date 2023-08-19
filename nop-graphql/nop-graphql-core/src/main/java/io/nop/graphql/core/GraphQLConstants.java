@@ -27,6 +27,10 @@ public interface GraphQLConstants {
 
     String ATTR_GRAPHQL_CONNECTION_PROP = "graphql:connectionProp";
 
+    String ATTR_GRAPHQL_FIND_FIRST = "graphql:findFirst";
+
+    String ATTR_GRAPHQL_TYPE = "graphql:type";
+
     String ATTR_GRAPHQL_INPUT_TYPE = "graphql:inputType";
 
     String TAG_GRAPHQL_FILTER = "graphql:filter";
@@ -77,7 +81,7 @@ public interface GraphQLConstants {
 
     String PAGE_BEAN_PREFIX = "PageBean_";
 
-    String GRAPAHQL_CONNECTION_PREFIX = "GraphQLConnection_";
+    String GRAPHQL_CONNECTION_PREFIX = "GraphQLConnection_";
     String PAGE_BEAN = "PageBean";
 
     String GRAPHQL_CONNECTION = "GraphQLConnection";

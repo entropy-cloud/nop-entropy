@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="用户" i18n-en:displayName="User" tagSet="mapper">
+
+    <entityName>io.nop.auth.dao.entity.NopAuthUser</entityName>
+
+    <primaryKey>userId</primaryKey>
+
+    <displayProp>userName</displayProp>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="userNameKey" props="userName"/>
+    </keys>
+
+    <props>
+        <prop name="userId" displayName="用户ID" i18n-en:displayName="User ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
+            <schema domain="userId" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="userName" displayName="用户名" i18n-en:displayName="User Name" tagSet="disp" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:show="C">
+            <schema domain="userName" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="password" displayName="密码" i18n-en:displayName="Password" tagSet="masked,var,not-pub"
+              mandatory="true" published="false" queryable="true" sortable="true" insertable="true" updatable="true"
+              internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="80"/>
+        </prop>
+        <prop name="salt" displayName="密码加盐" i18n-en:displayName="Salt" tagSet="var,not-pub" published="false"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="nickName" displayName="昵称" i18n-en:displayName="Nick Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="deptId" displayName="部门" i18n-en:displayName="Department" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="dept">
+            <schema domain="deptId" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="openId" displayName="用户外部标识" i18n-en:displayName="OpenId" tagSet="var" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="gender" displayName="性别" i18n-en:displayName="Gender" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="auth/gender"/>
+        </prop>
+        <prop name="avatar" displayName="头像" i18n-en:displayName="Avatar" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema stdDomain="file" domain="image" type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="email" displayName="邮件" i18n-en:displayName="Email" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema domain="email" type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="emailVerified" displayName="电话已验证" i18n-en:displayName="Email Verified" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ext:show="X" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="phone" displayName="电话" i18n-en:displayName="Phone" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema domain="phone" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="phoneVerified" displayName="电话已验证" i18n-en:displayName="Phone Verified" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ext:show="X"
+              defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="birthday" displayName="生日" i18n-en:displayName="Birthday" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.time.LocalDate"/>
+        </prop>
+        <prop name="userType" displayName="用户类型" i18n-en:displayName="User Type" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="auth/user-type"/>
+        </prop>
+        <prop name="status" displayName="用户状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="auth/user-status"/>
+        </prop>
+        <prop name="idType" displayName="证件类型" i18n-en:displayName="ID Type" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
+        <prop name="idNbr" displayName="证件号" i18n-en:displayName="ID Number" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="expireAt" displayName="用户过期时间" i18n-en:displayName="Expire At" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="pwdUpdateTime" displayName="上次密码更新时间" i18n-en:displayName="Password Update Time" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="RL">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="changePwdAtLogin" displayName="登陆后立刻修改密码" i18n-en:displayName="Change Password At Logon"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:show="L" defaultValue="0">
+            <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
+        </prop>
+        <prop name="realName" displayName="真实姓名" i18n-en:displayName="Real Name" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="workNo" displayName="工号" i18n-en:displayName="Work NO" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="positionId" displayName="职务" i18n-en:displayName="Position" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L" ext:relation="position">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="telephone" displayName="座机" i18n-en:displayName="Telephone" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="L">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="clientId" displayName="设备ID" i18n-en:displayName="Client Id" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ext:show="X">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="true" internal="true" ext:show="X">
+            <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ext:show="L">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:show="SL">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="dept" displayName="部门" i18n-en:displayName="Department" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="deptId" ext:joinRightProp="deptId"
+              ext:joinRightDisplayProp="deptName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopAuthDept"/>
+        </prop>
+        <prop name="dept.deptName" displayName="部门" i18n-en:displayName="Department" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="position" displayName="岗位" i18n-en:displayName="Position" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="positionId" ext:joinRightProp="positionId"
+              ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopAuthPosition"/>
+        </prop>
+        <prop name="position.name" displayName="岗位" i18n-en:displayName="Position" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="roleMappings" displayName="角色映射" i18n-en:displayName="RoleMappings"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="userId" ext:joinRightProp="userId" insertable="true" updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthUserRole"/>
+            </schema>
+        </prop>
+        <prop name="substitutionMappings" displayName="代理人映射" i18n-en:displayName="Substitution Mappings"
+              tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="userId"
+              ext:joinRightProp="userId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthUserSubstitution"/>
+            </schema>
+        </prop>
+        <prop name="avatarComponent" ext:kind="component" internal="true" insertable="true" updatable="true" lazy="true"
+              published="false">
+            <schema type="io.nop.orm.support.OrmFileComponent"/>
+        </prop>
+        <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
+              internal="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthRole"/>
+            </schema>
+        </prop>
+        <prop name="relatedRoleIdList" displayName="角色列表" i18n-en:displayName="Role List" insertable="true"
+              updatable="true" ext:relation="relatedRoleList" graphql:labelProp="relatedRoleList_label" lazy="true"
+              internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedRoleList_label" displayName="角色列表" i18n-en:displayName="Role List" lazy="true"
+              internal="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

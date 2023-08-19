@@ -16,7 +16,7 @@
         <schema type="io.nop.orm.IOrmEntitySet&lt;io.nop.auth.dao.entity.NopAuthResource&gt;"
                 bizObjName="NopAuthResource"/>
     </prop>
-    <!--LOC:[90:22:0:0]/nop/biz/xlib/biz-gen.xlib#/_delta/default/nop/auth/model/NopAuthSite/NopAuthSite.xmeta-->
+    <!--LOC:[90:22:0:0]/nop/core/xlib/biz-gen.xlib#/_delta/default/nop/auth/model/NopAuthSite/NopAuthSite.xmeta-->
     <prop name="resourcesConnection" displayName="资源列表" internal="true" graphql:connectionProp="resources">
         <graphql:inputType>io.nop.api.core.beans.graphql.GraphQLConnectionInput</graphql:inputType>
         <schema type="io.nop.api.core.beans.graphql.GraphQLConnection&lt;io.nop.auth.dao.entity.NopAuthResource&gt;"

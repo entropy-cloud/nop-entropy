@@ -29,7 +29,7 @@
 /nop/autoconfig/nop-quarkus-web-starter.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
-/nop/biz/xlib/biz-gen.xlib
+/nop/core/xlib/biz-gen.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
 /nop/codegen/xlib/web-gen.xlib

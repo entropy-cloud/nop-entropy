@@ -198,8 +198,8 @@ public class ReflectionGraphQLTypeFactory {
         return typeDef;
     }
 
-    GraphQLType buildPageBeanType(GraphQLType type, TypeRegistry registry,
-                                  Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
+    public GraphQLType buildPageBeanType(GraphQLType type, TypeRegistry registry,
+                                         Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         String pageBeanTypeName = GraphQLConstants.PAGE_BEAN_PREFIX + type;
         GraphQLTypeDefinition objDef = creatingTypes.get(pageBeanTypeName);
         if (objDef == null) {
@@ -227,9 +227,9 @@ public class ReflectionGraphQLTypeFactory {
         return objDef;
     }
 
-    GraphQLType buildConnectionType(GraphQLType type, TypeRegistry registry,
-                                    Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
-        String retTypeName = GraphQLConstants.GRAPAHQL_CONNECTION_PREFIX + type;
+    public GraphQLType buildConnectionType(GraphQLType type, TypeRegistry registry,
+                                           Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
+        String retTypeName = GraphQLConstants.GRAPHQL_CONNECTION_PREFIX + type;
         GraphQLTypeDefinition objDef = creatingTypes.get(retTypeName);
         if (objDef == null) {
             objDef = registry.getType(retTypeName);

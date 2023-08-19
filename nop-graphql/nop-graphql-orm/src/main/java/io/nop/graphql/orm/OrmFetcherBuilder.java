@@ -9,7 +9,6 @@ package io.nop.graphql.orm;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
-import io.nop.api.core.beans.graphql.GraphQLConnection;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
@@ -18,7 +17,6 @@ import io.nop.api.core.convert.SysConverterRegistry;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.type.IGenericType;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.GraphQLConstants;
@@ -47,7 +45,6 @@ import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.xlang.xdsl.ExtPropsGetter;
 import io.nop.xlang.xmeta.IObjPropMeta;
-import io.nop.xlang.xmeta.ISchema;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -148,7 +145,16 @@ public class OrmFetcherBuilder {
         IEntityDao dao = daoProvider.dao(propModel.getRefEntityName());
         int maxFetchSize = ConvertHelper.toPrimitiveInt(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_MAX_FETCH_SIZE),
                 -1, NopException::new);
-        String bizObjName = propMeta.getBizObjName();
+
+        String graphqlType = (String) propModel.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE);
+        String bizObjName = null;
+        if (!StringHelper.isEmpty(graphqlType)) {
+            if (graphqlType.startsWith(GraphQLConstants.GRAPHQL_CONNECTION_PREFIX)) {
+                throw new IllegalArgumentException("nop.err.graphql.invalid-graphql-connection-type");
+            }
+            bizObjName = graphqlType.substring(GraphQLConstants.GRAPHQL_CONNECTION_PREFIX.length());
+        }
+
         if (bizObjName == null) {
             bizObjName = StringHelper.simpleClassName(propModel.getRefEntityName());
         }
@@ -185,11 +191,7 @@ public class OrmFetcherBuilder {
     }
 
     boolean isFindFirst(IObjPropMeta propMeta) {
-        ISchema schema = propMeta.getSchema();
-        if (schema == null)
-            return false;
-        IGenericType type = schema.getType();
-        return type.getRawClass() != GraphQLConnection.class;
+        return ConvertHelper.toPrimitiveBoolean(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_FIND_FIRST));
     }
 
     IDataFetcher buildPropFetcher(Set<String> dependsOn, String propName) {

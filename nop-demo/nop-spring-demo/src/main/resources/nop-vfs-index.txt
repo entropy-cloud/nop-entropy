@@ -174,6 +174,7 @@
 /nop/auth/sql/NopAuthExtLogin.sql-lib.xml
 /nop/auth/sql/NopAuthRole.sql-lib.xml
 /nop/auth/sql/NopAuthUser.sql-lib.xml
+/nop/auth/xlib/auth-gen.xlib
 /nop/autoconfig/nop-auth-core.beans
 /nop/autoconfig/nop-biz.beans
 /nop/autoconfig/nop-dao.beans
@@ -182,7 +183,7 @@
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
-/nop/biz/xlib/biz-gen.xlib
+/nop/biz/xlib/bo.xlib
 /nop/codegen/xlib/gen.xlib
 /nop/codegen/xlib/meta-gen.xlib
 /nop/codegen/xlib/run.xlib
@@ -202,6 +203,7 @@
 /nop/core/registry/xtask.register-model.xml
 /nop/core/xlib/biz!check.xlib
 /nop/core/xlib/biz!filter.xlib
+/nop/core/xlib/biz-gen.xlib
 /nop/core/xlib/biz.xlib
 /nop/core/xlib/file.xlib
 /nop/core/xlib/filter.xlib
@@ -490,6 +492,7 @@
 /nop/templates/meta-delta/@init.xrun
 /nop/templates/meta-delta/src/main/resources/_vfs/_delta/{deltaDir}/gen-meta.xrun
 /nop/templates/meta/@init.xrun
+/nop/templates/meta/src/main/resources/_vfs/{moduleId}/_module
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{deltaDir}/_{entityModel.shortName}.xmeta.xgen
 /nop/templates/meta/src/main/resources/_vfs/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/orm-dao/@init.xrun
@@ -533,16 +536,18 @@
 /nop/templates/orm/{appName}-dao/src/main/java/{basePackagePath}/dao/_{moduleClassPrefix}DaoConstants.java.xgen
 /nop/templates/orm/{appName}-dao/src/main/java/{basePackagePath}/dao/mapper/{!!entityModel.tagSet.@mapper}{entityModel.shortName}Mapper.java.xgen
 /nop/templates/orm/{appName}-dao/src/main/java/{basePackagePath}/dao/{moduleClassPrefix}DaoConstants.java.xgen
-/nop/templates/orm/{appName}-dao/src/main/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/_module
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/beans/_dao.beans.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/app.orm.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/{deltaDir}/_app.orm.xml.xgen
 /nop/templates/orm/{appName}-dao/src/main/resources/_vfs/{moduleId}/sql/{!!entityModel.tagSet.@mapper}{entityModel.shortName}.sql-lib.xml.xgen
+/nop/templates/orm/{appName}-meta/pom.xml.xgen
+/nop/templates/orm/{appName}-meta/postcompile/gen-i18n.xgen.xgen
+/nop/templates/orm/{appName}-meta/precompile/gen-meta.xgen.xgen
+/nop/templates/orm/{appName}-meta/src/main/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
+/nop/templates/orm/{appName}-meta/src/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
 /nop/templates/orm/{appName}-service/impl.xrun
 /nop/templates/orm/{appName}-service/pom.xml.xgen
-/nop/templates/orm/{appName}-service/postcompile/gen-i18n.xgen.xgen
-/nop/templates/orm/{appName}-service/precompile/gen-meta.xgen.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/entity/{!entityModel.notGenCode}{entityModel.shortName}BizModel.java.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Configs.java.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/{moduleClassPrefix}Constants.java.xgen

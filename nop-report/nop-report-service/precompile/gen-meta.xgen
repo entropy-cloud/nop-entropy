@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<c:script>
-codeGenerator.renderModel('/nop/report/orm/app.orm.xml','/nop/templates/meta', '/',$scope);
-codeGenerator.withTplDir('/nop/templates/i18n').execute("/",{ moduleId: "nop/report" },$scope);
-</c:script>

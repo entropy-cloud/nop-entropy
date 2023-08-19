@@ -24,5 +24,6 @@
         <module>nop-file-app</module>
         <module>nop-file-quarkus</module>
         <module>nop-file-spring</module>
+        <module>nop-file-meta</module>
     </modules>
 </project>

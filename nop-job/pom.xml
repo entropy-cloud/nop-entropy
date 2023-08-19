@@ -28,5 +28,6 @@
         <module>nop-job-service</module>
         <module>nop-job-web</module>
         <module>nop-job-app</module>
+        <module>nop-job-meta</module>
     </modules>
 </project>

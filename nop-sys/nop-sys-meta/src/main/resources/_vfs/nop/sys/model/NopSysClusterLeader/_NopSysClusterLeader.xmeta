@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="集群选举" i18n-en:displayName="Cluster Leader">
+
+    <entityName>io.nop.sys.dao.entity.NopSysClusterLeader</entityName>
+
+    <primaryKey>clusterId</primaryKey>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="clusterId" displayName="集群ID" i18n-en:displayName="Cluster ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="leaderId" displayName="主服务器ID" i18n-en:displayName="Leader ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="leaderAdder" displayName="主服务器地址" i18n-en:displayName="Leader Addr" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="leaderEpoch" displayName="选举世代" i18n-en:displayName="Leader Epoch" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="electTime" displayName="选举时间" i18n-en:displayName="Elect Time" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="expireAt" displayName="过期时间" i18n-en:displayName="Expire At" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="appId" displayName="应用ID" i18n-en:displayName="App ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+    </props>
+</meta>

@@ -8,14 +8,22 @@
 package io.nop.graphql.core.schema;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
+import io.nop.graphql.core.GraphQLConstants;
+import io.nop.graphql.core.ast.GraphQLASTVisitor;
 import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLInputDefinition;
+import io.nop.graphql.core.ast.GraphQLNamedType;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLUnionTypeDefinition;
+import io.nop.graphql.core.reflection.ReflectionGraphQLTypeFactory;
+import io.nop.graphql.core.utils.GraphQLTypeHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -115,5 +123,26 @@ public class TypeRegistry {
         } else {
             throw new IllegalArgumentException("unsupported type:" + def);
         }
+    }
+
+    public GraphQLType processSpecialType(GraphQLType type) {
+        new GraphQLASTVisitor() {
+            @Override
+            public void visitGraphQLNamedType(GraphQLNamedType node) {
+                String name = node.getNamedTypeName();
+                if (name.startsWith(GraphQLConstants.GRAPHQL_CONNECTION_PREFIX)) {
+                    String typeName = name.substring(GraphQLConstants.GRAPHQL_CONNECTION_PREFIX.length());
+                    Guard.notEmpty(typeName, "typeName");
+                    ReflectionGraphQLTypeFactory.INSTANCE.buildConnectionType(GraphQLTypeHelper.namedType(typeName),
+                            TypeRegistry.this, new HashMap<>(), false);
+                } else if (name.startsWith(GraphQLConstants.PAGE_BEAN_PREFIX)) {
+                    String typeName = name.substring(GraphQLConstants.PAGE_BEAN_PREFIX.length());
+                    Guard.notEmpty(typeName, "typeName");
+                    ReflectionGraphQLTypeFactory.INSTANCE.buildPageBeanType(GraphQLTypeHelper.namedType(typeName),
+                            TypeRegistry.this, new HashMap<>(), false);
+                }
+            }
+        }.visit(type);
+        return type;
     }
 }

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="工作流步骤关联" i18n-en:displayName="Workflow Step Instance Link" tagSet="many-to-many">
+
+    <entityName>io.nop.wf.dao.entity.NopWfStepInstanceLink</entityName>
+
+    <primaryKey>wfId,stepId,prevStepId</primaryKey>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="wfId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" ext:relation="wfInstance">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="stepId" displayName="步骤ID" i18n-en:displayName="Step ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" ext:relation="wfStep">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="prevStepId" displayName="迁移步骤 ID" i18n-en:displayName="Prev Step ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="prevWfStep">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="execAction" displayName="执行动作" i18n-en:displayName="EXEC_ACTION" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema domain="wfAction" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="wfId" ext:joinRightProp="wfId"
+              ext:joinRightDisplayProp="title" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopWfInstance"/>
+        </prop>
+        <prop name="wfInstance.title" displayName="工作流实例" i18n-en:displayName="Workflow Instance" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="wfStep" displayName="工作流步骤" i18n-en:displayName="Workflow Step" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="stepId" ext:joinRightProp="stepId"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopWfStepInstance"/>
+        </prop>
+        <prop name="prevWfStep" displayName="工作流步骤" i18n-en:displayName="Prev Workflow Step" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="prevStepId"
+              ext:joinRightProp="stepId" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopWfStepInstance"/>
+        </prop>
+    </props>
+</meta>

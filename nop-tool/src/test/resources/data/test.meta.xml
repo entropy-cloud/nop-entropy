@@ -10,7 +10,7 @@
     <displayProp>userName</displayProp>
 
     <x:post-extends>
-        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/biz/xlib/biz-gen.xlib"/>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
     </x:post-extends>
 
     <keys>

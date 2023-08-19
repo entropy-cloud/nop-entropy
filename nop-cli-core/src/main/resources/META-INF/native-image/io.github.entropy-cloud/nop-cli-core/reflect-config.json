@@ -13151,6 +13151,13 @@
         ]
       },
       {
+        "name": "functional",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.core.lang.eval.IEvalFunction"
+        ]
+      },
+      {
         "name": "g_current_locale",
         "parameterTypes": []
       },

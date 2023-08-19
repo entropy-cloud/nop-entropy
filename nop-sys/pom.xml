@@ -25,5 +25,6 @@
         <module>nop-sys-service</module>
         <module>nop-sys-web</module>
         <module>nop-sys-app</module>
+        <module>nop-sys-meta</module>
     </modules>
 </project>

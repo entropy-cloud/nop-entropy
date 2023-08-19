@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      displayName="操作日志" i18n-en:displayName="Operation Log" tagSet="log">
+
+    <entityName>io.nop.auth.dao.entity.NopAuthOpLog</entityName>
+
+    <primaryKey>logId</primaryKey>
+
+    <x:post-extends>
+        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="logId" displayName="主键" i18n-en:displayName="LOG_ID" tagSet="seq" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="userName" displayName="用户名" i18n-en:displayName="USER_NAME" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema domain="userName" type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="sessionId" displayName="会话ID" i18n-en:displayName="Session ID" queryable="true" sortable="true"
+              insertable="true" updatable="false" ext:relation="session">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="title" displayName="标题" i18n-en:displayName="Title" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="bizObjName" displayName="业务对象" i18n-en:displayName="Biz Object" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="bizActionName" displayName="业务操作" i18n-en:displayName="Biz Action" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="opRequest" displayName="请求参数" i18n-en:displayName="Request" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="8000"/>
+        </prop>
+        <prop name="opResponse" displayName="响应数据" i18n-en:displayName="Response" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="resultStatus" displayName="操作状态" i18n-en:displayName="Result Status" queryable="true"
+              sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="errorCode" displayName="错误码" i18n-en:displayName="ErrorCode" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="usedTime" displayName="操作时长" i18n-en:displayName="Used Time" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="session" displayName="会话" i18n-en:displayName="Session" tagSet="pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="sessionId" ext:joinRightProp="sessionId"
+              insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopAuthSession"/>
+        </prop>
+    </props>
+</meta>

@@ -119,7 +119,20 @@ public interface IObjPropMeta
     String getChildName();
 
     default String getBizObjName() {
-        return getSchema().getBizObjName();
+        ISchema schema = getSchema();
+        if (schema == null)
+            return null;
+        return schema.getBizObjName();
+    }
+
+    default String getItemBizObjName() {
+        ISchema schema = getSchema();
+        if (schema == null)
+            return null;
+        ISchema itemSchema = schema.getItemSchema();
+        if (itemSchema == null)
+            return null;
+        return itemSchema.getBizObjName();
     }
 
     /**
