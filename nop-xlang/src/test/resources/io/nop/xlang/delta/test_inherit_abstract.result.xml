@@ -1,0 +1,10 @@
+<biz xmlns:x="/nop/schema/xdsl.xdef">
+    <actions>
+        <query name="my_findPage">
+            <arg name="query"/>
+            <source>
+                <c:script/>
+            </source>
+        </query>
+    </actions>
+</biz>

@@ -1,0 +1,16 @@
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <x:gen-extends>
+        <biz>
+            <actions>
+                <query name="findPage" x:abstract="true">
+                    <arg name="query" />
+                </query>
+            </actions>
+        </biz>
+    </x:gen-extends>
+
+    <actions>
+
+    </actions>
+</biz>

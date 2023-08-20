@@ -127,7 +127,7 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
                 _parseTag(buf, node, scope);
             }
         } else {
-            IXplTagCompiler tagCompiler = getTagCompiler(node, node.getTagName(), false, scope);
+            IXplTagCompiler tagCompiler = getTagCompiler(node, node.getTagName(), scope.isIgnoreTag(), scope);
             tagCompiler.parseTag(buf, node, this, scope);
         }
 

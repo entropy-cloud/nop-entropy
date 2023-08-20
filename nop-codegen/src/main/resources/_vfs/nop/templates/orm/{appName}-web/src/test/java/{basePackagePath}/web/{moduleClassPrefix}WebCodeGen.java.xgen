@@ -19,8 +19,8 @@ public class ${moduleClassPrefix}WebCodeGen {
         try {
             File projectDir = MavenDirHelper.projectDir(${moduleClassPrefix}WebCodeGen.class);
             XCodeGenerator.runPostcompile(new File(projectDir, "../${moduleName}-codegen"), "/", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../${moduleName}-service"), "/", false);
-            XCodeGenerator.runPostcompile(new File(projectDir, "../${moduleName}-service"), "/", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../${moduleName}-meta"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../${moduleName}-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

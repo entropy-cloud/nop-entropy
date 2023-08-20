@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.xpl.output;
 
+import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.XNode;
@@ -22,6 +23,10 @@ import io.nop.xlang.xpl.utils.XplParseHelper;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
+import static io.nop.xlang.XLangErrors.ARG_ATTR_NAME;
+import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
+import static io.nop.xlang.XLangErrors.ERR_XPL_UNKNOWN_TAG_ATTR;
 import static io.nop.xlang.xpl.output.OutputParseHelper.getTagNameExpr;
 
 public class NodeOutputTagCompiler implements IXplUnknownTagCompiler {
@@ -62,9 +67,19 @@ public class NodeOutputTagCompiler implements IXplUnknownTagCompiler {
         List<GenNodeAttrExpression> ret = new ArrayList<>(node.getAttrCount());
         node.forEachAttr((name, value) -> {
             if (xplNs) {
-                if (StringHelper.startsWithNamespace(name, XplConstants.XPL_NS))
+                if (StringHelper.startsWithNamespace(name, XplConstants.XPL_NS)) {
+                    if (!XplConstants.XPL_ATTRS.contains(name))
+                        throw new NopEvalException(ERR_XPL_UNKNOWN_TAG_ATTR).loc(node.attrLoc(name))
+                                .param(ARG_ATTR_NAME, name).param(ARG_TAG_NAME, node.getTagName())
+                                .param(ARG_ALLOWED_NAMES, XplConstants.XPL_ATTRS);
                     return;
+                }
             }
+
+            // xpl:disableNs和xpl:enableNs总是被处理？
+            if(name.equals(XplConstants.ATTR_XPL_ENABLE_NS) || name.equals(XplConstants.ATTR_XPL_DISABLE_NS))
+                return;
+
             Expression expr = XplParseHelper.parseAttrTemplateExpr(node, name, cp, scope);
             ret.add(GenNodeAttrExpression.valueOf(value.getLocation(), name, expr));
         });

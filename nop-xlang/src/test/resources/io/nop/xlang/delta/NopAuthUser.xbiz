@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     x:extends="_NopAuthUser.xbiz" xmlns:bo="bo" xmlns:c="c">
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopAuthUser.xbiz" x:dump="true">
 
     <actions>
         <query name="active_findPage" x:prototype="findPage">
 
             <source>
-                <c:import class="io.nop.auth.api.AuthApiConstants" />
+                <c:script>
+                    import io.nop.auth.api.AuthApiConstants;
+                </c:script>
 
                 <bo:DoFindPage query="${query}" selection="${selection}" xpl:lib="/nop/biz/xlib/bo.xlib">
                     <filter>

@@ -194,6 +194,11 @@ public class OutputParseHelper {
                                 .param(ARG_ALLOWED_NAMES, XplConstants.XPL_ATTRS);
                     return;
                 }
+
+                // xpl:disableNs和xpl:enableNs总是被处理？
+                if(name.equals(XplConstants.ATTR_XPL_ENABLE_NS) || name.equals(XplConstants.ATTR_XPL_DISABLE_NS))
+                    return;
+
                 if (XplParseHelper.hasExpr(value.asString())) {
                     Expression expr = XplParseHelper.parseTemplateExpr(value, cp, scope);
                     outputAttrExpr(buf, value.getLocation(), name, expr);

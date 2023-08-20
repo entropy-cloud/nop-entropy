@@ -247,6 +247,12 @@ public class BizModelToGraphQLDefinition {
         if (returnModel == null)
             return null;
 
+        GraphQLType type = GraphQLTypeHelper.parseType(returnModel.getLocation(),
+                (String) returnModel.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE), typeRegistry);
+
+        if (type != null)
+            return type;
+
         ISchema schema = returnModel.getSchema();
         if (schema == null)
             return null;
@@ -263,6 +269,11 @@ public class BizModelToGraphQLDefinition {
     }
 
     GraphQLType getArgType(String thisObjName, BizActionArgModel argModel, TypeRegistry registry) {
+        GraphQLType type = GraphQLTypeHelper.parseType(argModel.getLocation(),
+                (String) argModel.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE), registry);
+        if (type != null)
+            return type;
+
         ISchema schema = argModel.getSchema();
         if (schema == null)
             return null;

@@ -157,7 +157,11 @@
             </rowActions>
         </crud>
 
-        <picker name="picker" x:inherit="true"/>
+        <picker name="picker" x:inherit="true">
+            <table>
+                <api url="@query:NopAuthUser__active_findPage"/>
+            </table>
+        </picker>
 
         <crud name="deleted" grid="list">
             <table>
@@ -210,7 +214,7 @@
 
         <crud name="select-role-users" grid="pick-list" title="@i18n:common.selectUser">
             <table pickerMode="true" multiple="true" noOperations="true">
-                <api url="@query:NopAuthUser__findPage/{@pageSelection}"/>
+                <api url="@query:NopAuthUser__active_findPage/{@pageSelection}"/>
             </table>
 
             <listActions>

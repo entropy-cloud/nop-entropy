@@ -138,8 +138,6 @@ prop:
       updateTime: Update Time
       remark: Remark
       extFields: null
-      extCode: null
-      extFldA: null
     NopSysSequence:
       seqName: Name
       seqType: Type

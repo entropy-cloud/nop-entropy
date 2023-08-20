@@ -1,0 +1,10 @@
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_test_inherit_abstract.xml">
+
+    <actions>
+        <query name="my_findPage" x:prototype="findPage">
+            <source>
+                <c:script/>
+            </source>
+        </query>
+    </actions>
+</biz>

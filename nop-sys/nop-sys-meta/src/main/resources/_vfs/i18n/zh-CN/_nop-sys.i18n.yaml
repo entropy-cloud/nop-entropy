@@ -130,9 +130,7 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       delFlag: 删除标识
-      extCode: null
       extFields: null
-      extFldA: null
       name: 名称
       remark: 备注
       sid: 主键

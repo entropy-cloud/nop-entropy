@@ -1,26 +1,31 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-   xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
-    displayName="${entityModel.displayName}" i18n-en:displayName="${entityModel['i18n-en:displayName']}" tagSet="${_.join(entityModel.tagSet,',')}">
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="${entityModel.displayName}" i18n-en:displayName="${entityModel['i18n-en:displayName']}"
+      tagSet="${_.join(entityModel.tagSet,',')}">
     <entityName>${entityModel.name}</entityName>
 
     <primaryKey>${_.join(entityModel.pkColumnNames,',')}</primaryKey>
-    <c:script> const dispCol = entityModel.getColumnByTag('disp') </c:script>
+    <c:script>const dispCol = entityModel.getColumnByTag('disp')</c:script>
     <displayProp xpl:if="dispCol">${dispCol.name}</displayProp>
 
-     <c:print>
-      <x:post-extends>
-        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" />
-      </x:post-extends>
-     </c:print>
+    <c:print>
+        <x:gen-extends>
+            <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+        </x:gen-extends>
+
+        <x:post-extends>
+            <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+        </x:post-extends>
+    </c:print>
 
     <keys>
         <c:for var="uniqueKey" items="${entityModel.uniqueKeys}">
             <key name="${uniqueKey.name}" props="${_.join(uniqueKey.columns,',')}"
-                displayName="${uniqueKey.displayName}" />
+                 displayName="${uniqueKey.displayName}"/>
         </c:for>
     </keys>
 
-    <c:script>
+    <c:script><![CDATA[
         const sortProps = entityModel.columns.filter(col=> col.containsTag('sort') || col.containsTag('sort-desc'));
         const parentProp = entityModel.getColumnByTag('parent');
 
@@ -33,22 +38,22 @@
               }
            }
         }
-    </c:script>
+    ]]></c:script>
     <orderBy xpl:if="sortProps.size() > 0">
-       <c:for var="sortProp" items="${sortProps}">
-            <field name="${sortProp.name}" desc="${sortProp.containsTag('sort-desc')}" />
-       </c:for>
+        <c:for var="sortProp" items="${sortProps}">
+            <field name="${sortProp.name}" desc="${sortProp.containsTag('sort-desc')}"/>
+        </c:for>
     </orderBy>
 
     <c:if test="${parentProp}">
-       <tree isLeafProp="${entityModel.getColumnByTag('is-leaf')?.name}" parentProp="${parentProp.name}"
-             childrenProp="${parentProp.columnRefs?.[0]?.refPropName}"
-             levelProp="${entityModel.getColumnByTag('tree-level')?.name}"
-             rootLevelValue="${entityModel.getColumnByTag('tree-level')?.['ext:rootLevel']}"
-            />
+        <tree isLeafProp="${entityModel.getColumnByTag('is-leaf')?.name}" parentProp="${parentProp.name}"
+              childrenProp="${parentProp.columnRefs?.[0]?.refPropName}"
+              levelProp="${entityModel.getColumnByTag('tree-level')?.name}"
+              rootLevelValue="${entityModel.getColumnByTag('tree-level')?.['ext:rootLevel']}"
+        />
     </c:if>
 
-     <c:import from="/nop/codegen/xlib/meta-gen.xlib" />
+    <c:import from="/nop/codegen/xlib/meta-gen.xlib"/>
 
     <props>
         <c:for var="col" items="${entityModel.columns}">
@@ -57,40 +62,49 @@
                 let colComp = entityModel.getComponent(col.name + "Component");
                 let jsonCol = colComp != null && colComp.className.$simpleClassName() == 'JsonOrmComponent'
             ]]></c:script>
-            <prop name="${col.name}" displayName="${col.displayName}" i18n-en:displayName="${col['i18n-en:displayName']}" tagSet="${_.join(col.tagSet,',')}"
-                mandatory="${col.mandatory || null}" published="${col.tagSet?.contains('not-pub') ? false:null}"
-                queryable="${col['ext:queryable'] ?? true}" sortable="${col['ext:sortable'] ?? true}"
-                insertable="${xpl('meta-gen:IsColInsertable',col)}"  updatable="${xpl('meta-gen:IsColUpdatable',col)}"
-                internal="${xpl('meta-gen:IsColInternal',col)||null}" graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
-                ext:show="${col['ext:show']}" ext:control="${col['ext:control'] || buildColControl(col)}"
+            <prop name="${col.name}" displayName="${col.displayName}"
+                  i18n-en:displayName="${col['i18n-en:displayName']}" tagSet="${_.join(col.tagSet,',')}"
+                  mandatory="${col.mandatory || null}" published="${col.tagSet?.contains('not-pub') ? false:null}"
+                  queryable="${col['ext:queryable'] ?? true}" sortable="${col['ext:sortable'] ?? true}"
+                  insertable="${xpl('meta-gen:IsColInsertable',col)}" updatable="${xpl('meta-gen:IsColUpdatable',col)}"
+                  internal="${xpl('meta-gen:IsColInternal',col)||null}"
+                  graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
+                  ext:show="${col['ext:show']}" ext:control="${col['ext:control'] || buildColControl(col)}"
                   biz:codeRule="${col?.tagSet?.contains('code')?entityModel.shortName+'@'+col.name:null}"
-                ext:relation="${col.columnRefs?.[0]?.name}" defaultValue="${col.defaultValue}" x:override="${col.tagSet?.contains('del') ? 'remove':null}"
-             >
+                  ext:relation="${col.columnRefs?.[0]?.name}" defaultValue="${col.defaultValue}"
+                  x:override="${col.tagSet?.contains('del') ? 'remove':null}"
+            >
                 <schema stdDomain="${col.stdDomain}" domain="${col.domain}" type="${col.javaTypeName}"
-                    precision="${col.precision}" scale="${col.scale}"
-                    dict="${col['ext:dict']}" />
+                        precision="${col.precision}" scale="${col.scale}"
+                        dict="${col['ext:dict']}"/>
             </prop>
         </c:for>
 
         <c:for var="rel" items="${entityModel.relations}">
             <c:script>if(rel.tagSet?.contains('not-gen')) continue;</c:script>
-            <prop name="${rel.name}" displayName="${rel.displayName}" i18n-en:displayName="${rel['i18n-en:displayName']}" tagSet="${_.join(rel.tagSet,',')}"
-                  ext:kind="${rel.toOneRelation?'to-one':'to-many'}" internal="true" queryable="${rel.toOneRelation?true:null}"
-                  ext:control="${rel['ext:control']}"  defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
-                  ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}" ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
+            <prop name="${rel.name}" displayName="${rel.displayName}"
+                  i18n-en:displayName="${rel['i18n-en:displayName']}" tagSet="${_.join(rel.tagSet,',')}"
+                  ext:kind="${rel.toOneRelation?'to-one':'to-many'}" internal="true"
+                  queryable="${rel.toOneRelation?true:null}"
+                  ext:control="${rel['ext:control']}"
+                  defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
+                  ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}"
+                  ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
                   ext:joinRightDisplayProp="${rel.singleColumnJoin?.rightDisplayPropModel?.name}"
                   biz:moduleId="${rel.refEntityModel['biz:moduleId']}"
                   insertable="${rel.tagSet?.contains('insertable')}" updatable="${rel.tagSet?.contains('updatable')}"
-                  mandatory="${(rel.toOneRelation and rel.mandatory) || null}" lazy="true" published="${rel.tagSet?.contains('pub') ? null :false}">
+                  mandatory="${(rel.toOneRelation and rel.mandatory) || null}" lazy="true"
+                  published="${rel.tagSet?.contains('pub') ? null :false}">
                 <schema bizObjName="${rel.refEntityName.$lastPart('.')}" xpl:if="rel.toOneRelation"/>
                 <schema xpl:if="rel.toManyRelation">
-                    <item bizObjName="${rel.refEntityName.$lastPart('.')}" />
+                    <item bizObjName="${rel.refEntityName.$lastPart('.')}"/>
                 </schema>
             </prop>
             <c:if test="${rel.tagSet?.contains('pub') and rel.toOneRelation and rel.singleColumnJoin?.rightDisplayPropModel}">
-                <prop name="${rel.name}.${rel.singleColumnJoin.rightDisplayPropModel.name}" displayName="${rel.displayName}" i18n-en:displayName="${rel['i18n-en:displayName']}"
-                      internal="true" queryable="true" sortable="true" lazy="true" >
-                    <schema type="String"  />
+                <prop name="${rel.name}.${rel.singleColumnJoin.rightDisplayPropModel.name}"
+                      displayName="${rel.displayName}" i18n-en:displayName="${rel['i18n-en:displayName']}"
+                      internal="true" queryable="true" sortable="true" lazy="true">
+                    <schema type="String"/>
                 </prop>
             </c:if>
         </c:for>
@@ -104,21 +118,25 @@
                     compCol = entityModel.getColumn(comp.name.$removeTail("Component"),true);
                 }
             ]]></c:script>
-            <prop name="${comp.name}" displayName="${comp.displayName}" i18n-en:displayName="${comp['i18n-en:displayName']}" tagSet="${_.join(comp.tagSet,',')}"
-                    ext:kind="component"  internal="true" ext:control="${comp['ext:control']}"
-                    insertable="${compCol!=null}" updatable="${compCol != null}"
-                    mandatory="${comp.mandatory || null}" lazy="true" published="${comp.tagSet?.contains('pub') ? null :false}">
-                <schema type="${comp.javaTypeName}" />
+            <prop name="${comp.name}" displayName="${comp.displayName}"
+                  i18n-en:displayName="${comp['i18n-en:displayName']}" tagSet="${_.join(comp.tagSet,',')}"
+                  ext:kind="component" internal="true" ext:control="${comp['ext:control']}"
+                  insertable="${compCol!=null}" updatable="${compCol != null}"
+                  mandatory="${comp.mandatory || null}" lazy="true"
+                  published="${comp.tagSet?.contains('pub') ? null :false}">
+                <schema type="${comp.javaTypeName}"/>
             </prop>
         </c:for>
 
         <c:for var="alias" items="${entityModel.aliases}">
             <c:script>if(rel.alias?.contains('not-gen')) continue;</c:script>
-            <prop name="${alias.name}" displayName="${alias.displayName}" i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
-                    ext:kind="alias"  internal="true" ext:control="${alias['ext:control']}"
-                    insertable="false" updatable="false"
-                            mandatory="${alias.mandatory || null}" lazy="true" published="${alias.tagSet?.contains('pub') ? null :false}">
-                <schema type="${alias.javaTypeName}" />
+            <prop name="${alias.name}" displayName="${alias.displayName}"
+                  i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
+                  ext:kind="alias" internal="true" ext:control="${alias['ext:control']}"
+                  insertable="false" updatable="false"
+                  mandatory="${alias.mandatory || null}" lazy="true"
+                  published="${alias.tagSet?.contains('pub') ? null :false}">
+                <schema type="${alias.javaTypeName}"/>
             </prop>
         </c:for>
 
@@ -135,42 +153,50 @@
                 const published = rel.tagSet?.contains('pub') ? null : false;
             ]]></c:script>
             <prop name="${refOnePropInfo.relatedObjPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
-                  i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}" ext:kind="to-one"
+                  i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
+                  ext:kind="to-one"
                   biz:moduleId="${refOnePropInfo.relatedEntityModel['biz:moduleId']}"
                   xpl:if="refOnePropInfo" internal="true" lazy="true">
-                <schema bizObjName="${refOnePropInfo.bizObjName}" />
+                <schema bizObjName="${refOnePropInfo.bizObjName}"/>
             </prop>
             <prop name="${refOnePropInfo.relatedColPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
                   i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
-                  insertable="${insertable}" updatable="${updatable}" ext:relation="${refOnePropInfo.relatedObjPropName}"
+                  insertable="${insertable}" updatable="${updatable}"
+                  ext:relation="${refOnePropInfo.relatedObjPropName}"
                   graphql:labelProp="${refOnePropInfo.relatedObjPropName_label}" lazy="true"
                   xpl:if="refOnePropInfo and refOnePropInfo.relatedColPropName" internal="true">
-                <schema type="${refOnePropInfo.relatedColTypeName}"  />
+                <schema type="${refOnePropInfo.relatedColTypeName}"/>
             </prop>
             <prop name="${refOnePropInfo.relatedObjPropName_label}" displayName="${refOnePropInfo.relatedDisplayName}"
                   i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"
                   xpl:if="refOnePropInfo and refOnePropInfo.relatedObjPropName_label" internal="true">
-                <schema type="String"  lazy="true"/>
+                <schema type="String" lazy="true"/>
             </prop>
-            <prop name="${refManyPropInfo.relatedObjListPropName}" displayName="${refManyPropInfo.relatedDisplayName}列表"
-                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}" ext:kind="to-many"
+            <prop name="${refManyPropInfo.relatedObjListPropName}"
+                  displayName="${refManyPropInfo.relatedDisplayName}列表"
+                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
+                  ext:kind="to-many"
                   biz:moduleId="${refManyPropInfo.relatedEntityModel['biz:moduleId']}"
                   xpl:if="refManyPropInfo" internal="true" lazy="true">
                 <schema>
-                    <item bizObjName="${refManyPropInfo.bizObjName}" />
+                    <item bizObjName="${refManyPropInfo.bizObjName}"/>
                 </schema>
             </prop>
-            <prop name="${refManyPropInfo.relatedColListPropName}" displayName="${refManyPropInfo.relatedDisplayName}列表"
+            <prop name="${refManyPropInfo.relatedColListPropName}"
+                  displayName="${refManyPropInfo.relatedDisplayName}列表"
                   i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
-                  insertable="${insertable}" updatable="${updatable}"  ext:relation="${refManyPropInfo.relatedObjListPropName}"
+                  insertable="${insertable}" updatable="${updatable}"
+                  ext:relation="${refManyPropInfo.relatedObjListPropName}"
                   graphql:labelProp="${refManyPropInfo.relatedObjListPropName_label}" lazy="true"
                   xpl:if="refManyPropInfo and refManyPropInfo.relatedColListPropName" internal="true">
-                <schema type="List&lt;${refManyPropInfo.relatedColTypeName}>"  />
+                <schema type="List&lt;${refManyPropInfo.relatedColTypeName}>"/>
             </prop>
-            <prop name="${refManyPropInfo.relatedObjListPropName_label}" displayName="${refManyPropInfo.relatedDisplayName}列表"
-                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}" lazy="true"
+            <prop name="${refManyPropInfo.relatedObjListPropName_label}"
+                  displayName="${refManyPropInfo.relatedDisplayName}列表"
+                  i18n-en:displayName="${refManyPropInfo.relatedEnDisplayName} List" published="${published}"
+                  lazy="true"
                   xpl:if="refManyPropInfo and refManyPropInfo.relatedObjListPropName_label" internal="true">
-                <schema type="String"  />
+                <schema type="String"/>
             </prop>
         </c:for>
     </props>

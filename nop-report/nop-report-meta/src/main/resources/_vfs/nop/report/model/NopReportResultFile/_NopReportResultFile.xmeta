@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
-      xmlns:xpl="xpl" xmlns:biz-gen="biz-gen" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:biz="biz"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
       displayName="报表结果文件" i18n-en:displayName="Report Result File">
 
     <entityName>io.nop.report.dao.entity.NopReportResultFile</entityName>
@@ -9,8 +9,12 @@
 
     <displayProp>fileName</displayProp>
 
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
     <x:post-extends>
-        <biz-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
     </x:post-extends>
 
     <keys/>

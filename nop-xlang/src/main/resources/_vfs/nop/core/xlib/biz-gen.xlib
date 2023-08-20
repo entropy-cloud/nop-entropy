@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib" xmlns:xdsl="xdsl">
 
     <tags>
         <!--
@@ -20,134 +20,106 @@
         <!--            </source>-->
         <!--        </BizService>-->
 
+        <DefaultBizGenExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+            <attr name="forEntity" type="Boolean"/>
+            <attr name="entityName" type="String" optional="false"/>
+
+            <source>
+                <thisLib:GenAbstractCrudMethods entityName="${entityName}" xpl:if="forEntity"/>
+            </source>
+        </DefaultBizGenExtends>
+
         <DefaultBizPostExtends outputMode="node">
             <attr name="_dsl_root" implicit="true"/>
 
             <source>
                 <biz>
-
                 </biz>
             </source>
         </DefaultBizPostExtends>
 
-        <DefaultMetaPostExtends outputMode="node">
+        <GenAbstractCrudMethods outputMode="node">
+            <attr name="entityName"/>
             <attr name="_dsl_root" implicit="true"/>
 
             <source>
-                <meta>
-                    <props>
-                        <thisLib:GenDictLabelFields/>
-                        <thisLib:GenConnectionFields/>
-                        <thisLib:GenCodeRuleAutoExpr/>
-                        <thisLib:GenMasking/>
-                    </props>
-                </meta>
+                <biz>
+                    <actions>
+                        <query name="findPage" xdsl:abstract="true">
+                            <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
+
+                            <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                                 kind="FieldSelection"/>
+
+                            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                            <return type="PageBean&lt;${entityName}>"/>
+                        </query>
+
+                        <query name="findList" xdsl:prototype="findPage" xdsl:abstract="true">
+                            <return type="List&lt;${entityName}>"/>
+                        </query>
+
+                        <query name="findFirst" xdsl:prototype="findPage" xdsl:abstract="true">
+                            <return type="${entityName}"/>
+                        </query>
+
+                        <query name="get" xdsl:abstract="true" >
+                            <arg name="id" type="String"/>
+
+                            <arg name="ignoreUnknown" type="Boolean"/>
+
+                            <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                                 kind="FieldSelection"/>
+
+                            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                            <return type="${entityName}"/>
+                        </query>
+
+                        <query name="batchGet" xdsl:abstract="true">
+                            <arg name="ids" type="List&lt;String>"/>
+
+                            <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                                 kind="FieldSelection"/>
+
+                            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                            <return type="List&lt;${entityName}>"/>
+                        </query>
+
+                        <mutation name="delete" xdsl:abstract="true">
+                            <arg name="id" type="String"/>
+                            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                            <return type="boolean"/>
+                        </mutation>
+
+                        <mutation name="save" xdsl:abstract="true">
+                            <arg name="data" type="Map&lt;String,Object>"/>
+
+                            <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                                 kind="FieldSelection"/>
+
+                            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                            <return type="${entityName}>"/>
+                        </mutation>
+
+                        <mutation name="update" xdsl:abstract="true">
+                            <arg name="data" type="Map&lt;String,Object>"/>
+
+                            <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
+                                 kind="FieldSelection"/>
+
+                            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+                            <return type="${entityName}>"/>
+                        </mutation>
+                    </actions>
+                </biz>
             </source>
-        </DefaultMetaPostExtends>
-
-        <GenDictLabelFields outputMode="node">
-            <attr name="_dsl_root" implicit="true"/>
-
-            <source>
-                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
-                    <c:script><![CDATA[
-                        let name = prop.attrText('name');
-                        if(name.endsWith("_label"))
-                            continue;
-
-                        let dict = prop.childAttr('schema','dict');
-                        if(!dict)
-                            continue;
-                    ]]></c:script>
-
-                    <prop name="${name}" graphql:labelProp="${name}_label" xpl:if="!prop.hasAttr('graphql:labelProp')">
-                    </prop>
-
-                    <prop name="${name}_label" displayName="${prop.getAttr('displayName')}" internal="true"
-                          graphql:dictName="${dict}" graphql:dictValueProp="${name}">
-                        <schema type="String"/>
-                    </prop>
-                </c:for>
-            </source>
-        </GenDictLabelFields>
-
-        <GenConnectionFields outputMode="node">
-            <attr name="_dsl_root" implicit="true"/>
-
-            <source>
-                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
-                    <c:script><![CDATA[
-                        if(!prop.attrCsvSet('tagSet')?.contains('connection'))
-                            continue;
-
-                        let kind = prop.getAttr('ext:kind');
-                        if(kind != 'to-many')
-                            continue;
-
-                        let name = prop.getAttr('name');
-                    ]]></c:script>
-
-                    <prop name="${name}"/>
-
-                    <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}"
-                          internal="true" graphql:connectionProp="${name}" graphql:type="GraphQLConnection_${prop.childByTag('schema').childAttr('item','bizObjName')}">
-                        <graphql:inputType xpl:ignoreTag="true">io.nop.api.core.beans.graphql.GraphQLConnectionInput
-                        </graphql:inputType>
-                    </prop>
-                </c:for>
-            </source>
-        </GenConnectionFields>
-
-        <GenCodeRuleAutoExpr outputMode="node">
-            <attr name="_dsl_root" implicit="true"/>
-
-            <source>
-                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
-                    <c:script><![CDATA[
-                        if(!prop.getAttr('biz:codeRule'))
-                            continue;
-
-                        if(prop.childByTag('autoExpr'))
-                            continue;
-                    ]]></c:script>
-
-                    <prop name="${prop.getAttr('name')}">
-                        <autoExpr when="save">
-                            <c:print>
-                                <biz-gen:CreateWithCodeRule xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
-                            </c:print>
-                        </autoExpr>
-                    </prop>
-                </c:for>
-            </source>
-        </GenCodeRuleAutoExpr>
-
-        <CreateWithCodeRule>
-            <attr name="propMeta" implicit="true" />
-
-            <source>
-                const codeRuleGenerator = inject('nopCodeRuleGenerator')
-                return codeRuleGenerator.generate(propMeta['biz:codeRule'],$scope);
-            </source>
-        </CreateWithCodeRule>
-
-        <GenMasking outputMode="node">
-            <attr name="_dsl_root" implicit="true"/>
-
-            <source>
-                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
-                    <c:script><![CDATA[
-                        if(!prop.getAttr('ui:maskPattern'))
-                            continue;
-                    ]]></c:script>
-
-                    <prop name="${prop.getAttr('name')}">
-                        <transformOut>
-                            value?.toString().$maskPattern("${prop.getAttr('ui:maskPattern')}")
-                        </transformOut>
-                    </prop>
-                </c:for>
-            </source>
-        </GenMasking>
+        </GenAbstractCrudMethods>
     </tags>
 </lib>

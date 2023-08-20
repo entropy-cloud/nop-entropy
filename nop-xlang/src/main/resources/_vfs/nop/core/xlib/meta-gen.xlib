@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <DefaultMetaGenExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+            <source>
+
+            </source>
+        </DefaultMetaGenExtends>
+
+        <DefaultMetaPostExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <meta>
+                    <props>
+                        <thisLib:GenDictLabelFields/>
+                        <thisLib:GenConnectionFields/>
+                        <thisLib:GenCodeRuleAutoExpr/>
+                        <thisLib:GenMaskingExpr/>
+                    </props>
+                </meta>
+            </source>
+        </DefaultMetaPostExtends>
+
+
+        <GenDictLabelFields outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                    <c:script><![CDATA[
+                        let name = prop.attrText('name');
+                        if(name.endsWith("_label"))
+                            continue;
+
+                        let dict = prop.childAttr('schema','dict');
+                        if(!dict)
+                            continue;
+                    ]]></c:script>
+
+                    <prop name="${name}" graphql:labelProp="${name}_label" xpl:if="!prop.hasAttr('graphql:labelProp')">
+                    </prop>
+
+                    <prop name="${name}_label" displayName="${prop.getAttr('displayName')}" internal="true"
+                          graphql:dictName="${dict}" graphql:dictValueProp="${name}">
+                        <schema type="String"/>
+                    </prop>
+                </c:for>
+            </source>
+        </GenDictLabelFields>
+
+        <GenConnectionFields outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                    <c:script><![CDATA[
+                        if(!prop.attrCsvSet('tagSet')?.contains('connection'))
+                            continue;
+
+                        let kind = prop.getAttr('ext:kind');
+                        if(kind != 'to-many')
+                            continue;
+
+                        let name = prop.getAttr('name');
+                    ]]></c:script>
+
+                    <prop name="${name}"/>
+
+                    <prop name="${name}Connection" displayName="${prop.getAttr('displayName')}"
+                          internal="true" graphql:connectionProp="${name}"
+                          graphql:type="GraphQLConnection_${prop.childByTag('schema').childAttr('item','bizObjName')}">
+                        <graphql:inputType xpl:ignoreTag="true">io.nop.api.core.beans.graphql.GraphQLConnectionInput
+                        </graphql:inputType>
+                    </prop>
+                </c:for>
+            </source>
+        </GenConnectionFields>
+
+        <GenCodeRuleAutoExpr outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                    <c:script><![CDATA[
+                        if(!prop.getAttr('biz:codeRule'))
+                            continue;
+
+                        if(prop.childByTag('autoExpr'))
+                            continue;
+                    ]]></c:script>
+
+                    <prop name="${prop.getAttr('name')}">
+                        <autoExpr when="save">
+                            <c:print>
+                                <biz-gen:CreateWithCodeRule xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
+                            </c:print>
+                        </autoExpr>
+                    </prop>
+                </c:for>
+            </source>
+        </GenCodeRuleAutoExpr>
+
+        <CreateWithCodeRule>
+            <attr name="propMeta" implicit="true"/>
+
+            <source>
+                const codeRuleGenerator = inject('nopCodeRuleGenerator')
+                return codeRuleGenerator.generate(propMeta['biz:codeRule'],$scope);
+            </source>
+        </CreateWithCodeRule>
+
+        <GenMaskingExpr outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                    <c:script><![CDATA[
+                        if(!prop.getAttr('ui:maskPattern'))
+                            continue;
+                    ]]></c:script>
+
+                    <prop name="${prop.getAttr('name')}">
+                        <transformOut>
+                            value?.toString().$maskPattern("${prop.getAttr('ui:maskPattern')}")
+                        </transformOut>
+                    </prop>
+                </c:for>
+            </source>
+        </GenMaskingExpr>
+
+    </tags>
+</lib>

@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl" xmlns:biz-gen="biz-gen">
 
+    <x:gen-extends>
+        <biz-gen:DefaultBizGenExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" forEntity="true"
+                                      entityName="io.nop.tcc.dao.entity.NopTccBranchRecord"/>
+    </x:gen-extends>
+
     <x:post-extends>
         <biz-gen:DefaultBizPostExtends xpl:lib="/nop/core/xlib/biz-gen.xlib"/>
     </x:post-extends>

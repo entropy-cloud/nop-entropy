@@ -105,4 +105,20 @@ public class TestDeltaMerger extends BaseTestCase {
         node.dump();
         assertEquals(attachmentXmlText("test_gen_extends.result.xml"), node.xml());
     }
+
+    @Test
+    public void testInheritAbstract() {
+        IResource resource = attachmentResource("test_inherit_abstract.xml");
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        node.dump();
+        assertEquals(attachmentXmlText("test_inherit_abstract.result.xml"), node.xml());
+    }
+
+    @Test
+    public void testNopAuthUser() {
+        IResource resource = attachmentResource("NopAuthUser.xbiz");
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        node.dump();
+        assertEquals(attachmentXmlText("NopAuthUser.result.xml"), node.xml());
+    }
 }
