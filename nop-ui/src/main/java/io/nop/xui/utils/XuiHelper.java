@@ -257,6 +257,11 @@ public class XuiHelper {
             if (bizObjName != null)
                 return bizObjName;
 
+            if(schema.getItemSchema() != null){
+                if(schema.getItemSchema().getBizObjName() != null)
+                    return schema.getItemSchema().getBizObjName();
+            }
+
             IGenericType type = schema.getType();
             if (type != null) {
                 if (type.isCollectionLike())
