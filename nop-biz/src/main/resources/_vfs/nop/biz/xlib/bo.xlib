@@ -88,7 +88,7 @@
             <attr name="prepareQuery"/>
             <attr name="action"/>
             <attr name="selection" implicit="true"/>
-            <attr name="thisObj" implicit="true"/>
+            <attr name="thisObj" implicit="true" type="io.nop.biz.api.IBizObject"/>
             <attr name="svcCtx" implicit="true"/>
 
             <source>
