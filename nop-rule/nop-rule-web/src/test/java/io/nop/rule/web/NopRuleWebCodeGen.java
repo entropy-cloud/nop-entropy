@@ -19,8 +19,8 @@ public class NopRuleWebCodeGen {
         try {
             File projectDir = MavenDirHelper.projectDir(NopRuleWebCodeGen.class);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-rule-codegen"), "/", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-rule-service"), "/", false);
-            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-rule-service"), "/", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-rule-meta"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-rule-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

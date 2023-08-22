@@ -12,6 +12,8 @@ public interface XuiConstants {
     String MODE_VIEW = "view";
     String MODE_QUERY = "query";
 
+    String MODE_ADD = "add";
+
     String MODE_LIST_EDIT = "list-edit";
     String MODE_LIST_VIEW = "list-view";
 
@@ -40,8 +42,18 @@ public interface XuiConstants {
     String UI_PICKER_URL = "ui:pickerUrl";
     String BIZ_MODULE_ID = "biz:moduleId";
 
+    String UI_VIEW_GRID = "ui:viewGrid";
+
+    String UI_EDIT_GRID = "ui:editGrid";
+
+    String TAG_GRID = "grid";
+
     String KIND_TO_ONE = "to-one";
     String KIND_TO_MANY = "to-many";
 
     String FILE_TYPE_VIEW_XML = "view.xml";
+
+    String ID_SUB_GRID_EDIT = "sub-grid-edit";
+
+    String ID_SUB_GRID_VIEW = "sub-grid-view";
 }

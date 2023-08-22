@@ -7,6 +7,7 @@
  */
 package io.nop.xui.model;
 
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.reflect.hook.IExtensibleObject;
 
@@ -61,4 +62,6 @@ public interface IUiDisplayMeta extends IExtensibleObject {
     String getMatchRegexp();
 
     Long getMaxUploadSize();
+
+    FieldSelectionBean getSelection();
 }

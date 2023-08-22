@@ -1,7 +1,7 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
       displayName="${entityModel.displayName}" i18n-en:displayName="${entityModel['i18n-en:displayName']}"
-      tagSet="${_.join(entityModel.tagSet,',')}">
+      tagSet="${_.join(entityModel.tagSet,',')}" xmlns:ui="ui">
     <entityName>${entityModel.name}</entityName>
 
     <primaryKey>${_.join(entityModel.pkColumnNames,',')}</primaryKey>
@@ -81,12 +81,14 @@
         </c:for>
 
         <c:for var="rel" items="${entityModel.relations}">
-            <c:script>if(rel.tagSet?.contains('not-gen')) continue;</c:script>
+            <c:script>if(rel.tagSet?.contains('not-gen')) continue;
+                const useGrid = rel.tagSet?.contains('grid');
+            </c:script>
             <prop name="${rel.name}" displayName="${rel.displayName}"
                   i18n-en:displayName="${rel['i18n-en:displayName']}" tagSet="${_.join(rel.tagSet,',')}"
                   ext:kind="${rel.toOneRelation?'to-one':'to-many'}" internal="true"
                   queryable="${rel.toOneRelation?true:null}"
-                  ext:control="${rel['ext:control']}"
+                  ext:control="${rel['ext:control']}"  ui:editGrid="${useGrid ? 'sub-grid-edit':null}" ui:viewGrid="${useGrid ?'sub-grid-view':null}"
                   defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
                   ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}"
                   ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
@@ -151,6 +153,7 @@
                 const insertable = rel.tagSet?.contains('insertable');
                 const updatable = rel.tagSet?.contains('updatable');
                 const published = rel.tagSet?.contains('pub') ? null : false;
+
             ]]></c:script>
             <prop name="${refOnePropInfo.relatedObjPropName}" displayName="${refOnePropInfo.relatedDisplayName}"
                   i18n-en:displayName="${refOnePropInfo.relatedEnDisplayName}" published="${published}"

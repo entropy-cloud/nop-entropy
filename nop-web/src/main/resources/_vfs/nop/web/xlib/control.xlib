@@ -754,7 +754,7 @@
                     }),
                     joinValues: false,
                     extractValue:true,
-                    multiple: propMeta.type.collectionLike || propMeta.listSchema,
+                    multiple: propMeta.type?.collectionLike || propMeta.listSchema,
                 })
             ]]></source>
         </edit-relation>
@@ -844,12 +844,12 @@
 
             <source>
                 <c:choose>
-                    <when test="${propMeta?.containsTag('grid')}">
+                    <when test="${propMeta?.containsTag('grid') and propMeta['ui:editGrid']}">
                         <c:script>
                             import io.nop.xui.utils.XuiHelper;
                             const viewPath = XuiHelper.getRelationViewUrl(propMeta,objMeta);
                         </c:script>
-                        <web:GenInputTable grid="${propMeta['ui:editGrid'] || 'sub-grid-edit'}" view="${viewPath}" xpl:lib="/nop/web/xlib/web.xlib"/>
+                        <web:GenInputTable grid="${propMeta['ui:editGrid']}" view="${viewPath}" xpl:lib="/nop/web/xlib/web.xlib"/>
                     </when>
                     <otherwise>
                         <thisLib:edit-relation dispMeta="${dispMeta}" propMeta="${propMeta}"
@@ -867,8 +867,19 @@
             <attr name="editMode"/>
 
             <source>
-                <thisLib:view-relation dispMeta="${dispMeta}" propMeta="${propMeta}"
-                                       objMeta="${objMeta}" editMode="${editMode}" />
+                <c:choose>
+                    <when test="${propMeta?.containsTag('grid') and propMeta['ui:viewGrid']}">
+                        <c:script>
+                            import io.nop.xui.utils.XuiHelper;
+                            const viewPath = XuiHelper.getRelationViewUrl(propMeta,objMeta);
+                        </c:script>
+                        <web:GenTable grid="${propMeta['ui:viewGrid']}" view="${viewPath}" xpl:lib="/nop/web/xlib/web.xlib"/>
+                    </when>
+                    <otherwise>
+                        <thisLib:view-relation dispMeta="${dispMeta}" propMeta="${propMeta}"
+                                               objMeta="${objMeta}" editMode="${editMode}" />
+                    </otherwise>
+                </c:choose>
             </source>
         </view-to-many>
 

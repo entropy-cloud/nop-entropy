@@ -8,7 +8,9 @@
     </grids>
 
     <forms>
-        <form id="view" x:prototype="edit"/>
+        <form id="view" x:prototype="edit">
+            <layout x:override="remove"/>
+        </form>
 
         <form id="edit" layoutControl="tabs" size="xl">
             <layout>

@@ -25,6 +25,7 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import io.nop.xlang.xmeta.layout.ILayoutGroupModel;
 import io.nop.xlang.xmeta.layout.LayoutTableModel;
 import io.nop.xui.XuiConstants;
+import io.nop.xui.model.IUiDisplayMeta;
 import io.nop.xui.model.UiDisplayMeta;
 import io.nop.xui.model.UiFormCellModel;
 import io.nop.xui.model.UiFormModel;
@@ -37,6 +38,8 @@ import java.util.function.Consumer;
 
 import static io.nop.xui.XuiConstants.GRAPHQL_JSON_COMPONENT_PROP;
 import static io.nop.xui.XuiConstants.GRAPHQL_LABEL_PROP;
+import static io.nop.xui.XuiConstants.MODE_ADD;
+import static io.nop.xui.XuiConstants.MODE_EDIT;
 import static io.nop.xui.XuiErrors.ARG_CELL_ID;
 import static io.nop.xui.XuiErrors.ARG_COL_ID;
 import static io.nop.xui.XuiErrors.ARG_FORM_ID;
@@ -80,6 +83,8 @@ public class XuiViewAnalyzer {
                             .param(ARG_GRID_ID, gridModel.getId()).param(ARG_COL_ID, colModel.getId())
                             .param(ARG_PROP_NAME, name);
                 });
+
+                addPropDepends(colModel, propMeta, objMeta, selection, gridModel.getEditMode());
             }
 
             Set<String> depends = colModel.getDepends();
@@ -162,6 +167,8 @@ public class XuiViewAnalyzer {
                             .param(ARG_FORM_ID, formModel.getId()).param(ARG_CELL_ID, lc.getId())
                             .param(ARG_PROP_NAME, name);
                 });
+
+                addPropDepends(cellModel, propMeta, objMeta, selection, formModel.getEditMode());
             }
 
             if (cellModel != null) {
@@ -195,6 +202,27 @@ public class XuiViewAnalyzer {
         }
     }
 
+    void addPropDepends(IUiDisplayMeta dispMeta, IObjPropMeta propMeta, IObjMeta objMeta, FieldSelectionBean selection, String editMode) {
+        if (dispMeta != null) {
+            // 如果明确指定了selection，则以selection为准
+            if (dispMeta.getSelection() != null)
+                return;
+        }
+
+        boolean edit = editMode != null && (editMode.endsWith(MODE_EDIT) || editMode.endsWith(MODE_ADD));
+
+        if (propMeta.containsTag(XuiConstants.TAG_GRID)) {
+            String viewPath = XuiHelper.getRelationViewUrl(propMeta, objMeta);
+            if (StringHelper.isEmpty(viewPath))
+                return;
+
+            String gridId = (String) propMeta.prop_get(edit ? XuiConstants.UI_EDIT_GRID : XuiConstants.UI_VIEW_GRID);
+            if (!StringHelper.isEmpty(gridId)) {
+                addViewDepends(selection, propMeta.getName(), propMeta.getLocation(), viewPath, null, gridId, null);
+            }
+        }
+    }
+
     void addViewDepends(FieldSelectionBean selection, UiDisplayMeta dispMeta) {
         UiRefViewModel refView = dispMeta.getView();
         if (refView == null)
@@ -206,32 +234,38 @@ public class XuiViewAnalyzer {
         if (!XuiConstants.FILE_TYPE_VIEW_XML.equals(fileType))
             return;
 
+        addViewDepends(selection, dispMeta.getId(), refView.getLocation(), refView.getPath(),
+                refView.getPage(), refView.getGrid(), refView.getForm());
+    }
+
+    public void addViewDepends(FieldSelectionBean selection, String propName, SourceLocation loc, String viewPath,
+                               String pageId, String gridId, String formId) {
         // 分析view模型得到关联子表选项
-        IComponentModel viewModel = loadViewModel(refView.getPath());
+        IComponentModel viewModel = loadViewModel(viewPath);
         IObjMeta viewObjMeta = getViewObjMeta(viewModel);
-        IPropGetMissingHook page = getPage(viewModel, refView.getPage());
+        IPropGetMissingHook page = getPage(viewModel, pageId);
         if (page != null) {
-            UiFormModel formModel = getForm(refView.getLocation(), viewModel, page);
+            UiFormModel formModel = getForm(loc, viewModel, page);
             if (formModel != null) {
                 FieldSelectionBean subSelection = getFormSelection(formModel, getObjMeta(formModel, viewObjMeta));
-                selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                selection.addCompositeField(propName, true).mergeFields(subSelection.getFields());
             } else {
-                UiGridModel gridModel = getGrid(refView.getLocation(), viewModel, page);
+                UiGridModel gridModel = getGrid(loc, viewModel, page);
                 if (gridModel != null) {
                     FieldSelectionBean subSelection = getListSelection(gridModel, getObjMeta(gridModel, viewObjMeta));
-                    selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                    selection.addCompositeField(propName, true).mergeFields(subSelection.getFields());
                 }
             }
         } else {
-            UiFormModel formModel = getForm(refView.getLocation(), viewModel, refView.getForm());
+            UiFormModel formModel = getForm(loc, viewModel, formId);
             if (formModel != null) {
                 FieldSelectionBean subSelection = getFormSelection(formModel, getObjMeta(formModel, viewObjMeta));
-                selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                selection.addCompositeField(propName, true).mergeFields(subSelection.getFields());
             } else {
-                UiGridModel gridModel = getGrid(refView.getLocation(), viewModel, refView.getGrid());
+                UiGridModel gridModel = getGrid(loc, viewModel, gridId);
                 if (gridModel != null) {
                     FieldSelectionBean subSelection = getListSelection(gridModel, getObjMeta(gridModel, viewObjMeta));
-                    selection.addCompositeField(dispMeta.getId(), true).mergeFields(subSelection.getFields());
+                    selection.addCompositeField(propName, true).mergeFields(subSelection.getFields());
                 }
             }
         }

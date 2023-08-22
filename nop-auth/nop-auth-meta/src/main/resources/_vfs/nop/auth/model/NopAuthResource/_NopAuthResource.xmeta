@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="菜单资源" i18n-en:displayName="Menu Resource">
+      displayName="菜单资源" i18n-en:displayName="Menu Resource" xmlns:ui="ui">
 
     <entityName>io.nop.auth.dao.entity.NopAuthResource</entityName>
 
@@ -180,7 +180,7 @@
             <schema type="io.nop.orm.support.JsonOrmComponent"/>
         </prop>
         <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
-              internal="true" lazy="true">
+              ui:editGrid="false" ui:viewGrid="false" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRole"/>
             </schema>

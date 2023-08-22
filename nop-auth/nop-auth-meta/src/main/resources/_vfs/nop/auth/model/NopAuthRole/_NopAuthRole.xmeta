@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="角色" i18n-en:displayName="Role" tagSet="mapper">
+      displayName="角色" i18n-en:displayName="Role" tagSet="mapper" xmlns:ui="ui">
 
     <entityName>io.nop.auth.dao.entity.NopAuthRole</entityName>
 
@@ -81,7 +81,7 @@
             </schema>
         </prop>
         <prop name="relatedUserList" displayName="用户列表" i18n-en:displayName="User List" ext:kind="to-many"
-              internal="true" lazy="true">
+              ui:editGrid="false" ui:viewGrid="false" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthUser"/>
             </schema>
@@ -96,7 +96,7 @@
             <schema type="String"/>
         </prop>
         <prop name="relatedResourceList" displayName="资源列表" i18n-en:displayName="Resource List" ext:kind="to-many"
-              internal="true" lazy="true">
+              ui:editGrid="false" ui:viewGrid="false" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthResource"/>
             </schema>

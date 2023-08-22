@@ -539,6 +539,22 @@
             </source>
         </GenInputTable>
 
+        <GenTable>
+            <attr name="view" mandatory="true"/>
+            <attr name="grid" mandatory="true"/>
+
+            <source>
+                <c:include src="/nop/web/xlib/web/init_grid_gen_scope.xpl"/>
+                <c:collect outputMode="xjson">
+                    <table removable="@:true" addable="@:true" editable="@:true" needConfirm="@:false">
+                        <columns j:list="true">
+                            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}"/>
+                        </columns>
+                    </table>
+                </c:collect>
+            </source>
+        </GenTable>
+
         <GetColDefaultWidth>
             <attr name="colModel"/>
             <attr name="propMeta"/>
