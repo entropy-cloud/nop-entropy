@@ -1,6 +1,6 @@
 <biz xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl" xmlns:biz-gen="biz-gen">
     <actions>
-        <action name="active_findPage">
+        <query name="active_findPage">
             <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
             <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean" kind="FieldSelection"/>
             <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
@@ -9,12 +9,12 @@
                 <c:script>
                     import io.nop.auth.api.AuthApiConstants;
                 </c:script>
-                <bo:DoFindPage query="${query}" selection="${selection}">
+                <bo:DoFindPage query="${query}" selection="${selection}" xpl:lib="/nop/biz/xlib/bo.xlib">
                     <filter>
                         <eq name="status" value="${AuthApiConstants.USER_STATUS_ACTIVE}"/>
                     </filter>
                 </bo:DoFindPage>
             </source>
-        </action>
+        </query>
     </actions>
 </biz>
