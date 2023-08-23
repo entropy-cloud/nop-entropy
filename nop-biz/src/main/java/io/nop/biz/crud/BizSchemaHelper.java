@@ -14,7 +14,7 @@ import io.nop.biz.api.IBizObject;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.type.IGenericType;
-import io.nop.orm.support.JsonOrmComponent;
+import io.nop.orm.component.JsonOrmComponent;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;

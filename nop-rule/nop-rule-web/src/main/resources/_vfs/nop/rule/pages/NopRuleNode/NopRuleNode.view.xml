@@ -7,8 +7,27 @@
     </grids>
 
     <forms>
-        <form id="view"/>
-        <form id="edit"/>
+        <form id="view">
+            <cells>
+                <cell id="predicate" depends="predicateLabel">
+                    <gen-control>
+                        <static name="predicateLabel" />
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
+
+        <form id="edit">
+            <cells>
+                <cell id="predicate">
+                    <gen-control>
+                        <condition-builder embed="@:false"
+                                           title="@i18n:common.conditionConfig|条件配置"
+                                           source="@query:NopRuleDefinition__getConditionFields?ruleId=$ruleId" />
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
     </forms>
 
     <pages>

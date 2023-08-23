@@ -1,0 +1,42 @@
+{
+  "type": "combo",
+  "multiple": true,
+  "multiLine": true,
+  addable: false,
+  removeable: false,
+  "items": [
+    {
+      "type": "group",
+      name: "varDef",
+      "body": [
+        {
+          "label": "名称",
+          "name": "name",
+          "type": "static",
+        },
+        {
+          "label": "显示名",
+          "name": "displayName",
+          "type": "static"
+        },
+        {
+          "label": "类型",
+          "name": "type",
+          type: "static"
+        },
+        {
+          "label": "是否非空",
+          "name": "mandatory",
+          type: "switch",
+          readonly: true
+        }
+      ]
+    },
+    {
+      "$ref": "varDefinition",
+      "label": "子对象属性",
+      "name": "props",
+      "visibleOn": "${type == 'List' || type == 'Map'}"
+    }
+  ]
+}

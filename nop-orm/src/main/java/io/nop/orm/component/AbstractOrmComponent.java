@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.orm.support;
+package io.nop.orm.component;
 
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.IOrmComponent;

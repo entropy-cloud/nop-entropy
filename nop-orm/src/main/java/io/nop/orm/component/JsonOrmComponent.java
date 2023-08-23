@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.orm.support;
+package io.nop.orm.component;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.graphql.GraphQLScalar;

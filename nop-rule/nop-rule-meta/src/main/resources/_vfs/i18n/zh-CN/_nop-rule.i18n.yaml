@@ -1,8 +1,10 @@
 entity:
   label:
     NopRuleDefinition: 规则模型定义
+    NopRuleInput: null
     NopRuleLog: 规则执行日志
     NopRuleNode: 规则节点
+    NopRuleOutput: null
     NopRuleRole: 规则角色
     RuleKeyBean: 规则唯一标识
     RuleMetaBean: 规则元数据
@@ -10,16 +12,20 @@ entity:
 prop:
   label:
     NopRuleDefinition:
+      beforeExecute: 初始化代码
       createTime: 创建时间
       createdBy: 创建人
       description: 描述
       displayName: 显示名称
       modelText: 模型文本
+      modelTextXmlComponent: null
       remark: 备注
       ruleGroup: 规则分组
       ruleId: 主键
+      ruleInputs: 输入变量
       ruleName: 规则名称
       ruleNodes: 规则节点
+      ruleOutputs: 输出变量
       ruleRoles: 规则角色
       ruleType: 规则类型
       ruleType_label: 规则类型
@@ -29,6 +35,15 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopRuleInput:
+      computed: 是否计算值
+      defaultExpr: 缺省值
+      description: 描述
+      displayName: 显示名
+      mandatory: 是否非空
+      name: 变量名
+      props: 对象属性
+      type: 类型
     NopRuleLog:
       createTime: 创建时间
       createdBy: 创建人
@@ -52,6 +67,7 @@ prop:
       parentId: 父ID
       predicate: 判断条件
       predicateComponent: null
+      predicateLabel: null
       remark: 备注
       ruleDefinition: 规则定义
       ruleDefinition.displayName: 规则定义
@@ -61,6 +77,12 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopRuleOutput:
+      description: 描述
+      displayName: 显示名
+      name: 变量名
+      props: 对象属性
+      type: 类型
     NopRuleRole:
       createTime: 创建时间
       createdBy: 创建人

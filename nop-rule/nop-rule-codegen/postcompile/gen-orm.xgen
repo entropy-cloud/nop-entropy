@@ -3,6 +3,9 @@
 // 根据ORM模型生成dao/entity/xbiz
 codeGenerator.withTargetDir("../").renderModel('../../model/nop-rule.orm.xlsx','/nop/templates/orm', '/',$scope);
 
+codeGenerator.withTargetDir("../nop-rule-dao/src/main/java").renderModel(
+    '../../nop-rule-dao/src/main/resources/_vfs/nop/rule/orm/app.orm.xml','/nop/templates/orm-entity', '/',$scope);
+
 // 根据API模型生成服务消息和接口类
 codeGenerator.withTargetDir("../").renderModel('../../model/nop-rule.api.xlsx','/nop/templates/api', '/',$scope);
 ]]></c:script>

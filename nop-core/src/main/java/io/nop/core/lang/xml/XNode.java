@@ -335,7 +335,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public void setTagName(String tagName) {
         checkNotReadOnly();
-        this.tagName = Guard.notEmpty(tagName,"tagName");
+        this.tagName = Guard.notEmpty(tagName, "tagName");
     }
 
     public SourceLocation getLocation() {
@@ -2284,7 +2284,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public static XNode fromValue(Object value) {
-        if (value == null)
+        if (StringHelper.isEmptyObject(value))
             return null;
         if (value instanceof XNode)
             return (XNode) value;
@@ -2292,6 +2292,8 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
             return fromTreeBean((ITreeBean) value);
         if (value instanceof Map)
             return fromTreeBean(TreeBean.createFromJson((Map<String, Object>) value));
+        if (value instanceof String)
+            return XNodeParser.instance().parseFromText(null, value.toString());
         throw new NopException(ERR_XML_NOT_NODE_VALUE)
                 .param(ARG_VALUE, value);
     }

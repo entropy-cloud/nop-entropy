@@ -26,11 +26,15 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
     DaoRuleModelLoader ruleModelLoader;
 
     @BizQuery
-    public List<Map<String, Object>> getConditionFields(
+    public ConditionFieldsResponse getConditionFields(
             @Name(OrmConstants.PROP_ID) String ruleId, IServiceContext context) {
         NopRuleDefinition rule = get(ruleId, false, context);
         RuleModel ruleModel = ruleModelLoader.buildRuleModel(rule);
-        return ConditionSchemaHelper.schemaToFields(null, ruleModel.getInputSchema());
+        List<Map<String, Object>> fields = ConditionSchemaHelper.schemaToFields(null, ruleModel.getInputSchema());
+
+        ConditionFieldsResponse ret = new ConditionFieldsResponse();
+        ret.setFields(fields);
+        return ret;
     }
 //
 //    @Override

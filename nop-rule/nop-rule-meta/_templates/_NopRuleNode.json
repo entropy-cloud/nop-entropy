@@ -19,5 +19,6 @@
   "ruleDefinition.displayName": "",
   "children": null,
   "predicateComponent": null,
-  "outputsComponent": null
+  "outputsComponent": null,
+  "predicateLabel": ""
 }

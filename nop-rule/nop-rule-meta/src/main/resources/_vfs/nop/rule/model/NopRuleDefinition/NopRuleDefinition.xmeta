@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopRuleDefinition.xmeta">
 
-    <props/>
+    <props>
+        <prop name="ruleInputs" displayName="输入变量" published="true" insertable="true" updatable="true">
+            <schema bizObjName="NopRuleInput"/>
+        </prop>
+
+        <prop name="ruleOutputs" displayName="输出变量" published="true" insertable="true" updatable="true">
+            <schema bizObjName="NopRuleOutput"/>
+        </prop>
+
+        <prop name="beforeExecute" displayName="初始化代码" published="true" insertable="true" updatable="true">
+            <schema stdDomain="xpl"/>
+        </prop>
+    </props>
 </meta>

@@ -2,6 +2,7 @@ package io.nop.app._gen;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.app.SimsClass;
+import io.nop.orm.component.JsonOrmComponent;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
 
@@ -877,20 +878,20 @@ public class _SimsClass extends DynamicOrmEntity {
         internalSetAliasValue("simsCollege.collegeName", value);
     }
 
-    private io.nop.orm.support.JsonOrmComponent _jsonExtComponent;
+    private JsonOrmComponent _jsonExtComponent;
 
     private static Map<String, Integer> COMPONENT_PROP_ID_MAP_jsonExtComponent = new HashMap<>();
 
     static {
 
-        COMPONENT_PROP_ID_MAP_jsonExtComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,
+        COMPONENT_PROP_ID_MAP_jsonExtComponent.put(JsonOrmComponent.PROP_NAME__jsonText,
                 PROP_ID_jsonExt);
 
     }
 
-    public io.nop.orm.support.JsonOrmComponent getJsonExtComponent() {
+    public JsonOrmComponent getJsonExtComponent() {
         if (_jsonExtComponent == null) {
-            _jsonExtComponent = new io.nop.orm.support.JsonOrmComponent();
+            _jsonExtComponent = new JsonOrmComponent();
             _jsonExtComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_jsonExtComponent);
         }
         return _jsonExtComponent;

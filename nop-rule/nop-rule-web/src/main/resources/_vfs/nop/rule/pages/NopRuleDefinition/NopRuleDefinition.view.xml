@@ -9,24 +9,68 @@
 
     <forms>
         <form id="view" x:prototype="edit">
+            <!-- 继承的_NopRuleDefinition模型中已经定义了layout，这里希望使用edit所对应的layout，所以要删除继承的部分。
+                x:prototype在x:extends执行完毕之后执行。
+             -->
             <layout x:override="remove"/>
+
+            <cells>
+                <cell id="ruleInputs">
+                    <gen-control>
+                        return { "$ref": "viewInputDefinition" }
+                    </gen-control>
+                </cell>
+
+                <cell id="ruleOutputs">
+                    <gen-control>
+                        return { "$ref": "viewOutputDefinition" }
+                    </gen-control>
+                </cell>
+            </cells>
         </form>
+
 
         <form id="edit" layoutControl="tabs" size="xl">
             <layout>
-                ==>baseInfo[基本信息]====
+                ==baseInfo[基本信息]====
                 ruleName[规则名称] ruleVersion[规则版本]
-                displayName[显示名称]  ruleGroup[规则分组]
-                ruleType[规则类型]  status[状态]
+                displayName[显示名称] ruleGroup[规则分组]
+                ruleType[规则类型] status[状态]
                 description[描述]
                 remark[备注]
 
                 ==authConfig[权限配置]===
                 !ruleRoles
 
-                ==>inputsOutputs[输入输出]===
+                ==inputsConfig[输入]===
+                !ruleInputs
 
+                ==outputsConfig[输出]===
+                !ruleOutputs
+
+                ==extConfig[扩展配置]==
+                beforeExecute
             </layout>
+
+            <cells>
+                <cell id="ruleInputs">
+                    <gen-control>
+                        return { "$ref": "inputDefinition" }
+                    </gen-control>
+                    <selection>
+                        name,displayName,type, computed, mandatory, defaultExpr, props  @TreeChildren(max:5)
+                    </selection>
+                </cell>
+
+                <cell id="ruleOutputs">
+                    <gen-control>
+                        return { "$ref":"outputDefinition" }
+                    </gen-control>
+                    <selection>
+                        name,displayName,type, props  @TreeChildren(max:5)
+                    </selection>
+                </cell>
+            </cells>
         </form>
         <form id="query">
             <layout>

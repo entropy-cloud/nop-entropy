@@ -1,8 +1,10 @@
 entity:
   label:
     NopRuleDefinition: Rule Definition
+    NopRuleInput: null
     NopRuleLog: Rule Log
     NopRuleNode: Rule Node
+    NopRuleOutput: null
     NopRuleRole: Rule Role
     RuleKeyBean: Rule Key
     RuleMetaBean: Rule Meta
@@ -29,6 +31,19 @@ prop:
       remark: Remark
       ruleNodes: Rule Nodes
       ruleRoles: Rule Roles
+      modelTextXmlComponent: null
+      ruleInputs: null
+      ruleOutputs: null
+      beforeExecute: null
+    NopRuleInput:
+      name: null
+      displayName: null
+      type: null
+      mandatory: null
+      computed: null
+      defaultExpr: null
+      description: null
+      props: null
     NopRuleLog:
       sid: SID
       ruleId: RULE ID
@@ -61,6 +76,13 @@ prop:
       children: Children
       predicateComponent: null
       outputsComponent: null
+      predicateLabel: null
+    NopRuleOutput:
+      name: null
+      displayName: null
+      type: null
+      description: null
+      props: null
     NopRuleRole:
       sid: SID
       ruleId: Rule ID

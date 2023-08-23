@@ -3,6 +3,7 @@ package io.nop.app._gen;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.app.SimsExam;
 import io.nop.orm.IOrmEntitySet;
+import io.nop.orm.component.FloatingScaleDecimal;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
 import io.nop.orm.support.OrmEntitySet;
@@ -796,23 +797,23 @@ public class _SimsExam extends DynamicOrmEntity {
         internalSetAliasValue("ext.fldA.string", value);
     }
 
-    private io.nop.orm.support.FloatingScaleDecimal _examScoreDecimal;
+    private FloatingScaleDecimal _examScoreDecimal;
 
     private static Map<String, Integer> COMPONENT_PROP_ID_MAP_examScoreDecimal = new HashMap<>();
 
     static {
 
-        COMPONENT_PROP_ID_MAP_examScoreDecimal.put(io.nop.orm.support.FloatingScaleDecimal.PROP_NAME_value,
+        COMPONENT_PROP_ID_MAP_examScoreDecimal.put(FloatingScaleDecimal.PROP_NAME_value,
                 PROP_ID_examScore);
 
-        COMPONENT_PROP_ID_MAP_examScoreDecimal.put(io.nop.orm.support.FloatingScaleDecimal.PROP_NAME_scale,
+        COMPONENT_PROP_ID_MAP_examScoreDecimal.put(FloatingScaleDecimal.PROP_NAME_scale,
                 PROP_ID_examScoreScale);
 
     }
 
-    public io.nop.orm.support.FloatingScaleDecimal getExamScoreDecimal() {
+    public FloatingScaleDecimal getExamScoreDecimal() {
         if (_examScoreDecimal == null) {
-            _examScoreDecimal = new io.nop.orm.support.FloatingScaleDecimal();
+            _examScoreDecimal = new FloatingScaleDecimal();
             _examScoreDecimal.bindToEntity(this, COMPONENT_PROP_ID_MAP_examScoreDecimal);
         }
         return _examScoreDecimal;

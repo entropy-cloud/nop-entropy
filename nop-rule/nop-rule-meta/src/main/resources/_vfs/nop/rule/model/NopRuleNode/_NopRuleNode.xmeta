@@ -108,11 +108,11 @@
         </prop>
         <prop name="predicateComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
               updatable="true" mandatory="true" lazy="true">
-            <schema type="io.nop.orm.support.JsonOrmComponent"/>
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
         <prop name="outputsComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
-            <schema type="io.nop.orm.support.JsonOrmComponent"/>
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>
 </meta>

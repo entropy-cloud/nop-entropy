@@ -17,5 +17,9 @@
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
   "ruleNodes": null,
-  "ruleRoles": null
+  "ruleRoles": null,
+  "modelTextXmlComponent": null,
+  "ruleInputs": null,
+  "ruleOutputs": null,
+  "beforeExecute": null
 }

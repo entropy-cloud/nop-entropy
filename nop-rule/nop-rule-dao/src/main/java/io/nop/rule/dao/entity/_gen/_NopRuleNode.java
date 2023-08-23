@@ -89,6 +89,12 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /* relation: 子节点 */
     public static final String PROP_NAME_children = "children";
     
+    /* component:  */
+    public static final String PROP_NAME_predicateComponent = "predicateComponent";
+    
+    /* component:  */
+    public static final String PROP_NAME_outputsComponent = "outputsComponent";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
@@ -878,5 +884,39 @@ public class _NopRuleNode extends DynamicOrmEntity{
        return _children;
     }
        
+   private io.nop.orm.component.JsonOrmComponent _predicateComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_predicateComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_predicateComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_predicate);
+      
+   }
+
+   public io.nop.orm.component.JsonOrmComponent getPredicateComponent(){
+      if(_predicateComponent == null){
+          _predicateComponent = new io.nop.orm.component.JsonOrmComponent();
+          _predicateComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_predicateComponent);
+      }
+      return _predicateComponent;
+   }
+
+   private io.nop.orm.component.JsonOrmComponent _outputsComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_outputsComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_outputsComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_outputs);
+      
+   }
+
+   public io.nop.orm.component.JsonOrmComponent getOutputsComponent(){
+      if(_outputsComponent == null){
+          _outputsComponent = new io.nop.orm.component.JsonOrmComponent();
+          _outputsComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_outputsComponent);
+      }
+      return _outputsComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

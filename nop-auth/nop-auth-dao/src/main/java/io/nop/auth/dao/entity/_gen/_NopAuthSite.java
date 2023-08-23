@@ -1,5 +1,6 @@
 package io.nop.auth.dao.entity._gen;
 
+import io.nop.orm.component.JsonOrmComponent;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
 import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
@@ -784,18 +785,18 @@ public class _NopAuthSite extends DynamicOrmEntity{
        return _resources;
     }
        
-   private io.nop.orm.support.JsonOrmComponent _extConfigComponent;
+   private JsonOrmComponent _extConfigComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_extConfigComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_extConfigComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_extConfig);
+         COMPONENT_PROP_ID_MAP_extConfigComponent.put(JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_extConfig);
       
    }
 
-   public io.nop.orm.support.JsonOrmComponent getExtConfigComponent(){
+   public JsonOrmComponent getExtConfigComponent(){
       if(_extConfigComponent == null){
-          _extConfigComponent = new io.nop.orm.support.JsonOrmComponent();
+          _extConfigComponent = new JsonOrmComponent();
           _extConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_extConfigComponent);
       }
       return _extConfigComponent;

@@ -30,7 +30,7 @@ public class NopRuleNodeBizModel extends CrudBizModel<NopRuleNode> {
 
     @Description("将规则节点的判断条件格式化后显示")
     @BizLoader
-    public String getPredicateDisplayText(@ContextSource NopRuleNode node, IServiceContext context) {
+    public String predicateLabel(@ContextSource NopRuleNode node, IServiceContext context) {
         NopRuleDefinition rule = node.getRuleDefinition();
         ISchema inputSchema = (ISchema) context.getCache().computeIfAbsent("rule-input-schema:" + rule.getRuleId(), k -> {
             return ruleModelLoader.buildRuleInputSchema(rule);

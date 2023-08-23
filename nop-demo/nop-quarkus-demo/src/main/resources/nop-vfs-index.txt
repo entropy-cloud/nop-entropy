@@ -14,8 +14,10 @@
 /dict/core/bool-flag.dict.yaml
 /dict/core/enabled-locale.dict.yaml
 /dict/core/entity-relation-type.dict.yaml
+/dict/core/java-type.dict.yaml
 /dict/core/log-level.dict.yaml
 /dict/core/simple-data-type.dict.yaml
+/dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
 /dict/rule/rule-type.dict.yaml
 /i18n/en/_nop-auth-web.i18n.yaml
@@ -320,6 +322,7 @@
 /nop/rule/model/NopRuleDefinition/NopRuleDefinition.xmeta
 /nop/rule/model/NopRuleDefinition/_NopRuleDefinition.xbiz
 /nop/rule/model/NopRuleDefinition/_NopRuleDefinition.xmeta
+/nop/rule/model/NopRuleInput/NopRuleInput.xmeta
 /nop/rule/model/NopRuleLog/NopRuleLog.xbiz
 /nop/rule/model/NopRuleLog/NopRuleLog.xmeta
 /nop/rule/model/NopRuleLog/_NopRuleLog.xbiz
@@ -328,6 +331,7 @@
 /nop/rule/model/NopRuleNode/NopRuleNode.xmeta
 /nop/rule/model/NopRuleNode/_NopRuleNode.xbiz
 /nop/rule/model/NopRuleNode/_NopRuleNode.xmeta
+/nop/rule/model/NopRuleOutput/NopRuleOutput.xmeta
 /nop/rule/model/NopRuleRole/NopRuleRole.xbiz
 /nop/rule/model/NopRuleRole/NopRuleRole.xmeta
 /nop/rule/model/NopRuleRole/_NopRuleRole.xbiz
@@ -345,6 +349,9 @@
 /nop/rule/pages/NopRuleDefinition/_gen/_NopRuleDefinition.view.xml
 /nop/rule/pages/NopRuleDefinition/main.page.yaml
 /nop/rule/pages/NopRuleDefinition/picker.page.yaml
+/nop/rule/pages/NopRuleDefinition/var-definition.json5
+/nop/rule/pages/NopRuleDefinition/var-definitions.json5
+/nop/rule/pages/NopRuleDefinition/view-var-definition.json5
 /nop/rule/pages/NopRuleLog/NopRuleLog.lib.xjs
 /nop/rule/pages/NopRuleLog/NopRuleLog.view.xml
 /nop/rule/pages/NopRuleLog/_gen/_NopRuleLog.view.xml

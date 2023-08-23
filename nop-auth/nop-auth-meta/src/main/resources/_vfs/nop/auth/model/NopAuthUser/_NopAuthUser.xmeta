@@ -190,7 +190,7 @@
         </prop>
         <prop name="avatarComponent" ext:kind="component" internal="true" insertable="true" updatable="true" lazy="true"
               published="false">
-            <schema type="io.nop.orm.support.OrmFileComponent"/>
+            <schema type="io.nop.orm.component.OrmFileComponent"/>
         </prop>
         <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
               ui:editGrid="false" ui:viewGrid="false" internal="true" lazy="true">

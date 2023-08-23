@@ -115,7 +115,7 @@ DSL = Delta x-extends Generator<DSLx>
         <!-- 最终会自动生成component配置
            <components>
               <component name="jsonExtComponent"
-                         class="io.nop.orm.support.JsonOrmComponent">
+                         class="io.nop.orm.component.JsonOrmComponent">
                  <prop name="jsonText" column="jsonExt" />
               </component>
            </components>

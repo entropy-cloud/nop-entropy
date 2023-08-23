@@ -9,6 +9,7 @@
             <attr name="_dsl_root" implicit="true"/>
             <source>
                 <thisLib:JsonComponentSupport/>
+                <thisLib:XmlComponentSupport/>
                 <thisLib:ExtFieldsSupport/>
                 <thisLib:FileComponentSupport/>
             </source>
@@ -46,7 +47,7 @@
                                         <component name="${colNode.getAttr('name')}Component" needFlush="true"
                                                    notGenCode="${colNode.getAttr('notGenCode')}"
                                                    tagSet="json${pub and ',pub'}"
-                                                   className="io.nop.orm.support.JsonOrmComponent">
+                                                   className="io.nop.orm.component.JsonOrmComponent">
                                             <prop name="_jsonText" column="${colNode.getAttr('name')}"/>
                                         </component>
                                     </c:for>
@@ -57,6 +58,50 @@
                 </orm>
             </source>
         </JsonComponentSupport>
+
+        <XmlComponentSupport  outputMode="node">
+            <!--
+             _dsl_root为元编程阶段可访问的配置文件根节点
+            -->
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <orm>
+                    <entities>
+                        <c:for var="entityNode" items="${_dsl_root.childByTag('entities').children}">
+                            <c:script><![CDATA[
+                                if(entityNode.attrBoolean('x:abstract'))
+                                    continue;
+                                if(entityNode.attrText('x:override') == 'remove')
+                                    continue;
+                                let xmlCols = entityNode.childByTag('columns').children.filter(colNode=>{
+                                      return colNode.attrCsvSet('tagSet')?.contains('xml') || colNode.getAttr('stdDomain') == 'xml';
+                                   });
+                            ]]></c:script>
+                            <!--
+                            标记了是json字段，则追加component定义。
+                            -->
+                            <entity name="${entityNode.getAttr('name')}" xpl:if="!xmlCols.empty">
+                                <components>
+                                    <c:for var="colNode" items="${xmlCols}">
+                                        <c:script>
+                                            const pub =
+                                            !colNode.attrCsvSet('tagSet')?.contains('no-pub')
+                                        </c:script>
+                                        <component name="${colNode.getAttr('name')}XmlComponent" needFlush="true"
+                                                   notGenCode="${colNode.getAttr('notGenCode')}"
+                                                   tagSet="xml${pub and ',pub'}"
+                                                   className="io.nop.orm.component.XmlOrmComponent">
+                                            <prop name="xmlText" column="${colNode.getAttr('name')}"/>
+                                        </component>
+                                    </c:for>
+                                </components>
+                            </entity>
+                        </c:for>
+                    </entities>
+                </orm>
+            </source>
+        </XmlComponentSupport>
 
         <!--
         识别use-ext-field配置，自动生成扩展字段所需要的关联属性配置
@@ -192,7 +237,7 @@
                                         </c:script>
                                         <component name="${colNode.getAttr('name')}Component" needFlush="true"
                                                    notGenCode="${colNode.getAttr('notGenCode')}"
-                                                   className="io.nop.orm.support.OrmFileComponent">
+                                                   className="io.nop.orm.component.OrmFileComponent">
                                             <prop name="filePath" column="${colNode.getAttr('name')}"/>
                                         </component>
                                     </c:for>

@@ -37316,6 +37316,27 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "setFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.service.entity.ConditionFieldsResponse",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -37360,6 +37381,13 @@
     "methods": [
       {
         "name": "getPredicateDisplayText",
+        "parameterTypes": [
+          "io.nop.rule.dao.entity.NopRuleNode",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "predicateLabel",
         "parameterTypes": [
           "io.nop.rule.dao.entity.NopRuleNode",
           "io.nop.core.context.IServiceContext"

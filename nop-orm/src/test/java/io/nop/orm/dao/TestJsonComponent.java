@@ -11,7 +11,7 @@ import io.nop.app.SimsClass;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.AbstractOrmTestCase;
-import io.nop.orm.support.JsonOrmComponent;
+import io.nop.orm.component.JsonOrmComponent;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

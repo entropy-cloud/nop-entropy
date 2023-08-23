@@ -1,0 +1,30 @@
+label: 类型
+locale: zh-CN
+description: 区分变量是否是对象结构还是列表结构
+options:
+  - label: 字符串
+    value: String
+  - label: 布尔型
+    value: Boolean
+  - label: 整型
+    value: Integer
+  - label: 长整型
+    value: Long
+  - label: 浮点型
+    value: Double
+  - label: 单字符
+    value: Character
+  - label: 单字节
+    value: Byte
+  - label: 日期
+    value: java.time.LocalDate
+  - label: 日期时间
+    value: java.time.LocalDateTime
+  - label: 时间间隔
+    value: java.time.Duration
+  - label: 对象
+    value: Object
+  - label: 键值对
+    value: Map
+  - label: 列表
+    value: List

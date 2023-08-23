@@ -1,4 +1,4 @@
-package io.nop.orm.support;
+package io.nop.orm.component;
 
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.ioc.IBeanProvider;

@@ -36,6 +36,7 @@
         <domain name="mediumtext" precision="16777216" stdSqlType="VARCHAR"/>
         <domain name="wfAction" precision="200" stdSqlType="VARCHAR"/>
         <domain name="xml-4k" precision="4000" stdDomain="xml" stdSqlType="VARCHAR"/>
+        <domain name="xml-16m" precision="16777216" stdDomain="xml" stdSqlType="VARCHAR"/>
     </domains>
 
     <entities>
@@ -61,8 +62,9 @@
                         ext:dict="rule/rule-type"/>
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
-                <column code="MODEL_TEXT" displayName="模型文本" domain="mediumtext" name="modelText" precision="16777216"
-                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Model Text"/>
+                <column code="MODEL_TEXT" displayName="模型文本" domain="xml-16m" name="modelText" precision="16777216"
+                        propId="8" stdDataType="string" stdDomain="xml" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Model Text"/>
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="9" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"

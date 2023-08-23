@@ -90,6 +90,9 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     /* relation: 规则角色 */
     public static final String PROP_NAME_ruleRoles = "ruleRoles";
     
+    /* component:  */
+    public static final String PROP_NAME_modelTextXmlComponent = "modelTextXmlComponent";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_ruleId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_ruleId};
@@ -892,5 +895,22 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
        return _ruleRoles;
     }
        
+   private io.nop.orm.component.XmlOrmComponent _modelTextXmlComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_modelTextXmlComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_modelTextXmlComponent.put(io.nop.orm.component.XmlOrmComponent.PROP_NAME_xmlText,PROP_ID_modelText);
+      
+   }
+
+   public io.nop.orm.component.XmlOrmComponent getModelTextXmlComponent(){
+      if(_modelTextXmlComponent == null){
+          _modelTextXmlComponent = new io.nop.orm.component.XmlOrmComponent();
+          _modelTextXmlComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_modelTextXmlComponent);
+      }
+      return _modelTextXmlComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

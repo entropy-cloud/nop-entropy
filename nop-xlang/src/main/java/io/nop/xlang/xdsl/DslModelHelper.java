@@ -18,11 +18,18 @@ import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
+import io.nop.xlang.xdsl.json.DslXNodeToJsonTransformer;
 import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SchemaLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class DslModelHelper {
     static final Logger LOG = LoggerFactory.getLogger(DslModelHelper.class);
@@ -58,6 +65,20 @@ public class DslModelHelper {
         IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
         XNode node = new DslModelToXNodeTransformer(objMeta).transformToXNode(model);
         return node;
+    }
+
+    public static XNode dslJsonToNode(ISchema schema, Object model) {
+        return new DslModelToXNodeTransformer(null).transformObj(schema, model);
+    }
+
+    public static List<XNode> dslJsonListToNodeList(ISchema schema, List<?> list) {
+        if (list == null || list.isEmpty())
+            return Collections.emptyList();
+        return list.stream().map(model -> dslJsonToNode(schema, model)).collect(Collectors.toList());
+    }
+
+    public static Object dslNodeToJson(IXDefNode defNode, XNode node) {
+        return new DslXNodeToJsonTransformer(true, null, null).transformToObject(defNode, node);
     }
 
     public static String getXdefPath(Object model, String defaultXdefPath) {

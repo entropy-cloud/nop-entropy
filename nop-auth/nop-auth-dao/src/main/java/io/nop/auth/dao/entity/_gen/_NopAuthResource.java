@@ -1,5 +1,6 @@
 package io.nop.auth.dao.entity._gen;
 
+import io.nop.orm.component.JsonOrmComponent;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
 import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
@@ -1534,35 +1535,35 @@ public class _NopAuthResource extends DynamicOrmEntity{
        return _roleMappings;
     }
        
-   private io.nop.orm.support.JsonOrmComponent _metaConfigComponent;
+   private JsonOrmComponent _metaConfigComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_metaConfigComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_metaConfigComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_metaConfig);
+         COMPONENT_PROP_ID_MAP_metaConfigComponent.put(JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_metaConfig);
       
    }
 
-   public io.nop.orm.support.JsonOrmComponent getMetaConfigComponent(){
+   public JsonOrmComponent getMetaConfigComponent(){
       if(_metaConfigComponent == null){
-          _metaConfigComponent = new io.nop.orm.support.JsonOrmComponent();
+          _metaConfigComponent = new JsonOrmComponent();
           _metaConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_metaConfigComponent);
       }
       return _metaConfigComponent;
    }
 
-   private io.nop.orm.support.JsonOrmComponent _propsConfigComponent;
+   private JsonOrmComponent _propsConfigComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_propsConfigComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_propsConfigComponent.put(io.nop.orm.support.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_propsConfig);
+         COMPONENT_PROP_ID_MAP_propsConfigComponent.put(JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_propsConfig);
       
    }
 
-   public io.nop.orm.support.JsonOrmComponent getPropsConfigComponent(){
+   public JsonOrmComponent getPropsConfigComponent(){
       if(_propsConfigComponent == null){
-          _propsConfigComponent = new io.nop.orm.support.JsonOrmComponent();
+          _propsConfigComponent = new JsonOrmComponent();
           _propsConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_propsConfigComponent);
       }
       return _propsConfigComponent;

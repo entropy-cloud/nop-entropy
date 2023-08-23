@@ -50,7 +50,7 @@
         </prop>
         <prop name="modelText" displayName="模型文本" i18n-en:displayName="Model Text" queryable="true" sortable="true"
               insertable="true" updatable="true">
-            <schema domain="mediumtext" type="java.lang.String" precision="16777216"/>
+            <schema stdDomain="xml" domain="xml-16m" type="java.lang.String" precision="16777216"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -95,6 +95,10 @@
             <schema>
                 <item bizObjName="NopRuleRole"/>
             </schema>
+        </prop>
+        <prop name="modelTextXmlComponent" tagSet="xml,pub" ext:kind="component" internal="true" insertable="false"
+              updatable="false" lazy="true">
+            <schema type="io.nop.orm.component.XmlOrmComponent"/>
         </prop>
     </props>
 </meta>

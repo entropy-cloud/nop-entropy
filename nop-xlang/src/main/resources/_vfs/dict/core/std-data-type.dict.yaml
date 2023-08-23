@@ -1,0 +1,50 @@
+label: 标准数据类型
+locale: zh-CN
+description: 区分变量是否是对象结构还是列表结构
+options:
+  - label: 字符型
+    value: string
+  - label: 布尔型
+    value: boolean
+  - label: 字符
+    value: char
+  - label: 字节
+    value: byte
+  - label: 短整型
+    value: short
+  - label: 整型
+    value: int
+  - label: 长整型
+    value: long
+  - label: 单精度浮点型
+    value: float
+  - label: 双精度浮点型
+    value: double
+  - label: BigDecimal
+    value: decimal
+  - label: BigInteger
+    value: bigint
+  - label: 日期型
+    value: date
+  - label: 日期时间
+    value: datetime
+  - label: 时间戳
+    value: timestamp
+  - label: 时间型
+    value: time
+  - label: 时间间隔
+    value: duration
+  - label: Map
+    value: map
+  - label: 列表
+    value: list
+  - label: 文件附件
+    value: file
+  - label: GIS类型
+    value: geometry
+  - label: 字节数组
+    value: bytes
+  - label: 无类型
+    value: void
+  - label: 对象类型
+    value: any

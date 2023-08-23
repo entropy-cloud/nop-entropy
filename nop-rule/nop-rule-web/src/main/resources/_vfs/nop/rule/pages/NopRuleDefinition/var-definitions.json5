@@ -1,0 +1,74 @@
+{
+  "inputDefinition": {
+    "x:extends": "var-definition.json5",
+    "items": [
+      {
+        "name": "varDef",
+        "body": [
+          {
+            "label": "是否计算值",
+            "name": "computed",
+            type: "switch",
+          }
+        ]
+      },
+      {
+        name: "defaultExpr",
+        label: "缺省值表达式",
+        type: "editor",
+        language: "xml",
+        size: "sm"
+      },
+      {
+        "name": "props",
+        "$ref": "inputDefinition"
+      }
+    ]
+  },
+  "outputDefinition": {
+    "x:extends": "var-definition.json5",
+    "items": [
+      {
+        "name": "props",
+        "$ref": "outputDefinition"
+      }
+    ]
+  },
+
+  "viewInputDefinition": {
+    "x:extends": "view-var-definition.json5",
+    "items": [
+      {
+        "name": "varDef",
+        "body": [
+          {
+            "label": "是否计算值",
+            "name": "computed",
+            type: "switch",
+            readonly: true,
+          }
+        ]
+      },
+      {
+        name: "defaultExpr",
+        label: "缺省值表达式",
+        type: "code",
+        language: "xml"
+      },
+      {
+        "name": "props",
+        "$ref": "viewInputDefinition"
+      }
+    ]
+  },
+
+  "viewOutputDefinition": {
+    "x:extends": "view-var-definition.json5",
+    "items": [
+      {
+        "name": "props",
+        "$ref": "viewOutputDefinition"
+      }
+    ]
+  }
+}

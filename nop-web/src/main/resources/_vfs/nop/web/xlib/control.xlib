@@ -919,5 +919,31 @@
 
         <view-any x:prototype="view-labelProp">
         </view-any>
+
+        <view-xpl>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+            <source><![CDATA[
+                return {
+                    type: 'code',
+                    language: "xml"
+                }
+            ]]></source>
+        </view-xpl>
+
+        <edit-xpl>
+            <attr name="dispMeta"/>
+            <attr name="propMeta"/>
+            <attr name="objMeta"/>
+            <attr name="editMode"/>
+            <source><![CDATA[
+                return {
+                    type: 'editor',
+                    language: "xml"
+                }
+            ]]></source>
+        </edit-xpl>
     </tags>
 </lib>

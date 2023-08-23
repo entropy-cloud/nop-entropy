@@ -1,0 +1,47 @@
+{
+  "type": "combo",
+  "multiple": true,
+  "multiLine": true,
+  "items": [
+    {
+      "type": "group",
+      name: "varDef",
+      "body": [
+        {
+          "label": "名称",
+          "name": "name",
+          "type": "input-text",
+          "required": true
+        },
+        {
+          "label": "显示名",
+          "name": "displayName",
+          "type": "input-text",
+          "required": true
+        },
+        {
+          "label": "类型",
+          "name": "type",
+          type: "select",
+          required: true,
+          searchable: true,
+          clearable: true,
+          multiple: false,
+          source: '@dict:core/java-type'
+        },
+        {
+          "label": "是否非空",
+          "name": "mandatory",
+          type: "switch",
+        }
+      ]
+    },
+    {
+      "$ref": "varDefinition",
+      "label": "子对象属性",
+      "name": "props",
+      "visibleOn": "${type == 'List' || type == 'Map'}",
+      "addButtonText": "增加子对象属性"
+    }
+  ]
+}
