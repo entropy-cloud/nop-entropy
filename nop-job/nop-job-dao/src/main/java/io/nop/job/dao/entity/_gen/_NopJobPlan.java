@@ -1,8 +1,9 @@
 package io.nop.job.dao.entity._gen;
 
-import io.nop.orm.component.JsonOrmComponent;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
+import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.orm.IOrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import io.nop.api.core.convert.ConvertHelper;
 import java.util.Map;
 import java.util.HashMap;
@@ -1309,18 +1310,18 @@ public class _NopJobPlan extends DynamicOrmEntity{
         }
     }
     
-   private JsonOrmComponent _jobParamsComponent;
+   private io.nop.orm.component.JsonOrmComponent _jobParamsComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_jobParamsComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_jobParamsComponent.put(JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_jobParams);
+         COMPONENT_PROP_ID_MAP_jobParamsComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_jobParams);
       
    }
 
-   public JsonOrmComponent getJobParamsComponent(){
+   public io.nop.orm.component.JsonOrmComponent getJobParamsComponent(){
       if(_jobParamsComponent == null){
-          _jobParamsComponent = new JsonOrmComponent();
+          _jobParamsComponent = new io.nop.orm.component.JsonOrmComponent();
           _jobParamsComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_jobParamsComponent);
       }
       return _jobParamsComponent;

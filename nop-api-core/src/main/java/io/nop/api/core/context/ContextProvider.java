@@ -187,4 +187,24 @@ public class ContextProvider {
         });
         return f;
     }
+
+    /**
+     * 在执行task的过程中禁用context上的callExpireTime参数。主要用于一些记录日志的场景，避免日志记录过程中因为超时发生日志漏记
+     */
+    public static <T> T disableExpireTime(Supplier<T> task) {
+        IContext context = currentContext();
+        long expireTime = -1;
+
+        try {
+            if (context != null) {
+                expireTime = context.getCallExpireTime();
+                context.setCallExpireTime(-1L);
+            }
+            return task.get();
+        } finally {
+            if (context != null) {
+                context.setCallExpireTime(expireTime);
+            }
+        }
+    }
 }

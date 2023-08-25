@@ -102,6 +102,6 @@ public class NopRuleDefinition extends _NopRuleDefinition {
     }
 
     public void setBeforeExecute(String value) {
-        
+
     }
 }

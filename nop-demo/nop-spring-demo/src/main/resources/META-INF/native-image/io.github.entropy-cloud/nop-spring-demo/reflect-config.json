@@ -950,6 +950,58 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "Cache"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ContextRoot"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ContextSource"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "FieldSelection"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "RequestBean"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ServiceContext"
+      }
+    ],
+    "methods": [
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.api.core.annotations.biz.BizActionArgKind",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -977,6 +1029,25 @@
       }
     ],
     "name": "io.nop.api.core.annotations.txn.Transactional",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getEvalScope",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserContext",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.api.core.auth.ISecurityContext",
     "unsafeAllocated": false
   },
   {
@@ -4281,6 +4352,78 @@
     "fields": [],
     "methods": [
       {
+        "name": "appendOnCancel",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "getCancelReason",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCancelled",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeOnCancel",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.util.ICancelToken",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CANCEL_REASON_KILL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CANCEL_REASON_STOP"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CANCEL_REASON_TIMEOUT"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cancel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCancelReason",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCancelled",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.api.core.util.ICancellable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "cloneInstance",
         "parameterTypes": []
       }
@@ -4364,6 +4507,147 @@
       }
     ],
     "name": "io.nop.api.core.util.IWithIdentifier",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JWT_CLAIMS_REALM_ACCESS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JWT_CLAIMS_ROLES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JWT_CLAIMS_SID"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JWT_CLAIMS_USERNAME"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGIN_TYPE_EMAIL_PASSWORD"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGIN_TYPE_PHONE_PASSWORD"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGIN_TYPE_SSO"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGIN_TYPE_USERNAME_PASSWORD"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGOUT_TYPE_EXPIRE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGOUT_TYPE_KILL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGOUT_TYPE_MANUAL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGOUT_TYPE_NONE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGOUT_TYPE_RELOGIN"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOGOUT_TYPE_SSO_CALLBACK"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "RESOURCE_STATUS_ACTIVE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "RESOURCE_STATUS_DISABLED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "RESOURCE_TYPE_FUNCTION_POINT"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "RESOURCE_TYPE_SUB_MENU"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "RESOURCE_TYPE_TOP_MENU"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SITE_MAIN"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "USER_GENDER_DEFAULT"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "USER_STATUS_ABANDONED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "USER_STATUS_ACTIVE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "USER_STATUS_DISABLED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "USER_STATUS_SUSPENDED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "USER_TYPE_DEFAULT"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.auth.api.AuthApiConstants",
     "unsafeAllocated": false
   },
   {
@@ -12923,6 +13207,56 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAction",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getBizModel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getObjMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getObjectDefinition",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperationDefinition",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLOperationType",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOperationDefinitions",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLOperationType"
+        ]
+      },
+      {
+        "name": "getStateMachine",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.biz.api.IBizObject",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -14037,7 +14371,396 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.biz.model.BizActionArgModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getExecutable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperationType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReturnType",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "isReturnMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "setExecutable",
+        "parameterTypes": [
+          "io.nop.core.context.action.IServiceAction"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.model.BizActionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.biz.model.BizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.biz.model.BizReturnModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDefaultExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDefaultExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setKind",
+        "parameterTypes": [
+          "io.nop.api.core.annotations.biz.BizActionArgKind"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.model._gen._BizActionArgModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addArg",
+        "parameterTypes": [
+          "io.nop.biz.model.BizActionArgModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getArg",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAuth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCache",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCacheEvicts",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExecutor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMakerChecker",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReturn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSource",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTcc",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimeout",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTxn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasArg",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "isAsync",
+        "parameterTypes": []
+      },
+      {
+        "name": "isBizSequential",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDisabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_args",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setArgs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setAsync",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setAuth",
+        "parameterTypes": [
+          "io.nop.api.core.auth.ActionAuthMeta"
+        ]
+      },
+      {
+        "name": "setBizSequential",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setCache",
+        "parameterTypes": [
+          "io.nop.biz.model.BizCacheModel"
+        ]
+      },
+      {
+        "name": "setCacheEvicts",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDisabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExecutor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMakerChecker",
+        "parameterTypes": [
+          "io.nop.biz.model.BizMakerCheckerModel"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturn",
+        "parameterTypes": [
+          "io.nop.biz.model.BizReturnModel"
+        ]
+      },
+      {
+        "name": "setSource",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setTcc",
+        "parameterTypes": [
+          "io.nop.biz.model.BizTccModel"
+        ]
+      },
+      {
+        "name": "setTimeout",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
+        "name": "setTxn",
+        "parameterTypes": [
+          "io.nop.biz.model.BizTxnModel"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.model._gen._BizActionModel",
     "unsafeAllocated": false
   },
   {
@@ -14219,6 +14942,69 @@
       }
     ],
     "name": "io.nop.biz.model._gen._BizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.model._gen._BizReturnModel",
     "unsafeAllocated": false
   },
   {
@@ -15056,6 +15842,28 @@
       }
     ],
     "name": "io.nop.commons.concurrent.batch.AbstractBatchProcessService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAttributes",
+        "parameterTypes": []
+      },
+      {
+        "name": "setAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.lang.IAttributeSet",
     "unsafeAllocated": false
   },
   {
@@ -18002,6 +18810,231 @@
       }
     ],
     "name": "io.nop.config.source.jdbc.JdbcConfig",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getEvalScope",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.context.IEvalContext",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addAfterComplete",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "addBeforeComplete",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "addErrorBean",
+        "parameterTypes": [
+          "io.nop.api.core.beans.ErrorBean"
+        ]
+      },
+      {
+        "name": "awaitAsyncResults",
+        "parameterTypes": []
+      },
+      {
+        "name": "cancelAsyncResults",
+        "parameterTypes": []
+      },
+      {
+        "name": "complete",
+        "parameterTypes": []
+      },
+      {
+        "name": "completeExceptionally",
+        "parameterTypes": [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "name": "fireBeforeComplete",
+        "parameterTypes": [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "name": "getError",
+        "parameterTypes": []
+      },
+      {
+        "name": "getErrorBeans",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExecutionId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMostSevereErrorBean",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasAsyncResult",
+        "parameterTypes": []
+      },
+      {
+        "name": "isDone",
+        "parameterTypes": []
+      },
+      {
+        "name": "registerAsyncResult",
+        "parameterTypes": [
+          "java.util.concurrent.Future"
+        ]
+      },
+      {
+        "name": "setError",
+        "parameterTypes": [
+          "java.lang.Throwable"
+        ]
+      },
+      {
+        "name": "setEvalScope",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      }
+    ],
+    "name": "io.nop.core.context.IExecutionContext",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "fromEvalContext",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "getActionAuthChecker",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCache",
+        "parameterTypes": []
+      },
+      {
+        "name": "getContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDataAuthChecker",
+        "parameterTypes": []
+      },
+      {
+        "name": "getParentContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequest",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequestHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResponse",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResponseHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "newChildContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "setActionAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IActionAuthChecker"
+        ]
+      },
+      {
+        "name": "setCache",
+        "parameterTypes": [
+          "io.nop.commons.cache.ICache"
+        ]
+      },
+      {
+        "name": "setContext",
+        "parameterTypes": [
+          "io.nop.api.core.context.IContext"
+        ]
+      },
+      {
+        "name": "setDataAuthChecker",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IDataAuthChecker"
+        ]
+      },
+      {
+        "name": "setRequest",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setRequestHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setResponse",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setResponseHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setUserContext",
+        "parameterTypes": [
+          "io.nop.api.core.auth.IUserContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.context.IServiceContext",
     "unsafeAllocated": false
   },
   {

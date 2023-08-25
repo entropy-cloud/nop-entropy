@@ -118,7 +118,7 @@ public class GlobalFunctions {
     @Description("编译并执行xpl语言片段，outputMode=sql")
     @Macro
     public static Expression sql(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
-        return TemplateMacroImpls.xml(scope, expr);
+        return TemplateMacroImpls.sql(scope, expr);
     }
 
 

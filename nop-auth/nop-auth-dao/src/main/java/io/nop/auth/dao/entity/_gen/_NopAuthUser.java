@@ -1,6 +1,5 @@
 package io.nop.auth.dao.entity._gen;
 
-import io.nop.orm.component.OrmFileComponent;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.support.DynamicOrmEntity;
 import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
@@ -1826,18 +1825,18 @@ public class _NopAuthUser extends DynamicOrmEntity{
        return _substitutionMappings;
     }
        
-   private OrmFileComponent _avatarComponent;
+   private io.nop.orm.component.OrmFileComponent _avatarComponent;
 
    private static Map<String,Integer> COMPONENT_PROP_ID_MAP_avatarComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_avatarComponent.put(OrmFileComponent.PROP_NAME_filePath,PROP_ID_avatar);
+         COMPONENT_PROP_ID_MAP_avatarComponent.put(io.nop.orm.component.OrmFileComponent.PROP_NAME_filePath,PROP_ID_avatar);
       
    }
 
-   public OrmFileComponent getAvatarComponent(){
+   public io.nop.orm.component.OrmFileComponent getAvatarComponent(){
       if(_avatarComponent == null){
-          _avatarComponent = new OrmFileComponent();
+          _avatarComponent = new io.nop.orm.component.OrmFileComponent();
           _avatarComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_avatarComponent);
       }
       return _avatarComponent;

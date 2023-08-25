@@ -13530,10 +13530,31 @@
     ],
     "methods": [
       {
+        "name": "dslJsonListToNodeList",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "dslJsonToNode",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "dslModelToXNode",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "dslNodeToJson",
+        "parameterTypes": [
+          "io.nop.xlang.xdef.IXDefNode",
+          "io.nop.core.lang.xml.XNode"
         ]
       },
       {

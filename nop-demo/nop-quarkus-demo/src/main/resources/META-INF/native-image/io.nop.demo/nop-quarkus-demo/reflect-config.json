@@ -22277,6 +22277,30 @@
     "fields": [],
     "methods": [
       {
+        "name": "orm_propValueByName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propValueByName",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.api.IDaoComponent",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "get_id",
         "parameterTypes": []
       },
@@ -29436,6 +29460,41 @@
     "fields": [],
     "methods": [
       {
+        "name": "bindToEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "flushToEntity",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propValueByName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propValueByName",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.IOrmComponent",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "cloneInstance",
         "parameterTypes": []
       },
@@ -29951,6 +30010,147 @@
       }
     ],
     "name": "io.nop.orm.IOrmObject",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "bindToEntity",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "flushToEntity",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColPropId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "internalGetPropValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "internalSetPropValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_owner",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propDirty",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValueByName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propValueByName",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.component.AbstractOrmComponent",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_xmlText"
+      }
+    ],
+    "methods": [
+      {
+        "name": "flushToEntity",
+        "parameterTypes": []
+      },
+      {
+        "name": "getJsonObject",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNode",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNormalizedXml",
+        "parameterTypes": []
+      },
+      {
+        "name": "getXJson",
+        "parameterTypes": []
+      },
+      {
+        "name": "getXmlText",
+        "parameterTypes": []
+      },
+      {
+        "name": "makeNode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setJsonObject",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setNode",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      },
+      {
+        "name": "setNormalizedXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setXmlText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.component.XmlOrmComponent",
     "unsafeAllocated": false
   },
   {
@@ -35902,8 +36102,38 @@
     "fields": [],
     "methods": [
       {
+        "name": "getBeforeExecute",
+        "parameterTypes": []
+      },
+      {
         "name": "getRoleIds",
         "parameterTypes": []
+      },
+      {
+        "name": "getRuleInputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "setBeforeExecute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleInputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRuleOutputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
       }
     ],
     "name": "io.nop.rule.dao.entity.NopRuleDefinition",
@@ -36058,6 +36288,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_modelTextXmlComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_remark"
       },
       {
@@ -36139,6 +36374,10 @@
       },
       {
         "name": "getModelText",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModelTextXmlComponent",
         "parameterTypes": []
       },
       {
@@ -36671,6 +36910,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_outputsComponent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_parent"
       },
       {
@@ -36682,6 +36926,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_predicate"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_predicateComponent"
       },
       {
         "allowUnsafeAccess": false,
@@ -36754,6 +37003,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getOutputsComponent",
+        "parameterTypes": []
+      },
+      {
         "name": "getParent",
         "parameterTypes": []
       },
@@ -36763,6 +37016,10 @@
       },
       {
         "name": "getPredicate",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPredicateComponent",
         "parameterTypes": []
       },
       {

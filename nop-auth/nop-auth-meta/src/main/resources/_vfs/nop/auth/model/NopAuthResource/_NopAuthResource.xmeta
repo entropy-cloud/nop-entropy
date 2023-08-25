@@ -180,7 +180,7 @@
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
         <prop name="relatedRoleList" displayName="角色列表" i18n-en:displayName="Role List" ext:kind="to-many"
-              ui:editGrid="false" ui:viewGrid="false" internal="true" lazy="true">
+              internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRole"/>
             </schema>

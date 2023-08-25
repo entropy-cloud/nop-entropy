@@ -495,5 +495,6 @@
         <module>nop-biz-batch</module>
         <module>nop-web-page</module>
         <module>nop-file</module>
+        <module>nop-netty</module>
     </modules>
 </project>
