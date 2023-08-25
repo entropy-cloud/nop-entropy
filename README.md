@@ -226,3 +226,7 @@ switch(贵公司很有钱吗()){
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-group.png)
 
 添加微信时请注明：加入Nop平台群
+
+#### 微信公众号
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/wechat-public-account.jpg)
