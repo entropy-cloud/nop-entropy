@@ -43,6 +43,10 @@ java -Dfile.encoding=UTF8 -jar nop-cli.jar reverse-db litemall -c=com.mysql.cj.j
 
 nop-cli的reverse-db命令需要传入参数【数据库模式名】，例如litemall，然后通过jdbcUrl等选项传入JDBC连接字符串等信息。
 
+逆向工程得到orm.xlsx模型文件后，需要调整【配置】表单页中的maven模块名、报名等信息。
+
+![](config-sheet.png)
+
 ### 导入PowerDesigner模型或者PDManer模型
 
 通过nop-cli工具的gen-orm-excel命令可以根据PowerDesigner设计工具的pdm物理模型来生成Excel数据模型。
@@ -173,7 +177,6 @@ app-mall-app使用内置的H2内存数据库启动，并且启动的时候会自
 ```
 
 菜单结构采用jeecgboot项目的设计，顶层菜单配置resourceType=TOPM，component=layouts/default/index，而具体页面配置resourceType=SUBM，component=AMIS，url配置为页面文件的虚拟路径。
-
 
 ## 四. 完善后端服务
 
