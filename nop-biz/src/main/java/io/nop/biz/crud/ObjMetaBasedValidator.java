@@ -258,6 +258,7 @@ public class ObjMetaBasedValidator {
             scope.setLocalValue(null, BizConstants.VAR_DATA, data);
             scope.setLocalValue(null, BizConstants.VAR_VALUE, value);
             scope.setLocalValue(null, BizConstants.VAR_TRNAS_DATA, ret);
+            scope.setLocalValue(null, BizConstants.VAR_PROP_META, propMeta);
             value = action.invoke(scope);
         }
         return value;

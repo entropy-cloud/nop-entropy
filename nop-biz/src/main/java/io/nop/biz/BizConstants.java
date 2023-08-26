@@ -61,6 +61,8 @@ public interface BizConstants {
     String VAR_TRNAS_DATA = "transData";
     String VAR_ENTITY = "entity";
 
+    String VAR_PROP_META = "propMeta";
+
     String VAR_OBJ_META = "objMeta";
 
     String OBJ_DICT_PREFIX = "obj/";
