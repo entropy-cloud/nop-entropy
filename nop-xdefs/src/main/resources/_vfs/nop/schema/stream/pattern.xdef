@@ -1,4 +1,21 @@
-<pattern x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<!--
+1. 所有模式序列必须以.begin()开始；
+2. 模式序列不能以.notFollowedBy()结束；
+3. “not”类型的模式不能被optional所修饰；
+
+
+@within 一个模式序列只能有一个时间限制。如果限制了多个时间在不同的单个模式上，会使用最小的那个时间限制。
+@afterMatchSkipTo 当afterMatchSkipStrategy 为SKIP_TO_FIRST或者SKIP_TO_LAST时需要设置此参数，对应子pattern的名字
+-->
+<pattern x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+         xdef:name="CepPatternModel" xdef:bean-package="io.nop.stream.cep.model"
+         start="!xml-name" within="duration" gapWithin="duration"
+         afterMatchSkipStrategy="enum:io.nop.stream.cep.model.AfterMatchSkipStrategyKind"
+         afterMatchSkipTo="xml-name"
+         xdef:body-type="list" xdef:key-attr="name" xdef:bean-sub-type-prop="type"
+         xdef:bean-body-type="List&lt;io.nop.stream.cep.model.CepPatternPartModel>"
+         xdef:bean-child-name="part" xdef:bean-body-prop="parts"
+>
     <!--
     @oneOrMore 匹配一次或者多次
     @optional 模式可选
@@ -6,11 +23,32 @@
     @greedy 贪心匹配模式
     @timesOrMore 匹配指定次数或者更多次
     -->
-    <part name="!xml-name" oneOrMore="!boolean=false" timesOrMore="int" optional="!boolean=false"
-          times="int-range" greedy="!boolean=false" subType="class-name">
+    <xdef:define xdef:name="CepPatternPartModel" name="!xml-name" oneOrMore="!boolean=false" timesOrMore="int"
+                 consecutive="!boolean=false" allowCombinations="!boolean=false"
+                 optional="!boolean=false"
+                 times="int-range" windowTime="duration" greedy="!boolean=false" subType="class-name"
+                 next="xml-name" followKind="enum:io.nop.stream.cep.model.FollowKind">
+
+    </xdef:define>
+
+    <single name="!xml-name" xdef:name="CepPatternSingleModel" xdef:ref="CepPatternPartModel">
         <!--
         具有上下文变量event, Context context
         -->
-        <where xdef:value="xpl" />
-    </part>
+        <where xdef:value="xpl-fn:(event:any,ctx:any)=>any"/>
+
+        <!-- 仅适用于oneOrMore（） -->
+        <until xdef:value="xpl-fn:(event:any,ctx:any)=>any"/>
+    </single>
+
+    <group name="!xml-name" xdef:name="CepPatternGroupModel" xdef:ref="CepPatternPartModel"
+           start="!xml-name" afterMatchSkipStrategy="enum:io.nop.stream.cep.model.AfterMatchSkipStrategyKind"
+           afterMatchSkipTo="xml-name"
+           xdef:body-type="list" xdef:key-attr="name" xdef:bean-sub-type-prop="type"
+           xdef:bean-body-type="List&lt;io.nop.stream.cep.model.CepPatternPartModel>"
+           xdef:bean-child-name="part" xdef:bean-body-prop="parts">
+        <single xdef:ref="CepPatternSingleModel"/>
+        <group xdef:ref="CepPatternGroupModel"/>
+    </group>
+
 </pattern>
