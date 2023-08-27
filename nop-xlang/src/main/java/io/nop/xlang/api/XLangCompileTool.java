@@ -15,11 +15,16 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.functions.NoopEvalFunction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.core.type.IFunctionType;
+import io.nop.core.type.IGenericType;
 import io.nop.xlang.ast.ArrowFunctionExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Literal;
+import io.nop.xlang.ast.ParameterDeclaration;
 import io.nop.xlang.ast.Program;
+import io.nop.xlang.ast.XLangASTBuilder;
 import io.nop.xlang.ast.XLangOutputMode;
+import io.nop.xlang.ast.XLangTypeHelper;
 import io.nop.xlang.exec.FunctionExecutable;
 import io.nop.xlang.exec.GenXJsonExecutable;
 import io.nop.xlang.exec.LiteralExecutable;
@@ -27,7 +32,9 @@ import io.nop.xlang.expr.ExprConstants;
 import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xpl.IXplCompiler;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import static io.nop.core.type.PredefinedGenericTypes.X_NODE_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
@@ -177,13 +184,15 @@ public class XLangCompileTool {
     }
 
     public ExprEvalAction compileTagBody(XNode node) {
-        Expression expr = parseTagBody(node, scope);
+        Expression expr = parseTagBody(node, scope.getOutputMode());
         return buildEvalAction(expr);
     }
 
-    public Expression parseTagBody(XNode node, IXLangCompileScope scope) {
+    public Expression parseTagBody(XNode node, XLangOutputMode outputMode) {
+        XLangOutputMode oldMode = scope.getOutputMode();
         ValueWithLocation vl = scope.recordValueLocation(ExprConstants.SCOPE_VAR_XPL_NODE);
         scope.setLocalValue(null, ExprConstants.SCOPE_VAR_XPL_NODE, node);
+        scope.setOutputMode(outputMode);
         try {
             if (!node.hasChild()) {
                 if (node.hasContent()) {
@@ -199,6 +208,7 @@ public class XLangCompileTool {
             return expr;
         } finally {
             scope.restoreValueLocation(ExprConstants.SCOPE_VAR_XPL_NODE, vl);
+            scope.setOutputMode(oldMode);
         }
     }
 
@@ -274,5 +284,26 @@ public class XLangCompileTool {
         if (expr == null)
             return null;
         return new ExprEvalAction(expr);
+    }
+
+    public IEvalFunction compileEvalFunction(XNode node, IFunctionType functionType, XLangOutputMode outputMode) {
+        Expression body = parseTagBody(node, outputMode);
+
+        ArrowFunctionExpression func = new ArrowFunctionExpression();
+        func.setLocation(node.getLocation());
+        func.setFuncName("<" + node.getTagName() + ">");
+        List<ParameterDeclaration> params = new ArrayList<>(functionType.getFuncArgCount());
+        List<String> names = functionType.getFuncArgNames();
+        List<IGenericType> types = functionType.getFuncArgTypes();
+        for (int i = 0, n = names.size(); i < n; i++) {
+            ParameterDeclaration param = new ParameterDeclaration();
+            param.setType(XLangTypeHelper.buildTypeNode(types.get(i)));
+            param.setName(XLangASTBuilder.identifier(null, names.get(i)));
+        }
+        func.setParams(params);
+        func.setReturnType(XLangTypeHelper.buildTypeNode(functionType.getFuncReturnType()));
+        func.setBody(body);
+
+        return compileFunction(func);
     }
 }

@@ -828,6 +828,10 @@ public interface XLangErrors {
     ErrorCode ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_OPTIONS = define("nop.err.xlang.xdef.std-domain-not-support-options",
             "[{stdDomain}]不支持扩展选项", ARG_STD_DOMAIN);
 
+    ErrorCode ERR_XDEF_FN_NO_TYPE_DECL = define("nop.err.xlang.xdef.fn-no-type-decl",
+            "[{stdDomain}]缺少函数类型声明", ARG_STD_DOMAIN);
+
+
     ErrorCode ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP = define("nop.err.xlang.xdef.std-domain-not-support-prop",
             "[{stdDomain}]不支持属性设置，只支持XML节点配置", ARG_STD_DOMAIN);
 

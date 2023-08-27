@@ -376,7 +376,7 @@ public class SimpleStdDomainHandlers {
     public static class LongRangeType extends SimpleStdDomainHandler {
         @Override
         public String getName() {
-            return XDefConstants.STD_DOMAIN_INT_RANGE;
+            return XDefConstants.STD_DOMAIN_LONG_RANGE;
         }
 
         @Override

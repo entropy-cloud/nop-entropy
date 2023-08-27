@@ -64,7 +64,7 @@ public class XDefTypeDeclParser {
             throw new NopException(ERR_XDEF_UNKNOWN_STD_DOMAIN).loc(loc).param(ARG_STD_DOMAIN, stdDomain);
 
         if (sc.tryConsume(XDEF_TYPE_PREFIX_OPTIONS)) {
-            String opts = sc.nextUntil('=', true).trim().toString();
+            String opts = sc.nextUntil(s-> s.cur == '=' && sc.peek() != '>', true,"=").trim().toString();
             options = domainHandler.parseOptions(loc, opts);
             sc.skipBlank();
         }

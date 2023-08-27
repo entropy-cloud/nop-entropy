@@ -12,6 +12,7 @@ import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.reflect.impl.SafeRawTypeResolver;
+import io.nop.core.type.IFunctionType;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.parse.GenericTypeParser;
@@ -49,6 +50,12 @@ public class TestGenericType {
         } catch (Exception e) {
             assertTrue(true);
         }
+    }
+
+    @Test
+    public void testParseFunctionType() {
+        IFunctionType type = new GenericTypeParser().parseFunctionTypeFromText(null, "(event:any,ctx:any)=>boolean");
+        assertEquals("(event:java.lang.Object,ctx:java.lang.Object)=>boolean", type.toString());
     }
 
     static class MyList<T, V> extends ArrayList<V> {

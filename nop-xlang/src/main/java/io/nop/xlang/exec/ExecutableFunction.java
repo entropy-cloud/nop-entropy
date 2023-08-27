@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.eval.EvalFrame;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -83,7 +84,6 @@ public class ExecutableFunction implements IEvalFunction, ISourceLocationGetter 
     public String toString() {
         return funcName + "(:" + argCount + ")" + "@" + loc + (defLoc != loc ? "|defLoc=" + defLoc : "");
     }
-
     @Override
     public Object invoke(Object thisObj, Object[] args, IEvalScope scope) {
         EvalFrame current = scope.getCurrentFrame();

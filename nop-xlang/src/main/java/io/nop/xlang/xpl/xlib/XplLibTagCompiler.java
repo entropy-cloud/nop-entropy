@@ -739,7 +739,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
         if (tag.isMacro())
             compileTool.outputMode(XLangOutputMode.node);
         try {
-            body = compileTool.parseTagBody(source, compileTool.getScope());
+            body = compileTool.parseTagBody(source, compileTool.getOutputMode());
         } finally {
             compileTool.outputMode(oldMode);
         }

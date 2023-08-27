@@ -19,8 +19,10 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.json.StdJsonToXNodeTransformer;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.type.IFunctionType;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.ExprEvalAction;
@@ -29,6 +31,7 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.XLangOutputMode;
+import io.nop.xlang.exec.MakeScopeEvalFunction;
 import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
@@ -44,6 +47,7 @@ import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
 import static io.nop.xlang.XLangErrors.ARG_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_FN_NO_TYPE_DECL;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_BODY_VALUE_FOR_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_CONTENT_VALUE_FOR_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN;
@@ -98,14 +102,14 @@ public class XplStdDomainHandlers {
             return true;
         }
 
-        protected ExprEvalAction parseXplBody(XNode node, XLangCompileTool cp) {
+        protected Object parseXplBody(IStdDomainOptions options, XNode node, XLangCompileTool cp) {
             XLangOutputMode outputMode = getOutputMode(node);
 
             if (node.hasChild() || outputMode != XLangOutputMode.none) {
                 XLangOutputMode oldMode = cp.getOutputMode();
                 cp.outputMode(outputMode);
                 try {
-                    return doCompileBody(cp, node, outputMode);
+                    return doCompileBody(options, cp, node);
                 } catch (Exception e) {
                     throw newBodyError(node).cause(e);
                 } finally {
@@ -121,7 +125,7 @@ public class XplStdDomainHandlers {
                 cp.outputMode(outputMode);
 
                 try {
-                    return cp.compileFullExpr(content.getLocation(), text);
+                    return doCompileContent(options, cp, node);
                 } catch (Exception e) {
                     throw newContentError(node).cause(e);
                 } finally {
@@ -130,8 +134,12 @@ public class XplStdDomainHandlers {
             }
         }
 
-        protected ExprEvalAction doCompileBody(XLangCompileTool cp, XNode node, XLangOutputMode outputMode) {
+        protected Object doCompileBody(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
             return cp.compileTagBody(node, outputMode);
+        }
+
+        protected Object doCompileContent(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
+            return cp.compileFullExpr(node.content().getLocation(), node.contentText());
         }
 
         @Override
@@ -211,19 +219,19 @@ public class XplStdDomainHandlers {
             if (value instanceof ExprEvalAction)
                 return value;
             if (value instanceof XNode)
-                return parseXplBody((XNode) value, cp);
+                return parseXplBody(options, (XNode) value, cp);
 
             String text = value.toString().trim();
             if (text.startsWith("<") || text.endsWith(">")) {
                 XNode node = XNodeParser.instance().forFragments(true).parseFromText(loc, text);
-                return parseXplBody(node, cp);
+                return parseXplBody(options, node, cp);
             }
             return parsePropFullExpr(outputMode, loc, propName, text, cp);
         }
 
         @Override
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
-            return parseXplBody(body, cp);
+            return parseXplBody(options, body, cp);
         }
     }
 
@@ -232,6 +240,37 @@ public class XplStdDomainHandlers {
             super(XDefConstants.STD_DOMAIN_XPL, PredefinedGenericTypes.I_EVAL_ACTION_TYPE, XLangOutputMode.none);
         }
 
+    }
+
+    public static class XplFnType extends XplType {
+        public XplFnType() {
+            super(XDefConstants.STD_DOMAIN_XPL_FN, PredefinedGenericTypes.I_EVAL_FUNCTION_TYPE, XLangOutputMode.none);
+        }
+
+        public boolean isFullXmlNode() {
+            return true;
+        }
+
+        @Override
+        public IStdDomainOptions parseOptions(SourceLocation loc, String options) {
+            if (options == null)
+                throw new NopException(ERR_XDEF_FN_NO_TYPE_DECL)
+                        .param(ARG_STD_DOMAIN, getName());
+            IFunctionType functionType = new GenericTypeParser().parseFunctionTypeFromText(null, options);
+            return new GenericTypeDomainOptions(functionType);
+        }
+
+        @Override
+        protected Object doCompileBody(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
+            IFunctionType functionType = (IFunctionType) ((GenericTypeDomainOptions) options).getGenericType();
+
+            return MakeScopeEvalFunction.of(cp.compileEvalFunction(node, functionType, cp.getOutputMode()));
+        }
+
+        @Override
+        protected Object doCompileContent(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
+            return doCompileBody(options, cp, node);
+        }
     }
 
     /**
@@ -269,8 +308,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public ExprEvalAction doCompileBody(XLangCompileTool cp, XNode node, XLangOutputMode outputMode) {
-            cp.outputMode(outputMode);
+        public ExprEvalAction doCompileBody(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
             Expression expr = new FilterBeanExpressionCompiler(cp).compilePredicate(node);
             return cp.buildEvalAction(expr);
         }
@@ -297,6 +335,7 @@ public class XplStdDomainHandlers {
 
     public static IStdDomainHandler XPL_XJSON_TYPE = new XJsonType();
 
+    public static IStdDomainHandler XPL_FN_TYPE = new XplFnType();
     public static IStdDomainHandler EVAL_CODE_TYPE = new EvalCodeType();
 
     public static abstract class AbstractExprType extends AbstractXplType {
@@ -539,7 +578,7 @@ public class XplStdDomainHandlers {
 
         @Override
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
-            ExprEvalAction action = parseXplBody(body, cp);
+            ExprEvalAction action = (ExprEvalAction) parseXplBody(options, body, cp);
             if (action == null)
                 return null;
 

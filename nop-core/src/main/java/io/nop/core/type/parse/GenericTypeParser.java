@@ -116,11 +116,11 @@ public class GenericTypeParser implements IGenericTypeParser {
         return type;
     }
 
-    public IGenericType parseFunctionTypeFromText(SourceLocation loc, String text) {
+    public IFunctionType parseFunctionTypeFromText(SourceLocation loc, String text) {
         return parseFunctionType(TextScanner.fromString(loc, text));
     }
 
-    public IGenericType parseFunctionType(TextScanner sc) {
+    public IFunctionType parseFunctionType(TextScanner sc) {
         sc.skipBlank();
         sc.match('(');
         List<String> argNames = Collections.emptyList();

@@ -115,7 +115,7 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.IntRangeType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.LongRangeType());
 
-        for (int i = 0; i < StdDataType.DURATION.ordinal(); i++) {
+        for (int i = 0; i <= StdDataType.DURATION.ordinal(); i++) {
             StdDataType type = StdDataType.values()[i];
             registerStdDomainHandler(ConverterStdDomainHandler.stdTypeHandler(type));
         }
@@ -128,6 +128,8 @@ public class StdDomainRegistry {
         registerStdDomainHandler(XplStdDomainHandlers.XPL_NODE_TYPE);
         registerStdDomainHandler(XplStdDomainHandlers.XPL_SQL_TYPE);
         registerStdDomainHandler(XplStdDomainHandlers.XPL_XJSON_TYPE);
+        registerStdDomainHandler(XplStdDomainHandlers.XPL_FN_TYPE);
+
         registerStdDomainHandler(XplStdDomainHandlers.EVAL_CODE_TYPE);
 
         registerStdDomainHandler(new XplStdDomainHandlers.MockReportExprType());
