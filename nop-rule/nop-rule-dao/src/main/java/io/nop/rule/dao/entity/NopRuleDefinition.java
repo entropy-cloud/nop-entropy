@@ -18,6 +18,7 @@ import java.util.Set;
 import static io.nop.rule.dao.NopRuleDaoConstants.BEFORE_EXECUTE_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.INPUTS_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.OUTPUTS_NAME;
+import static io.nop.rule.dao.NopRuleDaoConstants.RULE_TAG_NAME;
 
 
 @BizObjName("NopRuleDefinition")
@@ -90,18 +91,10 @@ public class NopRuleDefinition extends _NopRuleDefinition {
     }
 
     public String getBeforeExecute() {
-        XNode node = getModelTextXmlComponent().getNode();
-        if (node == null)
-            return null;
-
-        XNode beforeExecute = node.childByTag(BEFORE_EXECUTE_NAME);
-        if (beforeExecute == null)
-            return null;
-
-        return beforeExecute.bodyFullXml();
+        return getModelTextXmlComponent().getChildBodyXml(BEFORE_EXECUTE_NAME);
     }
 
     public void setBeforeExecute(String value) {
-
+        getModelTextXmlComponent().setChildBodyXml(RULE_TAG_NAME, BEFORE_EXECUTE_NAME, value);
     }
 }

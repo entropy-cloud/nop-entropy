@@ -1816,17 +1816,21 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public String bodyFullXml() {
+        return bodyFullXml(DUMMY_TAG_NAME);
+    }
+
+    public String bodyFullXml(String rootTagName) {
         StringBuilder sb = new StringBuilder();
         CollectXmlHandler handler = new CollectXmlHandler(sb).indentRoot(false).indent(true);
 
-        handler.beginNode(this.sourceLocation, DUMMY_TAG_NAME, Collections.emptyMap());
+        handler.beginNode(this.sourceLocation, rootTagName, Collections.emptyMap());
 
         if (hasChild()) {
             handler.appendChildren(children);
         } else {
             handler.value(this.content.getLocation(), this.content.getValue());
         }
-        handler.endNode(DUMMY_TAG_NAME);
+        handler.endNode(rootTagName);
         return sb.toString();
     }
 

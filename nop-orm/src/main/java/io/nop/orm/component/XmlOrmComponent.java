@@ -4,6 +4,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 
+import static io.nop.core.CoreConstants.DUMMY_TAG_NAME;
+
 public class XmlOrmComponent extends AbstractOrmComponent {
     public static final String PROP_NAME_xmlText = "xmlText";
 
@@ -81,6 +83,40 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         if (StringHelper.isEmpty(xml))
             return null;
         return XNodeParser.instance().parseFromText(null, xml);
+    }
+
+    public String getChildBodyXml(String childName) {
+        XNode node = getNode();
+        if (node == null)
+            return null;
+
+        XNode child = node.childByTag(childName);
+        if (child == null)
+            return null;
+
+        if (child.getChildCount() == 1)
+            return child.child(0).xml();
+
+        return child.bodyFullXml();
+    }
+
+    public void setChildBodyXml(String rootTagName,
+                                String childName, String xml) {
+        XNode node = makeNode(rootTagName);
+        XNode child = node.makeChild(childName);
+        if (StringHelper.isBlank(xml)) {
+            child.clearBody();
+            return;
+        }
+
+        XNode valueNode = XNodeParser.instance().parseFromText(null, xml);
+        if (valueNode.getTagName().equals(childName) || child.getTagName().equals(DUMMY_TAG_NAME)) {
+            child.content(valueNode.content());
+            child.appendChildren(valueNode.detachChildren());
+        } else {
+            child.clearBody();
+            child.appendChild(valueNode);
+        }
     }
 
     @Override

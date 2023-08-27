@@ -18,6 +18,7 @@
         <module>nop-stream-checkpoint</module>
         <module>nop-stream-flink</module>
         <module>nop-stream-flow</module>
+        <module>nop-stream-cep</module>
     </modules>
 
 </project>

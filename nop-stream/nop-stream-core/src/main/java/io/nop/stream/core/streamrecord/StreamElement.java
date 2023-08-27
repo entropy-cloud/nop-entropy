@@ -18,8 +18,8 @@
 
 package io.nop.stream.core.streamrecord;
 
-import io.nop.stream.core.watermark.Watermark;
-import io.nop.stream.core.watermark.WatermarkStatus;
+import io.nop.stream.core.streamrecord.watermark.Watermark;
+import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
 
 /**
  * An element in a data stream. Can be a record or a Watermark.

@@ -18,8 +18,8 @@
 
 package io.nop.stream.core.windowing.triggers;
 
-import io.nop.stream.core.accumulators.SimpleAccumulator;
-import io.nop.stream.core.state.StateDescriptor;
+import io.nop.stream.core.common.accumulators.SimpleAccumulator;
+import io.nop.stream.core.common.state.StateDescriptor;
 import io.nop.stream.core.windowing.assigners.MergingWindowAssigner;
 import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.windows.Window;

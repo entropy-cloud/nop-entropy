@@ -18,9 +18,9 @@
 
 package io.nop.stream.core.windowing.triggers;
 
-import io.nop.stream.core.accumulators.LastValue;
-import io.nop.stream.core.accumulators.SimpleAccumulator;
-import io.nop.stream.core.state.ReducingStateDescriptor;
+import io.nop.stream.core.common.accumulators.LastValue;
+import io.nop.stream.core.common.accumulators.SimpleAccumulator;
+import io.nop.stream.core.common.state.ReducingStateDescriptor;
 import io.nop.stream.core.windowing.windows.Window;
 
 import java.time.Duration;
