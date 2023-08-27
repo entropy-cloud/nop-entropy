@@ -42,13 +42,13 @@ public class PatternFlatSelectAdapter<IN, OUT> extends PatternProcessFunction<IN
     }
 
     @Override
-    public void open(final Configuration parameters) throws Exception {
+    public void open(final Configuration parameters) {
         FunctionUtils.setFunctionRuntimeContext(flatSelectFunction, getRuntimeContext());
         FunctionUtils.openFunction(flatSelectFunction, parameters);
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         FunctionUtils.closeFunction(flatSelectFunction);
     }
 

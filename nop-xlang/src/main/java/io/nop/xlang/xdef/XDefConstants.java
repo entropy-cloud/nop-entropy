@@ -73,6 +73,10 @@ public interface XDefConstants {
     String STD_DOMAIN_CELL_POS = "cell-pos";
     String STD_DOMAIN_CELL_RANGE = "cell-range";
 
+    String STD_DOMAIN_INT_RANGE = "int-range";
+
+    String STD_DOMAIN_LONG_RANGE = "long-range";
+
     String STD_DOMAIN_XJSON = "xjson";
     String STD_DOMAIN_XJSON_LIST = "xjson-list";
 

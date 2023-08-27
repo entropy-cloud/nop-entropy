@@ -31,9 +31,9 @@ import io.nop.stream.cep.operator.CepOperator;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import io.nop.stream.cep.time.TimerService;
+import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.configuration.Configuration;
 import io.nop.stream.core.exceptions.StreamRuntimeException;
-import io.nop.stream.core.common.functions.RuntimeContext;
 import io.nop.stream.core.util.FunctionUtils;
 
 import java.util.ArrayList;
@@ -186,7 +186,7 @@ public class NFA<T> {
      * @param cepRuntimeContext runtime context of the enclosing operator
      * @param conf              The configuration containing the parameters attached to the contract.
      */
-    public void open(RuntimeContext cepRuntimeContext, Configuration conf) throws Exception {
+    public void open(RuntimeContext cepRuntimeContext, Configuration conf) {
         for (State<T> state : getStates()) {
             for (StateTransition<T> transition : state.getStateTransitions()) {
                 IterativeCondition condition = transition.getCondition();
@@ -199,7 +199,7 @@ public class NFA<T> {
     /**
      * Tear-down method for the NFA.
      */
-    public void close() throws Exception {
+    public void close() {
         for (State<T> state : getStates()) {
             for (StateTransition<T> transition : state.getStateTransitions()) {
                 IterativeCondition condition = transition.getCondition();
@@ -235,8 +235,7 @@ public class NFA<T> {
             final T event,
             final long timestamp,
             final AfterMatchSkipStrategy afterMatchSkipStrategy,
-            final TimerService timerService)
-            throws Exception {
+            final TimerService timerService) {
         try (EventWrapper eventWrapper = new EventWrapper(event, timestamp, sharedBufferAccessor)) {
             return doProcess(
                     sharedBufferAccessor,
@@ -264,8 +263,7 @@ public class NFA<T> {
             final SharedBufferAccessor<T> sharedBufferAccessor,
             final NFAState nfaState,
             final long timestamp,
-            final AfterMatchSkipStrategy afterMatchSkipStrategy)
-            throws Exception {
+            final AfterMatchSkipStrategy afterMatchSkipStrategy) {
 
         final List<Map<String, List<T>>> result = new ArrayList<>();
         final Collection<Tuple2<Map<String, List<T>>, Long>> timeoutResult = new ArrayList<>();
@@ -352,8 +350,7 @@ public class NFA<T> {
             final NFAState nfaState,
             final EventWrapper event,
             final AfterMatchSkipStrategy afterMatchSkipStrategy,
-            final TimerService timerService)
-            throws Exception {
+            final TimerService timerService) {
 
         final PriorityQueue<ComputationState> newPartialMatches =
                 new PriorityQueue<>(NFAState.COMPUTATION_STATE_COMPARATOR);
@@ -433,8 +430,7 @@ public class NFA<T> {
             AfterMatchSkipStrategy afterMatchSkipStrategy,
             PriorityQueue<ComputationState> potentialMatches,
             PriorityQueue<ComputationState> partialMatches,
-            List<Map<String, List<T>>> result)
-            throws Exception {
+            List<Map<String, List<T>>> result) {
 
         nfaState.getCompletedMatches().addAll(potentialMatches);
 
@@ -548,7 +544,7 @@ public class NFA<T> {
             this.sharedBufferAccessor = sharedBufferAccessor;
         }
 
-        EventId getEventId() throws Exception {
+        EventId getEventId()  {
             if (eventId == null) {
                 this.eventId = sharedBufferAccessor.registerEvent(event, timestamp);
             }
@@ -565,7 +561,7 @@ public class NFA<T> {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
             if (eventId != null) {
                 sharedBufferAccessor.releaseEvent(eventId);
             }
@@ -615,8 +611,7 @@ public class NFA<T> {
             final SharedBufferAccessor<T> sharedBufferAccessor,
             final ComputationState computationState,
             final EventWrapper event,
-            final TimerService timerService)
-            throws Exception {
+            final TimerService timerService) {
 
         final ConditionContext context =
                 new ConditionContext(
@@ -757,8 +752,7 @@ public class NFA<T> {
             DeweyNumber version,
             long startTimestamp,
             long previousTimestamp,
-            EventId startEventId)
-            throws Exception {
+            EventId startEventId) {
         ComputationState computationState =
                 ComputationState.createState(
                         currentState.getName(),
@@ -859,8 +853,7 @@ public class NFA<T> {
      */
     private Map<String, List<EventId>> extractCurrentMatches(
             final SharedBufferAccessor<T> sharedBufferAccessor,
-            final ComputationState computationState)
-            throws Exception {
+            final ComputationState computationState) {
         if (computationState.getPreviousBufferEntry() == null) {
             return new HashMap<>();
         }

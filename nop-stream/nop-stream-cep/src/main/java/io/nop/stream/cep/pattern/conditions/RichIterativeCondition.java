@@ -19,10 +19,10 @@
 package io.nop.stream.cep.pattern.conditions;
 
 import com.google.common.base.Preconditions;
-import io.nop.stream.core.configuration.Configuration;
 import io.nop.stream.core.common.functions.IterationRuntimeContext;
 import io.nop.stream.core.common.functions.RichFunction;
 import io.nop.stream.core.common.functions.RuntimeContext;
+import io.nop.stream.core.configuration.Configuration;
 
 /**
  * Rich variant of the {@link IterativeCondition}. As a {@link RichFunction}, it gives access to the
@@ -67,10 +67,10 @@ public abstract class RichIterativeCondition<T> extends IterativeCondition<T>
     // --------------------------------------------------------------------------------------------
 
     @Override
-    public void open(Configuration parameters) throws Exception {
+    public void open(Configuration parameters) {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
     }
 }

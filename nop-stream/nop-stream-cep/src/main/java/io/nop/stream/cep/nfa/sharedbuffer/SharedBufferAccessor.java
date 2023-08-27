@@ -58,7 +58,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @param timestamp watermark, no earlier events will arrive
      * @throws Exception Thrown if the system cannot access the state.
      */
-    public void advanceTime(long timestamp) throws Exception {
+    public void advanceTime(long timestamp) {
         sharedBuffer.advanceTime(timestamp);
     }
 
@@ -74,7 +74,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @return unique id of that event that should be used when putting entries to the buffer.
      * @throws Exception Thrown if the system cannot access the state.
      */
-    public EventId registerEvent(V value, long timestamp) throws Exception {
+    public EventId registerEvent(V value, long timestamp) {
         return sharedBuffer.registerEvent(value, timestamp);
     }
 
@@ -252,7 +252,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @param version dewey number of the (potential) edge that locked the given node
      * @throws Exception Thrown if the system cannot access the state.
      */
-    public void releaseNode(final NodeId node, final DeweyNumber version) throws Exception {
+    public void releaseNode(final NodeId node, final DeweyNumber version){
         // the stack used to detect all nodes that needs to be released.
         Stack<NodeId> nodesToExamine = new Stack<>();
         Stack<DeweyNumber> versionsToExamine = new Stack<>();
@@ -314,7 +314,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      * @param eventId id of the event
      * @throws Exception Thrown if the system cannot access the state.
      */
-    public void releaseEvent(EventId eventId) throws Exception {
+    public void releaseEvent(EventId eventId) {
         Lockable<V> eventWrapper = sharedBuffer.getEvent(eventId);
         if (eventWrapper != null) {
             if (eventWrapper.release()) {
@@ -330,7 +330,7 @@ public class SharedBufferAccessor<V> implements AutoCloseable {
      *
      * @throws Exception Thrown if the system cannot access the state.
      */
-    public void close() throws Exception {
+    public void close() {
         sharedBuffer.flushCache();
     }
 

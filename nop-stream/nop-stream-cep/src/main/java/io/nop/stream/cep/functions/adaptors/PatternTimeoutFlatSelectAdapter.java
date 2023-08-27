@@ -54,7 +54,7 @@ public class PatternTimeoutFlatSelectAdapter<IN, OUT, T> extends PatternFlatSele
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception {
+    public void open(Configuration parameters) {
         super.open(parameters);
         FunctionUtils.setFunctionRuntimeContext(flatTimeoutFunction, getRuntimeContext());
         FunctionUtils.openFunction(flatTimeoutFunction, parameters);
@@ -65,9 +65,9 @@ public class PatternTimeoutFlatSelectAdapter<IN, OUT, T> extends PatternFlatSele
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
-        //FunctionUtils.closeFunction(flatTimeoutFunction);
+        FunctionUtils.closeFunction(flatTimeoutFunction);
     }
 
     @Override

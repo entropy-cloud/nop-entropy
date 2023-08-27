@@ -112,6 +112,9 @@ public class StdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.BooleanOrNumberType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.BooleanOrStringType());
 
+        registerStdDomainHandler(new SimpleStdDomainHandlers.IntRangeType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.LongRangeType());
+
         for (int i = 0; i < StdDataType.DURATION.ordinal(); i++) {
             StdDataType type = StdDataType.values()[i];
             registerStdDomainHandler(ConverterStdDomainHandler.stdTypeHandler(type));

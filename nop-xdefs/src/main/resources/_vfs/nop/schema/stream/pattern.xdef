@@ -1,0 +1,16 @@
+<pattern x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!--
+    @oneOrMore 匹配一次或者多次
+    @optional 模式可选
+    @times 重复指定次数
+    @greedy 贪心匹配模式
+    @timesOrMore 匹配指定次数或者更多次
+    -->
+    <part name="!xml-name" oneOrMore="!boolean=false" timesOrMore="int" optional="!boolean=false"
+          times="int-range" greedy="!boolean=false" subType="class-name">
+        <!--
+        具有上下文变量event, Context context
+        -->
+        <where xdef:value="xpl" />
+    </part>
+</pattern>

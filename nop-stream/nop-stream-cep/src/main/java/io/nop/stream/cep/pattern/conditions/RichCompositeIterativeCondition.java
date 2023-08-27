@@ -19,8 +19,8 @@
 package io.nop.stream.cep.pattern.conditions;
 
 import com.google.common.base.Preconditions;
-import io.nop.stream.core.configuration.Configuration;
 import io.nop.stream.core.common.functions.RuntimeContext;
+import io.nop.stream.core.configuration.Configuration;
 import io.nop.stream.core.util.FunctionUtils;
 
 /**
@@ -58,7 +58,7 @@ public abstract class RichCompositeIterativeCondition<T> extends RichIterativeCo
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception {
+    public void open(Configuration parameters) {
         super.open(parameters);
         for (IterativeCondition<T> nestedCondition : nestedConditions) {
             FunctionUtils.openFunction(nestedCondition, parameters);
@@ -66,7 +66,7 @@ public abstract class RichCompositeIterativeCondition<T> extends RichIterativeCo
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         super.close();
         for (IterativeCondition<T> nestedCondition : nestedConditions) {
             FunctionUtils.closeFunction(nestedCondition);

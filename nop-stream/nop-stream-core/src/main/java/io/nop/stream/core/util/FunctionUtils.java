@@ -30,14 +30,14 @@ import io.nop.stream.core.common.functions.StreamFunction;
 @Internal
 public final class FunctionUtils {
 
-    public static void openFunction(StreamFunction function, Configuration parameters) throws Exception {
+    public static void openFunction(StreamFunction function, Configuration parameters){
         if (function instanceof RichFunction) {
             RichFunction richFunction = (RichFunction) function;
             richFunction.open(parameters);
         }
     }
 
-    public static void closeFunction(StreamFunction function) throws Exception {
+    public static void closeFunction(StreamFunction function) {
         if (function instanceof RichFunction) {
             RichFunction richFunction = (RichFunction) function;
             richFunction.close();

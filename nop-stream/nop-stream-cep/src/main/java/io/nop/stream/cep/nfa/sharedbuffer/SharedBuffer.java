@@ -255,7 +255,7 @@ public class SharedBuffer<V> {
         return new SharedBufferAccessor<>(this);
     }
 
-    void advanceTime(long timestamp) throws Exception {
+    void advanceTime(long timestamp) {
         Iterator<Long> iterator = eventsCount.keys().iterator();
         while (iterator.hasNext()) {
             Long next = iterator.next();
@@ -265,7 +265,7 @@ public class SharedBuffer<V> {
         }
     }
 
-    EventId registerEvent(V value, long timestamp) throws Exception {
+    EventId registerEvent(V value, long timestamp) {
         Integer id = eventsCount.get(timestamp);
         if (id == null) {
             id = 0;
@@ -319,7 +319,7 @@ public class SharedBuffer<V> {
      *
      * @param eventId id of the event
      */
-    void removeEvent(EventId eventId) throws Exception {
+    void removeEvent(EventId eventId) {
         this.eventsBufferCache.invalidate(eventId);
         this.eventsBuffer.remove(eventId);
     }
@@ -329,7 +329,7 @@ public class SharedBuffer<V> {
      *
      * @param nodeId id of the event
      */
-    void removeEntry(NodeId nodeId) throws Exception {
+    void removeEntry(NodeId nodeId) {
         this.entryCache.invalidate(nodeId);
         this.entries.remove(nodeId);
     }
@@ -385,7 +385,7 @@ public class SharedBuffer<V> {
      *
      * @throws Exception Thrown if the system cannot access the state.
      */
-    void flushCache() throws Exception {
+    void flushCache() {
         if (!entryCache.asMap().isEmpty()) {
             entries.putAll(entryCache.asMap());
             entryCache.invalidateAll();

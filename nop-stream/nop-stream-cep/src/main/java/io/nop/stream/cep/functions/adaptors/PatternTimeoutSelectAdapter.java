@@ -53,14 +53,14 @@ public class PatternTimeoutSelectAdapter<IN, OUT, T> extends PatternSelectAdapte
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception {
+    public void open(Configuration parameters)  {
         super.open(parameters);
         FunctionUtils.setFunctionRuntimeContext(timeoutFunction, getRuntimeContext());
         FunctionUtils.openFunction(timeoutFunction, parameters);
     }
 
     @Override
-    public void close() throws Exception {
+    public void close()  {
         super.close();
         FunctionUtils.closeFunction(timeoutFunction);
     }

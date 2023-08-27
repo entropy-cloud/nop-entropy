@@ -51,8 +51,11 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
             return null;
 
         int pos = str.indexOf(SEPARATOR);
-        if (pos < 0)
-            throw new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str);
+        if (pos < 0) {
+            Integer start = ConvertHelper.stringToInt(str,
+                    err -> new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str));
+            return of(start, 1);
+        }
 
         Integer start = ConvertHelper.stringToInt(str.substring(0, pos),
                 err -> new NopException(ApiErrors.ERR_INVALID_OFFSET_LIMIT_STRING).param(ApiErrors.ARG_VALUE, str));

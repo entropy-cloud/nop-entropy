@@ -61,7 +61,7 @@ public interface RichFunction extends StreamFunction {
      *                   decide whether to retry the task execution.
      * @see org.apache.flink.configuration.Configuration
      */
-    void open(Configuration parameters) throws Exception;
+    void open(Configuration parameters);
 
     /**
      * Tear-down method for the user code. It is called after the last call to the main working
@@ -74,7 +74,7 @@ public interface RichFunction extends StreamFunction {
      *                   When the runtime catches an exception, it aborts the task and lets the fail-over logic
      *                   decide whether to retry the task execution.
      */
-    void close() throws Exception;
+    void close() ;
 
     // ------------------------------------------------------------------------
     //  Runtime context

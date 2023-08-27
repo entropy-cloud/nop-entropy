@@ -24,11 +24,21 @@ import io.nop.api.core.annotations.data.DataBean;
 import java.io.Serializable;
 import java.time.Duration;
 
+import static io.nop.stream.cep.NopCepConfigs.CEP_CACHE_STATISTICS_INTERVAL;
+import static io.nop.stream.cep.NopCepConfigs.CEP_SHARED_BUFFER_ENTRY_CACHE_SLOTS;
+import static io.nop.stream.cep.NopCepConfigs.CEP_SHARED_BUFFER_EVENT_CACHE_SLOTS;
+
 @DataBean
 public final class SharedBufferCacheConfig implements Serializable {
     private final int eventsBufferCacheSlots;
     private final int entryCacheSlots;
     private final Duration cacheStatisticsInterval;
+
+    public SharedBufferCacheConfig() {
+        this(CEP_SHARED_BUFFER_EVENT_CACHE_SLOTS.get(),
+                CEP_SHARED_BUFFER_ENTRY_CACHE_SLOTS.get(),
+                CEP_CACHE_STATISTICS_INTERVAL.get());
+    }
 
     public int getEventsBufferCacheSlots() {
         return eventsBufferCacheSlots;

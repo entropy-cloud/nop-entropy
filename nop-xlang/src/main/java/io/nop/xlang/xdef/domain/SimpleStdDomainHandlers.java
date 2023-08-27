@@ -8,6 +8,8 @@
 package io.nop.xlang.xdef.domain;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -345,6 +347,52 @@ public class SimpleStdDomainHandlers {
         @Override
         protected boolean isValid(String text) {
             return StringHelper.isValidFileType(text);
+        }
+    }
+
+    public static class IntRangeType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_INT_RANGE;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return ReflectionManager.instance().buildRawType(IntRangeBean.class);
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+                                XLangCompileTool cp) {
+            return IntRangeBean.parse(value.toString());
+        }
+    }
+
+    public static class LongRangeType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_INT_RANGE;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return ReflectionManager.instance().buildRawType(LongRangeBean.class);
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+                                XLangCompileTool cp) {
+            return LongRangeBean.parse(value.toString());
         }
     }
 
