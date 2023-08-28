@@ -8,6 +8,7 @@
 package io.nop.xlang.xmeta.impl;
 
 import io.nop.api.core.annotations.core.NoReflection;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
@@ -27,6 +28,14 @@ import java.util.TreeMap;
 public class ObjMetaImpl extends _ObjMetaImpl implements IObjMeta, ISchema {
     private String xdslSchema;
     private String xdslTransform;
+
+    @Override
+    public String getBizObjName() {
+        String bizObjName = super.getBizObjName();
+        if (bizObjName == null)
+            bizObjName = StringHelper.fileNameNoExt(resourcePath());
+        return bizObjName;
+    }
 
     @Override
     public String getXdslSchema() {
@@ -92,8 +101,8 @@ public class ObjMetaImpl extends _ObjMetaImpl implements IObjMeta, ISchema {
             XNode child = def.toNode(nodeRefs);
             defNodes.appendChild(child);
         }
-        if(defNodes.hasChild()){
-           node.appendChild(defNodes);
+        if (defNodes.hasChild()) {
+            node.appendChild(defNodes);
         }
 
         XNode propsN = node.makeChild("props");

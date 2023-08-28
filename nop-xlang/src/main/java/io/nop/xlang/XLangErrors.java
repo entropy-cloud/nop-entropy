@@ -947,6 +947,9 @@ public interface XLangErrors {
             define("nop.err.schema.std-domain-validation-fail",
                     "属性[{propName}]的值[{value}]不满足[{stdDomain}]格式要求");
 
+    ErrorCode ERR_OBJ_SCHEMA_NO_PROP =
+            define("nop.err.schema.obj-schema-no-prop", "对象没有定义名称为[{propName}]的属性", ARG_PROP_NAME);
+
     ErrorCode ERR_SCHEMA_PROP_NOT_MATCH_PATTERN =
             define("nop.err.schema.prop-not-match-pattern", "属性[{propName}]的值不满足格式要求",
                     ARG_PROP_NAME, ARG_PATTERN);

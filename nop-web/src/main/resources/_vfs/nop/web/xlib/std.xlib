@@ -2,20 +2,6 @@
 
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <Field>
-            <attr name="name" type="String" mandatory="true"/>
-
-            <source>
-
-            </source>
-        </Field>
-
-        <Col>
-            <attr name="name" type="String" mandatory="true"/>
-            <source>
-
-            </source>
-        </Col>
 
         <GenValidator>
             <attr name="metaPath" stdDomain="v-path"/>

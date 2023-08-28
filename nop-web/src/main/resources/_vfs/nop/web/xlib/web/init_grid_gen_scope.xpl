@@ -3,8 +3,9 @@
     import io.nop.xlang.xmeta.SchemaLoader;
     import io.nop.xlang.xpl.xlib.XplLibHelper;
     import io.nop.xui.utils.XuiHelper;
+    import io.nop.core.resource.ResourceHelper;
 
-    let viewModel = ResourceComponentManager.instance().loadComponentModel(view);
+    let viewModel = ResourceComponentManager.instance().loadComponentModel(ResourceHelper.getStdPath(view));
     let gridModel = viewModel.grids.getByKey(grid);
     $.notNull(gridModel,"grid:"+grid+",view="+view);
 

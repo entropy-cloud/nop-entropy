@@ -53,6 +53,9 @@ public class UiFormModel extends _UiFormModel {
             return;
         getLayout().forEachLayoutCell(cell -> {
             UiFormCellModel cm = getCell(cell.getId());
+            if (cm != null)
+                cm.validate();
+
             String propName = cell.getId();
             if (cm != null && cm.getProp() != null)
                 propName = cm.getProp();

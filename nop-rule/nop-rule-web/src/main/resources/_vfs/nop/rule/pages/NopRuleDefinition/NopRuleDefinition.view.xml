@@ -18,7 +18,7 @@
 
                 <cell id="ruleOutputs">
                     <selection>
-                        name,displayName,type, props  @TreeChildren(max:5)
+                        name,displayName,type, aggregate, props  @TreeChildren(max:5)
                     </selection>
                 </cell>
             </cells>

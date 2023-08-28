@@ -55,6 +55,8 @@ public interface XuiConstants {
 
     String FILE_TYPE_VIEW_XML = "view.xml";
 
+    String FILE_TYPE_XMETA = "xmeta";
+
     String ID_SUB_GRID_EDIT = "sub-grid-edit";
 
     String ID_SUB_GRID_VIEW = "sub-grid-view";

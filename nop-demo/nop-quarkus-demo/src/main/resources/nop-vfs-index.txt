@@ -332,6 +332,7 @@
 /nop/rule/model/NopRuleNode/_NopRuleNode.xbiz
 /nop/rule/model/NopRuleNode/_NopRuleNode.xmeta
 /nop/rule/model/NopRuleOutput/NopRuleOutput.xmeta
+/nop/rule/model/NopRuleOutputValue/NopRuleOutputValue.xmeta
 /nop/rule/model/NopRuleRole/NopRuleRole.xbiz
 /nop/rule/model/NopRuleRole/NopRuleRole.xmeta
 /nop/rule/model/NopRuleRole/_NopRuleRole.xbiz

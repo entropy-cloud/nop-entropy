@@ -144,8 +144,13 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     private IBizObject buildBizObject(String bizObjName) {
-        return new BizObjectBuilder(bizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
-                makerCheckerProvider).buildBizObject(bizObjName);
+        try {
+            return new BizObjectBuilder(bizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
+                    makerCheckerProvider).buildBizObject(bizObjName);
+        }catch (NopException e){
+            e.addXplStack("buildBizObject:"+bizObjName);
+            throw e;
+        }
     }
 
     @Override

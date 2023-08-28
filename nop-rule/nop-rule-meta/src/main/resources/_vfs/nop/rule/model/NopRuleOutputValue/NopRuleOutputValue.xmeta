@@ -7,7 +7,7 @@
         </prop>
 
         <prop name="valueExpr" displayName="变量表达式" mandatory="true">
-            <schema type="xpl"/>
+            <schema stdDomain="xpl"/>
         </prop>
     </props>
 </meta>

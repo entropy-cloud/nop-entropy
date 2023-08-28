@@ -13,4 +13,10 @@ public class UiFormCellModel extends _UiFormCellModel {
     public UiFormCellModel() {
 
     }
+
+    public void validate() {
+        UiRefViewModel view = getView();
+        if (view != null)
+            view.validate();
+    }
 }

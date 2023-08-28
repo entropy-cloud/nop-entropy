@@ -239,8 +239,6 @@ public class XuiViewAnalyzer {
         if (refView == null)
             return false;
 
-        refView.validate();
-
         String fileType = StringHelper.fileType(refView.getPath());
         if (!XuiConstants.FILE_TYPE_VIEW_XML.equals(fileType))
             return false;

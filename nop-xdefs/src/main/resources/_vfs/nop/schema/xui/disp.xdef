@@ -33,9 +33,11 @@
     对于对象属性或者对象列表属性，使用xview文件中定义的page去显示
     @path 如果对应于xview文件所在路径，则page/grid/form属性必须有一个为非空，根据它们动态构建一个页面。
           也可以直接指定page.yaml文件，直接复用已有的文件。
+          如果为空，则试图根据当前模型文件路径猜测得到一个view模型文件路径
     @buttonLabel 如果不为空，则表示使用弹出页面显示。
     -->
-    <view path="!v-path" page="string" grid="string" form="string" buttonLabel="string" xdef:name="UiRefViewModel"/>
+    <view path="v-path" page="string" grid="string" form="string" buttonLabel="string"
+          xdef:name="UiRefViewModel" />
 
     <!--
     @blank 是否打开新页面

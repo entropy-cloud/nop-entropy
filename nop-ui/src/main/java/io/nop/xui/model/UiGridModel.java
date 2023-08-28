@@ -29,6 +29,8 @@ public class UiGridModel extends _UiGridModel {
     public void validate(IObjMeta objMeta) {
         getCols().forEach(col -> {
             UiGridColModel cm = getCol(col.getId());
+            cm.validate();
+
             String propName = cm.getId();
             if (cm != null && cm.getProp() != null)
                 propName = cm.getProp();

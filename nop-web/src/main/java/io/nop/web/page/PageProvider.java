@@ -16,6 +16,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.impl.Cancellable;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.core.i18n.JsonI18nHelper;
@@ -102,27 +103,32 @@ public class PageProvider extends ResourceWithHistoryProvider {
         IComponentModel comp = new DslModelParser(XDSL_SCHEMA_XVIEW).parseFromVirtualPath(path);
         String objMetaPath = (String) BeanTool.instance().getProperty(comp, "objMeta");
 
-        if (objMetaPath != null) {
-            ResourceComponentManager.instance().ignoreDepends(() -> {
-                IObjMeta objMeta = SchemaLoader.loadXMeta(objMetaPath);
-                List<UiFormModel> forms = (List<UiFormModel>) BeanTool.instance().getProperty(comp, "forms");
-                if (forms != null) {
-                    for (UiFormModel form : forms) {
-                        form.validate(objMeta);
-                    }
-                }
 
-                List<UiGridModel> grids = (List<UiGridModel>) BeanTool.instance().getProperty(comp, "grids");
-                if (grids != null) {
-                    for (UiGridModel grid : grids) {
-                        grid.validate(objMeta);
-                    }
+        ResourceComponentManager.instance().ignoreDepends(() -> {
+            IObjMeta objMeta = objMetaPath == null ? null : SchemaLoader.loadXMeta(objMetaPath);
+            List<UiFormModel> forms = (List<UiFormModel>) BeanTool.instance().getProperty(comp, "forms");
+            if (forms != null) {
+                for (UiFormModel form : forms) {
+                    form.validate(getObjMeta(form.getObjMeta(), objMeta));
                 }
-                return null;
-            });
+            }
 
-        }
+            List<UiGridModel> grids = (List<UiGridModel>) BeanTool.instance().getProperty(comp, "grids");
+            if (grids != null) {
+                for (UiGridModel grid : grids) {
+                    grid.validate(getObjMeta(grid.getObjMeta(), objMeta));
+                }
+            }
+            return null;
+        });
+
         return comp;
+    }
+
+    IObjMeta getObjMeta(String path, IObjMeta defaultObjMeta) {
+        if (!StringHelper.isEmpty(path))
+            return SchemaLoader.loadXMeta(path);
+        return defaultObjMeta;
     }
 
     void registerXPage() {

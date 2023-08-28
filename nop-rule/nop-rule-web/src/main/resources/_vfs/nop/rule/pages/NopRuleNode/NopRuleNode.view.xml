@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<view x:extends="_gen/_NopRuleNode.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<view x:extends="_gen/_NopRuleNode.view.xml" x:schema="/nop/schema/xui/xview.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:web="web">
+
+    <x:config>
+        <c:import from="/nop/web/xlib/web.xlib"/>
+    </x:config>
 
     <grids>
         <grid id="list"/>
         <grid id="pick-list"/>
+
+        <!-- 可以在当前视图文件中引用其他对象的objMeta定义grid -->
+        <grid id="outputGrid" >
+            <objMeta>/nop/rule/model/NopRuleOutputValue/NopRuleOutputValue.xmeta</objMeta>
+            <cols>
+                <col id="name"/>
+                <col id="valueExpr"/>
+            </cols>
+        </grid>
     </grids>
 
     <forms>
@@ -11,8 +25,11 @@
             <cells>
                 <cell id="predicate" depends="predicateLabel">
                     <gen-control>
-                        <static name="predicateLabel" />
+                        <static name="predicateLabel"/>
                     </gen-control>
+                </cell>
+                <cell id="outputs">
+                   <view grid="outputGrid"/>
                 </cell>
             </cells>
         </form>
@@ -23,8 +40,12 @@
                     <gen-control>
                         <condition-builder embed="@:false"
                                            title="@i18n:common.conditionConfig|条件配置"
-                                           source="@query:NopRuleDefinition__getConditionFields?ruleId=$ruleId" />
+                                           source="@query:NopRuleDefinition__getConditionFields?ruleId=$ruleId"/>
                     </gen-control>
+                </cell>
+
+                <cell id="outputs">
+                    <view grid="outputGrid" />
                 </cell>
             </cells>
         </form>

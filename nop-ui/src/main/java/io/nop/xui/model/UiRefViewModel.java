@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xui.XuiConstants;
 import io.nop.xui.model._gen._UiRefViewModel;
@@ -32,6 +33,28 @@ public class UiRefViewModel extends _UiRefViewModel implements INeedInit {
 
     public void validate() {
         String path = getPath();
+
+        if (StringHelper.isEmpty(path)) {
+            String resourcePath = resourcePath();
+            String fileType = StringHelper.fileType(resourcePath);
+            if (XuiConstants.FILE_TYPE_VIEW_XML.equals(fileType)) {
+                setPath(resourcePath);
+                path = resourcePath;
+            } else if (XuiConstants.FILE_TYPE_XMETA.equals(fileType)) {
+                String moduleId = ResourceHelper.getModuleId(resourcePath);
+                String objName = StringHelper.fileNameNoExt(resourcePath);
+                String baseObjName = StringHelper.firstPart(objName, '_');
+                String viewPath = "/" + moduleId + "/pages/" + baseObjName + "/" + objName + "." + XuiConstants.FILE_TYPE_VIEW_XML;
+                setPath(viewPath);
+                path = viewPath;
+            }
+        }
+
+        if (StringHelper.isEmpty(path)) {
+            throw new NopException(ERR_XUI_REF_VIEW_NOT_EXISTS)
+                    .source(this).param(ARG_VIEW_PATH, path);
+        }
+
         IResource resource = VirtualFileSystem.instance().getResource(path);
         if (!resource.exists())
             throw new NopException(ERR_XUI_REF_VIEW_NOT_EXISTS)

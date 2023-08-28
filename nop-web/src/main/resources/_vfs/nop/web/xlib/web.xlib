@@ -17,8 +17,8 @@
         <GenForm outputMode="xjson">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="form" mandatory="true" type="string"/>
-            <attr name="skipForm" optional="true" type="boolean" />
-            <attr name="fixedProps" optional="true" stdDomain="csv-set" />
+            <attr name="skipForm" optional="true" type="boolean"/>
+            <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
 
             <slot name="default" outputMode="xjson">
                 <arg name="objMeta"/>
@@ -32,17 +32,18 @@
         </GenForm>
 
         <GenFormImpl outputMode="xjson">
-            <attr name="formModel" />
-            <attr name="objMeta" />
-            <attr name="genScope" />
+            <attr name="formModel"/>
+            <attr name="objMeta"/>
+            <attr name="genScope"/>
             <attr name="skipForm" optional="true"/>
-            <attr name="i18nRoot" implicit="true" />
-            <attr name="bizObjName" implicit="true" />
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="bizObjName" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
             <attr name="fixedProps" optional="true" stdDomain="csv-set"/>
 
             <source>
-                <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FormDefaultAttrs',formModel)"  xpl:skipIf="skipForm">
+                <form name="${formModel.id}" xpl:attrs="xpl('thisLib:FormDefaultAttrs',formModel)"
+                      xpl:skipIf="skipForm">
 
                     <thisLib:GenFormBody formModel="${formModel}" objMeta="${objMeta}"/>
                 </form>
@@ -60,13 +61,13 @@
         </GenGrid>
 
         <GenGridImpl outputMode="xjson">
-            <attr name="gridModel" />
-            <attr name="objMeta" />
-            <attr name="genScope" />
-            <attr name="bizObjName" implicit="true" />
-            <attr name="i18nRoot" implicit="true" />
-            <attr name="controlLib" implicit="true" />
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="gridModel"/>
+            <attr name="objMeta"/>
+            <attr name="genScope"/>
+            <attr name="bizObjName" implicit="true"/>
+            <attr name="i18nRoot" implicit="true"/>
+            <attr name="controlLib" implicit="true"/>
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <crud xpl:attrs="xpl('thisLib:GridDefaultAttrs', gridModel)"
@@ -116,13 +117,13 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <body j:list="true">
                     <c:choose>
                         <when test="${formModel.layoutControl=='tabs'}">
-                            <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}" />
+                            <thisLib:GenLayoutTabs layoutGroups="${formModel.layout.groups}"/>
                         </when>
                         <when test="${formModel.layout.simpleTable}">
                             <thisLib:GenFormTable formTable="${formModel.layout.firstTable}"/>
@@ -141,7 +142,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
             <source>
                 <collapse-group activeKey="${['1']}" id="${formModel.id}">
                     <thisLib:GenAccordionBody layoutGroups="${formModel.layout.groups}"/>
@@ -156,7 +157,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <body>
@@ -180,7 +181,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <c:for var="group" items="${layoutGroups}">
@@ -197,7 +198,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <tabs>
@@ -229,7 +230,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <c:choose>
@@ -278,7 +279,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <c:choose>
@@ -308,7 +309,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true" />
+            <attr name="fixedProps" implicit="true" optional="true"/>
 
             <source>
                 <c:choose>
@@ -401,11 +402,11 @@
         <GenGridCols outputMode="xjson">
             <attr name="gridModel" mandatory="true"/>
             <attr name="objMeta" mandatory="true"/>
-            <attr name="ignoreCols" optional="true" />
+            <attr name="ignoreCols" optional="true"/>
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="editMode" optional="true" />
+            <attr name="editMode" optional="true"/>
 
             <source>
                 <c:for var="col" items="${gridModel.cols}" index="colIndex">
@@ -413,7 +414,8 @@
                         if(col.hidden) continue;
                         if(ignoreCols and ignoreCols.contains(col.id)) continue;
                     </c:script>
-                    <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}" editMode="${editMode}"/>
+                    <thisLib:GenGridCol colModel="${col}" objMeta="${objMeta}" colIndex="${colIndex}"
+                                        editMode="${editMode}"/>
                 </c:for>
             </source>
         </GenGridCols>
@@ -424,7 +426,7 @@
             <attr name="colModel"/>
             <attr name="colIndex"/>
             <attr name="objMeta"/>
-            <attr name="editMode" optional="true" />
+            <attr name="editMode" optional="true"/>
             <attr name="gridModel" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
 
@@ -486,7 +488,6 @@
                     import io.nop.web.page.WebPageHelper;
 
                     let refView = dispMeta.view;
-                    refView.validate();
                 </c:script>
                 <c:choose>
                     <when test="${refView.path.endsWith('.view.xml')}">
@@ -500,8 +501,22 @@
                                 </c:script>
                             </when>
                             <when test="${refView.grid}">
-                                <thisLib:GenInputTable view="${refView.path}" grid="${refView.grid}"
-                                                       xpl:return="genPage"/>
+                                <c:script>
+                                    let genPage;
+                                </c:script>
+                                <c:choose>
+                                    <when test="${editMode?.endsWith('view')}">
+                                        <thisLib:GenTable view="${refView.path}" grid="${refView.grid}"
+                                                          editMode="${editMode}"
+                                                          xpl:return="genPage"/>
+                                    </when>
+                                    <otherwise>
+                                        <thisLib:GenInputTable view="${refView.path}" grid="${refView.grid}"
+                                                               editMode="${editMode}"
+                                                               xpl:return="genPage"/>
+                                    </otherwise>
+                                </c:choose>
+
                                 <c:script>
                                     return genPage;
                                 </c:script>
@@ -526,13 +541,14 @@
         <GenInputTable>
             <attr name="view" mandatory="true"/>
             <attr name="grid" mandatory="true"/>
+            <attr name="editMode" optional="true"/>
 
             <source>
                 <c:include src="/nop/web/xlib/web/init_grid_gen_scope.xpl"/>
                 <c:collect outputMode="xjson">
                     <input-table removable="@:true" addable="@:true" editable="@:true" needConfirm="@:false">
                         <columns j:list="true">
-                            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}"/>
+                            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" editMode="${editMode}"/>
                         </columns>
                     </input-table>
                 </c:collect>
@@ -542,13 +558,14 @@
         <GenTable>
             <attr name="view" mandatory="true"/>
             <attr name="grid" mandatory="true"/>
+            <attr name="editMode" optional="true"/>
 
             <source>
                 <c:include src="/nop/web/xlib/web/init_grid_gen_scope.xpl"/>
                 <c:collect outputMode="xjson">
-                    <table removable="@:true" addable="@:true" editable="@:true" needConfirm="@:false">
+                    <table>
                         <columns j:list="true">
-                            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}"/>
+                            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" editMode="${editMode}"/>
                         </columns>
                     </table>
                 </c:collect>
@@ -749,7 +766,7 @@
         <LoadPage>
             <attr name="page" mandatory="true"/>
             <attr name="dialog" optional="true"/>
-            <attr name="fixedProps" optional="true" />
+            <attr name="fixedProps" optional="true"/>
             <attr name="viewModel" implicit="true"/>
 
             <source><![CDATA[
@@ -823,14 +840,14 @@
         </TabDefaultAttrs>
 
         <HiddenAndLabel>
-            <attr name="hiddenProp" />
-            <attr name="labelProp" />
+            <attr name="hiddenProp"/>
+            <attr name="labelProp"/>
 
             <source>
                 <group>
                     <body>
-                        <hidden name="${hiddenProp}" />
-                        <tpl tpl="${'$'}{${labelProp}}" />
+                        <hidden name="${hiddenProp}"/>
+                        <tpl tpl="${'$'}{${labelProp}}"/>
                     </body>
                 </group>
             </source>
@@ -840,8 +857,10 @@
             <attr name="metaPath" stdDomain="v-path" mandatory="true"/>
 
             <source>
-                <c:include src="web/impl_GenValidator.xpl" />
+                <c:include src="web/impl_GenValidator.xpl"/>
             </source>
         </GenValidator>
+
+
     </tags>
 </lib>

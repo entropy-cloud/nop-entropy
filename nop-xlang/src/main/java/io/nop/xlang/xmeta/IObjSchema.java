@@ -7,8 +7,10 @@
  */
 package io.nop.xlang.xmeta;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.type.IGenericType;
+import io.nop.xlang.XLangErrors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 
 public interface IObjSchema extends ISchemaNode {
 
@@ -75,6 +79,14 @@ public interface IObjSchema extends ISchemaNode {
     List<? extends IObjPropMeta> getProps();
 
     IObjPropMeta getProp(String name);
+
+    default IObjPropMeta requireProp(String name) {
+        IObjPropMeta propMeta = getProp(name);
+        if (propMeta == null)
+            throw new NopException(XLangErrors.ERR_OBJ_SCHEMA_NO_PROP)
+                    .source(this).param(ARG_PROP_NAME, name);
+        return propMeta;
+    }
 
     default IObjPropMeta getPropByTag(String tag) {
         for (IObjPropMeta prop : getProps()) {

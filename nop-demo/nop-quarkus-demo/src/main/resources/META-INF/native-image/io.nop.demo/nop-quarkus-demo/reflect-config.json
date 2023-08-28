@@ -42313,6 +42313,13 @@
         "parameterTypes": []
       },
       {
+        "name": "getObjMeta",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
         "name": "getPage",
         "parameterTypes": [
           "java.lang.String",
@@ -43783,6 +43790,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
       {
         "name": "getDefinedObjSchemas",
         "parameterTypes": []
@@ -47199,7 +47210,12 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "validate",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.xui.model.UiFormCellModel",
     "unsafeAllocated": false
   },
@@ -47238,7 +47254,12 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "validate",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.xui.model.UiGridColModel",
     "unsafeAllocated": false
   },
@@ -47265,6 +47286,25 @@
       }
     ],
     "name": "io.nop.xui.model.UiGridModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "validate",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.xui.model.UiRefViewModel",
     "unsafeAllocated": false
   },
   {
@@ -48824,6 +48864,79 @@
       }
     ],
     "name": "io.nop.xui.model._gen._UiGridModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getButtonLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getForm",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGrid",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setButtonLabel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setForm",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setGrid",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.xui.model._gen._UiRefViewModel",
     "unsafeAllocated": false
   },
   {

@@ -26,7 +26,7 @@ public abstract class _RuleOutputDefineModel extends io.nop.xlang.xmeta.ObjVarDe
      * xml name: useWeight
      * 
      */
-    private boolean _useWeight ;
+    private boolean _useWeight  = false;
     
     /**
      * 

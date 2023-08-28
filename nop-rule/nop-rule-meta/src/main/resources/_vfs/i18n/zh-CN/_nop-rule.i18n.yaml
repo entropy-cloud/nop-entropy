@@ -5,6 +5,7 @@ entity:
     NopRuleLog: 规则执行日志
     NopRuleNode: 规则节点
     NopRuleOutput: null
+    NopRuleOutputValue: null
     NopRuleRole: 规则角色
     RuleKeyBean: 规则唯一标识
     RuleMetaBean: 规则元数据
@@ -78,11 +79,15 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopRuleOutput:
+      aggregate: 聚合方式
       description: 描述
       displayName: 显示名
       name: 变量名
       props: 对象属性
       type: 类型
+    NopRuleOutputValue:
+      name: 变量名
+      valueExpr: 变量表达式
     NopRuleRole:
       createTime: 创建时间
       createdBy: 创建人

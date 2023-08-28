@@ -5,6 +5,7 @@ entity:
     NopRuleLog: Rule Log
     NopRuleNode: Rule Node
     NopRuleOutput: null
+    NopRuleOutputValue: null
     NopRuleRole: Rule Role
     RuleKeyBean: Rule Key
     RuleMetaBean: Rule Meta
@@ -81,8 +82,12 @@ prop:
       name: null
       displayName: null
       type: null
+      aggregate: null
       description: null
       props: null
+    NopRuleOutputValue:
+      name: null
+      valueExpr: null
     NopRuleRole:
       sid: SID
       ruleId: Rule ID
