@@ -64,4 +64,6 @@ public interface IUiDisplayMeta extends IExtensibleObject {
     Long getMaxUploadSize();
 
     FieldSelectionBean getSelection();
+
+    UiRefViewModel getView();
 }

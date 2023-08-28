@@ -21,7 +21,7 @@
 
     <props>
         <prop name="ruleId" displayName="主键" i18n-en:displayName="RULE ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="ruleName" displayName="规则名称" i18n-en:displayName="Rule Name" mandatory="true" queryable="true"
@@ -57,7 +57,7 @@
             <schema type="java.lang.Integer" dict="core/active-status"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
         <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
@@ -77,7 +77,7 @@
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
-              insertable="true" updatable="true" ext:show="S">
+              insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
         <prop name="ruleNodes" displayName="规则节点" i18n-en:displayName="Rule Nodes"

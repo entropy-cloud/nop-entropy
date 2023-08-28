@@ -496,5 +496,6 @@
         <module>nop-web-page</module>
         <module>nop-file</module>
         <module>nop-netty</module>
+        <module>nop-datav</module>
     </modules>
 </project>

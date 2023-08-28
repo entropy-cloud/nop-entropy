@@ -132,7 +132,7 @@
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Value"
                         ext:dict="batch/process-state"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -173,7 +173,7 @@
                 <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -200,7 +200,7 @@
                 i18n-en:displayName="Batch File">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ui:show="X"/>
                 <column code="FILE_NAME" displayName="文件名" mandatory="true" name="fileName" precision="500" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Name"/>
                 <column code="FILE_PATH" displayName="文件路径" mandatory="true" name="filePath" precision="2000" propId="3"
@@ -219,7 +219,7 @@
                 <column code="ACCEPT_DATE" displayName="文件接收时间" mandatory="true" name="acceptDate" propId="9"
                         stdDataType="date" stdSqlType="DATE" i18n-en:displayName="Accept Date"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
-                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -231,7 +231,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
         </entity>
     </entities>

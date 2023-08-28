@@ -38,7 +38,7 @@
             <columns>
                 <column code="RPT_ID" comment="采用类似java包名的命名规则" displayName="主键" mandatory="true" name="rptId"
                         precision="200" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Report ID" ext:show="X"/>
+                        i18n-en:displayName="Report ID" ui:show="X"/>
                 <column code="RPT_NAME" displayName="报表名称" mandatory="true" name="rptName" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Report Name"/>
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="3"
@@ -49,7 +49,7 @@
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="8" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -61,7 +61,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
         </entity>
         <entity className="io.nop.report.dao.entity.NopReportDataset" createTimeProp="createTime"
@@ -71,7 +71,7 @@
             <columns>
                 <column code="DS_ID" comment="采用类似java包名的命名规则" displayName="主键" mandatory="true" name="dsId"
                         precision="200" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Dataset ID" ext:show="X"/>
+                        i18n-en:displayName="Dataset ID" ui:show="X"/>
                 <column code="DS_NAME" displayName="数据集名称" mandatory="true" name="dsName" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Dataset Name"/>
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="3"
@@ -93,7 +93,7 @@
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="9" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -105,7 +105,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
         </entity>
         <entity className="io.nop.report.dao.entity.NopReportDatasetAuth" createTimeProp="createTime"
@@ -115,13 +115,13 @@
             <columns>
                 <column code="DS_ID" comment="采用类似java包名的命名规则" displayName="主键" mandatory="true" name="dsId"
                         precision="200" primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Dataset ID" ext:show="X"/>
+                        i18n-en:displayName="Dataset ID" ui:show="X"/>
                 <column code="ROLE_ID" displayName="角色ID" mandatory="true" name="roleId" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Role Id"/>
                 <column code="PERMISSIONS" displayName="许可权限" mandatory="true" name="permissions" precision="100"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Permissions"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="4"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="5" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -133,7 +133,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <comment>配置角色对指定数据集的访问权限</comment>
         </entity>
@@ -144,7 +144,7 @@
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="100" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"
-                        ext:show="X"/>
+                        ui:show="X"/>
                 <column code="FILE_NAME" displayName="文件名称" mandatory="true" name="fileName" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="File Name"/>
                 <column code="FILE_TYPE" displayName="文件类型" mandatory="true" name="fileType" precision="10" propId="3"
@@ -164,7 +164,7 @@
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -176,7 +176,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="16"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <comment>报表或者数据集的执行结果文件</comment>
         </entity>

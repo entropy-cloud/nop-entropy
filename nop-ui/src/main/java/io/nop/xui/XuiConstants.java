@@ -29,9 +29,11 @@ public interface XuiConstants {
     String GRAPHQL_LABEL_PROP = "graphql:labelProp";
     String GRAPHQL_JSON_COMPONENT_PROP = "graphql:jsonComponentProp";
 
+    String GRAPHQL_SELECTION = "graphql:selection";
+
     String EXT_RELATION = "ext:relation";
     String EXT_KIND = "ext:kind";
-    String EXT_CONTROL = "ext:control";
+    String UI_CONTROL = "ui:control";
     String EXT_JOIN_LEFT_PROP = "ext:joinLeftProp";
     String EXT_JOIN_RIGHT_PROP = "ext:joinRightProp";
     String EXT_JOIN_RIGHT_DISPLAY_PROP = "ext:joinRightDisplayProp";

@@ -21,7 +21,7 @@
 
     <props>
         <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
+              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="dictName" displayName="字典名" i18n-en:displayName="Name" mandatory="true" queryable="true"
@@ -33,7 +33,7 @@
             <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="true" internal="true" ext:show="X">
+              sortable="true" insertable="false" updatable="true" internal="true" ui:show="X">
             <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"

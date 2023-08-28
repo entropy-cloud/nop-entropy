@@ -50,13 +50,13 @@
                 <col id="remark" sortable="true"/>
 
                 <!--输入变量-->
-                <col id="ruleInputs"/>
+                <col id="ruleInputs" x:abstract="true"/>
 
                 <!--输出变量-->
-                <col id="ruleOutputs"/>
+                <col id="ruleOutputs" x:abstract="true"/>
 
                 <!--初始化代码-->
-                <col id="beforeExecute"/>
+                <col id="beforeExecute" x:abstract="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>

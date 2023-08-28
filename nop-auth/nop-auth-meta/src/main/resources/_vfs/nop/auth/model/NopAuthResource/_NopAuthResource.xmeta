@@ -39,7 +39,7 @@
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="orderNo" displayName="排序" i18n-en:displayName="Order NO" tagSet="sort" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" ext:show="L">
+              queryable="true" sortable="true" insertable="true" updatable="true" ui:show="L">
             <schema type="java.lang.Integer"/>
         </prop>
         <prop name="resourceType" displayName="资源类型" i18n-en:displayName="Resource Type" mandatory="true"
@@ -47,7 +47,7 @@
             <schema type="java.lang.String" precision="4" dict="auth/resource-type"/>
         </prop>
         <prop name="parentId" displayName="父资源ID" i18n-en:displayName="Parent Resource" tagSet="parent" queryable="true"
-              sortable="true" insertable="true" updatable="true" ext:show="L" ext:control="tree-parent"
+              sortable="true" insertable="true" updatable="true" ui:show="L" ext:control="tree-parent"
               ext:relation="parent">
             <schema type="java.lang.String" precision="100"/>
         </prop>
@@ -80,7 +80,7 @@
             <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
         </prop>
         <prop name="permissions" displayName="权限标识" i18n-en:displayName="Permissions" queryable="true" sortable="true"
-              insertable="true" updatable="true" ext:show="L">
+              insertable="true" updatable="true" ui:show="L">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="noAuth" displayName="不检查权限" i18n-en:displayName="No Auth" mandatory="true" queryable="true"
@@ -88,11 +88,11 @@
             <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
         </prop>
         <prop name="depends" displayName="依赖资源" i18n-en:displayName="Depends" queryable="true" sortable="true"
-              insertable="true" updatable="true" ext:show="L">
+              insertable="true" updatable="true" ui:show="L">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="isLeaf" displayName="是否叶子节点" i18n-en:displayName="Is Leaf" tagSet="is-leaf" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ext:show="X"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X"
               defaultValue="0">
             <schema domain="boolFlag" type="java.lang.Byte" precision="1"/>
         </prop>
@@ -101,39 +101,39 @@
             <schema type="java.lang.Integer" dict="core/active-status"/>
         </prop>
         <prop name="metaConfig" displayName="扩展配置" i18n-en:displayName="Meta" queryable="true" sortable="true"
-              insertable="true" updatable="true" graphql:jsonComponentProp="metaConfigComponent" ext:show="L">
+              insertable="true" updatable="true" graphql:jsonComponentProp="metaConfigComponent" ui:show="L">
             <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="propsConfig" displayName="组件属性" i18n-en:displayName="Props" queryable="true" sortable="true"
-              insertable="true" updatable="true" graphql:jsonComponentProp="propsConfigComponent" ext:show="L">
+              insertable="true" updatable="true" graphql:jsonComponentProp="propsConfigComponent" ui:show="L">
             <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ext:show="X" defaultValue="0">
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X" defaultValue="0">
             <schema domain="boolFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" internal="true" ext:show="X">
+              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
         <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" ext:show="L">
+              sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" ext:show="L">
+              sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" ext:show="L">
+              sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="false" ext:show="L">
+              sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
-              insertable="true" updatable="true" ext:show="S">
+              insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
         <prop name="parent" displayName="父资源" i18n-en:displayName="Parent" tagSet="pub,ref-pub,cascade-delete"

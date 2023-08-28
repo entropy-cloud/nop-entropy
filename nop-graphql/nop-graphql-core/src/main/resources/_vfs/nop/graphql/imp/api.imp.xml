@@ -175,7 +175,7 @@
                             <schema stdDomain="var-name"/>
                         </field>
 
-                        <field name="ext:show" displayName="显示">
+                        <field name="ui:show" displayName="显示">
                             <schema stdDomain="string"/>
                         </field>
 

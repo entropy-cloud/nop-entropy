@@ -26,7 +26,6 @@ import io.nop.xlang.xmeta.layout.ILayoutGroupModel;
 import io.nop.xlang.xmeta.layout.LayoutTableModel;
 import io.nop.xui.XuiConstants;
 import io.nop.xui.model.IUiDisplayMeta;
-import io.nop.xui.model.UiDisplayMeta;
 import io.nop.xui.model.UiFormCellModel;
 import io.nop.xui.model.UiFormModel;
 import io.nop.xui.model.UiGridColModel;
@@ -38,6 +37,7 @@ import java.util.function.Consumer;
 
 import static io.nop.xui.XuiConstants.GRAPHQL_JSON_COMPONENT_PROP;
 import static io.nop.xui.XuiConstants.GRAPHQL_LABEL_PROP;
+import static io.nop.xui.XuiConstants.GRAPHQL_SELECTION;
 import static io.nop.xui.XuiConstants.MODE_ADD;
 import static io.nop.xui.XuiConstants.MODE_EDIT;
 import static io.nop.xui.XuiErrors.ARG_CELL_ID;
@@ -96,11 +96,7 @@ public class XuiViewAnalyzer {
                         .param(ARG_PROP_NAME, name);
             });
 
-            if (colModel.getSelection() != null) {
-                selection.addCompositeField(colModel.getId(), true).mergeFields(colModel.getSelection().getFields());
-            } else {
-                addViewDepends(selection, colModel);
-            }
+            addDispSelection(selection, colModel.getId(), colModel, propMeta);
         }
 
         if (gridModel.getSelection() != null) {
@@ -180,14 +176,29 @@ public class XuiViewAnalyzer {
                             .param(ARG_FORM_ID, formModel.getId()).param(ARG_CELL_ID, lc.getId())
                             .param(ARG_PROP_NAME, name);
                 });
-
-                if (cellModel.getSelection() != null) {
-                    selection.addCompositeField(lc.getId(), true).mergeFields(cellModel.getSelection().getFields());
-                } else {
-                    addViewDepends(selection, cellModel);
-                }
             }
+
+            addDispSelection(selection, lc.getId(), cellModel, propMeta);
         });
+    }
+
+    private void addDispSelection(FieldSelectionBean selection, String fieldName, IUiDisplayMeta dispMeta, IObjPropMeta propMeta) {
+        boolean useSelection = false;
+        if (dispMeta != null) {
+            if (dispMeta.getSelection() != null) {
+                useSelection = true;
+                selection.addCompositeField(fieldName, true).mergeFields(dispMeta.getSelection().getFields());
+            } else {
+                useSelection = addViewDepends(selection, dispMeta);
+            }
+        }
+
+        if (!useSelection && propMeta != null) {
+            FieldSelectionBean propSelection = (FieldSelectionBean) propMeta.prop_get(GRAPHQL_SELECTION);
+            if (propSelection != null) {
+                selection.addCompositeField(fieldName, true).mergeFields(propSelection.getFields());
+            }
+        }
     }
 
     private void addJsonComponent(IObjPropMeta propMeta, IObjMeta objMeta, FieldSelectionBean selection) {
@@ -223,19 +234,21 @@ public class XuiViewAnalyzer {
         }
     }
 
-    void addViewDepends(FieldSelectionBean selection, UiDisplayMeta dispMeta) {
+    boolean addViewDepends(FieldSelectionBean selection, IUiDisplayMeta dispMeta) {
         UiRefViewModel refView = dispMeta.getView();
         if (refView == null)
-            return;
+            return false;
 
         refView.validate();
 
         String fileType = StringHelper.fileType(refView.getPath());
         if (!XuiConstants.FILE_TYPE_VIEW_XML.equals(fileType))
-            return;
+            return false;
 
         addViewDepends(selection, dispMeta.getId(), refView.getLocation(), refView.getPath(),
                 refView.getPage(), refView.getGrid(), refView.getForm());
+
+        return true;
     }
 
     public void addViewDepends(FieldSelectionBean selection, String propName, SourceLocation loc, String viewPath,

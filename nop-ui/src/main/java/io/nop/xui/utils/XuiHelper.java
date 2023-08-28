@@ -72,7 +72,7 @@ public class XuiHelper {
         }
 
         if (control == null && propMeta != null)
-            control = (String) propMeta.prop_get(XuiConstants.EXT_CONTROL);
+            control = (String) propMeta.prop_get(XuiConstants.UI_CONTROL);
 
         ISchema schema = propMeta == null ? null : propMeta.getSchema();
         if (schema != null) {

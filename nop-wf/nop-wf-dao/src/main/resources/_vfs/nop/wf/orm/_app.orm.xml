@@ -38,7 +38,7 @@
             <columns>
                 <column code="WF_DEF_ID" displayName="主键" mandatory="true" name="wfDefId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="Definition ID" ext:show="X"/>
+                        i18n-en:displayName="Definition ID" ui:show="X"/>
                 <column code="WF_NAME" displayName="工作流名称" mandatory="true" name="wfName" precision="500" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow Name"/>
                 <column code="WF_VERSION" displayName="工作流版本" mandatory="true" name="wfVersion" precision="50"
@@ -54,7 +54,7 @@
                 <column code="STATUS" defaultValue="wf/wf-def-status" displayName="状态" mandatory="true" name="status"
                         propId="7" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -66,7 +66,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfInstance" createTimeProp="createTime" createrProp="createdBy"
@@ -135,7 +135,7 @@
                 <column code="MANAGER_ID" displayName="管理者ID" name="managerId" precision="50" propId="29"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager ID"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="30"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="31" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -147,7 +147,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="34" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="35"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
                 <to-one displayName="父流程" name="wfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
@@ -177,7 +177,7 @@
                 <column code="APP_STATE" displayName="应用状态" name="appState" precision="100" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="App State"/>
                 <column code="SUB_WF_ID" displayName="子工作流ID" name="subWfId" precision="32" propId="7"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow ID" ext:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow ID" ui:show="X"/>
                 <column code="SUB_WF_NAME" displayName="子工作流名" name="subWfName" precision="200" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow Name"/>
                 <column code="SUB_WF_VERSION" displayName="子流程版本" name="subWfVersion" precision="32" propId="9"
@@ -187,14 +187,13 @@
                 <column code="ACTOR_TYPE" displayName="参与者类型" name="actorType" precision="10" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor Type"/>
                 <column code="ACTOR_ID" displayName="参与者ID" name="actorId" precision="100" propId="12"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor ID" ext:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor ID" ui:show="X"/>
                 <column code="ACTOR_DEPT_ID" displayName="参与者部门ID" name="actorDeptId" precision="50" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor Dept ID"/>
                 <column code="ACTOR_NAME" displayName="参与者姓名" name="actorName" precision="100" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor Name"/>
                 <column code="OWNER_ID" comment="具体负责处理此项工作的人员" displayName="拥有者ID" name="ownerId" precision="50"
-                        propId="15" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID"
-                        ext:show="X"/>
+                        propId="15" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID" ui:show="X"/>
                 <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name"/>
                 <column code="ASSIGNER_ID" comment="负责分配此项工作的人员，例如组长" displayName="分配者ID" name="assignerId"
@@ -204,11 +203,11 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Assigner Name"/>
                 <column code="CALLER_ID" comment="真正执行此项工作的人员，一般与Owner相同" displayName="调用者ID" name="callerId"
                         precision="50" propId="19" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Caller ID" ext:show="X"/>
+                        i18n-en:displayName="Caller ID" ui:show="X"/>
                 <column code="CALLER_NAME" displayName="调用者姓名" name="callerName" precision="50" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Caller Name"/>
                 <column code="CANCELLER_ID" displayName="取消人ID" name="cancellerId" precision="50" propId="21"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Canceller ID" ext:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Canceller ID" ui:show="X"/>
                 <column code="CANCELLER_NAME" displayName="取消人姓名" name="cancellerName" precision="50" propId="22"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Canceller Name"/>
                 <column code="FROM_ACTION" displayName="来源操作" name="fromAction" precision="200" propId="23"
@@ -226,25 +225,25 @@
                 <column code="PRIORITY" displayName="优先级" mandatory="true" name="priority" propId="29" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Priority"/>
                 <column code="JOIN_TRACE" displayName="汇聚路径" name="joinTrace" precision="500" propId="30"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Join Trace" ext:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Join Trace" ui:show="X"/>
                 <column code="TAG_SET" displayName="标签" name="tagSet" precision="200" propId="31" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Tags" ext:show="X"/>
+                        stdSqlType="VARCHAR" i18n-en:displayName="Tags" ui:show="X"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="32"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="33" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Created By" ext:show="L"/>
+                        i18n-en:displayName="Created By" ui:show="L"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
                         propId="34" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
-                        ext:show="L"/>
+                        ui:show="L"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
                         precision="50" propId="35" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Updated By" ext:show="L"/>
+                        i18n-en:displayName="Updated By" ui:show="L"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="36" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
-                        ext:show="L"/>
+                        ui:show="L"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="37"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="SL"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="SL"/>
             </columns>
             <relations>
                 <to-one displayName="工作流实例" name="wfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
@@ -309,7 +308,7 @@
                 i18n-en:displayName="Workflow Action">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ui:show="X"/>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
                 <column code="STEP_ID" displayName="工作流步骤ID" mandatory="true" name="stepId" precision="32" propId="3"
@@ -326,7 +325,7 @@
                 <column code="OPINION" displayName="意见" name="opinion" precision="4000" propId="8" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Opinion"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -377,7 +376,7 @@
                 <column code="TIMESTAMP_VALUE" displayName="时间点值" name="timestampValue" propId="8"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Value"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -413,7 +412,7 @@
                 <column code="TIMESTAMP_VALUE" displayName="时间点值" name="timestampValue" propId="8"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Value"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -473,7 +472,7 @@
                 <column code="FINISH_TIME" displayName="完成时间" name="finishTime" propId="11" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Finish Time"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="12"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -485,7 +484,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
         </entity>
     </entities>

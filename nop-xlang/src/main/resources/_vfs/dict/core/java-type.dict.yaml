@@ -17,11 +17,11 @@ options:
   - label: 单字节
     value: Byte
   - label: 日期
-    value: java.time.LocalDate
+    value: LocalDate
   - label: 日期时间
-    value: java.time.LocalDateTime
+    value: LocalDateTime
   - label: 时间间隔
-    value: java.time.Duration
+    value: Duration
   - label: 对象
     value: Object
   - label: 键值对

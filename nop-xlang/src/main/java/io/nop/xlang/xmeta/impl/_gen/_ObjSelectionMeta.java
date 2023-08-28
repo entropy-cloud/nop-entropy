@@ -30,7 +30,7 @@ public abstract class _ObjSelectionMeta extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: mapping
+     * xml name: 
      * 
      */
     private io.nop.api.core.beans.FieldSelectionBean _mapping ;
@@ -75,7 +75,7 @@ public abstract class _ObjSelectionMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: mapping
+     * xml name: 
      *  
      */
     

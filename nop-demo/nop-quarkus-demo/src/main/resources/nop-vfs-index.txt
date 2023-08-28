@@ -403,6 +403,7 @@
 /nop/schema/schema/schema.xdef
 /nop/schema/schema/var-define.xdef
 /nop/schema/site.xdef
+/nop/schema/stream/pattern.xdef
 /nop/schema/task/batch.xdef
 /nop/schema/task/task.xdef
 /nop/schema/validator.xdef

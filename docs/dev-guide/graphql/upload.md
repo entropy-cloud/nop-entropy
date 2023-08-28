@@ -127,7 +127,7 @@ NopORM并没有内置对于附件字段的支持，在应用层我们通过OrmFi
             <columns>
                 <column code="AVATAR" displayName="头像" domain="image" name="avatar" precision="100" propId="9"
                         stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="Avatar"
-                        ext:show="X"/>
+                        ui:show="X"/>
             </columns>
         </entity>
     </entites>

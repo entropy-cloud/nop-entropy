@@ -21,15 +21,15 @@
                 <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId"
                         precision="50"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
-                        i18n-en:displayName="User ID" ext:show="X"/>
+                        i18n-en:displayName="User ID" ui:show="X"/>
                 <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
                         precision="50" propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
-                        i18n-en:displayName="User Name" ext:show="C"/>
+                        i18n-en:displayName="User Name" ui:show="C"/>
                 <column code="PASSWORD" displayName="密码" mandatory="true" name="password" precision="80" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub"
-                        i18n-en:displayName="Password" ext:show="X"/>
+                        i18n-en:displayName="Password" ui:show="X"/>
                 <column code="SALT" displayName="密码加盐" name="salt" precision="32" propId="4" stdDataType="string"
-                        stdSqlType="VARCHAR" tagSet="var,not-pub" i18n-en:displayName="Salt" ext:show="X"/>
+                        stdSqlType="VARCHAR" tagSet="var,not-pub" i18n-en:displayName="Salt" ui:show="X"/>
                 <column code="NICK_NAME" displayName="昵称" mandatory="true" name="nickName" precision="50" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Nick Name"/>
                 <column code="DEPT_ID" displayName="部门" domain="deptId" name="deptId" precision="50" propId="6"
@@ -88,7 +88,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Config Version"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
                         propId="8"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
             </columns>
             <comment>整个应用系统可以拆分为多个子站点</comment>
         </entity>

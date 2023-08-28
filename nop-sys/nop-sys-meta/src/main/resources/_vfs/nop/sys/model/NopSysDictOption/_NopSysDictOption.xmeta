@@ -21,11 +21,11 @@
 
     <props>
         <prop name="sid" displayName="主键" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ext:show="X">
+              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="dictId" displayName="字典ID" i18n-en:displayName="Dictionary" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" ext:show="C" ext:relation="dict">
+              sortable="true" insertable="true" updatable="false" ui:show="C" ext:relation="dict">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="label" displayName="显示名" i18n-en:displayName="Label" tagSet="disp" mandatory="true" queryable="true"
@@ -53,7 +53,7 @@
             <schema domain="boolFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
-              sortable="true" insertable="false" updatable="true" internal="true" ext:show="X">
+              sortable="true" insertable="false" updatable="true" internal="true" ui:show="X">
             <schema stdDomain="boolFlag" domain="delFlag" type="java.lang.Byte"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"

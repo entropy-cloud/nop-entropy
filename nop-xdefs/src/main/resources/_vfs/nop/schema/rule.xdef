@@ -46,7 +46,7 @@
         @useWeight: 是否启用权重配置。如果启用，则存在变量名__weight的变量，类型为Double
         -->
         <output name="!var-name" xdef:ref="schema/var-define.xdef"
-                aggregate="enum:io.nop.rule.core.model.RuleAggregateMethod" useWeight="!boolean"
+                aggregate="enum:io.nop.rule.core.model.RuleAggregateMethod" useWeight="!boolean=false"
                 xdef:name="RuleOutputDefineModel"/>
     </outputs>
 

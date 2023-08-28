@@ -14,9 +14,9 @@
                     function cell_gap(left,right){
                         if(right == null)
                            return
-                        if(left['ext:show']?.contains('S'))
+                        if(left['ui:show']?.contains('S'))
                            return '\n                '
-                        if(right['ext:show']?.contains('S'))
+                        if(right['ui:show']?.contains('S'))
                            return '\n                '
                     }
                 ]]></c:script>

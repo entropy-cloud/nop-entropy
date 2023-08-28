@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <props>
+        <prop name="name" displayName="变量名" mandatory="true">
+            <schema type="String" maxLength="100"/>
+        </prop>
+
+        <prop name="valueExpr" displayName="变量表达式" mandatory="true">
+            <schema type="xpl"/>
+        </prop>
+    </props>
+</meta>

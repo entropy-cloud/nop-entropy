@@ -61,6 +61,8 @@
 
             <graphql:orderBy xdef:ref="/nop/schema/query/order-by.xdef"/>
 
+            <graphql:selection xdef:value="field-selection" />
+
             <!--
             配置字段级别的权限约束
 

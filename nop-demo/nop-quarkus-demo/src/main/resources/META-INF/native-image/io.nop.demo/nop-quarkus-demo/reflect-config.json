@@ -17235,6 +17235,12 @@
         "parameterTypes": []
       },
       {
+        "name": "bodyFullXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "bodyToXJson",
         "parameterTypes": []
       },
@@ -30094,6 +30100,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getChildBodyXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getJsonObject",
         "parameterTypes": []
       },
@@ -30122,6 +30134,14 @@
       {
         "name": "parseXml",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setChildBodyXml",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
           "java.lang.String"
         ]
       },

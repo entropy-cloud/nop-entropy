@@ -29,7 +29,7 @@
                         return false
 
                     // 如果标记了只读显示，则不允许通过界面插入
-                    if(col['ext:show']?.contains('R'))
+                    if(col['ui:show']?.contains('R'))
                         return false
                     return col.insertable
                 ]]></c:script>
@@ -65,7 +65,7 @@
                         return false
 
                     // 如果标记了只读显示，则不允许通过界面修改
-                    if(col['ext:show']?.contains('R') || col['ext:show']?.contains('C'))
+                    if(col['ui:show']?.contains('R') || col['ui:show']?.contains('C'))
                         return false
                     return col.updatable
                 ]]></c:script>
@@ -83,7 +83,7 @@
                         return true
 
                    // 标记为X则不在前台界面中显示
-                   if(col['ext:show']?.contains('X'))
+                   if(col['ui:show']?.contains('X'))
                       return true
                    if(col.containsTag('sys'))
                       return true

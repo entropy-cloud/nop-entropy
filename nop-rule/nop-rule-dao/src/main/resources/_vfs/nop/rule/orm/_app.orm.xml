@@ -47,7 +47,7 @@
             <columns>
                 <column code="RULE_ID" displayName="主键" mandatory="true" name="ruleId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="RULE ID"
-                        ext:show="X"/>
+                        ui:show="X"/>
                 <column code="RULE_NAME" displayName="规则名称" mandatory="true" name="ruleName" precision="500" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Name"/>
                 <column code="RULE_VERSION" displayName="规则版本" mandatory="true" name="ruleVersion" propId="3"
@@ -68,7 +68,7 @@
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="9" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -80,7 +80,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
                 <to-many displayName="规则节点" name="ruleNodes" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
@@ -106,7 +106,7 @@
             <columns>
                 <column code="SID" displayName="SID" mandatory="true" name="sid" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"
-                        ext:show="X"/>
+                        ui:show="X"/>
                 <column code="RULE_ID" displayName="规则ID" mandatory="true" name="ruleId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
                 <column code="LABEL" displayName="显示标签" mandatory="true" name="label" precision="200" propId="3"
@@ -123,7 +123,7 @@
                 <column code="IS_LEAF" displayName="是否叶子节点" mandatory="true" name="isLeaf" propId="8"
                         stdDataType="boolean" stdSqlType="BOOLEAN" tagSet="leaf" i18n-en:displayName="Is Leaf"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -135,7 +135,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
                 <to-one displayName="父节点" name="parent" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
@@ -168,7 +168,7 @@
                 i18n-en:displayName="Rule Role">
             <columns>
                 <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ext:show="X"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ui:show="X"/>
                 <column code="RULE_ID" displayName="Rule ID" mandatory="true" name="ruleId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
                 <column code="ROLE_ID" displayName="Role ID" domain="roleId" mandatory="true" name="roleId"
@@ -177,7 +177,7 @@
                 <column code="IS_ADMIN" defaultValue="0" displayName="是否管理者" domain="boolFlag" mandatory="true"
                         name="isAdmin" propId="4" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Admin"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ext:show="X"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
@@ -189,7 +189,7 @@
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
                         propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="10"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ext:show="S"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <comment>具有指定规则访问权限的角色列表</comment>
             <relations>

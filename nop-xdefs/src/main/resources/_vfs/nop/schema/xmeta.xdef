@@ -53,9 +53,7 @@
         字段选择集合。
         -->
         <selection id="!var-name" displayName="string"
-                   xdef:name="ObjSelectionMeta">
-            <mapping xdef:value="field-selection"/>
-        </selection>
+                   xdef:name="ObjSelectionMeta" xdef:value="field-selection" xdef:bean-body-prop="mapping"/>
     </selections>
 
 </meta>
