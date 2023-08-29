@@ -1,8 +1,17 @@
 package io.nop.orm.component;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.orm.IOrmEntity;
+import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
+import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.SchemaLoader;
 
 import static io.nop.core.CoreConstants.DUMMY_TAG_NAME;
 
@@ -29,6 +38,7 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         if (StringHelper.isEmpty(xml)) {
             this.setXmlText(null);
         } else {
+            markDirty();
             this.node = XNodeParser.instance().parseFromText(null, xml);
         }
     }
@@ -54,8 +64,15 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         if (node == null) {
             setXmlText(null);
         } else {
+            markDirty();
             this.node = node;
         }
+    }
+
+    private void markDirty() {
+        IOrmEntity owner = orm_owner();
+        if (owner != null)
+            owner.orm_extDirty(true);
     }
 
     public Object getJsonObject() {
@@ -69,6 +86,8 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         this.node = XNode.fromValue(value);
         if (this.node == null) {
             setXmlText(null);
+        } else {
+            markDirty();
         }
     }
 
@@ -102,6 +121,7 @@ public class XmlOrmComponent extends AbstractOrmComponent {
 
     public void setChildBodyXml(String rootTagName,
                                 String childName, String xml) {
+        markDirty();
         XNode node = makeNode(rootTagName);
         XNode child = node.makeChild(childName);
         if (StringHelper.isBlank(xml)) {
@@ -116,6 +136,35 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         } else {
             child.clearBody();
             child.appendChild(valueNode);
+        }
+    }
+
+    public Object getChildValue(String xdefPath, String childName) {
+        XNode node = getNode();
+        if (node == null)
+            return null;
+
+        XNode inputsNode = node.childByTag(childName);
+        if (inputsNode == null)
+            return null;
+
+        IXDefinition objDef = SchemaLoader.loadXDefinition(xdefPath);
+        IXDefNode defNode = objDef.getChild(childName);
+
+        return JsonTool.serializeToJson(DslModelHelper.dslNodeToJson(defNode, inputsNode));
+    }
+
+    public void setChildValue(String xdefPath, String childName, Object value) {
+        markDirty();
+
+        IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
+        IObjPropMeta propMeta = objMeta.getProp(childName);
+        XNode list = new DslModelToXNodeTransformer(objMeta).transformValue(propMeta, value);
+        if (list != null) {
+            XNode inputsNode = makeNode(objMeta.getXmlName()).childByTag(childName);
+            inputsNode.replaceBy(list);
+        } else {
+            makeNode(objMeta.getXmlName()).removeChildByTag(childName);
         }
     }
 

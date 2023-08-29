@@ -130,4 +130,5 @@ public interface IObjSchema extends ISchemaNode {
     ISchema getUnknownTagSchema();
 
     ISchema getUnknownAttrSchema();
+
 }

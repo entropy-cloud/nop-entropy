@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopRuleNode.xmeta">
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="_NopRuleNode.xmeta" xmlns:ui="ui">
 
     <props>
-        <prop name="predicateLabel" published="true">
+        <prop name="predicateLabel" displayName="判断条件" published="true" ui:show="L">
             <schema type="String"/>
         </prop>
     </props>

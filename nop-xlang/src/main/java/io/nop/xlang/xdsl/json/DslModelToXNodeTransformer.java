@@ -83,7 +83,8 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
     }
 
     public XNode transformObj(IObjSchema schema, Object map) {
-        XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+        String tagName = CoreConstants.DUMMY_TAG_NAME;
+        XNode node = XNode.make(tagName);
         node.setLocation(getLocation(map));
 
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(map.getClass());
@@ -250,6 +251,45 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
             return node;
         }
         return null;
+    }
+
+    public XNode transformValue(IObjPropMeta propMeta, Object value) {
+        if (value == null)
+            return null;
+        if (propMeta.getSchema() != null && propMeta.getSchema().isListSchema())
+            return transformList(propMeta, value);
+        XNode node = transformObj(propMeta.getSchema(), value);
+        if (propMeta.getXmlName() != null)
+            node.setTagName(propMeta.getXmlName());
+        return node;
+    }
+
+    public XNode transformList(IObjPropMeta propMeta, Object value) {
+        if (value == null)
+            return null;
+        if (!(value instanceof Collection)) {
+            throw new NopException(ERR_XDSL_PROP_VALUE_NOT_LIST).source(propMeta)
+                    .param(ARG_PROP_NAME, propMeta.getName()).param(ARG_VALUE, value);
+        }
+
+        XNode children = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+        if (propMeta.getXmlName() != null)
+            children.setTagName(propMeta.getXmlName());
+
+        Collection<Object> list = (Collection<Object>) value;
+        if (propMeta.getXmlName() != null && !propMeta.getXmlName().equals(propMeta.getChildXmlName())) {
+            children = XNode.make(propMeta.getXmlName());
+        }
+        for (Object item : list) {
+            if (item == null) {
+                // 不允许空值
+                item = Collections.emptyMap();
+            }
+
+            XNode child = transformListItem(item, propMeta);
+            children.appendChild(child);
+        }
+        return children;
     }
 
     private void addChild(XNode node, IObjPropMeta propMeta, Object value) {

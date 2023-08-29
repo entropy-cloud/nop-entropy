@@ -40,7 +40,7 @@
       "$ref": "varDefinition",
       "label": "子对象属性",
       "name": "props",
-      "visibleOn": "${type == 'List' || type == 'Map'}",
+      "visibleOn": "this.hasOwnProperty('type') && (this.type == 'Map' || this.type == 'List')",
       "addButtonText": "增加子对象属性"
     }
   ]

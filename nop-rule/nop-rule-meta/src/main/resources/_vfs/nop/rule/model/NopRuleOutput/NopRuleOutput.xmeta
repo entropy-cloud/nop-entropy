@@ -2,7 +2,7 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <props>
-        <prop name="name" displayName="变量名" mandatory="true" >
+        <prop name="name" displayName="变量名" mandatory="true">
             <schema type="String" maxLength="100"/>
         </prop>
 
@@ -10,20 +10,22 @@
             <schema type="String" maxLength="100"/>
         </prop>
 
-        <prop name="type" displayName="类型" mandatory="true" >
+        <prop name="type" displayName="类型" mandatory="true">
             <schema type="String" stdDomain="generic-type" maxLength="100" dict="core/java-type"/>
         </prop>
 
         <prop name="aggregate" displayName="聚合方式" mandatory="true">
-            <schema dict="io.nop.rule.core.model.RuleAggregateMethod" />
+            <schema dict="io.nop.rule.core.model.RuleAggregateMethod"/>
         </prop>
 
-        <prop name="description" displayName="描述" >
+        <prop name="description" displayName="描述">
             <schema type="String"/>
         </prop>
 
-        <prop name="props" displayName="对象属性" >
-            <schema bizObjName="NopRuleOutput"/>
+        <prop name="props" displayName="对象属性">
+            <schema>
+                <item bizObjName="NopRuleOutput"/>
+            </schema>
         </prop>
     </props>
 </meta>

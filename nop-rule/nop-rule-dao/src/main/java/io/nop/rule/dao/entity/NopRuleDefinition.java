@@ -1,14 +1,7 @@
 package io.nop.rule.dao.entity;
 
 import io.nop.api.core.annotations.biz.BizObjName;
-import io.nop.core.lang.xml.XNode;
-import io.nop.orm.component.XmlOrmComponent;
-import io.nop.rule.dao.NopRuleDaoConstants;
 import io.nop.rule.dao.entity._gen._NopRuleDefinition;
-import io.nop.xlang.xdsl.DslModelHelper;
-import io.nop.xlang.xmeta.IObjMeta;
-import io.nop.xlang.xmeta.IObjPropMeta;
-import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +12,7 @@ import static io.nop.rule.dao.NopRuleDaoConstants.BEFORE_EXECUTE_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.INPUTS_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.OUTPUTS_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.RULE_TAG_NAME;
+import static io.nop.rule.dao.NopRuleDaoConstants.XDEF_PATH_RULE;
 
 
 @BizObjName("NopRuleDefinition")
@@ -34,60 +28,21 @@ public class NopRuleDefinition extends _NopRuleDefinition {
         return roleIds;
     }
 
-    private XNode makeModelNode() {
-        XmlOrmComponent component = getModelTextXmlComponent();
-        return component.makeNode(NopRuleDaoConstants.RULE_TAG_NAME);
-    }
-
     public List<Map<String, Object>> getRuleInputs() {
-        XNode node = getModelTextXmlComponent().getNode();
-        if (node == null)
-            return null;
-
-        XNode inputsNode = node.childByTag(INPUTS_NAME);
-        if (inputsNode == null)
-            return null;
-
-        IObjMeta objMeta = SchemaLoader.loadXMeta(NopRuleDaoConstants.XDEF_PATH_RULE);
-        IObjPropMeta propMeta = objMeta.getProp(INPUTS_NAME);
-
-        return (List<Map<String, Object>>) DslModelHelper.dslJsonToNode(propMeta.getSchema(), inputsNode);
+        return (List<Map<String, Object>>) getModelTextXmlComponent().getChildValue(XDEF_PATH_RULE, INPUTS_NAME);
     }
 
     public void setRuleInputs(List<Map<String, Object>> ruleInputs) {
-        IObjMeta objMeta = SchemaLoader.loadXMeta(NopRuleDaoConstants.XDEF_PATH_RULE);
-        IObjPropMeta propMeta = objMeta.getProp(INPUTS_NAME);
-        List<XNode> list = DslModelHelper.dslJsonListToNodeList(propMeta.getSchema(), ruleInputs);
-        if (list != null) {
-            XNode inputsNode = makeModelNode().makeChild(INPUTS_NAME);
-            inputsNode.appendChildren(list);
-        }
+        getModelTextXmlComponent().setChildValue(XDEF_PATH_RULE, INPUTS_NAME, ruleInputs);
     }
 
     public List<Map<String, Object>> getRuleOutputs() {
-        XNode node = getModelTextXmlComponent().getNode();
-        if (node == null)
-            return null;
-
-        XNode outputsNode = node.childByTag(OUTPUTS_NAME);
-        if (outputsNode == null)
-            return null;
-
-        IObjMeta objMeta = SchemaLoader.loadXMeta(NopRuleDaoConstants.XDEF_PATH_RULE);
-        IObjPropMeta propMeta = objMeta.getProp(OUTPUTS_NAME);
-
-        return (List<Map<String, Object>>) DslModelHelper.dslJsonToNode(propMeta.getSchema(), outputsNode);
+        return (List<Map<String, Object>>) getModelTextXmlComponent().getChildValue(XDEF_PATH_RULE, OUTPUTS_NAME);
 
     }
 
     public void setRuleOutputs(List<Map<String, Object>> ruleOutputs) {
-        IObjMeta objMeta = SchemaLoader.loadXMeta(NopRuleDaoConstants.XDEF_PATH_RULE);
-        IObjPropMeta propMeta = objMeta.getProp(OUTPUTS_NAME);
-        List<XNode> list = DslModelHelper.dslJsonListToNodeList(propMeta.getSchema(), ruleOutputs);
-        if (list != null) {
-            XNode outputsNode = makeModelNode().makeChild(OUTPUTS_NAME);
-            outputsNode.appendChildren(list);
-        }
+        getModelTextXmlComponent().setChildValue(XDEF_PATH_RULE, OUTPUTS_NAME, ruleOutputs);
     }
 
     public String getBeforeExecute() {

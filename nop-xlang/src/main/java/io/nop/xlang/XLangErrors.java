@@ -756,7 +756,7 @@ public interface XLangErrors {
             "x:config节点的内容必须是c:import标签，不允许其他标签");
 
     ErrorCode ERR_XDSL_NODE_UNEXPECTED_TAG_NAME = define("nop.err.xlang.xdsl.node-unexpected-tag-name",
-            "节点名称为[{tagName}],期望的节点名称为[{expected}]", ARG_TAG_NAME, ARG_EXPECTED);
+            "节点名称为[{tagName}],期望的节点名称为[{allowedNames}]", ARG_TAG_NAME, ARG_ALLOWED_NAMES);
 
     ErrorCode ERR_XDSL_MODEL_NO_NAME_ATTR =
             define("nop.err.xlang.xdsl.model-no-name-attr", "模型对象没有name属性");

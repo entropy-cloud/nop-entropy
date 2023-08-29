@@ -17,7 +17,8 @@
         label: "缺省值表达式",
         type: "editor",
         language: "xml",
-        size: "sm"
+        size: "sm",
+        visibleOn: "${computed}"
       },
       {
         "name": "props",
@@ -53,7 +54,8 @@
         name: "defaultExpr",
         label: "缺省值表达式",
         type: "code",
-        language: "xml"
+        language: "xml",
+        visibleOn: "${computed}"
       },
       {
         "name": "props",

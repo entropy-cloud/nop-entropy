@@ -36,6 +36,7 @@ import java.util.Map;
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 import static io.nop.xlang.XLangErrors.ARG_NODE;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
+import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_NODE_UNEXPECTED_TAG_NAME;
 
@@ -130,6 +131,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
                     list.add(obj);
                 } else {
                     throw new NopException(ERR_XDSL_NODE_UNEXPECTED_TAG_NAME).param(ARG_NODE, child)
+                            .param(ARG_TAG_NAME, child.getTagName())
                             .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
                 }
             }
@@ -144,6 +146,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
                     list.add(obj);
                 } else {
                     throw new NopException(ERR_XDSL_NODE_UNEXPECTED_TAG_NAME).param(ARG_NODE, child)
+                            .param(ARG_TAG_NAME, child.getTagName())
                             .param(ARG_ALLOWED_NAMES, defNode.getChildren().keySet());
                 }
             }

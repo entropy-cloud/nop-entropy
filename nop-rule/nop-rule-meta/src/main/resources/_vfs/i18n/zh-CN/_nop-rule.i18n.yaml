@@ -68,7 +68,7 @@ prop:
       parentId: 父ID
       predicate: 判断条件
       predicateComponent: null
-      predicateLabel: null
+      predicateLabel: 判断条件
       remark: 备注
       ruleDefinition: 规则定义
       ruleDefinition.displayName: 规则定义

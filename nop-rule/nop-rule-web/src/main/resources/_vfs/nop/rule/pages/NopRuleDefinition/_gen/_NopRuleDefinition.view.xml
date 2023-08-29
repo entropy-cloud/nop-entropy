@@ -28,9 +28,6 @@
                 <!--描述-->
                 <col id="description" sortable="true"/>
 
-                <!--模型文本-->
-                <col id="modelText" sortable="true"/>
-
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
 
@@ -68,12 +65,12 @@
  ruleName[规则名称] ruleVersion[规则版本]
  displayName[显示名称] ruleGroup[规则分组]
  ruleType[规则类型] description[描述]
- modelText[模型文本] status[状态]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
-                ruleInputs[输入变量]
- ruleOutputs[输出变量] beforeExecute[初始化代码]
+ status[状态] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
+ ruleInputs[输入变量] ruleOutputs[输出变量]
+ beforeExecute[初始化代码] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-规则模型定义" i18n-en:title="Add Rule Definition" x:prototype="edit"/>
@@ -82,10 +79,10 @@
  ruleName[规则名称] ruleVersion[规则版本]
  displayName[显示名称] ruleGroup[规则分组]
  ruleType[规则类型] description[描述]
- modelText[模型文本] status[状态]
- remark[备注] 
-                ruleInputs[输入变量]
- ruleOutputs[输出变量] beforeExecute[初始化代码]
+ status[状态] 
+                remark[备注]
+ ruleInputs[输入变量] ruleOutputs[输出变量]
+ beforeExecute[初始化代码] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
