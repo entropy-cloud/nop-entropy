@@ -46,12 +46,6 @@
                 <!--备注-->
                 <col id="remark" sortable="true"/>
 
-                <!--输入变量-->
-                <col id="ruleInputs" x:abstract="true"/>
-
-                <!--输出变量-->
-                <col id="ruleOutputs" x:abstract="true"/>
-
                 <!--初始化代码-->
                 <col id="beforeExecute" x:abstract="true"/>
             </cols>
@@ -69,20 +63,21 @@
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
- ruleInputs[输入变量] ruleOutputs[输出变量]
  beforeExecute[初始化代码] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-规则模型定义" i18n-en:title="Add Rule Definition" x:prototype="edit"/>
         <form id="edit" editMode="update" title="编辑-规则模型定义" i18n-en:title="Edit Rule Definition">
             <layout>
- ruleName[规则名称] ruleVersion[规则版本]
- displayName[显示名称] ruleGroup[规则分组]
- ruleType[规则类型] description[描述]
- status[状态] 
-                remark[备注]
- ruleInputs[输入变量] ruleOutputs[输出变量]
- beforeExecute[初始化代码] 
+ ruleName[规则名称]
+ ruleVersion[规则版本]
+ displayName[显示名称]
+ ruleGroup[规则分组]
+ ruleType[规则类型]
+ description[描述]
+ status[状态]
+ remark[备注]
+ beforeExecute[初始化代码]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

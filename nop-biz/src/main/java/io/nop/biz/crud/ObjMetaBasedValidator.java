@@ -124,6 +124,8 @@ public class ObjMetaBasedValidator {
     private Map<String, Object> _validate(String bizObjName, ISchema schema, String propName, Map<String, Object> data, FieldSelectionBean selection,
                                           BiPredicate<IObjPropMeta, FieldSelectionBean> filter, IEvalScope scope) {
         scope.setLocalValue(null, BizConstants.VAR_DATA, data);
+        if(schema.isSimpleSchema() && schema.isMapType())
+            return data;
 
         Map<String, Object> ret = new LinkedHashMap<>();
 
@@ -160,16 +162,16 @@ public class ObjMetaBasedValidator {
                 }
             }
 
-            if (StringHelper.isEmptyObject(value)) {
-                setIn(ret, schema, propMeta, null);
-                continue;
-            }
-
             FieldSelectionBean propSelection = null;
             if (selection != null) {
                 propSelection = selection.getField(name);
                 if (propSelection == null)
                     continue;
+            }
+
+            if (StringHelper.isEmptyObject(value)) {
+                setIn(ret, schema, propMeta, null);
+                continue;
             }
 
             if (value != null) {

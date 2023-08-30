@@ -4,7 +4,10 @@
   "label": "",
   "sortNo": 0,
   "predicate": "",
+  "predicateMap": null,
+  "predicateLabel": "",
   "outputs": "",
+  "outputsMap": null,
   "parentId": "",
   "isLeaf": false,
   "version": 0,
@@ -19,6 +22,5 @@
   "ruleDefinition.displayName": "",
   "children": null,
   "predicateComponent": null,
-  "outputsComponent": null,
-  "predicateLabel": ""
+  "outputsComponent": null
 }

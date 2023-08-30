@@ -5,6 +5,7 @@ import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.query.FilterOp;
 import io.nop.core.model.query.FilterOpType;
 
@@ -20,7 +21,11 @@ import java.util.stream.Collectors;
  */
 public class ConditionExprHelper {
 
-    public static Map<String, Object> filterToCondition(ITreeBean filterBean) {
+    public static Map<String, Object> filterToCondition(Object value) {
+        if (value == null)
+            return null;
+
+        ITreeBean filterBean = XNode.fromValue(value);
         String filterOp = filterBean.getTagName();
         Map<String, Object> ret = new LinkedHashMap<>();
         if ("and".equals(filterOp) || filterOp.equals("or")) {

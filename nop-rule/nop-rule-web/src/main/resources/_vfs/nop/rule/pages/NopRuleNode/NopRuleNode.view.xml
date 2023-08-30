@@ -1,51 +1,99 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:extends="_gen/_NopRuleNode.view.xml" x:schema="/nop/schema/xui/xview.xdef"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:web="web">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
 
     <x:config>
         <c:import from="/nop/web/xlib/web.xlib"/>
     </x:config>
 
     <grids>
-        <grid id="list"/>
-        <grid id="pick-list"/>
+        <grid id="list">
+            <cols>
+                <col id="sortNo" x:override="remove"/>
+                <col id="predicateLabel" width="200px"/>
+                <col id="parentId" x:override="remove"/>
+                <col id="isLeaf" x:override="remove"/>
+            </cols>
+        </grid>
+
+        <grid id="pick-list">
+            <cols>
+                <col id="createdBy" x:override="remove"/>
+
+                <!--创建时间-->
+                <col id="createTime" x:override="remove"/>
+
+                <!--修改人-->
+                <col id="updatedBy" x:override="remove"/>
+
+                <!--修改时间-->
+                <col id="updateTime" x:override="remove"/>
+            </cols>
+        </grid>
 
         <!-- 可以在当前视图文件中引用其他对象的objMeta定义grid -->
-        <grid id="outputGrid" >
+        <grid id="outputGrid">
             <objMeta>/nop/rule/model/NopRuleOutputValue/NopRuleOutputValue.xmeta</objMeta>
             <cols>
                 <col id="name"/>
-                <col id="valueExpr"/>
+                <col id="valueExpr">
+                    <gen-control>
+                        <editor language="xml" size="sm"/>
+                    </gen-control>
+                </col>
             </cols>
         </grid>
     </grids>
 
     <forms>
-        <form id="view">
+        <form id="view" size="lg" x:prototype="edit">
+            <layout>
+                ruleId[规则ID] parentId
+                label[显示标签] sortNo[排序序号]
+                predicateLabel
+                outputsMap[输出结果]
+                remark[备注]
+            </layout>
+
             <cells>
-                <cell id="predicate" depends="predicateLabel">
-                    <gen-control>
-                        <static name="predicateLabel"/>
-                    </gen-control>
+                <cell id="predicateLabel">
                 </cell>
-                <cell id="outputs">
-                   <view grid="outputGrid"/>
+                <cell id="outputsMap">
+                    <gen-control>
+                        <input-kv addable="@:false">
+                            <keySchema type="static"/>
+                            <valueSchema type="code" language="xml"/>
+                        </input-kv>
+                    </gen-control>
                 </cell>
             </cells>
         </form>
 
-        <form id="edit">
+        <form id="edit" x:prototype="view">
+            <layout>
+                ruleId[规则ID] parentId
+                label[显示标签] sortNo[排序序号]
+                predicateMap[判断条件]
+                outputsMap[输出结果]
+                remark[备注]
+            </layout>
             <cells>
-                <cell id="predicate">
+                <cell id="predicateMap">
                     <gen-control>
                         <condition-builder embed="@:false"
                                            title="@i18n:common.conditionConfig|条件配置"
-                                           source="@query:NopRuleDefinition__getConditionFields?ruleId=$ruleId"/>
+                                           source="/r/NopRuleDefinition__getConditionFields?ruleId=$ruleId"/>
                     </gen-control>
                 </cell>
 
-                <cell id="outputs">
-                    <view grid="outputGrid" />
+                <cell id="outputsMap">
+                    <gen-control>
+                        <input-kv>
+                            <keySchema type="select"
+                                       options="@dict:/r/NopRuleDefinition__getOutputFields?ruleId=$ruleId"/>
+                            <valueSchema type="editor" language="xml" size="sm"/>
+                        </input-kv>
+                    </gen-control>
                 </cell>
             </cells>
         </form>

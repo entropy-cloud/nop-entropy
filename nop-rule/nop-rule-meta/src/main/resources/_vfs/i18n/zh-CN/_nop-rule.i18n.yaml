@@ -63,12 +63,14 @@ prop:
       label: 显示标签
       outputs: 输出结果
       outputsComponent: null
+      outputsMap: 输出值
       parent: 父节点
       parent.label: 父节点
       parentId: 父ID
       predicate: 判断条件
       predicateComponent: null
       predicateLabel: 判断条件
+      predicateMap: 判断条件
       remark: 备注
       ruleDefinition: 规则定义
       ruleDefinition.displayName: 规则定义

@@ -56,6 +56,7 @@ public class JsonOrmComponent extends AbstractOrmComponent
     }
 
     public void set_jsonValue(Object jsonValue) {
+        markDirty();
         this.jsonValue = jsonValue;
     }
 
@@ -96,7 +97,7 @@ public class JsonOrmComponent extends AbstractOrmComponent
                 map.put(name, value);
             set_jsonValue(map);
         }
-        orm_owner().orm_extDirty(true);
+        markDirty();
     }
 
     @Override

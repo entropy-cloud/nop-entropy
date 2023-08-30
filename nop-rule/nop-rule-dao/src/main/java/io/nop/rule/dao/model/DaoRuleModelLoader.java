@@ -166,7 +166,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         nodes.sort(Comparator.comparing(NopRuleNode::getSortNo));
 
         TreeIndex<NopRuleNode> index = TreeIndex.buildFromParentId(nodes,
-                NopRuleNode::getRuleId, NopRuleNode::getParentId);
+                NopRuleNode::get_id, NopRuleNode::getParentId);
 
         XNode tree = node.makeChild("decisionTree");
         buildRuleTree(tree.makeChild("children"), index.getRoots(), index);

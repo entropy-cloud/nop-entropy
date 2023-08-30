@@ -163,6 +163,10 @@ public class OrmEntityCopier {
                 setter.invoke(scope);
                 return;
             }
+            if(propMeta.getMapToProp() != null){
+                BeanTool.setComplexProperty(target,propMeta.getMapToProp(),fromValue);
+                return;
+            }
         }
         IEntityModel entityModel = target.orm_entityModel();
 

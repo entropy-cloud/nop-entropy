@@ -3,8 +3,35 @@
       x:extends="_NopRuleNode.xmeta" xmlns:ui="ui">
 
     <props>
-        <prop name="predicateLabel" displayName="判断条件" published="true" ui:show="L">
+        <prop name="predicate" internal="true"/>
+        <prop name="predicateMap" displayName="判断条件"
+              ui:show="X">
+            <schema type="Map"/>
+            <setter>
+                <c:script><![CDATA[
+                import io.nop.web.page.condition.ConditionExprHelper;
+                entity.predicateComponent._jsonValue = ConditionExprHelper.conditionToFilter(value);
+                ]]></c:script>
+            </setter>
+
+            <getter>
+                <c:script><![CDATA[
+                import io.nop.web.page.condition.ConditionExprHelper;
+                return ConditionExprHelper.filterToCondition(entity.predicateComponent._jsonValue);
+                ]]></c:script>
+            </getter>
+        </prop>
+
+        <prop name="predicateLabel" displayName="判断条件">
             <schema type="String"/>
+        </prop>
+
+        <prop name="outputs" internal="true"/>
+
+        <prop name="outputsMap" mapToProp="outputsComponent._jsonValue" displayName="输出值"/>
+
+        <prop name="isLeaf">
+            <autoExpr when="save">0</autoExpr>
         </prop>
     </props>
 </meta>

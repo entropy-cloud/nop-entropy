@@ -395,7 +395,7 @@ public class XDslParseHelper {
             node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
             node.content(loc, text);
         }
-        if (objMeta.getXmlName() != null) {
+        if (objMeta != null && objMeta.getXmlName() != null) {
             node.setTagName(objMeta.getXmlName());
         }
         return node;

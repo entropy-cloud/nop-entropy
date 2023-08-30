@@ -61,7 +61,10 @@ prop:
       label: Label
       sortNo: Sort No
       predicate: PREDICATE
+      predicateMap: null
+      predicateLabel: null
       outputs: Outputs
+      outputsMap: null
       parentId: Parent ID
       isLeaf: Is Leaf
       version: Version
@@ -77,7 +80,6 @@ prop:
       children: Children
       predicateComponent: null
       outputsComponent: null
-      predicateLabel: null
     NopRuleOutput:
       name: null
       displayName: null

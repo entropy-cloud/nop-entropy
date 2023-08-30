@@ -69,12 +69,6 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         }
     }
 
-    private void markDirty() {
-        IOrmEntity owner = orm_owner();
-        if (owner != null)
-            owner.orm_extDirty(true);
-    }
-
     public Object getJsonObject() {
         XNode node = getNode();
         if (node == null)
@@ -160,11 +154,16 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
         IObjPropMeta propMeta = objMeta.getProp(childName);
         XNode list = new DslModelToXNodeTransformer(objMeta).transformValue(propMeta, value);
+        XNode node = makeNode(objMeta.getXmlName());
         if (list != null) {
-            XNode inputsNode = makeNode(objMeta.getXmlName()).childByTag(childName);
-            inputsNode.replaceBy(list);
+            XNode inputsNode = node.childByTag(childName);
+            if(inputsNode == null){
+                node.appendChild(list);
+            }else {
+                inputsNode.replaceBy(list);
+            }
         } else {
-            makeNode(objMeta.getXmlName()).removeChildByTag(childName);
+            node.removeChildByTag(childName);
         }
     }
 

@@ -46,6 +46,13 @@ public abstract class AbstractOrmComponent implements IOrmComponent {
         owner.orm_propValue(getColPropId(propName), value);
     }
 
+    protected void markDirty() {
+        IOrmEntity owner = orm_owner();
+        if (owner != null)
+            owner.orm_extDirty(true);
+    }
+
+
     @Override
     public Object orm_propValueByName(String propName) {
         return BeanTool.instance().getProperty(this, propName);

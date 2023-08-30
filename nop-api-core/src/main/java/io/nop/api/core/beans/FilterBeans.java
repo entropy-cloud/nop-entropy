@@ -58,8 +58,8 @@ public class FilterBeans {
         return new TreeBean(op).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_VALUE, value);
     }
 
-    public static TreeBean assertOp(String op, Object value) {
-        return new TreeBean(op).attr(FILTER_ATTR_VALUE, value);
+    public static TreeBean assertOp(String op, String name) {
+        return new TreeBean(op).attr(FILTER_ATTR_NAME, name);
     }
 
     /**

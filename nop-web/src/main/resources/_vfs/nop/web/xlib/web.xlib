@@ -563,11 +563,12 @@
             <source>
                 <c:include src="/nop/web/xlib/web/init_grid_gen_scope.xpl"/>
                 <c:collect outputMode="xjson">
-                    <table>
+                    <!-- table控件显示roleId不正常，暂时先使用input-table -->
+                    <input-table removeable="@:false" addable="@:false" editable="@:false">
                         <columns j:list="true">
                             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" editMode="${editMode}"/>
                         </columns>
-                    </table>
+                    </input-table>
                 </c:collect>
             </source>
         </GenTable>

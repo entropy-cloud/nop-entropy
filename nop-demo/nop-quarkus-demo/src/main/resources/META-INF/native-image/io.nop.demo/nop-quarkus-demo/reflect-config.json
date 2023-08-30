@@ -30056,6 +30056,10 @@
         ]
       },
       {
+        "name": "markDirty",
+        "parameterTypes": []
+      },
+      {
         "name": "orm_owner",
         "parameterTypes": []
       },
@@ -30091,6 +30095,108 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "NOT_INITED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME__jsonText"
+      }
+    ],
+    "methods": [
+      {
+        "name": "flushToEntity",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStringList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "get_jsonText",
+        "parameterTypes": []
+      },
+      {
+        "name": "get_jsonValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "isJsonList",
+        "parameterTypes": []
+      },
+      {
+        "name": "prop_get",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_has",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prop_names",
+        "parameterTypes": []
+      },
+      {
+        "name": "prop_set",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setStringList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "set_jsonText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "set_jsonValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.component.JsonOrmComponent",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_xmlText"
       }
     ],
@@ -30102,6 +30208,13 @@
       {
         "name": "getChildBodyXml",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getChildValue",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String"
         ]
       },
@@ -30143,6 +30256,14 @@
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setChildValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object"
         ]
       },
       {
@@ -36045,6 +36166,503 @@
       }
     ],
     "name": "io.nop.rule.core.execute.RuleManager",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "calcLeafIndex",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "forEachLeaf",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model.RuleDecisionTreeModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getPropDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model.RuleInputDefineModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getExecutableRule",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputVar",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInputVarDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOutputVar",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "initVarMap",
+        "parameterTypes": []
+      },
+      {
+        "name": "setExecutableRule",
+        "parameterTypes": [
+          "io.nop.rule.core.IExecutableRule"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model.RuleModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rule.core.model.RuleOutputDefineModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addChild",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleDecisionTreeModel"
+        ]
+      },
+      {
+        "name": "addOutput",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleOutputValueModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getChild",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLeafIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPredicate",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasChild",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMultiMatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_children",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_outputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setChildren",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLabel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLeafIndex",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMultiMatch",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setOutputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setPredicate",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model._gen._RuleDecisionTreeModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "isComputed",
+        "parameterTypes": []
+      },
+      {
+        "name": "isMandatory",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setComputed",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setMandatory",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model._gen._RuleInputDefineModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addInput",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleInputDefineModel"
+        ]
+      },
+      {
+        "name": "addOutput",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleOutputDefineModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAfterExecute",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBeforeExecute",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecisionMatrix",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDecisionTree",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getInputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasInput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasInputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_inputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_outputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAfterExecute",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setBeforeExecute",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setDecisionMatrix",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleDecisionMatrixModel"
+        ]
+      },
+      {
+        "name": "setDecisionTree",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleDecisionTreeModel"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setInputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setOutputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model._gen._RuleModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAggregate",
+        "parameterTypes": []
+      },
+      {
+        "name": "isUseWeight",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAggregate",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleAggregateMethod"
+        ]
+      },
+      {
+        "name": "setUseWeight",
+        "parameterTypes": [
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model._gen._RuleOutputDefineModel",
     "unsafeAllocated": false
   },
   {
@@ -42575,6 +43193,41 @@
     "fields": [],
     "methods": [
       {
+        "name": "conditionOpToFilterOp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "conditionToFilter",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "filterOpToConditionOp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "filterToCondition",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.condition.ConditionExprHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "addPrefix",
         "parameterTypes": [
           "java.lang.String",
@@ -43738,6 +44391,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xmeta.ObjVarDefineModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "loadXDefinition",
@@ -43761,6 +44424,89 @@
       }
     ],
     "name": "io.nop.xlang.xmeta.SchemaLoader",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDefaultExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSchema",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDefaultExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSchema",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.ISchema"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta._gen._ObjVarDefineModel",
     "unsafeAllocated": false
   },
   {
