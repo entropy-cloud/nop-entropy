@@ -122,7 +122,9 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
             propNode.setAttr("displayName", inputNode.getAttr("displayName"));
             propNode.setAttr("mandatory", inputNode.getAttr("mandatory"));
             propNode.setAttr("computed", inputNode.getAttr("computed"));
-            propNode.setAttr("schema", inputNode.removeChildByTag("schema"));
+            XNode inputSchema = inputNode.removeChildByTag("schema");
+            if (inputSchema != null)
+                propNode.appendChild(inputSchema.detach());
             propsNode.appendChild(propNode);
         }
 

@@ -22,7 +22,7 @@
             <schema type="String"/>
         </prop>
 
-        <prop name="schema" internal="true">
+        <prop name="schema" internal="true" xmlPos="child">
             <schema type="Map" />
         </prop>
     </props>
