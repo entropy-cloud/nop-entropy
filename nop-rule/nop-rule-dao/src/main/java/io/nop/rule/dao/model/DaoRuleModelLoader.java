@@ -1,5 +1,6 @@
 package io.nop.rule.dao.model;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
@@ -194,8 +195,16 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
     private XNode parsePredicate(String predicate) {
         XNode node = XDslParseHelper.parseXJson(null, predicate, null);
-        if (node != null)
-            node.setTagName("predicate");
+        if (node != null) {
+            if (ApiConstants.DUMMY_TAG_NAME.equals(node.getTagName())) {
+                XNode ret = XNode.make("predicate");
+                ret.appendChild(node);
+                return ret;
+            } else {
+                node.clearAttrs();
+                node.setTagName("predicate");
+            }
+        }
         return node;
     }
 

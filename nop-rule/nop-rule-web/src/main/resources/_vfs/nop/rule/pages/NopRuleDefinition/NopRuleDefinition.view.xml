@@ -12,13 +12,13 @@
             <cells>
                 <cell id="ruleInputs">
                     <selection>
-                        name,displayName,type, computed, mandatory, defaultExpr, props  @TreeChildren(max:5)
+                        name,displayName,type, computed, mandatory, defaultExpr, schema
                     </selection>
                 </cell>
 
                 <cell id="ruleOutputs">
                     <selection>
-                        name,displayName,type, aggregate, props  @TreeChildren(max:5)
+                        name,displayName,type, aggregate, schema
                     </selection>
                 </cell>
             </cells>

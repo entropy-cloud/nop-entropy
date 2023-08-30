@@ -10,6 +10,7 @@ import io.nop.core.model.query.FilterOp;
 import io.nop.core.model.query.FilterOpType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,7 +26,17 @@ public class ConditionExprHelper {
         if (value == null)
             return null;
 
-        ITreeBean filterBean = XNode.fromValue(value);
+        Map<String, Object> filter = _filterToCondition(XNode.fromValue(value));
+        if (filter.get("conjunction") == null) {
+            Map<String, Object> and = new LinkedHashMap<>();
+            and.put("conjunction", "and");
+            and.put("children", Arrays.asList(filter));
+            return and;
+        }
+        return filter;
+    }
+
+    private static Map<String, Object> _filterToCondition(ITreeBean filterBean) {
         String filterOp = filterBean.getTagName();
         Map<String, Object> ret = new LinkedHashMap<>();
         if ("and".equals(filterOp) || filterOp.equals("or")) {
@@ -83,7 +94,7 @@ public class ConditionExprHelper {
 
         List<Map<String, Object>> list = new ArrayList<>(children.size());
         for (ITreeBean child : children) {
-            Map<String, Object> item = filterToCondition(child);
+            Map<String, Object> item = _filterToCondition(child);
             if (item != null)
                 list.add(item);
         }

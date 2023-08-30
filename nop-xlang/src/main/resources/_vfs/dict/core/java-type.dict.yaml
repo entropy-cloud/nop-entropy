@@ -24,7 +24,5 @@ options:
     value: Duration
   - label: 对象
     value: Object
-  - label: 键值对
-    value: Map
   - label: 列表
     value: List

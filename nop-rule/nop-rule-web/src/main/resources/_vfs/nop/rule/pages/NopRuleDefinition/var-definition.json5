@@ -39,8 +39,8 @@
     {
       "$ref": "varDefinition",
       "label": "子对象属性",
-      "name": "props",
-      "visibleOn": "this.hasOwnProperty('type') && (this.type == 'Map' || this.type == 'List')",
+      "name": "schema.props",
+      "visibleOn": "this.hasOwnProperty('type') && (this.type == 'Map' || this.type == 'List' || this.type == 'Object')",
       "addButtonText": "增加子对象属性"
     }
   ]

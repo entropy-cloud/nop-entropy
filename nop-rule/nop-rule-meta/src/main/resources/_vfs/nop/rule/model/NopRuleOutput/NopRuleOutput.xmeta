@@ -22,10 +22,8 @@
             <schema type="String"/>
         </prop>
 
-        <prop name="props" displayName="对象属性">
-            <schema>
-                <item bizObjName="NopRuleOutput"/>
-            </schema>
+        <prop name="schema" internal="true">
+            <schema type="Map" />
         </prop>
     </props>
 </meta>

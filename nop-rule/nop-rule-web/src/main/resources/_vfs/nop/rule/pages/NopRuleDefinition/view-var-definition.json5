@@ -35,8 +35,8 @@
     {
       "$ref": "varDefinition",
       "label": "子对象属性",
-      "name": "props",
-      "visibleOn": "${type == 'List' || type == 'Map'}"
+      "name": "schema.props",
+      "visibleOn": "this.hasOwnProperty('type') && (this.type == 'Map' || this.type == 'List' || this.type == 'Object')"
     }
   ]
 }

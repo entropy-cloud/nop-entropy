@@ -21,21 +21,11 @@
         visibleOn: "${computed}"
       },
       {
-        "name": "props",
-        "$ref": "inputDefinition"
+        "name": "schema.props",
+        "$ref": "subInputDefinition"
       }
     ]
   },
-  "outputDefinition": {
-    "x:extends": "var-definition.json5",
-    "items": [
-      {
-        "name": "props",
-        "$ref": "outputDefinition"
-      }
-    ]
-  },
-
   "viewInputDefinition": {
     "x:extends": "view-var-definition.json5",
     "items": [
@@ -58,17 +48,63 @@
         visibleOn: "${computed}"
       },
       {
-        "name": "props",
-        "$ref": "viewInputDefinition"
+        "name": "schema.props",
+        "$ref": "viewSubInputDefinition"
       }
     ]
   },
-
+  "subInputDefinition": {
+    "x:extends": "var-definition.json5",
+    "items": [
+      {
+        "name": "schema.props",
+        "$ref": "subInputDefinition"
+      }
+    ]
+  },
+  "viewSubInputDefinition": {
+    "x:extends": "view-var-definition.json5",
+    "items": [
+      {
+        "name": "schema.props",
+        "$ref": "viewSubInputDefinition"
+      }
+    ]
+  },
+  "outputDefinition": {
+    "x:extends": "var-definition.json5",
+    "items": [
+      {
+        "name": "varDef",
+        "body": [
+          {
+            "name": "aggregate",
+            "type": "select",
+            "source": "@dict:io.nop.rule.core.model.RuleAggregateMethod",
+          }
+        ]
+      },
+      {
+        "name": "schema.props",
+        "$ref": "outputDefinition"
+      }
+    ]
+  },
   "viewOutputDefinition": {
     "x:extends": "view-var-definition.json5",
     "items": [
       {
-        "name": "props",
+        "name": "varDef",
+        "body": [
+          {
+            "name": "aggregate",
+            "type": "select",
+            "options": "@dict:io.nop.rule.core.model.RuleAggregateMethod",
+          }
+        ]
+      },
+      {
+        "name": "schema.props",
         "$ref": "viewOutputDefinition"
       }
     ]
