@@ -43,7 +43,7 @@ prop:
       displayName: 显示名
       mandatory: 是否非空
       name: 变量名
-      props: 对象属性
+      schema: null
       type: 类型
     NopRuleLog:
       createTime: 创建时间
@@ -85,7 +85,7 @@ prop:
       description: 描述
       displayName: 显示名
       name: 变量名
-      props: 对象属性
+      schema: null
       type: 类型
     NopRuleOutputValue:
       name: 变量名

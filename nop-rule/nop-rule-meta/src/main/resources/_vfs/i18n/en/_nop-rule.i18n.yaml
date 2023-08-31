@@ -44,7 +44,7 @@ prop:
       computed: null
       defaultExpr: null
       description: null
-      props: null
+      schema: null
     NopRuleLog:
       sid: SID
       ruleId: RULE ID
@@ -86,7 +86,7 @@ prop:
       type: null
       aggregate: null
       description: null
-      props: null
+      schema: null
     NopRuleOutputValue:
       name: null
       valueExpr: null

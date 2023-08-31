@@ -20,6 +20,9 @@
                 <col id="sortNo" mandatory="true" sortable="true"/>
 
                 <!--判断条件-->
+                <col id="predicateMap"/>
+
+                <!--判断条件-->
                 <col id="predicateLabel"/>
 
                 <!--父ID-->
@@ -54,11 +57,12 @@
         <form id="view" editMode="view" title="查看-规则节点" i18n-en:title="View Rule Node">
             <layout>
  ruleId[规则ID] label[显示标签]
- sortNo[排序序号] predicateLabel[判断条件]
- parentId[父ID] isLeaf[是否叶子节点]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ sortNo[排序序号] predicateMap[判断条件]
+ predicateLabel[判断条件] parentId[父ID]
+ isLeaf[是否叶子节点] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-规则节点" i18n-en:title="Add Rule Node" x:prototype="edit"/>
@@ -67,6 +71,7 @@
  ruleId[规则ID]
  label[显示标签]
  sortNo[排序序号]
+ predicateMap[判断条件]
  predicateLabel[判断条件]
  parentId[父ID]
  isLeaf[是否叶子节点]
