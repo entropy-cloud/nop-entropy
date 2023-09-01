@@ -12,16 +12,22 @@ import io.nop.xlang.xmeta.IObjMeta;
 import java.util.Map;
 
 public class EntityData<T> {
+    private final Map<String, Object> data;
     private final Map<String, Object> validatedData;
     private T entity;
     private final IObjMeta objMeta;
     private boolean recoverDeleted;
-    private Map<String,Object> extData;
+    private Map<String, Object> extData;
 
-    public EntityData(Map<String, Object> validatedData, T entity, IObjMeta objMeta) {
+    public EntityData(Map<String, Object> data, Map<String, Object> validatedData, T entity, IObjMeta objMeta) {
+        this.data = data;
         this.validatedData = validatedData;
         this.entity = entity;
         this.objMeta = objMeta;
+    }
+
+    public Map<String, Object> getData() {
+        return data;
     }
 
     /**

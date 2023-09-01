@@ -8,7 +8,7 @@ public interface RuleConstants {
 
     String IMP_PATH_RULE = "/nop/rule/imp/rule.imp.xml";
 
-    String RULE_TYPE_MATRIX = "M";
+    String RULE_FLAG_MATRIX = "M";
 
     String NAME_VAR = "var";
 
@@ -32,4 +32,8 @@ public interface RuleConstants {
     String FILE_TYPE_RULE_XML = "rule.xml";
 
     String RESOLVE_RULE_NS_PREFIX = "resolve-rule:";
+
+    String ENUM_RULE_TYPE_TREE = "TREE";
+
+    String ENUM_RULE_TYPE_MATX = "MATX";
 }

@@ -21,5 +21,6 @@
   "modelTextXmlComponent": null,
   "ruleInputs": null,
   "ruleOutputs": null,
-  "beforeExecute": null
+  "beforeExecute": null,
+  "importFile": null
 }

@@ -26,6 +26,7 @@ import io.nop.config.model.ConfigModel;
 import io.nop.config.model.ConfigModelLoader;
 import io.nop.config.model.ConfigVarModel;
 import io.nop.config.source.IConfigSource;
+import io.nop.core.unittest.BaseTestCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,11 +116,21 @@ public class DefaultConfigProvider implements IConfigProvider {
     }
 
     private void updateRefs(Map<String, IConfigReference<?>> refs) {
+        boolean testRunning = BaseTestCase.isTestRunning();
+        Map<String, Object> testConfigs = BaseTestCase.getTestConfigs();
+
         for (Map.Entry<String, IConfigReference<?>> entry : refs.entrySet()) {
             String name = entry.getKey();
+            // 如果强行设置了测试配置，则以测试配置为准
+            if (testRunning && testConfigs.containsKey(name))
+                continue;
+
             DefaultConfigReference used = usedRefs.get(name);
             if (used != null) {
                 IConfigReference<?> var = refs.get(name);
+                if (var == used)
+                    continue;
+
                 if (var == null) {
                     used.updateValue(null, StaticValue.nullValue());
                 } else {

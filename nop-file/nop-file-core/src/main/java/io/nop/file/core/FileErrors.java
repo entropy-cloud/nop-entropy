@@ -30,7 +30,10 @@ public interface FileErrors {
             ARG_FILE_EXT, ARG_ALLOWED_FILE_EXTS);
 
     ErrorCode ERR_FILE_NOT_ALLOW_ACCESS_FILE = define("nop.err.file.not-allow-access-file",
-            "没有访问文件的权限:{}", ARG_FILE_ID);
+            "没有访问文件的权限:{fileId}", ARG_FILE_ID);
+
+    ErrorCode ERR_FILE_NOT_EXISTS = define("nop.err.file.not-exists",
+            "文件不存在:{fileId}", ARG_FILE_ID);
 
     ErrorCode ERR_FILE_INVALID_BIZ_OBJ_NAME = define("nop.err.file.invalid-biz-obj-name",
             "非法的对象名:{bizObjName}", ARG_BIZ_OBJ_NAME);

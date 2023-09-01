@@ -1,4 +1,5 @@
 nop:
+  debug: true
   datasource:
     #    driver-class-name: org.h2.Driver
     #    jdbc-url: jdbc:h2:./db/test

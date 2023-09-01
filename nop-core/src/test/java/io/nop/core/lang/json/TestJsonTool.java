@@ -18,6 +18,7 @@ import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.utils.GenericTypeHelper;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -100,5 +101,13 @@ public class TestJsonTool {
         ApiRequest<String> req2 = (ApiRequest<String>) JsonTool.parseBeanFromText(str, GenericTypeHelper.buildRequestType(PredefinedGenericTypes.STRING_TYPE));
         assertEquals("s", req2.getData());
         assertEquals(2, req.getSelection().getFields().size());
+    }
+
+    @Test
+    public void testTimestamp(){
+        String str = JsonTool.stringify(new Timestamp(System.currentTimeMillis()));
+        System.out.println(str);
+
+        assertEquals(3, JsonTool.serializeToJson(3));
     }
 }

@@ -19,5 +19,9 @@
             <schema stdDomain="xpl"/>
         </prop>
 
+        <prop name="importFile" displayName="Excel规则文件" readable="false" updatable="false" insertable="false"
+            ui:uploadAccept=".rule.xlsx">
+            <schema stdDomain="file"/>
+        </prop>
     </props>
 </meta>

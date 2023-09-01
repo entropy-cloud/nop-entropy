@@ -33,6 +33,8 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.core.unittest.BaseTestCase;
@@ -296,6 +298,11 @@ public class AutoTestCase extends BaseTestCase {
 
     public byte[] inputBytes(String fileName) {
         return caseData.readBytes(caseData.getInputFileName(fileName, variant));
+    }
+
+    public IResource inputResource(String fileName) {
+        File file = caseData.getFile(caseData.getInputFileName(fileName, variant));
+        return new FileResource(file);
     }
 
     public void outputBytes(String fileName, byte[] bytes) {

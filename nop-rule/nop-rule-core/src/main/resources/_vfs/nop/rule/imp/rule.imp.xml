@@ -68,7 +68,7 @@
 
                         <field name="i18n-en:displayName" displayName="英文名"/>
 
-                        <field name="schema.type" displayName="类型">
+                        <field name="type" displayName="类型">
                             <schema stdDomain="generic-type"/>
                         </field>
 

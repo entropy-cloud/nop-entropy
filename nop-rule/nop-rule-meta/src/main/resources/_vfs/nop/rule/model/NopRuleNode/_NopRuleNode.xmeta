@@ -30,8 +30,8 @@
               sortable="true" insertable="true" updatable="true" ext:relation="ruleDefinition">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="label" displayName="显示标签" i18n-en:displayName="Label" tagSet="disp" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="label" displayName="显示标签" i18n-en:displayName="Label" tagSet="disp" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="sortNo" displayName="排序序号" i18n-en:displayName="Sort No" mandatory="true" queryable="true"

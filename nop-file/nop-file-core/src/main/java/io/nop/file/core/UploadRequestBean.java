@@ -12,6 +12,7 @@ public class UploadRequestBean {
     private InputStream inputStream;
     private String fileName;
     private String bizObjName;
+    private String fieldName;
     private String mimeType;
     private long length;
 
@@ -20,12 +21,21 @@ public class UploadRequestBean {
     public UploadRequestBean() {
     }
 
-    public UploadRequestBean(InputStream inputStream, String fileName, long length, String mimeType) {
+    public UploadRequestBean(InputStream inputStream, String fileName,
+                             long length, String mimeType) {
         this.inputStream = inputStream;
         this.fileName = fileName;
         this.length = length;
         this.mimeType = mimeType;
         this.lastModified = CoreMetrics.currentTimeMillis();
+    }
+
+    public String getFieldName(){
+        return fieldName;
+    }
+
+    public void setFieldName(String fieldName){
+        this.fieldName = fieldName;
     }
 
     public String getBizObjName() {

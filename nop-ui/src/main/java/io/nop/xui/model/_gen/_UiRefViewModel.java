@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [38:6:0:0]/nop/schema/xui/disp.xdef <p>
+ * generate from [39:6:0:0]/nop/schema/xui/disp.xdef <p>
  * 对于对象属性或者对象列表属性，使用xview文件中定义的page去显示
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -47,6 +47,7 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
      * xml name: path
      * 如果对应于xview文件所在路径，则page/grid/form属性必须有一个为非空，根据它们动态构建一个页面。
      * 也可以直接指定page.yaml文件，直接复用已有的文件。
+     * 如果为空，则试图根据当前模型文件路径猜测得到一个view模型文件路径
      */
     private java.lang.String _path ;
     
@@ -131,6 +132,7 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
      * xml name: path
      *  如果对应于xview文件所在路径，则page/grid/form属性必须有一个为非空，根据它们动态构建一个页面。
      * 也可以直接指定page.yaml文件，直接复用已有的文件。
+     * 如果为空，则试图根据当前模型文件路径猜测得到一个view模型文件路径
      */
     
     public java.lang.String getPath(){

@@ -122,11 +122,12 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
             entity = (IOrmEntity) ClassHelper.newInstance(refEntityClass);
         } else {
             entity = enhancer.newEntity(refEntityClass.getName());
+
+            if (refPropName != null) {
+                entity.orm_propValueByName(refPropName, owner);
+            }
         }
 
-        if (refPropName != null) {
-            entity.orm_propValueByName(refPropName, owner);
-        }
         return (T) entity;
     }
 
@@ -256,6 +257,19 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     }
 
     @Override
+    public void orm_onFlush() {
+        for (IOrmEntity entity : entities) {
+            if (entity.orm_enhancer() == null) {
+                entity.orm_attach(orm_enhancer());
+            }
+            if (entity.orm_entityModel() == null) {
+                entity.orm_entityModel(orm_enhancer().getEntityModel(entity.orm_entityName()));
+            }
+            checkElementOwner(entity);
+        }
+    }
+
+    @Override
     public String orm_propName() {
         return propName;
     }
@@ -370,15 +384,17 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         checkReadonly();
         beginModify();
 
+        IOrmEntityEnhancer enhancer = orm_enhancer();
+        if (enhancer != null && e.orm_enhancer() == null) {
+            e.orm_attach(enhancer);
+            if (e.orm_entityModel() == null)
+                e.orm_entityModel(enhancer.getEntityModel(e.orm_entityName()));
+        }
+
         // 绑定owner属性
         if (refPropName != null) {
-            IOrmEntity elmOwner = e.orm_refEntity(refPropName);
-            if (elmOwner == null) {
-                e.orm_propValueByName(refPropName, owner);
-            } else if (elmOwner != owner) {
-                throw newError(ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER)
-                        .param(ARG_ENTITY, e)
-                        .param(ARG_ELM_OWNER, elmOwner);
+            if (e.orm_refLoaded(refPropName) || !e.orm_state().isUnsaved()) {
+                checkElementOwner(e);
             }
         }
 
@@ -395,6 +411,17 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
             this.orm_markDirty();
         }
         return b;
+    }
+
+    private void checkElementOwner(IOrmEntity e) {
+        IOrmEntity elmOwner = e.orm_refEntity(refPropName);
+        if (elmOwner == null) {
+            e.orm_propValueByName(refPropName, owner);
+        } else if (elmOwner != owner) {
+            throw newError(ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER)
+                    .param(ARG_ENTITY, e)
+                    .param(ARG_ELM_OWNER, elmOwner);
+        }
     }
 
     @Override

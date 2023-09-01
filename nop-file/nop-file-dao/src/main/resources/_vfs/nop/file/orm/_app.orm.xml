@@ -35,11 +35,11 @@
                 i18n-en:displayName="File Record">
             <columns>
                 <column code="FILE_ID" displayName="文件ID" mandatory="true" name="fileId" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File ID"/>
+                        propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="File ID"/>
                 <column code="FILE_NAME" displayName="文件名" name="fileName" precision="300" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Name"/>
                 <column code="FILE_PATH" displayName="文件路径" mandatory="true" name="filePath" precision="2000" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Path"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="File Path"/>
                 <column code="FILE_EXT" displayName="扩展名" name="fileExt" precision="50" propId="4" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="File Ext"/>
                 <column code="MIME_TYPE" displayName="内容类型" mandatory="true" name="mimeType" precision="100" propId="5"

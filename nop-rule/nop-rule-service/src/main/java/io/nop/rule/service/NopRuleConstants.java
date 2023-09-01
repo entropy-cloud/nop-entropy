@@ -14,4 +14,7 @@ public interface NopRuleConstants {
     String VAR_NAME = "name";
 
     String VAR_DISPLAY_NAME = "displayName";
+
+    String PROP_IMPORT_FILE = "importFile";
+
 }

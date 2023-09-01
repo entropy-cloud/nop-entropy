@@ -36,6 +36,7 @@ prop:
       ruleInputs: null
       ruleOutputs: null
       beforeExecute: null
+      importFile: null
     NopRuleInput:
       name: null
       displayName: null

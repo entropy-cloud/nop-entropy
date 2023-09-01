@@ -36,7 +36,7 @@
       "$ref": "varDefinition",
       "label": "子对象属性",
       "name": "schema.props",
-      "visibleOn": "this.hasOwnProperty('type') && (this.type == 'Map' || this.type == 'List' || this.type == 'Object')"
+      "visibleOn": "this.hasOwnProperty('type') && (this.type == 'Map' || this.type.startsWith('java.util.Map') || this.type == 'List' || this.type.startsWith('java.util.List') || this.type == 'Object' || this.type.startsWith('java.lang.Object'))"
     }
   ]
 }

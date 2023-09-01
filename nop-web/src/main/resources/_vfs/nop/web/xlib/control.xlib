@@ -525,10 +525,12 @@
 
             <source><![CDATA[
               import io.nop.xui.utils.XuiHelper;
-              const name = propMeta.name
+              const name = propMeta?.name || dispMeta.id
               const maxSize = XuiHelper.getMaxUploadSize(propMeta,dispMeta);
-              const uploadUrl = dispMeta?.uploadUrl || propMeta?.['ui:uploadUrl'] || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName)
+              const uploadUrl = dispMeta?.uploadUrl || propMeta?.['ui:uploadUrl']
+                  || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName.$encodeURL()+'&fieldName='+name.$encodeURL())
               const supportFileLink = dispMeta?.['ui:supportFileLink'] ?? propMeta?.['ui:supportFileLink'] ?? false
+              accept = propMeta?.['ui:uploadAccept'] || dispMeta?.['ui:uploadAccept'] || accept
 
               if(supportFileLink){
               return {

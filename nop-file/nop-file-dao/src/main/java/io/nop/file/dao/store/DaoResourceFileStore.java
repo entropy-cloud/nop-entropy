@@ -29,13 +29,17 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Objects;
 
+import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_ID;
 import static io.nop.file.core.FileErrors.ARG_BIZ_OBJ_NAME;
+import static io.nop.file.core.FileErrors.ARG_FIELD_NAME;
 import static io.nop.file.core.FileErrors.ARG_FILE_ID;
 import static io.nop.file.core.FileErrors.ARG_FILE_OBJ_NAME;
 import static io.nop.file.core.FileErrors.ARG_LENGTH;
 import static io.nop.file.core.FileErrors.ARG_MAX_LENGTH;
 import static io.nop.file.core.FileErrors.ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ;
 import static io.nop.file.core.FileErrors.ERR_FILE_LENGTH_EXCEED_LIMIT;
+import static io.nop.file.core.FileErrors.ERR_FILE_NOT_ALLOW_ACCESS_FILE;
+import static io.nop.file.core.FileErrors.ERR_FILE_NOT_EXISTS;
 
 /**
  * 将上传文件存放在本地目录下
@@ -100,6 +104,7 @@ public class DaoResourceFileStore implements IFileStore {
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
         NopFileRecord entity = dao.newEntity();
         entity.setFileName(record.getFileName());
+        entity.setFieldName(record.getFieldName());
         entity.setFileExt(record.getFileExt());
         entity.setFileLength(record.getLength());
         // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
@@ -175,6 +180,26 @@ public class DaoResourceFileStore implements IFileStore {
         if (keepFileExt && !StringHelper.isEmpty(fileExt))
             sb.append('.').append(fileExt);
         return sb.toString();
+    }
+
+    @Override
+    public IResource getFileResource(String fileId, String bizObjName, String objId, String fieldName) {
+        IFileRecord record = getFile(fileId);
+        if (record == null)
+            throw new NopException(ERR_FILE_NOT_EXISTS)
+                    .param(ARG_FILE_ID, fileId)
+                    .param(ARG_BIZ_OBJ_NAME, bizObjName)
+                    .param(ARG_BIZ_OBJ_ID, objId)
+                    .param(ARG_FIELD_NAME, fieldName);
+
+        if (!record.getBizObjName().equals(bizObjName) || !Objects.equals(objId, record.getBizObjId())
+                || !Objects.equals(record.getFieldName(), fieldName))
+            throw new NopException(ERR_FILE_NOT_ALLOW_ACCESS_FILE)
+                    .param(ARG_FILE_ID, fileId)
+                    .param(ARG_BIZ_OBJ_NAME, bizObjName)
+                    .param(ARG_BIZ_OBJ_ID, objId)
+                    .param(ARG_FIELD_NAME, fieldName);
+        return record.getResource();
     }
 
     @Override

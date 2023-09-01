@@ -8,6 +8,7 @@
 package io.nop.autotest.core.data;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +51,15 @@ public class AutoTestVars {
         }
 
         public synchronized void setVar(String name, Object value) {
+            if (!(value instanceof String)) {
+                value = JsonTool.serialize(value, false);
+            }
             vars.put(name, value);
         }
 
         public synchronized void addVar(String name, Object value) {
+            value = normalizeValue(value);
+
             while (vars.putIfAbsent(name, value) != null) {
                 int pos = name.lastIndexOf('_');
                 if (pos < 0) {
@@ -74,6 +80,8 @@ public class AutoTestVars {
         public synchronized String getNameByValue(Object value) {
             if (StringHelper.isEmptyObject(value))
                 return null;
+
+            value = normalizeValue(value);
 
             for (Map.Entry<String, Object> entry : vars.entrySet()) {
                 // 忽略所有具有v_前缀的变量，这些变量必须按名称访问，不会按照值进行查找
@@ -97,6 +105,8 @@ public class AutoTestVars {
             if (StringHelper.isEmptyObject(value))
                 return null;
 
+            value = normalizeValue(value);
+
             for (Map.Entry<String, Object> entry : vars.entrySet()) {
                 // 忽略所有具有v_前缀的变量，这些变量必须按名称访问，不会按照值进行查找
                 if (entry.getKey().startsWith(V_VAR_PREFIX))
@@ -109,6 +119,14 @@ public class AutoTestVars {
             }
             return null;
         }
+    }
+
+    private static Object normalizeValue(Object value) {
+        if (value == null)
+            return null;
+        if (value instanceof String)
+            return value;
+        return JsonTool.serializeToJson(value, false);
     }
 
     public static void dumpVars() {
@@ -198,6 +216,13 @@ public class AutoTestVars {
     public static Object replaceValueByVarName(Object o) {
         VarsMap varsMap = getVarsMap();
         return JsonTransformHelper.transform(o, v -> {
+            if (StringHelper.isEmptyObject(v))
+                return v;
+
+            // 数值类型不参与变量翻译？
+            if (v instanceof Number || v instanceof Boolean)
+                return v;
+
             if (v instanceof String) {
                 String str = v.toString();
                 if (str.length() > 0) {
@@ -211,6 +236,10 @@ public class AutoTestVars {
                     }
                 }
                 return str;
+            }
+            String varName = varsMap.getNameByValue(v);
+            if (varName != null) {
+                return BINDER_VAR_PREFIX + varName;
             }
             return v;
         });

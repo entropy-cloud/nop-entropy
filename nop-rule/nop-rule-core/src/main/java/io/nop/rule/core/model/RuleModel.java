@@ -2,6 +2,7 @@ package io.nop.rule.core.model;
 
 import io.nop.api.core.util.INeedInit;
 import io.nop.rule.core.IExecutableRule;
+import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model._gen._RuleModel;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ObjMetaHelper;
@@ -23,6 +24,12 @@ public class RuleModel extends _RuleModel implements INeedInit {
 
     public RuleModel() {
 
+    }
+
+    public String getRuleType() {
+        if (getDecisionTree() != null && getDecisionTree().hasChildren())
+            return RuleConstants.ENUM_RULE_TYPE_TREE;
+        return RuleConstants.ENUM_RULE_TYPE_MATX;
     }
 
     /**

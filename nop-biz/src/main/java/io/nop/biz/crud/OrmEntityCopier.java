@@ -96,7 +96,7 @@ public class OrmEntityCopier {
                              String baseBizObjName, String action, IEvalScope scope) {
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(src.getClass());
 
-        Set<String> ignoreProps = new HashSet<>();
+        Set<String> ignoreAutoExprProps = new HashSet<>();
 
         if (selection == null) {
             if (src instanceof Map) {
@@ -104,8 +104,11 @@ public class OrmEntityCopier {
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
                     String name = entry.getKey();
                     IObjPropMeta propMeta = getProp(objMeta, name);
-                    if (propMeta != null && propMeta.getAutoExpr() != null) {
-                        ignoreProps.add(propMeta.getName());
+                    if (propMeta != null) {
+                        // 如果明确从前台提交参数，那么以提交的值为准。如果禁止前台提交，应该设置字段的insertable=false,updatable=false
+                        if (propMeta.getAutoExpr() != null) {
+                            ignoreAutoExprProps.add(propMeta.getName());
+                        }
                     }
                     copyField(beanModel, src, target, name, name, null, propMeta, baseBizObjName, scope);
                 }
@@ -114,7 +117,7 @@ public class OrmEntityCopier {
                     String name = propModel.getName();
                     IObjPropMeta propMeta = getProp(objMeta, name);
                     if (propMeta != null && propMeta.getAutoExpr() != null) {
-                        ignoreProps.add(propMeta.getName());
+                        ignoreAutoExprProps.add(propMeta.getName());
                     }
                     copyField(beanModel, src, target, name, name, null, propMeta, baseBizObjName, scope);
                 });
@@ -133,15 +136,16 @@ public class OrmEntityCopier {
                 }
 
                 IObjPropMeta propMeta = getProp(objMeta, from);
-                if (propMeta != null && propMeta.getAutoExpr() != null) {
-                    ignoreProps.add(propMeta.getName());
+                if (propMeta != null) {
+                    if (propMeta.getAutoExpr() != null)
+                        ignoreAutoExprProps.add(propMeta.getName());
                 }
                 copyField(beanModel, src, target, from, name, field, propMeta, baseBizObjName, scope);
             }
         }
 
         if (objMeta != null)
-            AutoExprRunner.runAutoExpr(action, target, src, objMeta, scope, ignoreProps);
+            AutoExprRunner.runAutoExpr(action, target, src, objMeta, scope, ignoreAutoExprProps);
     }
 
     IObjPropMeta getProp(IObjSchema objMeta, String name) {
@@ -163,8 +167,8 @@ public class OrmEntityCopier {
                 setter.invoke(scope);
                 return;
             }
-            if(propMeta.getMapToProp() != null){
-                BeanTool.setComplexProperty(target,propMeta.getMapToProp(),fromValue);
+            if (propMeta.getMapToProp() != null) {
+                BeanTool.setComplexProperty(target, propMeta.getMapToProp(), fromValue);
                 return;
             }
         }

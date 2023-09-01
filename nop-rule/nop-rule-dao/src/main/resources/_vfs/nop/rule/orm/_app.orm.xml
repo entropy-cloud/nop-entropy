@@ -3,7 +3,7 @@
      ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.rule" ext:appName="nop-rule"
      ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
      x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
-     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl">
+     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
@@ -109,8 +109,8 @@
                         ui:show="X"/>
                 <column code="RULE_ID" displayName="规则ID" mandatory="true" name="ruleId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
-                <column code="LABEL" displayName="显示标签" mandatory="true" name="label" precision="200" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Label"/>
+                <column code="LABEL" displayName="显示标签" name="label" precision="200" propId="3" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Label"/>
                 <column code="SORT_NO" displayName="排序序号" mandatory="true" name="sortNo" propId="4" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Sort No"/>
                 <column code="PREDICATE" displayName="判断条件" domain="json-4k" mandatory="true" name="predicate"

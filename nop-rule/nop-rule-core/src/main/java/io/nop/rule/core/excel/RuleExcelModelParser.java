@@ -89,7 +89,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                     .source(wk);
 
         String type = StringHelper.strip(ruleSheet.getTable().getCellText(0, 0));
-        if (RuleConstants.RULE_TYPE_MATRIX.equals(type)) {
+        if (RuleConstants.RULE_FLAG_MATRIX.equals(type)) {
             RuleDecisionMatrixModel decisionMatrix = parseDecisionMatrix(model, ruleSheet);
             model.setDecisionMatrix(decisionMatrix);
         } else {

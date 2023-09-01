@@ -6,6 +6,7 @@ public interface FileConstants {
     String PATH_DOWNLOAD = "/f/download";
 
     String PARAM_BIZ_OBJ_NAME = "bizObjName";
+    String PARAM_FIELD_NAME = "fieldName";
 
     String TEMP_BIZ_OBJ_ID = "__TEMP__";
 

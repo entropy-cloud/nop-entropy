@@ -147,6 +147,11 @@ public class JsonSerializer implements IJsonSerializer {
         }
 
         IBeanModel beanModel = beanModelManager.getBeanModelForClass(clazz);
+        if(beanModel.getStdDataType().isSimpleType()){
+            out.value(loc, o.toString());
+            return;
+        }
+
         if (!checker.isAllowSerialize(onlyForDataBean, o, beanModel))
             throw new NopException(ERR_JSON_ONLY_DATA_BEAN_IS_SERIALIZABLE).param(ARG_CLASS_NAME, clazz.getName());
 

@@ -29,7 +29,7 @@ import java.util.concurrent.CompletionStage;
 
 @RestController
 public class SpringFileService extends AbstractGraphQLFileService {
-    public SpringFileService(){
+    public SpringFileService() {
 
     }
 
@@ -43,6 +43,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
             String mimeType = MediaTypeHelper.getMimeType(file.getContentType(), StringHelper.fileExt(fileName));
             UploadRequestBean input = new UploadRequestBean(is, fileName, file.getSize(), mimeType);
             input.setBizObjName(request.getParameter(FileConstants.PARAM_BIZ_OBJ_NAME));
+            input.setFieldName(request.getParameter(FileConstants.PARAM_FIELD_NAME));
             res = uploadAsync(buildApiRequest(request, input));
         } catch (IOException e) {
             res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));

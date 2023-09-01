@@ -297,7 +297,7 @@ public abstract class OrmEntity implements IOrmEntity {
     public Object orm_propOldValue(int propId) {
         if (oldValues != null) {
             Object value = oldValues.get(propId);
-            if(value != null || oldValues.containsKey(propId))
+            if (value != null || oldValues.containsKey(propId))
                 return value;
         }
         // 如果没有被修改过，则返回当前值
@@ -671,6 +671,10 @@ public abstract class OrmEntity implements IOrmEntity {
 
     public void orm_disableAutoStamp(boolean value) {
         this.disableAutoStamp = value;
+    }
+
+    public Object orm_getBean(String name) {
+        return orm_enhancer().getBeanProvider().getBean(name);
     }
 
     @Override

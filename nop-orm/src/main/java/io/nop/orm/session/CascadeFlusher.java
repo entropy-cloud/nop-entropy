@@ -173,6 +173,7 @@ public class CascadeFlusher {
             } else if (propModel.isToManyRelation()) {
                 IOrmEntitySet<IOrmEntity> coll = entity.orm_refEntitySet(propModel.getName());
                 if (coll != null && !coll.orm_proxy()) {
+                    coll.orm_onFlush();
                     for (IOrmEntity element : coll) {
                         cascadeInternalFlush(element);
                     }

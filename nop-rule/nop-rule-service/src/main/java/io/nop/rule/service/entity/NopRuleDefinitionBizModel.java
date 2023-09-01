@@ -1,16 +1,25 @@
 
 package io.nop.rule.service.entity;
 
+import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.biz.crud.EntityData;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.resource.IResource;
+import io.nop.file.core.FileConstants;
+import io.nop.orm.IOrmEntityFileStore;
+import io.nop.orm.OrmConstants;
+import io.nop.rule.core.excel.RuleExcelModelParser;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.dao.entity.NopRuleDefinition;
 import io.nop.rule.dao.model.DaoRuleModelLoader;
+import io.nop.rule.dao.model.DaoRuleModelSaver;
 import io.nop.rule.service.NopRuleConstants;
 import io.nop.web.page.condition.ConditionSchemaHelper;
 
@@ -61,31 +70,38 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
         }
         return dict;
     }
-//
-//    @Override
-//    protected void defaultPrepareSave(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
-//        super.defaultPrepareSave(entityData, context);
-//
-//        NopRuleDefinition entity = entityData.getEntity();
-//        checkRoles(entity, context);
-//    }
-//
-//    @Override
-//    protected void defaultPrepareUpdate(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
-//        super.defaultPrepareUpdate(entityData, context);
-//        checkRoles(entityData.getEntity(), context);
-//    }
-//
-//    private void checkRoles(NopRuleDefinition entity, IServiceContext context) {
-//        IUserContext userContext = context.getUserContext();
-//        Set<String> roleIds = entity.getRoleIds();
-//        if (roleIds.isEmpty())
-//            throw new NopException(ERR_RULE_NOT_ASSIGN_ROLES_FOR_RULE)
-//                    .param(ARG_RULE_NAME, entity.getRuleName());
-//
-//        if (!userContext.isUserInAnyRole(roleIds))
-//            throw new NopException(ERR_RULE_CREATER_MUST_IN_ROLE_SET)
-//                    .param(ARG_RULE_NAME, entity.getRuleName())
-//                    .param(ARG_USER_ROLES, userContext.getRoles());
-//    }
+
+    @Override
+    @BizAction
+    protected void defaultPrepareSave(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+        importExcelFile(entityData);
+    }
+
+    @Override
+    @BizAction
+    protected void defaultPrepareUpdate(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
+        super.defaultPrepareUpdate(entityData, context);
+        importExcelFile(entityData);
+    }
+
+    protected void importExcelFile(EntityData<NopRuleDefinition> entityData) {
+        String importFilePath = (String) entityData.getData().get(NopRuleConstants.PROP_IMPORT_FILE);
+        if (!StringHelper.isEmpty(importFilePath)) {
+            NopRuleDefinition entity = entityData.getEntity();
+            IOrmEntityFileStore fileStore = (IOrmEntityFileStore) entityData.getEntity().orm_getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
+            String fileId = fileStore.decodeFileId(importFilePath);
+            String objId = entity.orm_state().isUnsaved() ? FileConstants.TEMP_BIZ_OBJ_ID : entity.orm_idString();
+            IResource resource = fileStore.getFileResource(fileId, getBizObjName(), objId, NopRuleConstants.PROP_IMPORT_FILE);
+
+            RuleModel ruleModel = new RuleExcelModelParser().parseFromResource(resource);
+            if (entity.orm_id() == null) {
+                dao().initEntityId(entity);
+            }
+            entity.setRuleType(ruleModel.getRuleType());
+            new DaoRuleModelSaver().saveRuleModel(ruleModel, entity);
+
+            fileStore.detachFile(fileId, getBizObjName(), objId, NopRuleConstants.PROP_IMPORT_FILE);
+        }
+    }
 }

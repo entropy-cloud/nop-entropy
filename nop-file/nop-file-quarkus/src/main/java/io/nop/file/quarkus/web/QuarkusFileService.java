@@ -42,12 +42,13 @@ import java.util.concurrent.CompletionStage;
 public class QuarkusFileService extends AbstractGraphQLFileService {
     @Path(FileConstants.PATH_UPLOAD)
     @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA+";charset=UTF-8")
+    @Consumes(MediaType.MULTIPART_FORM_DATA + ";charset=UTF-8")
     public CompletionStage<Response> uploadFileAsync(MultipartFormDataInput input,
                                                      @Context HttpServerRequest request) {
         Map<String, List<InputPart>> uploadForm = input.getFormDataMap();
         List<InputPart> inputParts = uploadForm.get("file");
         String bizObjName = request.getParam(FileConstants.PARAM_BIZ_OBJ_NAME);
+        String fieldName = request.getParam(FileConstants.PARAM_FIELD_NAME);
 
         String locale = ContextProvider.currentLocale();
         CompletionStage<ApiResponse<?>> res = null;
@@ -66,6 +67,7 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                 String mimeType = MediaTypeHelper.getMimeType(contentType, StringHelper.fileExt(fileName));
                 UploadRequestBean fileInput = new UploadRequestBean(inputStream, fileName, -1, mimeType);
                 fileInput.setBizObjName(bizObjName);
+                fileInput.setFieldName(fieldName);
 
                 res = uploadAsync(buildRequest(request, fileInput));
                 break;
@@ -80,8 +82,8 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
     /**
      * resteasy内部强制使用了固定编码方式解析content-disposition来得到文件名
      */
-    private String fixFileName(String fileName){
-        return new String(fileName.getBytes(StringHelper.CHARSET_ISO_8859_1),StringHelper.CHARSET_UTF8);
+    private String fixFileName(String fileName) {
+        return new String(fileName.getBytes(StringHelper.CHARSET_ISO_8859_1), StringHelper.CHARSET_UTF8);
     }
 
     protected <T> ApiRequest<T> buildRequest(HttpServerRequest req, T data) {

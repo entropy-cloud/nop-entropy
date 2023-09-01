@@ -426,7 +426,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         if (entity == null) {
             entity = dao.newEntity();
         }
-        EntityData entityData = new EntityData<>(validated, entity, objMeta);
+        EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
         entityData.setRecoverDeleted(recover);
         return entityData;
     }
@@ -566,7 +566,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         T entity = dao().requireEntityById(id);
         checkEntityFilter(entity, objMeta, context);
 
-        return new EntityData<>(validated, entity, objMeta);
+        return new EntityData<>(data, validated, entity, objMeta);
     }
 
     protected void checkEntityFilter(T entity, IObjMeta objMeta, IServiceContext context) {
@@ -582,7 +582,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     @BizAction
     protected void defaultPrepareUpdate(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
-
     }
 
     @BizAction

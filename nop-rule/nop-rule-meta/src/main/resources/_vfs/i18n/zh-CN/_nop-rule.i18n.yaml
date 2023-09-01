@@ -18,6 +18,7 @@ prop:
       createdBy: 创建人
       description: 描述
       displayName: 显示名称
+      importFile: Excel规则文件
       modelText: 模型文本
       modelTextXmlComponent: null
       remark: 备注
