@@ -57,8 +57,8 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         }
 
         public void update(NopSysSequence seq) {
-            this.cacheSize = seq.getCacheSize() == null ? seq.getCacheSize() : 0;
-            this.stepSize = seq.getStepSize() == null ? seq.getStepSize() : 1;
+            this.cacheSize = 0;
+            this.stepSize = seq.getStepSize() != null ? seq.getStepSize() : 1;
             if (this.stepSize <= 0) {
                 this.stepSize = 1;
             }
@@ -162,6 +162,9 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             session.lock(seq);
 
             item.update(seq);
+
+            item.cacheSize = seq.getCacheSize();
+            item.useUuid = StringHelper.isYes(seq.getIsUuid());
 
             long ret = seq.getNextValue();
 

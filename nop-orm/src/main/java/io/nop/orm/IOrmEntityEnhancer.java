@@ -32,6 +32,8 @@ public interface IOrmEntityEnhancer {
 
     void internalLoadCollection(IOrmEntitySet coll);
 
+    Object initEntityId(IOrmEntity entity);
+
     IOrmEntity newEntity(String entityName);
 
     IEntityModel getEntityModel(String entityName);

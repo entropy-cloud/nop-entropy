@@ -12,11 +12,14 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmInterceptor;
 import io.nop.orm.model.IEntityModel;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AutoTestOrmHook implements IOrmDaoListener, IOrmInterceptor {
     private final Map<IEntityModel, Map<String, EntityRow>> dataMap = new ConcurrentHashMap<>();
+    private final Set<String> loadedTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public Map<IEntityModel, Map<String, EntityRow>> getDataMap() {
         return dataMap;
@@ -24,7 +27,12 @@ public class AutoTestOrmHook implements IOrmDaoListener, IOrmInterceptor {
 
     @Override
     public void onRead(IEntityModel entityModel) {
+        loadedTables.add(entityModel.getName());
         makeEntityData(entityModel);
+    }
+
+    public Set<String> getLoadedTables() {
+        return loadedTables;
     }
 
     @Override

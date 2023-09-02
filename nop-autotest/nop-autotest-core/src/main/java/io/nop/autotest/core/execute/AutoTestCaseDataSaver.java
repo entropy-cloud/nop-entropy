@@ -19,6 +19,7 @@ import org.apache.commons.csv.CSVFormat;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ public class AutoTestCaseDataSaver {
 
         for (Map.Entry<IEntityModel, Map<String, EntityRow>> entry : dataMap.entrySet()) {
             IEntityModel entityModel = entry.getKey();
+            // 按照实体主键的字符串顺序排序，便于输出确定性结果，也便于查看
             Collection<EntityRow> rows = new TreeMap<>(entry.getValue()).values();
 
             List<EntityRow> loadedRows = getLoadedRows(rows);
@@ -54,6 +56,10 @@ public class AutoTestCaseDataSaver {
                 // 即使没有装载到数据，也需要保留空文件记录。这样数据初始化的时候可以知道需要新建对应的表。
                 // 有可能是执行查询但是没有查询到数据记录。
                 saveInputTable(entityModel, loadedRows);
+            } else if (ormHook.getLoadedTables().contains(entityModel.getName())) {
+                saveInputTable(entityModel, Collections.emptyList());
+            } else {
+                removeInputTable(entityModel);
             }
 
             if (!changedRows.isEmpty()) {
@@ -75,6 +81,11 @@ public class AutoTestCaseDataSaver {
             List<Map<String, Object>> data = rows.stream().map(EntityRow::getInitData).collect(Collectors.toList());
             CsvHelper.writeCsv(new FileResource(file), CSVFormat.DEFAULT, getColNames(entityModel), data);
         }
+    }
+
+    private void removeInputTable(IEntityModel entityModel) {
+        File file = caseData.getInputTableFile(entityModel.getTableName(), null);
+        file.delete();
     }
 
     private List<String> getColNames(IEntityModel entityModel) {

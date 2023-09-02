@@ -1,0 +1,8 @@
+{
+  "data": {
+    "filename": "decision-tree.rule.xlsx",
+    "url": null,
+    "value": "@var:downloadPath"
+  },
+  "status": 0
+}

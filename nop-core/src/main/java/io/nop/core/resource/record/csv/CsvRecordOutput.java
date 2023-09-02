@@ -52,8 +52,19 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
 
     @Override
     public void writeBatch(Collection<? extends T> records) {
-        if (records == null || records.isEmpty())
+        if (records == null || records.isEmpty()) {
+            if (!headersWritten) {
+                if (!CollectionHelper.isEmpty(headers)) {
+                    try {
+                        writeHeaders(null);
+                    } catch (IOException e) {
+                        throw NopException.adapt(e);
+                    }
+                    headersWritten = true;
+                }
+            }
             return;
+        }
 
         try {
             if (!headersWritten) {

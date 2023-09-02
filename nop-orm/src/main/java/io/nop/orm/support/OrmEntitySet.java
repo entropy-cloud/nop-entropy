@@ -10,6 +10,7 @@ package io.nop.orm.support;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.ClassHelper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
@@ -258,9 +259,12 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     @Override
     public void orm_onFlush() {
+        IOrmEntityEnhancer enhancer = orm_enhancer();
+        Guard.notNull(enhancer, "enhancer");
+
         for (IOrmEntity entity : entities) {
             if (entity.orm_enhancer() == null) {
-                entity.orm_attach(orm_enhancer());
+                entity.orm_attach(enhancer);
             }
             if (entity.orm_entityModel() == null) {
                 entity.orm_entityModel(orm_enhancer().getEntityModel(entity.orm_entityName()));
@@ -385,8 +389,9 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         beginModify();
 
         IOrmEntityEnhancer enhancer = orm_enhancer();
-        if (enhancer != null && e.orm_enhancer() == null) {
-            e.orm_attach(enhancer);
+        if (enhancer != null) {
+            if (e.orm_enhancer() == null)
+                e.orm_attach(enhancer);
             if (e.orm_entityModel() == null)
                 e.orm_entityModel(enhancer.getEntityModel(e.orm_entityName()));
         }
