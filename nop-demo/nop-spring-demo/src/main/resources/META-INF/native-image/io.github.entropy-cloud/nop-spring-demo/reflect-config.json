@@ -19993,6 +19993,12 @@
         "parameterTypes": []
       },
       {
+        "name": "bodyFullXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "bodyToXJson",
         "parameterTypes": []
       },
@@ -28663,6 +28669,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFieldName",
+        "parameterTypes": []
+      },
+      {
         "name": "getFileExt",
         "parameterTypes": []
       },
@@ -28688,6 +28698,12 @@
       },
       {
         "name": "setBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFieldName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -29210,6 +29226,15 @@
       {
         "name": "getFileLink",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFileResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
           "java.lang.String"
         ]
       },
@@ -37907,6 +37932,12 @@
         "parameterTypes": []
       },
       {
+        "name": "orm_getBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "orm_inited",
         "parameterTypes": []
       },
@@ -42997,6 +43028,13 @@
         "parameterTypes": []
       },
       {
+        "name": "getObjMeta",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
         "name": "getPage",
         "parameterTypes": [
           "java.lang.String",
@@ -44129,6 +44167,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
       {
         "name": "getDefinedObjSchemas",
         "parameterTypes": []

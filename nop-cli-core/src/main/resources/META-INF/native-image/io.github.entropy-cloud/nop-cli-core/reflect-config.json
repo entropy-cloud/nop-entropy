@@ -2640,6 +2640,12 @@
         "parameterTypes": []
       },
       {
+        "name": "bodyFullXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "bodyToXJson",
         "parameterTypes": []
       },

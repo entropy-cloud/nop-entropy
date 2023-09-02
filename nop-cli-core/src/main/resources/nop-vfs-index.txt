@@ -120,6 +120,7 @@
 /nop/schema/schema/schema.xdef
 /nop/schema/schema/var-define.xdef
 /nop/schema/site.xdef
+/nop/schema/stream/pattern.xdef
 /nop/schema/task/batch.xdef
 /nop/schema/task/task.xdef
 /nop/schema/validator.xdef
@@ -234,7 +235,6 @@
 /nop/templates/orm/{appName}-meta/postcompile/gen-i18n.xgen.xgen
 /nop/templates/orm/{appName}-meta/precompile/gen-meta.xgen.xgen
 /nop/templates/orm/{appName}-meta/src/main/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
-/nop/templates/orm/{appName}-meta/src/resources/_vfs/dict/{dict.name}.dict.yaml.xgen
 /nop/templates/orm/{appName}-service/impl.xrun
 /nop/templates/orm/{appName}-service/pom.xml.xgen
 /nop/templates/orm/{appName}-service/src/main/java/{basePackagePath}/service/entity/{!entityModel.notGenCode}{entityModel.shortName}BizModel.java.xgen

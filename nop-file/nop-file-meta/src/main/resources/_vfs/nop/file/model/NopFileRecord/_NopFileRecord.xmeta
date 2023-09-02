@@ -18,16 +18,16 @@
     <keys/>
 
     <props>
-        <prop name="fileId" displayName="文件ID" i18n-en:displayName="File ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+        <prop name="fileId" displayName="文件ID" i18n-en:displayName="File ID" tagSet="var" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="fileName" displayName="文件名" i18n-en:displayName="File Name" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="300"/>
         </prop>
-        <prop name="filePath" displayName="文件路径" i18n-en:displayName="File Path" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="filePath" displayName="文件路径" i18n-en:displayName="File Path" tagSet="var" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
         <prop name="fileExt" displayName="扩展名" i18n-en:displayName="File Ext" queryable="true" sortable="true"
