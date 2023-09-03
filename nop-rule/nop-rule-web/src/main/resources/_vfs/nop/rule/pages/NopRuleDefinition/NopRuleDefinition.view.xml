@@ -27,7 +27,9 @@
         <form id="edit" x:prototype="template">
             <layout>
                 ==baseInfo[基本信息]====
-                __useImportFile importFile
+                __useImportFile
+                importFile
+
                 ruleName[规则名称] ruleVersion[规则版本]
                 displayName[显示名称] ruleGroup[规则分组]
                 ruleType[规则类型] status[状态]
@@ -149,6 +151,9 @@
         <crud name="main">
             <rowActions>
                 <actionGroup id="row-more-button">
+                    <action id="row-test-rule" label="@i18n:rule.testRule|测试规则" actionType="dialog">
+                        <dialog page="/nop/rule/pages/RuleService/test-rule.page.yaml" />
+                    </action>
                     <action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
                         <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
                             <data>
@@ -164,5 +169,6 @@
             </rowActions>
         </crud>
         <picker name="picker"/>
+
     </pages>
 </view>

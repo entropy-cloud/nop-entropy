@@ -373,6 +373,7 @@
 /nop/rule/pages/RuleService/RuleService.view.xml
 /nop/rule/pages/RuleService/_RuleService.view.xml
 /nop/rule/pages/RuleService/main.page.yaml
+/nop/rule/pages/RuleService/test-rule.page.yaml
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef

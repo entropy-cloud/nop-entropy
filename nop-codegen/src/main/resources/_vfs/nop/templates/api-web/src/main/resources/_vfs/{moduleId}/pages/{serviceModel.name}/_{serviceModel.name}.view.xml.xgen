@@ -22,6 +22,12 @@
                         ${field.name}
                     </c:for>
                 </layout>
+
+                <cells>
+                    <c:for var="field" items="${message?.fields}">
+                        <cell id="${field.name}" label="${field.displayName}"/>
+                    </c:for>
+                </cells>
             </form>
         </c:for>
     </forms>

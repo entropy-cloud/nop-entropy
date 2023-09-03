@@ -12,6 +12,11 @@
                     
                         inputs
                     </layout>
+            <cells>
+                <cell id="ruleName" label="规则名称"/>
+                <cell id="ruleVersion" label="规则版本"/>
+                <cell id="inputs" label="输入参数"/>
+            </cells>
         </form>
         <form id="RuleKeyBean" editMode="edit">
             <layout>
@@ -19,6 +24,10 @@
                     
                         ruleVersion
                     </layout>
+            <cells>
+                <cell id="ruleName" label="规则名称"/>
+                <cell id="ruleVersion" label="规则版本"/>
+            </cells>
         </form>
     </forms>
 

@@ -1,7 +1,58 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:extends="_RuleService.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
+    <forms>
+        <form id="RuleRequestBean" size="md">
+            <cells>
+                <cell id="inputs">
+                    <gen-control>
+                        <editor language="json">
+                            <value>
+                                <_ j:key="$schema">/p/NopRuleDefinition__getInputJsonSchema?ruleName=$ruleName&amp;ruleVersion=$ruleVersion</_>
+                            </value>
+                            <!--
+                            editorDidMount函数传入  (editor, monaco) 两个参数，通过它们可以定制代码编辑器
+                            -->
+                            <editorDidMount><![CDATA[
+                            debugger; let monaco = {}
+                                monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+                                    validate: true,  enableSchemaRequest: true
+                                })
+                            ]]></editorDidMount>
+                        </editor>
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
+
+        <form id="rule-result">
+            <layout>
+                response
+            </layout>
+
+            <cells>
+                <cell id="response">
+                    <gen-control>
+                        <code language="json" />
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
+    </forms>
     <pages>
         <tabs name="main"/>
+
+        <simple name="test-rule" form="RuleRequestBean">
+            <actions>
+                <action id="submit-rule-service" label="提交" actionType="ajax">
+                    <api url="/r/RuleService__executeRule" >
+                    </api>
+
+                    <feedback page="rule-result"/>
+                </action>
+            </actions>
+        </simple>
+
+        <simple name="rule-result" form="rule-result" />
     </pages>
 </view>
