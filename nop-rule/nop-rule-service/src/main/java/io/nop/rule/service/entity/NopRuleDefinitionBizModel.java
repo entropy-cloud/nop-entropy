@@ -4,9 +4,11 @@ package io.nop.rule.service.entity;
 import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
+import io.nop.api.core.beans.WebContentBean;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.StringHelper;
@@ -15,6 +17,7 @@ import io.nop.core.resource.IResource;
 import io.nop.file.core.FileConstants;
 import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.OrmConstants;
+import io.nop.rule.api.beans.RuleKeyBean;
 import io.nop.rule.core.excel.RuleExcelModelParser;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.dao.entity.NopRuleDefinition;
@@ -22,6 +25,8 @@ import io.nop.rule.dao.model.DaoRuleModelLoader;
 import io.nop.rule.dao.model.DaoRuleModelSaver;
 import io.nop.rule.service.NopRuleConstants;
 import io.nop.web.page.condition.ConditionSchemaHelper;
+import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xmeta.jsonschema.XSchemaToJsonSchema;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -69,6 +74,14 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
             }
         }
         return dict;
+    }
+
+    @BizQuery
+    public WebContentBean getInputJsonSchema(@RequestBean RuleKeyBean ruleKey, IServiceContext context) {
+        NopRuleDefinition rule = ruleModelLoader.loadRuleDefinition(ruleKey.getRuleName(), ruleKey.getRuleVersion());
+        ISchema schema = ruleModelLoader.buildRuleInputSchema(rule);
+        Map<String, Object> jsonSchema = XSchemaToJsonSchema.instance().toJsonSchema(schema, context);
+        return WebContentBean.json(jsonSchema);
     }
 
     @Override
