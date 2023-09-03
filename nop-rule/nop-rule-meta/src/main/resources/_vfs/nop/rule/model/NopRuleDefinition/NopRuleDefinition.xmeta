@@ -23,5 +23,9 @@
             ui:uploadAccept=".rule.xlsx">
             <schema stdDomain="file"/>
         </prop>
+
+        <prop name="decisionMatrix" displayName="决策矩阵配置" ui:show="L">
+            <schema stdDomain="xml" />
+        </prop>
     </props>
 </meta>

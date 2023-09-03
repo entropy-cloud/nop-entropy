@@ -308,6 +308,7 @@
 /nop/report/imp/xpt.imp.xml
 /nop/report/spl/spl.xlib
 /nop/rule/_module
+/nop/rule/auth/_nop-rule-api.action-auth.xml
 /nop/rule/auth/_nop-rule.action-auth.xml
 /nop/rule/auth/nop-rule.action-auth.xml
 /nop/rule/auth/nop-rule.data-auth.xml
@@ -369,6 +370,9 @@
 /nop/rule/pages/NopRuleRole/_gen/_NopRuleRole.view.xml
 /nop/rule/pages/NopRuleRole/main.page.yaml
 /nop/rule/pages/NopRuleRole/picker.page.yaml
+/nop/rule/pages/RuleService/RuleService.view.xml
+/nop/rule/pages/RuleService/_RuleService.view.xml
+/nop/rule/pages/RuleService/main.page.yaml
 /nop/schema/action-auth.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
@@ -556,9 +560,9 @@
 /nop/templates/antlr/src/main/java/{parser.packagePath}/{parser.name}ParseTreeParser.java.xgen
 /nop/templates/api-web/@init.xrun
 /nop/templates/api-web/src/main/resources/_vfs/{moduleId}/auth/_{apiModelName}-api.action-auth.xml.xgen
-/nop/templates/api-web/src/main/resources/_vfs/{moduleId}/pages/{serviceModel}/_{serviceModel.name}.view.xml.xgen
-/nop/templates/api-web/src/main/resources/_vfs/{moduleId}/pages/{serviceModel}/main.page.yaml.xgen
-/nop/templates/api-web/src/main/resources/_vfs/{moduleId}/pages/{serviceModel}/{serviceModel.name}.view.xml.xgen
+/nop/templates/api-web/src/main/resources/_vfs/{moduleId}/pages/{serviceModel.name}/_{serviceModel.name}.view.xml.xgen
+/nop/templates/api-web/src/main/resources/_vfs/{moduleId}/pages/{serviceModel.name}/main.page.yaml.xgen
+/nop/templates/api-web/src/main/resources/_vfs/{moduleId}/pages/{serviceModel.name}/{serviceModel.name}.view.xml.xgen
 /nop/templates/api/@init.xrun
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/_gen/_{messageModel.name}.java.xgen
 /nop/templates/api/{apiModuleName}/src/main/java/{apiPackagePath}/beans/{messageModel.name}.java.xgen

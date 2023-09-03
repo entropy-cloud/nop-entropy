@@ -59,11 +59,12 @@ public class XuiViewAnalyzer {
      */
     public FieldSelectionBean getListSelection(UiGridModel gridModel, IObjMeta objMeta) {
         FieldSelectionBean selection = new FieldSelectionBean();
-        appendPkFields(selection, objMeta);
+        if (objMeta != null)
+            appendPkFields(selection, objMeta);
 
         for (UiGridColModel colModel : gridModel.getCols()) {
             String prop = colModel.getProp() == null ? colModel.getId() : colModel.getProp();
-            IObjPropMeta propMeta = objMeta.getProp(prop);
+            IObjPropMeta propMeta = objMeta == null ? null : objMeta.getProp(prop);
             if (propMeta != null) {
                 if (!propMeta.isReadable())
                     continue;
@@ -107,10 +108,11 @@ public class XuiViewAnalyzer {
 
     public FieldSelectionBean getFormSelection(UiFormModel formModel, IObjMeta objMeta) {
         Guard.notNull(formModel, "formModel");
-        Guard.notNull(objMeta, "objMeta");
+        //Guard.notNull(objMeta, "objMeta");
 
         FieldSelectionBean selection = new FieldSelectionBean();
-        appendPkFields(selection, objMeta);
+        if (objMeta != null)
+            appendPkFields(selection, objMeta);
 
         if (formModel.getLayout() != null) {
             for (ILayoutGroupModel group : formModel.getLayout().getGroups()) {
@@ -141,7 +143,7 @@ public class XuiViewAnalyzer {
         table.forEachLayoutCell(lc -> {
             UiFormCellModel cellModel = formModel.getCell(lc.getId());
             String prop = cellModel == null || cellModel.getProp() == null ? lc.getId() : cellModel.getProp();
-            IObjPropMeta propMeta = objMeta.getProp(prop);
+            IObjPropMeta propMeta = objMeta == null ? null : objMeta.getProp(prop);
             if (propMeta != null) {
                 // 不可读的数据不会进入selection
                 if (!propMeta.isReadable())
@@ -304,7 +306,7 @@ public class XuiViewAnalyzer {
                 continue;
 
             String prop = StringHelper.firstPart(depend, '.');
-            if (objMeta.getProp(prop) == null) {
+            if (objMeta != null && objMeta.getProp(prop) == null) {
                 onMissing.accept(depend);
             } else {
                 action.accept(depend);

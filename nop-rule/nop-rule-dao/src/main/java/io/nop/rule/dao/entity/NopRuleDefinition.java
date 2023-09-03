@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.rule.dao.NopRuleDaoConstants.BEFORE_EXECUTE_NAME;
+import static io.nop.rule.dao.NopRuleDaoConstants.DECISION_MATRIX_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.INPUTS_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.OUTPUTS_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.RULE_TAG_NAME;
@@ -51,5 +52,13 @@ public class NopRuleDefinition extends _NopRuleDefinition {
 
     public void setBeforeExecute(String value) {
         getModelTextXmlComponent().setChildBodyXml(RULE_TAG_NAME, BEFORE_EXECUTE_NAME, value);
+    }
+
+    public String getDecisionMatrxi() {
+        return getModelTextXmlComponent().getChildBodyXml(DECISION_MATRIX_NAME);
+    }
+
+    public void setDecisionMatrix(String value) {
+        getModelTextXmlComponent().setChildBodyXml(RULE_TAG_NAME, DECISION_MATRIX_NAME, value);
     }
 }

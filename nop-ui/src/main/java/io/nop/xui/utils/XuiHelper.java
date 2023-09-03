@@ -199,7 +199,7 @@ public class XuiHelper {
 
     public static Set<String> getFormProps(UiFormModel formModel, IObjMeta objMeta) {
         Set<String> propNames = new LinkedHashSet<>();
-        if (formModel == null)
+        if (formModel == null || objMeta == null)
             return propNames;
         formModel.getTables().forEach(table -> {
             table.forEachRealCell((cell, ri, ci) -> {

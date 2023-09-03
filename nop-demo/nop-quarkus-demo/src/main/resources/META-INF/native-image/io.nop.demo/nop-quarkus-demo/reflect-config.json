@@ -15781,6 +15781,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getJsonType",
+        "parameterTypes": []
+      },
+      {
         "name": "getMandatoryJavaClass",
         "parameterTypes": []
       },
@@ -36877,6 +36881,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDecisionMatrxi",
+        "parameterTypes": []
+      },
+      {
         "name": "getRoleIds",
         "parameterTypes": []
       },
@@ -36890,6 +36898,12 @@
       },
       {
         "name": "setBeforeExecute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDecisionMatrix",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -38391,6 +38405,13 @@
         "name": "getConditionFields",
         "parameterTypes": [
           "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "getInputJsonSchema",
+        "parameterTypes": [
+          "io.nop.rule.api.beans.RuleKeyBean",
           "io.nop.core.context.IServiceContext"
         ]
       },

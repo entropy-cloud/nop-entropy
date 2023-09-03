@@ -7,7 +7,7 @@
  */
 package io.nop.xlang.xmeta;
 
-import io.nop.api.core.util.Guard;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.XLangConstants;
@@ -19,13 +19,16 @@ import io.nop.xlang.xdsl.XDslValidator;
 public class SchemaLoader {
 
     public static IObjMeta loadXMeta(String path) {
-        Guard.notEmpty(path, "metaPath");
+        if (StringHelper.isEmpty(path))
+            return null;
         IObjMeta meta = (IObjMeta) ResourceComponentManager.instance().loadComponentModel(path,
                 XLangConstants.MODEL_TYPE_XMETA);
         return meta;
     }
 
     public static IXDefinition loadXDefinition(String path) {
+        if(StringHelper.isEmpty(path))
+            return null;
         IXDefinition xdef = (IXDefinition) ResourceComponentManager.instance().loadComponentModel(path,
                 XLangConstants.MODEL_TYPE_XDEF);
         return xdef;

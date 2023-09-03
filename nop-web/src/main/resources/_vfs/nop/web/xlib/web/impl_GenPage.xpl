@@ -12,7 +12,7 @@
         let objMeta = SchemaLoader.loadXMeta(viewModel.objMeta);
         let controlLib = XplLibHelper.loadLib(viewModel.controlLib || '/nop/web/xlib/control.xlib');
         let bizObjName = viewModel.bizObjName;
-        let i18nRoot = objMeta['i18n:root'] || bizObjName;
+        let i18nRoot = objMeta?.['i18n:root'] || bizObjName;
     </c:script>
 
     <c:choose>

@@ -12,4 +12,6 @@ public interface NopRuleDaoConstants extends _NopRuleDaoConstants {
     String OUTPUTS_NAME = "outputs";
 
     String BEFORE_EXECUTE_NAME = "beforeExecute";
+
+    String DECISION_MATRIX_NAME = "decisionMatrix";
 }

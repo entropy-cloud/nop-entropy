@@ -27,6 +27,7 @@
         <form id="edit" layoutControl="tabs" size="xl" x:prototype="template">
             <layout>
                 ==baseInfo[基本信息]====
+                __useImportFile importFile
                 ruleName[规则名称] ruleVersion[规则版本]
                 displayName[显示名称] ruleGroup[规则分组]
                 ruleType[规则类型] status[状态]
@@ -44,29 +45,67 @@
 
                 ==extConfig[扩展配置]==
                 beforeExecute
+
+                ==matrixConfig[决策矩阵配置]==
+                decisionMatrix
             </layout>
 
             <cells>
+                <!-- custom=true表示此字段不需要在meta中定义
+                  两个下划线作为前缀表示此字段仅在前端使用，不会提交到后台
+                -->
+                <cell id="__useImportFile" custom="true" stdDomain="boolean">
+                </cell>
+
+                <cell id="importFile" stdDomain="file">
+                    <visibleOn>${__useImportFile}</visibleOn>
+                </cell>
+
                 <cell id="ruleInputs">
+                    <visibleOn>${!__useImportFile}</visibleOn>
                     <gen-control>
                         return { "$ref": "inputDefinition" }
                     </gen-control>
                 </cell>
 
                 <cell id="ruleOutputs">
+                    <visibleOn>${!__useImportFile}</visibleOn>
                     <gen-control>
                         return { "$ref":"outputDefinition" }
                     </gen-control>
+                </cell>
+
+                <cell id="decisionMatrix">
+                    <visibleOn>${ruleType == 'MATRX}</visibleOn>
                 </cell>
             </cells>
         </form>
 
 
-        <form id="view" x:prototype="edit">
-            <!-- 继承的_NopRuleDefinition模型中已经定义了layout，这里希望使用edit所对应的layout，所以要删除继承的部分。
-                x:prototype在x:extends执行完毕之后执行。
-             -->
-            <layout x:override="remove"/>
+        <form id="view" x:prototype="template">
+            <layout>
+                ==baseInfo[基本信息]====
+                ruleName[规则名称] ruleVersion[规则版本]
+                displayName[显示名称] ruleGroup[规则分组]
+                ruleType[规则类型] status[状态]
+                description[描述]
+                remark[备注]
+
+                ==authConfig[权限配置]===
+                !ruleRoles
+
+                ==inputsConfig[输入]===
+                !ruleInputs
+
+                ==outputsConfig[输出]===
+                !ruleOutputs
+
+                ==extConfig[扩展配置]==
+                beforeExecute
+
+                ==matrixConfig[决策矩阵配置]==
+                decisionMatrix
+            </layout>
 
             <cells>
                 <cell id="ruleInputs">
@@ -79,6 +118,10 @@
                     <gen-control>
                         return { "$ref": "viewOutputDefinition" }
                     </gen-control>
+                </cell>
+
+                <cell id="decisionMatrix">
+                    <visibleOn>${ruleType == 'MATX'}</visibleOn>
                 </cell>
             </cells>
         </form>
