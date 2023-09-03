@@ -337,8 +337,8 @@
                     let cellModel = formModel.getCell(formCell.id);
                     let propMeta = objMeta?.getProp(cellModel?.prop || formCell.id);
                     let rd = formCell.readonly || cellModel?.readonly
-                                 || (formModel.editMode == 'update' && !propMeta?.updatable)
-                                 || (formModel.editMode == 'add' && !propMeta?.insertable);
+                                 || ((formModel.editMode == 'update' or formModel.editMode == 'edit') && propMeta && !propMeta?.updatable)
+                                 || (formModel.editMode == 'add' && propMeta && !propMeta?.insertable);
 
                     // 在编辑关联表时会明确指定字段的值固定，此时自动输出hidden字段
                     if(!rd and fixedProps?.contains(formCell.id)){
@@ -362,7 +362,7 @@
                     let hint = cellModel?.hint
 
                     let cell = {
-                        name: (mode?.startsWith('query') and !formCell.id.startsWith('v_')?
+                        name: (mode.startsWith('query') and !formCell.id.startsWith('v_')?
                                     'filter_' + formCell.id + (filterOp ? '__'+filterOp:'')
                                     : formCell.id),
                         // 不显示label的时候，以label为placeholder

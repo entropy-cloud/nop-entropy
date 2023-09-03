@@ -36881,6 +36881,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDecisionMatrix",
+        "parameterTypes": []
+      },
+      {
         "name": "getDecisionMatrxi",
         "parameterTypes": []
       },

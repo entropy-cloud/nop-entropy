@@ -8,7 +8,7 @@
     </grids>
 
     <forms>
-        <form id="template" x:abstract="true">
+        <form id="template" x:abstract="true" layoutControl="tabs" size="xl" labelWidth="130px">
             <cells>
                 <cell id="ruleInputs">
                     <selection>
@@ -24,7 +24,7 @@
             </cells>
         </form>
 
-        <form id="edit" layoutControl="tabs" size="xl" x:prototype="template">
+        <form id="edit" x:prototype="template">
             <layout>
                 ==baseInfo[基本信息]====
                 __useImportFile importFile
@@ -54,10 +54,10 @@
                 <!-- custom=true表示此字段不需要在meta中定义
                   两个下划线作为前缀表示此字段仅在前端使用，不会提交到后台
                 -->
-                <cell id="__useImportFile" custom="true" stdDomain="boolean">
+                <cell id="__useImportFile" label="导入模型文件" custom="true" stdDomain="boolean">
                 </cell>
 
-                <cell id="importFile" stdDomain="file">
+                <cell id="importFile" stdDomain="file" editMode="edit">
                     <visibleOn>${__useImportFile}</visibleOn>
                 </cell>
 
@@ -68,6 +68,11 @@
                 <cell id="outputsConfig">
                     <visibleOn>${!__useImportFile}</visibleOn>
                 </cell>
+
+                <cell id="extConfig">
+                    <visibleOn>${!__useImportFile}</visibleOn>
+                </cell>
+
 
                 <cell id="matrixConfig">
                     <visibleOn>${ruleType == 'MATX'}</visibleOn>

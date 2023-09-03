@@ -54,7 +54,7 @@ public class NopRuleDefinition extends _NopRuleDefinition {
         getModelTextXmlComponent().setChildBodyXml(RULE_TAG_NAME, BEFORE_EXECUTE_NAME, value);
     }
 
-    public String getDecisionMatrxi() {
+    public String getDecisionMatrix() {
         return getModelTextXmlComponent().getChildBodyXml(DECISION_MATRIX_NAME);
     }
 

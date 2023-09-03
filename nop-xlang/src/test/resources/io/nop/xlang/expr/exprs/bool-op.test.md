@@ -42,3 +42,10 @@ let x = null;
 $.checkEquals('a', x ?? 'a');
 $.checkEquals(true, x ?? !x);
 ````
+
+## 5. 空值取反
+
+````expr
+let propMeta = null;
+$.checkState(!propMeta?.insertable)
+````
