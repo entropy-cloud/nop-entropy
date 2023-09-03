@@ -61,22 +61,29 @@
                     <visibleOn>${__useImportFile}</visibleOn>
                 </cell>
 
-                <cell id="ruleInputs">
+                <cell id="inputsConfig">
                     <visibleOn>${!__useImportFile}</visibleOn>
+                </cell>
+
+                <cell id="outputsConfig">
+                    <visibleOn>${!__useImportFile}</visibleOn>
+                </cell>
+
+                <cell id="matrixConfig">
+                    <visibleOn>${ruleType == 'MATX'}</visibleOn>
+                </cell>
+
+                <cell id="ruleInputs">
+
                     <gen-control>
                         return { "$ref": "inputDefinition" }
                     </gen-control>
                 </cell>
 
                 <cell id="ruleOutputs">
-                    <visibleOn>${!__useImportFile}</visibleOn>
                     <gen-control>
                         return { "$ref":"outputDefinition" }
                     </gen-control>
-                </cell>
-
-                <cell id="decisionMatrix">
-                    <visibleOn>${ruleType == 'MATRX}</visibleOn>
                 </cell>
             </cells>
         </form>

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopWfOutput" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/wf/model/NopWfOutput/NopWfOutput.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--工作流实例ID-->
+                <col id="wfId" mandatory="true" sortable="true"/>
+
+                <!--变量名-->
+                <col id="fieldName" mandatory="true" sortable="true"/>
+
+                <!--变量类型-->
+                <col id="fieldType" mandatory="true" sortable="true"/>
+
+                <!--字符串值-->
+                <col id="stringValue" sortable="true"/>
+
+                <!--浮点值-->
+                <col id="decimalValue" sortable="true"/>
+
+                <!--整数型-->
+                <col id="longValue" sortable="true"/>
+
+                <!--日期值-->
+                <col id="dateValue" sortable="true"/>
+
+                <!--时间点值-->
+                <col id="timestampValue" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-工作流输出变量" i18n-en:title="View Workflow Outputs">
+            <layout>
+ wfId[工作流实例ID] fieldName[变量名]
+ fieldType[变量类型] stringValue[字符串值]
+ decimalValue[浮点值] longValue[整数型]
+ dateValue[日期值] timestampValue[时间点值]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-工作流输出变量" i18n-en:title="Add Workflow Outputs" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-工作流输出变量" i18n-en:title="Edit Workflow Outputs">
+            <layout>
+ wfId[工作流实例ID]
+ fieldName[变量名]
+ fieldType[变量类型]
+ stringValue[字符串值]
+ decimalValue[浮点值]
+ longValue[整数型]
+ dateValue[日期值]
+ timestampValue[时间点值]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流输出变量"
+              i18n-en:title="Update Workflow Outputs">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopWfOutput__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopWfOutput__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopWfOutput__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopWfOutput__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopWfOutput__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopWfOutput__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopWfOutput__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopWfOutput__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopWfOutput__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

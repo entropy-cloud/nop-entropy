@@ -25,7 +25,8 @@ public class NopReportWebCodeGen {
         try {
             File projectDir = MavenDirHelper.projectDir(NopReportWebCodeGen.class);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-report-codegen"), "/", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-report-service"), "/", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-report-meta"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-report-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

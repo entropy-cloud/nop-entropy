@@ -105,7 +105,7 @@
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-用户" i18n-en:title="Add User" x:prototype="edit"/>
-        <form id="edit" editMode="update" title="编辑-用户" i18n-en:title="Edit User">
+        <form id="edit" editMode="edit" title="编辑-用户" i18n-en:title="Edit User">
             <layout>
  userName[用户名] nickName[昵称]
  deptId[部门] openId[用户外部标识]
@@ -125,7 +125,7 @@
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-用户" i18n-en:title="Update User">
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-用户" i18n-en:title="Update User">
             <layout/>
         </form>
     </forms>

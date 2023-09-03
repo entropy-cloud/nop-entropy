@@ -8,6 +8,9 @@
 package io.nop.xui;
 
 public interface XuiConstants {
+    // update作为edit的别名
+    String MODE_UPDATE = "update";
+
     String MODE_EDIT = "edit";
     String MODE_VIEW = "view";
     String MODE_QUERY = "query";

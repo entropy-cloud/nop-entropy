@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopWfStepInstance" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/wf/model/NopWfStepInstance/NopWfStepInstance.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--步骤ID-->
+                <col id="stepId" mandatory="true" sortable="true"/>
+
+                <!--工作流实例ID-->
+                <col id="wfId" mandatory="true" sortable="true"/>
+
+                <!--步骤类型-->
+                <col id="stepType" mandatory="true" sortable="true"/>
+
+                <!--步骤名称-->
+                <col id="stepName" mandatory="true" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" mandatory="true" sortable="true"/>
+
+                <!--应用状态-->
+                <col id="appState" sortable="true"/>
+
+                <!--子工作流名-->
+                <col id="subWfName" sortable="true"/>
+
+                <!--子流程版本-->
+                <col id="subWfVersion" sortable="true"/>
+
+                <!--是否已读-->
+                <col id="isRead" sortable="true"/>
+
+                <!--参与者类型-->
+                <col id="actorType" sortable="true"/>
+
+                <!--参与者部门ID-->
+                <col id="actorDeptId" sortable="true"/>
+
+                <!--参与者姓名-->
+                <col id="actorName" sortable="true"/>
+
+                <!--拥有者姓名-->
+                <col id="ownerName" sortable="true"/>
+
+                <!--分配者ID-->
+                <col id="assignerId" sortable="true"/>
+
+                <!--分配者姓名-->
+                <col id="assignerName" sortable="true"/>
+
+                <!--调用者姓名-->
+                <col id="callerName" sortable="true"/>
+
+                <!--取消人姓名-->
+                <col id="cancellerName" sortable="true"/>
+
+                <!--来源操作-->
+                <col id="fromAction" sortable="true"/>
+
+                <!--最后一次操作-->
+                <col id="lastAction" sortable="true"/>
+
+                <!--开始时间-->
+                <col id="startTime" sortable="true"/>
+
+                <!--结束时间-->
+                <col id="finishTime" sortable="true"/>
+
+                <!--到期时间-->
+                <col id="dueTime" sortable="true"/>
+
+                <!--读取时间-->
+                <col id="readTime" sortable="true"/>
+
+                <!--优先级-->
+                <col id="priority" mandatory="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true" x:abstract="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-工作流步骤实例" i18n-en:title="View Workflow Step Instance">
+            <layout>
+ stepId[步骤ID] wfId[工作流实例ID]
+ stepType[步骤类型] stepName[步骤名称]
+ status[状态] appState[应用状态]
+ subWfName[子工作流名] subWfVersion[子流程版本]
+ isRead[是否已读] actorType[参与者类型]
+ actorDeptId[参与者部门ID] actorName[参与者姓名]
+ ownerName[拥有者姓名] assignerId[分配者ID]
+ assignerName[分配者姓名] callerName[调用者姓名]
+ cancellerName[取消人姓名] fromAction[来源操作]
+ lastAction[最后一次操作] startTime[开始时间]
+ finishTime[结束时间] dueTime[到期时间]
+ readTime[读取时间] priority[优先级]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-工作流步骤实例" i18n-en:title="Add Workflow Step Instance" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-工作流步骤实例" i18n-en:title="Edit Workflow Step Instance">
+            <layout>
+ stepId[步骤ID] wfId[工作流实例ID]
+ stepType[步骤类型] stepName[步骤名称]
+ status[状态] appState[应用状态]
+ subWfName[子工作流名] subWfVersion[子流程版本]
+ isRead[是否已读] actorType[参与者类型]
+ actorDeptId[参与者部门ID] actorName[参与者姓名]
+ ownerName[拥有者姓名] assignerId[分配者ID]
+ assignerName[分配者姓名] callerName[调用者姓名]
+ cancellerName[取消人姓名] fromAction[来源操作]
+ lastAction[最后一次操作] startTime[开始时间]
+ finishTime[结束时间] dueTime[到期时间]
+ readTime[读取时间] priority[优先级]
+ remark[备注] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流步骤实例"
+              i18n-en:title="Update Workflow Step Instance">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopWfStepInstance__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopWfStepInstance__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopWfStepInstance__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopWfStepInstance__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopWfStepInstance__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopWfStepInstance__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopWfStepInstance__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopWfStepInstance__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopWfStepInstance__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

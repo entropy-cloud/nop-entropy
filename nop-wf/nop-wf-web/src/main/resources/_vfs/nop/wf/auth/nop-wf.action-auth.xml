@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:extends="_nop-wf.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <site id="main">
+        <resource id="test-orm-nop-wf">
+            <children/>
+        </resource>
+    </site>
+</auth>

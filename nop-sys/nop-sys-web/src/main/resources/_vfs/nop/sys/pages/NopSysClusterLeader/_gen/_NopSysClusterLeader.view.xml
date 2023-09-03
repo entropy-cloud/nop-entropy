@@ -48,7 +48,7 @@
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-集群选举" i18n-en:title="Add Cluster Leader" x:prototype="edit"/>
-        <form id="edit" editMode="update" title="编辑-集群选举" i18n-en:title="Edit Cluster Leader">
+        <form id="edit" editMode="edit" title="编辑-集群选举" i18n-en:title="Edit Cluster Leader">
             <layout>
  clusterId[集群ID]
  leaderId[主服务器ID]
@@ -65,7 +65,7 @@
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-集群选举" i18n-en:title="Update Cluster Leader">
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-集群选举" i18n-en:title="Update Cluster Leader">
             <layout/>
         </form>
     </forms>

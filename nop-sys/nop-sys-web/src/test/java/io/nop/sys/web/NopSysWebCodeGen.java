@@ -25,8 +25,8 @@ public class NopSysWebCodeGen {
         try {
             File projectDir = MavenDirHelper.projectDir(NopSysWebCodeGen.class);
             XCodeGenerator.runPostcompile(new File(projectDir, "../nop-sys-codegen"), "/", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-sys-service"), "/", false);
-            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-sys-service"), "/", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-sys-meta"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-sys-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

@@ -24,8 +24,9 @@ public class NopJobWebCodeGen {
         CoreInitialization.initialize();
         try {
             File projectDir = MavenDirHelper.projectDir(NopJobWebCodeGen.class);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-job-codegen"), "/", false);
-            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-job-service"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-job-codegen"), "/", false);
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-job-meta"), "/", false);
+            XCodeGenerator.runPostcompile(new File(projectDir, "../nop-job-meta"), "/", false);
             XCodeGenerator.runPrecompile(projectDir, "/", false);
         } finally {
             CoreInitialization.destroy();

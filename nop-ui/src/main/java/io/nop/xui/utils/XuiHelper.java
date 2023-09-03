@@ -71,6 +71,9 @@ public class XuiHelper {
             }
         }
 
+        if(XuiConstants.MODE_UPDATE.equals(editMode))
+            editMode = MODE_EDIT;
+
         if (control == null && propMeta != null)
             control = (String) propMeta.prop_get(XuiConstants.UI_CONTROL);
 

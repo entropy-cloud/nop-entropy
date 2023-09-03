@@ -83,7 +83,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="g
            <web-gen:GenLayout props="${insertableProps}" />
         </form>
 
-        <form id="edit" editMode="update"
+        <form id="edit" editMode="edit"
             title="编辑-${objMeta.displayName}" i18n-en:title="Edit ${objMeta['i18n-en:displayName']}"
             xpl:if="supportUpdate">
             <web-gen:GenLayout props="${editableProps}" />
@@ -98,7 +98,7 @@ xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="g
             <layout />
         </form>
 
-        <form id="batchUpdate" editMode="update" x:abstract="true" xpl:if="supportUpdate"
+        <form id="batchUpdate" editMode="edit" x:abstract="true" xpl:if="supportUpdate"
             title="修改-${objMeta.displayName}" i18n-en:title="Update ${objMeta['i18n-en:displayName']}">
             <layout/>
         </form>

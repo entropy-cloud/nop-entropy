@@ -52,7 +52,7 @@
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-多语言消息" i18n-en:title="Add I18n Message" x:prototype="edit"/>
-        <form id="edit" editMode="update" title="编辑-多语言消息" i18n-en:title="Edit I18n Message">
+        <form id="edit" editMode="edit" title="编辑-多语言消息" i18n-en:title="Edit I18n Message">
             <layout>
  i18nKey[字符串Key]
  i18nLocale[语言]
@@ -66,7 +66,7 @@
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-多语言消息" i18n-en:title="Update I18n Message">
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-多语言消息" i18n-en:title="Update I18n Message">
             <layout/>
         </form>
     </forms>

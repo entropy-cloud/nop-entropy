@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<c:script>
-// 根据ORM模型生成dao/entity/xbiz
-codeGenerator.withTargetDir("../").renderModel('../../model/nop-job.orm.xlsx','/nop/templates/orm', '/',$scope);
-</c:script>

@@ -22,5 +22,6 @@
   "ruleInputs": null,
   "ruleOutputs": null,
   "beforeExecute": null,
-  "importFile": null
+  "importFile": null,
+  "decisionMatrix": null
 }

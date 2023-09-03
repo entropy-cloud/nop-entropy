@@ -98,7 +98,7 @@
         </form>
         <form id="add" editMode="add" title="新增-MakerChecker审批记录" i18n-en:title="Add Maker Checker Record"
               x:prototype="edit"/>
-        <form id="edit" editMode="update" title="编辑-MakerChecker审批记录" i18n-en:title="Edit Maker Checker Record">
+        <form id="edit" editMode="edit" title="编辑-MakerChecker审批记录" i18n-en:title="Edit Maker Checker Record">
             <layout>
  sid[主键] bizObjName[业务对象名]
  bizObjId[业务对象ID] makerId[请求发起人ID]
@@ -117,7 +117,7 @@
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-MakerChecker审批记录"
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-MakerChecker审批记录"
               i18n-en:title="Update Maker Checker Record">
             <layout/>
         </form>
