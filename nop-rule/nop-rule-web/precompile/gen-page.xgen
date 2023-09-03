@@ -2,4 +2,6 @@
 <c:script>
 // 根据xmeta生成页面文件view.xml/page.yaml
 codeGenerator.withTplDir('/nop/templates/orm-web').execute("/",{ moduleId: "nop/rule" },$scope);
+
+    codeGenerator.renderModel('../../model/nop-rule.api.xlsx','/nop/templates/api-web', '/',$scope);
 </c:script>

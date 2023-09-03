@@ -78,7 +78,7 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="methods" displayName="方法列表" list="true">
+                <field name="methods" displayName="方法列表" list="true" keyProp="name">
                     <normalizeFieldsExpr>
                         <c:script><![CDATA[
                     const beanPackage = rootRecord['ext:apiPackageName']+'.beans';

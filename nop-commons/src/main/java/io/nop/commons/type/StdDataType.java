@@ -311,6 +311,30 @@ public enum StdDataType {
         return convert(value, NopException::new);
     }
 
+    public String getJsonType() {
+        switch (this) {
+            case BOOLEAN:
+                return "boolean";
+            case INT:
+            case LONG:
+            case SHORT:
+            case BYTE:
+            case FLOAT:
+            case DOUBLE:
+            case DECIMAL:
+                return "number";
+            case NULL:
+                return "null";
+            case MAP:
+                return "object";
+            case LIST:
+                return "array";
+            case STRING:
+            default:
+                return "string";
+        }
+    }
+
     public String getDemoJsonValue() {
         switch (this) {
             case STRING: {

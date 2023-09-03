@@ -8,19 +8,20 @@
     <forms>
         <c:script><![CDATA[
             let formNames = new Set();
-            service.methods.forEach(method=>{
+            serviceModel.methods.forEach(method=>{
                 formNames.add(method.requestMessage.$simpleClassName())
             });
         ]]></c:script>
         <c:for var="formName" items="${formNames}">
-            <form name="${formName}" editMode="add">
+            <form id="${formName}" editMode="edit">
                 <c:script>
                     let message = apiModel.messages.getByKey(formName);
                 </c:script>
-
-                <c:for var="field" items="${message?.fields}">
-                    ${field.name}
-                </c:for>
+                <layout>
+                    <c:for var="field" items="${message?.fields}">
+                        ${field.name}
+                    </c:for>
+                </layout>
             </form>
         </c:for>
     </forms>

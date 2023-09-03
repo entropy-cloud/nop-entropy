@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:extends="_RuleService.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <pages>
+        <tabs name="main"/>
+    </pages>
+</view>

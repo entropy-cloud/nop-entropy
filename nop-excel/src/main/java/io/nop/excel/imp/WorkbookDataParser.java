@@ -13,6 +13,7 @@ import io.nop.api.core.util.INeedInit;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
+import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.object.DynamicObject;
@@ -157,7 +158,8 @@ public class WorkbookDataParser {
     }
 
     private void parseSheets(ImportSheetModel sheetModel, List<ExcelSheet> sheets, DynamicObject obj, IEvalScope scope) {
-        List<Object> list = new ArrayList<>();
+        List<Object> list = sheetModel.getKeyProp() == null ? new ArrayList<>() :
+                new KeyedList<>(o -> BeanTool.instance().getProperty(o, sheetModel.getKeyProp()));
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj, list);
 
         for (ExcelSheet sheet : sheets) {

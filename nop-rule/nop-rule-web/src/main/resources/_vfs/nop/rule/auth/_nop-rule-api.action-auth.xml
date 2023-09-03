@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-api-nop-rule" displayName="测试nop-rule" icon="ion:grid-outline" resourceType="TOPM"
+                  routePath="/test-api-nop-rule" component="layouts/default/index">
+            <children>
+                <resource id="RuleService-main" displayName="规则引擎服务" i18n-en:displayName="Rule Service"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/rule/pages/RuleService/main.page.yaml"/>
+            </children>
+        </resource>
+    </site>
+</auth>

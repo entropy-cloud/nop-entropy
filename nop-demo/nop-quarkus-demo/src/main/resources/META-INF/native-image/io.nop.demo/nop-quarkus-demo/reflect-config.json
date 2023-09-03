@@ -25469,6 +25469,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFieldName",
+        "parameterTypes": []
+      },
+      {
         "name": "getFileExt",
         "parameterTypes": []
       },
@@ -25494,6 +25498,12 @@
       },
       {
         "name": "setBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFieldName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -26016,6 +26026,15 @@
       {
         "name": "getFileLink",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFileResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
           "java.lang.String"
         ]
       },
@@ -35372,6 +35391,12 @@
         "parameterTypes": []
       },
       {
+        "name": "orm_getBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "orm_inited",
         "parameterTypes": []
       },
@@ -36344,6 +36369,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getRuleType",
+        "parameterTypes": []
       },
       {
         "name": "init",
@@ -38345,6 +38374,20 @@
     ],
     "methods": [
       {
+        "name": "defaultPrepareSave",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "defaultPrepareUpdate",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "getConditionFields",
         "parameterTypes": [
           "java.lang.String",
@@ -38356,6 +38399,12 @@
         "parameterTypes": [
           "java.lang.String",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "importExcelFile",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData"
         ]
       }
     ],

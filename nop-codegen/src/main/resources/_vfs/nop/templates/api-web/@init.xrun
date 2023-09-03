@@ -1,15 +1,15 @@
 <gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
     <c:script><![CDATA[
         let apiModel = codeGenModel;
-        let appName = ormModel['ext:appName'];
+        let appName = apiModel['ext:appName'];
         let apiModuleName = apiModel['ext:apiModuleName'];
         let apiPackageName = apiModel['ext:apiPackageName'];
         let serviceModuleName = apiModel['ext:serviceModuleName'];
         let servicePackageName = apiModel['ext:servicePackageName'];
 
-        let moduleId = ormModel['ext:moduleId'] || appName.replace('-','/');
+        let moduleId = apiModel['ext:moduleId'] || appName.replace('-','/');
 
-        let apiModelName = apiModel.resourcePath.$fullFileName().$firstPart('.')
+        let apiModelName = appName;
 
         builder.defineGlobalVar("apiModel",apiModel);
         builder.defineGlobalVar("apiModelName",apiModelName);

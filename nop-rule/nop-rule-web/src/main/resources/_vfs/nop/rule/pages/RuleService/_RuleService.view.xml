@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <forms>
+        <form id="RuleRequestBean" editMode="edit">
+            <layout>
+                        ruleName
+                    
+                        ruleVersion
+                    
+                        inputs
+                    </layout>
+        </form>
+        <form id="RuleKeyBean" editMode="edit">
+            <layout>
+                        ruleName
+                    
+                        ruleVersion
+                    </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="executeRule" form="RuleRequestBean">
+            <api url="/r/RuleService__executeRule"/>
+        </simple>
+        <simple name="getRuleMeta" form="RuleKeyBean">
+            <api url="/r/RuleService__getRuleMeta"/>
+        </simple>
+        <tabs name="main" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
+            <tab name="executeRule" page="executeRule" title="执行规则"/>
+            <tab name="getRuleMeta" page="getRuleMeta" title="得到规则元数据"/>
+        </tabs>
+    </pages>
+</view>
