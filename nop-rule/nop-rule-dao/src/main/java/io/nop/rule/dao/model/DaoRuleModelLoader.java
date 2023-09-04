@@ -22,7 +22,6 @@ import io.nop.rule.core.model.compile.RuleModelCompiler;
 import io.nop.rule.dao.entity.NopRuleDefinition;
 import io.nop.rule.dao.entity.NopRuleNode;
 import io.nop.xlang.XLangConstants;
-import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.XDslKeys;
@@ -73,7 +72,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         }
         RuleModel ruleModel = loadRule(ruleName, ruleVersion);
 
-        new RuleModelCompiler(XLang.newCompileTool()).compileRule(ruleModel);
+        new RuleModelCompiler().compileRule(ruleModel);
         return ruleModel;
     }
 
@@ -153,6 +152,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         XNode node = entity.getModelTextXmlComponent().makeNode("rule").cloneInstance();
 
         node.setAttr("displayName", entity.getDisplayName());
+        node.setAttr("ruleVersion", entity.getRuleVersion());
         node.setAttr(XDslKeys.DEFAULT.SCHEMA, RuleConstants.XDSL_SCHEMA_RULE);
 
 //        XNode inputs = node.makeChild("inputs");

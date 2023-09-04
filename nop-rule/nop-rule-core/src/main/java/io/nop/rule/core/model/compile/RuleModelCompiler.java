@@ -1,6 +1,7 @@
 package io.nop.rule.core.model.compile;
 
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalAction;
@@ -88,7 +89,12 @@ public class RuleModelCompiler {
         if (filter == null)
             return IEvalPredicate.ALWAYS_TRUE;
 
-        return new FilterBeanToPredicateTransformer(compileTool).visit(filter, compileTool.getScope());
+        try {
+            return new FilterBeanToPredicateTransformer(compileTool).visitRoot(filter, compileTool.getScope());
+        } catch (NopException e) {
+            e.addXplStack("compilePredicate:id=" + node.getId() + ",loc=" + node.getLocation());
+            throw e;
+        }
     }
 
     private IEvalAction compileOutputAction(List<RuleOutputValueModel> outputs) {

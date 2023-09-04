@@ -40,6 +40,7 @@ public class RuleServiceImpl implements RuleServiceSpi {
     public java.util.Map<String, Object> executeRule(@RequestBean RuleRequestBean request,
                                                      FieldSelectionBean selection, IServiceContext ctx) {
         IRuleRuntime ruleRt = ruleManager.newRuntime(ctx.getEvalScope());
+        ruleRt.setInputs(request.getInputs());
         return ruleManager.executeRule(request.getRuleName(), request.getRuleVersion(), ruleRt);
     }
 

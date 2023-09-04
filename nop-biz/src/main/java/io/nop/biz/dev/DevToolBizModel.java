@@ -21,6 +21,7 @@ public class DevToolBizModel {
     @BizMutation
     @Description("清空组件缓存")
     public void clearComponentCache() {
+        refreshVirtualFileSystem();
         ResourceComponentManager.instance().clearAllCache();
         GlobalCacheRegistry.instance().clearAllCache();
     }

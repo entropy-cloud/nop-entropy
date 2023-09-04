@@ -35,6 +35,8 @@
                          xpl:if="pageModel.initApi || formModel.initApi"/>
                 <api xpl:attrs="xpl('thisLib:NormalizeApi',api,genScope)" xpl:if="api"/>
 
+                <messages xpl:attrs="{...pageModel.messages,...formModel.messages}" />
+
                 <asyncApi xpl:attrs="xpl('thisLib:NormalizeApi',formModel.asyncApi,genScope)"
                           xpl:if="formModel.asyncApi"/>
                 <initAsyncApi xpl:attrs="xpl('thisLib:NormalizeApi',formModel.initAsyncApi,genScope)"

@@ -37,6 +37,19 @@
         <c:for var="method" items="${serviceModel.methods}">
             <simple name="${method.name}" form="${method.requestMessage.$simpleClassName()}">
                 <api url="/r/${serviceModel.name}__${method.name}"/>
+
+                <actions>
+                    <action id="${serviceModel.name}__${method.name}-cancel" label="@i18n:common.cancel|取消" actionType="cancel">
+                    </action>
+
+                    <action id="${serviceModel.name}__${method.name}-submit" label="@i18n:common.submit|提交" level="primary" actionType="ajax">
+                        <api url="/r/${serviceModel.name}__${method.name}"/>
+
+                        <messages>
+                            <success>执行成功</success>
+                        </messages>
+                    </action>
+                </actions>
             </simple>
         </c:for>
 

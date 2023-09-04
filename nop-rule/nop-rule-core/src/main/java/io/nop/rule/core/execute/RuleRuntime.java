@@ -22,8 +22,10 @@ public class RuleRuntime implements IRuleRuntime {
 
     private final Map<String, Object> outputs = new LinkedHashMap<>();
 
+    private Map<String, Object> inputs;
+
     public RuleRuntime(IEvalScope scope) {
-        this.scope = scope == null ? XLang.newEvalScope() : scope;
+        this.scope = scope == null ? XLang.newEvalScope() : scope.newChildScope();
         this.scope.setLocalValue(RuleConstants.VAR_RULE_RT, this);
     }
 
@@ -56,6 +58,15 @@ public class RuleRuntime implements IRuleRuntime {
     public void clearOutputs() {
         outputLists.clear();
         outputs.clear();
+    }
+
+    public void setInputs(Map<String, Object> inputs) {
+        this.inputs = inputs;
+    }
+
+    @Override
+    public Map<String, Object> getInputs() {
+        return inputs;
     }
 
     @Override

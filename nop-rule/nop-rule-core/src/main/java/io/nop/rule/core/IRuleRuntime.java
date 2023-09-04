@@ -15,6 +15,16 @@ import java.util.List;
 import java.util.Map;
 
 public interface IRuleRuntime extends IEvalContext {
+    Map<String, Object> getInputs();
+
+    void setInputs(Map<String, Object> inputs);
+
+    default Object getInput(String name) {
+        Map<String, Object> inputs = getInputs();
+        if (inputs == null)
+            return null;
+        return inputs.get(name);
+    }
 
     /**
      * 检查规则的匹配条件时所使用的上下文对象
@@ -45,7 +55,7 @@ public interface IRuleRuntime extends IEvalContext {
 
         IEvalScope scope = context.getEvalScope();
         IRuleRuntime ruleRt = (IRuleRuntime) scope.getValue(RuleConstants.VAR_RULE_RT);
-        Guard.notNull(ruleRt, "ruleRt");
+        Guard.notNull(ruleRt, RuleConstants.VAR_RULE_RT);
         return ruleRt;
     }
 }

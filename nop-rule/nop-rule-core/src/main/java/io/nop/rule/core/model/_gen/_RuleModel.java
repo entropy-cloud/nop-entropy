@@ -71,6 +71,13 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     private KeyedList<io.nop.rule.core.model.RuleOutputDefineModel> _outputs = KeyedList.emptyList();
     
     /**
+     *  
+     * xml name: ruleVersion
+     * 
+     */
+    private java.lang.Integer _ruleVersion ;
+    
+    /**
      * 
      * xml name: afterExecute
      *  无论规则是否成功匹配，都会执行到这里
@@ -274,6 +281,25 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         return !this._outputs.isEmpty();
     }
     
+    /**
+     * 
+     * xml name: ruleVersion
+     *  
+     */
+    
+    public java.lang.Integer getRuleVersion(){
+      return _ruleVersion;
+    }
+
+    
+    public void setRuleVersion(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._ruleVersion = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -303,6 +329,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         out.put("displayName",this.getDisplayName());
         out.put("inputs",this.getInputs());
         out.put("outputs",this.getOutputs());
+        out.put("ruleVersion",this.getRuleVersion());
     }
 }
  // resume CPD analysis - CPD-ON

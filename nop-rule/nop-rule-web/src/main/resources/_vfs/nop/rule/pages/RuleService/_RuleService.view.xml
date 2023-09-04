@@ -34,9 +34,29 @@
     <pages>
         <simple name="executeRule" form="RuleRequestBean">
             <api url="/r/RuleService__executeRule"/>
+            <actions>
+                <action id="RuleService__executeRule-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="RuleService__executeRule-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/RuleService__executeRule"/>
+                    <messages>
+                        <success>执行成功</success>
+                    </messages>
+                </action>
+            </actions>
         </simple>
         <simple name="getRuleMeta" form="RuleKeyBean">
             <api url="/r/RuleService__getRuleMeta"/>
+            <actions>
+                <action id="RuleService__getRuleMeta-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
+                <action id="RuleService__getRuleMeta-submit" label="@i18n:common.submit|提交" level="primary"
+                        actionType="ajax">
+                    <api url="/r/RuleService__getRuleMeta"/>
+                    <messages>
+                        <success>执行成功</success>
+                    </messages>
+                </action>
+            </actions>
         </simple>
         <tabs name="main" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
             <tab name="executeRule" page="executeRule" title="执行规则"/>

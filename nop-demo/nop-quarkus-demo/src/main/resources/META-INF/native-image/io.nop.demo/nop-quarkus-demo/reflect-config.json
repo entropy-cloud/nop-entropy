@@ -36888,6 +36888,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRuleVersion",
+        "parameterTypes": []
+      },
+      {
         "name": "hasInput",
         "parameterTypes": [
           "java.lang.String"
@@ -36967,6 +36971,12 @@
         "name": "setOutputs",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
         ]
       }
     ],

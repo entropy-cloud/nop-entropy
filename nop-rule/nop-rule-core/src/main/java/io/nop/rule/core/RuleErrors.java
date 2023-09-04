@@ -9,6 +9,8 @@ public interface RuleErrors {
     String ARG_TEXT = "text";
     String ARG_VAR_NAME = "varName";
 
+    String ARG_DISPLAY_NAME = "displayName";
+
     ErrorCode ERR_RULE_WORKBOOK_NO_RULE_SHEET =
             define("nop.err.rule.workbook-no-rule-sheet",
                     "工作簿中没有名称为Rule的Sheet");
@@ -29,6 +31,10 @@ public interface RuleErrors {
             define("nop.err.rule.unknown-input-var",
                     "未定义的输入变量：{varName}", ARG_VAR_NAME);
 
+    ErrorCode ERR_RULE_INPUT_NOT_ALLOW_COMPUTED_VAR =
+            define("nop.err.rule.input-not-allow-computed-var:{varName}",
+                    "计算变量不能作为输入参数", ARG_VAR_NAME);
+
     ErrorCode ERR_RULE_UNKNOWN_OUTPUT_VAR =
             define("nop.err.rule.unknown-output-var",
                     "未定义的输出变量: {varName}", ARG_VAR_NAME);
@@ -47,4 +53,8 @@ public interface RuleErrors {
 
     ErrorCode ERR_RULE_INVALID_OUTPUT_CELL =
             define("nop.err.rule.invalid-output-cell", "输出单元格格式不正确：{cellPos}");
+
+    ErrorCode ERR_RULE_INPUT_VAR_NOT_ALLOW_EMPTY =
+            define("nop.err.rule.input-var-not-allow-empty", "输入变量不允许为空:name={varName},displayName={}",
+                    ARG_VAR_NAME, ARG_DISPLAY_NAME);
 }

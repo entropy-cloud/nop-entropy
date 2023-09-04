@@ -7,9 +7,10 @@
                 <cell id="inputs">
                     <gen-control>
                         <editor language="json">
-                            <value>
-                                <_ j:key="$schema">/p/NopRuleDefinition__getInputJsonSchema?ruleName=$ruleName&amp;ruleVersion=$ruleVersion</_>
-                            </value>
+                            <value>{}</value>
+<!--                            <value>-->
+<!--                                <_ j:key="$schema">/p/NopRuleDefinition__getInputJsonSchema?ruleName=$ruleName&amp;ruleVersion=$ruleVersion</_>-->
+<!--                            </value>-->
                             <!--
                             editorDidMount函数传入  (editor, monaco) 两个参数，通过它们可以定制代码编辑器
                             -->
@@ -42,15 +43,8 @@
     <pages>
         <tabs name="main"/>
 
-        <simple name="test-rule" form="RuleRequestBean">
-            <actions>
-                <action id="submit-rule-service" label="提交" actionType="ajax">
-                    <api url="/r/RuleService__executeRule" >
-                    </api>
+        <simple name="executeRule">
 
-                    <feedback page="rule-result"/>
-                </action>
-            </actions>
         </simple>
 
         <simple name="rule-result" form="rule-result" />

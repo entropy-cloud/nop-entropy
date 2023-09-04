@@ -152,7 +152,7 @@
             <rowActions>
                 <actionGroup id="row-more-button">
                     <action id="row-test-rule" label="@i18n:rule.testRule|测试规则" actionType="dialog">
-                        <dialog page="/nop/rule/pages/RuleService/test-rule.page.yaml" />
+                        <dialog page="/nop/rule/pages/RuleService/executeRule.page.yaml" />
                     </action>
                     <action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
                         <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">

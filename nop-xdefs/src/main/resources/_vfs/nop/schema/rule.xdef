@@ -1,4 +1,4 @@
-<rule displayName="string" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+<rule displayName="string" ruleVersion="int" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       xdef:name="RuleModel"
       xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-package="io.nop.rule.core.model">
 
