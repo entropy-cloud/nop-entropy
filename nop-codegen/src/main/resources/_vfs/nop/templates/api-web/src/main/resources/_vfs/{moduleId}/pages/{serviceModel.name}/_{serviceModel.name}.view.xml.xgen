@@ -60,7 +60,7 @@
                     <action id="${serviceModel.name}__${method.name}-submit" label="@i18n:common.submit|提交" level="primary" actionType="ajax">
                         <api url="/r/${serviceModel.name}__${method.name}">
                             <adaptor>
-                                return {...payload,data:{ __result: JSON.stringify(payload.data || '') }}
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
                             </adaptor>
                         </api>
 

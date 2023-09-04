@@ -53,7 +53,7 @@
                         actionType="ajax">
                     <api url="/r/RuleService__executeRule">
                         <adaptor>
-                                return {...payload,data:{ __result: JSON.stringify(payload.data || '') }}
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
                             </adaptor>
                     </api>
                     <messages>
@@ -71,7 +71,7 @@
                         actionType="ajax">
                     <api url="/r/RuleService__getRuleMeta">
                         <adaptor>
-                                return {...payload,data:{ __result: JSON.stringify(payload.data || '') }}
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '',null,"  ") }}
                             </adaptor>
                     </api>
                     <messages>
