@@ -35,7 +35,7 @@
         @ui:maskPattern 如果设置了maskPattern，则在元编程阶段自动生成transformOut，输出到前台的时候会自动进行掩码转换
         -->
         <prop xdef:name="ObjPropMetaImpl"
-              name="!prop-path" displayName="string"
+              name="!prop-path" displayName="string" type="generic-type"
               mandatory="!boolean=false" internal="!boolean=false" allowCpExpr="boolean"
               deprecated="!boolean=false" defaultValue="any"
               mapToProp="prop-path" propId="int" depends="csv-set"

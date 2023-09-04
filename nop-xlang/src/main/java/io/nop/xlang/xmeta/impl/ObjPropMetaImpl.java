@@ -15,6 +15,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ISchemaNode;
 import io.nop.xlang.xmeta.impl._gen._ObjPropMetaImpl;
 
@@ -63,6 +64,20 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
             name = StringHelper.xmlNameToPropName(getChildXmlName());
         }
         return name;
+    }
+
+    public IGenericType getType() {
+        ISchema schema = getSchema();
+        return schema == null ? null : schema.getType();
+    }
+
+    public void setType(IGenericType type) {
+        ISchema schema = getSchema();
+        if (schema == null) {
+            schema = new SchemaImpl();
+            setSchema(schema);
+        }
+        ((SchemaNodeImpl) schema).setType(type);
     }
 
     public String toString() {

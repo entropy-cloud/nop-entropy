@@ -28,6 +28,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.resource.impl.DynamicResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.core.resource.impl.URLResource;
@@ -270,6 +271,14 @@ public class ResourceHelper {
 
     public static boolean isTenantPath(String path) {
         return path.startsWith(ResourceConstants.TENANT_PATH_PREFIX);
+    }
+
+    public static String newDynamicPath() {
+        return DynamicResource.newDynamicPath();
+    }
+
+    public static boolean isTextResource(String path) {
+        return ResourceConstants.RESOURCE_PATH_TEXT.equals(path);
     }
 
     /**

@@ -273,13 +273,11 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         }
 
         XNode children = XNode.make(CoreConstants.DUMMY_TAG_NAME);
-        if (propMeta.getXmlName() != null)
+        if (propMeta.getXmlName() != null && !propMeta.getXmlName().equals(propMeta.getChildXmlName()))
             children.setTagName(propMeta.getXmlName());
 
         Collection<Object> list = (Collection<Object>) value;
-        if (propMeta.getXmlName() != null && !propMeta.getXmlName().equals(propMeta.getChildXmlName())) {
-            children = XNode.make(propMeta.getXmlName());
-        }
+
         for (Object item : list) {
             if (item == null) {
                 // 不允许空值

@@ -235,6 +235,13 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: type
+     * 
+     */
+    private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     *  
      * xml name: updatable
      * 
      */
@@ -899,6 +906,25 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: type
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getType(){
+      return _type;
+    }
+
+    
+    public void setType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: updatable
      *  
      */
@@ -1006,6 +1032,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.put("tagSet",this.getTagSet());
         out.put("transformIn",this.getTransformIn());
         out.put("transformOut",this.getTransformOut());
+        out.put("type",this.getType());
         out.put("updatable",this.isUpdatable());
         out.put("xmlName",this.getXmlName());
         out.put("xmlPos",this.getXmlPos());

@@ -37774,6 +37774,13 @@
         ]
       },
       {
+        "name": "newOrmEntity",
+        "parameterTypes": [
+          "java.lang.Class",
+          "boolean"
+        ]
+      },
+      {
         "name": "newTypeConversionError",
         "parameterTypes": [
           "java.lang.String"
@@ -44340,8 +44347,18 @@
         "parameterTypes": []
       },
       {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
         "name": "getWriteAuth",
         "parameterTypes": []
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
       },
       {
         "name": "toNode",
@@ -45351,6 +45368,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
         "name": "getXmlName",
         "parameterTypes": []
       },
@@ -45634,6 +45655,12 @@
         "name": "setTransformOut",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
         ]
       },
       {

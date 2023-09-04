@@ -32,14 +32,20 @@ public class DaoRuleModelSaver {
             entity.getRuleNodes().clear();
         } else {
             List<RuleDecisionTreeModel> children = tree.getChildren();
-            updateNodes(entity.getRuleId(), children, entity.getRuleNodes());
+            updateNodes(entity, children, entity.getRuleNodes());
         }
     }
 
-    private void updateNodes(String ruleId,
+    private void updateNodes(NopRuleDefinition entity,
                              List<RuleDecisionTreeModel> children, Set<NopRuleNode> nodes) {
+        String ruleId = entity.getRuleId();
         if (children == null)
             children = Collections.emptyList();
+
+        if (children.isEmpty()) {
+            nodes.clear();
+            return;
+        }
 
         Map<String, NopRuleNode> map = new HashMap<>();
         for (NopRuleNode node : nodes) {
@@ -54,19 +60,18 @@ public class DaoRuleModelSaver {
                 continue;
 
             String predicate = JsonTool.serialize(child.getPredicate(), false);
-            System.out.println(index+"::"+predicate);
 
             NopRuleNode node = map.get(predicate);
             if (node == null) {
-                node = new NopRuleNode();
-                map.put(predicate,node);
+                node = entity.newOrmEntity(NopRuleNode.class, true);
+                map.put(predicate, node);
             }
             node.setPredicate(predicate);
             node.setRuleId(ruleId);
             node.setIsLeaf(node.getChildren().isEmpty());
             node.setSortNo(index);
             node.setOutputs(buildOutputs(child));
-            updateNodes(ruleId, child.getChildren(), node.getChildren());
+            updateNodes(entity, child.getChildren(), node.getChildren());
             list.add(node);
         }
 

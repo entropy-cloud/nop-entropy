@@ -7,7 +7,7 @@
     "ruleGroup": "default",
     "ruleType": "TREE",
     "ruleType_label": "TREE-决策树",
-    "modelText": "<rule displayName=\"测试规则\" x:schema=\"/nop/schema/rule.xdef\" xmlns:x=\"/nop/schema/xdsl.xdef\">\n    <inputs>\n        <input displayName=\"季度\" mandatory=\"true\" name=\"season\" type=\"java.lang.String\">\n            <schema/>\n        </input>\n        <input displayName=\"客人数\" mandatory=\"true\" name=\"guestCount\" type=\"java.lang.Integer\">\n            <schema/>\n        </input>\n    </inputs>\n    <outputs>\n        <output displayName=\"食物\" name=\"dish\" type=\"java.lang.String\">\n            <schema/>\n        </output>\n    </outputs>\n</rule>",
+    "modelText": "<rule displayName=\"测试规则\" x:schema=\"/nop/schema/rule.xdef\" xmlns:x=\"/nop/schema/xdsl.xdef\">\n    <inputs>\n        <input displayName=\"季度\" mandatory=\"true\" name=\"season\" type=\"String\">\n            <schema/>\n        </input>\n        <input displayName=\"客人数\" mandatory=\"true\" name=\"guestCount\" type=\"Integer\">\n            <schema/>\n        </input>\n    </inputs>\n    <outputs>\n        <output displayName=\"食物\" name=\"dish\" type=\"String\">\n            <schema/>\n        </output>\n    </outputs>\n</rule>",
     "status": 1,
     "status_label": "1-启用",
     "version": 0,
@@ -19,7 +19,7 @@
       {
         "name": "season",
         "displayName": "季度",
-        "type": "java.lang.String",
+        "type": "String",
         "mandatory": true,
         "computed": false,
         "defaultExpr": null,
@@ -29,7 +29,7 @@
       {
         "name": "guestCount",
         "displayName": "客人数",
-        "type": "java.lang.Integer",
+        "type": "Integer",
         "mandatory": true,
         "computed": false,
         "defaultExpr": null,
@@ -41,13 +41,14 @@
       {
         "name": "dish",
         "displayName": "食物",
-        "type": "java.lang.String",
+        "type": "String",
         "aggregate": null,
         "description": null,
         "schema": {}
       }
     ],
     "beforeExecute": null,
+    "decisionMatrix": null,
     "id": "@var:NopRuleDefinition@ruleId",
     "description": null,
     "remark": null

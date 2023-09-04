@@ -4,7 +4,6 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
-import io.nop.orm.IOrmEntity;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelHelper;
@@ -123,12 +122,13 @@ public class XmlOrmComponent extends AbstractOrmComponent {
             return;
         }
 
+        child.clearBody();
+
         XNode valueNode = XNodeParser.instance().parseFromText(null, xml);
-        if (valueNode.getTagName().equals(childName) || child.getTagName().equals(DUMMY_TAG_NAME)) {
+        if (valueNode.getTagName().equals(childName) || valueNode.getTagName().equals(DUMMY_TAG_NAME)) {
             child.content(valueNode.content());
             child.appendChildren(valueNode.detachChildren());
         } else {
-            child.clearBody();
             child.appendChild(valueNode);
         }
     }
@@ -157,9 +157,9 @@ public class XmlOrmComponent extends AbstractOrmComponent {
         XNode node = makeNode(objMeta.getXmlName());
         if (list != null) {
             XNode inputsNode = node.childByTag(childName);
-            if(inputsNode == null){
+            if (inputsNode == null) {
                 node.appendChild(list);
-            }else {
+            } else {
                 inputsNode.replaceBy(list);
             }
         } else {

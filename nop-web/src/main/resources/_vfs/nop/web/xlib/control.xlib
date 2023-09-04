@@ -922,7 +922,7 @@
         <view-any x:prototype="view-labelProp">
         </view-any>
 
-        <view-xpl>
+        <view-xml>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="objMeta"/>
@@ -933,9 +933,9 @@
                     language: "xml"
                 }
             ]]></source>
-        </view-xpl>
+        </view-xml>
 
-        <edit-xpl>
+        <edit-xml>
             <attr name="dispMeta"/>
             <attr name="propMeta"/>
             <attr name="objMeta"/>
@@ -946,6 +946,10 @@
                     language: "xml"
                 }
             ]]></source>
-        </edit-xpl>
+        </edit-xml>
+
+        <view-xpl x:prototype="view-xml" />
+
+        <edit-xpl x:prototype="edit-xml" />
     </tags>
 </lib>

@@ -118,7 +118,7 @@
                 beforeExecute
 
                 ==matrixConfig[决策矩阵配置]==
-                decisionMatrix
+                !decisionMatrix
             </layout>
 
             <cells>
@@ -134,7 +134,7 @@
                     </gen-control>
                 </cell>
 
-                <cell id="decisionMatrix">
+                <cell id="matrixConfig">
                     <visibleOn>${ruleType == 'MATX'}</visibleOn>
                 </cell>
             </cells>

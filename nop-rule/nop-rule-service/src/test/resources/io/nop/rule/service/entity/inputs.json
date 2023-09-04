@@ -1,0 +1,29 @@
+[
+  {
+    "name": "vv",
+    "displayName": "ddd",
+    "type": "Object",
+    "computed": false,
+    "mandatory": false,
+    "defaultExpr": null,
+    "schema": {
+      "props": [
+        {
+          "name": "aaa",
+          "displayName": "fff",
+          "internal": false,
+          "lazy": false,
+          "deprecated": false,
+          "mandatory": false,
+          "insertable": true,
+          "published": true,
+          "queryable": false,
+          "updatable": true,
+          "schema": {
+            "type": "Long"
+          }
+        }
+      ]
+    }
+  }
+]

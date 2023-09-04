@@ -625,7 +625,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public <T> T collectDepends(String resourcePath, Supplier<T> task) {
-        if (dependsManager.currentDepends() == null || StringHelper.isEmpty(resourcePath))
+        if (dependsManager.currentDepends() == null || StringHelper.isEmpty(resourcePath)
+                || ResourceConstants.RESOURCE_PATH_TEXT.equals(resourcePath))
             return task.get();
 
         IResourceReference resource = resolveResource(resourcePath);

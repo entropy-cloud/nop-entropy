@@ -60,7 +60,7 @@
                 </cell>
                 <cell id="outputsMap">
                     <gen-control>
-                        <input-kv addable="@:false">
+                        <input-kv addable="@:false" removable="@:false" valueType="static">
                             <keySchema type="static"/>
                             <valueSchema type="code" language="xml"/>
                         </input-kv>

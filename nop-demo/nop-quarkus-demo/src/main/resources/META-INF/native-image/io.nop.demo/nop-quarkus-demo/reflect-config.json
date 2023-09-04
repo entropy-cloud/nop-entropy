@@ -894,40 +894,6 @@
     "fields": [],
     "methods": [
       {
-        "name": "requireNew",
-        "parameterTypes": []
-      }
-    ],
-    "name": "io.nop.api.core.annotations.orm.SingleSession",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
-        "name": "propagation",
-        "parameterTypes": []
-      },
-      {
-        "name": "txnGroup",
-        "parameterTypes": []
-      }
-    ],
-    "name": "io.nop.api.core.annotations.txn.Transactional",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
         "name": "getEvalScope",
         "parameterTypes": []
       },
@@ -12208,16 +12174,6 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
-    "name": "io.nop.auth.service.audit.AuditServiceImpl__aop",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
     "methods": [
       {
         "name": "isPermitted",
@@ -20842,6 +20798,12 @@
         ]
       },
       {
+        "name": "isTextResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "isValidModuleId",
         "parameterTypes": [
           "java.lang.String"
@@ -20864,6 +20826,10 @@
         "parameterTypes": [
           "io.nop.core.resource.IResource"
         ]
+      },
+      {
+        "name": "newDynamicPath",
+        "parameterTypes": []
       },
       {
         "name": "normalizePath",
@@ -26379,6 +26345,300 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsRepeatable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocations",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "setArgs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIsRepeatable",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setLocations",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__Directive",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getArgs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeprecationReason",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsDeprecated",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "setArgs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setDeprecationReason",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIsDeprecated",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__Type"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__Field",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDefaultValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDefaultValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__Type"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__InputValue",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEnumValues",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInputFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInterfaces",
+        "parameterTypes": []
+      },
+      {
+        "name": "getKind",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOfType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPossibleTypes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSpecifiedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEnumValues",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setInputFields",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setInterfaces",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setKind",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__TypeKind"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOfType",
+        "parameterTypes": [
+          "io.nop.graphql.core.schema.introspection.__Type"
+        ]
+      },
+      {
+        "name": "setPossibleTypes",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setSpecifiedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__Type",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -27418,16 +27678,6 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
-    "name": "io.nop.ioc.model.BeanInterceptorModel",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
     "methods": [
       {
         "name": "getBeanValueType",
@@ -28168,49 +28418,6 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanImportModel",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
-        "name": "freeze",
-        "parameterTypes": [
-          "boolean"
-        ]
-      },
-      {
-        "name": "getBean",
-        "parameterTypes": []
-      },
-      {
-        "name": "getOrder",
-        "parameterTypes": []
-      },
-      {
-        "name": "outputJson",
-        "parameterTypes": [
-          "io.nop.core.lang.json.IJsonHandler"
-        ]
-      },
-      {
-        "name": "setBean",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      },
-      {
-        "name": "setOrder",
-        "parameterTypes": [
-          "int"
-        ]
-      }
-    ],
-    "name": "io.nop.ioc.model._gen._BeanInterceptorModel",
     "unsafeAllocated": false
   },
   {
@@ -35237,6 +35444,13 @@
         ]
       },
       {
+        "name": "newOrmEntity",
+        "parameterTypes": [
+          "java.lang.Class",
+          "boolean"
+        ]
+      },
+      {
         "name": "newTypeConversionError",
         "parameterTypes": [
           "java.lang.String"
@@ -36885,10 +37099,6 @@
         "parameterTypes": []
       },
       {
-        "name": "getDecisionMatrxi",
-        "parameterTypes": []
-      },
-      {
         "name": "getRoleIds",
         "parameterTypes": []
       },
@@ -38431,6 +38641,12 @@
         "parameterTypes": [
           "io.nop.biz.crud.EntityData"
         ]
+      },
+      {
+        "name": "validateModel",
+        "parameterTypes": [
+          "io.nop.rule.dao.entity.NopRuleDefinition"
+        ]
       }
     ],
     "name": "io.nop.rule.service.entity.NopRuleDefinitionBizModel",
@@ -38459,13 +38675,6 @@
       }
     ],
     "methods": [
-      {
-        "name": "getPredicateDisplayText",
-        "parameterTypes": [
-          "io.nop.rule.dao.entity.NopRuleNode",
-          "io.nop.core.context.IServiceContext"
-        ]
-      },
       {
         "name": "predicateLabel",
         "parameterTypes": [
@@ -44894,8 +45103,18 @@
         "parameterTypes": []
       },
       {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
         "name": "getWriteAuth",
         "parameterTypes": []
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
+        ]
       },
       {
         "name": "toNode",
@@ -45887,6 +46106,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
         "name": "getXmlName",
         "parameterTypes": []
       },
@@ -46152,6 +46375,12 @@
         "name": "setTransformOut",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.core.type.IGenericType"
         ]
       },
       {
@@ -48227,25 +48456,6 @@
     "fields": [],
     "methods": [
       {
-        "name": "init",
-        "parameterTypes": []
-      },
-      {
-        "name": "validate",
-        "parameterTypes": []
-      }
-    ],
-    "name": "io.nop.xui.model.UiRefViewModel",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
         "name": "freeze",
         "parameterTypes": [
           "boolean"
@@ -49802,79 +50012,6 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
-        "name": "freeze",
-        "parameterTypes": [
-          "boolean"
-        ]
-      },
-      {
-        "name": "getButtonLabel",
-        "parameterTypes": []
-      },
-      {
-        "name": "getForm",
-        "parameterTypes": []
-      },
-      {
-        "name": "getGrid",
-        "parameterTypes": []
-      },
-      {
-        "name": "getPage",
-        "parameterTypes": []
-      },
-      {
-        "name": "getPath",
-        "parameterTypes": []
-      },
-      {
-        "name": "outputJson",
-        "parameterTypes": [
-          "io.nop.core.lang.json.IJsonHandler"
-        ]
-      },
-      {
-        "name": "setButtonLabel",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      },
-      {
-        "name": "setForm",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      },
-      {
-        "name": "setGrid",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      },
-      {
-        "name": "setPage",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      },
-      {
-        "name": "setPath",
-        "parameterTypes": [
-          "java.lang.String"
-        ]
-      }
-    ],
-    "name": "io.nop.xui.model._gen._UiRefViewModel",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
     "fields": [
       {
         "allowUnsafeAccess": false,
@@ -50208,31 +50345,6 @@
       }
     ],
     "name": "java.lang.Iterable",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
-        "name": "equals",
-        "parameterTypes": [
-          "java.lang.Object"
-        ]
-      },
-      {
-        "name": "hashCode",
-        "parameterTypes": []
-      },
-      {
-        "name": "toString",
-        "parameterTypes": []
-      }
-    ],
-    "name": "java.lang.Object",
     "unsafeAllocated": false
   },
   {
@@ -50831,35 +50943,6 @@
     "fields": [],
     "methods": [
       {
-        "name": "annotationType",
-        "parameterTypes": []
-      },
-      {
-        "name": "equals",
-        "parameterTypes": [
-          "java.lang.Object"
-        ]
-      },
-      {
-        "name": "hashCode",
-        "parameterTypes": []
-      },
-      {
-        "name": "toString",
-        "parameterTypes": []
-      }
-    ],
-    "name": "java.lang.annotation.Annotation",
-    "unsafeAllocated": false
-  },
-  {
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicConstructors": true,
-    "allPublicMethods": true,
-    "fields": [],
-    "methods": [
-      {
         "name": "describeConstable",
         "parameterTypes": []
       }
@@ -51444,6 +51527,16 @@
       }
     ],
     "name": "java.util.Collection",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.Collections$EmptyMap",
     "unsafeAllocated": false
   },
   {

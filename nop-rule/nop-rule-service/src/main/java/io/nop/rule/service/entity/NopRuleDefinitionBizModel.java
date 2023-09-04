@@ -89,6 +89,8 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
     protected void defaultPrepareSave(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
         super.defaultPrepareSave(entityData, context);
         importExcelFile(entityData);
+
+        validateModel(entityData.getEntity());
     }
 
     @Override
@@ -96,6 +98,8 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
     protected void defaultPrepareUpdate(EntityData<NopRuleDefinition> entityData, IServiceContext context) {
         super.defaultPrepareUpdate(entityData, context);
         importExcelFile(entityData);
+
+        validateModel(entityData.getEntity());
     }
 
     protected void importExcelFile(EntityData<NopRuleDefinition> entityData) {
@@ -116,5 +120,12 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
 
             fileStore.detachFile(fileId, getBizObjName(), objId, NopRuleConstants.PROP_IMPORT_FILE);
         }
+    }
+
+    /**
+     * 保存数据后验证一下模型结构正确，可以被解析为RuleModel
+     */
+    protected void validateModel(NopRuleDefinition entity) {
+        this.ruleModelLoader.buildRuleModel(entity);
     }
 }

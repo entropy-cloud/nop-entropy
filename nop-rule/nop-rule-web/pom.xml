@@ -18,11 +18,6 @@
             <groupId>io.github.entropy-cloud</groupId>
         </dependency>
 
-        <dependency>
-            <artifactId>nop-rule-dao</artifactId>
-            <groupId>io.github.entropy-cloud</groupId>
-            <scope>test</scope>
-        </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
@@ -37,6 +32,18 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-service</artifactId>
+        </dependency>
+
+        <dependency>
+            <artifactId>nop-rule-dao</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <artifactId>nop-graphql-core</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -66,6 +73,10 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
+
+                <configuration>
+                    <classpathScope>test</classpathScope>
+                </configuration>
             </plugin>
         </plugins>
     </build>

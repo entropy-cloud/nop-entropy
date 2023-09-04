@@ -556,8 +556,12 @@ public abstract class OrmEntity implements IOrmEntity {
         return new IntArrayMap<>(orm_propIdBound());
     }
 
-    protected <T extends IOrmEntity> T newEntity(Class<T> clazz) {
-        return (T) requireEnhancer().newEntity(clazz.getName());
+    public <T extends IOrmEntity> T newOrmEntity(Class<T> clazz, boolean initId) {
+        IOrmEntityEnhancer enhancer = requireEnhancer();
+        T entity = (T) enhancer.newEntity(clazz.getName());
+        if (initId)
+            enhancer.initEntityId(entity);
+        return entity;
     }
 
     @Override

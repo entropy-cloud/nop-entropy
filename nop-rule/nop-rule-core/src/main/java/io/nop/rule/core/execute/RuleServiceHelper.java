@@ -6,6 +6,6 @@ public class RuleServiceHelper {
     public static String buildResolveRulePath(String ruleName, Integer ruleVersion) {
         if (ruleVersion == null)
             return RuleConstants.RESOLVE_RULE_NS_PREFIX + ruleName;
-        return RuleConstants.IMP_PATH_RULE + ruleName + "/v" + ruleVersion;
+        return RuleConstants.RESOLVE_RULE_NS_PREFIX + ruleName + "/v" + ruleVersion;
     }
 }

@@ -195,9 +195,9 @@ public interface IObjPropMeta
         return StringHelper.methodSet(getName());
     }
 
-    default IGenericType getType() {
-        return getSchema().getType();
-    }
+    IGenericType getType();
+
+    void setType(IGenericType type);
 
     default boolean isListSchema() {
         return getSchemaKind() == SchemaKind.LIST;

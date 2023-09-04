@@ -61,6 +61,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.nop.core.type.PredefinedGenericTypes.I_GENERIC_TYPE_TYPE;
 import static io.nop.core.type.PredefinedGenericTypes.X_NODE_TYPE;
@@ -602,7 +603,7 @@ public class SimpleStdDomainHandlers {
 
         @Override
         public XNode transformToNode(Object value) {
-            return StdJsonToXNodeTransformer.INSTANCE.transformToXNode(value);
+            return XNode.fromValue(value);
         }
 
         @Override
@@ -613,6 +614,11 @@ public class SimpleStdDomainHandlers {
                         .param(ARG_PROP_NAME, propName);
             }
             return text;
+        }
+
+        @Override
+        public void validate(SourceLocation loc, String propName, Object value, IValidationErrorCollector collector) {
+            transformToNode(value);
         }
 
         @Override
@@ -934,6 +940,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
+        public String serializeToString(Object value) {
+            String str = value.toString();
+            return StringHelper.simplifyStdJavaType(str);
+        }
+
+        @Override
         public String getName() {
             return XDefConstants.STD_DOMAIN_GENERIC_TYPE;
         }
@@ -988,6 +1000,17 @@ public class SimpleStdDomainHandlers {
         @Override
         public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
             return GenericTypeHelper.buildListType(I_GENERIC_TYPE_TYPE);
+        }
+
+        @Override
+        public String serializeToString(Object value) {
+            if (value instanceof List) {
+                List<String> list = ((List<?>) value).stream().map(v -> StringHelper.simplifyStdJavaType(v.toString()))
+                        .collect(Collectors.toList());
+                return StringHelper.join(list, ",");
+            } else {
+                return value.toString();
+            }
         }
 
         @Override

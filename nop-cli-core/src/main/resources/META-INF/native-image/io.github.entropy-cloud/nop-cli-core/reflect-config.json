@@ -4636,6 +4636,12 @@
         ]
       },
       {
+        "name": "isTextResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "isValidModuleId",
         "parameterTypes": [
           "java.lang.String"
@@ -4658,6 +4664,10 @@
         "parameterTypes": [
           "io.nop.core.resource.IResource"
         ]
+      },
+      {
+        "name": "newDynamicPath",
+        "parameterTypes": []
       },
       {
         "name": "normalizePath",

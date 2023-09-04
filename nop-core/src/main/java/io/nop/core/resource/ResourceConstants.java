@@ -46,6 +46,13 @@ public interface ResourceConstants {
     //
     String SUPER_NS = "super";
 
+    /**
+     * 仅用于标识在内存中直接创建的模型对象
+     */
+    String DYNAMIC_NS = "dynamic";
+
+    String DYNAMIC_NS_PREFIX = "dynamic:";
+
     String PLACEHOLDER_PROJECT_PATH = "{PROJECT_PATH}";
 
     /**
@@ -65,9 +72,11 @@ public interface ResourceConstants {
     String FILE_POSTFIX_YAML = ".yaml";
     String FILE_POSTFIX_YML = ".yml";
 
-    List<String> JSON_FILE_EXTS = CollectionHelper.buildImmutableList("json","json5","yaml","yml");
+    List<String> JSON_FILE_EXTS = CollectionHelper.buildImmutableList("json", "json5", "yaml", "yml");
 
     String FILE_POSTFIX_XML = ".xml";
 
     String FILE_POSTFIX_BAK = ".bak";
+
+    String RESOURCE_PATH_TEXT = "text";
 }

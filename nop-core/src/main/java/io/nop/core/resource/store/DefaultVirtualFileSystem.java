@@ -47,6 +47,7 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
         registerNamespaceHandler(FileNamespaceHandler.INSTANCE);
         registerNamespaceHandler(ClassPathNamespaceHandler.INSTANCE);
         registerNamespaceHandler(ModuleNamespaceHandler.INSTANCE);
+        registerNamespaceHandler(DynamicNamespaceHandler.INSTANCE);
 
         DeltaResourceStoreBuilder builder = new DeltaResourceStoreBuilder();
         this.deltaResourceStore = builder.build(config);

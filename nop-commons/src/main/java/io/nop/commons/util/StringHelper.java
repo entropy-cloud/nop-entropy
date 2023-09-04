@@ -4074,6 +4074,36 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static String simplifyStdJavaType(String typeName) {
+        if (typeName == null)
+            return null;
+
+        StdDataType dataType = StdDataType.fromJavaClassName(typeName);
+        if (dataType != null) {
+            // 原始数据类型保持不变，例如int 与Integer都会返回StdDataType.INT
+            if (typeName.indexOf('.') < 0 && Character.isLowerCase(typeName.charAt(0)))
+                return typeName;
+
+            // 简单数据类型去除包名
+            if (dataType.ordinal() <= StdDataType.DURATION.ordinal())
+                return dataType.getSimpleClassName();
+        }
+
+        if (dataType == StdDataType.MAP)
+            return "Map";
+
+        if (dataType == StdDataType.LIST)
+            return "List";
+
+        if (typeName.startsWith("java.util.Map<"))
+            return typeName.substring("java.util.".length());
+
+        if (typeName.startsWith("java.util.List<"))
+            return typeName.substring("java.util.List<".length());
+        return typeName;
+    }
+
+    @Deterministic
     public static String simplifyJavaType(String className) {
         if (className == null)
             return null;

@@ -13,12 +13,12 @@
                             <!--
                             editorDidMount函数传入  (editor, monaco) 两个参数，通过它们可以定制代码编辑器
                             -->
-                            <editorDidMount><![CDATA[
-                            debugger; let monaco = {}
-                                monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-                                    validate: true,  enableSchemaRequest: true
-                                })
-                            ]]></editorDidMount>
+<!--                            <editorDidMount><![CDATA[-->
+<!--                            debugger; let monaco = {}-->
+<!--                                monaco.languages.json.jsonDefaults.setDiagnosticsOptions({-->
+<!--                                    validate: true,  enableSchemaRequest: true-->
+<!--                                })-->
+<!--                            ]]></editorDidMount>-->
                         </editor>
                     </gen-control>
                 </cell>

@@ -18,9 +18,11 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.orm.resource.DaoEntityResource;
 import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model.RuleModel;
+import io.nop.rule.core.model.compile.RuleModelCompiler;
 import io.nop.rule.dao.entity.NopRuleDefinition;
 import io.nop.rule.dao.entity.NopRuleNode;
 import io.nop.xlang.XLangConstants;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.XDslKeys;
@@ -57,19 +59,22 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
     @Override
     public RuleModel loadObjectFromPath(String path) {
-        Guard.checkArgument(path.startsWith("resolve-rule:"), "path not startsWith resolve-rule:");
-        String subPath = path.substring("resolve-rule:".length());
+        Guard.checkArgument(path.startsWith(RuleConstants.RESOLVE_RULE_NS_PREFIX), "path not startsWith resolve-rule:");
+        String subPath = path.substring(RuleConstants.RESOLVE_RULE_NS_PREFIX.length());
         List<String> list = StringHelper.split(subPath, '/');
-        if (list.size() != 1 || list.size() != 2)
+        if (list.size() != 1 && list.size() != 2)
             throw new NopException(ERR_RULE_INVALID_DAO_RESOURCE_PATH)
                     .param(ARG_PATH, path);
 
-        String ruleName = list.get(1);
+        String ruleName = list.get(0);
         Integer ruleVersion = null;
-        if (list.size() > 2) {
-            ruleVersion = ResourceVersionHelper.getIntegerVersion(list.get(2));
+        if (list.size() > 1) {
+            ruleVersion = ResourceVersionHelper.getIntegerVersion(list.get(1));
         }
-        return loadRule(ruleName, ruleVersion);
+        RuleModel ruleModel = loadRule(ruleName, ruleVersion);
+
+        new RuleModelCompiler(XLang.newCompileTool()).compileRule(ruleModel);
+        return ruleModel;
     }
 
     public RuleModel loadRule(String ruleName, Integer ruleVersion) {
@@ -122,9 +127,11 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
             propNode.setAttr("displayName", inputNode.getAttr("displayName"));
             propNode.setAttr("mandatory", inputNode.getAttr("mandatory"));
             propNode.setAttr("computed", inputNode.getAttr("computed"));
+            propNode.setAttr("type", inputNode.getAttr("type"));
             XNode inputSchema = inputNode.removeChildByTag("schema");
-            if (inputSchema != null)
+            if (inputSchema != null) {
                 propNode.appendChild(inputSchema.detach());
+            }
             propsNode.appendChild(propNode);
         }
 
@@ -143,12 +150,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
     }
 
     public XNode buildRuleModelNode(NopRuleDefinition entity) {
-        XNode node;
-        if (StringHelper.isEmpty(entity.getModelText())) {
-            node = XNode.make("rule");
-        } else {
-            node = XNodeParser.instance().parseFromText(null, entity.getModelText());
-        }
+        XNode node = entity.getModelTextXmlComponent().makeNode("rule").cloneInstance();
 
         node.setAttr("displayName", entity.getDisplayName());
         node.setAttr(XDslKeys.DEFAULT.SCHEMA, RuleConstants.XDSL_SCHEMA_RULE);
@@ -168,18 +170,23 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         List<NopRuleNode> nodes = new ArrayList<>(entity.getRuleNodes());
         nodes.sort(Comparator.comparing(NopRuleNode::getSortNo));
 
-        TreeIndex<NopRuleNode> index = TreeIndex.buildFromParentId(nodes,
-                NopRuleNode::get_id, NopRuleNode::getParentId);
+        if (RuleConstants.ENUM_RULE_TYPE_TREE.equals(entity.getRuleType())) {
+            node.removeChildByTag("decisionMatrix");
 
-        XNode tree = node.makeChild("decisionTree");
-        buildRuleTree(tree.makeChild("children"), index.getRoots(), index);
+            TreeIndex<NopRuleNode> index = TreeIndex.buildFromParentId(nodes,
+                    NopRuleNode::get_id, NopRuleNode::getParentId);
+            XNode tree = node.makeChild("decisionTree");
+            buildRuleTree(tree.makeChild("children"), index.getRoots(), index);
+        } else {
+            node.removeChildByTag("decisionTree");
+        }
         return node;
     }
 
     private void buildRuleTree(XNode children, List<NopRuleNode> nodes, TreeIndex<NopRuleNode> index) {
         for (NopRuleNode node : nodes) {
             XNode child = XNode.make("child");
-            child.setAttr("id", node.getRuleId());
+            child.setAttr("id", node.orm_idString());
             child.setAttr("label", node.getLabel());
             //child.setAttr("multiMatch",node.getMultiMatch());
             XNode predicate = parsePredicate(node.getPredicate());
@@ -197,17 +204,21 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
     private XNode parsePredicate(String predicate) {
         XNode node = XDslParseHelper.parseXJson(null, predicate, null);
-        if (node != null) {
-            if (ApiConstants.DUMMY_TAG_NAME.equals(node.getTagName())) {
-                XNode ret = XNode.make("predicate");
-                ret.appendChild(node);
-                return ret;
-            } else {
-                node.clearAttrs();
-                node.setTagName("predicate");
-            }
+        if (node == null)
+            return null;
+
+        if (ApiConstants.DUMMY_TAG_NAME.equals(node.getTagName())) {
+            XNode ret = XNode.make("predicate");
+            ret.appendChild(node);
+            return ret;
+        } else if (node.getTagName().equals("predicate")) {
+            node.clearAttrs();
+            return node;
+        } else {
+            XNode ret = XNode.make("predicate");
+            ret.appendChild(node);
+            return ret;
         }
-        return node;
     }
 
     /**
