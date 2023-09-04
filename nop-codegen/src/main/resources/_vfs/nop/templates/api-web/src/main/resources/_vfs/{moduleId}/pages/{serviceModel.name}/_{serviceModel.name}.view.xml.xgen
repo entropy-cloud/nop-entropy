@@ -30,9 +30,24 @@
                 </cells>
             </form>
         </c:for>
+
+        <form id="json-result" size="md">
+            <layout>
+                __result
+            </layout>
+
+            <cells>
+                <cell id="__result">
+                    <gen-control>
+                        <code language="json" />
+                    </gen-control>
+                </cell>
+            </cells>
+        </form>
     </forms>
 
     <pages>
+        <simple name="json-result" form="json-result" title="服务返回结果" />
 
         <c:for var="method" items="${serviceModel.methods}">
             <simple name="${method.name}" form="${method.requestMessage.$simpleClassName()}">
@@ -43,15 +58,22 @@
                     </action>
 
                     <action id="${serviceModel.name}__${method.name}-submit" label="@i18n:common.submit|提交" level="primary" actionType="ajax">
-                        <api url="/r/${serviceModel.name}__${method.name}"/>
+                        <api url="/r/${serviceModel.name}__${method.name}">
+                            <adaptor>
+                                return {...payload,data:{ __result: JSON.stringify(payload.data || '') }}
+                            </adaptor>
+                        </api>
 
                         <messages>
-                            <success>执行成功</success>
+                            <success>_</success>
                         </messages>
+
+                        <feedback page="json-result" />
                     </action>
                 </actions>
             </simple>
         </c:for>
+
 
         <tabs name="main" tabsMode="vertical" mountOnEnter="true" unmountOnExit="true">
             <c:for var="method" items="${serviceModel.methods}">

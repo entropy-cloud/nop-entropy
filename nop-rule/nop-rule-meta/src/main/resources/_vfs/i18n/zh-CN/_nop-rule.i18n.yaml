@@ -10,6 +10,7 @@ entity:
     RuleKeyBean: 规则唯一标识
     RuleMetaBean: 规则元数据
     RuleRequestBean: 规则执行请求
+    RuleResultBean: 规则执行结果
 prop:
   label:
     NopRuleDefinition:
@@ -117,5 +118,10 @@ prop:
       ruleVersion: 规则版本
     RuleRequestBean:
       inputs: 输入参数
+      ruleName: 规则名称
+      ruleVersion: 规则版本
+    RuleResultBean:
+      outputs: 输出结果
+      ruleMatch: 是否匹配
       ruleName: 规则名称
       ruleVersion: 规则版本

@@ -9,6 +9,8 @@
     
         import io.nop.rule.api.beans.RuleRequestBean;
     
+        import io.nop.rule.api.beans.RuleResultBean;
+    
         import io.nop.rule.api.beans.RuleKeyBean;
     
         import io.nop.rule.api.beans.RuleMetaBean;
@@ -23,12 +25,12 @@
         /**
          * 
          */
-        CompletionStage<ApiResponse<java.util.Map>> executeRuleAsync(ApiRequest<RuleRequestBean> request);
+        CompletionStage<ApiResponse<RuleResultBean>> executeRuleAsync(ApiRequest<RuleRequestBean> request);
 
         /**
          * 
          */
-        default ApiResponse<java.util.Map> executeRule(ApiRequest<RuleRequestBean> request){
+        default ApiResponse<RuleResultBean> executeRule(ApiRequest<RuleRequestBean> request){
             return FutureHelper.syncGet(executeRuleAsync(request));
         }
     

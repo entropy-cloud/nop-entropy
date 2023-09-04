@@ -8,6 +8,8 @@
     
         import io.nop.rule.api.beans.RuleRequestBean;
     
+        import io.nop.rule.api.beans.RuleResultBean;
+    
         import io.nop.rule.api.beans.RuleKeyBean;
     
         import io.nop.rule.api.beans.RuleMetaBean;
@@ -20,7 +22,7 @@
      /**
       * 执行规则 
       */
-     java.util.Map executeRule(RuleRequestBean request,
+     RuleResultBean executeRule(RuleRequestBean request,
             FieldSelectionBean selection, IServiceContext ctx);
             
      /**

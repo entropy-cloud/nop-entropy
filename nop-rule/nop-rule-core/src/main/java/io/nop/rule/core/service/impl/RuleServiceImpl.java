@@ -11,6 +11,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.rule.api.beans.RuleKeyBean;
 import io.nop.rule.api.beans.RuleMetaBean;
 import io.nop.rule.api.beans.RuleRequestBean;
+import io.nop.rule.api.beans.RuleResultBean;
 import io.nop.rule.core.IRuleManager;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.model.RuleInputDefineModel;
@@ -37,11 +38,20 @@ public class RuleServiceImpl implements RuleServiceSpi {
 
     @BizMutation
     @Override
-    public java.util.Map<String, Object> executeRule(@RequestBean RuleRequestBean request,
-                                                     FieldSelectionBean selection, IServiceContext ctx) {
+    public RuleResultBean executeRule(@RequestBean RuleRequestBean request,
+                                      FieldSelectionBean selection, IServiceContext ctx) {
         IRuleRuntime ruleRt = ruleManager.newRuntime(ctx.getEvalScope());
         ruleRt.setInputs(request.getInputs());
-        return ruleManager.executeRule(request.getRuleName(), request.getRuleVersion(), ruleRt);
+        ruleRt.setRuleName(request.getRuleName());
+        ruleRt.setRuleVersion(request.getRuleVersion());
+
+        Map<String, Object> outputs = ruleManager.executeRule(request.getRuleName(), request.getRuleVersion(), ruleRt);
+        RuleResultBean ret = new RuleResultBean();
+        ret.setRuleName(ruleRt.getRuleName());
+        ret.setRuleVersion(ruleRt.getRuleVersion());
+        ret.setOutputs(outputs);
+        ret.setRuleMatch(ruleRt.isRuleMatch());
+        return ret;
     }
 
     @BizQuery

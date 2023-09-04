@@ -21,7 +21,7 @@ public interface IRuleManager {
 
     default Object chooseByRule(String ruleName, Integer ruleVersion, IRuleRuntime ruleRt) {
         Map<String, Object> outputs = executeRule(ruleName, ruleVersion, ruleRt);
-        if (outputs == null)
+        if (outputs == null || !ruleRt.isRuleMatch())
             return null;
         return outputs.get(RuleConstants.VAR_RESULT);
     }

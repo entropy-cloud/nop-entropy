@@ -24,6 +24,11 @@ public class RuleRuntime implements IRuleRuntime {
 
     private Map<String, Object> inputs;
 
+    private String ruleName;
+
+    private Integer ruleVersion;
+    private boolean ruleMatch;
+
     public RuleRuntime(IEvalScope scope) {
         this.scope = scope == null ? XLang.newEvalScope() : scope.newChildScope();
         this.scope.setLocalValue(RuleConstants.VAR_RULE_RT, this);
@@ -36,6 +41,36 @@ public class RuleRuntime implements IRuleRuntime {
     @Override
     public IEvalScope getEvalScope() {
         return scope;
+    }
+
+    @Override
+    public boolean isRuleMatch() {
+        return ruleMatch;
+    }
+
+    @Override
+    public void setRuleMatch(boolean ruleMatch) {
+        this.ruleMatch = ruleMatch;
+    }
+
+    @Override
+    public String getRuleName() {
+        return ruleName;
+    }
+
+    @Override
+    public void setRuleName(String ruleName) {
+        this.ruleName = ruleName;
+    }
+
+    @Override
+    public Integer getRuleVersion() {
+        return ruleVersion;
+    }
+
+    @Override
+    public void setRuleVersion(Integer ruleVersion) {
+        this.ruleVersion = ruleVersion;
     }
 
     @Override

@@ -36282,6 +36282,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.rule.api.beans.RuleResultBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getRuleName",
@@ -36417,6 +36427,57 @@
       }
     ],
     "name": "io.nop.rule.api.beans._gen._RuleRequestBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleMatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "setOutputs",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setRuleMatch",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.api.beans._gen._RuleResultBean",
     "unsafeAllocated": false
   },
   {

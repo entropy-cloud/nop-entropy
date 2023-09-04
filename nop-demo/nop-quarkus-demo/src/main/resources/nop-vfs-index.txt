@@ -341,9 +341,11 @@
 /nop/rule/model/RuleService/RuleKeyBean.xmeta
 /nop/rule/model/RuleService/RuleMetaBean.xmeta
 /nop/rule/model/RuleService/RuleRequestBean.xmeta
+/nop/rule/model/RuleService/RuleResultBean.xmeta
 /nop/rule/model/RuleService/_RuleKeyBean.xmeta
 /nop/rule/model/RuleService/_RuleMetaBean.xmeta
 /nop/rule/model/RuleService/_RuleRequestBean.xmeta
+/nop/rule/model/RuleService/_RuleResultBean.xmeta
 /nop/rule/orm/_app.orm.xml
 /nop/rule/orm/app.orm.xml
 /nop/rule/pages/NopRuleDefinition/NopRuleDefinition.lib.xjs

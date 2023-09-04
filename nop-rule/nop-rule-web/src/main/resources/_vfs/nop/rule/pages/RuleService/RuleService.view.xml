@@ -26,27 +26,24 @@
             </cells>
         </form>
 
-        <form id="rule-result">
-            <layout>
-                response
-            </layout>
-
-            <cells>
-                <cell id="response">
-                    <gen-control>
-                        <code language="json" />
-                    </gen-control>
-                </cell>
-            </cells>
-        </form>
     </forms>
     <pages>
         <tabs name="main"/>
 
         <simple name="executeRule">
-
+            <actions>
+                <action id="RuleService__executeRule-submit">
+                    <api>
+                        <requestAdaptor><![CDATA[
+                            if(api.data && api.data.inputs){
+                                api.data.inputs = JSON.parse(api.data.inputs)
+                            }
+                            return api
+                        ]]></requestAdaptor>
+                    </api>
+                </action>
+            </actions>
         </simple>
 
-        <simple name="rule-result" form="rule-result" />
     </pages>
 </view>

@@ -10,6 +10,7 @@ entity:
     RuleKeyBean: Rule Key
     RuleMetaBean: Rule Meta
     RuleRequestBean: Rule Request
+    RuleResultBean: Rule Response
 prop:
   label:
     NopRuleDefinition:
@@ -119,3 +120,8 @@ prop:
       ruleName: Rule Name
       ruleVersion: Rule Version
       inputs: Inputs
+    RuleResultBean:
+      ruleName: Rule Name
+      ruleVersion: Rule Version
+      ruleMatch: Rule Match
+      outputs: Outputs

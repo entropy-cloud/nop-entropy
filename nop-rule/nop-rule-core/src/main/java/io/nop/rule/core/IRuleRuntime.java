@@ -15,6 +15,14 @@ import java.util.List;
 import java.util.Map;
 
 public interface IRuleRuntime extends IEvalContext {
+    String getRuleName();
+
+    void setRuleName(String ruleName);
+
+    Integer getRuleVersion();
+
+    void setRuleVersion(Integer ruleVersion);
+
     Map<String, Object> getInputs();
 
     void setInputs(Map<String, Object> inputs);
@@ -48,6 +56,10 @@ public interface IRuleRuntime extends IEvalContext {
     void logMessage(String message, String ruleId, String ruleLabel);
 
     List<RuleLogMessage> getLogMessages();
+
+    boolean isRuleMatch();
+
+    void setRuleMatch(boolean ruleMatch);
 
     static IRuleRuntime fromEvalContext(IEvalContext context) {
         if (context instanceof IRuleRuntime)

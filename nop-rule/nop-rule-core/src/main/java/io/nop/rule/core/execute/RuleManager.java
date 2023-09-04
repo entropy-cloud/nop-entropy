@@ -54,10 +54,13 @@ public class RuleManager implements IRuleManager {
             RuleModel ruleModel = getRuleModel(ruleName, ruleVersion);
             if (ruleModel.getRuleVersion() != null)
                 ruleVersion = ruleModel.getRuleVersion();
+            ruleRt.setRuleVersion(ruleVersion);
+
             IExecutableRule rule = ruleModel.getExecutableRule();
             prepareScope(ruleRt, ruleModel);
 
             boolean ruleMatch = rule.execute(ruleRt);
+            ruleRt.setRuleMatch(ruleMatch);
 
             if (ruleModel.getAfterExecute() != null) {
                 ruleRt.getEvalScope().setLocalValue(RuleConstants.VAR_RULE_MATCH, ruleMatch);
