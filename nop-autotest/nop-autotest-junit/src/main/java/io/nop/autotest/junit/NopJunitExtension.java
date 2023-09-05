@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.autotest.NopTestProperties;
 import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.ioc.BeanContainerStartMode;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -49,6 +50,7 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
     @Override
     public void afterAll(ExtensionContext context) {
         CoreInitialization.destroy();
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
         BaseTestCase.endTest();
     }
 }

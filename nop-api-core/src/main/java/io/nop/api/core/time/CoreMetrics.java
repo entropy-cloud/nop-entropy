@@ -29,7 +29,11 @@ public class CoreMetrics {
         }
     };
 
-    static IClock s_clock = DEFAULT_CLOCK;
+    private static IClock s_clock = DEFAULT_CLOCK;
+
+    public static void registerClock(IClock clock){
+        s_clock = clock;
+    }
 
     public static IClock defaultClock() {
         return DEFAULT_CLOCK;

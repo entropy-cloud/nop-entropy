@@ -74,4 +74,9 @@ public @interface NopTestConfig {
     String testConfigFile() default "";
 
     boolean initDatabaseSchema() default false;
+
+    /**
+     * 是否使用测试专用时钟。测试专用时钟总是向前执行，而且每次调用都返回不同的时间
+     */
+    boolean useTestClock() default true;
 }

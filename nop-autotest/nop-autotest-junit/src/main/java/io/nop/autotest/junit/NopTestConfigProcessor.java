@@ -10,6 +10,8 @@ package io.nop.autotest.junit;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.autotest.core.util.TestClock;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.ClassPathResource;
@@ -32,6 +34,9 @@ import static io.nop.orm.OrmConfigs.CFG_INIT_DATABASE_SCHEMA;
 public class NopTestConfigProcessor {
 
     public void process(NopTestConfig config) {
+        if(config.useTestClock()){
+            CoreMetrics.registerClock(new TestClock());
+        }
         if (config.localDb()) {
             setTestConfig(DaoConfigs.CFG_DATASOURCE_DRIVER_CLASS_NAME, "org.h2.Driver");
             setTestConfig(DaoConfigs.CFG_DATASOURCE_USERNAME, "sa");
