@@ -44,10 +44,11 @@
     <api xdef:ref="api.xdef"/>
 
     <messages xdef:body-type="map">
-        <fetchSuccess xdef:value="string"/>
-        <fetchFailed xdef:value="string"/>
-        <saveSuccess xdef:value="string" />
-        <saveFailed xdef:value="string" />
+        <xdef:unknown-tag xdef:value="string" />
+<!--        <fetchSuccess xdef:value="string"/>-->
+<!--        <fetchFailed xdef:value="string"/>-->
+<!--        <saveSuccess xdef:value="string" />-->
+<!--        <saveFailed xdef:value="string" />-->
     </messages>
 
     <initApi xdef:ref="api.xdef"/>

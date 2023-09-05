@@ -94,7 +94,10 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: initApi
-     * 
+     * <fetchSuccess xdef:value="string"/>
+     * <fetchFailed xdef:value="string"/>
+     * <saveSuccess xdef:value="string" />
+     * <saveFailed xdef:value="string" />
      */
     private java.util.Map _initApi ;
     
@@ -174,6 +177,13 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private java.lang.String _layoutMode ;
+    
+    /**
+     *  
+     * xml name: messages
+     * 
+     */
+    private java.util.Map<java.lang.String,java.lang.String> _messages ;
     
     /**
      *  
@@ -573,7 +583,10 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: initApi
-     *  
+     *  <fetchSuccess xdef:value="string"/>
+     * <fetchFailed xdef:value="string"/>
+     * <saveSuccess xdef:value="string" />
+     * <saveFailed xdef:value="string" />
      */
     
     public java.util.Map getInitApi(){
@@ -805,6 +818,29 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
            
     }
 
+    
+    /**
+     * 
+     * xml name: messages
+     *  
+     */
+    
+    public java.util.Map<java.lang.String,java.lang.String> getMessages(){
+      return _messages;
+    }
+
+    
+    public void setMessages(java.util.Map<java.lang.String,java.lang.String> value){
+        checkAllowChange();
+        
+        this._messages = value;
+           
+    }
+
+    
+    public boolean hasMessages(){
+        return this._messages != null && !this._messages.isEmpty();
+    }
     
     /**
      * 
@@ -1249,6 +1285,8 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
             
            this._initAsyncApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._initAsyncApi);
             
+           this._messages = io.nop.api.core.util.FreezeHelper.deepFreeze(this._messages);
+            
            this._rules = io.nop.api.core.util.FreezeHelper.deepFreeze(this._rules);
             
         }
@@ -1280,6 +1318,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
         out.put("layout",this.getLayout());
         out.put("layoutControl",this.getLayoutControl());
         out.put("layoutMode",this.getLayoutMode());
+        out.put("messages",this.getMessages());
         out.put("objMeta",this.getObjMeta());
         out.put("panelClassName",this.getPanelClassName());
         out.put("persistData",this.getPersistData());
