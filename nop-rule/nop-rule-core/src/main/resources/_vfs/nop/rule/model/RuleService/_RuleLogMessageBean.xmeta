@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="日志消息"
+      i18n-en:displayName="Rule Log Message" ext:model="api">
+
+    <props>
+        <prop name="logTime" displayName="日志时间" i18n-en:displayName="Log Time" mandatory="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="message" displayName="消息" i18n-en:displayName="Message">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="ruleNodeId" displayName="规则节点Id" i18n-en:displayName="Rule Node Id">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="ruleNodeLabel" displayName="规则节点标题" i18n-en:displayName="Rule Node Label">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+    </props>
+</meta>

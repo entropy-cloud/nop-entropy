@@ -2,10 +2,13 @@ package io.nop.rule.core.execute;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.unittest.VarCollector;
+import io.nop.rule.api.beans.RuleLogMessageBean;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.RuleConstants;
-import io.nop.rule.core.RuleLogMessage;
 import io.nop.xlang.api.XLang;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,9 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 public class RuleRuntime implements IRuleRuntime {
+    static final Logger LOG = LoggerFactory.getLogger(RuleRuntime.class);
     private final IEvalScope scope;
 
-    private final List<RuleLogMessage> logMessages = new ArrayList<>();
+    private final List<RuleLogMessageBean> logMessages = new ArrayList<>();
 
     private final Map<String, List<Object>> outputLists = new HashMap<>();
 
@@ -28,6 +32,8 @@ public class RuleRuntime implements IRuleRuntime {
 
     private Integer ruleVersion;
     private boolean ruleMatch;
+
+    private boolean collectLogMessage;
 
     public RuleRuntime(IEvalScope scope) {
         this.scope = scope == null ? XLang.newEvalScope() : scope.newChildScope();
@@ -41,6 +47,16 @@ public class RuleRuntime implements IRuleRuntime {
     @Override
     public IEvalScope getEvalScope() {
         return scope;
+    }
+
+    @Override
+    public boolean isCollectLogMessage() {
+        return collectLogMessage;
+    }
+
+    @Override
+    public void setCollectLogMessage(boolean collectLogMessage) {
+        this.collectLogMessage = collectLogMessage;
     }
 
     @Override
@@ -115,18 +131,27 @@ public class RuleRuntime implements IRuleRuntime {
     }
 
     @Override
-    public void logMessage(String message, String ruleId, String ruleLabel) {
-        RuleLogMessage logMessage = new RuleLogMessage();
-        logMessage.setLogTime(CoreMetrics.currentTimeMillis());
-        logMessage.setMessage(message);
-        logMessage.setRuleId(ruleId);
-        logMessage.setRuleLabel(ruleLabel);
+    public void logMessage(String message, String ruleNodeId, String ruleNodeLabel) {
+        addToLogFile(message, ruleNodeId, ruleNodeLabel);
 
-        logMessages.add(logMessage);
+        if (collectLogMessage) {
+            RuleLogMessageBean logMessage = new RuleLogMessageBean();
+            logMessage.setLogTime(CoreMetrics.currentTimestamp());
+            VarCollector.instance().collectVar("rule-log-time",logMessage.getLogTime());
+            logMessage.setMessage(message);
+            logMessage.setRuleNodeId(ruleNodeId);
+            logMessage.setRuleNodeLabel(ruleNodeLabel);
+
+            logMessages.add(logMessage);
+        }
+    }
+
+    protected void addToLogFile(String message, String ruleNodeId, String ruleNodeLabel) {
+        LOG.info("rule-log:message={},ruleNodeId={},ruleNodeLabel={}", message, ruleNodeId, ruleNodeLabel);
     }
 
     @Override
-    public List<RuleLogMessage> getLogMessages() {
+    public List<RuleLogMessageBean> getLogMessages() {
         return logMessages;
     }
 }

@@ -8,6 +8,7 @@ entity:
     NopRuleOutputValue: null
     NopRuleRole: Rule Role
     RuleKeyBean: Rule Key
+    RuleLogMessageBean: Rule Log Message
     RuleMetaBean: Rule Meta
     RuleRequestBean: Rule Request
     RuleResultBean: Rule Response
@@ -109,6 +110,11 @@ prop:
     RuleKeyBean:
       ruleName: Rule Name
       ruleVersion: Rule Version
+    RuleLogMessageBean:
+      logTime: Log Time
+      message: Message
+      ruleNodeId: Rule Node Id
+      ruleNodeLabel: Rule Node Label
     RuleMetaBean:
       ruleName: Rule Name
       ruleVersion: Rule Version
@@ -125,3 +131,4 @@ prop:
       ruleVersion: Rule Version
       ruleMatch: Rule Match
       outputs: Outputs
+      logMessages: Log Messages

@@ -69,4 +69,20 @@
             this._outputs = value;
         }
     
+        private java.util.List<io.nop.rule.api.beans.RuleLogMessageBean> _logMessages;
+
+        /**
+         * 日志消息 
+         */
+        public java.util.List<io.nop.rule.api.beans.RuleLogMessageBean> getLogMessages(){
+            return _logMessages;
+        }
+
+        /**
+         * 日志消息 
+         */
+        public void setLogMessages(java.util.List<io.nop.rule.api.beans.RuleLogMessageBean> value){
+            this._logMessages = value;
+        }
+    
     }

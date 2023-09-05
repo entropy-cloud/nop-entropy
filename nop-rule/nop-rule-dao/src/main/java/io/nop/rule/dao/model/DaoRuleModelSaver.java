@@ -70,6 +70,7 @@ public class DaoRuleModelSaver {
             node.setRuleId(ruleId);
             node.setIsLeaf(node.getChildren().isEmpty());
             node.setSortNo(index);
+            node.setLabel(child.getLabel());
             node.setOutputs(buildOutputs(child));
             updateNodes(entity, child.getChildren(), node.getChildren());
             list.add(node);

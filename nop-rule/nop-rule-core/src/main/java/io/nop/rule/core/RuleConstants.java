@@ -36,4 +36,6 @@ public interface RuleConstants {
     String ENUM_RULE_TYPE_TREE = "TREE";
 
     String ENUM_RULE_TYPE_MATX = "MATX";
+
+    String FIELD_LOG_MESSAGES = "logMessages";
 }

@@ -10,6 +10,7 @@ package io.nop.rule.core;
 import io.nop.api.core.util.Guard;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.rule.api.beans.RuleLogMessageBean;
 
 import java.util.List;
 import java.util.Map;
@@ -53,13 +54,17 @@ public interface IRuleRuntime extends IEvalContext {
 
     void clearOutputs();
 
-    void logMessage(String message, String ruleId, String ruleLabel);
+    void logMessage(String message, String ruleNodeId, String ruleNodeLabel);
 
-    List<RuleLogMessage> getLogMessages();
+    List<RuleLogMessageBean> getLogMessages();
 
     boolean isRuleMatch();
 
     void setRuleMatch(boolean ruleMatch);
+
+    boolean isCollectLogMessage();
+
+    void setCollectLogMessage(boolean collectLogMessage);
 
     static IRuleRuntime fromEvalContext(IEvalContext context) {
         if (context instanceof IRuleRuntime)

@@ -1,0 +1,31 @@
+{
+  "data": {
+    "logMessages": [
+      {
+        "logTime": "@var:rule-log-time",
+        "message": "MISMATCH",
+        "ruleNodeId": "@var:NopRuleNode@sid",
+        "ruleNodeLabel": "Fall"
+      },
+      {
+        "logTime": "@var:rule-log-time_1",
+        "message": "MATCH",
+        "ruleNodeId": "@var:NopRuleNode@sid_2",
+        "ruleNodeLabel": "Winter"
+      },
+      {
+        "logTime": "@var:rule-log-time_2",
+        "message": "MATCH",
+        "ruleNodeId": "@var:NopRuleNode@sid_3",
+        "ruleNodeLabel": "<= 8"
+      }
+    ],
+    "outputs": {
+      "dish": "Roastbeef"
+    },
+    "ruleMatch": true,
+    "ruleName": "test",
+    "ruleVersion": 1
+  },
+  "status": 0
+}

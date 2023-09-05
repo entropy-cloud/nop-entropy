@@ -15,5 +15,8 @@
         <prop name="outputs" displayName="输出结果" i18n-en:displayName="Outputs">
             <schema type="java.util.Map&lt;java.lang.String,java.lang.Object&gt;" precision="160000"/>
         </prop>
+        <prop name="logMessages" displayName="日志消息" i18n-en:displayName="Log Messages">
+            <schema type="java.util.List&lt;io.nop.rule.api.beans.RuleLogMessageBean&gt;" precision="160000"/>
+        </prop>
     </props>
 </meta>

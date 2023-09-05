@@ -14,9 +14,11 @@ import io.nop.rule.api.beans.RuleRequestBean;
 import io.nop.rule.api.beans.RuleResultBean;
 import io.nop.rule.core.IRuleManager;
 import io.nop.rule.core.IRuleRuntime;
+import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model.RuleInputDefineModel;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.core.model.RuleOutputDefineModel;
+import io.nop.rule.core.service.IRuleLogMessageSaver;
 import io.nop.rule.core.service.RuleServiceSpi;
 import io.nop.xlang.xmeta.ISchema;
 
@@ -30,6 +32,16 @@ import java.util.Map;
 public class RuleServiceImpl implements RuleServiceSpi {
 
     private IRuleManager ruleManager;
+    private boolean saveLogMessage;
+    private IRuleLogMessageSaver logMessageSaver;
+
+    public void setLogMessageSaver(IRuleLogMessageSaver ruleLogMessageSaver) {
+        this.logMessageSaver = logMessageSaver;
+    }
+
+    public void setSaveLogMessage(boolean saveLogMessage) {
+        this.saveLogMessage = saveLogMessage;
+    }
 
     @Inject
     public void setRuleManager(IRuleManager ruleManager) {
@@ -44,6 +56,9 @@ public class RuleServiceImpl implements RuleServiceSpi {
         ruleRt.setInputs(request.getInputs());
         ruleRt.setRuleName(request.getRuleName());
         ruleRt.setRuleVersion(request.getRuleVersion());
+        if (selection != null && selection.hasField(RuleConstants.FIELD_LOG_MESSAGES)) {
+            ruleRt.setCollectLogMessage(true);
+        }
 
         Map<String, Object> outputs = ruleManager.executeRule(request.getRuleName(), request.getRuleVersion(), ruleRt);
         RuleResultBean ret = new RuleResultBean();
@@ -51,6 +66,13 @@ public class RuleServiceImpl implements RuleServiceSpi {
         ret.setRuleVersion(ruleRt.getRuleVersion());
         ret.setOutputs(outputs);
         ret.setRuleMatch(ruleRt.isRuleMatch());
+        if (ruleRt.isCollectLogMessage()) {
+            ret.setLogMessages(ruleRt.getLogMessages());
+
+            if (saveLogMessage && logMessageSaver != null)
+                logMessageSaver.saveLogMessages(ruleRt.getLogMessages(), ruleRt);
+        }
+
         return ret;
     }
 

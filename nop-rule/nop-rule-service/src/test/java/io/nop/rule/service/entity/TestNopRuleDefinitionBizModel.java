@@ -56,5 +56,10 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
                 "NopRuleDefinition__save", request);
         ApiResponse<?> response = graphQLEngine.executeRpc(ctx);
         output("response.json5", response);
+
+        request = request("request2.json5", Map.class);
+        ctx = graphQLEngine.newRpcContext(GraphQLOperationType.mutation, "RuleService__executeRule", request);
+        response = graphQLEngine.executeRpc(ctx);
+        output("response2.json5", response);
     }
 }

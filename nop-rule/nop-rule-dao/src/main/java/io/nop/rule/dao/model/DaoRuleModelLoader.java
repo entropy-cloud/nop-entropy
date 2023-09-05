@@ -8,6 +8,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.tree.TreeIndex;
@@ -33,6 +34,7 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import static io.nop.api.core.beans.FilterBeans.eq;
 import static io.nop.rule.dao.NopRuleDaoConstants.RULE_STATUS_ACTIVE;
@@ -193,6 +195,22 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
             if (predicate != null)
                 child.appendChild(predicate);
 
+            Map<String, Object> outputs = (Map<String, Object>) JsonTool.parseNonStrict(node.getOutputs());
+            if (outputs != null) {
+                XNode outputsNode = child.makeChild("outputs");
+                for (Map.Entry<String, Object> entry : outputs.entrySet()) {
+                    String name = entry.getKey();
+                    XNode exprNode = toExprNode(entry.getValue());
+                    XNode outputNode = XNode.make("output");
+                    outputNode.setAttr("name", name);
+                    if (exprNode != null) {
+                        exprNode.setTagName("valueExpr");
+                        outputNode.appendChild(exprNode);
+                    }
+                    outputsNode.appendChild(outputNode);
+                }
+            }
+
             List<NopRuleNode> nodeChildren = index.getChildren(node);
             if (nodeChildren != null) {
                 buildRuleTree(child.makeChild("children"), nodeChildren, index);
@@ -200,6 +218,19 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
             children.appendChild(child);
         }
+    }
+
+    private XNode toExprNode(Object value) {
+        if (value instanceof String) {
+            String str = value.toString().trim();
+            if (str.startsWith("<")) {
+                return XNodeParser.instance().parseFromText(null, value.toString());
+            }
+            XNode node = XNode.make("valueExpr");
+            node.content(value);
+            return node;
+        }
+        return XNode.fromValue(value);
     }
 
     private XNode parsePredicate(String predicate) {

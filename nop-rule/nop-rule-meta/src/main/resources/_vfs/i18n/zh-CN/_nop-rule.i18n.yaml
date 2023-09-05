@@ -8,6 +8,7 @@ entity:
     NopRuleOutputValue: null
     NopRuleRole: 规则角色
     RuleKeyBean: 规则唯一标识
+    RuleLogMessageBean: 日志消息
     RuleMetaBean: 规则元数据
     RuleRequestBean: 规则执行请求
     RuleResultBean: 规则执行结果
@@ -109,6 +110,11 @@ prop:
     RuleKeyBean:
       ruleName: 规则名称
       ruleVersion: 规则版本
+    RuleLogMessageBean:
+      logTime: 日志时间
+      message: 消息
+      ruleNodeId: 规则节点Id
+      ruleNodeLabel: 规则节点标题
     RuleMetaBean:
       description: 描述
       displayName: 显示名称
@@ -121,6 +127,7 @@ prop:
       ruleName: 规则名称
       ruleVersion: 规则版本
     RuleResultBean:
+      logMessages: 日志消息
       outputs: 输出结果
       ruleMatch: 是否匹配
       ruleName: 规则名称
