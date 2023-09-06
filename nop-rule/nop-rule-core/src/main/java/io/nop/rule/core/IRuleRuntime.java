@@ -13,6 +13,7 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.rule.api.beans.RuleLogMessageBean;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +29,15 @@ public interface IRuleRuntime extends IEvalContext {
     Map<String, Object> getInputs();
 
     void setInputs(Map<String, Object> inputs);
+
+    default void setInput(String name, Object value) {
+        Map<String, Object> inputs = getInputs();
+        if (inputs == null) {
+            inputs = new HashMap<>();
+            setInputs(inputs);
+        }
+        inputs.put(name, value);
+    }
 
     default Object getInput(String name) {
         Map<String, Object> inputs = getInputs();
@@ -71,7 +81,7 @@ public interface IRuleRuntime extends IEvalContext {
 
     void setException(Throwable exception);
 
-    ICache<Object,Object> getCache();
+    ICache<Object, Object> getCache();
 
     static IRuleRuntime fromEvalContext(IEvalContext context) {
         if (context instanceof IRuleRuntime)

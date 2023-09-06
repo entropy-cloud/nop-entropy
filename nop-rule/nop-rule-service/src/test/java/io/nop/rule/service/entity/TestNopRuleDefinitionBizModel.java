@@ -34,7 +34,7 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testDecisionMatrix() {
-        runWithModelFile("decision-matrix.rule.xlsx");
+        runWithModelFile("test-matrix.rule.xlsx");
     }
 
     void runWithModelFile(String fileName) {

@@ -22,7 +22,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled
 public class TestRuleExcelParser extends BaseTestCase {
 
     @BeforeAll
@@ -47,15 +46,15 @@ public class TestRuleExcelParser extends BaseTestCase {
     public void testExecuteDecisionTree() {
         IRuleManager ruleManager = getRuleManager();
         IRuleRuntime ruleRt = ruleManager.newRuntime();
-        ruleRt.getEvalScope().setLocalValue("season", "Winter");
-        ruleRt.getEvalScope().setLocalValue("guestCount", 4);
+        ruleRt.setInput("season", "Winter");
+        ruleRt.setInput("guestCount", 4);
         Map<String, Object> output = ruleManager.executeRule("test/test-table", null, ruleRt);
         System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
         assertEquals("Roastbeef", output.get("dish"));
 
         ruleRt = ruleManager.newRuntime();
-        ruleRt.getEvalScope().setLocalValue("season", "Summer");
-        ruleRt.getEvalScope().setLocalValue("guestCount", 4);
+        ruleRt.setInput("season", "Summer");
+        ruleRt.setInput("guestCount", 4);
         output = ruleManager.executeRule("test/test-table", null, ruleRt);
         assertEquals("Light Salad and nice Steak", output.get("dish"));
     }
@@ -64,20 +63,22 @@ public class TestRuleExcelParser extends BaseTestCase {
     public void testExecuteDecisionMatrix() {
         IRuleManager ruleManager = getRuleManager();
         IRuleRuntime ruleRt = ruleManager.newRuntime();
-        ruleRt.getEvalScope().setLocalValue("是否有房", "有房");
-        ruleRt.getEvalScope().setLocalValue("是否已婚", "已婚");
+        ruleRt.setCollectLogMessage(true);
+        ruleRt.setInput("是否有房", true);
+        ruleRt.setInput("是否已婚", "已婚");
         Map<String, Object> baseInfo = new HashMap<>();
         baseInfo.put("age", 25);
-        baseInfo.put("gender", "男");
+        baseInfo.put("gender", 1);
 
-        ruleRt.getEvalScope().setLocalValue("baseInfo", baseInfo);
+        ruleRt.setInput("baseInfo", baseInfo);
 
         Map<String, Object> output = ruleManager.executeRule("test/test-matrix", null, ruleRt);
         System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
         assertEquals(9, output.get("result"));
 
         baseInfo.put("age", 50);
-        ruleRt.getEvalScope().setLocalValue("是否已婚", "未婚");
+        ruleRt.setInput("是否已婚", "未婚");
+        ruleRt.clearOutputs();
         output = ruleManager.executeRule("test/test-matrix", null, ruleRt);
         assertEquals("A", output.get("type"));
         assertEquals(14, output.get("result"));
