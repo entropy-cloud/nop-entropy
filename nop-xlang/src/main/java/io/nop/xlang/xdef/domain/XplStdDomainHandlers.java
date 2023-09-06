@@ -16,7 +16,6 @@ import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.xml.XNode;
-import io.nop.core.lang.xml.json.StdJsonToXNodeTransformer;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IFunctionType;
@@ -185,7 +184,16 @@ public class XplStdDomainHandlers {
                     return node;
                 }
             }
-            return StdJsonToXNodeTransformer.INSTANCE.transformToXNode(value);
+
+            if (value instanceof String) {
+                String str = value.toString();
+                if (isSupportContentScript() && !str.startsWith("<")) {
+                    XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+                    node.content(value);
+                    return node;
+                }
+            }
+            return XNode.fromValue(value);
         }
     }
 

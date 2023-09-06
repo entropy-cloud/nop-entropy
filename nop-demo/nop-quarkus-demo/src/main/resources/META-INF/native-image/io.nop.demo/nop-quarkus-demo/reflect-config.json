@@ -16466,6 +16466,57 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "NULL_ACTION"
+      }
+    ],
+    "methods": [
+      {
+        "name": "invoke",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.eval.IEvalAction",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ALWAYS_FALSE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ALWAYS_TRUE"
+      }
+    ],
+    "methods": [
+      {
+        "name": "passConditions",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.eval.IEvalPredicate",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -16612,6 +16663,23 @@
       }
     ],
     "name": "io.nop.core.lang.json.JObject",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateSql",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.sql.ISqlGenerator",
     "unsafeAllocated": false
   },
   {
@@ -16938,6 +17006,23 @@
       }
     ],
     "name": "io.nop.core.lang.utils.Underscore",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateNode",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.xml.IXNodeGenerator",
     "unsafeAllocated": false
   },
   {
@@ -22026,6 +22111,42 @@
       }
     ],
     "name": "io.nop.core.resource.impl.UnknownResource",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateToStream",
+        "parameterTypes": [
+          "java.io.OutputStream",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.tpl.ITemplateOutput",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateToWriter",
+        "parameterTypes": [
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.tpl.ITextTemplateOutput",
     "unsafeAllocated": false
   },
   {
@@ -37553,6 +37674,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.rule.core.model.RuleDecisionMatrixModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "calcLeafIndex",
@@ -37671,6 +37802,95 @@
       }
     ],
     "name": "io.nop.rule.core.model.RuleOutputValueModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.rule.core.model.RuleTableCellModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addCell",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleTableCellModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getCell",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColDecider",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowDecider",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasCell",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_cells",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setCells",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setColDecider",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleDecisionTreeModel"
+        ]
+      },
+      {
+        "name": "setRowDecider",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleDecisionTreeModel"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model._gen._RuleDecisionMatrixModel",
     "unsafeAllocated": false
   },
   {
@@ -38120,6 +38340,75 @@
       }
     ],
     "name": "io.nop.rule.core.model._gen._RuleOutputValueModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addOutput",
+        "parameterTypes": [
+          "io.nop.rule.core.model.RuleOutputValueModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPos",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOutput",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasOutputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_outputs",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setOutputs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setPos",
+        "parameterTypes": [
+          "io.nop.core.model.table.CellPosition"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.core.model._gen._RuleTableCellModel",
     "unsafeAllocated": false
   },
   {
@@ -44784,6 +45073,94 @@
       }
     ],
     "name": "io.nop.web.page.condition.ConditionSchemaHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "generateNode",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "generateSql",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "generateToWriter",
+        "parameterTypes": [
+          "java.io.Writer",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "passConditions",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.api.AbstractEvalAction",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addSource",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "io.nop.core.lang.eval.IEvalAction",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "addSource",
+        "parameterTypes": [
+          "io.nop.xlang.api.ExprEvalAction",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAction",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocation",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSource",
+        "parameterTypes": []
+      },
+      {
+        "name": "invoke",
+        "parameterTypes": [
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.xlang.api.EvalCode",
     "unsafeAllocated": false
   },
   {
@@ -52200,6 +52577,107 @@
     "fields": [],
     "methods": [
       {
+        "name": "after",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "before",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "compareTo",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "compareTo",
+        "parameterTypes": [
+          "java.util.Date"
+        ]
+      },
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "from",
+        "parameterTypes": [
+          "java.time.Instant"
+        ]
+      },
+      {
+        "name": "getNanos",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "setNanos",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setTime",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "toInstant",
+        "parameterTypes": []
+      },
+      {
+        "name": "toLocalDateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      },
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      }
+    ],
+    "name": "java.sql.Timestamp",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "add",
         "parameterTypes": [
           "java.lang.Object"
@@ -52769,6 +53247,166 @@
     "fields": [],
     "methods": [],
     "name": "java.util.Collections$EmptyMap",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "UTC",
+        "parameterTypes": [
+          "int",
+          "int",
+          "int",
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "after",
+        "parameterTypes": [
+          "java.util.Date"
+        ]
+      },
+      {
+        "name": "before",
+        "parameterTypes": [
+          "java.util.Date"
+        ]
+      },
+      {
+        "name": "clone",
+        "parameterTypes": []
+      },
+      {
+        "name": "compareTo",
+        "parameterTypes": [
+          "java.util.Date"
+        ]
+      },
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "from",
+        "parameterTypes": [
+          "java.time.Instant"
+        ]
+      },
+      {
+        "name": "getDate",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDay",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHours",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMinutes",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMonth",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSeconds",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimezoneOffset",
+        "parameterTypes": []
+      },
+      {
+        "name": "getYear",
+        "parameterTypes": []
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "parse",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDate",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setHours",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMinutes",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMonth",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setSeconds",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setTime",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setYear",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "toGMTString",
+        "parameterTypes": []
+      },
+      {
+        "name": "toInstant",
+        "parameterTypes": []
+      },
+      {
+        "name": "toLocaleString",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.util.Date",
     "unsafeAllocated": false
   },
   {

@@ -28,7 +28,7 @@ public class DaoRuleModelSaver {
         ruleModel.setDecisionTree(null);
 
         XNode node = DslModelHelper.dslModelToXNode(NopRuleDaoConstants.XDEF_PATH_RULE, ruleModel);
-        entity.setModelText(node.xml());
+        entity.getModelTextXmlComponent().setNode(node);
 
         if (tree == null) {
             entity.getRuleNodes().clear();

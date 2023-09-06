@@ -133,7 +133,7 @@
 
             <normalizeFieldsExpr><![CDATA[
                import io.nop.excel.imp.util.ImportDataHelper;
-               ImportDataHelper.normalizeTree(record.inputs, "props","ext:level","name");
+               ImportDataHelper.normalizeTree(record.inputs, "schema.props","ext:level","name");
                record.inputs = _.toKeyedList(record.inputs,'name');
          ]]></normalizeFieldsExpr>
         </sheet>

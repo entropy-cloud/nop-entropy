@@ -49,9 +49,6 @@
                 <!--初始化代码-->
                 <col id="beforeExecute" x:abstract="true"/>
 
-                <!--Excel规则文件-->
-                <col id="importFile"/>
-
                 <!--决策矩阵配置-->
                 <col id="decisionMatrix" x:abstract="true"/>
             </cols>
@@ -69,8 +66,7 @@
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
- beforeExecute[初始化代码] importFile[Excel规则文件]
- decisionMatrix[决策矩阵配置] 
+ beforeExecute[初始化代码] decisionMatrix[决策矩阵配置]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-规则模型定义" i18n-en:title="Add Rule Definition" x:prototype="edit"/>

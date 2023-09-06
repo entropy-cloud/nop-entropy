@@ -210,7 +210,17 @@ A,@var:NopRuleDefinition@ruleId,testMatrix,1,Test Matrix,default,MATX,,"<rule di
             <schema/>
         </input>
         <input displayName=""基础信息"" mandatory=""true"" name=""baseInfo"" type=""Object"" ext:level=""0"">
-            <schema/>
+            <schema implementsTypes="""">
+                <props>
+                    <prop displayName=""年龄"" mandatory=""true"" name=""age"" type=""Integer"" ext:level=""1""
+                          i18n-en:displayName=""Age"">
+                        <schema type=""Integer""/>
+                    </prop>
+                    <prop displayName=""性别"" mandatory=""true"" name=""gender"" type=""Integer"" ext:level=""1"">
+                        <schema type=""Integer""/>
+                    </prop>
+                </props>
+            </schema>
         </input>
         <input computed=""true"" displayName=""性别"" mandatory=""true"" name=""gender"" type=""Integer"" ext:level=""0"">
             <defaultExpr>baseInfo.gender</defaultExpr>

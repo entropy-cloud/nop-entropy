@@ -90,8 +90,8 @@ public class ImportDataHelper {
 
         List<Object> makeChildren(String childrenProp, String childKeyProp) {
             if (children == null) {
-                children = childKeyProp == null ? new ArrayList<>() : new KeyedList<>(obj -> BeanTool.getProperty(obj, childKeyProp));
-                BeanTool.instance().setProperty(record, childrenProp, children);
+                children = childKeyProp == null ? new ArrayList<>() : new KeyedList<>(obj -> BeanTool.getComplexProperty(obj, childKeyProp));
+                BeanTool.setComplexProperty(record, childrenProp, children);
             }
             return children;
         }
@@ -113,7 +113,7 @@ public class ImportDataHelper {
             Collection<T> c = (Collection<T>) BeanTool.getProperty(item, childrenProp);
             if (c != null) {
                 if(removeChildren)
-                    BeanTool.setProperty(item, childrenProp,null);
+                    BeanTool.setComplexProperty(item, childrenProp,null);
                 _flattenTree(c, childrenProp, removeChildren,ret);
             }
         }

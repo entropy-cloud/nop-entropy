@@ -20,7 +20,7 @@
         </prop>
 
         <prop name="importFile" displayName="Excel规则文件" readable="false" updatable="false" insertable="false"
-              ui:uploadAccept=".rule.xlsx">
+              ui:uploadAccept=".rule.xlsx" internal="true">
             <schema stdDomain="file"/>
         </prop>
 
