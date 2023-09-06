@@ -24,6 +24,7 @@
         builder.defineGlobalVar("apiPackagePath",apiPackageName.replace('.','/'));
 
         builder.defineLoopVar("serviceModel","apiModel", model => model.services);
+        builder.defineLoopVar("serviceMethod","serviceModel",model=> model.methods);
         builder.defineLoopVar("messageModel","apiModel", model => model.messages);
 
     ]]></c:script>

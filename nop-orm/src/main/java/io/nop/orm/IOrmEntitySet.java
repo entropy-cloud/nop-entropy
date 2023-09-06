@@ -72,7 +72,7 @@ public interface IOrmEntitySet<T extends IOrmEntity>
 
     void orm_clearDirty();
 
-    void orm_onFlush();
+    //void orm_onFlush();
 
     /**
      * 返回被删除的元素，可能为null

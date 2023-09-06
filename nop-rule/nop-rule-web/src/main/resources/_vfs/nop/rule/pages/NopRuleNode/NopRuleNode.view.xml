@@ -31,6 +31,13 @@
             </cols>
         </grid>
 
+        <grid id="sub-grid-view" x:prototype="tree-list">
+            <cols>
+                <col id="ruleId" x:abstract="true" />
+                <col id="ruleDefinition" x:abstract="true" />
+            </cols>
+        </grid>
+
         <!-- 可以在当前视图文件中引用其他对象的objMeta定义grid -->
         <grid id="outputGrid">
             <objMeta>/nop/rule/model/NopRuleOutputValue/NopRuleOutputValue.xmeta</objMeta>

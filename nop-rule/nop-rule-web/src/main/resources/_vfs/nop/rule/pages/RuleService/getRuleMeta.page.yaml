@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+    <web:GenPage view="RuleService.view.xml" page="getRuleMeta" xpl:lib="/nop/web/xlib/web.xlib" />

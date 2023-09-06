@@ -5,11 +5,19 @@
 
     <c:import from="/nop/codegen/xlib/web-gen.xlib"/>
 
+    <c:print>
+        <x:gen-extends>
+            <api-web:DefaultGenExtends xpl:lib="/nop/web/xlib/api-web.xlib" />
+        </x:gen-extends>
+    </c:print>
+
     <forms>
         <c:script><![CDATA[
             let formNames = new Set();
             serviceModel.methods.forEach(method=>{
-                formNames.add(method.requestMessage.$simpleClassName())
+                const messageName = method.requestMessage.$simpleClassName();
+                if(apiModel.messages.getByKey(messageName))
+                    formNames.add(messageName)
             });
         ]]></c:script>
         <c:for var="formName" items="${formNames}">
@@ -17,6 +25,7 @@
                 <c:script>
                     let message = apiModel.messages.getByKey(formName);
                 </c:script>
+                <objMeta>/${moduleId}/model/${serviceModel.name}/${message.name}.xmeta</objMeta>
                 <layout>
                     <c:for var="field" items="${message?.fields}">
                         ${field.name}
@@ -31,27 +40,11 @@
             </form>
         </c:for>
 
-        <form id="json-result" size="md">
-            <layout>
-                __result
-            </layout>
-
-            <cells>
-                <cell id="__result">
-                    <gen-control>
-                        <code language="json" />
-                    </gen-control>
-                </cell>
-            </cells>
-        </form>
     </forms>
 
     <pages>
-        <simple name="json-result" form="json-result" title="服务返回结果" />
-
         <c:for var="method" items="${serviceModel.methods}">
             <simple name="${method.name}" form="${method.requestMessage.$simpleClassName()}">
-                <api url="/r/${serviceModel.name}__${method.name}"/>
 
                 <actions>
                     <action id="${serviceModel.name}__${method.name}-cancel" label="@i18n:common.cancel|取消" actionType="cancel">

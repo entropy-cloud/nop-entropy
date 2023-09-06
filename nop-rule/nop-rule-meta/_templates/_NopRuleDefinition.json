@@ -23,5 +23,6 @@
   "ruleOutputs": null,
   "beforeExecute": null,
   "importFile": null,
+  "rootRuleNodes": null,
   "decisionMatrix": null
 }

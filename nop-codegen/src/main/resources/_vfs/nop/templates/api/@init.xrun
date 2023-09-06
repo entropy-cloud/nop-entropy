@@ -6,6 +6,15 @@
         let apiPackageName = apiModel['ext:apiPackageName'];
         let serviceModuleName = apiModel['ext:serviceModuleName'];
         let servicePackageName = apiModel['ext:servicePackageName'];
+        let metaModuleName = apiModel['ext:metaModuleName'];
+        if(!metaModuleName){
+           const pos = serviceModuleName.lastIndexOf('-');
+           if(pos < 0){
+               metaModuleName = serviceModuleName + '-meta';
+           }else{
+               metaModuleName = serviceModuleName.substring(0,pos) + '-meta';
+           }
+        }
 
         let moduleId = apiModel['ext:moduleId'] || appName.replace('-','/');
 
@@ -14,6 +23,7 @@
         builder.defineGlobalVar("apiPackageName",apiPackageName);
         builder.defineGlobalVar("serviceModuleName", serviceModuleName);
         builder.defineGlobalVar("servicePackageName",servicePackageName);
+        builder.defineGlobalVar("metaModuleName",metaModuleName);
         builder.defineGlobalVar("appName",appName);
         builder.defineGlobalVar("moduleId",moduleId);
 

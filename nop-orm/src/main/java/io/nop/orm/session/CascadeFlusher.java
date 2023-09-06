@@ -173,7 +173,7 @@ public class CascadeFlusher {
             } else if (propModel.isToManyRelation()) {
                 IOrmEntitySet<IOrmEntity> coll = entity.orm_refEntitySet(propModel.getName());
                 if (coll != null && !coll.orm_proxy()) {
-                    coll.orm_onFlush();
+                    //coll.orm_onFlush();
                     for (IOrmEntity element : coll) {
                         cascadeInternalFlush(element);
                     }
@@ -285,12 +285,14 @@ public class CascadeFlusher {
                     // 如果已经和父元素解除了绑定则不会级联删除子元素。只有owner==parent的时候才需要被处理
                     if (isOrphan(entity, coll)) {
                         if (entity.orm_proxy()) {
+                            LOG.debug("nop.orm.delete-orphan-entity:entity={}",entity);
                             // 如果要删除的对象尚未加载，则将对象放入加载对象，并标记为待删除
                             waitDeletes.add(entity);
                             session.getBatchLoadQueue().enqueue(entity);
                         } else {
                             // gone包含deleting状态
                             if (!entity.orm_state().isGone()) {
+                                LOG.debug("nop.orm.delete-orphan-entity:entity={}",entity);
                                 session.internalDelete(entity);
                                 // 此前可能已经遍历过，但是现在因为集合级联删除要把实体删除，则需要重新标记。
                                 // 下面的cascadeEntity会处理针对此entity的级联删除的情况

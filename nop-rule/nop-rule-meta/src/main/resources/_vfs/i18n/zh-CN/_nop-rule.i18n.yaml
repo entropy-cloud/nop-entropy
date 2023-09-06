@@ -25,6 +25,7 @@ prop:
       modelText: 模型文本
       modelTextXmlComponent: null
       remark: 备注
+      rootRuleNodes: 决策树配置
       ruleGroup: 规则分组
       ruleId: 主键
       ruleInputs: 输入变量

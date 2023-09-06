@@ -247,6 +247,14 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
 
     public void setFields(Map<String, FieldSelectionBean> fields) {
         checkNotFrozen(this);
+
+        if (fields != null) {
+            // 确保entry不为null，与逐个加入的field一致
+            for (Map.Entry<String, FieldSelectionBean> entry : fields.entrySet()) {
+                if (entry.getValue() == null)
+                    entry.setValue(DEFAULT_SELECTION);
+            }
+        }
         this.fields = fields;
     }
 

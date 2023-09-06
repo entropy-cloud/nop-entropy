@@ -34,10 +34,32 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testDecisionMatrix() {
-        runWithModelFile("test-matrix.rule.xlsx");
+        runWithModelFile("decision-matrix.rule.xlsx");
     }
 
-    void runWithModelFile(String fileName) {
+    @EnableSnapshot
+    @Test
+    public void testUpdateByFile() {
+        runWithModelFile("decision-tree.rule.xlsx");
+
+        ApiResponse<?> response = uploadFile("decision-tree.rule.xlsx");
+        // 每次生成的下载路径都是一个随机值，所以需要注册为变量
+        setVar("downloadPath2", BeanTool.getComplexProperty(response, "data.value"));
+        output("upload-result2.json5", response);
+
+        ApiRequest<?> request = request("request3-update.json5", Map.class);
+        IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(GraphQLOperationType.mutation,
+                "NopRuleDefinition__update", request);
+        response = graphQLEngine.executeRpc(ctx);
+        output("response3-update.json5", response);
+
+        request = request("request4-exec.json5", Map.class);
+        ctx = graphQLEngine.newRpcContext(GraphQLOperationType.mutation, "RuleService__executeRule", request);
+        response = graphQLEngine.executeRpc(ctx);
+        output("response4-exec.json5", response);
+    }
+
+    ApiResponse<?> uploadFile(String fileName) {
         IResource resource = inputResource(fileName);
         InputStream is = resource.getInputStream();
 
@@ -54,17 +76,23 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
             IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(GraphQLOperationType.mutation,
                     "NopFileStore__upload", ApiRequest.build(request));
             ApiResponse<?> response = graphQLEngine.executeRpc(ctx);
-            // 每次生成的下载路径都是一个随机值，所以需要注册为变量
-            setVar("downloadPath", BeanTool.getComplexProperty(response, "data.value"));
-            output("upload-result.json5", response);
+            return response;
         } finally {
             IoHelper.safeCloseObject(is);
         }
+    }
+
+    void runWithModelFile(String fileName) {
+        ApiResponse<?> response = uploadFile(fileName);
+
+        // 每次生成的下载路径都是一个随机值，所以需要注册为变量
+        setVar("downloadPath", BeanTool.getComplexProperty(response, "data.value"));
+        output("upload-result.json5", response);
 
         ApiRequest<?> request = request("request.json5", Map.class);
         IGraphQLExecutionContext ctx = graphQLEngine.newRpcContext(GraphQLOperationType.mutation,
                 "NopRuleDefinition__save", request);
-        ApiResponse<?> response = graphQLEngine.executeRpc(ctx);
+        response = graphQLEngine.executeRpc(ctx);
         output("response.json5", response);
 
         request = request("request2.json5", Map.class);

@@ -32,7 +32,7 @@
 
                 ruleName[规则名称] ruleVersion[规则版本]
                 displayName[显示名称] ruleGroup[规则分组]
-                ruleType[规则类型] status[状态]
+                status[状态] ruleType[规则类型]
                 description[描述]
                 remark[备注]
 
@@ -59,7 +59,8 @@
                 <cell id="__useImportFile" label="导入模型文件" custom="true" stdDomain="boolean">
                 </cell>
 
-                <cell id="importFile" stdDomain="file" editMode="edit">
+                <!-- importFile不是实体字段，meta上设置了不允许保存和修改，因此这里需要明确设置editMode=edit，否则就按照查看模式显示-->
+                <cell id="importFile" stdDomain="file" editMode="edit" mandatory="true">
                     <visibleOn>${__useImportFile}</visibleOn>
                 </cell>
 
@@ -75,6 +76,9 @@
                     <visibleOn>${!__useImportFile}</visibleOn>
                 </cell>
 
+                <cell id="ruleType">
+                    <visibleOn>${!__useImportFile}</visibleOn>
+                </cell>
 
                 <cell id="matrixConfig">
                     <visibleOn>${ruleType == 'MATX'}</visibleOn>
@@ -101,7 +105,7 @@
                 ==baseInfo[基本信息]====
                 ruleName[规则名称] ruleVersion[规则版本]
                 displayName[显示名称] ruleGroup[规则分组]
-                ruleType[规则类型] status[状态]
+                status[状态] ruleType[规则类型]
                 description[描述]
                 remark[备注]
 
@@ -116,6 +120,9 @@
 
                 ==extConfig[扩展配置]==
                 beforeExecute
+
+                ==treeConfig[决策树配置]==
+                !rootRuleNodes
 
                 ==matrixConfig[决策矩阵配置]==
                 !decisionMatrix
@@ -132,6 +139,14 @@
                     <gen-control>
                         return { "$ref": "viewOutputDefinition" }
                     </gen-control>
+                </cell>
+
+                <cell id="treeConfig">
+                    <visibleOn>${ruleType == 'TREE'}</visibleOn>
+                </cell>
+
+                <cell id="rootRuleNodes">
+                    <view path="/nop/rule/pages/NopRuleNode/NopRuleNode.view.xml" grid="sub-grid-view" />
                 </cell>
 
                 <cell id="matrixConfig">
@@ -155,6 +170,7 @@
                         <dialog page="/nop/rule/pages/RuleService/executeRule.page.yaml" />
                     </action>
                     <action id="row-edit-rule-nodes" label="@i18n:rule.ruleNodes|规则节点" actionType="drawer">
+                        <visibleOn>${ruleType == 'TREE'}</visibleOn>
                         <dialog page="/nop/rule/pages/NopRuleNode/ref-ruleDefinition.page.yaml" size="xl">
                             <data>
                                 <ruleId>$ruleId</ruleId>

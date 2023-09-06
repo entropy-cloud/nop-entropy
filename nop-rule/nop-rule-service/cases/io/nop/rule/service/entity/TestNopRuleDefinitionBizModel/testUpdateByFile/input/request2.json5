@@ -1,0 +1,10 @@
+{
+  data: {
+    ruleName: "test",
+    ruleVersion: 1,
+    inputs: {
+      season: "Winter",
+      guestCount: 3
+    }
+  }
+}

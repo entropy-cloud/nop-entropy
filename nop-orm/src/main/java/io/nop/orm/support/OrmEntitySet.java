@@ -10,7 +10,6 @@ package io.nop.orm.support;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.Guard;
 import io.nop.commons.util.ClassHelper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
@@ -257,21 +256,21 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         }
     }
 
-    @Override
-    public void orm_onFlush() {
-        IOrmEntityEnhancer enhancer = orm_enhancer();
-        Guard.notNull(enhancer, "enhancer");
-
-        for (IOrmEntity entity : entities) {
-            if (entity.orm_enhancer() == null) {
-                entity.orm_attach(enhancer);
-            }
-            if (entity.orm_entityModel() == null) {
-                entity.orm_entityModel(orm_enhancer().getEntityModel(entity.orm_entityName()));
-            }
-            checkElementOwner(entity);
-        }
-    }
+//    @Override
+//    public void orm_onFlush() {
+//        IOrmEntityEnhancer enhancer = orm_enhancer();
+//        Guard.notNull(enhancer, "enhancer");
+//
+//        for (IOrmEntity entity : entities) {
+//            if (entity.orm_enhancer() == null) {
+//                entity.orm_attach(enhancer);
+//            }
+//            if (entity.orm_entityModel() == null) {
+//                entity.orm_entityModel(orm_enhancer().getEntityModel(entity.orm_entityName()));
+//            }
+//            checkElementOwner(entity);
+//        }
+//    }
 
     @Override
     public String orm_propName() {
@@ -398,9 +397,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
         // 绑定owner属性
         if (refPropName != null) {
-            if (e.orm_refLoaded(refPropName) || !e.orm_state().isUnsaved()) {
-                checkElementOwner(e);
-            }
+            bindOwner(e);
         }
 
         if (this.removedEntities != null) {
@@ -418,14 +415,18 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         return b;
     }
 
-    private void checkElementOwner(IOrmEntity e) {
-        IOrmEntity elmOwner = e.orm_refEntity(refPropName);
-        if (elmOwner == null) {
+    private void bindOwner(IOrmEntity e) {
+        if (e.orm_refLoaded(refPropName) || !e.orm_state().isUnsaved()) {
+            IOrmEntity elmOwner = e.orm_refEntity(refPropName);
+            if (elmOwner == null) {
+                e.orm_propValueByName(refPropName, owner);
+            } else if (elmOwner != owner) {
+                throw newError(ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER)
+                        .param(ARG_ENTITY, e)
+                        .param(ARG_ELM_OWNER, elmOwner);
+            }
+        } else {
             e.orm_propValueByName(refPropName, owner);
-        } else if (elmOwner != owner) {
-            throw newError(ERR_ORM_COLLECTION_ELEMENT_NOT_ALLOW_MULTIPLE_OWNER)
-                    .param(ARG_ENTITY, e)
-                    .param(ARG_ELM_OWNER, elmOwner);
         }
     }
 

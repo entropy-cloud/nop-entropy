@@ -3,7 +3,7 @@ A,@var:NopRuleNode@sid_8,@var:NopRuleDefinition@ruleId,> 8,1,"{""$type"":""gt"",
   ""dish"": ""\""Stew\""""
 }",@var:NopRuleNode@sid_7,true,0,autotest-ref,*,autotest-ref,*,
 A,@var:NopRuleNode@sid_9,@var:NopRuleDefinition@ruleId,Summer,5,"{""$type"":""eq"",""name"":""season"",""value"":""Summer""}",,,true,0,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid_10,@var:NopRuleDefinition@ruleId,,1,"{""$type"":""alwaysTrue""}","{
+A,@var:NopRuleNode@sid_10,@var:NopRuleDefinition@ruleId,-,1,"{""$type"":""alwaysTrue""}","{
   ""dish"": ""\""Light Salad and nice Steak\""""
 }",@var:NopRuleNode@sid_9,true,0,autotest-ref,*,autotest-ref,*,
 A,@var:NopRuleNode@sid,@var:NopRuleDefinition@ruleId,Fall,1,"{""$type"":""eq"",""name"":""season"",""value"":""Fall""}",,,true,0,autotest-ref,*,autotest-ref,*,

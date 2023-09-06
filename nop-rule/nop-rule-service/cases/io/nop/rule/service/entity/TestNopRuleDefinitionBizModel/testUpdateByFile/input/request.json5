@@ -1,0 +1,29 @@
+{
+  selection: {
+    fields: {
+      rootRuleNodes: {
+        fields: {
+          predicate: null,
+          outputs: null,
+          children: {
+            fields: {
+              predicate: null,
+              children: null,
+              outputs: null
+            }
+          }
+        }
+      }
+    }
+  },
+  data: {
+    data: {
+      ruleName: "test",
+      ruleGroup: "default",
+      ruleVersion: 1,
+      displayName: "Test Tree",
+      status: 1,
+      importFile: "@var:downloadPath"
+    }
+  }
+}

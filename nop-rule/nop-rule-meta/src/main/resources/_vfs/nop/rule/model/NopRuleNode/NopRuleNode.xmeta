@@ -3,9 +3,8 @@
       x:extends="_NopRuleNode.xmeta" xmlns:ui="ui">
 
     <props>
-        <prop name="predicate" internal="true"/>
-        <prop name="predicateMap" displayName="判断条件"
-              ui:show="X">
+        <prop name="predicate" internal="true" lazy="true"/>
+        <prop name="predicateMap" displayName="判断条件" ui:show="X" lazy="true">
             <schema type="Map"/>
             <setter>
                 <c:script><![CDATA[
@@ -26,9 +25,9 @@
             <schema type="String"/>
         </prop>
 
-        <prop name="outputs" internal="true"/>
+        <prop name="outputs" />
 
-        <prop name="outputsMap" mapToProp="outputsComponent._jsonValue" displayName="输出值"/>
+        <prop name="outputsMap" mapToProp="outputsComponent._jsonValue" displayName="输出值" lazy="true"/>
 
         <prop name="isLeaf">
             <autoExpr when="save">0</autoExpr>
