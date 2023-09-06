@@ -7,7 +7,7 @@
     "ruleGroup": "default",
     "ruleType": "TREE",
     "ruleType_label": "TREE-决策树",
-    "modelText": "<rule displayName=\"测试规则\" x:schema=\"/nop/schema/rule.xdef\" xmlns:x=\"/nop/schema/xdsl.xdef\">\n    <inputs>\n        <input displayName=\"季度\" mandatory=\"true\" name=\"season\" type=\"String\">\n            <schema/>\n        </input>\n        <input displayName=\"客人数\" mandatory=\"true\" name=\"guestCount\" type=\"Integer\">\n            <schema/>\n        </input>\n    </inputs>\n    <outputs>\n        <output displayName=\"食物\" name=\"dish\" type=\"String\">\n            <schema/>\n        </output>\n    </outputs>\n</rule>",
+    "modelText": "<rule displayName=\"测试规则\" x:schema=\"/nop/schema/rule.xdef\" xmlns:x=\"/nop/schema/xdsl.xdef\">\n    <inputs>\n        <input displayName=\"季度\" mandatory=\"true\" name=\"season\" type=\"String\" ext:level=\"0\">\n            <schema/>\n        </input>\n        <input displayName=\"客人数\" mandatory=\"true\" name=\"guestCount\" type=\"Integer\" ext:level=\"0\">\n            <schema/>\n        </input>\n    </inputs>\n    <outputs>\n        <output displayName=\"食物\" name=\"dish\" type=\"String\" ext:level=\"0\">\n            <schema/>\n        </output>\n    </outputs>\n</rule>",
     "status": 1,
     "status_label": "1-启用",
     "version": 0,

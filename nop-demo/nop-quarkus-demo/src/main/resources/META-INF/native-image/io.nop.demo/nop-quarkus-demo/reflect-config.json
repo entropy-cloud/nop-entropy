@@ -36263,6 +36263,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.rule.api.beans.RuleLogMessageBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.rule.api.beans.RuleMetaBean",
     "unsafeAllocated": false
   },
@@ -36315,6 +36325,57 @@
       }
     ],
     "name": "io.nop.rule.api.beans._gen._RuleKeyBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getLogTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMessage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleNodeId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRuleNodeLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "setLogTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleNodeId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRuleNodeLabel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.rule.api.beans._gen._RuleLogMessageBean",
     "unsafeAllocated": false
   },
   {
@@ -36437,6 +36498,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "getLogMessages",
+        "parameterTypes": []
+      },
+      {
         "name": "getOutputs",
         "parameterTypes": []
       },
@@ -36451,6 +36516,12 @@
       {
         "name": "getRuleVersion",
         "parameterTypes": []
+      },
+      {
+        "name": "setLogMessages",
+        "parameterTypes": [
+          "java.util.List"
+        ]
       },
       {
         "name": "setOutputs",
@@ -37145,9 +37216,21 @@
         ]
       },
       {
+        "name": "setLogMessageSaver",
+        "parameterTypes": [
+          "io.nop.rule.core.service.IRuleLogMessageSaver"
+        ]
+      },
+      {
         "name": "setRuleManager",
         "parameterTypes": [
           "io.nop.rule.core.IRuleManager"
+        ]
+      },
+      {
+        "name": "setSaveLogMessage",
+        "parameterTypes": [
+          "boolean"
         ]
       }
     ],
@@ -49163,6 +49246,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getMessages",
+        "parameterTypes": []
+      },
+      {
         "name": "getObjMeta",
         "parameterTypes": []
       },
@@ -49280,6 +49367,10 @@
       },
       {
         "name": "hasInitAsyncApi",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasMessages",
         "parameterTypes": []
       },
       {
@@ -49442,6 +49533,12 @@
         "name": "setLayoutMode",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMessages",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       },
       {

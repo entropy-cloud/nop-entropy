@@ -8,6 +8,7 @@
 package io.nop.rule.core;
 
 import io.nop.api.core.util.Guard;
+import io.nop.commons.cache.ICache;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.rule.api.beans.RuleLogMessageBean;
@@ -65,6 +66,12 @@ public interface IRuleRuntime extends IEvalContext {
     boolean isCollectLogMessage();
 
     void setCollectLogMessage(boolean collectLogMessage);
+
+    Throwable getException();
+
+    void setException(Throwable exception);
+
+    ICache<Object,Object> getCache();
 
     static IRuleRuntime fromEvalContext(IEvalContext context) {
         if (context instanceof IRuleRuntime)

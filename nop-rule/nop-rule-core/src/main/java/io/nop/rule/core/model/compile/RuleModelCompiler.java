@@ -9,8 +9,8 @@ import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.SeqEvalAction;
 import io.nop.core.model.table.CellPosition;
 import io.nop.rule.core.IExecutableRule;
-import io.nop.rule.core.execute.AggregateExecutableRule;
-import io.nop.rule.core.execute.ComputedInputRule;
+import io.nop.rule.core.execute.NormalizeOutputExecutableRule;
+import io.nop.rule.core.execute.NormalizeInputExecutableRule;
 import io.nop.rule.core.execute.DecoratedExecutableRule;
 import io.nop.rule.core.execute.ExecutableMatrixRule;
 import io.nop.rule.core.execute.ExecutableRule;
@@ -18,7 +18,6 @@ import io.nop.rule.core.execute.RuleDecider;
 import io.nop.rule.core.execute.RuleOutputAction;
 import io.nop.rule.core.model.RuleDecisionMatrixModel;
 import io.nop.rule.core.model.RuleDecisionTreeModel;
-import io.nop.rule.core.model.RuleInputDefineModel;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.core.model.RuleOutputValueModel;
 import io.nop.rule.core.model.RuleTableCellModel;
@@ -27,7 +26,6 @@ import io.nop.xlang.api.XLangCompileTool;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class RuleModelCompiler {
     private final XLangCompileTool compileTool;
@@ -48,14 +46,9 @@ public class RuleModelCompiler {
             rule = compileMatrix(ruleModel.getDecisionMatrix());
         }
 
-        List<RuleInputDefineModel> computedVars = ruleModel.getInputs().stream().filter(RuleInputDefineModel::isComputed)
-                .collect(Collectors.toList());
+        rule = new NormalizeOutputExecutableRule(ruleModel.getOutputs(), rule);
 
-        rule = new AggregateExecutableRule(rule, ruleModel.getOutputs());
-
-        if (!computedVars.isEmpty()) {
-            rule = new ComputedInputRule(computedVars, rule);
-        }
+        rule = new NormalizeInputExecutableRule(ruleModel.getInputs(), rule);
 
         if (ruleModel.getBeforeExecute() != null || ruleModel.getAfterExecute() != null) {
             rule = new DecoratedExecutableRule(ruleModel.getBeforeExecute(),

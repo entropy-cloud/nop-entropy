@@ -1,0 +1,12 @@
+{
+  data: {
+    data: {
+      ruleName: "testMatrix",
+      ruleGroup: "default",
+      ruleVersion: 1,
+      displayName: "Test Matrix",
+      status: 1,
+      importFile: "@var:downloadPath"
+    }
+  }
+}

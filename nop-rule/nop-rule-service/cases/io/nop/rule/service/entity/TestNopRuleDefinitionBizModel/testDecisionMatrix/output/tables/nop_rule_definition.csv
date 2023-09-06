@@ -1,0 +1,228 @@
+_chgType,RULE_ID,RULE_NAME,RULE_VERSION,DISPLAY_NAME,RULE_GROUP,RULE_TYPE,DESCRIPTION,MODEL_TEXT,STATUS,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
+A,@var:NopRuleDefinition@ruleId,testMatrix,1,Test Matrix,default,MATX,,"<rule displayName=""测试决策矩阵"" x:schema=""/nop/schema/rule.xdef"" xmlns:x=""/nop/schema/xdsl.xdef"">
+    <decisionMatrix>
+        <cells>
+            <cell pos=""A1"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>1</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""B1"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>2</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""C1"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>3</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""D1"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>4</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""A2"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>5</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""B2"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>6</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""C2"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>7</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""D2"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>8</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""A3"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>9</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""B3"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>10</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""C3"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>11</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""D3"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>12</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""A4"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>13</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""B4"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>14</valueExpr>
+                    </output>
+                    <output name=""type"">
+                        <valueExpr> 'A'</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""C4"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>15</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+            <cell pos=""D4"">
+                <outputs>
+                    <output name=""result"">
+                        <valueExpr>16</valueExpr>
+                    </output>
+                </outputs>
+            </cell>
+        </cells>
+        <colDecider>
+            <children>
+                <child id=""C1"" label=""有房"">
+                    <children>
+                        <child id=""C2"" label=""已婚"">
+                            <predicate>
+                                <eq name=""是否已婚"" value=""已婚""/>
+                            </predicate>
+                        </child>
+                        <child id=""D2"" label=""未婚"" leafIndex=""1"">
+                            <predicate>
+                                <eq name=""是否已婚"" value=""未婚""/>
+                            </predicate>
+                        </child>
+                    </children>
+                    <predicate>
+                        <eq name=""是否有房"" value=""@:true""/>
+                    </predicate>
+                </child>
+                <child id=""F1"" label=""无房"">
+                    <children>
+                        <child id=""F2"" label=""已婚"" leafIndex=""2"">
+                            <predicate>
+                                <eq name=""是否已婚"" value=""已婚""/>
+                            </predicate>
+                        </child>
+                        <child id=""G2"" label=""未婚"" leafIndex=""3"">
+                            <predicate>
+                                <eq name=""是否已婚"" value=""未婚""/>
+                            </predicate>
+                        </child>
+                    </children>
+                    <predicate>
+                        <eq name=""是否有房"" value=""@:false""/>
+                    </predicate>
+                </child>
+            </children>
+        </colDecider>
+        <rowDecider>
+            <children>
+                <child id=""A3"" label=""&lt;20"">
+                    <children>
+                        <child id=""B3"" label=""男"">
+                            <predicate>
+                                <eq name=""gender"" value=""@:1""/>
+                            </predicate>
+                        </child>
+                        <child id=""B4"" label=""女"" leafIndex=""1"">
+                            <predicate>
+                                <eq name=""gender"" value=""@:2""/>
+                            </predicate>
+                        </child>
+                    </children>
+                    <predicate>
+                        <lt name=""baseInfo.age"" value=""@:20""/>
+                    </predicate>
+                </child>
+                <child id=""A5"" label=""&lt;30"">
+                    <children>
+                        <child id=""B5"" label=""男"" leafIndex=""2"">
+                            <predicate>
+                                <eq name=""gender"" value=""@:1""/>
+                            </predicate>
+                        </child>
+                    </children>
+                    <predicate>
+                        <lt name=""baseInfo.age"" value=""@:30""/>
+                    </predicate>
+                </child>
+                <child id=""A6"" label=""&gt;=30"">
+                    <children>
+                        <child id=""B6"" label=""-"" leafIndex=""3"">
+                            <predicate>
+                                <alwaysTrue/>
+                            </predicate>
+                        </child>
+                    </children>
+                    <predicate>
+                        <ge name=""baseInfo.age"" value=""@:30""/>
+                    </predicate>
+                </child>
+            </children>
+        </rowDecider>
+    </decisionMatrix>
+    <inputs>
+        <input displayName=""是否有房"" mandatory=""true"" name=""是否有房"" type=""Boolean"" ext:level=""0"">
+            <schema/>
+        </input>
+        <input displayName=""是否已婚"" mandatory=""true"" name=""是否已婚"" type=""String"" ext:level=""0"">
+            <schema/>
+        </input>
+        <input displayName=""基础信息"" mandatory=""true"" name=""baseInfo"" type=""Object"" ext:level=""0"">
+            <schema/>
+        </input>
+        <input computed=""true"" displayName=""性别"" mandatory=""true"" name=""gender"" type=""Integer"" ext:level=""0"">
+            <defaultExpr>baseInfo.gender</defaultExpr>
+            <schema dict=""auth/gender""/>
+        </input>
+    </inputs>
+    <outputs>
+        <output displayName=""分数"" name=""result"" type=""Double"" ext:level=""0"">
+            <schema/>
+        </output>
+        <output displayName=""类型"" name=""type"" type=""String"" ext:level=""0"">
+            <schema/>
+        </output>
+    </outputs>
+</rule>",1,0,autotest-ref,*,autotest-ref,*,

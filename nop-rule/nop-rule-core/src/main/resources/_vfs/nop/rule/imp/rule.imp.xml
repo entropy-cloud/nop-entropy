@@ -40,7 +40,7 @@
                     <schema stdDomain="json"/>
                 </field>
 
-                <field name="inputs" displayName="输入变量" list="true" keyProp="name">
+                <field name="inputs" displayName="输入变量" list="true">
                     <fields>
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
                             <schema stdDomain="boolean"/>
@@ -58,13 +58,23 @@
 
                         <field name="name" displayName="名称" mandatory="true">
                             <schema stdDomain="var-name"/>
+                            <valueExpr><![CDATA[
+                               // 通过*作为前缀表示存在多少个层级
+                               const str = value.$chompStartChars("*");
+                               record['ext:level'] = value.length() - str.length();
+                               return str.trim()
+                         ]]></valueExpr>
+                        </field>
+
+                        <field name="ext:level" displayName="树形结构层次" mandatory="true">
+                            <schema stdDomain="int"/>
                         </field>
 
                         <field name="ui:show" displayName="显示">
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="displayName" displayName="中文名" />
+                        <field name="displayName" displayName="中文名"/>
 
                         <field name="i18n-en:displayName" displayName="英文名"/>
 
@@ -120,6 +130,12 @@
                 </field>
 
             </fields>
+
+            <normalizeFieldsExpr><![CDATA[
+               import io.nop.excel.imp.util.ImportDataHelper;
+               ImportDataHelper.normalizeTree(record.inputs, "props","ext:level","name");
+               record.inputs = _.toKeyedList(record.inputs,'name');
+         ]]></normalizeFieldsExpr>
         </sheet>
 
         <sheet name="Rule">

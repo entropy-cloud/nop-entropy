@@ -14,7 +14,7 @@
             <schema type="String" stdDomain="generic-type" maxLength="100" dict="core/java-type"/>
         </prop>
 
-        <prop name="aggregate" displayName="聚合方式" mandatory="true">
+        <prop name="aggregate" displayName="聚合方式">
             <schema dict="io.nop.rule.core.model.RuleAggregateMethod"/>
         </prop>
 

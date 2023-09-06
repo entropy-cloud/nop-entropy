@@ -3223,12 +3223,36 @@ public class StringHelper extends ApiStringHelper {
      * @return
      */
     @Deterministic
-    public static String trimSuffix(String str, String suffix) {
+    public static String removeEnd(String str, String suffix) {
         if (str.endsWith(suffix)) {
             return str.substring(0, str.length() - suffix.length());
         } else {
             return str;
         }
+    }
+
+    @Deterministic
+    public static String removeStart(String str, String prefix) {
+        if (str.startsWith(prefix)) {
+            return str.substring(prefix.length());
+        } else {
+            return str;
+        }
+    }
+
+    @Deterministic
+    public static String chompStartChars(String str, String chars) {
+        if (str == null || str.isEmpty())
+            return str;
+        char c = str.charAt(0);
+        if (chars.indexOf(c) < 0)
+            return str;
+        int i = 0;
+        for (int n = str.length(); i < n; i++) {
+            if (chars.indexOf(str.charAt(i)) < 0)
+                break;
+        }
+        return str.substring(i);
     }
 
     /**

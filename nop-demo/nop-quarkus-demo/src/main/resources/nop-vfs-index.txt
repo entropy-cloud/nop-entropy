@@ -339,10 +339,12 @@
 /nop/rule/model/NopRuleRole/_NopRuleRole.xbiz
 /nop/rule/model/NopRuleRole/_NopRuleRole.xmeta
 /nop/rule/model/RuleService/RuleKeyBean.xmeta
+/nop/rule/model/RuleService/RuleLogMessageBean.xmeta
 /nop/rule/model/RuleService/RuleMetaBean.xmeta
 /nop/rule/model/RuleService/RuleRequestBean.xmeta
 /nop/rule/model/RuleService/RuleResultBean.xmeta
 /nop/rule/model/RuleService/_RuleKeyBean.xmeta
+/nop/rule/model/RuleService/_RuleLogMessageBean.xmeta
 /nop/rule/model/RuleService/_RuleMetaBean.xmeta
 /nop/rule/model/RuleService/_RuleRequestBean.xmeta
 /nop/rule/model/RuleService/_RuleResultBean.xmeta

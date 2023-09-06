@@ -12,6 +12,8 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.lang.Deterministic;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.collections.IKeyedList;
+import io.nop.commons.collections.KeyedList;
 import io.nop.commons.collections.SafeOrderedComparator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
@@ -724,5 +726,10 @@ public class Underscore {
             mapA = new LinkedHashMap<>();
         mapA.putAll(mapB);
         return mapA;
+    }
+
+    @Deterministic
+    public static <T> IKeyedList<T> toKeyedList(Collection<T> c, String keyProp){
+        return KeyedList.fromList(CollectionHelper.toList(c),item-> getFieldValue(item,keyProp));
     }
 }

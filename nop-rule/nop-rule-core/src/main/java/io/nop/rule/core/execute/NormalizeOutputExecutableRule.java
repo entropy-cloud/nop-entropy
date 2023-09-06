@@ -10,12 +10,11 @@ import io.nop.rule.core.model.RuleOutputDefineModel;
 
 import java.util.List;
 
-public class AggregateExecutableRule implements IExecutableRule {
+public class NormalizeOutputExecutableRule implements IExecutableRule {
     private final IExecutableRule rule;
     private final List<RuleOutputDefineModel> outputs;
 
-    public AggregateExecutableRule(IExecutableRule rule,
-                                   List<RuleOutputDefineModel> outputs) {
+    public NormalizeOutputExecutableRule(List<RuleOutputDefineModel> outputs, IExecutableRule rule) {
         this.rule = rule;
         this.outputs = outputs;
     }

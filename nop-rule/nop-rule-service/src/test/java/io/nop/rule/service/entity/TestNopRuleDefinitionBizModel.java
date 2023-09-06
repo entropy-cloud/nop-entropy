@@ -28,12 +28,22 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testImport() {
-        IResource resource = inputResource("decision-tree.rule.xlsx");
+        runWithModelFile("decision-tree.rule.xlsx");
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testDecisionMatrix() {
+        runWithModelFile("decision-matrix.rule.xlsx");
+    }
+
+    void runWithModelFile(String fileName) {
+        IResource resource = inputResource(fileName);
         InputStream is = resource.getInputStream();
 
         try {
             UploadRequestBean request = new UploadRequestBean();
-            request.setFileName("decision-tree.rule.xlsx");
+            request.setFileName(fileName);
             request.setBizObjName(NopRuleDefinition.class.getSimpleName());
             request.setFieldName("importFile");
             request.setLength(1000);

@@ -1,6 +1,7 @@
 package io.nop.rule.core.execute;
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.cache.ICache;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.unittest.VarCollector;
 import io.nop.rule.api.beans.RuleLogMessageBean;
@@ -18,6 +19,8 @@ import java.util.Map;
 
 public class RuleRuntime implements IRuleRuntime {
     static final Logger LOG = LoggerFactory.getLogger(RuleRuntime.class);
+
+    private final ICache<Object,Object> cache;
     private final IEvalScope scope;
 
     private final List<RuleLogMessageBean> logMessages = new ArrayList<>();
@@ -35,13 +38,17 @@ public class RuleRuntime implements IRuleRuntime {
 
     private boolean collectLogMessage;
 
-    public RuleRuntime(IEvalScope scope) {
+    private Throwable exception;
+
+    public RuleRuntime(ICache<Object,Object> cache, IEvalScope scope) {
+        this.cache = cache;
         this.scope = scope == null ? XLang.newEvalScope() : scope.newChildScope();
         this.scope.setLocalValue(RuleConstants.VAR_RULE_RT, this);
     }
 
-    public RuleRuntime() {
-        this(XLang.newEvalScope());
+    @Override
+    public ICache<Object, Object> getCache() {
+        return cache;
     }
 
     @Override
@@ -92,6 +99,16 @@ public class RuleRuntime implements IRuleRuntime {
     @Override
     public Map<String, List<Object>> getOutputLists() {
         return outputLists;
+    }
+
+    @Override
+    public Throwable getException() {
+        return exception;
+    }
+
+    @Override
+    public void setException(Throwable exception) {
+        this.exception = exception;
     }
 
     @Override

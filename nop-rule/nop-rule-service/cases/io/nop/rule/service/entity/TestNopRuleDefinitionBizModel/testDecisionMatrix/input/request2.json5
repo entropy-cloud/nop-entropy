@@ -1,0 +1,14 @@
+{
+  data: {
+    ruleName: "testMatrix",
+    ruleVersion: 1,
+    inputs: {
+      "是否有房": false,
+      "是否已婚": "未婚",
+      "baseInfo": {
+        age: 30,
+        gender: 1
+      }
+    }
+  }
+}
