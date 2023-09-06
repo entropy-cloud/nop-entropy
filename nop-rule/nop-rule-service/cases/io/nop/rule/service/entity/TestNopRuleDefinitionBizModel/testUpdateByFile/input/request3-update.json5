@@ -1,0 +1,25 @@
+{
+  selection: {
+    fields: {
+      rootRuleNodes: {
+        fields: {
+          predicate: null,
+          outputs: null,
+          children: {
+            fields: {
+              predicate: null,
+              children: null,
+              outputs: null
+            }
+          }
+        }
+      }
+    }
+  },
+  data: {
+    data: {
+      id: "@var:NopRuleDefinition@ruleId",
+      importFile: "@var:downloadPath2",
+    }
+  }
+}

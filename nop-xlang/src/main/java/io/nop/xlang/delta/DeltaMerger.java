@@ -115,6 +115,9 @@ public class DeltaMerger implements IDeltaMerger {
                 throw new IllegalArgumentException("invalid override operator:" + overrideB);
         }
         xa.setAttr(forPrototype ? keys.PROTOTYPE_OVERRIDE : keys.OVERRIDE, mergedOverride);
+        if(forPrototype && XDefOverride.REMOVE == mergedOverride){
+            xa.setAttr(keys.OVERRIDE, mergedOverride);
+        }
     }
 
     private boolean isXpl(IXDefNode def) {

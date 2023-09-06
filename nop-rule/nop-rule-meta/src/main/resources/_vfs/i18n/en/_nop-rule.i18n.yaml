@@ -39,6 +39,7 @@ prop:
       ruleOutputs: null
       beforeExecute: null
       importFile: null
+      rootRuleNodes: null
       decisionMatrix: null
     NopRuleInput:
       name: null

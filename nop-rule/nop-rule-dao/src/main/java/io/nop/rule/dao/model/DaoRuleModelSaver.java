@@ -13,8 +13,10 @@ import io.nop.xlang.api.source.IWithSourceCode;
 import io.nop.xlang.xdsl.DslModelHelper;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,19 +34,24 @@ public class DaoRuleModelSaver {
             entity.getRuleNodes().clear();
         } else {
             List<RuleDecisionTreeModel> children = tree.getChildren();
-            updateNodes(entity, children, entity.getRuleNodes());
+            List<NopRuleNode> roots = entity.getRootRuleNodes();
+            List<NopRuleNode> newRoots = updateNodes(entity, children, roots);
+            Set<NopRuleNode> removedRoots = new HashSet<>(roots);
+            removedRoots.removeAll(newRoots);
+            newRoots.removeAll(roots);
+            entity.getRuleNodes().addAll(newRoots);
+            entity.getRuleNodes().removeAll(removedRoots);
         }
     }
 
-    private void updateNodes(NopRuleDefinition entity,
-                             List<RuleDecisionTreeModel> children, Set<NopRuleNode> nodes) {
+    private List<NopRuleNode> updateNodes(NopRuleDefinition entity,
+                                          List<RuleDecisionTreeModel> children, Collection<NopRuleNode> nodes) {
         String ruleId = entity.getRuleId();
         if (children == null)
             children = Collections.emptyList();
 
         if (children.isEmpty()) {
-            nodes.clear();
-            return;
+            return Collections.emptyList();
         }
 
         Map<String, NopRuleNode> map = new HashMap<>();
@@ -72,12 +79,15 @@ public class DaoRuleModelSaver {
             node.setSortNo(index);
             node.setLabel(child.getLabel());
             node.setOutputs(buildOutputs(child));
-            updateNodes(entity, child.getChildren(), node.getChildren());
+
+            List<NopRuleNode> newChildren = updateNodes(entity, child.getChildren(), node.getChildren());
+            node.getChildren().clear();
+            node.getChildren().addAll(newChildren);
+
             list.add(node);
         }
 
-        nodes.clear();
-        nodes.addAll(list);
+        return list;
     }
 
     private String buildOutputs(RuleDecisionTreeModel rule) {

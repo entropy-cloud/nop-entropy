@@ -1,3 +1,0 @@
-
-x:gen-extends: |
-  <web:GenPage view="RuleService.view.xml" page="executeRule" xpl:lib="/nop/web/xlib/web.xlib" />

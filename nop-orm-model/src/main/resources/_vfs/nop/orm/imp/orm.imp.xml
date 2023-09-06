@@ -367,6 +367,14 @@
                             <schema stdDomain="string"/>
                         </field>
 
+                        <field name="refSet.sort" displayName="排序条件">
+                            <valueExpr><![CDATA[
+                                import io.nop.core.model.query.OrderBySqlParser;
+
+                                return OrderBySqlParser.INSTANCE.parseFromText(cell.location,value);
+                         ]]></valueExpr>
+                        </field>
+
                         <field name="join" displayName="关联条件" list="true" mandatory="true">
                             <fields>
                                 <field name="leftProp" displayName="左属性">

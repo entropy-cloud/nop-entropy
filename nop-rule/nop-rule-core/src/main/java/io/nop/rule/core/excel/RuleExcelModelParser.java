@@ -309,6 +309,8 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         if (predicate != null) {
             node.setPredicate(XNode.fromTreeBean(predicate));
         }
+        if(StringHelper.isEmpty(label))
+            label = "-";
         node.setLabel(label);
         node.setMultiMatch(getMultiMatch(commentVars, false));
         node.setLeafIndex(cell.getLeafIndex());

@@ -109,8 +109,8 @@
                         ui:show="X"/>
                 <column code="RULE_ID" displayName="规则ID" mandatory="true" name="ruleId" precision="32" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule ID"/>
-                <column code="LABEL" displayName="显示标签" name="label" precision="200" propId="3" stdDataType="string"
-                        stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Label"/>
+                <column code="LABEL" displayName="显示标签" mandatory="true" name="label" precision="200" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Label"/>
                 <column code="SORT_NO" displayName="排序序号" mandatory="true" name="sortNo" propId="4" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Sort No"/>
                 <column code="PREDICATE" displayName="判断条件" domain="json-4k" mandatory="true" name="predicate"
@@ -144,6 +144,11 @@
                     <join>
                         <on leftProp="parentId" rightProp="sid"/>
                     </join>
+                    <ref-set>
+                        <sort>
+                            <field name="sortNo"/>
+                        </sort>
+                    </ref-set>
                 </to-one>
                 <to-one displayName="规则定义" name="ruleDefinition"
                         refEntityName="io.nop.rule.dao.entity.NopRuleDefinition" refPropName="ruleNodes"
@@ -152,6 +157,7 @@
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
+                    <ref-set/>
                 </to-one>
                 <to-many displayName="子节点" name="children" refEntityName="io.nop.rule.dao.entity.NopRuleNode"
                          refPropName="parent" tagSet="pub,cascade-delete,insertable,updatable"
@@ -159,6 +165,9 @@
                     <join>
                         <on leftProp="sid" rightProp="parentId"/>
                     </join>
+                    <sort>
+                        <field name="sortNo"/>
+                    </sort>
                 </to-many>
             </relations>
         </entity>
@@ -200,6 +209,7 @@
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
+                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -228,6 +238,7 @@
                     <join>
                         <on leftProp="ruleId" rightProp="ruleId"/>
                     </join>
+                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

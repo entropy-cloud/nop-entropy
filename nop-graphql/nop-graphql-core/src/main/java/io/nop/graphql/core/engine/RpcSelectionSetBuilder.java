@@ -64,24 +64,22 @@ public class RpcSelectionSetBuilder {
 
     void addNonLazyFields(GraphQLSelectionSet selectionSet, GraphQLObjectDefinition objDef, int level,
                           FieldSelectionBean selectionBean) {
-        if (selectionBean != null) {
-            if (selectionBean.getFields() != null) {
-                for (Map.Entry<String, FieldSelectionBean> entry : selectionBean.getFields().entrySet()) {
-                    String alias = entry.getKey();
-                    FieldSelectionBean subSelection = entry.getValue();
-                    String fieldName = subSelection.getName();
-                    if (fieldName == null) {
-                        fieldName = alias;
-                    }
-                    GraphQLFieldDefinition fieldDef = objDef.getField(fieldName);
-                    if (fieldDef == null)
-                        throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).param(ARG_OBJ_NAME, objDef.getName())
-                                .param(ARG_FIELD_NAME, fieldName);
-
-                    GraphQLFieldSelection field = buildField(objDef, fieldDef, subSelection, level);
-                    field.setAlias(alias);
-                    selectionSet.addFieldSelection(field);
+        if (selectionBean != null && !selectionBean.getFields().isEmpty()) {
+            for (Map.Entry<String, FieldSelectionBean> entry : selectionBean.getFields().entrySet()) {
+                String alias = entry.getKey();
+                FieldSelectionBean subSelection = entry.getValue();
+                String fieldName = subSelection.getName();
+                if (fieldName == null) {
+                    fieldName = alias;
                 }
+                GraphQLFieldDefinition fieldDef = objDef.getField(fieldName);
+                if (fieldDef == null)
+                    throw new NopException(ERR_GRAPHQL_UNDEFINED_FIELD).param(ARG_OBJ_NAME, objDef.getName())
+                            .param(ARG_FIELD_NAME, fieldName);
+
+                GraphQLFieldSelection field = buildField(objDef, fieldDef, subSelection, level);
+                field.setAlias(alias);
+                selectionSet.addFieldSelection(field);
             }
         } else {
             for (GraphQLFieldDefinition fieldDef : objDef.getFields()) {

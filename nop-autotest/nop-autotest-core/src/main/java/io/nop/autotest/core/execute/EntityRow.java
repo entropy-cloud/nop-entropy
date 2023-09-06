@@ -24,6 +24,7 @@ public class EntityRow {
     private final Map<String, Object> initData = new HashMap<>();
     private final Map<String, Object> changedData = new HashMap<>();
 
+    private boolean load;
     private EntityChangeType changeType;
 
     public EntityRow(String id) {
@@ -39,9 +40,7 @@ public class EntityRow {
     }
 
     public boolean isLoadData() {
-        if (changeType == EntityChangeType.A)
-            return false;
-        return !initData.isEmpty();
+        return load && !initData.isEmpty();
     }
 
     public boolean hasChangedData() {
@@ -57,6 +56,10 @@ public class EntityRow {
     }
 
     public synchronized void onLoad(IOrmEntity entity, IEntityModel entityModel) {
+        // 在修改前加载才表示加载初始化数据
+        if (changeType == null)
+            load = true;
+
         entity.orm_forEachInitedProp((value, propId) -> {
             IColumnModel col = entityModel.getColumnByPropId(propId, false);
             initData.putIfAbsent(col.getCode(), value);

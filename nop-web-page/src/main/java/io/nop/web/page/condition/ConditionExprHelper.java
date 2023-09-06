@@ -27,6 +27,9 @@ public class ConditionExprHelper {
             return null;
 
         Map<String, Object> filter = _filterToCondition(XNode.fromValue(value));
+        if(filter == null)
+            return null;
+
         if (filter.get("conjunction") == null) {
             Map<String, Object> and = new LinkedHashMap<>();
             and.put("conjunction", "and");
@@ -37,6 +40,8 @@ public class ConditionExprHelper {
     }
 
     private static Map<String, Object> _filterToCondition(ITreeBean filterBean) {
+        if(filterBean == null)
+            return null;
         String filterOp = filterBean.getTagName();
         Map<String, Object> ret = new LinkedHashMap<>();
         if ("and".equals(filterOp) || filterOp.equals("or")) {

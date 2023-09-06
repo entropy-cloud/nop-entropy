@@ -3,10 +3,12 @@ package io.nop.rule.dao.entity;
 import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.rule.dao.entity._gen._NopRuleDefinition;
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static io.nop.rule.dao.NopRuleDaoConstants.BEFORE_EXECUTE_NAME;
 import static io.nop.rule.dao.NopRuleDaoConstants.DECISION_MATRIX_NAME;
@@ -60,5 +62,10 @@ public class NopRuleDefinition extends _NopRuleDefinition {
 
     public void setDecisionMatrix(String value) {
         getModelTextXmlComponent().setChildBodyXml(RULE_TAG_NAME, DECISION_MATRIX_NAME, value);
+    }
+
+    public List<NopRuleNode> getRootRuleNodes() {
+        return getRuleNodes().stream().filter(node -> node.getParentId() == null)
+                .sorted(Comparator.comparing(NopRuleNode::getSortNo)).collect(Collectors.toList());
     }
 }

@@ -3,8 +3,13 @@
 
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
 
+    <x:gen-extends>
+        <api-web:DefaultGenExtends xpl:lib="/nop/web/xlib/api-web.xlib"/>
+    </x:gen-extends>
+
     <forms>
         <form id="RuleRequestBean" editMode="edit">
+            <objMeta>/nop/rule/model/RuleService/RuleRequestBean.xmeta</objMeta>
             <layout>
                         ruleName
                     
@@ -19,6 +24,7 @@
             </cells>
         </form>
         <form id="RuleKeyBean" editMode="edit">
+            <objMeta>/nop/rule/model/RuleService/RuleKeyBean.xmeta</objMeta>
             <layout>
                         ruleName
                     
@@ -29,24 +35,10 @@
                 <cell id="ruleVersion" label="规则版本"/>
             </cells>
         </form>
-        <form id="json-result" size="md">
-            <layout>
-                __result
-            </layout>
-            <cells>
-                <cell id="__result">
-                    <gen-control>
-                        <code language="json"/>
-                    </gen-control>
-                </cell>
-            </cells>
-        </form>
     </forms>
 
     <pages>
-        <simple name="json-result" form="json-result" title="服务返回结果"/>
         <simple name="executeRule" form="RuleRequestBean">
-            <api url="/r/RuleService__executeRule"/>
             <actions>
                 <action id="RuleService__executeRule-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
                 <action id="RuleService__executeRule-submit" label="@i18n:common.submit|提交" level="primary"
@@ -64,7 +56,6 @@
             </actions>
         </simple>
         <simple name="getRuleMeta" form="RuleKeyBean">
-            <api url="/r/RuleService__getRuleMeta"/>
             <actions>
                 <action id="RuleService__getRuleMeta-cancel" label="@i18n:common.cancel|取消" actionType="cancel"/>
                 <action id="RuleService__getRuleMeta-submit" label="@i18n:common.submit|提交" level="primary"

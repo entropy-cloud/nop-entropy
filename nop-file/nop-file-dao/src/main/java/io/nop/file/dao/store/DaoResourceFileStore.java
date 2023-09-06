@@ -91,6 +91,15 @@ public class DaoResourceFileStore implements IFileStore {
         return fileId;
     }
 
+    public void removeTempFileByOwner(String ownerId) {
+        IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
+
+        NopFileRecord example = new NopFileRecord();
+        example.setCreatedBy(ownerId);
+        example.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
+        dao.deleteByExample(example);
+    }
+
     @Override
     public IFileRecord getFile(String fileId) {
         NopFileRecord record = daoProvider.daoFor(NopFileRecord.class).requireEntityById(fileId);

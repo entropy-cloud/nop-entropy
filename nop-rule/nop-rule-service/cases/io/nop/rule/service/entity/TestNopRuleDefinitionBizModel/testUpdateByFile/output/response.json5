@@ -1,0 +1,67 @@
+{
+  "data": {
+    "rootRuleNodes": [
+      {
+        "predicate": "{\"$type\":\"eq\",\"name\":\"season\",\"value\":\"Fall\"}",
+        "outputs": null,
+        "children": [
+          {
+            "predicate": "{\"$type\":\"le\",\"name\":\"guestCount\",\"value\":8}",
+            "children": [],
+            "outputs": "{\n  \"dish\": \"\\\"Spareribs\\\"\"\n}"
+          }
+        ]
+      },
+      {
+        "predicate": "{\"$type\":\"eq\",\"name\":\"season\",\"value\":\"Winter\"}",
+        "outputs": null,
+        "children": [
+          {
+            "predicate": "{\"$type\":\"le\",\"name\":\"guestCount\",\"value\":8}",
+            "children": [],
+            "outputs": "{\n  \"dish\": \"\\\"Roastbeef\\\"\"\n}"
+          }
+        ]
+      },
+      {
+        "predicate": "{\"$type\":\"eq\",\"name\":\"season\",\"value\":\"Spring\"}",
+        "outputs": null,
+        "children": [
+          {
+            "predicate": "{\"$type\":\"le\",\"name\":\"guestCount\",\"value\":4}",
+            "children": [],
+            "outputs": "{\n  \"dish\": \"\\\"Dry Aged Gourmet Steak\\\"\"\n}"
+          },
+          {
+            "predicate": "{\"$type\":\"and\",\"$body\":[{\"$type\":\"le\",\"name\":\"guestCount\",\"value\":8},{\"$type\":\"ge\",\"name\":\"guestCount\",\"value\":5}]}",
+            "children": [],
+            "outputs": "{\n  \"dish\": \"\\\"Steak\\\"\"\n}"
+          }
+        ]
+      },
+      {
+        "predicate": "{\"$type\":\"in\",\"name\":\"season\",\"value\":[\"Fall\",\"Winter\",\"Spring\"]}",
+        "outputs": null,
+        "children": [
+          {
+            "predicate": "{\"$type\":\"gt\",\"name\":\"guestCount\",\"value\":8}",
+            "children": [],
+            "outputs": "{\n  \"dish\": \"\\\"Stew\\\"\"\n}"
+          }
+        ]
+      },
+      {
+        "predicate": "{\"$type\":\"eq\",\"name\":\"season\",\"value\":\"Summer\"}",
+        "outputs": null,
+        "children": [
+          {
+            "predicate": "{\"$type\":\"alwaysTrue\"}",
+            "children": [],
+            "outputs": "{\n  \"dish\": \"\\\"Light Salad and nice Steak\\\"\"\n}"
+          }
+        ]
+      }
+    ]
+  },
+  "status": 0
+}

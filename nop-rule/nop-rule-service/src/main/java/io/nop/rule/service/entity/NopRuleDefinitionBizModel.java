@@ -108,7 +108,8 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
             NopRuleDefinition entity = entityData.getEntity();
             IOrmEntityFileStore fileStore = (IOrmEntityFileStore) entityData.getEntity().orm_getBean(OrmConstants.BEAN_ORM_ENTITY_FILE_STORE);
             String fileId = fileStore.decodeFileId(importFilePath);
-            String objId = entity.orm_state().isUnsaved() ? FileConstants.TEMP_BIZ_OBJ_ID : entity.orm_idString();
+            // 总是处理上传的临时文件
+            String objId = FileConstants.TEMP_BIZ_OBJ_ID;
             IResource resource = fileStore.getFileResource(fileId, getBizObjName(), objId, NopRuleConstants.PROP_IMPORT_FILE);
 
             RuleModel ruleModel = new RuleExcelModelParser().parseFromResource(resource);

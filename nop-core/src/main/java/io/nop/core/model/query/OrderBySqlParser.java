@@ -11,6 +11,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.io.stream.CharSequenceReader;
 import io.nop.commons.text.tokenizer.TextScanner;
+import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,10 @@ public class OrderBySqlParser {
     public static final OrderBySqlParser INSTANCE = new OrderBySqlParser();
 
     public List<OrderFieldBean> parseFromText(SourceLocation loc, String text) {
-        TextScanner sc = TextScanner.fromReader(loc, new CharSequenceReader(text));
+        if(StringHelper.isBlank(text))
+            return null;
+
+        TextScanner sc = TextScanner.fromString(loc,text);
         List<OrderFieldBean> list = parseOrderBy(sc);
         if (!sc.isEnd())
             throw sc.newError(ERR_QUERY_INVALID_ORDER_BY_SQL);
