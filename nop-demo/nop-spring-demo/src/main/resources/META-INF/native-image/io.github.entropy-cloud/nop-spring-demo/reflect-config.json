@@ -19707,6 +19707,13 @@
         ]
       },
       {
+        "name": "toKeyedList",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "unique",
         "parameterTypes": [
           "java.util.Collection"
@@ -29262,6 +29269,12 @@
         ]
       },
       {
+        "name": "removeTempFileByOwner",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "saveFile",
         "parameterTypes": [
           "io.nop.file.core.UploadRequestBean",
@@ -34896,6 +34909,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.OrmRefSetModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "addJoinOn",
@@ -36550,6 +36573,75 @@
       }
     ],
     "name": "io.nop.orm.model._gen._OrmModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addField",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.OrderFieldBean"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getKeyProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSort",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasSort",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_sort",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setKeyProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSort",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.model._gen._OrmRefSetModel",
     "unsafeAllocated": false
   },
   {

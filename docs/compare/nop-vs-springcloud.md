@@ -7,7 +7,7 @@ Nop平台没有采用目前业内主流的基础开源框架，而是选择了�
 | 轮子         | Nop体系         | Spring体系            |
 |------------|---------------|---------------------|
 | Web框架      | NopGraphQL    | SpringMVC           |
-| 表达式引擎      | XLang         | SpringEL            |
+| 表达式引擎      | XLang XScript | SpringEL            |
 | 模板引擎       | XLang Xpl     | Velocity/Freemarker |
 | ORM引擎      | NopORM        | JPA/Mybatis         |
 | IoC容器      | NopIoC        | SpringIoC           |
