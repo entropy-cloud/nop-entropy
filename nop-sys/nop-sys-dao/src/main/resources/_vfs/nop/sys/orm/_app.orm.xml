@@ -157,6 +157,7 @@
                     <join>
                         <on leftProp="dictId" rightProp="sid"/>
                     </join>
+                    <ref-set/>
                 </to-one>
             </relations>
         </entity>

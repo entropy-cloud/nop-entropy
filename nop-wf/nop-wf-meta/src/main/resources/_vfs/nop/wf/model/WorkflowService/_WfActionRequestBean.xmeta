@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" displayName="执行动作请求消息"
+      i18n-en:displayName="Workflow Action Request" ext:model="api">
+
+    <props>
+        <prop name="wfName" displayName="工作流名称" i18n-en:displayName="Workflow Name">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="wfId" displayName="工作流ID" i18n-en:displayName="Workflow ID" mandatory="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="stepId" displayName="工作流步骤ID" i18n-en:displayName="Step ID" mandatory="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="actionName" displayName="执行动作" i18n-en:displayName="Action Name" mandatory="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="args" displayName="执行参数" i18n-en:displayName="Action Args">
+            <schema type="java.util.Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
+        </prop>
+    </props>
+</meta>

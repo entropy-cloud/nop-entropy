@@ -97,6 +97,7 @@
                     <join>
                         <on leftProp="inputFileId" rightProp="sid"/>
                     </join>
+                    <ref-set/>
                 </to-one>
                 <to-many displayName="任务状态变量" name="taskStates"
                          refEntityName="io.nop.batch.dao.entity.NopBatchTaskState" refPropName="task"
@@ -151,6 +152,7 @@
                     <join>
                         <on leftProp="taskId" rightProp="sid"/>
                     </join>
+                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
@@ -191,6 +193,7 @@
                     <join>
                         <on leftProp="taskId" rightProp="sid"/>
                     </join>
+                    <ref-set/>
                 </to-one>
             </relations>
         </entity>
