@@ -129,6 +129,8 @@ cd nop-idea-plugin
 gradlew buildPlugin
 ```
 
+> 目前使用的idea打包插件不支持高版本gradle。gradlew会自动下载所需的gradle版本，目前使用的是7.5.1
+
 编译出来的插件存放在build/distributions目录下。参见[插件的安装和使用](docs/dev-guide/ide/idea.md)。
 
 #### 使用说明
