@@ -327,3 +327,33 @@ url: "@query:NopAuthDept__findList/value:id,label:deptName,children @TreeChildre
 x:gen-extends: |
   <web:GenPage view="NopRuleNode.view.xml" page="main" fixedProps="ruleId" xpl:lib="/nop/web/xlib/web.xlib" />
 ````
+
+## 12. 适用Combo组件显示递归数据结构
+参考 NopRuleDefinition.view.xml中ruleInputs的配置
+
+````xml
+<cell id="ruleInputs">
+    <gen-control>
+        return { "$ref": "viewInputDefinition" }
+    </gen-control>
+</cell>
+````
+
+在page.yaml文件中引入definitions
+
+````yaml
+x:gen-extends: |
+    <web:GenPage view="NopRuleDefinition.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
+
+definitions:
+    "x:extends": "var-definitions.json5"
+````
+
+## 13. 增加一个仅在前台使用的字段，它的值不会提交到后台
+custom=true表示此字段不需要在meta中定义。两个下划线作为前缀表示此字段仅在前端使用，不会提交到后台
+
+````xml
+    <cell id="__useImportFile" label="导入模型文件" custom="true" stdDomain="boolean">
+    </cell>
+````
+
