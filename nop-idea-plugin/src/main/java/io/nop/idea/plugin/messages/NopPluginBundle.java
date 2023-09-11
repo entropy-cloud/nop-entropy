@@ -17,7 +17,7 @@ import org.jetbrains.annotations.PropertyKey;
 import java.lang.ref.Reference;
 import java.util.ResourceBundle;
 
-public class NopPluginBundle extends BundleBase {
+public class NopPluginBundle {
     @NonNls
     private static final String BUNDLE = "io.nop.idea.plugin.messages.NopPluginBundle";
     private static Reference<ResourceBundle> ourBundle;
