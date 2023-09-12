@@ -1,5 +1,7 @@
 # 开发示例
 
+操作演示视频：[使用Nop平台开发商品列表页面的完整示例](https://www.bilibili.com/video/BV1384y1g78L/)
+
 Nop平台是可逆计算理论的一个具体落地实现方案。为了演示可逆计算理论的相关概念，它内置了针对后台管理系统的一套低代码开发流程，可以采用低代码的方式来快速开发后台管理系统，并且无需特殊设计，利用平台内置机制即可自动提供产品化定制能力。以下以nop-app-mall项目的开发为例，介绍Nop平台内置的低代码开发流程。
 
 > nop-app-mall是一个简单电子商城的示例应用，项目工程为 [nop-app-mall](https://gitee.com/canonical-entropy/nop-app-mall)
@@ -8,6 +10,7 @@ Nop平台是可逆计算理论的一个具体落地实现方案。为了演示�
 > 
 > * gitee: [https://gitee.com/canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 > * github: [https://github.com/entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+
 
 ## 一. 设计Excel数据模型
 
@@ -34,6 +37,8 @@ Nop平台是可逆计算理论的一个具体落地实现方案。为了演示�
 更详细的配置说明可以参见文档 [excel-model.md](../dev-guide/model/excel-model.md)
 
 ### 逆向工程
+
+操作视频: [如何通过逆向工程生成Excel格式的数据模型](https://www.bilibili.com/video/BV1Rc411u79d)
 
 除了手工编写数据库模型之外，我们也可以连接已有的数据库，使用nop-cli命令行工具逆向分析数据库结构，生成Excel模型。
 
