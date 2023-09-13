@@ -525,8 +525,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         EntityData<T> entityData = buildEntityDataForUpdate(data, inputSelection, context);
 
-        checkDataAuth(BizConstants.METHOD_UPDATE, entityData.getEntity(), context);
-
         new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
                 entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_UPDATE, context.getEvalScope());
@@ -547,9 +545,31 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
-        EntityData<T> entityData = buildEntityDataForUpdate(data, inputSelection, context);
+        buildEntityDataForUpdate(data, inputSelection, context);
+    }
 
-        checkDataAuth(BizConstants.METHOD_UPDATE, entityData.getEntity(), context);
+    @BizAction
+    protected T requireEntity(String id, String action, IServiceContext context) {
+        return getEntity(id, action, false, context);
+    }
+
+    @BizAction
+    protected T getEntity(String id, String action, boolean ignoreUnknown,
+                          IServiceContext context) {
+        IBizObject bizObj = getThisObj();
+        IObjMeta objMeta = bizObj.requireObjMeta();
+
+        IEntityDao<T> dao = dao();
+        T entity = dao.getEntityById(id);
+        if (entity == null) {
+            if (ignoreUnknown)
+                return null;
+            throw new UnknownEntityException(dao.getEntityName(), id);
+        }
+
+        checkDataAuth(action, entity, context);
+        checkMetaFilter(entity, objMeta, context);
+        return entity;
     }
 
     @BizAction
@@ -558,20 +578,19 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
 
+        Object id = data.get(OrmConstants.PROP_ID);
+
+        T entity = requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
+
         ObjMetaBasedValidator validator = new ObjMetaBasedValidator(bizObjectManager, bizObj.getBizObjName(), objMeta,
                 context, true);
 
         Map<String, Object> validated = validator.validateForUpdate(data, inputSelection);
 
-        Object id = data.get(OrmConstants.PROP_ID);
-
-        T entity = dao().requireEntityById(id);
-        checkEntityFilter(entity, objMeta, context);
-
         return new EntityData<>(data, validated, entity, objMeta);
     }
 
-    protected void checkEntityFilter(T entity, IObjMeta objMeta, IServiceContext context) {
+    protected void checkMetaFilter(T entity, IObjMeta objMeta, IServiceContext context) {
         if (objMeta != null && objMeta.getFilter() != null) {
             boolean b = new BizFilterEvaluator(context).testForEntity(objMeta.getFilter(), entity);
 
@@ -600,15 +619,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
                  IServiceContext context) {
         checkMandatoryParam("get", "id", id);
 
-        IEntityDao<T> dao = dao();
-        T entity = dao.getEntityById(id);
-        if (entity == null) {
-            if (ignoreUnknown)
-                return null;
-            throw new UnknownEntityException(dao.getEntityName(), id);
-        }
-        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
-        checkDataAuth(BizConstants.METHOD_GET, entity, context);
+        T entity = getEntity(id, BizConstants.METHOD_GET, ignoreUnknown, context);
         return entity;
     }
 
@@ -626,7 +637,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         }
 
         for (T entity : list) {
-            checkEntityFilter(entity, getThisObj().getObjMeta(), context);
+            checkMetaFilter(entity, getThisObj().getObjMeta(), context);
             checkDataAuth(BizConstants.METHOD_GET, entity, context);
         }
         return list;
@@ -654,7 +665,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         if (entity == null)
             return true;
 
-        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
+        checkMetaFilter(entity, getThisObj().getObjMeta(), context);
         checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
 
         if (prepareDelete != null) {
@@ -761,10 +772,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     public void tryDelete(@Name("id") String id, IServiceContext context) {
         checkMandatoryParam("tryDelete", "id", id);
 
-        T entity = dao().requireEntityById(id);
-
-        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
-        checkDataAuth(BizConstants.METHOD_DELETE, entity, context);
+        this.requireEntity(id, BizConstants.METHOD_DELETE, context);
     }
 
     @Description("@i18n:biz.batchUpdate|批量修改")
@@ -876,7 +884,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
             throw new NopException(ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
         T entity = dao().requireEntityById(id);
-        checkEntityFilter(entity, getThisObj().getObjMeta(), context);
+        checkMetaFilter(entity, getThisObj().getObjMeta(), context);
 
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
 
@@ -959,7 +967,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         IEntityDao<T> dao = dao();
         T entity = dao.requireEntityById(id);
         IObjMeta objMeta = getThisObj().requireObjMeta();
-        checkEntityFilter(entity, objMeta, context);
+        checkMetaFilter(entity, objMeta, context);
 
         FieldSelectionBean inputSelection = objMeta.getFieldSelection(copySelection);
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);

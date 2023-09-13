@@ -462,6 +462,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "AUTH_FOR_DELETE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "AUTH_FOR_READ"
       },
       {
@@ -13271,6 +13276,14 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "changeSelfPassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -50274,6 +50287,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeleteAuth",
+        "parameterTypes": []
+      },
+      {
         "name": "getReadAuth",
         "parameterTypes": []
       },
@@ -51353,6 +51370,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isVirtual",
+        "parameterTypes": []
+      },
+      {
         "name": "keySet_args",
         "parameterTypes": []
       },
@@ -51560,6 +51581,12 @@
       },
       {
         "name": "setUpdatable",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setVirtual",
         "parameterTypes": [
           "boolean"
         ]
