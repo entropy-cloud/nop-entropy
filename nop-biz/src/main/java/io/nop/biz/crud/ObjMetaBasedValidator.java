@@ -141,8 +141,10 @@ public class ObjMetaBasedValidator {
                 continue;
             }
 
-            if (DaoConstants.PROP_CHANGE_TYPE.startsWith(name))
+            if (DaoConstants.PROP_CHANGE_TYPE.startsWith(name)) {
+                ret.put(name, value);
                 continue;
+            }
 
             IObjPropMeta propMeta = schema.getProp(name);
             if (propMeta == null)

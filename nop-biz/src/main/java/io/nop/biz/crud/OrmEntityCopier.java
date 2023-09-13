@@ -115,7 +115,7 @@ public class OrmEntityCopier {
                             ignoreAutoExprProps.add(propMeta.getName());
                         }
                     }
-                    copyField(beanModel, src, target, name, name, null, propMeta, baseBizObjName, scope);
+                    copyField(beanModel, map, src, target, name, name, null, propMeta, baseBizObjName, scope);
                 }
             } else {
                 beanModel.forEachSerializableProp(propModel -> {
@@ -124,10 +124,11 @@ public class OrmEntityCopier {
                     if (propMeta != null && propMeta.getAutoExpr() != null) {
                         ignoreAutoExprProps.add(propMeta.getName());
                     }
-                    copyField(beanModel, src, target, name, name, null, propMeta, baseBizObjName, scope);
+                    copyField(beanModel, null, src, target, name, name, null, propMeta, baseBizObjName, scope);
                 });
             }
         } else {
+            Map<String, Object> map = src instanceof Map ? (Map<String, Object>) src : null;
             for (Map.Entry<String, FieldSelectionBean> entry : selection.getFields().entrySet()) {
                 String name = entry.getKey();
                 FieldSelectionBean field = entry.getValue();
@@ -135,9 +136,8 @@ public class OrmEntityCopier {
                 if (from == null)
                     from = name;
 
-                if (src instanceof Map) {
-                    if (!((Map<?, ?>) src).containsKey(from))
-                        continue;
+                if (map != null && !map.containsKey(from)) {
+                    continue;
                 }
 
                 IObjPropMeta propMeta = getProp(objMeta, from);
@@ -145,7 +145,7 @@ public class OrmEntityCopier {
                     if (propMeta.getAutoExpr() != null)
                         ignoreAutoExprProps.add(propMeta.getName());
                 }
-                copyField(beanModel, src, target, from, name, field, propMeta, baseBizObjName, scope);
+                copyField(beanModel, map, src, target, from, name, field, propMeta, baseBizObjName, scope);
             }
         }
 
@@ -159,7 +159,8 @@ public class OrmEntityCopier {
         return objMeta.getProp(name);
     }
 
-    private void copyField(IBeanModel beanModel, Object src, IOrmEntity target, String from, String name,
+    private void copyField(IBeanModel beanModel, Map<String, Object> map,
+                           Object src, IOrmEntity target, String from, String name,
                            FieldSelectionBean field, IObjPropMeta propMeta, String baseBizObjName, IEvalScope scope) {
         Object fromValue = beanModel.getProperty(src, from);
         if (propMeta != null) {
@@ -191,17 +192,18 @@ public class OrmEntityCopier {
         } else {
             if (propModel.isToOneRelation()) {
                 IObjSchema subSchema = getPropSchema(propMeta, false, bizObjectManager, baseBizObjName);
-                copyRefEntity(fromValue, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName, scope);
+                copyRefEntity(fromValue, map, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName, scope);
             } else if (propModel.isToManyRelation()) {
                 IObjSchema subSchema = getPropSchema(propMeta, true, bizObjectManager, baseBizObjName);
-                copyRefEntitySet(fromValue, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName, scope);
+                copyRefEntitySet(fromValue, map, target, (IEntityRelationModel) propModel, field, subSchema, baseBizObjName, scope);
             } else {
                 target.orm_propValueByName(name, fromValue);
             }
         }
     }
 
-    private void copyRefEntity(Object fromValue, IOrmEntity target, IEntityRelationModel propModel,
+    private void copyRefEntity(Object fromValue, Map<String, Object> map,
+                               IOrmEntity target, IEntityRelationModel propModel,
                                FieldSelectionBean field, IObjSchema objMeta, String baseBizObjName, IEvalScope scope) {
         if (StringHelper.isEmptyObject(fromValue)) {
             target.orm_propValueByName(propModel.getName(), null);
@@ -211,7 +213,10 @@ public class OrmEntityCopier {
                 Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(fromValue);
                 target.orm_propValueByName(propName, refEntity);
             } else {
-                String options = getRelationChangeTypes(OrmModelHelper.buildRelationName(propModel));
+                String chgType = getRelationChangeTypes(OrmModelHelper.buildRelationName(propModel));
+                if (chgType == null && map != null) {
+                    chgType = (String) map.get(DaoConstants.PROP_CHANGE_TYPE + '_' + propName);
+                }
 
                 // 更新关联实体
                 Object id = BeanTool.instance().getProperty(fromValue, OrmConstants.PROP_ID);
@@ -220,7 +225,7 @@ public class OrmEntityCopier {
                     if (field != null && !field.hasField()) {
                         target.orm_propValueByName(propName, null);
                     } else {
-                        if (options == null || options.contains(DaoConstants.CHANGE_TYPE_ADD)) {
+                        if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_ADD)) {
                             Object refEntity = daoProvider.dao(propModel.getRefEntityName()).newEntity();
                             copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName,
                                     BizConstants.METHOD_SAVE, scope);
@@ -228,7 +233,7 @@ public class OrmEntityCopier {
                         }
                     }
                 } else {
-                    if (options == null || options.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
+                    if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
                         copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName,
                                 BizConstants.METHOD_UPDATE, scope);
@@ -239,12 +244,16 @@ public class OrmEntityCopier {
         }
     }
 
-    private void copyRefEntitySet(Object fromValue, IOrmEntity target, IEntityRelationModel propModel,
+    private void copyRefEntitySet(Object fromValue, Map<String, Object> map, IOrmEntity target, IEntityRelationModel propModel,
                                   FieldSelectionBean field, IObjSchema objMeta, String baseBizObjName,
                                   IEvalScope scope) {
         String propName = propModel.getName();
         IOrmEntitySet<IOrmEntity> refSet = target.orm_refEntitySet(propName);
         String chgType = getRelationChangeTypes(refSet.orm_collectionName());
+
+        if (chgType == null && map != null) {
+            chgType = (String) map.get(DaoConstants.PROP_CHANGE_TYPE + '_' + propName);
+        }
 
         if (StringHelper.isEmptyObject(fromValue)) {
             if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_DELETE))
