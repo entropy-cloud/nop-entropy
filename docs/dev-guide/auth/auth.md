@@ -18,6 +18,40 @@
 
 系统通过IActionAuthChecker接口来检查操作权限。
 
+```java
+public interface IActionAuthChecker {
+    boolean isPermitted(String permission, ISecurityContext context);
+
+    default boolean isAllPermitted(Set<String> permissions, ISecurityContext context) {
+        if (permissions == null || permissions.isEmpty())
+            return true;
+
+        for (String permission : permissions) {
+            if (!isPermitted(permission, context))
+                return false;
+        }
+        return true;
+    }
+
+    default boolean isPermissionSetSatisfied(MultiCsvSet permissionSet, ISecurityContext context) {
+        if (permissionSet == null || permissionSet.isEmpty())
+            return true;
+
+        for (Set<String> permissions : permissionSet) {
+            if (isAllPermitted(permissions, context))
+                return true;
+        }
+        return false;
+    }
+}    
+```
+
+根据auth配置进行权限校验的实现如下：
+```
+
+```
+
+
 判断规则：
 
 1. 如果设置了roles，则满足角色条件则返回true。roles的配置一般是逗号分隔的字符串，具有任意一个role就具有对应权限

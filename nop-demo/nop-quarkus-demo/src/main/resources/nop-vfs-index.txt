@@ -59,6 +59,14 @@
 /nop/auth/model/NopAuthExtLogin/NopAuthExtLogin.xmeta
 /nop/auth/model/NopAuthExtLogin/_NopAuthExtLogin.xbiz
 /nop/auth/model/NopAuthExtLogin/_NopAuthExtLogin.xmeta
+/nop/auth/model/NopAuthGroup/NopAuthGroup.xbiz
+/nop/auth/model/NopAuthGroup/NopAuthGroup.xmeta
+/nop/auth/model/NopAuthGroup/_NopAuthGroup.xbiz
+/nop/auth/model/NopAuthGroup/_NopAuthGroup.xmeta
+/nop/auth/model/NopAuthGroupDept/NopAuthGroupDept.xbiz
+/nop/auth/model/NopAuthGroupDept/NopAuthGroupDept.xmeta
+/nop/auth/model/NopAuthGroupDept/_NopAuthGroupDept.xbiz
+/nop/auth/model/NopAuthGroupDept/_NopAuthGroupDept.xmeta
 /nop/auth/model/NopAuthOpLog/NopAuthOpLog.xbiz
 /nop/auth/model/NopAuthOpLog/NopAuthOpLog.xmeta
 /nop/auth/model/NopAuthOpLog/_NopAuthOpLog.xbiz
@@ -125,6 +133,11 @@
 /nop/auth/pages/NopAuthExtLogin/_gen/_NopAuthExtLogin.view.xml
 /nop/auth/pages/NopAuthExtLogin/main.page.yaml
 /nop/auth/pages/NopAuthExtLogin/picker.page.yaml
+/nop/auth/pages/NopAuthGroup/NopAuthGroup.lib.xjs
+/nop/auth/pages/NopAuthGroup/NopAuthGroup.view.xml
+/nop/auth/pages/NopAuthGroup/_gen/_NopAuthGroup.view.xml
+/nop/auth/pages/NopAuthGroup/main.page.yaml
+/nop/auth/pages/NopAuthGroup/picker.page.yaml
 /nop/auth/pages/NopAuthOpLog/NopAuthOpLog.lib.xjs
 /nop/auth/pages/NopAuthOpLog/NopAuthOpLog.view.xml
 /nop/auth/pages/NopAuthOpLog/_gen/_NopAuthOpLog.view.xml

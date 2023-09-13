@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="分组用户" i18n-en:displayName="Group User" tagSet="no-web,many-to-many" xmlns:ui="ui">
+
+    <entityName>io.nop.auth.dao.entity.NopAuthGroupDept</entityName>
+
+    <primaryKey>userId,groupId</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="userId" displayName="用户ID" i18n-en:displayName="USER ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" ext:relation="user">
+            <schema domain="userId" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="groupId" displayName="分组ID" i18n-en:displayName="Group ID" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" ext:relation="group">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true" ui:show="S">
+            <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="user" displayName="用户" i18n-en:displayName="User"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="userId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="user.userName" displayName="用户" i18n-en:displayName="User" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="group" displayName="分组" i18n-en:displayName="Group"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="groupId" ext:joinRightProp="groupId" ext:joinRightDisplayProp="name"
+              insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopAuthGroup"/>
+        </prop>
+        <prop name="group.name" displayName="分组" i18n-en:displayName="Group" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>

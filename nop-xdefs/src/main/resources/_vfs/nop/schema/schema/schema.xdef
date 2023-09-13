@@ -67,7 +67,7 @@
               xmlName="xml-name" childXmlName="xml-name" xmlPos="enum:io.nop.core.lang.xml.XNodeValuePosition"
               childName="prop-name" defaultOverride="enum:io.nop.xlang.xdef.XDefOverride"
               tagSet="tag-set" lazy="!boolean=false" type="generic-type"
-              insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false"
+              insertable="!boolean=true" updatable="!boolean=true" queryable="!boolean=false" virtual="!boolean=false"
               published="!boolean=true" allowFilterOp="word-set" kind="enum:io.nop.xlang.xmeta.ObjPropKind"
               ui:control="xml-name" ui:show="string" ui:labelProp="prop-path" ui:filterOp="xml-name"
               ui:maxUploadSize="long-size" ui:supportFileLink="boolean" ui:uploadAccept="string"

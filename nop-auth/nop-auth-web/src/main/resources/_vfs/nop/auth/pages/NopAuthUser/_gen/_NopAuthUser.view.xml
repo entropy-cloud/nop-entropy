@@ -16,11 +16,14 @@
                 <!--昵称-->
                 <col id="nickName" mandatory="true" sortable="true"/>
 
-                <!--部门-->
+                <!--所属部门-->
                 <col id="deptId" sortable="true"/>
 
                 <!--用户外部标识-->
                 <col id="openId" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--相关部门-->
+                <col id="relDeptId" sortable="true" x:abstract="true"/>
 
                 <!--性别-->
                 <col id="gender" mandatory="true" sortable="true"/>
@@ -58,6 +61,9 @@
                 <!--真实姓名-->
                 <col id="realName" sortable="true" x:abstract="true"/>
 
+                <!--上级-->
+                <col id="managerId" sortable="true" x:abstract="true"/>
+
                 <!--工号-->
                 <col id="workNo" sortable="true" x:abstract="true"/>
 
@@ -90,13 +96,14 @@
         <form id="view" editMode="view" title="查看-用户" i18n-en:title="View User">
             <layout>
  userName[用户名] nickName[昵称]
- deptId[部门] openId[用户外部标识]
- gender[性别] email[邮件]
- phone[电话] birthday[生日]
- userType[用户类型] status[用户状态]
- idType[证件类型] idNbr[证件号]
- expireAt[用户过期时间] pwdUpdateTime[上次密码更新时间]
- changePwdAtLogin[登陆后立刻修改密码] realName[真实姓名]
+ deptId[所属部门] openId[用户外部标识]
+ relDeptId[相关部门] gender[性别]
+ email[邮件] phone[电话]
+ birthday[生日] userType[用户类型]
+ status[用户状态] idType[证件类型]
+ idNbr[证件号] expireAt[用户过期时间]
+ pwdUpdateTime[上次密码更新时间] changePwdAtLogin[登陆后立刻修改密码]
+ realName[真实姓名] managerId[上级]
  workNo[工号] positionId[职务]
  telephone[座机] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
@@ -108,13 +115,14 @@
         <form id="edit" editMode="edit" title="编辑-用户" i18n-en:title="Edit User">
             <layout>
  userName[用户名] nickName[昵称]
- deptId[部门] openId[用户外部标识]
- gender[性别] email[邮件]
- phone[电话] birthday[生日]
- userType[用户类型] status[用户状态]
- idType[证件类型] idNbr[证件号]
- expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]
- realName[真实姓名] workNo[工号]
+ deptId[所属部门] openId[用户外部标识]
+ relDeptId[相关部门] gender[性别]
+ email[邮件] phone[电话]
+ birthday[生日] userType[用户类型]
+ status[用户状态] idType[证件类型]
+ idNbr[证件号] expireAt[用户过期时间]
+ changePwdAtLogin[登陆后立刻修改密码] realName[真实姓名]
+ managerId[上级] workNo[工号]
  positionId[职务] telephone[座机]
  remark[备注] 
 </layout>

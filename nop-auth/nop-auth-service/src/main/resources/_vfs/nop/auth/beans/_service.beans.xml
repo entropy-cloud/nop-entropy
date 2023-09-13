@@ -8,6 +8,10 @@
 
     <bean id="io.nop.auth.service.entity.NopAuthExtLoginBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.auth.service.entity.NopAuthGroupBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.auth.service.entity.NopAuthGroupDeptBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.auth.service.entity.NopAuthOpLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.auth.service.entity.NopAuthPositionBizModel" ioc:type="@bean:id" ioc:default="true"/>

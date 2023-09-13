@@ -88,6 +88,18 @@ CREATE TABLE nop_auth_op_log(
   constraint PK_nop_auth_op_log primary key (LOG_ID)
 );
 
+CREATE TABLE nop_auth_group_dept(
+  USER_ID VARCHAR2(50) NOT NULL ,
+  GROUP_ID VARCHAR2(50) NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_auth_group_dept primary key (USER_ID,GROUP_ID)
+);
+
 CREATE TABLE nop_auth_tenant(
   TENANT_ID VARCHAR2(32) NOT NULL ,
   NAME VARCHAR2(100) NOT NULL ,
@@ -102,43 +114,6 @@ CREATE TABLE nop_auth_tenant(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_auth_tenant primary key (TENANT_ID)
-);
-
-CREATE TABLE nop_auth_user(
-  USER_ID VARCHAR2(50) NOT NULL ,
-  USER_NAME VARCHAR2(50) NOT NULL ,
-  PASSWORD VARCHAR2(80) NOT NULL ,
-  SALT VARCHAR2(32)  ,
-  NICK_NAME VARCHAR2(50) NOT NULL ,
-  DEPT_ID VARCHAR2(50)  ,
-  OPEN_ID VARCHAR2(32) NOT NULL ,
-  GENDER INTEGER NOT NULL ,
-  AVATAR VARCHAR2(100)  ,
-  EMAIL VARCHAR2(100)  ,
-  EMAIL_VERIFIED SMALLINT  ,
-  PHONE VARCHAR2(50)  ,
-  PHONE_VERIFIED SMALLINT NOT NULL ,
-  BIRTHDAY DATE  ,
-  USER_TYPE INTEGER NOT NULL ,
-  STATUS INTEGER NOT NULL ,
-  ID_TYPE VARCHAR2(10)  ,
-  ID_NBR VARCHAR2(100)  ,
-  EXPIRE_AT DATE  ,
-  PWD_UPDATE_TIME DATE  ,
-  CHANGE_PWD_AT_LOGIN SMALLINT  ,
-  REAL_NAME VARCHAR2(50)  ,
-  WORK_NO VARCHAR2(100)  ,
-  POSITION_ID VARCHAR2(32)  ,
-  TELEPHONE VARCHAR2(50)  ,
-  CLIENT_ID VARCHAR2(100)  ,
-  DEL_FLAG SMALLINT NOT NULL ,
-  VERSION INTEGER NOT NULL ,
-  CREATED_BY VARCHAR2(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR2(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR2(200)  ,
-  constraint PK_nop_auth_user primary key (USER_ID)
 );
 
 CREATE TABLE nop_auth_resource(
@@ -208,6 +183,76 @@ CREATE TABLE nop_auth_session(
   constraint PK_nop_auth_session primary key (SESSION_ID)
 );
 
+CREATE TABLE nop_auth_user(
+  USER_ID VARCHAR2(50) NOT NULL ,
+  USER_NAME VARCHAR2(50) NOT NULL ,
+  PASSWORD VARCHAR2(80) NOT NULL ,
+  SALT VARCHAR2(32)  ,
+  NICK_NAME VARCHAR2(50) NOT NULL ,
+  DEPT_ID VARCHAR2(50)  ,
+  OPEN_ID VARCHAR2(32) NOT NULL ,
+  REL_DEPT_ID VARCHAR2(50)  ,
+  GENDER INTEGER NOT NULL ,
+  AVATAR VARCHAR2(100)  ,
+  EMAIL VARCHAR2(100)  ,
+  EMAIL_VERIFIED SMALLINT  ,
+  PHONE VARCHAR2(50)  ,
+  PHONE_VERIFIED SMALLINT NOT NULL ,
+  BIRTHDAY DATE  ,
+  USER_TYPE INTEGER NOT NULL ,
+  STATUS INTEGER NOT NULL ,
+  ID_TYPE VARCHAR2(10)  ,
+  ID_NBR VARCHAR2(100)  ,
+  EXPIRE_AT DATE  ,
+  PWD_UPDATE_TIME DATE  ,
+  CHANGE_PWD_AT_LOGIN SMALLINT  ,
+  REAL_NAME VARCHAR2(50)  ,
+  MANAGER_ID VARCHAR2(50)  ,
+  WORK_NO VARCHAR2(100)  ,
+  POSITION_ID VARCHAR2(32)  ,
+  TELEPHONE VARCHAR2(50)  ,
+  CLIENT_ID VARCHAR2(100)  ,
+  DEL_FLAG SMALLINT NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_auth_user primary key (USER_ID)
+);
+
+CREATE TABLE nop_auth_group(
+  GROUP_ID VARCHAR2(50) NOT NULL ,
+  NAME VARCHAR2(100) NOT NULL ,
+  PARENT_ID VARCHAR2(50)  ,
+  DEL_FLAG SMALLINT  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_auth_group primary key (GROUP_ID)
+);
+
+CREATE TABLE nop_auth_site(
+  SITE_ID VARCHAR2(100) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(100) NOT NULL ,
+  ORDER_NO INTEGER NOT NULL ,
+  URL VARCHAR2(200)  ,
+  STATUS INTEGER NOT NULL ,
+  EXT_CONFIG VARCHAR2(1000)  ,
+  CONFIG_VERSION VARCHAR2(20)  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_auth_site primary key (SITE_ID)
+);
+
 CREATE TABLE nop_auth_dept(
   DEPT_ID VARCHAR2(50) NOT NULL ,
   DEPT_NAME VARCHAR2(100) NOT NULL ,
@@ -237,23 +282,6 @@ CREATE TABLE nop_auth_position(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_auth_position primary key (POSITION_ID)
-);
-
-CREATE TABLE nop_auth_site(
-  SITE_ID VARCHAR2(100) NOT NULL ,
-  DISPLAY_NAME VARCHAR2(100) NOT NULL ,
-  ORDER_NO INTEGER NOT NULL ,
-  URL VARCHAR2(200)  ,
-  STATUS INTEGER NOT NULL ,
-  EXT_CONFIG VARCHAR2(1000)  ,
-  CONFIG_VERSION VARCHAR2(20)  ,
-  VERSION INTEGER NOT NULL ,
-  CREATED_BY VARCHAR2(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR2(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR2(200)  ,
-  constraint PK_nop_auth_site primary key (SITE_ID)
 );
 
 
@@ -399,6 +427,24 @@ CREATE TABLE nop_auth_site(
                     
       COMMENT ON COLUMN nop_auth_op_log.CREATE_TIME IS '创建时间';
                     
+      COMMENT ON TABLE nop_auth_group_dept IS '分组用户';
+                
+      COMMENT ON COLUMN nop_auth_group_dept.USER_ID IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.GROUP_ID IS '分组ID';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_group_dept.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_auth_tenant IS '租户';
                 
       COMMENT ON COLUMN nop_auth_tenant.TENANT_ID IS '主键';
@@ -424,74 +470,6 @@ CREATE TABLE nop_auth_site(
       COMMENT ON COLUMN nop_auth_tenant.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_tenant.REMARK IS '备注';
-                    
-      COMMENT ON TABLE nop_auth_user IS '用户';
-                
-      COMMENT ON COLUMN nop_auth_user.USER_ID IS '用户ID';
-                    
-      COMMENT ON COLUMN nop_auth_user.USER_NAME IS '用户名';
-                    
-      COMMENT ON COLUMN nop_auth_user.PASSWORD IS '密码';
-                    
-      COMMENT ON COLUMN nop_auth_user.SALT IS '密码加盐';
-                    
-      COMMENT ON COLUMN nop_auth_user.NICK_NAME IS '昵称';
-                    
-      COMMENT ON COLUMN nop_auth_user.DEPT_ID IS '部门';
-                    
-      COMMENT ON COLUMN nop_auth_user.OPEN_ID IS '用户外部标识';
-                    
-      COMMENT ON COLUMN nop_auth_user.GENDER IS '性别';
-                    
-      COMMENT ON COLUMN nop_auth_user.AVATAR IS '头像';
-                    
-      COMMENT ON COLUMN nop_auth_user.EMAIL IS '邮件';
-                    
-      COMMENT ON COLUMN nop_auth_user.EMAIL_VERIFIED IS '电话已验证';
-                    
-      COMMENT ON COLUMN nop_auth_user.PHONE IS '电话';
-                    
-      COMMENT ON COLUMN nop_auth_user.PHONE_VERIFIED IS '电话已验证';
-                    
-      COMMENT ON COLUMN nop_auth_user.BIRTHDAY IS '生日';
-                    
-      COMMENT ON COLUMN nop_auth_user.USER_TYPE IS '用户类型';
-                    
-      COMMENT ON COLUMN nop_auth_user.STATUS IS '用户状态';
-                    
-      COMMENT ON COLUMN nop_auth_user.ID_TYPE IS '证件类型';
-                    
-      COMMENT ON COLUMN nop_auth_user.ID_NBR IS '证件号';
-                    
-      COMMENT ON COLUMN nop_auth_user.EXPIRE_AT IS '用户过期时间';
-                    
-      COMMENT ON COLUMN nop_auth_user.PWD_UPDATE_TIME IS '上次密码更新时间';
-                    
-      COMMENT ON COLUMN nop_auth_user.CHANGE_PWD_AT_LOGIN IS '登陆后立刻修改密码';
-                    
-      COMMENT ON COLUMN nop_auth_user.REAL_NAME IS '真实姓名';
-                    
-      COMMENT ON COLUMN nop_auth_user.WORK_NO IS '工号';
-                    
-      COMMENT ON COLUMN nop_auth_user.POSITION_ID IS '职务';
-                    
-      COMMENT ON COLUMN nop_auth_user.TELEPHONE IS '座机';
-                    
-      COMMENT ON COLUMN nop_auth_user.CLIENT_ID IS '设备ID';
-                    
-      COMMENT ON COLUMN nop_auth_user.DEL_FLAG IS '删除标识';
-                    
-      COMMENT ON COLUMN nop_auth_user.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_auth_user.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_auth_user.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_auth_user.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_auth_user.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_auth_user.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_auth_resource IS '菜单资源';
                 
@@ -609,6 +587,128 @@ CREATE TABLE nop_auth_site(
                     
       COMMENT ON COLUMN nop_auth_session.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_auth_user IS '用户';
+                
+      COMMENT ON COLUMN nop_auth_user.USER_ID IS '用户ID';
+                    
+      COMMENT ON COLUMN nop_auth_user.USER_NAME IS '用户名';
+                    
+      COMMENT ON COLUMN nop_auth_user.PASSWORD IS '密码';
+                    
+      COMMENT ON COLUMN nop_auth_user.SALT IS '密码加盐';
+                    
+      COMMENT ON COLUMN nop_auth_user.NICK_NAME IS '昵称';
+                    
+      COMMENT ON COLUMN nop_auth_user.DEPT_ID IS '所属部门';
+                    
+      COMMENT ON COLUMN nop_auth_user.OPEN_ID IS '用户外部标识';
+                    
+      COMMENT ON COLUMN nop_auth_user.REL_DEPT_ID IS '相关部门';
+                    
+      COMMENT ON COLUMN nop_auth_user.GENDER IS '性别';
+                    
+      COMMENT ON COLUMN nop_auth_user.AVATAR IS '头像';
+                    
+      COMMENT ON COLUMN nop_auth_user.EMAIL IS '邮件';
+                    
+      COMMENT ON COLUMN nop_auth_user.EMAIL_VERIFIED IS '电话已验证';
+                    
+      COMMENT ON COLUMN nop_auth_user.PHONE IS '电话';
+                    
+      COMMENT ON COLUMN nop_auth_user.PHONE_VERIFIED IS '电话已验证';
+                    
+      COMMENT ON COLUMN nop_auth_user.BIRTHDAY IS '生日';
+                    
+      COMMENT ON COLUMN nop_auth_user.USER_TYPE IS '用户类型';
+                    
+      COMMENT ON COLUMN nop_auth_user.STATUS IS '用户状态';
+                    
+      COMMENT ON COLUMN nop_auth_user.ID_TYPE IS '证件类型';
+                    
+      COMMENT ON COLUMN nop_auth_user.ID_NBR IS '证件号';
+                    
+      COMMENT ON COLUMN nop_auth_user.EXPIRE_AT IS '用户过期时间';
+                    
+      COMMENT ON COLUMN nop_auth_user.PWD_UPDATE_TIME IS '上次密码更新时间';
+                    
+      COMMENT ON COLUMN nop_auth_user.CHANGE_PWD_AT_LOGIN IS '登陆后立刻修改密码';
+                    
+      COMMENT ON COLUMN nop_auth_user.REAL_NAME IS '真实姓名';
+                    
+      COMMENT ON COLUMN nop_auth_user.MANAGER_ID IS '上级';
+                    
+      COMMENT ON COLUMN nop_auth_user.WORK_NO IS '工号';
+                    
+      COMMENT ON COLUMN nop_auth_user.POSITION_ID IS '职务';
+                    
+      COMMENT ON COLUMN nop_auth_user.TELEPHONE IS '座机';
+                    
+      COMMENT ON COLUMN nop_auth_user.CLIENT_ID IS '设备ID';
+                    
+      COMMENT ON COLUMN nop_auth_user.DEL_FLAG IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_user.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_user.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_user.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_user.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_user.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_user.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_group IS '用户组';
+                
+      COMMENT ON COLUMN nop_auth_group.GROUP_ID IS '主键';
+                    
+      COMMENT ON COLUMN nop_auth_group.NAME IS '名称';
+                    
+      COMMENT ON COLUMN nop_auth_group.PARENT_ID IS '父ID';
+                    
+      COMMENT ON COLUMN nop_auth_group.DEL_FLAG IS '删除标识';
+                    
+      COMMENT ON COLUMN nop_auth_group.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_group.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_group.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_group.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_group.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_group.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_auth_site IS '子站点';
+                
+      COMMENT ON COLUMN nop_auth_site.SITE_ID IS '站点ID';
+                    
+      COMMENT ON COLUMN nop_auth_site.DISPLAY_NAME IS '显示名称';
+                    
+      COMMENT ON COLUMN nop_auth_site.ORDER_NO IS '排序';
+                    
+      COMMENT ON COLUMN nop_auth_site.URL IS '链接';
+                    
+      COMMENT ON COLUMN nop_auth_site.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_auth_site.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_auth_site.CONFIG_VERSION IS '配置版本';
+                    
+      COMMENT ON COLUMN nop_auth_site.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_site.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_auth_site.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_auth_site.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_auth_site.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_auth_site.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_auth_dept IS '部门';
                 
       COMMENT ON COLUMN nop_auth_dept.DEPT_ID IS '主键';
@@ -658,32 +758,4 @@ CREATE TABLE nop_auth_site(
       COMMENT ON COLUMN nop_auth_position.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_auth_position.REMARK IS '备注';
-                    
-      COMMENT ON TABLE nop_auth_site IS '子站点';
-                
-      COMMENT ON COLUMN nop_auth_site.SITE_ID IS '站点ID';
-                    
-      COMMENT ON COLUMN nop_auth_site.DISPLAY_NAME IS '显示名称';
-                    
-      COMMENT ON COLUMN nop_auth_site.ORDER_NO IS '排序';
-                    
-      COMMENT ON COLUMN nop_auth_site.URL IS '链接';
-                    
-      COMMENT ON COLUMN nop_auth_site.STATUS IS '状态';
-                    
-      COMMENT ON COLUMN nop_auth_site.EXT_CONFIG IS '扩展配置';
-                    
-      COMMENT ON COLUMN nop_auth_site.CONFIG_VERSION IS '配置版本';
-                    
-      COMMENT ON COLUMN nop_auth_site.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_auth_site.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_auth_site.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_auth_site.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_auth_site.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_auth_site.REMARK IS '备注';
                     

@@ -43,13 +43,17 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="deptId" displayName="部门" i18n-en:displayName="Department" queryable="true" sortable="true"
+        <prop name="deptId" displayName="所属部门" i18n-en:displayName="Department" queryable="true" sortable="true"
               insertable="true" updatable="true" ext:relation="dept">
             <schema domain="deptId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="openId" displayName="用户外部标识" i18n-en:displayName="OpenId" tagSet="var" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true" ui:show="L">
             <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="relDeptId" displayName="相关部门" i18n-en:displayName="Related Department" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="L" ext:relation="relatedDept">
+            <schema domain="deptId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="gender" displayName="性别" i18n-en:displayName="Gender" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -112,6 +116,10 @@
               insertable="true" updatable="true" ui:show="L">
             <schema type="java.lang.String" precision="50"/>
         </prop>
+        <prop name="managerId" displayName="上级" i18n-en:displayName="Manager" queryable="true" sortable="true"
+              insertable="true" updatable="true" ui:show="L" ext:relation="manager">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
         <prop name="workNo" displayName="工号" i18n-en:displayName="Work NO" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="L">
             <schema type="java.lang.String" precision="100"/>
@@ -165,12 +173,30 @@
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
+        <prop name="relatedDept" displayName="部门" i18n-en:displayName="Related Department" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="relDeptId" ext:joinRightProp="deptId"
+              ext:joinRightDisplayProp="deptName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopAuthDept"/>
+        </prop>
+        <prop name="relatedDept.deptName" displayName="部门" i18n-en:displayName="Related Department" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
         <prop name="position" displayName="岗位" i18n-en:displayName="Position" tagSet="pub,ref-pub" ext:kind="to-one"
               internal="true" queryable="true" ext:joinLeftProp="positionId" ext:joinRightProp="positionId"
               ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopAuthPosition"/>
         </prop>
         <prop name="position.name" displayName="岗位" i18n-en:displayName="Position" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="manager" displayName="上级" i18n-en:displayName="Manager" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="managerId" ext:joinRightProp="userId"
+              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="manager.userName" displayName="上级" i18n-en:displayName="Manager" internal="true" queryable="true"
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
@@ -186,6 +212,13 @@
               ext:joinRightProp="userId" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopAuthUserSubstitution"/>
+            </schema>
+        </prop>
+        <prop name="groupMappings" displayName="分组映射" i18n-en:displayName="GroupMappings"
+              tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="userId" ext:joinRightProp="userId" insertable="true" updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthGroupDept"/>
             </schema>
         </prop>
         <prop name="avatarComponent" ext:kind="component" internal="true" insertable="true" updatable="true" lazy="true"
@@ -204,6 +237,21 @@
             <schema type="List&lt;java.lang.String&gt;"/>
         </prop>
         <prop name="relatedRoleList_label" displayName="角色列表" i18n-en:displayName="Role List" lazy="true"
+              internal="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="relatedGroupList" displayName="分组列表" i18n-en:displayName="Group List" ext:kind="to-many"
+              internal="true" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthGroup"/>
+            </schema>
+        </prop>
+        <prop name="relatedGroupIdList" displayName="分组列表" i18n-en:displayName="Group List" insertable="true"
+              updatable="true" ext:relation="relatedGroupList" graphql:labelProp="relatedGroupList_label" lazy="true"
+              internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedGroupList_label" displayName="分组列表" i18n-en:displayName="Group List" lazy="true"
               internal="true">
             <schema type="String"/>
         </prop>

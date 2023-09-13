@@ -2,6 +2,8 @@ entity:
   label:
     NopAuthDept: Department
     NopAuthExtLogin: Ext Login
+    NopAuthGroup: User Group
+    NopAuthGroupDept: Group User
     NopAuthOpLog: Operation Log
     NopAuthPosition: Position
     NopAuthResource: Menu Resource
@@ -47,6 +49,37 @@ prop:
       updateTime: Update Time
       remark: Remark
       user: User
+    NopAuthGroup:
+      groupId: Group ID
+      name: Name
+      parentId: Parent ID
+      delFlag: Deleted
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      parent: Parent
+      parent.name: Parent
+      children: Children
+      userMappings: UserMappings
+      relatedUserList: User List
+      relatedUserIdList: User List
+      relatedUserList_label: User List
+    NopAuthGroupDept:
+      userId: USER ID
+      groupId: Group ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      user: User
+      user.userName: User
+      group: Group
+      group.name: Group
     NopAuthOpLog:
       logId: LOG_ID
       userName: USER_NAME
@@ -229,6 +262,7 @@ prop:
       nickName: Nick Name
       deptId: Department
       openId: OpenId
+      relDeptId: Related Department
       gender: Gender
       gender_label: null
       avatar: Avatar
@@ -247,6 +281,7 @@ prop:
       pwdUpdateTime: Password Update Time
       changePwdAtLogin: Change Password At Logon
       realName: Real Name
+      managerId: Manager
       workNo: Work NO
       positionId: Position
       telephone: Telephone
@@ -260,14 +295,22 @@ prop:
       remark: Remark
       dept: Department
       dept.deptName: Department
+      relatedDept: Related Department
+      relatedDept.deptName: Related Department
       position: Position
       position.name: Position
+      manager: Manager
+      manager.userName: Manager
       roleMappings: RoleMappings
       substitutionMappings: Substitution Mappings
+      groupMappings: GroupMappings
       avatarComponent: null
       relatedRoleList: Role List
       relatedRoleIdList: Role List
       relatedRoleList_label: Role List
+      relatedGroupList: Group List
+      relatedGroupIdList: Group List
+      relatedGroupList_label: Group List
     NopAuthUserRole:
       userId: User ID
       roleId: Role ID

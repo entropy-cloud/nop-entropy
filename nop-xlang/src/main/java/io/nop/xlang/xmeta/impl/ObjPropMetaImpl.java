@@ -21,20 +21,18 @@ import io.nop.xlang.xmeta.impl._gen._ObjPropMetaImpl;
 
 import java.util.Map;
 
-import static io.nop.api.core.ApiConstants.AUTH_FOR_ALL;
-
 public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
     static final ActionAuthMeta NULL_AUTH = new ActionAuthMeta(null, null);
     private ActionAuthMeta writeAuth;
 
+    private ActionAuthMeta deleteAuth;
+
     public ActionAuthMeta getReadAuth() {
         ObjPropAuthModel authModel = getAuth(ApiConstants.AUTH_FOR_READ);
-        if (authModel == null) {
-            authModel = getAuth(ApiConstants.AUTH_FOR_WRITE);
-            if (authModel == null) authModel = getAuth(AUTH_FOR_ALL);
+        if (authModel != null) {
+            return authModel.toActionAuthMeta();
         }
-        if (authModel == null) return null;
-        return authModel.toActionAuthMeta();
+        return getWriteAuth();
     }
 
     public ActionAuthMeta getWriteAuth() {
@@ -56,6 +54,14 @@ public class ObjPropMetaImpl extends _ObjPropMetaImpl implements IObjPropMeta {
         if (writeAuth == NULL_AUTH)
             return null;
         return writeAuth;
+    }
+
+    public ActionAuthMeta getDeleteAuth() {
+        ObjPropAuthModel authModel = getAuth(ApiConstants.AUTH_FOR_WRITE);
+        if (authModel != null) {
+            return authModel.toActionAuthMeta();
+        }
+        return getWriteAuth();
     }
 
     public String getChildName() {

@@ -35,10 +35,12 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryTransformer;
 import io.nop.dao.exceptions.UnknownEntityException;
+import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.orm.IOrmBatchLoadQueue;
@@ -816,10 +818,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
             for (Map<String, Object> item : data) {
                 Object id = item.get(OrmConstants.PROP_ID);
-                if (StringHelper.isEmptyObject(id) || ConvertHelper.toBoolean(item.get(OrmConstants.FOR_ADD))) {
+                String chgType = DaoHelper.getChangeType(item);
+                if (StringHelper.isEmptyObject(id) || DaoConstants.CHANGE_TYPE_ADD.equals(chgType)) {
                     save(item, context);
+                } else if (DaoConstants.CHANGE_TYPE_DELETE.equals(chgType)) {
+                    delete(StringHelper.toString(id, null), context);
                 } else {
-                    // 具有id属性，且没有标记为_forAdd，则是update
+                    // 具有id属性，且没有标记为A/U，则是update
                     update(item, context);
                 }
             }
@@ -835,7 +840,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         T result;
         Object id = data.get(OrmConstants.PROP_ID);
-        if (StringHelper.isEmptyObject(id) || ConvertHelper.toBoolean(data.get(OrmConstants.FOR_ADD))) {
+        if (StringHelper.isEmptyObject(id) || DaoConstants.CHANGE_TYPE_ADD.equals(DaoHelper.getChangeType(data))) {
             result = save(data, context);
         } else {
             // 具有id属性，且没有标记为_forAdd，则是update

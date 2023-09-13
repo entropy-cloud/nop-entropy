@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAuthGroup" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/auth/model/NopAuthGroup/NopAuthGroup.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--名称-->
+                <col id="name" mandatory="true" sortable="true"/>
+
+                <!--父ID-->
+                <col id="parentId" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true" x:abstract="true"/>
+
+                <!--备注-->
+                <col id="remark" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="tree-list" x:prototype="list">
+            <selection>children @TreeChildren(max:5)</selection>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-用户组" i18n-en:title="View User Group">
+            <layout>
+ name[名称]
+ parentId[父ID]
+ createdBy[创建人]
+ createTime[创建时间]
+ updatedBy[修改人]
+ updateTime[修改时间]
+ remark[备注]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-用户组" i18n-en:title="Add User Group" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-用户组" i18n-en:title="Edit User Group">
+            <layout>
+ name[名称]
+ parentId[父ID]
+ remark[备注]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-用户组" i18n-en:title="Update User Group">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="tree-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table loadDataOnce="true" sortable="false" pager="none">
+                <api url="@query:NopAuthGroup__findList?filter_parentId=__null" gql:selection="{@listSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopAuthGroup__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopAuthGroup__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-add-child-button" label="@i18n:common.addChild">
+                        <dialog page="add-child"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopAuthGroup__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopAuthGroup__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopAuthGroup__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopAuthGroup__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopAuthGroup__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopAuthGroup__update/id?id=$id" withFormData="true"/>
+        </simple>
+        <simple name="add-child" form="add">
+            <api url="@mutation:NopAuthGroup__save/id" withFormData="true"/>
+            <data>
+                <_ j:key="parentId">$id</_>
+            </data>
+        </simple>
+    </pages>
+</view>

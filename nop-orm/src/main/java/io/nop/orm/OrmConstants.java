@@ -39,9 +39,6 @@ public interface OrmConstants {
      */
     String PROP_ID = "id";
 
-    String FOR_ADD = "_forAdd";
-
-
     String ID_NULL = "__null";
 
     /**

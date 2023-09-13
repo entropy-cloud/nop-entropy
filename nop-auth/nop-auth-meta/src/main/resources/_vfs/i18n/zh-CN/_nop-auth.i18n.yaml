@@ -2,6 +2,8 @@ entity:
   label:
     NopAuthDept: 部门
     NopAuthExtLogin: 扩展登录方式
+    NopAuthGroup: 用户组
+    NopAuthGroupDept: 分组用户
     NopAuthOpLog: 操作日志
     NopAuthPosition: 岗位
     NopAuthResource: 菜单资源
@@ -45,6 +47,37 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       user: 用户
+      userId: 用户ID
+      version: 数据版本
+    NopAuthGroup:
+      children: 子分组
+      createTime: 创建时间
+      createdBy: 创建人
+      delFlag: 删除标识
+      groupId: 主键
+      name: 名称
+      parent: 父分组
+      parent.name: 父分组
+      parentId: 父ID
+      relatedUserIdList: 用户列表
+      relatedUserList: 用户列表
+      relatedUserList_label: 用户列表
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userMappings: 用户映射
+      version: 数据版本
+    NopAuthGroupDept:
+      createTime: 创建时间
+      createdBy: 创建人
+      group: 分组
+      group.name: 分组
+      groupId: 分组ID
+      remark: 备注
+      updateTime: 修改时间
+      updatedBy: 修改人
+      user: 用户
+      user.userName: 用户
       userId: 用户ID
       version: 数据版本
     NopAuthOpLog:
@@ -232,14 +265,18 @@ prop:
       delFlag: 删除标识
       dept: 部门
       dept.deptName: 部门
-      deptId: 部门
+      deptId: 所属部门
       email: 邮件
       emailVerified: 电话已验证
       expireAt: 用户过期时间
       gender: 性别
       gender_label: 性别
+      groupMappings: 分组映射
       idNbr: 证件号
       idType: 证件类型
+      manager: 上级
+      manager.userName: 上级
+      managerId: 上级
       nickName: 昵称
       openId: 用户外部标识
       password: 密码
@@ -250,6 +287,12 @@ prop:
       positionId: 职务
       pwdUpdateTime: 上次密码更新时间
       realName: 真实姓名
+      relDeptId: 相关部门
+      relatedDept: 部门
+      relatedDept.deptName: 部门
+      relatedGroupIdList: 分组列表
+      relatedGroupList: 分组列表
+      relatedGroupList_label: 分组列表
       relatedRoleIdList: 角色列表
       relatedRoleList: 角色列表
       relatedRoleList_label: 角色列表

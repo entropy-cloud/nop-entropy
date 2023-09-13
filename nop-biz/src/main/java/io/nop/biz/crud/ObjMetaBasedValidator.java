@@ -29,6 +29,7 @@ import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.DaoConstants;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.orm.OrmConstants;
 import io.nop.xlang.api.XLang;
@@ -124,7 +125,7 @@ public class ObjMetaBasedValidator {
     private Map<String, Object> _validate(String bizObjName, ISchema schema, String propName, Map<String, Object> data, FieldSelectionBean selection,
                                           BiPredicate<IObjPropMeta, FieldSelectionBean> filter, IEvalScope scope) {
         scope.setLocalValue(null, BizConstants.VAR_DATA, data);
-        if(schema.isSimpleSchema() && schema.isMapType())
+        if (schema.isSimpleSchema() && schema.isMapType())
             return data;
 
         Map<String, Object> ret = new LinkedHashMap<>();
@@ -140,7 +141,7 @@ public class ObjMetaBasedValidator {
                 continue;
             }
 
-            if (OrmConstants.FOR_ADD.endsWith(name))
+            if (DaoConstants.PROP_CHANGE_TYPE.startsWith(name))
                 continue;
 
             IObjPropMeta propMeta = schema.getProp(name);
@@ -207,10 +208,10 @@ public class ObjMetaBasedValidator {
     }
 
     private void doCheckWriteAuth(String objTypeName, IObjPropMeta propMeta) {
-        ActionAuthMeta auth = propMeta.getWriteAuth();
-        if (auth == null)
-            return;
+        doCheckAuth(objTypeName, propMeta, propMeta.getWriteAuth());
+    }
 
+    private void doCheckAuth(String objTypeName, IObjPropMeta propMeta, ActionAuthMeta auth) {
         IActionAuthChecker authChecker = this.context.getActionAuthChecker();
         if (authChecker == null)
             return;

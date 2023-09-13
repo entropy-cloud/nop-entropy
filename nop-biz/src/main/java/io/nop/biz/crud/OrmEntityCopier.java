@@ -17,6 +17,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.bean.IBeanModel;
+import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntity;
@@ -50,7 +51,7 @@ public class OrmEntityCopier {
     private final IBizObjectManager bizObjectManager;
     private final IDaoProvider daoProvider;
 
-    private Map<String, RelationCopyOptions> relationOptions;
+    private Map<String, String> relationChangeTypes;
 
     /**
      * bizObjName是接口层面看到的业务对象名，IBizObjManager根据bizObjName装载对应业务对象。
@@ -67,18 +68,18 @@ public class OrmEntityCopier {
         this(daoProvider, null);
     }
 
-    public OrmEntityCopier addRelationCopyOptions(String relationName, RelationCopyOptions options) {
-        if (relationOptions == null) {
-            relationOptions = new HashMap<>();
+    public OrmEntityCopier addRelationCopyOptions(String relationName, String chgType) {
+        if (relationChangeTypes == null) {
+            relationChangeTypes = new HashMap<>();
         }
-        relationOptions.put(relationName, options);
+        relationChangeTypes.put(relationName, chgType);
         return this;
     }
 
-    public RelationCopyOptions getRelationOptions(String relationName) {
-        if (relationOptions == null)
+    public String getRelationChangeTypes(String relationName) {
+        if (relationChangeTypes == null)
             return null;
-        return relationOptions.get(relationName);
+        return relationChangeTypes.get(relationName);
     }
 
     public void copyToEntity(Object src, IOrmEntity target, FieldSelectionBean selection, String action) {
@@ -103,6 +104,10 @@ public class OrmEntityCopier {
                 Map<String, Object> map = (Map<String, Object>) src;
                 for (Map.Entry<String, Object> entry : map.entrySet()) {
                     String name = entry.getKey();
+                    // 忽略_chgType属性
+                    if (name.startsWith(DaoConstants.PROP_CHANGE_TYPE))
+                        continue;
+
                     IObjPropMeta propMeta = getProp(objMeta, name);
                     if (propMeta != null) {
                         // 如果明确从前台提交参数，那么以提交的值为准。如果禁止前台提交，应该设置字段的insertable=false,updatable=false
@@ -167,6 +172,11 @@ public class OrmEntityCopier {
                 setter.invoke(scope);
                 return;
             }
+
+            // 虚拟字段不会设置到实体上
+            if (propMeta.isVirtual())
+                return;
+
             if (propMeta.getMapToProp() != null) {
                 BeanTool.setComplexProperty(target, propMeta.getMapToProp(), fromValue);
                 return;
@@ -201,7 +211,7 @@ public class OrmEntityCopier {
                 Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(fromValue);
                 target.orm_propValueByName(propName, refEntity);
             } else {
-                RelationCopyOptions options = getRelationOptions(OrmModelHelper.buildRelationName(propModel));
+                String options = getRelationChangeTypes(OrmModelHelper.buildRelationName(propModel));
 
                 // 更新关联实体
                 Object id = BeanTool.instance().getProperty(fromValue, OrmConstants.PROP_ID);
@@ -210,7 +220,7 @@ public class OrmEntityCopier {
                     if (field != null && !field.hasField()) {
                         target.orm_propValueByName(propName, null);
                     } else {
-                        if (options == null || options.isAllowAdd()) {
+                        if (options == null || options.contains(DaoConstants.CHANGE_TYPE_ADD)) {
                             Object refEntity = daoProvider.dao(propModel.getRefEntityName()).newEntity();
                             copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName,
                                     BizConstants.METHOD_SAVE, scope);
@@ -218,7 +228,7 @@ public class OrmEntityCopier {
                         }
                     }
                 } else {
-                    if (options == null || options.isAllowUpdate()) {
+                    if (options == null || options.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         Object refEntity = daoProvider.dao(propModel.getRefEntityName()).loadEntityById(id);
                         copyToEntity(fromValue, (IOrmEntity) refEntity, field, objMeta, baseBizObjName,
                                 BizConstants.METHOD_UPDATE, scope);
@@ -234,15 +244,15 @@ public class OrmEntityCopier {
                                   IEvalScope scope) {
         String propName = propModel.getName();
         IOrmEntitySet<IOrmEntity> refSet = target.orm_refEntitySet(propName);
-        RelationCopyOptions options = getRelationOptions(refSet.orm_collectionName());
+        String chgType = getRelationChangeTypes(refSet.orm_collectionName());
 
         if (StringHelper.isEmptyObject(fromValue)) {
-            if (options == null || options.isAllowDelete())
+            if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_DELETE))
                 refSet.clear();
         } else if (fromValue instanceof Collection) {
             Collection<?> c = (Collection<?>) fromValue;
             if (c.isEmpty()) {
-                if (options == null || options.isAllowDelete())
+                if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_DELETE))
                     refSet.clear();
             } else {
                 syncEntitySet(c, refSet, propModel.getKeyProp(), field, propModel.getRefEntityName(), objMeta,
@@ -259,7 +269,7 @@ public class OrmEntityCopier {
         Set<IOrmEntity> ret = new LinkedHashSet<>();
         IEntityDao<IOrmEntity> dao = daoProvider.dao(refEntityName);
 
-        RelationCopyOptions options = getRelationOptions(refSet.orm_collectionName());
+        String chgType = getRelationChangeTypes(refSet.orm_collectionName());
 
         for (Object item : c) {
             if (StringHelper.isEmptyObject(item))
@@ -289,13 +299,13 @@ public class OrmEntityCopier {
                         String action = null;
                         if (refEntity == null) {
                             // 如果明确配置了不允许向集合中添加元素
-                            if (options != null && !options.isAllowAdd())
+                            if (chgType != null && !chgType.contains(DaoConstants.CHANGE_TYPE_ADD))
                                 continue;
                             refEntity = dao.newEntity();
                             action = BizConstants.METHOD_SAVE;
                         } else {
                             // 如果明确配置了不允许更新集合中的元素
-                            if (options != null && !options.isAllowUpdate())
+                            if (chgType != null && !chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE))
                                 continue;
                             action = BizConstants.METHOD_UPDATE;
                         }
@@ -303,7 +313,7 @@ public class OrmEntityCopier {
                         ret.add(refEntity);
                     }
                 } else {
-                    if (options == null || options.isAllowUpdate()) {
+                    if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         IOrmEntity refEntity = dao.loadEntityById(id);
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, BizConstants.METHOD_UPDATE, scope);
                         ret.add(refEntity);
@@ -313,7 +323,7 @@ public class OrmEntityCopier {
         }
 
         // 删除没有在src集合中出现的条目
-        if (options == null || options.isAllowDelete())
+        if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_DELETE))
             refSet.clear();
 
         refSet.addAll(ret);

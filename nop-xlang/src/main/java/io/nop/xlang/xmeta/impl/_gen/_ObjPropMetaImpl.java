@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [37:10:0:0]/nop/schema/schema/obj-schema.xdef <p>
+ * generate from [38:10:0:0]/nop/schema/schema/obj-schema.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -246,6 +246,13 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * 
      */
     private boolean _updatable  = true;
+    
+    /**
+     *  
+     * xml name: virtual
+     * 是否虚拟字段。虚拟字段不会更新到实体上
+     */
+    private boolean _virtual  = false;
     
     /**
      *  
@@ -944,6 +951,25 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: virtual
+     *  是否虚拟字段。虚拟字段不会更新到实体上
+     */
+    
+    public boolean isVirtual(){
+      return _virtual;
+    }
+
+    
+    public void setVirtual(boolean value){
+        checkAllowChange();
+        
+        this._virtual = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xmlName
      *  转换为xml属性或者节点时对应的标签名，一般情况下与属性名一致
      */
@@ -1034,6 +1060,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         out.put("transformOut",this.getTransformOut());
         out.put("type",this.getType());
         out.put("updatable",this.isUpdatable());
+        out.put("virtual",this.isVirtual());
         out.put("xmlName",this.getXmlName());
         out.put("xmlPos",this.getXmlPos());
     }

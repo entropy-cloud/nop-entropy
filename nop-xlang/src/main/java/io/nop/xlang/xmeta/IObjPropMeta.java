@@ -71,6 +71,8 @@ public interface IObjPropMeta
 
     ActionAuthMeta getWriteAuth();
 
+    ActionAuthMeta getDeleteAuth();
+
     List<ObjPropArgModel> getArgs();
 
     default String getStdDomain() {
@@ -81,6 +83,8 @@ public interface IObjPropMeta
     boolean isPublished();
 
     boolean isMandatory();
+
+    boolean isVirtual();
 
     /**
      * 是否内部属性。内部属性不出现在IDE的提示列表中，一般情况下在界面上也不可见。

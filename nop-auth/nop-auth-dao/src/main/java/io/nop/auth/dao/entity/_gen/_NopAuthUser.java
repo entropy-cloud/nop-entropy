@@ -40,7 +40,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final String PROP_NAME_nickName = "nickName";
     public static final int PROP_ID_nickName = 5;
     
-    /* 部门: DEPT_ID VARCHAR */
+    /* 所属部门: DEPT_ID VARCHAR */
     public static final String PROP_NAME_deptId = "deptId";
     public static final int PROP_ID_deptId = 6;
     
@@ -48,125 +48,142 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final String PROP_NAME_openId = "openId";
     public static final int PROP_ID_openId = 7;
     
+    /* 相关部门: REL_DEPT_ID VARCHAR */
+    public static final String PROP_NAME_relDeptId = "relDeptId";
+    public static final int PROP_ID_relDeptId = 8;
+    
     /* 性别: GENDER INTEGER */
     public static final String PROP_NAME_gender = "gender";
-    public static final int PROP_ID_gender = 8;
+    public static final int PROP_ID_gender = 9;
     
     /* 头像: AVATAR VARCHAR */
     public static final String PROP_NAME_avatar = "avatar";
-    public static final int PROP_ID_avatar = 9;
+    public static final int PROP_ID_avatar = 10;
     
     /* 邮件: EMAIL VARCHAR */
     public static final String PROP_NAME_email = "email";
-    public static final int PROP_ID_email = 10;
+    public static final int PROP_ID_email = 11;
     
     /* 电话已验证: EMAIL_VERIFIED TINYINT */
     public static final String PROP_NAME_emailVerified = "emailVerified";
-    public static final int PROP_ID_emailVerified = 11;
+    public static final int PROP_ID_emailVerified = 12;
     
     /* 电话: PHONE VARCHAR */
     public static final String PROP_NAME_phone = "phone";
-    public static final int PROP_ID_phone = 12;
+    public static final int PROP_ID_phone = 13;
     
     /* 电话已验证: PHONE_VERIFIED TINYINT */
     public static final String PROP_NAME_phoneVerified = "phoneVerified";
-    public static final int PROP_ID_phoneVerified = 13;
+    public static final int PROP_ID_phoneVerified = 14;
     
     /* 生日: BIRTHDAY DATE */
     public static final String PROP_NAME_birthday = "birthday";
-    public static final int PROP_ID_birthday = 14;
+    public static final int PROP_ID_birthday = 15;
     
     /* 用户类型: USER_TYPE INTEGER */
     public static final String PROP_NAME_userType = "userType";
-    public static final int PROP_ID_userType = 15;
+    public static final int PROP_ID_userType = 16;
     
     /* 用户状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 16;
+    public static final int PROP_ID_status = 17;
     
     /* 证件类型: ID_TYPE VARCHAR */
     public static final String PROP_NAME_idType = "idType";
-    public static final int PROP_ID_idType = 17;
+    public static final int PROP_ID_idType = 18;
     
     /* 证件号: ID_NBR VARCHAR */
     public static final String PROP_NAME_idNbr = "idNbr";
-    public static final int PROP_ID_idNbr = 18;
+    public static final int PROP_ID_idNbr = 19;
     
     /* 用户过期时间: EXPIRE_AT DATETIME */
     public static final String PROP_NAME_expireAt = "expireAt";
-    public static final int PROP_ID_expireAt = 19;
+    public static final int PROP_ID_expireAt = 20;
     
     /* 上次密码更新时间: PWD_UPDATE_TIME DATETIME */
     public static final String PROP_NAME_pwdUpdateTime = "pwdUpdateTime";
-    public static final int PROP_ID_pwdUpdateTime = 20;
+    public static final int PROP_ID_pwdUpdateTime = 21;
     
     /* 登陆后立刻修改密码: CHANGE_PWD_AT_LOGIN TINYINT */
     public static final String PROP_NAME_changePwdAtLogin = "changePwdAtLogin";
-    public static final int PROP_ID_changePwdAtLogin = 21;
+    public static final int PROP_ID_changePwdAtLogin = 22;
     
     /* 真实姓名: REAL_NAME VARCHAR */
     public static final String PROP_NAME_realName = "realName";
-    public static final int PROP_ID_realName = 22;
+    public static final int PROP_ID_realName = 23;
+    
+    /* 上级: MANAGER_ID VARCHAR */
+    public static final String PROP_NAME_managerId = "managerId";
+    public static final int PROP_ID_managerId = 24;
     
     /* 工号: WORK_NO VARCHAR */
     public static final String PROP_NAME_workNo = "workNo";
-    public static final int PROP_ID_workNo = 23;
+    public static final int PROP_ID_workNo = 25;
     
     /* 职务: POSITION_ID VARCHAR */
     public static final String PROP_NAME_positionId = "positionId";
-    public static final int PROP_ID_positionId = 24;
+    public static final int PROP_ID_positionId = 26;
     
     /* 座机: TELEPHONE VARCHAR */
     public static final String PROP_NAME_telephone = "telephone";
-    public static final int PROP_ID_telephone = 25;
+    public static final int PROP_ID_telephone = 27;
     
     /* 设备ID: CLIENT_ID VARCHAR */
     public static final String PROP_NAME_clientId = "clientId";
-    public static final int PROP_ID_clientId = 26;
+    public static final int PROP_ID_clientId = 28;
     
     /* 删除标识: DEL_FLAG TINYINT */
     public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 27;
+    public static final int PROP_ID_delFlag = 29;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 28;
+    public static final int PROP_ID_version = 30;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 29;
+    public static final int PROP_ID_createdBy = 31;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 30;
+    public static final int PROP_ID_createTime = 32;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 31;
+    public static final int PROP_ID_updatedBy = 33;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 32;
+    public static final int PROP_ID_updateTime = 34;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 33;
+    public static final int PROP_ID_remark = 35;
     
 
-    private static int _PROP_ID_BOUND = 34;
+    private static int _PROP_ID_BOUND = 36;
 
     
     /* relation: 部门 */
     public static final String PROP_NAME_dept = "dept";
     
+    /* relation: 部门 */
+    public static final String PROP_NAME_relatedDept = "relatedDept";
+    
     /* relation: 岗位 */
     public static final String PROP_NAME_position = "position";
+    
+    /* relation: 上级 */
+    public static final String PROP_NAME_manager = "manager";
     
     /* relation: 角色映射 */
     public static final String PROP_NAME_roleMappings = "roleMappings";
     
     /* relation: 代理人映射 */
     public static final String PROP_NAME_substitutionMappings = "substitutionMappings";
+    
+    /* relation: 分组映射 */
+    public static final String PROP_NAME_groupMappings = "groupMappings";
     
     /* component:  */
     public static final String PROP_NAME_avatarComponent = "avatarComponent";
@@ -175,7 +192,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[34];
+    private static final String[] PROP_ID_TO_NAME = new String[36];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -199,6 +216,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_openId] = PROP_NAME_openId;
           PROP_NAME_TO_ID.put(PROP_NAME_openId, PROP_ID_openId);
+      
+          PROP_ID_TO_NAME[PROP_ID_relDeptId] = PROP_NAME_relDeptId;
+          PROP_NAME_TO_ID.put(PROP_NAME_relDeptId, PROP_ID_relDeptId);
       
           PROP_ID_TO_NAME[PROP_ID_gender] = PROP_NAME_gender;
           PROP_NAME_TO_ID.put(PROP_NAME_gender, PROP_ID_gender);
@@ -244,6 +264,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_realName] = PROP_NAME_realName;
           PROP_NAME_TO_ID.put(PROP_NAME_realName, PROP_ID_realName);
+      
+          PROP_ID_TO_NAME[PROP_ID_managerId] = PROP_NAME_managerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_managerId, PROP_ID_managerId);
       
           PROP_ID_TO_NAME[PROP_ID_workNo] = PROP_NAME_workNo;
           PROP_NAME_TO_ID.put(PROP_NAME_workNo, PROP_ID_workNo);
@@ -296,11 +319,14 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /* 昵称: NICK_NAME */
     private java.lang.String _nickName;
     
-    /* 部门: DEPT_ID */
+    /* 所属部门: DEPT_ID */
     private java.lang.String _deptId;
     
     /* 用户外部标识: OPEN_ID */
     private java.lang.String _openId;
+    
+    /* 相关部门: REL_DEPT_ID */
+    private java.lang.String _relDeptId;
     
     /* 性别: GENDER */
     private java.lang.Integer _gender;
@@ -346,6 +372,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
     
     /* 真实姓名: REAL_NAME */
     private java.lang.String _realName;
+    
+    /* 上级: MANAGER_ID */
+    private java.lang.String _managerId;
     
     /* 工号: WORK_NO */
     private java.lang.String _workNo;
@@ -471,6 +500,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
             case PROP_ID_openId:
                return getOpenId();
         
+            case PROP_ID_relDeptId:
+               return getRelDeptId();
+        
             case PROP_ID_gender:
                return getGender();
         
@@ -515,6 +547,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
         
             case PROP_ID_realName:
                return getRealName();
+        
+            case PROP_ID_managerId:
+               return getManagerId();
         
             case PROP_ID_workNo:
                return getWorkNo();
@@ -627,6 +662,16 @@ public class _NopAuthUser extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_openId));
                }
                setOpenId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_relDeptId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_relDeptId));
+               }
+               setRelDeptId(typedValue);
                break;
             }
         
@@ -777,6 +822,16 @@ public class _NopAuthUser extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_realName));
                }
                setRealName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_managerId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_managerId));
+               }
+               setManagerId(typedValue);
                break;
             }
         
@@ -948,6 +1003,13 @@ public class _NopAuthUser extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_relDeptId:{
+               onInitProp(propId);
+               this._relDeptId = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_gender:{
                onInitProp(propId);
                this._gender = (java.lang.Integer)value;
@@ -1049,6 +1111,13 @@ public class _NopAuthUser extends DynamicOrmEntity{
             case PROP_ID_realName:{
                onInitProp(propId);
                this._realName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_managerId:{
+               onInitProp(propId);
+               this._managerId = (java.lang.String)value;
                
                break;
             }
@@ -1232,7 +1301,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     }
     
     /**
-     * 部门: DEPT_ID
+     * 所属部门: DEPT_ID
      */
     public java.lang.String getDeptId(){
          onPropGet(PROP_ID_deptId);
@@ -1240,7 +1309,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     }
 
     /**
-     * 部门: DEPT_ID
+     * 所属部门: DEPT_ID
      */
     public void setDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_deptId,value)){
@@ -1265,6 +1334,25 @@ public class _NopAuthUser extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_openId,value)){
             this._openId = value;
             internalClearRefs(PROP_ID_openId);
+            
+        }
+    }
+    
+    /**
+     * 相关部门: REL_DEPT_ID
+     */
+    public java.lang.String getRelDeptId(){
+         onPropGet(PROP_ID_relDeptId);
+         return _relDeptId;
+    }
+
+    /**
+     * 相关部门: REL_DEPT_ID
+     */
+    public void setRelDeptId(java.lang.String value){
+        if(onPropSet(PROP_ID_relDeptId,value)){
+            this._relDeptId = value;
+            internalClearRefs(PROP_ID_relDeptId);
             
         }
     }
@@ -1555,6 +1643,25 @@ public class _NopAuthUser extends DynamicOrmEntity{
     }
     
     /**
+     * 上级: MANAGER_ID
+     */
+    public java.lang.String getManagerId(){
+         onPropGet(PROP_ID_managerId);
+         return _managerId;
+    }
+
+    /**
+     * 上级: MANAGER_ID
+     */
+    public void setManagerId(java.lang.String value){
+        if(onPropSet(PROP_ID_managerId,value)){
+            this._managerId = value;
+            internalClearRefs(PROP_ID_managerId);
+            
+        }
+    }
+    
+    /**
      * 工号: WORK_NO
      */
     public java.lang.String getWorkNo(){
@@ -1785,6 +1892,27 @@ public class _NopAuthUser extends DynamicOrmEntity{
     }
        
     /**
+     * 部门
+     */
+    public io.nop.auth.dao.entity.NopAuthDept getRelatedDept(){
+       return (io.nop.auth.dao.entity.NopAuthDept)internalGetRefEntity(PROP_NAME_relatedDept);
+    }
+
+    public void setRelatedDept(io.nop.auth.dao.entity.NopAuthDept refEntity){
+       if(refEntity == null){
+         
+         this.setRelDeptId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_relatedDept, refEntity,()->{
+             
+                    this.setRelDeptId(refEntity.getDeptId());
+                 
+          });
+       }
+    }
+       
+    /**
      * 岗位
      */
     public io.nop.auth.dao.entity.NopAuthPosition getPosition(){
@@ -1800,6 +1928,27 @@ public class _NopAuthUser extends DynamicOrmEntity{
           internalSetRefEntity(PROP_NAME_position, refEntity,()->{
              
                     this.setPositionId(refEntity.getPositionId());
+                 
+          });
+       }
+    }
+       
+    /**
+     * 上级
+     */
+    public io.nop.auth.dao.entity.NopAuthUser getManager(){
+       return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_manager);
+    }
+
+    public void setManager(io.nop.auth.dao.entity.NopAuthUser refEntity){
+       if(refEntity == null){
+         
+         this.setManagerId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_manager, refEntity,()->{
+             
+                    this.setManagerId(refEntity.getUserId());
                  
           });
        }
@@ -1823,6 +1972,16 @@ public class _NopAuthUser extends DynamicOrmEntity{
      */
     public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthUserSubstitution> getSubstitutionMappings(){
        return _substitutionMappings;
+    }
+       
+    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> _groupMappings = new OrmEntitySet<>(this, PROP_NAME_groupMappings,
+        io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_user, null,io.nop.auth.dao.entity.NopAuthGroupDept.class);
+
+    /**
+     * 分组映射。 refPropName: user, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupDept> getGroupMappings(){
+       return _groupMappings;
     }
        
    private io.nop.orm.component.OrmFileComponent _avatarComponent;
@@ -1856,6 +2015,22 @@ public class _NopAuthUser extends DynamicOrmEntity{
 
         public void setRelatedRoleIdList(List<java.lang.String> value){
         io.nop.orm.support.OrmEntityHelper.setRefProps(getRoleMappings(),io.nop.auth.dao.entity.NopAuthUserRole.PROP_NAME_roleId,value);
+        }
+    
+        public List<io.nop.auth.dao.entity.NopAuthGroup> getRelatedGroupList(){
+            return (List<io.nop.auth.dao.entity.NopAuthGroup>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_group);
+        }
+    
+        public String getRelatedGroupList_label(){
+        return io.nop.core.lang.utils.Underscore.pluckThenJoin(getRelatedGroupList(),io.nop.auth.dao.entity.NopAuthGroup.PROP_NAME_name);
+        }
+    
+        public List<java.lang.String> getRelatedGroupIdList(){
+        return (List<java.lang.String>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_groupId);
+        }
+
+        public void setRelatedGroupIdList(List<java.lang.String> value){
+        io.nop.orm.support.OrmEntityHelper.setRefProps(getGroupMappings(),io.nop.auth.dao.entity.NopAuthGroupDept.PROP_NAME_groupId,value);
         }
     
 }

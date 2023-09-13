@@ -88,8 +88,8 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
     @BizMutation
     @BizAudit
     public void changeSelfPassword(@Name("oldPassword") String oldPassword,
-                                   @Name("newPassword") String newPassword) {
-        IUserContext userContext = IUserContext.get();
+                                   @Name("newPassword") String newPassword, IServiceContext context) {
+        IUserContext userContext = context.getUserContext();
         if (userContext == null)
             throw new NopException(ERR_AUTH_USER_NOT_LOGIN);
 
