@@ -23,5 +23,4 @@ public class BizImportConfig {
 
     private FieldSelectionBean selection;
 
-    private Map<String, RelationCopyOptions> relationOptions;
 }
