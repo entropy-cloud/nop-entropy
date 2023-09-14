@@ -549,12 +549,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     }
 
     @BizAction
-    protected T requireEntity(String id, String action, IServiceContext context) {
+    protected T requireEntity(@Name("id") String id, @Name("action") String action, IServiceContext context) {
         return getEntity(id, action, false, context);
     }
 
     @BizAction
-    protected T getEntity(String id, String action, boolean ignoreUnknown,
+    protected T getEntity(@Name("id") String id, @Name("action")String action,
+                          @Name("ignoreUnknown") boolean ignoreUnknown,
                           IServiceContext context) {
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
