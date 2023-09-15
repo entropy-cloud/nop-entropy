@@ -13901,6 +13901,14 @@
         ]
       },
       {
+        "name": "checkMetaFilter",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.xlang.xmeta.IObjMeta",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "checkUniqueForSave",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData"
@@ -14100,6 +14108,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "getEntityName",
         "parameterTypes": []
       },
@@ -14168,6 +14185,14 @@
           "java.lang.String",
           "java.lang.Object",
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "requireEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {

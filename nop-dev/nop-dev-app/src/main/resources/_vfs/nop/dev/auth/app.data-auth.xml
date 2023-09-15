@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:auth-gen="auth-gen"
+           xmlns:xpl="xpl">
+
+    <x:gen-extends>
+        <auth-gen:GenFromModules/>
+    </x:gen-extends>
+</data-auth>
