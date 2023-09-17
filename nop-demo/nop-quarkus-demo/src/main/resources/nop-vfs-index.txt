@@ -688,6 +688,8 @@
 /nop/web/xlib/control.xlib
 /nop/web/xlib/std.xlib
 /nop/web/xlib/std/impl_GenValidator.xpl
+/nop/web/xlib/view-gen.xlib
+/nop/web/xlib/view-gen/impl_GenFromMeta.xpl
 /nop/web/xlib/web.xlib
 /nop/web/xlib/web/grid_crud.xpl
 /nop/web/xlib/web/impl_GenForm.xpl
