@@ -13,7 +13,7 @@
 @initFetch 设置了 initApi 或者 initAsyncApi 后，默认会开始就发请求，设置为 false 后就不会起始就请求接口
 @silentPolling 配置刷新时是否显示加载动画
 -->
-<form id="!xml-name" title="string" label="string" editMode="xml-name" layoutMode="var-name" layoutControl="xml-name"
+<form id="string" title="string" label="string" editMode="xml-name" layoutMode="var-name" layoutControl="xml-name"
       size="string"
       submitOnChange="boolean" submitOnInit="boolean"
       resetAfterSubmit="boolean" reload="string" target="string" redirect="string"

@@ -30,6 +30,7 @@ public class TestCustomNs extends BaseTestCase {
             DslNodeLoader.INSTANCE.loadFromResource(resource);
             assertTrue(false);
         } catch (NopException e) {
+            e.printStackTrace();
             assertEquals(XLangErrors.ERR_XDSL_ATTR_NOT_ALLOWED.getErrorCode(), e.getErrorCode());
         }
     }

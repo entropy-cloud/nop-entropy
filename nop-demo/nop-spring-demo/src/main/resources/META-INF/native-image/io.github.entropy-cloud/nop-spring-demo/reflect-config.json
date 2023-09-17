@@ -568,6 +568,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "AUTH_FOR_DELETE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "AUTH_FOR_READ"
       },
       {
@@ -6665,6 +6670,31 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.dao.entity.NopAuthGroup",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newPk",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.auth.dao.entity.NopAuthGroupDept",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.dao.entity.NopAuthOpLog",
     "unsafeAllocated": false
   },
@@ -7474,6 +7504,607 @@
       }
     ],
     "name": "io.nop.auth.dao.entity._gen._NopAuthExtLogin",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_IDS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_NAMES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_delFlag"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_groupId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_name"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_parentId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_children"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_delFlag"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_groupId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_name"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_parent"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_parentId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_userMappings"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_version"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDelFlag",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGroupId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getParentId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedUserList_label",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserMappings",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_entityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalSet",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_isPrimary",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propIdBound",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCreateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDelFlag",
+        "parameterTypes": [
+          "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setGroupId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setParent",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthGroup"
+        ]
+      },
+      {
+        "name": "setParentId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelatedUserIdList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUpdateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUpdatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthGroup",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_IDS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PK_PROP_NAMES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_groupId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_userId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_createdBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_group"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_groupId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updateTime"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_updatedBy"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_user"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_userId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_version"
+      }
+    ],
+    "methods": [
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCreatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGroup",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGroupId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdateTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUpdatedBy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUser",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_entityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_id",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_internalSet",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "orm_isPrimary",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "orm_propIdBound",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propName",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "orm_propValue",
+        "parameterTypes": [
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCreateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setCreatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setGroup",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthGroup"
+        ]
+      },
+      {
+        "name": "setGroupId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUpdateTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
+        ]
+      },
+      {
+        "name": "setUpdatedBy",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUser",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.dao.entity._gen._NopAuthGroupDept",
     "unsafeAllocated": false
   },
   {
@@ -11001,6 +11632,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_managerId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_nickName"
       },
       {
@@ -11037,6 +11673,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_realName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_relDeptId"
       },
       {
         "allowUnsafeAccess": false,
@@ -11166,12 +11807,27 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_groupMappings"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_idNbr"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_idType"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_manager"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_managerId"
       },
       {
         "allowUnsafeAccess": false,
@@ -11217,6 +11873,16 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_realName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_relDeptId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_relatedDept"
       },
       {
         "allowUnsafeAccess": false,
@@ -11346,11 +12012,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getGroupMappings",
+        "parameterTypes": []
+      },
+      {
         "name": "getIdNbr",
         "parameterTypes": []
       },
       {
         "name": "getIdType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getManager",
+        "parameterTypes": []
+      },
+      {
+        "name": "getManagerId",
         "parameterTypes": []
       },
       {
@@ -11387,6 +12065,26 @@
       },
       {
         "name": "getRealName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelDeptId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedDept",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedGroupIdList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedGroupList",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRelatedGroupList_label",
         "parameterTypes": []
       },
       {
@@ -11598,6 +12296,18 @@
         ]
       },
       {
+        "name": "setManager",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser"
+        ]
+      },
+      {
+        "name": "setManagerId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setNickName",
         "parameterTypes": [
           "java.lang.String"
@@ -11649,6 +12359,24 @@
         "name": "setRealName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelDeptId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRelatedDept",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthDept"
+        ]
+      },
+      {
+        "name": "setRelatedGroupIdList",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {
@@ -12583,6 +13311,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthGroupBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.service.entity.NopAuthGroupDeptBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.auth.service.entity.NopAuthOpLogBizModel",
     "unsafeAllocated": false
   },
@@ -12755,6 +13503,14 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "changeSelfPassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -13386,6 +14142,14 @@
         ]
       },
       {
+        "name": "checkMetaFilter",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.xlang.xmeta.IObjMeta",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "checkUniqueForSave",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData"
@@ -13610,6 +14374,15 @@
         "parameterTypes": []
       },
       {
+        "name": "getEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "getEntityName",
         "parameterTypes": []
       },
@@ -13678,6 +14451,14 @@
           "java.lang.String",
           "java.lang.Object",
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "requireEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -44435,6 +45216,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeleteAuth",
+        "parameterTypes": []
+      },
+      {
         "name": "getReadAuth",
         "parameterTypes": []
       },
@@ -45532,6 +46317,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isVirtual",
+        "parameterTypes": []
+      },
+      {
         "name": "keySet_args",
         "parameterTypes": []
       },
@@ -45757,6 +46546,12 @@
       },
       {
         "name": "setUpdatable",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setVirtual",
         "parameterTypes": [
           "boolean"
         ]

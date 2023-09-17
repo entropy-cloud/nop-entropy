@@ -3,5 +3,5 @@
 <forms x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
        xdef:body-type="list" xdef:key-attr="id">
-    <form id="!xml-name" xdef:ref="form.xdef"/>
+    <form id="!string" xdef:ref="form.xdef"/>
 </forms>

@@ -4123,7 +4123,11 @@ public class StringHelper extends ApiStringHelper {
             return typeName.substring("java.util.".length());
 
         if (typeName.startsWith("java.util.List<"))
-            return typeName.substring("java.util.List<".length());
+            return typeName.substring("java.util.".length());
+
+        if (typeName.startsWith("java.util.Set<"))
+            return typeName.substring("java.util.".length());
+
         return typeName;
     }
 

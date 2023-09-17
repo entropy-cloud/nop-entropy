@@ -581,12 +581,12 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
         Object id = data.get(OrmConstants.PROP_ID);
 
-        T entity = requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
-
         ObjMetaBasedValidator validator = new ObjMetaBasedValidator(bizObjectManager, bizObj.getBizObjName(), objMeta,
                 context, true);
 
         Map<String, Object> validated = validator.validateForUpdate(data, inputSelection);
+
+        T entity = requireEntity(ConvertHelper.toString(id), BizConstants.METHOD_UPDATE, context);
 
         return new EntityData<>(data, validated, entity, objMeta);
     }

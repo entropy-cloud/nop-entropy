@@ -3,6 +3,6 @@
       xdef:check-ns="ui"
 >
     <forms xdef:body-type="list" xdef:key-attr="id">
-        <form id="!xml-name" xdef:ref="/nop/schema/xui/form.xdef"/>
+        <form id="!string" xdef:ref="/nop/schema/xui/form.xdef"/>
     </forms>
 </meta>

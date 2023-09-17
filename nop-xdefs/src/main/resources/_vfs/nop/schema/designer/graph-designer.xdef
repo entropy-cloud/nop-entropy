@@ -45,7 +45,7 @@
     </edges>
 
     <forms xdef:body-type="list" xdef:key-attr="id">
-        <form id="!xml-name" xdef:ref="../xui/form.xdef"/>
+        <form id="!string" xdef:ref="../xui/form.xdef"/>
     </forms>
 
     <script xdef:value="string"/>

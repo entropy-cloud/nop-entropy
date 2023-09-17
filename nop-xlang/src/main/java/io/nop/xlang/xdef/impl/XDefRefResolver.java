@@ -234,7 +234,7 @@ public class XDefRefResolver {
                 String attrName = entry.getKey();
                 IXDefAttribute attr = entry.getValue();
                 IXDefAttribute old = attrs.get(attrName);
-                if (old != null && !old.getType().getStdDomain().equals(attr.getType().getStdDomain())) {
+                if (!allowOverride(old,attr)) {
                     throw new NopException(ERR_XDEF_ATTR_NOT_ALLOW_OVERRIDE_REF).param(ARG_ATTR_NAME, attr.getName())
                             .param(ARG_LOC_B, attr.getLocation()).param(ARG_LOC_A, attrs.get(attrName).getLocation())
                             .param(ARG_TYPE_B, attr.getType()).param(ARG_TYPE_A, attrs.get(attrName).getType());
@@ -244,6 +244,14 @@ public class XDefRefResolver {
             }
             defNode.setAttributes((Map) attrs);
         }
+    }
+
+    private boolean allowOverride(IXDefAttribute old, IXDefAttribute attr){
+        if(old == null)
+            return true;
+        if(old.getType().getStdDomain().equals("string"))
+            return true;
+        return old.getType().getStdDomain().equals(attr.getType().getStdDomain());
     }
 
     private void resolveChildren(XDefNode defNode) {

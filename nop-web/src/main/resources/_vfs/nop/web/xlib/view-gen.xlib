@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+
+        <GenFromMeta outputMode="node">
+            <attr name="path" stdDomain="v-path"/>
+
+            <description>
+                根据XDef元模型定义自动生成编辑所用的XView模型
+            </description>
+
+            <source>
+                <c:include src="view-gen/impl_GenFromMeta.xpl"/>
+            </source>
+        </GenFromMeta>
+    </tags>
+</lib>

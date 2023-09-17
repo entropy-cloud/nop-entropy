@@ -8,9 +8,13 @@
 package io.nop.xlang.xdef;
 
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdef.parse.XDefinitionParser;
+import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xmeta.IObjMeta;
+import io.nop.xlang.xmeta.SchemaLoader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -41,5 +45,12 @@ public class TestXDefParse {
         for (IResource file : files) {
             new XDefinitionParser().parseFromResource(file);
         }
+    }
+
+    @Test
+    public void testXDefToXMeta() {
+        IObjMeta objMeta = SchemaLoader.loadXMeta("/nop/schema/orm/orm.xdef");
+        XNode node = DslModelHelper.dslModelToXNode("/nop/schema/xmeta.xdef",objMeta);
+        node.dump();
     }
 }

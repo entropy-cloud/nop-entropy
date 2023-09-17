@@ -16,11 +16,11 @@
     <controlLib xdef:value="v-path"/>
 
     <grids xdef:key-attr="id" xdef:body-type="list">
-        <grid id="!xml-name" xdef:ref="grid.xdef"/>
+        <grid id="!string" xdef:ref="grid.xdef"/>
     </grids>
 
     <forms xdef:key-attr="id" xdef:body-type="list">
-        <form id="!xml-name" xdef:ref="form.xdef"/>
+        <form id="!string" xdef:ref="form.xdef"/>
     </forms>
 
     <!--
