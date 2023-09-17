@@ -151,7 +151,7 @@ public class MyObjectBizModel{
 
 ## GraphQL作为通用分解组合方案
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/BizModel.svg)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/compare/graphql-engine.png)
 
 NopGraphQL引擎不仅仅可以同时提供GraphQL和REST两种服务模式，它在Nop平台中的作用是作为一个通用的分解组合方案。在Nop平台中，所有的消息服务、批处理服务、RPC服务等，**在接收到请求消息之后，都是把它们投递到GraphQLEngine中去处理**。
 
@@ -279,7 +279,7 @@ Nop平台提供了专为DSL开发而设计的XLang语言，它包含了XScript�
 
 4. XTransform是类似于XSLT的通用Tree结构转换语言。
 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/arch/XLang.svg)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/compare/XLang.png)
 
 Nop平台底层对于XML语言进行了很多改造，它只是使用基本的XML语法形式，并没有使用JAXB标准，也没有使用Java中常用的XML解析器，而是完全从零编写了XML解析器和JSON解析器。相比于常用的XML解析器和DOM模型，Nop平台的XNode结构要更加简单、直观，并且它内置SourceLocation跟踪机制，可以直接作为通用的AST语法树节点来使用。
 
@@ -375,8 +375,6 @@ NopReport在[Nop平台](https://link.zhihu.com/?target=https%3A//gitee.com/canon
 
 NopReport除了用于导出数据之外，它还支持自定义数据结构的导入。无需编程，只需要少量配置即可实现Excel数据模型的导入。Nop平台中所有使用的Excel模型文件，例如ORM实体模型，API接口模型等都是使用这里的报表导入机制实现导入。
 
-
-
 详细介绍可以参见：
 
 1. [采用Excel作为设计器的开源中国式报表引擎：NopReport](https://zhuanlan.zhihu.com/p/620250740)
@@ -398,7 +396,6 @@ Nop平台提供了业务规则、工作流引擎、批处理引擎、任务调�
 SprintBootTest提供了Spring框架与JUnit等测试框架的集成。在Nop平台中，从JunitAutoTest基类继承即可使用依赖注入来得到需要测试的Bean。
 
 ```java
-
 @NopTestConfig(localDb = true,initDatabaseSchema = true)
 public class TestGraphQLTransaction extends JunitAutoTestCase {
     @Inject
@@ -426,8 +423,6 @@ public class TestGraphQLTransaction extends JunitAutoTestCase {
 NopAutoTest自动化测试框架的独特之处是它**提供了模型驱动的自动化测试能力，可以通过录制、回放机制实现复杂业务功能的自动化测试**，无需手工编写测试代码。
 
 具体设计参见 [低代码平台中的自动化测试](https://zhuanlan.zhihu.com/p/569315603)
-
-
 
 # 七. 外围工具
 
