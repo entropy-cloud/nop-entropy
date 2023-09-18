@@ -170,7 +170,11 @@ public class ReflectionGraphQLTypeFactory {
         }
 
         if (clazz.isEnum()) {
-            return GraphQLTypeHelper.namedType(clazz.getSimpleName());
+            String name = GraphQLNameHelper.getGraphQLTypeName(clazz, input);
+            GraphQLDefinition typeDef = buildDef(name, clazz, registry, creatingTypes, input);
+            GraphQLNamedType namedType = GraphQLTypeHelper.namedType(name);
+            namedType.setResolvedType(typeDef);
+            return namedType;
         }
 
         if (bizObjName != null) {
@@ -270,7 +274,7 @@ public class ReflectionGraphQLTypeFactory {
             return objDef;
 
         if (clazz.isEnum())
-            return buildEnumDef(name, clazz, creatingTypes);
+            return buildEnumDef(name, clazz, registry, creatingTypes);
 
         if (input) {
             return newInputDefinition(name, clazz, registry, creatingTypes);
@@ -330,7 +334,7 @@ public class ReflectionGraphQLTypeFactory {
         return def;
     }
 
-    GraphQLEnumDefinition buildEnumDef(String name, Class<?> clazz, Map<String, GraphQLTypeDefinition> creatingTypes) {
+    GraphQLEnumDefinition buildEnumDef(String name, Class<?> clazz, TypeRegistry registry, Map<String, GraphQLTypeDefinition> creatingTypes) {
         GraphQLEnumDefinition def = new GraphQLEnumDefinition();
         def.setName(name);
         creatingTypes.put(name, def);
@@ -345,6 +349,8 @@ public class ReflectionGraphQLTypeFactory {
             list.add(valueDef);
         }
         def.setEnumValues(list);
+
+        registry.registerType(def);
         return def;
     }
 }

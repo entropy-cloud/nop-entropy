@@ -99,9 +99,9 @@ quarkus:
     console:
       json: true
 
-    category:
-      "io.nop":
-        level: DEBUG
+#    category:
+#      "io.nop":
+#        level: DEBUG
 
     file:
       enable: true

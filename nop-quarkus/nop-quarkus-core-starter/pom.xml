@@ -20,6 +20,10 @@
             <artifactId>quarkus-caffeine</artifactId>
         </dependency>
 
+
+        <!--
+        quarkus不使用logback
+        -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-commons</artifactId>
@@ -35,9 +39,12 @@
             </exclusions>
         </dependency>
 
-        <!--
-        quarkus不使用logback
-        -->
+        <!-- quarkus使用jboss logging，它符合java.util.logging接口 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-log-java</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-core</artifactId>

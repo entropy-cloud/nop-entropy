@@ -13,6 +13,8 @@ import io.nop.log.core.LoggerConfigurator;
 import static io.nop.core.CoreConstants.INITIALIZER_PRIORITY_INTERNAL;
 
 public class LogbackConfiguratorInitializer implements ICoreInitializer {
+    static LogbackConfigurator INSTANCE = new LogbackConfigurator();
+
     @Override
     public int order() {
         return INITIALIZER_PRIORITY_INTERNAL;
@@ -20,6 +22,6 @@ public class LogbackConfiguratorInitializer implements ICoreInitializer {
 
     @Override
     public void initialize() {
-        LoggerConfigurator.registerInstance(new LogbackConfigurator());
+        LoggerConfigurator.registerInstance(INSTANCE);
     }
 }

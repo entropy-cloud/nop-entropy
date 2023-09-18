@@ -155,6 +155,20 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-log-log4j2</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-log-java</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-rpc-api</artifactId>

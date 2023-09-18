@@ -57,8 +57,10 @@ import static io.nop.graphql.core.GraphQLConstants.OBJ_ACTION_SEPARATOR;
 import static io.nop.graphql.core.GraphQLConstants.PAGE_BEAN_PREFIX;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_OBJECT;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
 
 public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader {
     private List<Object> bizModelBeans;
@@ -147,8 +149,8 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         try {
             return new BizObjectBuilder(bizModels, typeRegistry, actionDecoratorCollectors, bizInitializers,
                     makerCheckerProvider).buildBizObject(bizObjName);
-        }catch (NopException e){
-            e.addXplStack("buildBizObject:"+bizObjName);
+        } catch (NopException e) {
+            e.addXplStack("buildBizObject:" + bizObjName);
             throw e;
         }
     }
@@ -211,6 +213,9 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         GraphQLTypeDefinition def = typeRegistry.getType(objName);
         if (def != null)
             return def;
+
+        if (objName.startsWith("i_") || objName.startsWith("g_") || objName.startsWith("e_"))
+            throw new NopException(ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE).param(ARG_TYPE_NAME, objName);
 
         IBizObject bizObj = getBizObject(objName);
         if (bizObj == null)

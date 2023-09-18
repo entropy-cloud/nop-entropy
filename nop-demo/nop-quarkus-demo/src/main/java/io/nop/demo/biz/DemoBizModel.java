@@ -3,17 +3,24 @@ package io.nop.demo.biz;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
-import io.nop.xlang.filter.BizValidatorHelper;
+import io.nop.api.core.util.LogLevel;
 import io.nop.core.context.IServiceContext;
 import io.nop.demo.domain.Material;
 import io.nop.demo.domain.ProcessCard;
 import io.nop.demo.domain.ProductionOrder;
+import io.nop.log.core.LoggerConfigurator;
+import io.nop.xlang.filter.BizValidatorHelper;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @BizModel("Demo")
 public class DemoBizModel {
+
+    @BizQuery
+    public void changeLogLevel(@Name("logLevel") LogLevel logLevel, @Name("loggerName") String loggerName) {
+        LoggerConfigurator.instance().changeLogLevel(loggerName, logLevel);
+    }
 
 
     @BizQuery

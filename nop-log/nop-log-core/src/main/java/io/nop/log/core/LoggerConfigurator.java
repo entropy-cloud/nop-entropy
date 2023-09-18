@@ -27,6 +27,8 @@ public class LoggerConfigurator {
     }
 
     public static void registerInstance(ILoggerConfigurator configurator) {
+        if(configurator != null && s_instance != null && configurator != s_instance)
+            throw new IllegalStateException("");
         s_instance = configurator;
     }
 }

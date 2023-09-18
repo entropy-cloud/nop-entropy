@@ -26845,6 +26845,19 @@
     "fields": [],
     "methods": [
       {
+        "name": "changeLogLevel",
+        "parameterTypes": [
+          "io.nop.api.core.util.LogLevel"
+        ]
+      },
+      {
+        "name": "changeLogLevel",
+        "parameterTypes": [
+          "io.nop.api.core.util.LogLevel",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "loadProcessCard",
         "parameterTypes": [
           "java.lang.String",
@@ -30960,6 +30973,57 @@
     "fields": [],
     "methods": [
       {
+        "name": "getDeprecationReason",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIsDeprecated",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDeprecationReason",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIsDeprecated",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.graphql.core.schema.introspection.__EnumValue",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getArgs",
         "parameterTypes": []
       },
@@ -34241,6 +34305,16 @@
       }
     ],
     "name": "io.nop.js.engine.JavaScriptService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.log.java.JavaLoggerConfiguratorInitializer",
     "unsafeAllocated": false
   },
   {

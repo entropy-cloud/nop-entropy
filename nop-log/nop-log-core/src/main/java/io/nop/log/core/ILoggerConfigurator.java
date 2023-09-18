@@ -15,10 +15,10 @@ public interface ILoggerConfigurator {
     void changeLogLevel(String loggerName, LogLevel logLevel);
 
     default LogLevel getRootLogLevel() {
-        return getLogLevel("root");
+        return getLogLevel(LogConstants.ROOT_LOGGER_NAME);
     }
 
     default void changeRootLogLevel(LogLevel logLevel) {
-        changeLogLevel("root", logLevel);
+        changeLogLevel(LogConstants.ROOT_LOGGER_NAME, logLevel);
     }
 }

@@ -41,11 +41,18 @@ public class GraphQLNameHelper {
             if (clazz.isAnnotationPresent(GraphQLObject.class))
                 return clazz.getSimpleName() + "Input";
 
+            if(clazz.isEnum())
+                return "e_" + clazz.getName().replace('.','_');
+
             return "i_" + clazz.getName().replace('.', '_');
         }
 
         if (clazz.isAnnotationPresent(GraphQLObject.class))
             return clazz.getSimpleName();
+
+        if(clazz.isEnum())
+            return "e_" + clazz.getName().replace('.','_');
+
         return "g_" + clazz.getName().replace('.', '_');
     }
 

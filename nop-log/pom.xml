@@ -14,6 +14,8 @@
     <modules>
         <module>nop-log-core</module>
         <module>nop-log-logback</module>
+        <module>nop-log-log4j2</module>
+        <module>nop-log-java</module>
     </modules>
 
 
