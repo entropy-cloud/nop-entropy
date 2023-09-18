@@ -17,4 +17,9 @@ public class Log4j2ConfiguratorInitializer implements ICoreInitializer {
     public void initialize() {
         LoggerConfigurator.registerInstance(INSTANCE);
     }
+    @Override
+    public void destroy() {
+        if (LoggerConfigurator.tryGetInstance() == INSTANCE)
+            LoggerConfigurator.registerInstance(null);
+    }
 }

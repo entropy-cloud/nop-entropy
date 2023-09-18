@@ -9,6 +9,8 @@ package io.nop.log.core;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.exceptions.NopException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.nop.log.core.LogErrors.ERR_LOG_CONFIGURATOR_NOT_INITIALIZED;
 
@@ -16,8 +18,14 @@ import static io.nop.log.core.LogErrors.ERR_LOG_CONFIGURATOR_NOT_INITIALIZED;
 public class LoggerConfigurator {
     static ILoggerConfigurator s_instance;
 
+    static final Logger LOG = LoggerFactory.getLogger(LoggerConfigurator.class);
+
     public static boolean isInitialized() {
         return s_instance != null;
+    }
+
+    public static ILoggerConfigurator tryGetInstance(){
+        return s_instance;
     }
 
     public static ILoggerConfigurator instance() {
@@ -27,8 +35,8 @@ public class LoggerConfigurator {
     }
 
     public static void registerInstance(ILoggerConfigurator configurator) {
-        if(configurator != null && s_instance != null && configurator != s_instance)
-            throw new IllegalStateException("");
+        if (configurator != null && s_instance != null && configurator != s_instance)
+            LOG.info("nop.err.log.configurator-already-registered:old={},new={}", s_instance, configurator);
         s_instance = configurator;
     }
 }
