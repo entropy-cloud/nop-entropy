@@ -7,7 +7,7 @@ options:]]>
 <c:for var="option" items="${dict.options}">
   - label: ${option.label.$escapeYaml()}
     value: ${dict.valueType == 'int' ? option.value : option.value.toString().$escapeYaml()}
-    description: ${option.description?.$escapeYml()}
+    description: ${option.description?.$escapeYaml()}
   <c:if test="${option.internal}">
     internal: true
   </c:if>
