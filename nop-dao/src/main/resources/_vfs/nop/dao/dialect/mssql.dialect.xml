@@ -197,6 +197,7 @@
         <sqlDataType name="FLOAT" stdSqlType="FLOAT"/>
         <sqlDataType name="DOUBLE PRECISION" stdSqlType="DOUBLE"/>
         <sqlDataType name="DECIMAL" stdSqlType="DECIMAL"/>
+        <sqlDataType name="NUMERIC" stdSqlType="DECIMAL" deprecated="true"/>
         <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="IMAGE" stdSqlType="VARBINARY" allowPrecision="false"/>
     </sqlDataTypes>
