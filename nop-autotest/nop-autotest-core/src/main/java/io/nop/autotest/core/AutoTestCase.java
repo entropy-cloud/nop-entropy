@@ -220,6 +220,7 @@ public class AutoTestCase extends BaseTestCase {
         } finally {
             AutoTestVars.clear();
         }
+        LOG.info("nop.autotest.completed:case={},success={}",this.getClass().getName(),success);
     }
 
     public boolean isCheckOutput() {
