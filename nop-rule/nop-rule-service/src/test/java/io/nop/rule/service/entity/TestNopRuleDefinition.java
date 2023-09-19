@@ -1,5 +1,9 @@
 package io.nop.rule.service.entity;
 
+import io.nop.api.core.ApiConfigs;
+import io.nop.api.core.config.AppConfig;
+import io.nop.core.CoreConfigs;
+import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.rule.dao.entity.NopRuleDefinition;
@@ -15,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestNopRuleDefinition extends BaseTestCase {
     @BeforeAll
     public static void init() {
+        AppConfig.getConfigProvider().updateConfigValue(CoreConfigs.CFG_CORE_MAX_INITIALIZE_LEVEL,
+                CoreConstants.INITIALIZER_PRIORITY_ANALYZE);
         CoreInitialization.initialize();
     }
 
