@@ -76,7 +76,7 @@ quarkus:
     cors: true
 
   log:
-    level: DEBUG
+    level: INFO
 #
 #    category:
 #      "io.nop":
