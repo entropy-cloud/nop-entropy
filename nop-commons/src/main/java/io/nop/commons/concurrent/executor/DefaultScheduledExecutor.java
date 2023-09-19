@@ -8,8 +8,8 @@
 package io.nop.commons.concurrent.executor;
 
 import io.nop.api.core.util.Guard;
+import jakarta.annotation.PostConstruct;
 
-import javax.annotation.PostConstruct;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -51,11 +51,7 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
             config.setCorePoolSize(config.getMaxPoolSize());
         }
 
-        if (this.config == null || this.executor == null) {
-            this.config = config;
-        } else {
-            this.config = config;
-
+        if (this.config != null || this.executor != null) {
             ExecutorHelper.updateThreadPool(executor, config);
         }
     }
@@ -74,7 +70,10 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
     }
 
     public void destroy() {
-        executor.shutdown();
+        if(executor != null) {
+            executor.shutdown();
+            executor = null;
+        }
     }
 
     @Override

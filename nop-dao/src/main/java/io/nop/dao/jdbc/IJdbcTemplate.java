@@ -15,7 +15,7 @@ import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.ITransactionTemplate;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.function.Function;

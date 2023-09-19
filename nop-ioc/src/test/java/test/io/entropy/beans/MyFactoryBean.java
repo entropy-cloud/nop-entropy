@@ -7,8 +7,8 @@
  */
 package test.io.entropy.beans;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 public class MyFactoryBean {
     boolean inited;

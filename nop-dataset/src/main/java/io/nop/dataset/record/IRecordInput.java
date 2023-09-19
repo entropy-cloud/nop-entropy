@@ -10,7 +10,7 @@ package io.nop.dataset.record;
 import io.nop.dataset.record.impl.LimitRecordInput;
 import io.nop.dataset.record.impl.RecordInputImpls;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;

@@ -19,7 +19,7 @@ import io.nop.dataset.impl.DefaultFieldMapper;
 import io.nop.dataset.record.impl.RecordInputImpls;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

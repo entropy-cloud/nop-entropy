@@ -14,7 +14,7 @@ import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
 import io.nop.orm.session.IOrmSessionImplementor;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.function.Function;
 
 public interface IQueryExecutor {

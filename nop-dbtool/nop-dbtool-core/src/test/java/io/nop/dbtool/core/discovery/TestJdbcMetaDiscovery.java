@@ -16,7 +16,7 @@ import io.nop.xlang.xdsl.DslModelHelper;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import javax.sql.DataSource;
 import java.util.List;
 

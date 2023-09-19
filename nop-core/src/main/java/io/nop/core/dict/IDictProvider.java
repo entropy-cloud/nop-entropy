@@ -12,8 +12,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.cache.ICache;
 import io.nop.core.context.IEvalContext;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 import static io.nop.core.CoreErrors.ARG_DICT_NAME;
 import static io.nop.core.CoreErrors.ERR_DICT_UNKNOWN_DICT;

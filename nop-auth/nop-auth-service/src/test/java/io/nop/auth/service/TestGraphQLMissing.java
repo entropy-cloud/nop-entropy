@@ -15,7 +15,7 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class TestGraphQLMissing extends JunitAutoTestCase {
     @Inject

@@ -22,7 +22,7 @@ import io.nop.core.resource.cache.ResourceCacheEntry;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.xlang.xdsl.DslModelParser;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_DATA_AUTH_CACHE_CHECK_CHANGED;

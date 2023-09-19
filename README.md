@@ -100,7 +100,7 @@ Nop平台的前端代码在[nop-chaos项目](https://gitee.com/canonical-entropy
 
 #### 安装教程
 
-环境准备： JDK 11+、Maven 3.6+、Git
+环境准备： JDK 11+、Maven 3.8.2+、Git
 
 ```shell
 git clone https://gitee.com/canonical-entropy/nop-entropy.git

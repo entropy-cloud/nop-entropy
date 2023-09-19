@@ -14,7 +14,7 @@ import io.nop.core.type.IRawTypeResolver;
 import io.nop.core.type.IWildcardType;
 import io.nop.core.type.PredefinedGenericTypes;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public class GenericWildcardTypeImpl extends AbstractGenericType implements IWildcardType {
     private final IGenericType upperBound;

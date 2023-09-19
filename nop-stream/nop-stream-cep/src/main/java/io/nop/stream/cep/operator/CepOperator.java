@@ -44,7 +44,7 @@ import io.nop.stream.core.operators.TimestampedCollector;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.util.OutputTag;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;

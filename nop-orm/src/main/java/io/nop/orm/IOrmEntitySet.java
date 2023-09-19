@@ -12,16 +12,14 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.reflect.hook.IPropMakeMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
-import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Comparator;
 import java.util.Set;
 
 /**
  * 对于主外键关联，在主表一侧可以通过集合对象来访问从表。在从表一侧可以通过ownerProp对应的属性来访问主表
  */
-@NotThreadSafe
 public interface IOrmEntitySet<T extends IOrmEntity>
         extends Set<T>, IOrmObject, IPropGetMissingHook, IPropSetMissingHook, IPropMakeMissingHook {
     /**

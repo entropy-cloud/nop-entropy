@@ -21,7 +21,7 @@ package io.nop.stream.cep.nfa;
 import io.nop.stream.cep.nfa.sharedbuffer.EventId;
 import io.nop.stream.cep.nfa.sharedbuffer.NodeId;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 
 import java.util.Objects;
 

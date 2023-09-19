@@ -14,7 +14,7 @@ import io.nop.core.resource.IFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

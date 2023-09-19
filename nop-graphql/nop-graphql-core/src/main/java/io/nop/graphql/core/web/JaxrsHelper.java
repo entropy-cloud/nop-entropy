@@ -3,7 +3,7 @@ package io.nop.graphql.core.web;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.json.JSON;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public class JaxrsHelper {
     public static Response buildJaxrsResponse(ApiResponse<?> res) {

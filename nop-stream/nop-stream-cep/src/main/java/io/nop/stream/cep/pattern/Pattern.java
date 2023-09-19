@@ -28,7 +28,7 @@ import io.nop.stream.cep.pattern.conditions.RichAndCondition;
 import io.nop.stream.cep.pattern.conditions.RichOrCondition;
 import io.nop.stream.cep.pattern.conditions.SubtypeCondition;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;

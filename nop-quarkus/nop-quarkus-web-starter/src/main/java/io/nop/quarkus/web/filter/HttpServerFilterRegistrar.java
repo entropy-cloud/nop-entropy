@@ -13,9 +13,9 @@ import io.nop.http.api.server.HttpServerHelper;
 import io.nop.http.api.server.IHttpServerFilter;
 import io.nop.quarkus.web.QuarkusWebConstants;
 import io.quarkus.vertx.http.runtime.filters.Filters;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

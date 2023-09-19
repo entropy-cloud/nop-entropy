@@ -20,7 +20,7 @@ import io.nop.orm.model.interceptor.OrmInterceptorEntityModel;
 import io.nop.orm.model.interceptor.OrmInterceptorModel;
 import io.nop.xlang.xdsl.DslModelParser;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

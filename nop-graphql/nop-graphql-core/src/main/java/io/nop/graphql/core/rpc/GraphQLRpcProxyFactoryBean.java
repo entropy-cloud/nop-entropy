@@ -12,7 +12,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rpc.api.IRpcServiceInterceptor;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 

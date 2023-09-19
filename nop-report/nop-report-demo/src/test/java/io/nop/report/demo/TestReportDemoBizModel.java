@@ -12,7 +12,7 @@ import io.nop.report.core.XptConstants;
 import io.nop.report.demo.biz.ReportDemoBizModel;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.io.File;
 import java.util.List;
 

@@ -7,7 +7,7 @@ import io.nop.rpc.http.HttpRpcService;
 import io.nop.rpc.api.IRpcService;
 import io.nop.rpc.cluster.IRpcClientInstanceProvider;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class HttpRpcClientInstanceProvider implements IRpcClientInstanceProvider {
     private IHttpClient httpClient;

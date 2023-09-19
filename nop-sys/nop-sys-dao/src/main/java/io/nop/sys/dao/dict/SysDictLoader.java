@@ -23,9 +23,9 @@ import io.nop.sys.dao.NopSysDaoConstants;
 import io.nop.sys.dao.entity.NopSysDict;
 import io.nop.sys.dao.entity.NopSysDictOption;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.stream.Collectors;
 

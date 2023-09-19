@@ -22,7 +22,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.utils.SqlExecHelper;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;

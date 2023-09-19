@@ -11,7 +11,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.Map;
 
 /**

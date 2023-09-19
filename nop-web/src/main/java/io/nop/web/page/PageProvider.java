@@ -43,10 +43,10 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import io.nop.xui.model.UiFormModel;
 import io.nop.xui.model.UiGridModel;
 
-import javax.annotation.Nullable;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
+import jakarta.annotation.Nullable;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.inject.Inject;
 import java.io.File;
 import java.util.List;
 import java.util.Map;

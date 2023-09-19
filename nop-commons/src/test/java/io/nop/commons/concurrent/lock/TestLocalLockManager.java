@@ -33,7 +33,8 @@ public class TestLocalLockManager {
 
     @AfterEach
     public void tearDown() {
-        lockManager.destroy();
+        if (lockManager != null)
+            lockManager.destroy();
     }
 
     @Test

@@ -9,10 +9,10 @@ package io.nop.quarkus.web.service;
 
 import io.nop.graphql.core.web.GraphQLWebService;
 import io.vertx.core.http.HttpServerRequest;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Context;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Context;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;

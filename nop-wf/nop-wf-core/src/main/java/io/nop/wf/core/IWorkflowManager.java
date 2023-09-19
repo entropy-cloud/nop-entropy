@@ -14,7 +14,7 @@ import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
 import io.nop.wf.core.model.IWorkflowModel;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.Map;
 
 public interface IWorkflowManager {

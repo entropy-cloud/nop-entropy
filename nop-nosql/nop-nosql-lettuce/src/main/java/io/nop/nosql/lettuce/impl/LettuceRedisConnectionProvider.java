@@ -24,7 +24,7 @@ import io.nop.nosql.core.config.RedisConfig;
 import io.nop.nosql.lettuce.IRedisConnectionProvider;
 import io.nop.nosql.lettuce.codec.PrefixTextCodec;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.Duration;
 
 public class LettuceRedisConnectionProvider extends LifeCycleSupport

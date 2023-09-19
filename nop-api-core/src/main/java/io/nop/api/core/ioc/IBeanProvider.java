@@ -7,7 +7,7 @@
  */
 package io.nop.api.core.ioc;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 import static io.nop.api.core.ApiConstants.BEAN_SCOPE_PROTOTYPE;
 import static io.nop.api.core.ApiConstants.BEAN_SCOPE_SINGLETON;

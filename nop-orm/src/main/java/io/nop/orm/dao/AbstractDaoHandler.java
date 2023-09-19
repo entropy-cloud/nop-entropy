@@ -18,7 +18,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.sql_lib.ISqlLibManager;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.function.Supplier;
 
 /**

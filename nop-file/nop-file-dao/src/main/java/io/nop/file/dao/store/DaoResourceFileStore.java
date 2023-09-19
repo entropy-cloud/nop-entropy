@@ -21,9 +21,9 @@ import io.nop.file.dao.entity.NopFileRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.ws.rs.core.MediaType;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.MediaType;
 import java.io.File;
 import java.io.InputStream;
 import java.time.LocalDate;

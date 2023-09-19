@@ -7,7 +7,7 @@
  */
 package io.nop.commons.util;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;

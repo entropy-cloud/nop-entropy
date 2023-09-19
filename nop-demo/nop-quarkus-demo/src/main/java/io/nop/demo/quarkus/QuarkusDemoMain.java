@@ -15,7 +15,7 @@ import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
-import javax.enterprise.event.Observes;
+import jakarta.enterprise.event.Observes;
 
 @QuarkusMain
 public class QuarkusDemoMain {

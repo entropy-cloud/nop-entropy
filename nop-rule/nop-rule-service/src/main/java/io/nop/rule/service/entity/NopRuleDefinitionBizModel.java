@@ -28,7 +28,7 @@ import io.nop.web.page.condition.ConditionSchemaHelper;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.jsonschema.XSchemaToJsonSchema;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
 

@@ -9,7 +9,7 @@ package io.nop.wf.core.model;
 
 import io.nop.api.core.exceptions.NopException;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.List;
 
 import static io.nop.wf.core.WfErrors.ARG_ACTION_NAME;

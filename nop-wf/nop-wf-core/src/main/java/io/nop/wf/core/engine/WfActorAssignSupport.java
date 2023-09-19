@@ -18,7 +18,7 @@ import io.nop.wf.core.model.WfAssignmentActorModel;
 import io.nop.wf.core.model.WfAssignmentModel;
 import io.nop.xlang.api.XLang;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;

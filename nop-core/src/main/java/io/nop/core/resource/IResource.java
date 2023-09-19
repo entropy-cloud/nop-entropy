@@ -13,7 +13,7 @@ import io.nop.api.core.resource.IResourceReference;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.IoHelper;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

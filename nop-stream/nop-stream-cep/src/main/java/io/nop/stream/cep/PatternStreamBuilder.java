@@ -33,7 +33,7 @@ import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
 import io.nop.stream.core.util.OutputTag;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;

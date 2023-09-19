@@ -13,8 +13,8 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.LoginUserInfo;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 
 public abstract class AbstractLoginService implements ILoginService {

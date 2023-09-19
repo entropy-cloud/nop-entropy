@@ -16,7 +16,7 @@ import io.nop.dao.api.ISqlExecutor;
 import io.nop.dataset.IRowMapper;
 import io.nop.orm.model.IOrmModel;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletionStage;

@@ -9,8 +9,8 @@ package io.nop.commons.concurrent.lock.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.lock.IResourceLock;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 

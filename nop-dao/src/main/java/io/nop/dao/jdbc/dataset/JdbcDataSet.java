@@ -20,7 +20,7 @@ import io.nop.dataset.impl.BaseDataRow;
 import io.nop.dataset.impl.BaseDataSet;
 import io.nop.dataset.record.impl.RecordInputImpls;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;

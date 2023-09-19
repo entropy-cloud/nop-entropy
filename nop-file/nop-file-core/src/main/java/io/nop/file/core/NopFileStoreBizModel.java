@@ -12,9 +12,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.ws.rs.core.MediaType;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.MediaType;
 import java.util.Set;
 
 import static io.nop.file.core.FileErrors.ARG_ALLOWED_FILE_EXTS;

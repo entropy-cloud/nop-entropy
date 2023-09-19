@@ -10,7 +10,7 @@ package io.nop.wf.core.model;
 import io.nop.commons.collections.KeyedList;
 import io.nop.wf.core.model._gen._WfStepModel;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.List;
 import java.util.Set;
 

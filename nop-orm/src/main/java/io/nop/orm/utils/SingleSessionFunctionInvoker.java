@@ -11,7 +11,7 @@ import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.functional.IFunctionInvoker;
 import io.nop.orm.IOrmTemplate;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 

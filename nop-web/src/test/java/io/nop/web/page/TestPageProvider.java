@@ -23,7 +23,7 @@ import io.nop.core.resource.deps.ResourceDependencySet;
 import io.nop.xlang.xdsl.json.XJsonLoader;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

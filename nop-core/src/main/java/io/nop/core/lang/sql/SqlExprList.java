@@ -9,7 +9,7 @@ package io.nop.core.lang.sql;
 
 import io.nop.commons.type.StdSqlType;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

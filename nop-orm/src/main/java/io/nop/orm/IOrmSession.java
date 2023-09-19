@@ -16,7 +16,7 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;

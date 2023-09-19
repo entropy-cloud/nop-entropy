@@ -12,7 +12,7 @@ import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceRegion;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;

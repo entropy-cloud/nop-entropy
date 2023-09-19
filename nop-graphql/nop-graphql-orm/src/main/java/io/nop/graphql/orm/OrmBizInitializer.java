@@ -7,7 +7,7 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.orm.IOrmTemplate;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.function.BiConsumer;
 
 public class OrmBizInitializer implements IGraphQLBizInitializer {

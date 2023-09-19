@@ -10,7 +10,6 @@ package io.nop.task;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.context.IServiceContext;
 
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.Map;
 
 /**
@@ -22,7 +21,6 @@ import java.util.Map;
  * <p>
  * 5. attributes保存不需要持久化的临时变量，taskVars保存需要持久化的Task级别的状态变量。
  */
-@ThreadSafe
 public interface ITaskContext extends IServiceContext {
 
     ITaskState getTaskState();

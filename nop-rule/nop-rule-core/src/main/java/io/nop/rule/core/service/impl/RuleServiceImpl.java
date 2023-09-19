@@ -22,7 +22,7 @@ import io.nop.rule.core.service.IRuleLogMessageSaver;
 import io.nop.rule.core.service.RuleServiceSpi;
 import io.nop.xlang.xmeta.ISchema;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

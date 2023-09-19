@@ -18,7 +18,6 @@ import io.nop.integration.api.file.IFileServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import static io.nop.integration.sftp.SftpErrors.ERR_SFTP_DOWNLOAD_FILE_FAIL;
 import static io.nop.integration.sftp.SftpErrors.ERR_SFTP_LIST_FILE_FAIL;
 import static io.nop.integration.sftp.SftpErrors.ERR_SFTP_UPLOAD_FILE_FAIL;
 
-@NotThreadSafe
 public class SftpClient implements IFileServiceClient {
     static final Logger LOG = LoggerFactory.getLogger(SftpClient.class);
 

@@ -9,7 +9,7 @@ package io.nop.auth.core.login;
 
 import io.nop.commons.cache.LocalCache;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 

@@ -15,7 +15,7 @@ import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.model.WfStepType;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
 

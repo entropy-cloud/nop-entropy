@@ -16,7 +16,7 @@ import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ObjMetaHelper;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @BizModel("NopRuleNode")
 public class NopRuleNodeBizModel extends CrudBizModel<NopRuleNode> {

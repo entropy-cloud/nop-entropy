@@ -8,7 +8,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @BizModel("Sys")
 public class SysBizModel {

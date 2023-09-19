@@ -18,8 +18,8 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.TextFile;
 import io.nop.web.WebConstants;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.util.function.Function;
 
 public class ModuleJsLoader implements Function<String, String> {

@@ -16,7 +16,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.messages.SiteMapBean;
 import io.nop.auth.core.sitemap.ISiteMapProvider;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import static io.nop.auth.service.NopAuthConfigs.CFG_AUTH_SITE_MAP_SUPPORT_DEBUG;
 import static io.nop.auth.service.NopAuthErrors.ARG_SITE_ID;

@@ -17,7 +17,7 @@ import io.nop.commons.concurrent.batch.AbstractBatchProcessService;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;

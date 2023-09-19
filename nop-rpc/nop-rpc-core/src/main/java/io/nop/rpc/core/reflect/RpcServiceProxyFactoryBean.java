@@ -5,7 +5,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.rpc.api.IRpcService;
 import io.nop.rpc.api.IRpcServiceInterceptor;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.util.Collections;
 import java.util.List;
 

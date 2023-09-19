@@ -1,8 +1,8 @@
 package io.nop.rpc.client;
 
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.QueryParam;
 
 public interface EchoService {
     @Path("/echo/{id}")

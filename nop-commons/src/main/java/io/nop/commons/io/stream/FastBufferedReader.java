@@ -13,7 +13,7 @@ import io.nop.commons.text.MutableString;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.io.IOException;
 import java.io.Reader;
 

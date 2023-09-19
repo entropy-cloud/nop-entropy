@@ -15,7 +15,7 @@ import org.jsoup.helper.W3CDom;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.awt.*;
 import java.io.File;
 import java.io.FilenameFilter;

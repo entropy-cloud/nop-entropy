@@ -18,7 +18,7 @@ import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.report.core.engine.IReportEngine;
 import io.nop.xlang.api.XLang;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

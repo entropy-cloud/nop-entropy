@@ -9,8 +9,8 @@ package io.nop.commons.concurrent.lock;
 
 import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.concurrent.lock.impl.ResourceMultiLock;
+import jakarta.annotation.Nonnull;
 
-import javax.annotation.Nonnull;
 import java.util.Set;
 import java.util.function.Supplier;
 

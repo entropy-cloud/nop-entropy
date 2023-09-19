@@ -22,9 +22,9 @@ import io.nop.core.dict.IDictLoader;
 import io.nop.core.dict.IDictProvider;
 import io.nop.graphql.core.GraphQLConstants;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.inject.Inject;
 
 import static io.nop.biz.BizErrors.ARG_DICT_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_INVALID_OBJ_DICT_NAME;

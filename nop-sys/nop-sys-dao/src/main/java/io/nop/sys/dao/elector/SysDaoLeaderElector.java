@@ -8,7 +8,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.sys.dao.entity.NopSysClusterLeader;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.TimeUnit;
 
 public class SysDaoLeaderElector extends AbstractLeaderElector {

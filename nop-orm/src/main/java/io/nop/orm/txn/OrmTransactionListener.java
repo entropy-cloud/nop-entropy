@@ -12,7 +12,7 @@ import io.nop.dao.txn.ITransactionListener;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 /**
  * 与Transaction集成

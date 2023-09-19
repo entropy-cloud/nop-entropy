@@ -28,8 +28,8 @@ import io.nop.http.api.contenttype.ContentType;
 import io.nop.http.api.support.CompositeX509TrustManager;
 import io.nop.http.api.support.DefaultHttpResponse;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;

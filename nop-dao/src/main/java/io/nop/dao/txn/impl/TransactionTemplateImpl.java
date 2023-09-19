@@ -14,7 +14,7 @@ import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionManager;
 import io.nop.dao.txn.ITransactionTemplate;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 

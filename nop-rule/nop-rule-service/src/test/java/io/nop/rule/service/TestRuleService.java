@@ -4,7 +4,7 @@ import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rule.api.RuleService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class TestRuleService extends JunitAutoTestCase {
     @Inject

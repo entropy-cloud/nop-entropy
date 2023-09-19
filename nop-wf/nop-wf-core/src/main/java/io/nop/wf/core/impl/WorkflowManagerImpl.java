@@ -23,8 +23,8 @@ import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 import io.nop.wf.core.store.WfModelParser;
 
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
+import jakarta.annotation.Nonnull;
+import jakarta.inject.Inject;
 
 import java.util.Map;
 

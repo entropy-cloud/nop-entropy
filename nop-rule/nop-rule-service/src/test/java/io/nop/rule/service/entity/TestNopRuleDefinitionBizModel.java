@@ -2,6 +2,7 @@ package io.nop.rule.service.entity;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -15,11 +16,12 @@ import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rule.dao.entity.NopRuleDefinition;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.io.InputStream;
 import java.util.Map;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestProperty(name="nop.file.store-dir",value = "./target")
 public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
 
     @Inject

@@ -14,7 +14,7 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.engine.GraphQLActionAuthChecker;
 import io.nop.orm.OrmConstants;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -17,7 +17,7 @@ import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
 import io.nop.wf.core.model.IWorkflowActionModel;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

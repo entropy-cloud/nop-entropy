@@ -30,7 +30,7 @@ import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SchemaLoader;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

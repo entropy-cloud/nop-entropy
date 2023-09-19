@@ -11,16 +11,14 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import io.nop.api.core.annotations.core.NoReflection;
 import io.nop.api.core.time.CoreMetrics;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 /**
- * 服务函数执行的上下文，任何时刻只能有一个线程在访问这一对象。
+ * 服务函数执行的上下文
  */
-@NotThreadSafe
 public interface IContext extends Executor, AutoCloseable {
     boolean isClosed();
 

@@ -10,7 +10,7 @@ package io.nop.spring.core.ioc;
 import io.nop.api.core.ioc.IBeanContainer;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.util.Map;
 

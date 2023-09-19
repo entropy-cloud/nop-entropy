@@ -10,7 +10,7 @@ import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.io.File;
 
 import static io.nop.report.spl.execute.SplHelper.spl2CellSet;

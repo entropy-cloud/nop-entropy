@@ -9,7 +9,7 @@ package io.nop.orm;
 
 import io.nop.api.core.beans.FieldSelectionBean;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.Collection;
 
 /**

@@ -28,7 +28,7 @@ import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.util.Objects;
 
 public class XLangDocumentationProvider extends AbstractDocumentationProvider {

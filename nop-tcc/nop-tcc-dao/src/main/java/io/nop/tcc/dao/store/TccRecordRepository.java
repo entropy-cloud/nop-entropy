@@ -19,7 +19,7 @@ import io.nop.tcc.api.TccStatus;
 import io.nop.tcc.dao.entity.NopTccBranchRecord;
 import io.nop.tcc.dao.entity.NopTccRecord;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.concurrent.CompletionStage;

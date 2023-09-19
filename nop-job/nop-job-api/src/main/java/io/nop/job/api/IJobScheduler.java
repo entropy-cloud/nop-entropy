@@ -10,7 +10,7 @@ package io.nop.job.api;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.job.api.spec.JobSpec;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

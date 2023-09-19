@@ -11,7 +11,7 @@ import io.nop.sys.dao.entity.NopSysNoticeTemplate;
 import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

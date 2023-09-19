@@ -9,7 +9,7 @@ package io.nop.orm.sql_lib.proxy;
 
 import io.nop.orm.sql_lib.SqlLibManager;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class SqlLibProxyFactoryBean {
     private Class<?> mapperClass;

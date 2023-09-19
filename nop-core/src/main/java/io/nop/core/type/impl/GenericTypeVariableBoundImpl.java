@@ -17,7 +17,7 @@ import io.nop.core.type.ITypeScope;
 import io.nop.core.type.ITypeVariableBound;
 import io.nop.core.type.PredefinedGenericTypes;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public class GenericTypeVariableBoundImpl extends AbstractGenericType implements ITypeVariableBound {
     private final String name;

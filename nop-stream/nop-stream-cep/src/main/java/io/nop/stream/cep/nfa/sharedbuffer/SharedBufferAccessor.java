@@ -26,7 +26,7 @@ import io.nop.stream.cep.nfa.ComputationState;
 import io.nop.stream.cep.nfa.DeweyNumber;
 import io.nop.stream.cep.nfa.compiler.NFAStateNameHandler;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;

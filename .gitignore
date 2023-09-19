@@ -1,6 +1,47 @@
-/.idea/
-*.iml
+#Maven
 target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+.flattened-pom.xml
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+
+# IntelliJ
+.idea
+*.ipr
+*.iml
+*.iws
+
+# NetBeans
+nb-configuration.xml
+
+# Visual Studio Code
+.vscode
+.factorypath
+
+# OSX
+.DS_Store
+
+# Vim
+*.swp
+*.swo
+
+# patch
+*.orig
+*.rej
+
+# Local environment
+.env
+
+# Plugin directory
+/.quarkus/cli/plugins/
+
 /nop-antlr4/nop-antlr4-playground/gen
 /nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/.antlr
 /nop-antlr4/nop-antlr4-playground/src/main/antlr4/imports/gen

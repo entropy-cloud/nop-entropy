@@ -4,7 +4,7 @@ import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.auth.service.sitemap.SiteMapProviderImpl;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class DefaultActionAuthChecker implements IActionAuthChecker {
     private SiteMapProviderImpl siteMapProvider;

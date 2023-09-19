@@ -10,7 +10,7 @@ package io.nop.report.core.model;
 import io.nop.core.model.table.IRowView;
 import io.nop.excel.model.XptRowModel;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;

@@ -9,7 +9,7 @@ import io.nop.orm.sql_lib.ISqlLibManager;
 import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 

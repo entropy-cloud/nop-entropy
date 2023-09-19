@@ -18,9 +18,9 @@ import io.nop.dao.txn.ITransactionManager;
 import io.nop.dao.txn.ITransactionMetrics;
 import io.nop.dao.utils.DaoHelper;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import javax.sql.DataSource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

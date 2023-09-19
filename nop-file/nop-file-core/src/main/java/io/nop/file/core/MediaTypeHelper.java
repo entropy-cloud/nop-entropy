@@ -5,7 +5,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

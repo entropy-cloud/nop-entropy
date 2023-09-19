@@ -30,7 +30,7 @@ import io.nop.graphql.core.rpc.RpcServiceOnGraphQL;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;

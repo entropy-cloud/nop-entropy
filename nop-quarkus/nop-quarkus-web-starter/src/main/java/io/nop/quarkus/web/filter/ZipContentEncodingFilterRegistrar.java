@@ -15,9 +15,9 @@ import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.vertx.http.runtime.filters.Filters;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.impl.MimeMapping;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 
 /**
  * 对于js请求，识别是否已经存在js.gz文件，如果有则直接返回压缩后版本

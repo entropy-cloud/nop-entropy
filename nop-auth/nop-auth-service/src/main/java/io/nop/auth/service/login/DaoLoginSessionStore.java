@@ -19,7 +19,7 @@ import io.nop.auth.core.login.SessionInfo;
 import io.nop.auth.dao.entity.NopAuthSession;
 import io.nop.dao.api.IDaoProvider;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

@@ -9,7 +9,7 @@ package io.nop.commons.cache;
 
 import io.nop.commons.metrics.IWithStats;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public interface ICacheManagement<K> extends IWithStats<CacheStats> {
     String getName();

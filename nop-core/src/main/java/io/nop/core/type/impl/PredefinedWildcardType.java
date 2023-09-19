@@ -13,7 +13,7 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.IWildcardType;
 import io.nop.core.type.PredefinedGenericTypes;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public class PredefinedWildcardType extends PredefinedGenericType implements IWildcardType {
     public static final PredefinedWildcardType NO_BOUND_WILDCARD_TYPE = new PredefinedWildcardType();

@@ -18,8 +18,8 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.txn.impl.DefaultTransactionManager;
 import io.nop.dao.txn.impl.TransactionTemplateImpl;
 
-import javax.enterprise.context.Dependent;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.inject.Produces;
 import javax.sql.DataSource;
 
 @Dependent

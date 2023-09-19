@@ -12,7 +12,7 @@ import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 @Disabled
 @NopTestConfig(localDb = true)

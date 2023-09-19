@@ -7,7 +7,7 @@
  */
 package io.nop.wf.api.actor;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.List;
 import java.util.Objects;
 

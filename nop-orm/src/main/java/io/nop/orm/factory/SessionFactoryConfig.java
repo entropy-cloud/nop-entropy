@@ -25,8 +25,8 @@ import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.support.DynamicOrmEntity;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

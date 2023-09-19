@@ -16,7 +16,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.util.StringHelper;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_LOGIN_NOT_CURRENT_SESSION;

@@ -7,7 +7,7 @@ import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.store.IWorkflowModelStore;
 import io.nop.wf.dao.entity.NopWfDefinition;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 
 public class DaoWorkflowModelStore implements IWorkflowModelStore {

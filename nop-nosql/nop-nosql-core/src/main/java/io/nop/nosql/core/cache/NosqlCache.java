@@ -12,8 +12,8 @@ import io.nop.commons.cache.CacheStats;
 import io.nop.commons.cache.ICache;
 import io.nop.nosql.core.INosqlKeyValueOperations;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;

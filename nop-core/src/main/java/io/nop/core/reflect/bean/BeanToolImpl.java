@@ -13,7 +13,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.type.IGenericType;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.HashSet;

@@ -13,7 +13,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 
 public class JdbcPageBatchLoader<T> implements IBatchLoader<T, IBatchChunkContext>, IBatchTaskListener {

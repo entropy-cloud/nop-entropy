@@ -19,7 +19,7 @@ package io.nop.job.core.utils;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Calendar;

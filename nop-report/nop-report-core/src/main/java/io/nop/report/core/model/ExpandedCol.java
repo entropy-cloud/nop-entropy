@@ -11,7 +11,7 @@ import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IColumnConfig;
 import io.nop.excel.model.ExcelColumnConfig;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;

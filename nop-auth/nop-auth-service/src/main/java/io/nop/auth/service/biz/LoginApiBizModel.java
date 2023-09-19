@@ -30,7 +30,7 @@ import io.nop.auth.service.NopAuthErrors;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.unittest.VarCollector;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 
 /**

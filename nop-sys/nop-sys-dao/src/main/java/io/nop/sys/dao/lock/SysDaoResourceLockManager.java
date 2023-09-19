@@ -5,7 +5,7 @@ import io.nop.commons.concurrent.lock.IResourceLockManager;
 import io.nop.commons.concurrent.lock.IResourceLockState;
 import io.nop.commons.concurrent.lock.impl.IResourceLockManagerImplementor;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public class SysDaoResourceLockManager implements IResourceLockManager, IResourceLockManagerImplementor {
     private long defaultWaitTime = 1000; // 1s

@@ -15,7 +15,7 @@ import io.nop.commons.service.ILifeCycle;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.impl.IBeanClassIntrospection;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.lang.annotation.Annotation;
 import java.util.Map;
 

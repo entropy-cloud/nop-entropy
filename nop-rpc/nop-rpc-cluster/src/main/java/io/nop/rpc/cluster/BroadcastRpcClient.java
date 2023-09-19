@@ -17,7 +17,7 @@ import io.nop.cluster.discovery.ServiceInstance;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.rpc.api.IRpcService;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;

@@ -6,7 +6,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.web.page.PageProvider;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Map;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true)

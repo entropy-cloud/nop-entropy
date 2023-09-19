@@ -9,7 +9,7 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.orm.IOrmTemplate;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Arrays;
 
 @NopTestConfig()

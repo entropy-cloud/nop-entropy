@@ -9,8 +9,8 @@ package test.io.entropy.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
 
-import javax.annotation.Nullable;
-import javax.annotation.Resource;
+import jakarta.annotation.Nullable;
+import jakarta.annotation.Resource;
 
 @DataBean
 public class MyBeanC {

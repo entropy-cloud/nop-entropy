@@ -21,8 +21,8 @@ import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;

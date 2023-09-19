@@ -7,8 +7,8 @@ import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.wf.dao.NopWfDaoConstants;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 public class WfResourceNamespaceHandler implements IResourceNamespaceHandler {
 

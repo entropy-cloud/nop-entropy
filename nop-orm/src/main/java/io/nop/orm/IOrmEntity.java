@@ -14,14 +14,12 @@ import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.orm.model.IEntityModel;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Map;
 import java.util.function.ObjIntConsumer;
 
 /**
  * 实体是一个有状态对象，它具有唯一id，通过状态变量来跟踪与数据库之间的同步关系。 实体内部记录了哪些属性已经设置了值，那些属性已经被修改，修改前的值和修改后的值分别是什么，因此可以通过orm_reset()在内存中实现回滚。
  */
-@NotThreadSafe
 public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEntityLifecycle {
     String toString();
 

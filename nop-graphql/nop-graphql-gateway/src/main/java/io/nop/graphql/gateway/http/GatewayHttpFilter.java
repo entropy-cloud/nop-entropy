@@ -18,8 +18,8 @@ import io.nop.http.api.server.IHttpServerContext;
 import io.nop.http.api.server.IHttpServerFilter;
 import io.nop.rpc.api.IRpcServiceLocator;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;

@@ -7,8 +7,8 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.rpc.api.IRpcService;
 import io.nop.rpc.core.reflect.RpcServiceProxyFactoryBean;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 
 public class ClusterRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     private IServerChooser<ApiRequest<?>> serverChooser;

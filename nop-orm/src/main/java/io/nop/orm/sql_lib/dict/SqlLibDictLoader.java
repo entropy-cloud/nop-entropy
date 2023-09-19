@@ -25,9 +25,9 @@ import io.nop.orm.sql_lib.ISqlLibManager;
 import io.nop.orm.sql_lib.SqlItemModel;
 import io.nop.xlang.api.XLang;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.stream.Collectors;
 

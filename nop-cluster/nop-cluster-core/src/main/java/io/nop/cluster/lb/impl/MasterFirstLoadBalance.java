@@ -5,7 +5,7 @@ import io.nop.cluster.elector.ILeaderObserver;
 import io.nop.cluster.lb.ILoadBalance;
 import io.nop.commons.util.StringHelper;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.List;
 
 public class MasterFirstLoadBalance<R> implements ILoadBalance<ServiceInstance, R> {

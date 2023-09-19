@@ -39,7 +39,7 @@ import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.ioc.api.IBeanContainerImplementor;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

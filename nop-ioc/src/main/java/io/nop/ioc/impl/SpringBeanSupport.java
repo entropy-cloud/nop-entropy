@@ -48,9 +48,9 @@ class SpringBeanSupport {
         initializingBeanClass = loadClass(classLoader, "org.springframework.beans.factory.InitializingBean");
         disposableBeanClass = loadClass(classLoader, "org.springframework.beans.factory.DisposableBean");
         autowiredClass = loadClass(classLoader, "org.springframework.beans.factory.annotation.Autowired");
-        resourceClass = loadClass(classLoader, "javax.annotation.Resource");
-        injectClass = loadClass(classLoader, "javax.inject.Inject");
-        javaxQualifierClass = loadClass(classLoader, "javax.inject.Named");
+        resourceClass = loadClass(classLoader, "jakarta.annotation.Resource");
+        injectClass = loadClass(classLoader, "jakarta.inject.Inject");
+        javaxQualifierClass = loadClass(classLoader, "jakarta.inject.Named");
         qualifierClass = loadClass(classLoader, "org.springframework.beans.factory.annotation.Qualifier");
         valueClass = loadClass(classLoader, "org.springframework.beans.factory.annotation.Value");
     }

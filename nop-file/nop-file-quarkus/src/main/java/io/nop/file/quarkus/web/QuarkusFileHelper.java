@@ -4,8 +4,8 @@ import io.nop.api.core.ApiConstants;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import java.io.File;
 
 public class QuarkusFileHelper {

@@ -7,7 +7,7 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.vertx.mqtt.server.impl.VertxMqttServer;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 
 public class MqttServerMessageService implements IMessageService {

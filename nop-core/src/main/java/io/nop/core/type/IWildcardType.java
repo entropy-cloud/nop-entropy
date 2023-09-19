@@ -7,7 +7,7 @@
  */
 package io.nop.core.type;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public interface IWildcardType extends ITypeWithBound {
     /**

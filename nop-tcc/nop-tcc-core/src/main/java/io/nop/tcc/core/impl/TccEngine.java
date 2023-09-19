@@ -23,7 +23,7 @@ import io.nop.tcc.api.ITccTransaction;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.api.TccStatus;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;

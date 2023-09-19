@@ -16,7 +16,7 @@
 
 package io.nop.core.reflect.proxy;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;

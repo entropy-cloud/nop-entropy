@@ -4,9 +4,9 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.core.resource.watch.FileWatcher;
 import io.nop.core.resource.watch.NioFileWatchService;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import javax.inject.Singleton;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import jakarta.inject.Singleton;
 
 @Singleton
 public class FileWatcherFactory {

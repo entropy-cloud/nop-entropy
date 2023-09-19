@@ -24,9 +24,9 @@ import io.nop.orm.impl.OrmTemplateImpl;
 import io.nop.orm.sql_lib.ISqlLibManager;
 import io.nop.orm.sql_lib.SqlLibManager;
 
-import javax.enterprise.context.Dependent;
-import javax.enterprise.inject.Produces;
-import javax.inject.Named;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Named;
 
 @Dependent
 public class NopOrmAutoConfiguration {

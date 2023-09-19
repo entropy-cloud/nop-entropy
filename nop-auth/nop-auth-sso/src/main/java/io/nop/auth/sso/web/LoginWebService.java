@@ -10,10 +10,10 @@ package io.nop.auth.sso.web;
 import io.nop.auth.api.messages.LogoutRequest;
 import io.nop.auth.core.login.ILoginService;
 
-import javax.inject.Inject;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.auth.api.AuthApiConstants.LOGOUT_TYPE_SSO_CALLBACK;

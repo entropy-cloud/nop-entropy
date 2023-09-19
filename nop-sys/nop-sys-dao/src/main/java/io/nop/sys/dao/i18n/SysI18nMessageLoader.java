@@ -11,8 +11,8 @@ import io.nop.core.i18n.I18nMessageManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.sys.dao.entity.NopSysI18n;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

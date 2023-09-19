@@ -8,8 +8,8 @@ import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.annotations.QuarkusMain;
+import jakarta.enterprise.event.Observes;
 
-import javax.enterprise.event.Observes;
 
 @QuarkusMain
 public class NopTccApplication {

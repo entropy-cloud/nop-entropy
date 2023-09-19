@@ -5,7 +5,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import org.junit.jupiter.api.Test;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 import static io.nop.http.api.HttpApiErrors.ERR_HTTP_CONNECT_FAIL;
 import static org.junit.jupiter.api.Assertions.assertEquals;

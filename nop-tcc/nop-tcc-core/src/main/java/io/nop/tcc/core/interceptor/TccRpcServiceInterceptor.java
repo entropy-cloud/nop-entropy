@@ -19,7 +19,7 @@ import io.nop.tcc.core.meta.ITccServiceMeta;
 import io.nop.tcc.core.meta.ITccServiceMetaLoader;
 import io.nop.tcc.core.meta.TccMethodMeta;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.api.core.context.ContextProvider.thenOnContext;

@@ -32,7 +32,7 @@ import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.persister.OrmAssembly;
 import io.nop.orm.session.IOrmSessionImplementor;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

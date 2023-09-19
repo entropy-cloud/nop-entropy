@@ -9,7 +9,7 @@ package io.nop.orm.mock;
 
 import io.nop.api.core.ioc.IBeanProvider;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public class MockBeanProvider implements IBeanProvider {
     @Override

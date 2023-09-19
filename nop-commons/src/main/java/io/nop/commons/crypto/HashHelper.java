@@ -13,7 +13,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;

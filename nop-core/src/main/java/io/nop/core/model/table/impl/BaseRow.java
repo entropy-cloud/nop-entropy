@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.IRow;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 

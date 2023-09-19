@@ -8,7 +8,7 @@ import org.h2gis.functions.factory.H2GISFunctions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.sql.SQLException;
 import java.util.Map;
 

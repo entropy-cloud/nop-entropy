@@ -4,8 +4,8 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.cluster.chooser.IServerChooser;
 import io.nop.rpc.core.reflect.RpcServiceProxyFactoryBean;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 
 public class BroadcastRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     private IServerChooser<ApiRequest<?>> serverChooser;

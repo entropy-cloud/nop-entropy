@@ -10,7 +10,7 @@ package io.nop.commons.cache;
 import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.api.core.util.Guard;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.Objects;
 

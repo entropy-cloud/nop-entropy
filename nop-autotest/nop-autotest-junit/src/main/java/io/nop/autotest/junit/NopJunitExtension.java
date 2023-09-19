@@ -44,6 +44,11 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
             for (NopTestProperty prop : props.value()) {
                 setTestConfig(prop.name(), prop.value());
             }
+        }else{
+            NopTestProperty prop = context.getRequiredTestClass().getAnnotation(NopTestProperty.class);
+            if(prop != null){
+                setTestConfig(prop.name(),prop.value());
+            }
         }
     }
 

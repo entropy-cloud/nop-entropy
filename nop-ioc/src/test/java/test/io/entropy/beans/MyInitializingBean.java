@@ -7,7 +7,7 @@
  */
 package test.io.entropy.beans;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 public class MyInitializingBean extends MyBeanA {
 

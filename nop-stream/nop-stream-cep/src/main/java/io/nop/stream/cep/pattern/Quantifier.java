@@ -20,7 +20,7 @@ package io.nop.stream.cep.pattern;
 
 import com.google.common.base.Preconditions;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Objects;

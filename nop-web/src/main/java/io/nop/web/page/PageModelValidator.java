@@ -7,8 +7,8 @@
  */
 package io.nop.web.page;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 
 public class PageModelValidator {
     @Inject

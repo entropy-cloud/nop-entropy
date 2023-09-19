@@ -6,7 +6,7 @@ import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Arrays;
 
 @BizModel("DemoAuth")

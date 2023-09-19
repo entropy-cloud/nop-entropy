@@ -26,7 +26,7 @@ import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.service.WorkflowServiceSpi;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.concurrent.CompletionStage;
 
 

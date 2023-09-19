@@ -5,8 +5,8 @@ import io.nop.rpc.core.reflect.RpcServiceProxyFactoryBean;
 import io.nop.rpc.http.DefaultRpcUrlBuilder;
 import io.nop.rpc.http.HttpRpcService;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 
 public class HttpRpcProxyFactoryBean extends RpcServiceProxyFactoryBean {
     private IHttpClient httpClient;

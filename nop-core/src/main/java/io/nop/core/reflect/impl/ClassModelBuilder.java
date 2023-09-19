@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.NoReflection;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
+import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -25,7 +26,6 @@ import io.nop.core.type.IGenericType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.concurrent.Immutable;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Inherited;
 import java.lang.reflect.Constructor;
@@ -189,7 +189,7 @@ public class ClassModelBuilder extends MethodModelBuilder {
         classModel.setStaticMethods(immutableList(collectMethods(staticMethods)));
         classModel.setStaticMethodCollections(immutableMap(staticMethods));
 
-        classModel.setImmutable(realClass.isAnnotationPresent(Immutable.class));
+        classModel.setImmutable(realClass.isAnnotationPresent(ImmutableBean.class));
         classModel.setFactoryMethod(factoryMethod);
         classModel.freeze(true);
 

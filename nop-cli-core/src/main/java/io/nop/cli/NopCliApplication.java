@@ -18,8 +18,8 @@ import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import picocli.CommandLine;
 
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 
 @QuarkusMain
 public class NopCliApplication implements QuarkusApplication {

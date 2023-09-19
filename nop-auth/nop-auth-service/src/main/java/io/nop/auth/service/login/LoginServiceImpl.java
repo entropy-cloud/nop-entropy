@@ -40,7 +40,7 @@ import io.nop.dao.api.IEntityDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.LinkedHashMap;

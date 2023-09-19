@@ -16,7 +16,7 @@ import io.nop.dao.coderule.ICodeRuleGenerator;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.sys.dao.entity.NopSysCodeRule;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.function.LongSupplier;
 

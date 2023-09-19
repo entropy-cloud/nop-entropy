@@ -18,7 +18,7 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.report.spl.SplConstants;
 import io.nop.report.spl.model.SplModel;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.util.Iterator;
 import java.util.Map;
 

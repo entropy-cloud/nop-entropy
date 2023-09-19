@@ -9,7 +9,7 @@ package io.nop.core.reflect.bean;
 
 import io.nop.core.type.IGenericType;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 /**
  * 提供对象复制、对象拷贝、对象类型转换功能。 通过options.selection指定字段选择，则可以只处理部分字段。

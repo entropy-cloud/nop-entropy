@@ -14,7 +14,6 @@ import io.nop.rule.core.model.RuleModel;
 import io.nop.xlang.xdsl.DslModelHelper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;

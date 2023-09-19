@@ -16,8 +16,8 @@ import io.nop.core.resource.cache.ResourceLoadingCache;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.WfModel;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;

@@ -17,7 +17,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.web.page.PageProvider;
 
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.Map;
 
 import static io.nop.web.WebErrors.ERR_WEB_PAGE_NOT_ALLOW_EDIT;

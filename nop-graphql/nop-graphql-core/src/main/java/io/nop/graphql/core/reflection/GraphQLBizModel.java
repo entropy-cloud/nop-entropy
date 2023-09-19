@@ -17,7 +17,7 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.fetcher.BeanMethodAction;
 
-import javax.annotation.Priority;
+import jakarta.annotation.Priority;
 import java.util.HashMap;
 import java.util.Map;
 
