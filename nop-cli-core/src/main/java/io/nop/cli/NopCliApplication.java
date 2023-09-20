@@ -16,18 +16,26 @@ import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.annotations.QuarkusMain;
-import picocli.CommandLine;
-
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import picocli.CommandLine;
 
 @QuarkusMain
 public class NopCliApplication implements QuarkusApplication {
+
+    private CommandLine.IFactory factory;
+
     @Inject
-    CommandLine.IFactory factory;
+    public void setFactory(CommandLine.IFactory factory){
+        this.factory = factory;
+    }
 
     @Override
     public int run(String... args) {
+        if (args.length == 0) {
+            new CommandLine(new MainCommand(), factory).usage(System.out);
+            return 0;
+        }
         QuarkusIntegration.start();
         CommandLine cmd = new CommandLine(new MainCommand(), factory);
         cmd.setExitCodeExceptionMapper(new NopExitCodeExceptionMapper());

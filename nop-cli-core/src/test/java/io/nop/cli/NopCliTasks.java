@@ -34,7 +34,7 @@ public class NopCliTasks {
                 "-u=nop", "-p=nop-test", "-o=target/reverse.orm.xlsx", "datart",
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         assertEquals(0, app.run(args));
     }
 
@@ -47,7 +47,7 @@ public class NopCliTasks {
                 "-o", "target/gen/nop-auth"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         assertEquals(0, app.run(args));
 
         args = new String[]{"gen", "../nop-sys/model/nop-sys.orm.xlsx",
@@ -66,7 +66,7 @@ public class NopCliTasks {
                 "-o", "target/gen/out.xml"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         assertEquals(0, app.run(args));
     }
 
@@ -76,7 +76,7 @@ public class NopCliTasks {
                 "-i", "1000"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         app.run(args);
     }
 
@@ -86,7 +86,7 @@ public class NopCliTasks {
                 "-e", "tasks/gen-web.xrun"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         app.run(args);
     }
 
@@ -96,7 +96,7 @@ public class NopCliTasks {
                 "-t", "/nop/templates/orm-dao"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         assertEquals(0, app.run(args));
     }
 
@@ -106,7 +106,7 @@ public class NopCliTasks {
                 "-o", "target/data"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         assertEquals(0, app.run(args));
     }
 
@@ -116,7 +116,7 @@ public class NopCliTasks {
                 "-i", "target/data"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         assertEquals(0, app.run(args));
     }
 
@@ -127,7 +127,7 @@ public class NopCliTasks {
                 "-o", "target/data"
         };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         assertEquals(0, app.run(args));
     }
 }

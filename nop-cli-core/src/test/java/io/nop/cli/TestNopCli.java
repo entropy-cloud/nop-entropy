@@ -30,7 +30,7 @@ public class TestNopCli {
                 "-t=v:/nop/templates/orm",
                 "-o", "target/gen", "-F"};
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
     }
@@ -40,7 +40,7 @@ public class TestNopCli {
         String[] args = new String[]{"gen-orm-excel", "src/test/resources/io/nop/cli/test.pdm",
                 "-o", "target/gen/gen-from-pdm.orm.xlsx", };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
     }
@@ -50,7 +50,7 @@ public class TestNopCli {
         String[] args = new String[]{"gen-orm-excel", "src/test/resources/io/nop/cli/test.pdma.json",
                 "-o", "target/gen/gen-from-pdman.orm.xlsx", };
         NopCliApplication app = new NopCliApplication();
-        app.factory = factory;
+        app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
     }

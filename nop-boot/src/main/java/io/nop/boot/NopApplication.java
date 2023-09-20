@@ -40,7 +40,9 @@ public class NopApplication {
 
         CoreInitialization.initialize();
 
-        new NopBanner(bannerPath).print();
+        if (NopBootConfigs.CFG_BANNER_ENABLED.get())
+            new NopBanner(bannerPath).print();
+
         infoLogger.logStarted(LOG);
 
         if (args.length > 0 && CoreConfigs.CFG_CORE_NOP_COMMAND_EXECUTOR_ENABLED.get()) {
