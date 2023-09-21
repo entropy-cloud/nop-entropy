@@ -35,7 +35,7 @@ let chenfenList = [
 
 # 2. 在D3单元格中配置列展开
 
-![](dynamic-col/col-expand.png)
+![](dynamic-col/expand-col.png)
 
 * expandType=c表示列展开
 * expandExpr=chenfenList 表示按照chenfenList列表展开
