@@ -89,7 +89,7 @@
 
     <features supportSequence="true" supportNullsFirst="true"/>
 
-    <sqls escapeSlash="false">
+    <sqls escapeSlash="false" trueString="true" falseString="false">
         <createSequence>
             create sequence {sequenceName} start with {initialValue} increment by {incrementSize}
         </createSequence>
