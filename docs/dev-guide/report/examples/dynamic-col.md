@@ -19,6 +19,8 @@ let chenfenList = [
 ] 
 ```
 
+[查看报表模板](https://gitee.com/canonical-entropy/nop-entropy/raw/master/nop-report/nop-report-demo/src/main/resources/_vfs/nop/report/demo/base/08-%E5%8A%A8%E6%80%81%E5%B1%95%E5%BC%80%E5%88%97.xpt.xlsx)
+
 基本做法为：
 1. 通过expandExpr可以根据指定列表展开
 2. 在单元格中可以通过cell.rowParent.expandValue和cell.colParent.expandValue来获取到行列父单元格中对应的展开对象

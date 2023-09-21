@@ -115,7 +115,7 @@
             <source><![CDATA[
                 return {
                     type:'input-text',
-                    validations: "isLong",
+                    validations: "isInt",
                     value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue:null
                 }
             ]]></source>

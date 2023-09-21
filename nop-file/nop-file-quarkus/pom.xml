@@ -25,6 +25,12 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-resteasy-multipart</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>jakarta.mail-api</artifactId>
+                    <groupId>jakarta.mail</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
 
