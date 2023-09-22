@@ -95,7 +95,7 @@ java -Dfile.encoding=UTF8 -jar nop-cli.jar gen-orm-excel model/test.pdma.json
 如果已经获得Excel数据模型，则可以使用nop-cli命令行工具的gen命令来生成初始工程代码
 
 ```shell
-java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-mall.orm.xlsx
+java -jar nop-cli.jar gen model/app-mall.orm.xlsx -t=/nop/templates/orm
 ```
 
 具体生成的内容如下:

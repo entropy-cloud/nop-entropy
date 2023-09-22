@@ -28261,6 +28261,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.excel.model.XptSheetModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.excel.model.XptWorkbookModel",
     "unsafeAllocated": false
   },
@@ -29661,6 +29671,129 @@
       }
     ],
     "name": "io.nop.excel.model._gen._XptCellModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAfterExpand",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBeforeExpand",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBeginLoop",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEndLoop",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLoopIndexName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLoopItemsName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLoopVarName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSheetNameExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSheetVarName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTestExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAfterExpand",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setBeforeExpand",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setBeginLoop",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setEndLoop",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setLoopIndexName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLoopItemsName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLoopVarName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSheetNameExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setSheetVarName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTestExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.model._gen._XptSheetModel",
     "unsafeAllocated": false
   },
   {
@@ -40762,6 +40895,278 @@
     "fields": [],
     "methods": [
       {
+        "name": "current",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "getDsItems",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getDsName",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "makeDataSet",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "makeDataSetFromValue",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.dataset.DynamicReportDataSet",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "avg",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "avgBy",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "countIf",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Predicate"
+        ]
+      },
+      {
+        "name": "current",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "field",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Predicate"
+        ]
+      },
+      {
+        "name": "first",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "forEach",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "getDsName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getItems",
+        "parameterTypes": []
+      },
+      {
+        "name": "group",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "group",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "groupBy",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "last",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "map",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "max",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "maxBy",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "min",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "minBy",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "newDataSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "select",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      },
+      {
+        "name": "sort",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "sort",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "sort2",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String",
+          "boolean",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "sortBy",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "sum",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "sumBy",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "toDynamic",
+        "parameterTypes": []
+      },
+      {
+        "name": "where",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "where",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.dataset.ReportDataSet",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "buildXptModelFromImpModel",
         "parameterTypes": [
           "java.lang.String"
@@ -40795,6 +41200,132 @@
       }
     ],
     "name": "io.nop.report.core.engine.ReportEngine",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "containsValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "ds",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "evaluateCell",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "field",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEvalScope",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNamedCell",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getNamedCellSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRow",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSheet",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getValueByPropPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getWorkbook",
+        "parameterTypes": []
+      },
+      {
+        "name": "incAndGet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "makeDs",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCell",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "setRow",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedRow"
+        ]
+      },
+      {
+        "name": "setSheet",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedSheet"
+        ]
+      },
+      {
+        "name": "setWorkbook",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelWorkbook"
+        ]
+      }
+    ],
+    "name": "io.nop.report.core.engine.XptRuntime",
     "unsafeAllocated": false
   },
   {
@@ -40937,6 +41468,493 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.report.core.initialize.ReportCoreInitializer",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addColChild",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "addColChildren",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "addRowChild",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "addRowChildren",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "addToList",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "changeColSpan",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "changeRowSpan",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "colChildSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getChildSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
+        "name": "getCol",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColClosest",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getColDescendants",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColParentExpandIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColRoot",
+        "parameterTypes": []
+      },
+      {
+        "name": "getComment",
+        "parameterTypes": []
+      },
+      {
+        "name": "getComputed",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "getCp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDown",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDsName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEi",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEv",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandField",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getExpandIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandKey",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExportValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFormattedValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLinkUrl",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMergeAcross",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMergeDown",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNumberValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRealCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRight",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRow",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowChildren",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowClosest",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRowDescendants",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowParent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowParentExpandIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowRoot",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStyleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTable",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasColDescendant",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasRowDescendant",
+        "parameterTypes": []
+      },
+      {
+        "name": "isColDescendantOf",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "isColParentExpandable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEvaluated",
+        "parameterTypes": []
+      },
+      {
+        "name": "isExpandable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isExpanded",
+        "parameterTypes": []
+      },
+      {
+        "name": "isProxyCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRemoved",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRowDescendantOf",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "isRowParentExpandable",
+        "parameterTypes": []
+      },
+      {
+        "name": "isStaticCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "markEvaluated",
+        "parameterTypes": []
+      },
+      {
+        "name": "markProxy",
+        "parameterTypes": []
+      },
+      {
+        "name": "merge",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "removeFromList",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "removeRowChild",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "rowChildSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setCol",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCol"
+        ]
+      },
+      {
+        "name": "setColDescendants",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setColParent",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "setComment",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDown",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "setEvaluated",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setExpandIndex",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setExpandValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setFormattedValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLinkUrl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMergeAcross",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMergeDown",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setModel",
+        "parameterTypes": [
+          "io.nop.excel.model.XptCellModel"
+        ]
+      },
+      {
+        "name": "setRealCell",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "setRemoved",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRight",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "setRow",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedRow"
+        ]
+      },
+      {
+        "name": "setRowDescendants",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setRowParent",
+        "parameterTypes": [
+          "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "setStyleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.report.core.model.ExpandedCell",
     "unsafeAllocated": false
   },
   {
