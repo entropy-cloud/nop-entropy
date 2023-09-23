@@ -41,7 +41,7 @@
             </cols>
         </grid>
 
-        <grid id="join">
+        <grid id="entities/entity/relations/relation/join">
             <cols>
                 <col id="leftProp"/>
                 <col id="leftValue" />
@@ -50,7 +50,7 @@
             </cols>
         </grid>
 
-        <grid id="unique-keys">
+        <grid id="entities/entity/unique-keys">
             <cols>
                 <col id="name" />
                 <col id="displayName" />
@@ -61,7 +61,7 @@
     </grids>
 
     <forms>
-        <form id="entity">
+        <form id="entities/entity">
             <layout>
                 ===baseInfo[基础信息]====
                 name displayName
