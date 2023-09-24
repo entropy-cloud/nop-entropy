@@ -13,6 +13,7 @@
     </jdbcUrlPattern>
 
     <geometryTypeHandler>io.nop.orm.geo.dialect.mysql.MySqlGeometryTypeHandler</geometryTypeHandler>
+    <jsonTypeHandler>io.nop.dao.dialect.json.MySqlJsonTypeHandler</jsonTypeHandler>
 
     <reservedKeywords>
         ACCESSIBLE, ADD, ALL, ALTER, ANALYZE,

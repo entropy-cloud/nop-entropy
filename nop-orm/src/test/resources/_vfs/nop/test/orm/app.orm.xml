@@ -22,7 +22,7 @@
         <entity name="io.nop.app.SimsClass">
             <columns>
                 <column name="collegeId" propId="100" lazy="true"/>
-                <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json" stdSqlType="VARCHAR"
+                <column name="jsonExt" code="JSON_EXT" propId="101" tagSet="json" stdSqlType="JSON"
                         precision="4000"/>
             </columns>
             <aliases>

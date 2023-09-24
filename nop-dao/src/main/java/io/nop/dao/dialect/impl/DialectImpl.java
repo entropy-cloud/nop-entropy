@@ -80,6 +80,7 @@ public class DialectImpl implements IDialect {
     private final boolean convertStringToNull = CFG_AUTO_CONVERT_EMPTY_STRING_TO_NULL.get();
 
     private final IDataTypeHandler geometryTypeHandler;
+    private final IDataTypeHandler jsonTypeHandler;
 
     public DialectImpl(DialectModel dialectModel) {
         this.dialectModel = dialectModel;
@@ -104,6 +105,15 @@ public class DialectImpl implements IDialect {
             LOG.trace("nop.err.dao.load-geometry-type-handler-fail", e);
         }
         this.geometryTypeHandler = handler;
+
+        handler = null;
+        try {
+            handler = newInstance(dialectModel.getJsonTypeHandler(), null);
+        } catch (Exception e) {
+            LOG.info("nop.dao.no-json-type-handler:{}", dialectModel.getJsonTypeHandler());
+            LOG.trace("nop.err.dao.load-json-type-handler-fail", e);
+        }
+        this.jsonTypeHandler = handler;
     }
 
     static <T> T newInstance(String className, T defaultImpl) {
@@ -144,6 +154,11 @@ public class DialectImpl implements IDialect {
     @Override
     public IDataTypeHandler getGeometryTypeHandler() {
         return geometryTypeHandler;
+    }
+
+    @Override
+    public IDataTypeHandler getJsonTypeHandler() {
+        return jsonTypeHandler;
     }
 
     public DialectModel getDialectModel() {
@@ -525,6 +540,9 @@ public class DialectImpl implements IDialect {
         if (sqlType == StdSqlType.GEOMETRY)
             return getGeometryTypeHandler();
 
+        if (sqlType == StdSqlType.JSON)
+            return getJsonTypeHandler();
+
         IDataParameterBinder binder = DataParameterBinders.getDefaultBinder(sqlType.getName());
         if (binder == null)
             return null;
@@ -550,6 +568,22 @@ public class DialectImpl implements IDialect {
                 return ByteString.of(IoHelper.readBytes(blob.getBinaryStream()));
             }
             return obj;
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        } catch (SQLException e) {
+            throw getSQLExceptionTranslator().translate("rs.get", e);
+        }
+    }
+
+    @Override
+    public String jdbcGetString(ResultSet rs, int index) {
+        try {
+            Object obj = rs.getObject(index + 1);
+            if (obj instanceof Clob) {
+                Clob clob = (Clob) obj;
+                return IoHelper.readText(clob.getCharacterStream());
+            }
+            return rs.getString(index + 1);
         } catch (IOException e) {
             throw NopException.adapt(e);
         } catch (SQLException e) {
@@ -665,4 +699,5 @@ public class DialectImpl implements IDialect {
             throw getSQLExceptionTranslator().translate("ps.set", e);
         }
     }
+
 }

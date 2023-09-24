@@ -27,7 +27,7 @@
 
         <entity name="test.entity.TestFilter" tableName="NOT_EXIST">
             <columns>
-                <column name="id" code="id" stdSqlType="BIGINT" primary="true" propId="3"/>
+                <column name="id" code="id" stdSqlType="BIGINT" primary="true" propId="3" mandatory="true"/>
                 <column name="name" code="name" stdSqlType="VARCHAR" precision="100" propId="4"/>
                 <column name="other" code="other" stdSqlType="VARCHAR" precision="100" propId="5"/>
             </columns>
@@ -38,8 +38,8 @@
                 name="test.entity.TestCompositeOneToOneMain"
                 tableName="TEST_COMPOSITE_ONE_TO_ONE_MAIN">
             <columns>
-                <column name="fldA" code="FLD1" stdSqlType="VARCHAR" precision="100" primary="true" propId="1"/>
-                <column name="fldB" code="FLD2" stdSqlType="VARCHAR" precision="100" primary="true" propId="2"/>
+                <column name="fldA" code="FLD1" stdSqlType="VARCHAR" precision="100" primary="true" propId="1" mandatory="true"/>
+                <column name="fldB" code="FLD2" stdSqlType="VARCHAR" precision="100" primary="true" propId="2" mandatory="true"/>
                 <column name="intValue" code="INT_VALUE" stdSqlType="INTEGER" mandatory="true" propId="4"/>
             </columns>
 
@@ -58,8 +58,8 @@
         <entity name="test.entity.TestCompositeOneToOneSub" tableName="TEST_COMPOSITE_ONE_TO_ONE_SUB">
 
             <columns>
-                <column name="fldA" code="FLD3" stdSqlType="VARCHAR" precision="100" primary="true" propId="5"/>
-                <column name="fldB" code="FLD4" stdSqlType="VARCHAR" precision="100" primary="true" propId="6"/>
+                <column name="fldA" code="FLD3" stdSqlType="VARCHAR" precision="100" primary="true" propId="5" mandatory="true"/>
+                <column name="fldB" code="FLD4" stdSqlType="VARCHAR" precision="100" primary="true" propId="6" mandatory="true"/>
                 <column name="intValue" code="INT_VALUE" stdSqlType="INTEGER" propId="7"/>
             </columns>
 
@@ -78,8 +78,8 @@
 
             <columns>
                 <column name="partitionId" code="PARTITION_ID" stdSqlType="VARCHAR" precision="100"
-                        primary="true" propId="1"/>
-                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="2"/>
+                        primary="true" propId="1" mandatory="true"/>
+                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="2" mandatory="true"/>
                 <column name="strValue" code="STR_VALUE" stdSqlType="VARCHAR" precision="100" propId="3"/>
                 <column name="parentId" code="PARENT_ID" stdSqlType="VARCHAR" precision="100" propId="4"/>
             </columns>
@@ -100,8 +100,8 @@
 
             <columns>
                 <column name="partitionId" code="partition_id" primary="true" stdSqlType="INTEGER" stdDataType="string"
-                        propId="1"/>
-                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="2"/>
+                        propId="1" mandatory="true"/>
+                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="2" mandatory="true"/>
                 <column name="intValue" code="INT_value" stdSqlType="INTEGER" mandatory="true" propId="3"/>
             </columns>
 
@@ -118,7 +118,7 @@
 
         <entity name="test.entity.TestGeo" tableName="TEST_GEO" x:abstract="true">
             <columns>
-                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1"/>
+                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1" mandatory="true"/>
                 <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="2"/>
                 <column name="point" code="FLD_POINT" stdSqlType="GEOMETRY" propId="3"/>
                 <column name="line" code="FLD_LINE" stdSqlType="GEOMETRY" propId="4"/>
@@ -130,7 +130,7 @@
         <entity name="test.entity.TestManyToManyLeft" tableName="TEST_MANY_TO_MANY_LEFT">
 
             <columns>
-                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="4"/>
+                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="4" mandatory="true"/>
                 <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="1"/>
                 <column name="refId" code="REF_ID" stdSqlType="VARCHAR" precision="100" propId="2"/>
             </columns>
@@ -147,7 +147,7 @@
 
         <entity name="test.entity.TestManyToManyRight" tableName="TEST_MANY_TO_MANY_RIGHT">
             <columns>
-                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1"/>
+                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1" mandatory="true"/>
                 <column name="name" code="name" stdSqlType="VARCHAR" propId="3" precision="100"/>
             </columns>
 
@@ -155,7 +155,7 @@
 
         <entity name="test.entity.TestOrmData" tableName="TEST_ORM_DATA">
             <columns>
-                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="10"/>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="10" mandatory="true"/>
                 <column name="sampleMethodId" code="sample_method_id" mandatory="true"
                         stdSqlType="VARCHAR" precision="100" propId="3"/>
                 <column name="methodParamId" code="method_param_id" mandatory="true"
@@ -187,7 +187,7 @@
 
         <entity name="test.entity.TestOrmMethod" tableName="TEST_ORM_METHOD">
             <columns>
-                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1"/>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1" mandatory="true"/>
                 <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" mandatory="false" propId="2"/>
             </columns>
 
@@ -204,7 +204,7 @@
 
         <entity name="test.entity.TestOrmMethodParam" tableName="TEST_ORM_METHOD_PARAM">
             <columns>
-                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1"/>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1" mandatory="true"/>
                 <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" mandatory="false" propId="2"/>
                 <column name="methodId" code="METHOD_ID" stdSqlType="INTEGER" propId="3"/>
                 <column name="dataType" code="DATA_TYPE" stdSqlType="INTEGER" propId="4"/>
@@ -231,7 +231,7 @@
                 name="test.entity.TestOrmOtherTable"
                 tableName="TEST_ORM_OTHER_TABLE" useTenant="false">
             <columns>
-                <column name="sid" code="other_id" primary="true" stdSqlType="VARCHAR" precision="100" propId="3"/>
+                <column name="sid" code="other_id" primary="true" stdSqlType="VARCHAR" precision="100" propId="3" mandatory="true"/>
 
                 <column name="strValue" code="STR_VALUE" stdSqlType="VARCHAR" precision="100" propId="1"/>
 
@@ -257,7 +257,7 @@
 
         <entity name="test.entity.TestOrmSampleMethod" tableName="TEST_ORM_SAMPLE_METHOD">
             <columns>
-                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1"/>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1" mandatory="true"/>
                 <column name="methodId" code="METHOD_ID" stdSqlType="INTEGER" propId="2"/>
             </columns>
 
@@ -283,7 +283,7 @@
                 useShard="true">
 
             <columns>
-                <column name="sid" code="SID" stdSqlType="VARCHAR" primary="true" precision="100" propId="1"/>
+                <column name="sid" code="SID" stdSqlType="VARCHAR" primary="true" precision="100" propId="1" mandatory="true"/>
                 <column name="strValue" code="STR_VALUE" stdSqlType="VARCHAR" precision="100" propId="2"/>
             </columns>
 
@@ -292,7 +292,7 @@
         <entity name="test.entity.TestOrmSubTable" tableName="TEST_ORM_SUB_TABLE" useTenant="false">
 
             <columns>
-                <column name="sid" code="SUB_ID" primary="true" propId="1" stdSqlType="VARCHAR" precision="100"/>
+                <column name="sid" code="SUB_ID" primary="true" propId="1" stdSqlType="VARCHAR" precision="100" mandatory="true"/>
                 <column name="strValue" code="STR_VALUE" mandatory="true" propId="2" stdSqlType="VARCHAR"
                         precision="100"/>
                 <column name="mainId" code="MAIN_ID" propId="3" stdSqlType="VARCHAR" precision="100"/>
@@ -311,9 +311,9 @@
         <entity name="test.entity.TestOrmTable" tableName="TEST_ORM_TABLE" useShard="true" versionProp="version">
 
             <columns>
-                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1"/>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1" mandatory="true"/>
                 <column name="strValue" code="STR_VALUE" stdSqlType="VARCHAR" precision="100" propId="2"/>
-                <column name="clobCol" code="CLOB_COL" stdSqlType="VARCHAR" lazy="true" precision="10000" propId="3"/>
+                <column name="clobCol" code="CLOB_COL" stdSqlType="VARCHAR" lazy="true" precision="100000000" propId="3"/>
                 <column name="blobCol" code="BLOB_COL" stdSqlType="VARBINARY" precision="10000" propId="4"/>
                 <column name="numValue" code="NUM_VALUE" stdSqlType="DOUBLE" lazy="true" propId="5"/>
                 <column name="utilDateValue" code="UTIL_DATE_VALUE" stdSqlType="DATETIME" propId="6"/>
@@ -384,7 +384,7 @@
         <entity name="test.entity.TestOrmTableHsql" tableName="TEST_ORM_TABLE_HSQL" versionProp="version">
 
             <columns>
-                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1"/>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1" mandatory="true"/>
                 <column name="strValue" code="STR_VALUE" stdSqlType="VARCHAR" precision="100" propId="2"/>
                 <column name="clobCol" code="CLOB_COL" stdSqlType="VARCHAR" precision="100000" lazy="true" propId="3"/>
                 <column name="blobCol" code="BLOB_COL" stdSqlType="VARBINARY" precision="100000" propId="4"/>
@@ -446,7 +446,7 @@
         <entity name="test.entity.TestOrmTableInt" tableName="TEST_ORM_TABLE" tableView="true">
 
             <columns>
-                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1"/>
+                <column name="sid" code="SID" stdSqlType="INTEGER" primary="true" propId="1" mandatory="true"/>
                 <column name="strValue" code="STR_VALUE" stdSqlType="VARCHAR" precision="100" propId="2"/>
             </columns>
 
@@ -454,7 +454,7 @@
 
         <entity name="test.entity.TestOrmToOne" tableName="TEST_ORM_TO_ONE">
             <columns>
-                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1"/>
+                <column name="sid" code="SID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1" mandatory="true"/>
                 <column name="name" code="NAME" stdSqlType="VARCHAR" precision="100" propId="2"/>
             </columns>
 
@@ -470,7 +470,7 @@
 
         <entity name="test.entity.TestSubClass" tableName="TEST_SUB_CLASS">
             <columns>
-                <column name="sid" code="SUB_ID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1"/>
+                <column name="sid" code="SUB_ID" primary="true" stdSqlType="VARCHAR" precision="100" propId="1" mandatory="true"/>
                 <column name="strValue" code="STR_VALUE" mandatory="true" stdSqlType="VARCHAR" precision="100"
                         propId="2"/>
                 <column name="clobCol" code="CLOB_COL" stdSqlType="VARCHAR" precision="10000" propId="3"/>
@@ -498,7 +498,7 @@
 
         <entity name="test.entity.UserInfo" tableName="TEST_USER_INFO" useRevision="false">
             <columns>
-                <column name="sid" code="U_ID" stdSqlType="VARCHAR" primary="true" precision="100" propId="20"/>
+                <column name="sid" code="U_ID" stdSqlType="VARCHAR" primary="true" precision="100" propId="20" mandatory="true"/>
                 <column name="userName" code="USER_NAME" stdSqlType="VARCHAR" mandatory="false" precision="100"
                         propId="21"/>
                 <column name="userPass" code="USER_PASS" stdSqlType="VARCHAR" precision="100" propId="5"/>

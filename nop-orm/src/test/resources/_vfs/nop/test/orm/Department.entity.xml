@@ -2,7 +2,7 @@
 
 <entity name="test.entity.Department" tableName="TEST_DEPARTMENT_INFO">
     <columns>
-        <column name="sid" code="ID" stdSqlType="VARCHAR" precision="100" primary="true" propId="1"/>
+        <column name="sid" code="ID" stdSqlType="VARCHAR" precision="100" primary="true" propId="1" mandatory="true"/>
         <column name="name" code="DEPT_NAME" precision="100" stdSqlType="VARCHAR" propId="2"/>
         <column name="layerCode" code="LAYER_CODE" stdSqlType="VARCHAR" precision="100" mandatory="true" propId="3"/>
         <column name="layerLevel" code="layer_level" stdSqlType="INTEGER" precision="100" propId="4"/>

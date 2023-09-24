@@ -9,7 +9,6 @@ package io.nop.dao.jdbc.dataset;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
-import io.nop.commons.util.StringHelper;
 import io.nop.dao.DaoErrors;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.impl.JdbcHelper;
@@ -19,8 +18,8 @@ import io.nop.dataset.IDataSetMeta;
 import io.nop.dataset.impl.BaseDataRow;
 import io.nop.dataset.impl.BaseDataSet;
 import io.nop.dataset.record.impl.RecordInputImpls;
-
 import jakarta.annotation.Nonnull;
+
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -28,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -171,7 +171,16 @@ public class JdbcDataSet implements IDataSet, IDataRow {
     @Override
     public String getString(int index) {
         // 考虑到Clob读取，由dialect提供类型转换
-        return StringHelper.toString(dialect.jdbcGet(rs, index), null);
+        return dialect.jdbcGetString(rs, index);
+    }
+
+    @Override
+    public void setJsonString(int index, String value) {
+        try {
+            rs.updateObject(index, value, Types.OTHER);
+        } catch (SQLException e) {
+            throw translate("rs.setJsonString", e);
+        }
     }
 
     @Override

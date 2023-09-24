@@ -5,6 +5,8 @@
     <driverClassName>org.mariadb.jdbc.Driver</driverClassName>
     <dbProductNames>MariaDB</dbProductNames>
 
+    <jsonTypeHandler>io.nop.dao.dialect.json.DefaultJsonTypeHandler</jsonTypeHandler>
+
     <reservedKeywords>
         ACCESSIBLE, ADD, ALL, ALTER, ANALYZE,
         AND, AS, ASC, ASENSITIVE,

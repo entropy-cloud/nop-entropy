@@ -41,6 +41,10 @@ public interface IDataParameters {
 
     void setObject(int index, Object value);
 
+    default void setObject(int index, Object value, int targetType) {
+        setObject(index, value);
+    }
+
     default NopException handleConvertError(ErrorCode errorCode, int index) {
         return new NopException(errorCode).param(ARG_INDEX, index);
     }
@@ -65,8 +69,16 @@ public interface IDataParameters {
         return ConvertHelper.toString(getObject(index), err -> handleConvertError(err, index));
     }
 
+    default String getJsonString(int index) {
+        return getString(index);
+    }
+
     default void setString(int index, String value) {
         setObject(index, value);
+    }
+
+    default void setJsonString(int index, String value) {
+        setString(index, value);
     }
 
     default Integer getInt(int index) {

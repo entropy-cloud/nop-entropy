@@ -39,6 +39,8 @@ public interface IDialect extends IComponentModel {
 
     IDataTypeHandler getGeometryTypeHandler();
 
+    IDataTypeHandler getJsonTypeHandler();
+
     ISQLExceptionTranslator getSQLExceptionTranslator();
 
     IPaginationHandler getPaginationHandler();
@@ -173,6 +175,8 @@ public interface IDialect extends IComponentModel {
     ISQLFunction getFunction(String fnName);
 
     Object jdbcGet(ResultSet rs, int index);
+
+    String jdbcGetString(ResultSet rs, int index);
 
     void jdbcSet(ResultSet rs, int index, Object value);
 

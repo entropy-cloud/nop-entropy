@@ -8,6 +8,9 @@
     <dbProductNames>H2</dbProductNames>
     <jdbcUrlPattern>jdbc:h2:{filePath}</jdbcUrlPattern>
 
+    <jsonTypeHandler>io.nop.dao.dialect.json.H2JsonTypeHandler</jsonTypeHandler>
+
+
     <!--    <paginationHandler>io.nop.dao.dialect.pagination.OffsetFetchPaginationHandler</paginationHandler>-->
 
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
@@ -193,6 +196,7 @@
         <sqlDataType name="BLOB" stdSqlType="VARBINARY" allowPrecision="false"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
+        <sqlDataType name="JSON" stdSqlType="JSON"/>
     </sqlDataTypes>
 
 </dialect>

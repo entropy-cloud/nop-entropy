@@ -9,8 +9,8 @@ package io.nop.dataset.binder;
 
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.type.StdDataType;
-import io.nop.commons.util.StringHelper;
 import io.nop.commons.type.StdSqlType;
+import io.nop.commons.util.StringHelper;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;

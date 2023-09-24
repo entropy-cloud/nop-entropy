@@ -100,6 +100,13 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: jsonTypeHandler
+     * 
+     */
+    private java.lang.String _jsonTypeHandler ;
+    
+    /**
+     *  
      * xml name: keywordQuote
      * 列名如果是数据库的关键字，则需要进行转义。这里指定转义时使用的quote字符
      */
@@ -439,6 +446,25 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: jsonTypeHandler
+     *  
+     */
+    
+    public java.lang.String getJsonTypeHandler(){
+      return _jsonTypeHandler;
+    }
+
+    
+    public void setJsonTypeHandler(java.lang.String value){
+        checkAllowChange();
+        
+        this._jsonTypeHandler = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: keywordQuote
      *  列名如果是数据库的关键字，则需要进行转义。这里指定转义时使用的quote字符
      */
@@ -713,6 +739,7 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
         out.put("functions",this.getFunctions());
         out.put("geometryTypeHandler",this.getGeometryTypeHandler());
         out.put("jdbcUrlPattern",this.getJdbcUrlPattern());
+        out.put("jsonTypeHandler",this.getJsonTypeHandler());
         out.put("keywordQuote",this.getKeywordQuote());
         out.put("keywordUnderscore",this.getKeywordUnderscore());
         out.put("maxBytesSize",this.getMaxBytesSize());

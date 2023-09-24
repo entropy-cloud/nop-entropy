@@ -64,6 +64,24 @@ public class JdbcStatement implements IJdbcStatement {
     }
 
     @Override
+    public void setObject(int index, Object value, int targetType) {
+        try {
+            statement.setObject(index + 1, value, targetType);
+        } catch (SQLException e) {
+            throw dialect.getSQLExceptionTranslator().translate("setObject", e);
+        }
+    }
+
+    @Override
+    public void setJsonString(int index, String value) {
+        if (dialect.getJsonTypeHandler() == null) {
+            setString(index, value);
+        } else {
+            dialect.getJsonTypeHandler().setValue(this, index, value);
+        }
+    }
+
+    @Override
     public boolean isNull(int index) {
         throw new UnsupportedOperationException();
     }

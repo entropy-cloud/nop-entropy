@@ -9,6 +9,8 @@
     <dbProductNames>PostgreSQL</dbProductNames>
     <jdbcUrlPattern>jdbc:postgresql://localhost/bookstore</jdbcUrlPattern>
 
+    <jsonTypeHandler>io.nop.dao.dialect.json.PostgreSqlJsonTypeHandler</jsonTypeHandler>
+
     <reservedKeywords>
         ALL, ANALYSE, ANALYZE, AND, ANY,
         ARRAY, AS, ASC, ASYMMETRIC,AUTHORIZATION,
@@ -116,6 +118,7 @@
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
         <sqlDataType name="BYTEA" allowPrecision="false" stdSqlType="VARBINARY"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
+        <sqlDataType name="JSON" stdSqlType="JSON"/>
         <!--        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>-->
     </sqlDataTypes>
 
