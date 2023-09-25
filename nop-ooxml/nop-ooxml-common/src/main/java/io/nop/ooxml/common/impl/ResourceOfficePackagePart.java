@@ -37,7 +37,7 @@ public class ResourceOfficePackagePart implements IOfficePackagePart {
             return this;
 
         String name = resource.getName();
-        if (name.endsWith(".xml") || name.endsWith(".rels")) {
+        if (name.endsWith(".xml")) {
             XNode node = loadXml();
             return new XmlOfficePackagePart(path, node);
         }
