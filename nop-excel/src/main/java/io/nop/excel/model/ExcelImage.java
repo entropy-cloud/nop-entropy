@@ -10,7 +10,20 @@ package io.nop.excel.model;
 import io.nop.excel.model._gen._ExcelImage;
 
 public class ExcelImage extends _ExcelImage {
+    /**
+     * 嵌入图片的id
+     */
+    private String embedId;
+
     public ExcelImage() {
 
+    }
+
+    public String getEmbedId() {
+        return embedId;
+    }
+
+    public void setEmbedId(String embedId) {
+        this.embedId = embedId;
     }
 }

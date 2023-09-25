@@ -247,7 +247,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     public void setImages(java.util.List<io.nop.excel.model.ExcelImage> value){
         checkAllowChange();
         
-        this._images = KeyedList.fromList(value, io.nop.excel.model.ExcelImage::getId);
+        this._images = KeyedList.fromList(value, io.nop.excel.model.ExcelImage::getName);
            
     }
 
@@ -264,7 +264,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         java.util.List<io.nop.excel.model.ExcelImage> list = this.getImages();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.excel.model.ExcelImage::getId);
+            list = new KeyedList<>(io.nop.excel.model.ExcelImage::getName);
             setImages(list);
         }
         list.add(item);

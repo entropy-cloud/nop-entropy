@@ -121,15 +121,20 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                 </rows>
             </table>
 
-            <images xdef:body-type="list" xdef:key-attr="id">
-                <image id="!string" xdef:name="ExcelImage" autoSize="!boolean=false">
+            <images xdef:body-type="list" xdef:key-attr="name">
+                <!--
+                @print 控制图片是否被打印。套打对应的背景图片不需要被打印
+                -->
+                <image name="!string" xdef:name="ExcelImage" imgType="string"
+                    print="!boolean=true" noChangeAspect="!boolean=false" rotateDegree="!double=0">
                     <anchor xdef:name="ExcelClientAnchor"
                             xdef:ref="anchor.xdef"
                             type="enum:io.nop.excel.model.constants.ExcelAnchorType"/>
+                    <!-- data为对应图片数据 -->
                     <data xdef:value="base64-bytes"/>
-                    <title xdef:value="string"/>
                     <description xdef:value="string"/>
-                    <linkUrl xdef:value="string"/>
+                    <linkUrl xdef:value="string" />
+                    <linkExpr xdef:value="report-expr"/>
                     <testExpr xdef:value="xpl-predicate"/>
                     <dataExpr xdef:value="xpl"/>
                 </image>

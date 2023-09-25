@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [125:18:0:0]/nop/schema/excel/workbook.xdef <p>
+ * generate from [128:18:0:0]/nop/schema/excel/workbook.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -23,15 +23,8 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
-     * xml name: autoSize
-     * 
-     */
-    private boolean _autoSize  = false;
-    
-    /**
-     *  
      * xml name: data
-     * 
+     * data为对应图片数据
      */
     private io.nop.commons.bytes.ByteString _data ;
     
@@ -51,10 +44,10 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
-     * xml name: id
+     * xml name: imgType
      * 
      */
-    private java.lang.String _id ;
+    private java.lang.String _imgType ;
     
     /**
      *  
@@ -65,17 +58,45 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: name
+     * 
+     */
+    private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: noChangeAspect
+     * 
+     */
+    private boolean _noChangeAspect  = false;
+    
+    /**
+     *  
+     * xml name: print
+     * 控制图片是否被打印。套打对应的背景图片不需要被打印
+     */
+    private boolean _print  = true;
+    
+    /**
+     *  
+     * xml name: ref
+     * 
+     */
+    private java.lang.String _ref ;
+    
+    /**
+     *  
+     * xml name: rotateDegree
+     * 
+     */
+    private double _rotateDegree  = 0.0;
+    
+    /**
+     *  
      * xml name: testExpr
      * 
      */
     private io.nop.core.lang.eval.IEvalPredicate _testExpr ;
-    
-    /**
-     *  
-     * xml name: title
-     * 
-     */
-    private java.lang.String _title ;
     
     /**
      * 
@@ -98,27 +119,8 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
-     * xml name: autoSize
-     *  
-     */
-    
-    public boolean isAutoSize(){
-      return _autoSize;
-    }
-
-    
-    public void setAutoSize(boolean value){
-        checkAllowChange();
-        
-        this._autoSize = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: data
-     *  
+     *  data为对应图片数据
      */
     
     public io.nop.commons.bytes.ByteString getData(){
@@ -174,19 +176,19 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
-     * xml name: id
+     * xml name: imgType
      *  
      */
     
-    public java.lang.String getId(){
-      return _id;
+    public java.lang.String getImgType(){
+      return _imgType;
     }
 
     
-    public void setId(java.lang.String value){
+    public void setImgType(java.lang.String value){
         checkAllowChange();
         
-        this._id = value;
+        this._imgType = value;
            
     }
 
@@ -212,6 +214,101 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: name
+     *  
+     */
+    
+    public java.lang.String getName(){
+      return _name;
+    }
+
+    
+    public void setName(java.lang.String value){
+        checkAllowChange();
+        
+        this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: noChangeAspect
+     *  
+     */
+    
+    public boolean isNoChangeAspect(){
+      return _noChangeAspect;
+    }
+
+    
+    public void setNoChangeAspect(boolean value){
+        checkAllowChange();
+        
+        this._noChangeAspect = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: print
+     *  控制图片是否被打印。套打对应的背景图片不需要被打印
+     */
+    
+    public boolean isPrint(){
+      return _print;
+    }
+
+    
+    public void setPrint(boolean value){
+        checkAllowChange();
+        
+        this._print = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ref
+     *  
+     */
+    
+    public java.lang.String getRef(){
+      return _ref;
+    }
+
+    
+    public void setRef(java.lang.String value){
+        checkAllowChange();
+        
+        this._ref = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: rotateDegree
+     *  
+     */
+    
+    public double getRotateDegree(){
+      return _rotateDegree;
+    }
+
+    
+    public void setRotateDegree(double value){
+        checkAllowChange();
+        
+        this._rotateDegree = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: testExpr
      *  
      */
@@ -225,25 +322,6 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._testExpr = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: title
-     *  
-     */
-    
-    public java.lang.String getTitle(){
-      return _title;
-    }
-
-    
-    public void setTitle(java.lang.String value){
-        checkAllowChange();
-        
-        this._title = value;
            
     }
 
@@ -264,14 +342,17 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
         super.outputJson(out);
         
         out.put("anchor",this.getAnchor());
-        out.put("autoSize",this.isAutoSize());
         out.put("data",this.getData());
         out.put("dataExpr",this.getDataExpr());
         out.put("description",this.getDescription());
-        out.put("id",this.getId());
+        out.put("imgType",this.getImgType());
         out.put("linkUrl",this.getLinkUrl());
+        out.put("name",this.getName());
+        out.put("noChangeAspect",this.isNoChangeAspect());
+        out.put("print",this.isPrint());
+        out.put("ref",this.getRef());
+        out.put("rotateDegree",this.getRotateDegree());
         out.put("testExpr",this.getTestExpr());
-        out.put("title",this.getTitle());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -36,7 +36,8 @@ public class ResourceOfficePackagePart implements IOfficePackagePart {
         if (resource instanceof ByteArrayResource)
             return this;
 
-        if (resource.getName().endsWith(".xml")) {
+        String name = resource.getName();
+        if (name.endsWith(".xml") || name.endsWith(".rels")) {
             XNode node = loadXml();
             return new XmlOfficePackagePart(path, node);
         }
@@ -53,6 +54,14 @@ public class ResourceOfficePackagePart implements IOfficePackagePart {
     @Override
     public void generateToStream(OutputStream os, IEvalContext context) throws IOException {
         resource.writeToStream(os);
+    }
+
+    @Override
+    public byte[] generateBytes(IEvalContext context) {
+        if (resource instanceof ByteArrayResource)
+            return ((ByteArrayResource) resource).getData();
+
+        return IOfficePackagePart.super.generateBytes(context);
     }
 
     @Override

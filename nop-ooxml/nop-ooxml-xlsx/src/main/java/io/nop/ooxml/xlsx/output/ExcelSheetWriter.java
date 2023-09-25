@@ -70,6 +70,8 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
 
         genPageMargins(out, sheet);
 
+        if (sheet.getImages() != null && !sheet.getImages().isEmpty())
+            out.simpleNode(null, "drawing", attrs("r:id", "rId1"));
         out.endNode("worksheet");
         out.endDoc();
     }

@@ -61,6 +61,8 @@ public interface SheetContentsHandler {
 
     void mergeCell(CellRange range);
 
+    void drawing(String id);
+
     /**
      * A header or footer has been encountered
      */

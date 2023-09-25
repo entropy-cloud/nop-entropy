@@ -47,21 +47,22 @@ public abstract class AbstractXlsxParser extends AbstractResourceParser<ExcelWor
         workbookPart = pkg.getWorkbook();
 
         ExcelWorkbook wk = new ExcelWorkbook();
+
         wk.setLocation(pkg.getLocation());
         wk.setStyles(pkg.getStyles().getStyles());
         for (XSSFSheetRef sheetRef : workbookPart.getSheets()) {
             ExcelSheet sheet = parseSheet(wk, sheetRef, workbookPart);
             wk.addSheet(sheet);
         }
+
+        endParseWorkbook(wk);
         return wk;
+    }
+
+    protected void endParseWorkbook(ExcelWorkbook wk) {
+
     }
 
     protected abstract ExcelSheet parseSheet(ExcelWorkbook workbook, XSSFSheetRef sheetRef, WorkbookPart workbookFile);
 
-    protected CommentsPart getCommentsTable(IOfficePackagePart sheetPart) {
-        IOfficePackagePart commentsPart = pkg.getRelPartByType(sheetPart, XSSFRelation.SHEET_COMMENTS.getRelation());
-        if (commentsPart == null)
-            return null;
-        return CommentsPart.parse(commentsPart);
-    }
 }

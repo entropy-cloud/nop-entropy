@@ -15,6 +15,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.excel.format.ExcelFormatHelper;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
@@ -49,6 +50,8 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     private ExpandedRow row;
     private ExcelWorkbook workbook;
 
+    private ExcelImage image;
+
     public XptRuntime(IEvalScope scope) {
         this.scope = scope.newChildScope();
         scope.setLocalValue(null, XptConstants.VAR_XPT_RT, this);
@@ -76,6 +79,14 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     @Override
     public void setCell(ExpandedCell cell) {
         this.cell = cell;
+    }
+
+    public ExcelImage getImage() {
+        return image;
+    }
+
+    public void setImage(ExcelImage image) {
+        this.image = image;
     }
 
     @Override
@@ -109,6 +120,9 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
             return sheet;
         if (XptConstants.VAR_ROW.equals(name))
             return row;
+
+        if (XptConstants.VAR_IMAGE.equals(name))
+            return image;
         // 这里只判断扩展属性名，因此对于不识别的属性直接返回null
         return null;
     }

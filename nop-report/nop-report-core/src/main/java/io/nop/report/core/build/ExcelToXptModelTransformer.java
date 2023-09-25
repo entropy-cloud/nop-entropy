@@ -18,6 +18,7 @@ import io.nop.excel.imp.ImportModelHelper;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
 import io.nop.excel.model.ExcelCell;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
@@ -38,6 +39,7 @@ import java.util.Map;
 
 import static io.nop.report.core.XptErrors.ARG_PROP_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CELL_MODEL_PROP;
+import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP;
 
 /**
  * 将Excel模型转换为Xpt报表模型
@@ -48,6 +50,7 @@ public class ExcelToXptModelTransformer {
         ImportModel importModel = ImportModelHelper.getImportModel(XptConstants.XPT_IMP_MODEL_PATH);
         IXDefinition xptXDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_WORKBOOK);
         IXDefNode cellModelNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CELL).getChild(XptConstants.PROP_MODEL);
+        IXDefNode imageNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_IMAGE);
 
         XptConfigParseHelper.parseWorkbookModel(workbook, importModel);
 
@@ -68,6 +71,7 @@ public class ExcelToXptModelTransformer {
                     sheet.setModel(sheetModel);
                 }
                 parseCellModel(sheet, cellModelNode, transformer);
+                parseImageModel(sheet, imageNode, transformer);
             }
         }
 
@@ -139,5 +143,44 @@ public class ExcelToXptModelTransformer {
 
     private <T> T importModel(ImportSheetModel impModel, ExcelSheet sheet, IEvalScope scope, Class<T> clazz) {
         return ImportModelHelper.parseSheet(impModel, sheet, scope, clazz);
+    }
+
+    private void parseImageModel(ExcelSheet sheet, IXDefNode defNode, DslXNodeToJsonTransformer transformer) {
+        if (sheet.getImages() == null)
+            return;
+
+        for (ExcelImage image : sheet.getImages()) {
+            String desc = image.getDescription();
+            if (desc == null)
+                continue;
+
+            int pos = desc.indexOf("----");
+            if (pos < 0)
+                break;
+
+            for (; pos < desc.length(); pos++) {
+                if (desc.charAt(pos) != '-')
+                    break;
+            }
+
+            String str = desc.substring(pos);
+            Map<String, ValueWithLocation> config =
+                    MultiLineConfigParser.INSTANCE.parseConfig(sheet.getLocation(), str);
+
+            for (Map.Entry<String, ValueWithLocation> entry : config.entrySet()) {
+                String varName = entry.getKey();
+                ValueWithLocation vl = entry.getValue();
+                if (varName.equals("testExpr") || varName.equals("dataExpr")) {
+                    IXDefNode child = defNode.getChild(varName);
+                    Object value = transformer.parseValue(vl, varName, child.getXdefValue());
+                    value = addSource(vl, value);
+                    BeanTool.setProperty(image, varName, value);
+                } else {
+                    throw new NopException(ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP)
+                            .source(vl)
+                            .param(ARG_PROP_NAME, entry.getKey());
+                }
+            }
+        }
     }
 }

@@ -73,6 +73,10 @@ public interface XptErrors {
             define("nop.err.xpt.undefined-cell-model-prop",
                     "未定义的单元格模型的属性[{propName}]", ARG_PROP_NAME);
 
+    ErrorCode ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP =
+            define("nop.err.xpt.undefined-image-model-prop",
+                    "未定义的图片模型的属性[{propName}]", ARG_PROP_NAME);
+
     ErrorCode ERR_XPT_INVALID_DS_NAME =
             define("nop.err.xpt.invalid-ds-name",
                     "非法的数据源名称", ARG_DS_NAME);
@@ -95,5 +99,10 @@ public interface XptErrors {
 
     ErrorCode ERR_XPT_UNKNOWN_REPORT_MODEL =
             define("nop.err.xpt.unknown-report-model", "未知的报表模型：{reportName}", ARG_REPORT_NAME);
+
+
+    ErrorCode ERR_XPT_INVALID_IMAGE_DATA =
+            define("nop.err.xpt.invalid-image-data",
+                    "图片数据不是字节数组或者IResource对象");
 
 }

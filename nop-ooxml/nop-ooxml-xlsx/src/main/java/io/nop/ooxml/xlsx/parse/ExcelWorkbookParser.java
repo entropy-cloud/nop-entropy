@@ -9,6 +9,9 @@ package io.nop.ooxml.xlsx.parse;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.bytes.ByteString;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICell;
@@ -16,6 +19,7 @@ import io.nop.core.model.table.ICellView;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelColumnConfig;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelStyle;
@@ -26,6 +30,7 @@ import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.model.CommentsPart;
 import io.nop.ooxml.xlsx.model.WorkbookPart;
 import io.nop.ooxml.xlsx.model.XSSFSheetRef;
+import io.nop.ooxml.xlsx.model.drawing.DrawingParser;
 
 import java.util.List;
 
@@ -34,13 +39,12 @@ import static io.nop.ooxml.xlsx.XlsxErrors.ARG_TYPE;
 import static io.nop.ooxml.xlsx.XlsxErrors.ERR_XLSX_NULL_REL_PART;
 
 public class ExcelWorkbookParser extends AbstractXlsxParser {
-
     @Override
     protected ExcelSheet parseSheet(ExcelWorkbook workbook, XSSFSheetRef sheetRef, WorkbookPart workbookFile) {
         IOfficePackagePart sheetPart = pkg.getRelPart(workbookFile, sheetRef.getRelId());
         if (sheetPart == null)
             throw new NopException(ERR_XLSX_NULL_REL_PART).param(ARG_TYPE, "sheet").param(ARG_REL_ID, sheetRef.getRelId());
-        CommentsPart comments = getCommentsTable(sheetPart);
+        CommentsPart comments = pkg.getCommentsTable(sheetPart);
 
         SimpleSheetContentsHandler contentsHandler = new SimpleSheetContentsHandler(workbook, sheetRef.getName());
 
@@ -65,6 +69,24 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
             });
         }
 
+        if (contentsHandler.getDrawingId() != null) {
+            IOfficePackagePart drawing = pkg.getRelPart(sheetPart, contentsHandler.getDrawingId());
+            if (drawing != null) {
+                List<ExcelImage> images = new DrawingParser().parseDrawing(drawing.loadXml());
+                for (ExcelImage image : images) {
+                    if (image.getEmbedId() == null)
+                        continue;
+
+                    IOfficePackagePart imagePart = pkg.getRelPart(drawing, image.getEmbedId());
+                    if (imagePart == null)
+                        continue;
+                    image.setImgType(StringHelper.fileExt(imagePart.getPath()));
+                    image.setData(ByteString.of(imagePart.generateBytes(DisabledEvalScope.INSTANCE)));
+                }
+                sheet.setImages(images);
+            }
+        }
+
         return sheet;
     }
 
@@ -73,6 +95,8 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
 
         private final ExcelSheet sheet = new ExcelSheet();
         private ExcelTable table = sheet.getTable();
+
+        private String drawingId;
 
         public SimpleSheetContentsHandler(ExcelWorkbook workbook, String sheetName) {
             this.workbook = workbook;
@@ -83,6 +107,13 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
             return sheet;
         }
 
+        public String getDrawingId() {
+            return drawingId;
+        }
+
+        public void drawing(String id) {
+            this.drawingId = StringHelper.emptyAsNull(id);
+        }
 
         @Override
         public void startSheet(String sheetName) {

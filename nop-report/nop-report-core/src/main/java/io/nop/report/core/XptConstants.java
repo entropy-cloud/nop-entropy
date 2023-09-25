@@ -18,6 +18,8 @@ public interface XptConstants {
 
     String VAR_XPT_RT = "xptRt";
 
+    String VAR_IMAGE = "image";
+
     String VAR_ENTITY = "entity";
     String VAR_SHEET_TPL = "sheetTpl";
     String VAR_WORKBOOK_TPL = "workbookTpl";
@@ -43,6 +45,8 @@ public interface XptConstants {
     String XDSL_SCHEMA_WORKBOOK = "/nop/schema/excel/workbook.xdef";
 
     String XDEF_NODE_EXCEL_CELL = "ExcelCell";
+
+    String XDEF_NODE_EXCEL_IMAGE = "ExcelImage";
 
     String STD_DOMAIN_REPORT_EXPR = "report-expr";
 

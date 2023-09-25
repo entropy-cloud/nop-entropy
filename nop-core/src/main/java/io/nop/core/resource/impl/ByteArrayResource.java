@@ -38,6 +38,10 @@ public class ByteArrayResource extends AbstractResource implements IByteArrayVie
         this.lastModified = lastModified;
     }
 
+    public byte[] getData(){
+        return data;
+    }
+
     @Override
     protected Object internalObj() {
         return data;

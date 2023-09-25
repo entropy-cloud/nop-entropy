@@ -7,12 +7,15 @@
  */
 package io.nop.report.core.model;
 
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageBreaks;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.model.XptSheetModel;
+
+import java.util.List;
 
 public class ExpandedSheet implements IExcelSheet {
     private XptSheetModel model;
@@ -23,6 +26,8 @@ public class ExpandedSheet implements IExcelSheet {
     private ExcelPageBreaks pageBreaks;
     private Double defaultRowHeight;
     private Double defaultColumnWidth;
+
+    private List<ExcelImage> images;
 
     public ExpandedSheet(XptSheetModel model, ExpandedTable table) {
         this.model = model;
@@ -37,6 +42,15 @@ public class ExpandedSheet implements IExcelSheet {
         setPageSetup(sheet.getPageSetup());
         setDefaultRowHeight(sheet.getDefaultRowHeight());
         setDefaultColumnWidth(sheet.getDefaultColumnWidth());
+    }
+
+    @Override
+    public List<ExcelImage> getImages() {
+        return images;
+    }
+
+    public void setImages(List<ExcelImage> images) {
+        this.images = images;
     }
 
     public XptSheetModel getModel() {

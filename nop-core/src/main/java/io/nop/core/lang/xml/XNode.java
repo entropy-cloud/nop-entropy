@@ -43,10 +43,10 @@ import io.nop.core.model.tree.ITreeVisitor;
 import io.nop.core.model.tree.TreeVisitResult;
 import io.nop.core.model.tree.TreeVisitors;
 import io.nop.core.resource.IResource;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -391,6 +391,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         checkNotReadOnly();
         ValueWithLocation content = ValueWithLocation.of(loc, value);
         this.content = content == null || content.isEmpty() ? NULL_VALUE : content;
+    }
+
+    public int contentAsInt(int defaultValue) {
+        return ConvertHelper.toPrimitiveInt(getContentValue(), defaultValue, err -> new NopException(err).param(ARG_NODE, this));
     }
 
     public boolean isCDataText() {

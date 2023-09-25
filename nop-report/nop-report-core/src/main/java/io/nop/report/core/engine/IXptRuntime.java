@@ -9,6 +9,7 @@ package io.nop.report.core.engine;
 
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.dataset.DynamicReportDataSet;
@@ -30,6 +31,10 @@ public interface IXptRuntime extends IEvalContext {
     ExpandedRow getRow();
 
     void setRow(ExpandedRow row);
+
+    ExcelImage getImage();
+
+    void setImage(ExcelImage image);
 
     ExpandedTable getTable();
 

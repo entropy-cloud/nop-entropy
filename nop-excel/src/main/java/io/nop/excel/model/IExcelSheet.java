@@ -9,6 +9,8 @@ package io.nop.excel.model;
 
 import io.nop.core.model.table.ITableView;
 
+import java.util.List;
+
 public interface IExcelSheet {
     String getName();
 
@@ -23,4 +25,6 @@ public interface IExcelSheet {
     Double getDefaultColumnWidth();
 
     ITableView getTable();
+
+    List<ExcelImage> getImages();
 }

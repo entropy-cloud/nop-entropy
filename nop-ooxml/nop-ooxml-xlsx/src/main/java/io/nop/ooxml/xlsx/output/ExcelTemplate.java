@@ -7,15 +7,18 @@
  */
 package io.nop.ooxml.xlsx.output;
 
-import io.nop.commons.mutable.MutableInt;
+import io.nop.commons.bytes.ByteString;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficeConstants;
+import io.nop.ooxml.common.impl.XmlOfficePackagePart;
 import io.nop.ooxml.common.model.ContentTypesPart;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.common.output.AbstractOfficeTemplate;
@@ -23,8 +26,11 @@ import io.nop.ooxml.xlsx.XSSFRelation;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
 import io.nop.ooxml.xlsx.model.StylesPart;
 import io.nop.ooxml.xlsx.model.WorkbookPart;
+import io.nop.ooxml.xlsx.model.drawing.DrawingBuilder;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
 
@@ -51,6 +57,14 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         this(workbook, null);
     }
 
+    static class GenState {
+        int nextSheetIndex;
+        Map<ByteString, String> images = new HashMap<>();
+        int nextImageIndex;
+
+        int nextDrawingIndex;
+    }
+
     @Override
     public void generateToDir(File dir, IEvalContext context) {
         ExcelOfficePackage pkg = this.pkg.copy();
@@ -59,17 +73,17 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
 
         pkg.getWorkbook().clearSheets();
 
-        MutableInt index = new MutableInt();
+        GenState genState = new GenState();
 
         if (sheetGenerator != null) {
             sheetGenerator.generate(context, sheet -> {
-                generateSheet(pkg, dir, index.get(), sheet, context);
-                index.incrementAndGet();
+                int index = genState.nextSheetIndex++;
+                generateSheet(pkg, dir, index, sheet, context, genState);
             });
         } else if (workbook != null) {
             for (ExcelSheet sheet : workbook.getSheets()) {
-                generateSheet(pkg, dir, index.get(), sheet, context);
-                index.incrementAndGet();
+                int index = genState.nextSheetIndex++;
+                generateSheet(pkg, dir, index, sheet, context, genState);
             }
         }
 
@@ -79,7 +93,8 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         pkg.generateToDir(dir, context.getEvalScope());
     }
 
-    private void generateSheet(ExcelOfficePackage pkg, File dir, int index, IExcelSheet sheet, IEvalContext context) {
+    private void generateSheet(ExcelOfficePackage pkg, File dir, int index, IExcelSheet sheet,
+                               IEvalContext context, GenState genState) {
         ContentTypesPart contentTypes = pkg.getContentTypes();
         int sheetId = index + 1;
         String sheetPath = "/xl/worksheets/sheet" + sheetId + ".xml";
@@ -98,6 +113,8 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         new ExcelSheetWriter(sheet, index == 0, this.workbook).indent(isIndent()).generateToResource(resource, context);
         IOfficePackagePart sheetPart = pkg.addFile(sheetPath, resource);
 
+        generateDrawings(sheet, sheetPart, genState);
+
         IResource commentResource = new FileResource(new File(dir, commentPath));
         new ExcelCommentsWriter(sheet).indent(isIndent()).generateToResource(commentResource, context);
         pkg.addFile(commentPath, commentResource);
@@ -106,5 +123,36 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         OfficeRelsPart sheetRels = pkg.makeRelsForPart(sheetPart);
         sheetRels.removeRelationshipByType(XSSFRelation.SHEET_COMMENTS.getRelation());
         sheetRels.addRelationship(XSSFRelation.SHEET_COMMENTS.getRelation(), relCommentsPath, null);
+    }
+
+    private void generateDrawings(IExcelSheet sheet, IOfficePackagePart sheetPart, GenState genState) {
+        if (sheet.getImages() == null)
+            return;
+
+
+        OfficeRelsPart relPart = pkg.makeRelsForPart(sheetPart);
+
+        for (ExcelImage image : sheet.getImages()) {
+            if (image.getData() == null)
+                continue;
+            String path = addImageData(image.getData(), image.getImgType(), genState);
+            relPart.addImage(path);
+        }
+
+        XNode node = new DrawingBuilder().build(sheet.getImages());
+
+        int drawingIndex = genState.nextDrawingIndex++;
+        XmlOfficePackagePart part = new XmlOfficePackagePart("xl/drawings/drawing" + (drawingIndex + 1) + ".xml", node);
+        pkg.addFile(part);
+    }
+
+    private String addImageData(ByteString data, String imgType, GenState genState) {
+        String path = genState.images.get(data);
+        if (path == null) {
+            int index = genState.nextImageIndex++;
+            path = "/xl/media/image" + (index + 1) + "." + imgType;
+            genState.images.put(data, path);
+        }
+        return path;
     }
 }

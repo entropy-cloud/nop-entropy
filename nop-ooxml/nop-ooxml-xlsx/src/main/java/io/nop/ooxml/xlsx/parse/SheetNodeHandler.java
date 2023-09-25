@@ -30,14 +30,11 @@ import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.util.UnitsHelper;
-import io.nop.ooxml.xlsx.model.CommentsPart;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 
 public class SheetNodeHandler extends XNodeHandlerAdapter {
 
@@ -83,7 +80,7 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
     private final StringBuilder formula = new StringBuilder(64);
     private final StringBuilder headerFooter = new StringBuilder(64);
 
-    private Queue<CellPosition> commentCellRefs;
+//    private Queue<CellPosition> commentCellRefs;
 
     private List<ExcelColumnConfig> cols;
 
@@ -92,11 +89,11 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         this.output = output;
     }
 
-    private void init(CommentsPart commentsTable) {
-        if (commentsTable != null) {
-            commentCellRefs = new LinkedList<>(commentsTable.getCellAddresses());
-        }
-    }
+//    private void init(CommentsPart commentsTable) {
+//        if (commentsTable != null) {
+//            commentCellRefs = new LinkedList<>(commentsTable.getCellAddresses());
+//        }
+//    }
 
     private boolean isTextTag(String name) {
         if ("v".equals(name)) {
@@ -260,6 +257,10 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         } else if ("sheetFormatPr".equals(localName)) {
             Double defaultRowHeight = getAttrDouble(attrs, "defaultRowHeight", null);
             output.sheetFormat(defaultRowHeight);
+        } else if ("drawing".equals(localName)) {
+            String id = getAttr(attrs, "r:id");
+            if (id != null)
+                output.drawing(id);
         }
     }
 

@@ -11,6 +11,7 @@ import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficePackage;
+import io.nop.ooxml.xlsx.XSSFRelation;
 import io.nop.ooxml.xlsx.parse.StylesPartParser;
 
 import java.util.List;
@@ -60,5 +61,12 @@ public class ExcelOfficePackage extends OfficePackage {
         ThemesPart themes = new ThemesPart(part.getPath(), part.loadXml());
         addFile(themes);
         return themes;
+    }
+
+    public CommentsPart getCommentsTable(IOfficePackagePart sheetPart) {
+        IOfficePackagePart commentsPart = getRelPartByType(sheetPart, XSSFRelation.SHEET_COMMENTS.getRelation());
+        if (commentsPart == null)
+            return null;
+        return CommentsPart.parse(commentsPart);
     }
 }

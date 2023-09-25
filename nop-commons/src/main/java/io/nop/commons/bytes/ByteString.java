@@ -85,7 +85,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     public boolean isEmpty() {
-        return bytes.length <= 0;
+        return bytes.length == 0;
     }
 
     public int size() {
