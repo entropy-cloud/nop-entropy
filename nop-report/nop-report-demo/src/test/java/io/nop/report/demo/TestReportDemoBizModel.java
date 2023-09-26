@@ -74,7 +74,7 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
 
         WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
         File file = (File) result.getContent();
-        FileHelper.copyFile(file, getTargetFile("test-report.xlsx"));
+        FileHelper.copyFile(file, getTargetFile("test-form-printing.xlsx"));
         file.delete();
     }
 }

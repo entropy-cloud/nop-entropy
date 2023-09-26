@@ -3,6 +3,7 @@ package io.nop.ooxml.xlsx.model.drawing;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
+import io.nop.excel.util.UnitsHelper;
 
 import java.util.List;
 
@@ -38,6 +39,7 @@ public class DrawingBuilder {
             blipFill.setAttr("rotWithShape", 1);
         }
         XNode blip = blipFill.addChild("a:blip");
+        blip.setAttr("xmlns:r","http://schemas.openxmlformats.org/officeDocument/2006/relationships");
         blip.setAttr("r:embed", image.getEmbedId());
         blipFill.addChild("a:stretch");
 
@@ -46,12 +48,15 @@ public class DrawingBuilder {
         if (rot > 0) {
             xfrm.setAttr("rot", rot);
         }
+        /*
         XNode off = xfrm.addChild("a:off");
         off.setAttr("x", 0);
         off.setAttr("y", 0);
         XNode ext = xfrm.addChild("a:ext");
         ext.setAttr("cx", 0);
         ext.setAttr("cy", 0);
+        */
+
 
         XNode prstGeom = spPr.addChild("a:prstGeom");
         prstGeom.setAttr("prst", "rect");
@@ -68,17 +73,17 @@ public class DrawingBuilder {
 
         XNode from = XNode.make("xdr:from");
         from.addChild("xdr:col").content(anchor.getCol1());
-        from.addChild("xdr:colOff").content(anchor.getDx1());
+        from.addChild("xdr:colOff").content(UnitsHelper.pointsToEMU(anchor.getDx1()));
         from.addChild("xdr:row").content(anchor.getRow1());
-        from.addChild("xdr:rowOff").content(anchor.getDy1());
+        from.addChild("xdr:rowOff").content(UnitsHelper.pointsToEMU(anchor.getDy1()));
 
         node.appendChild(from);
 
         XNode to = XNode.make("xdr:to");
         to.addChild("xdr:col").content(anchor.getCol2());
-        to.addChild("xdr:colOff").content(anchor.getDx2());
+        to.addChild("xdr:colOff").content(UnitsHelper.pointsToEMU(anchor.getDx2()));
         to.addChild("xdr:row").content(anchor.getRow2());
-        to.addChild("xdr:rowOff").content(anchor.getDy2());
+        to.addChild("xdr:rowOff").content(UnitsHelper.pointsToEMU(anchor.getDy2()));
         node.appendChild(to);
         return node;
     }

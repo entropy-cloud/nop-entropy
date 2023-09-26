@@ -17,7 +17,7 @@
     </properties>
 
     <modules>
-        <module>nop-benchmark-orm</module>
+<!--        <module>nop-benchmark-orm</module>-->
         <module>nop-benchmark-xpl</module>
         <module>nop-benchmark-json</module>
     </modules>

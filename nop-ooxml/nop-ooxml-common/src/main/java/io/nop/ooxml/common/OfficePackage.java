@@ -262,6 +262,11 @@ public class OfficePackage implements Closeable {
         return makeRels(relsPath);
     }
 
+    public OfficeRelsPart makeRelsForPart(String partPath) {
+        String relsPath = PackagingURIHelper.getRelationshipPartName(partPath);
+        return makeRels(relsPath);
+    }
+
     public IOfficePackagePart getRelPart(IOfficePackagePart part, String relId) {
         OfficeRelsPart rels = getRelsForPart(part);
         if (rels == null)

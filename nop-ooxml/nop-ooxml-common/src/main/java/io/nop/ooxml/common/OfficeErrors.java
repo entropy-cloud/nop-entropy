@@ -29,6 +29,8 @@ public interface OfficeErrors {
 
     String ARG_PATH = "path";
 
+    String ARG_FILE_EXT = "fileExt";
+
     ErrorCode ERR_OOXML_INVALID_FORMAT = define("nop.err.ooxml.invalid-format", "文件格式不正确，解析失败");
 
     ErrorCode ERR_OOXML_LINK_SOURCE_NOT_XML = define("nop.err.ooxml.link-source-not-xml",

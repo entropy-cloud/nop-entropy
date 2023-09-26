@@ -294,6 +294,7 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
                             image = genImage(ec, image, xptRt, index);
                             if (image != null) {
                                 index.incrementAndGet();
+                                genImages.add(image);
                             }
                         }
                     }
@@ -358,6 +359,7 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
         ExcelClientAnchor retAnchor = anchor.copy();
         retAnchor.setRow1(cell.getRowIndex());
         retAnchor.setCol1(cell.getColIndex());
+        ret.setAnchor(retAnchor);
 
         ret.setData(model.getData());
         return ret;

@@ -52,7 +52,7 @@ public class DrawingParser {
         XNode blipFill = pic.childByTag("xdr:blipFill");
         XNode blip = blipFill != null ? blipFill.childByTag("a:blip") : null;
 
-        XNode spPr = pic.childByTag("spPr");
+        XNode spPr = pic.childByTag("xdr:spPr");
         XNode xfrm = spPr != null ? spPr.childByTag("a:xfrm") : null;
 
         ExcelImage image = new ExcelImage();

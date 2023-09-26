@@ -37,12 +37,17 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
 
     private final ExcelWorkbook workbook;
 
+    private String drawingRelId;
+
     public ExcelSheetWriter(IExcelSheet sheet, boolean tabSelected, ExcelWorkbook workbook) {
         this.sheet = sheet;
         this.tabSelected = tabSelected;
         this.workbook = workbook;
     }
 
+    public String getDrawingRelId(){
+        return drawingRelId;
+    }
     @Override
     public void generateXml(IXNodeHandler out, IEvalContext context) {
         out.beginDoc("UTF-8", null, null);
@@ -70,8 +75,10 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
 
         genPageMargins(out, sheet);
 
-        if (sheet.getImages() != null && !sheet.getImages().isEmpty())
-            out.simpleNode(null, "drawing", attrs("r:id", "rId1"));
+        if (sheet.getImages() != null && !sheet.getImages().isEmpty()) {
+            this.drawingRelId = "rId1";
+            out.simpleNode(null, "drawing", attrs("r:id", this.drawingRelId));
+        }
         out.endNode("worksheet");
         out.endDoc();
     }

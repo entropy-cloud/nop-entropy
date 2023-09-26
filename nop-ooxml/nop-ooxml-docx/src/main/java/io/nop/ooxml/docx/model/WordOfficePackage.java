@@ -18,8 +18,7 @@ import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.docx.DocxConstants;
 
 import static io.nop.core.CoreErrors.ARG_FILE_NAME;
-import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
-import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_UNSUPPORTED_CONTENT_TYPE;
+import static io.nop.ooxml.common.OfficeErrors.*;
 
 public class WordOfficePackage extends OfficePackage {
     @Override
@@ -29,13 +28,16 @@ public class WordOfficePackage extends OfficePackage {
         return pkg;
     }
 
-    public OfficeRelationship addImage(IResource resource) {
-        String fileExt = StringHelper.fileExt(resource.getPath());
+    public OfficeRelationship addImage(IResource resource){
+        return addImage(StringHelper.fileExt(resource.getPath()),resource);
+    }
+
+    public OfficeRelationship addImage(String fileExt, IResource resource) {
         ContentTypesPart contentTypes = getContentTypes();
-        String contentType = ContentTypes.getContentTypeFromFileExtension(resource.getName());
+        String contentType = ContentTypes.getContentTypeFromFileExtension(fileExt);
         if (contentType == null)
             throw new NopException(ERR_OOXML_UNSUPPORTED_CONTENT_TYPE).param(ARG_PATH, resource.getPath())
-                    .param(ARG_FILE_NAME, resource.getName());
+                    .param(ARG_FILE_EXT, fileExt);
 
         contentTypes.addDefaultContentType(fileExt.toLowerCase(), contentType);
 

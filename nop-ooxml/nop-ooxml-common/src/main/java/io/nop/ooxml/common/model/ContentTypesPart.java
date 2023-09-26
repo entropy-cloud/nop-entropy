@@ -128,11 +128,15 @@ public class ContentTypesPart implements IOfficePackagePart {
      * @param partName    Name of the part.
      * @param contentType Content type of the part.
      */
-    private void addOverrideContentType(PackagePartName partName, String contentType) {
+    public void addOverrideContentType(PackagePartName partName, String contentType) {
         if (overrideContentType == null) {
             overrideContentType = new TreeMap<>();
         }
         overrideContentType.put(partName, contentType);
+    }
+
+    public void addOverrideContentType(String partName, String contentType) {
+        addOverrideContentType(PackagingURIHelper.createPartName(partName), contentType);
     }
 
     /**

@@ -51,6 +51,13 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: linkExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _linkExpr ;
+    
+    /**
+     *  
      * xml name: linkUrl
      * 
      */
@@ -76,13 +83,6 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
      * 控制图片是否被打印。套打对应的背景图片不需要被打印
      */
     private boolean _print  = true;
-    
-    /**
-     *  
-     * xml name: ref
-     * 
-     */
-    private java.lang.String _ref ;
     
     /**
      *  
@@ -195,6 +195,25 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: linkExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getLinkExpr(){
+      return _linkExpr;
+    }
+
+    
+    public void setLinkExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._linkExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: linkUrl
      *  
      */
@@ -271,25 +290,6 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
-     * xml name: ref
-     *  
-     */
-    
-    public java.lang.String getRef(){
-      return _ref;
-    }
-
-    
-    public void setRef(java.lang.String value){
-        checkAllowChange();
-        
-        this._ref = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: rotateDegree
      *  
      */
@@ -346,11 +346,11 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
         out.put("dataExpr",this.getDataExpr());
         out.put("description",this.getDescription());
         out.put("imgType",this.getImgType());
+        out.put("linkExpr",this.getLinkExpr());
         out.put("linkUrl",this.getLinkUrl());
         out.put("name",this.getName());
         out.put("noChangeAspect",this.isNoChangeAspect());
         out.put("print",this.isPrint());
-        out.put("ref",this.getRef());
         out.put("rotateDegree",this.getRotateDegree());
         out.put("testExpr",this.getTestExpr());
     }

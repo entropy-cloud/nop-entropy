@@ -11,6 +11,7 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.ByteArrayResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
@@ -37,13 +38,13 @@ import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
 public class ExcelTemplate extends AbstractOfficeTemplate {
 
     private final ExcelWorkbook workbook;
-    private final ExcelOfficePackage pkg;
+    private final ExcelOfficePackage modelPkg;
     private final IExcelSheetGenerator sheetGenerator;
 
     public ExcelTemplate(ExcelOfficePackage pkg, ExcelWorkbook workbook,
                          IExcelSheetGenerator sheetGenerator) {
         this.workbook = workbook;
-        this.pkg = pkg;
+        this.modelPkg = pkg;
         this.sheetGenerator = sheetGenerator;
         pkg.loadInMemory();
     }
@@ -59,7 +60,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
 
     static class GenState {
         int nextSheetIndex;
-        Map<ByteString, String> images = new HashMap<>();
+        Map<ByteString, String[]> images = new HashMap<>();
         int nextImageIndex;
 
         int nextDrawingIndex;
@@ -67,7 +68,7 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
 
     @Override
     public void generateToDir(File dir, IEvalContext context) {
-        ExcelOfficePackage pkg = this.pkg.copy();
+        ExcelOfficePackage pkg = this.modelPkg.copy();
 
         context.getEvalScope().setLocalValue(null, OfficeConstants.VAR_OFC_PKG, pkg);
 
@@ -110,10 +111,11 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         workbook.addSheet(relId, sheetId, sheet.getName());
 
         IResource resource = new FileResource(new File(dir, sheetPath));
-        new ExcelSheetWriter(sheet, index == 0, this.workbook).indent(isIndent()).generateToResource(resource, context);
+        ExcelSheetWriter writer = new ExcelSheetWriter(sheet, index == 0, this.workbook);
+        writer.indent(isIndent()).generateToResource(resource, context);
         IOfficePackagePart sheetPart = pkg.addFile(sheetPath, resource);
 
-        generateDrawings(sheet, sheetPart, genState);
+        generateDrawings(pkg, sheet, writer.getDrawingRelId(), sheetPart, genState);
 
         IResource commentResource = new FileResource(new File(dir, commentPath));
         new ExcelCommentsWriter(sheet).indent(isIndent()).generateToResource(commentResource, context);
@@ -125,34 +127,47 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         sheetRels.addRelationship(XSSFRelation.SHEET_COMMENTS.getRelation(), relCommentsPath, null);
     }
 
-    private void generateDrawings(IExcelSheet sheet, IOfficePackagePart sheetPart, GenState genState) {
-        if (sheet.getImages() == null)
+    private void generateDrawings(ExcelOfficePackage pkg, IExcelSheet sheet, String drawingRelId, IOfficePackagePart sheetPart, GenState genState) {
+        if (sheet.getImages() == null || sheet.getImages().isEmpty())
             return;
 
 
-        OfficeRelsPart relPart = pkg.makeRelsForPart(sheetPart);
+        int drawingIndex = genState.nextDrawingIndex++;
+        String drawingPath = "/xl/drawings/drawing" + (drawingIndex + 1) + ".xml";
 
+        // <Override PartName="/xl/drawings/drawing1.xml"
+        //              ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>
+        pkg.getContentTypes().addOverrideContentType(drawingPath, XSSFRelation.DRAWINGS.getType());
+
+        OfficeRelsPart relPart = pkg.makeRelsForPart(sheetPart);
+        relPart.addRelationship(drawingRelId, XSSFRelation.DRAWINGS.getRelation(), "../drawings/drawing" + (drawingIndex + 1) + ".xml", null);
+
+        OfficeRelsPart drawingRelPart = pkg.makeRelsForPart(drawingPath);
         for (ExcelImage image : sheet.getImages()) {
             if (image.getData() == null)
                 continue;
-            String path = addImageData(image.getData(), image.getImgType(), genState);
-            relPart.addImage(path);
+            String[] pathAndId = addImageData(pkg, image.getData(), image.getImgType(), genState);
+            if (pathAndId[1] == null) {
+                pathAndId[1] = drawingRelPart.addImage("/" + pathAndId[0]).getId();
+            }
+            image.setEmbedId(pathAndId[1]);
         }
 
         XNode node = new DrawingBuilder().build(sheet.getImages());
-
-        int drawingIndex = genState.nextDrawingIndex++;
-        XmlOfficePackagePart part = new XmlOfficePackagePart("xl/drawings/drawing" + (drawingIndex + 1) + ".xml", node);
+        XmlOfficePackagePart part = new XmlOfficePackagePart(drawingPath.substring(1), node);
         pkg.addFile(part);
+
     }
 
-    private String addImageData(ByteString data, String imgType, GenState genState) {
-        String path = genState.images.get(data);
-        if (path == null) {
+    private String[] addImageData(ExcelOfficePackage pkg, ByteString data, String imgType, GenState genState) {
+        String[] pathAndId = genState.images.get(data);
+        if (pathAndId == null) {
             int index = genState.nextImageIndex++;
-            path = "/xl/media/image" + (index + 1) + "." + imgType;
-            genState.images.put(data, path);
+            IResource resource = new ByteArrayResource("/" + index, data.toByteArray(), -1);
+            String path = pkg.addImage(imgType, resource);
+            pathAndId = new String[]{path, null};
+            genState.images.put(data, pathAndId);
         }
-        return path;
+        return pathAndId;
     }
 }
