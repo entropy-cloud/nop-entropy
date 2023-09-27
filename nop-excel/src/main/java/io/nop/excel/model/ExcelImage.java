@@ -7,6 +7,7 @@
  */
 package io.nop.excel.model;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.excel.model._gen._ExcelImage;
 
 public class ExcelImage extends _ExcelImage {
@@ -15,8 +16,71 @@ public class ExcelImage extends _ExcelImage {
      */
     private String embedId;
 
+    private double left;
+    private double top;
+    private double width;
+    private double height;
+
     public ExcelImage() {
 
+    }
+
+    public String getMimeType() {
+        String imgType = getImgType();
+        if (StringHelper.isEmpty(imgType))
+            return null;
+
+        if (imgType.equals("jpg"))
+            return "image/jpeg";
+
+        if (imgType.equals("svg"))
+            return "image/svg+xml";
+
+        return "image/" + imgType;
+    }
+
+    public double getLeft() {
+        return left;
+    }
+
+    public void setLeft(double left) {
+        this.left = left;
+    }
+
+    public double getTop() {
+        return top;
+    }
+
+    public void calcSize(IExcelSheet sheet) {
+        ExcelClientAnchor anchor = getAnchor();
+        left = sheet.getCellLeft(anchor.getCol1()) + anchor.getDx1();
+        top = sheet.getCellTop(anchor.getRow1()) + anchor.getDy1();
+
+        double x2 = sheet.getCellLeft(anchor.getCol2()) + anchor.getDx2();
+        double y2 = sheet.getCellTop(anchor.getRow2()) + anchor.getDy2();
+
+        width = x2 - left;
+        height = y2 - top;
+    }
+
+    public void setTop(double top) {
+        this.top = top;
+    }
+
+    public double getWidth() {
+        return width;
+    }
+
+    public void setWidth(double width) {
+        this.width = width;
+    }
+
+    public double getHeight() {
+        return height;
+    }
+
+    public void setHeight(double height) {
+        this.height = height;
     }
 
     public String getEmbedId() {

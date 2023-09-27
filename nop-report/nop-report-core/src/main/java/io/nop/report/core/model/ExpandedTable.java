@@ -187,6 +187,8 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
     }
 
     public ExpandedRow getRow(int rowIndex) {
+        if (rowIndex >= rows.size())
+            return null;
         return rows.get(rowIndex);
     }
 

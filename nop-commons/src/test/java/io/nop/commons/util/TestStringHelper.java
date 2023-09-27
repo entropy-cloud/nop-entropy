@@ -475,4 +475,18 @@ public class TestStringHelper {
         assertTrue(StringHelper.isQuotedString("\"sss'\""));
         assertFalse(StringHelper.isQuotedString("\"sss'"));
     }
+
+    @Test
+    public void testNextName(){
+        assertEquals("1", StringHelper.nextName(""));
+        assertEquals("abc1", StringHelper.nextName("abc"));
+        assertEquals("a2", StringHelper.nextName("a1"));
+        assertEquals("a9", StringHelper.nextName("a8"));
+        assertEquals("a10", StringHelper.nextName("a9"));
+        assertEquals("a100", StringHelper.nextName("a99"));
+        assertEquals("100", StringHelper.nextName("99"));
+        assertEquals("99", StringHelper.nextName("98"));
+        assertEquals("[1]", StringHelper.nextName("[0]"));
+        assertEquals("a(2)", StringHelper.nextName("a(1)"));
+    }
 }

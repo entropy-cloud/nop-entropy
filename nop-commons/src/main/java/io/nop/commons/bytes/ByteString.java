@@ -200,7 +200,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     public String toDataUrl(String mimeType) {
-        return "data:" + mimeType + ";base64," + base64Url();
+        return "data:" + mimeType + ";base64," + base64();
     }
 
     /**

@@ -24,10 +24,10 @@ import io.nop.commons.text.XMLChar;
 import io.nop.commons.text.tokenizer.SimpleTextReader;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.random.IRandom;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
@@ -4298,5 +4298,61 @@ public class StringHelper extends ApiStringHelper {
             return "***";
         }
         return toString(value, null);
+    }
+
+    @Deterministic
+    public static String nextName(String varName) {
+        if (varName == null || varName.isEmpty())
+            return "1";
+
+        char c = varName.charAt(varName.length() - 1);
+        if (c == ')') {
+            int pos = varName.lastIndexOf('(');
+            if (pos >= 0) {
+                String seq = varName.substring(pos + 1, varName.length() - 1);
+                if (StringHelper.isInt(seq)) {
+                    int intValue = StringHelper.parseInt(seq, 10);
+                    return varName.substring(0,pos + 1) + (intValue + 1) + ")";
+                }
+            }
+        } else if (c == ']') {
+            int pos = varName.lastIndexOf('[');
+            if (pos >= 0) {
+                String seq = varName.substring(pos + 1, varName.length() - 1);
+                if (StringHelper.isInt(seq)) {
+                    int intValue = StringHelper.parseInt(seq, 10);
+                    return varName.substring(0,pos + 1) + (intValue + 1) + "]";
+                }
+            }
+        }
+
+        if (isDigit(c)) {
+            if (c < '9') {
+                char c2 = (char) (c + 1);
+                return varName.substring(0,varName.length() - 1) + c2;
+            } else {
+                int pos = _searchNotDigit(varName);
+                if (pos < 0) {
+                    // 全部都是9
+                    return "1" + StringHelper.repeat("0", varName.length());
+                }
+                int num = parseInt(varName.substring(pos + 1), 10) + 1;
+                int size = varName.length() - pos;
+                return varName.substring(0, pos + 1) + String.format("%0" + size + "d", num);
+            }
+        }
+        return varName + "1";
+    }
+
+    static int _searchNotDigit(String varName) {
+        for (int i = varName.length() - 1; i >= 0; i--) {
+            char c = varName.charAt(i);
+            if (!isDigit(c))
+                return i;
+
+            if (c < '9')
+                return i - 1;
+        }
+        return -1;
     }
 }

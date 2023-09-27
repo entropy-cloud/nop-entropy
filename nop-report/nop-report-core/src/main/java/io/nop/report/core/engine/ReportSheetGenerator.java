@@ -279,6 +279,7 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
         for (ExcelImage image : images) {
             CellPosition pos = image.getAnchor().getStartPosition();
             map.computeIfAbsent(pos, k -> new ArrayList<>(1)).add(image);
+            image.calcSize(sheet);
         }
 
         List<ExcelImage> genImages = new ArrayList<>();
@@ -293,6 +294,7 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
                         for (ExcelImage image : list) {
                             image = genImage(ec, image, xptRt, index);
                             if (image != null) {
+                                image.calcSize(sheet);
                                 index.incrementAndGet();
                                 genImages.add(image);
                             }
@@ -354,6 +356,8 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
         ret.setImgType(model.getImgType());
         ret.setRotateDegree(model.getRotateDegree());
         ret.setNoChangeAspect(model.isNoChangeAspect());
+        ret.setPrint(model.isPrint());
+        ret.setLinkUrl(model.getLinkUrl());
 
         ExcelClientAnchor anchor = model.getAnchor();
         ExcelClientAnchor retAnchor = anchor.copy();

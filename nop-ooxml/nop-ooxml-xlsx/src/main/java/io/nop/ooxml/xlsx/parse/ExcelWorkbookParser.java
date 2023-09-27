@@ -82,6 +82,7 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
                         continue;
                     image.setImgType(StringHelper.fileExt(imagePart.getPath()));
                     image.setData(ByteString.of(imagePart.generateBytes(DisabledEvalScope.INSTANCE)));
+                    image.calcSize(sheet);
                 }
                 sheet.setImages(images);
             }

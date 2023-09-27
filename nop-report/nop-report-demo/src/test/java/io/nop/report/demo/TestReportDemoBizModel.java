@@ -16,7 +16,7 @@ import jakarta.inject.Inject;
 import java.io.File;
 import java.util.List;
 
-@NopTestConfig(localDb = true)
+@NopTestConfig(localDb = true,disableSnapshot = false)
 public class TestReportDemoBizModel extends JunitAutoTestCase {
 
     @Inject

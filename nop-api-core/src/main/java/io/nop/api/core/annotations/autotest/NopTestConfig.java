@@ -41,6 +41,11 @@ public @interface NopTestConfig {
     String enableDataAuth() default "";
 
     /**
+     * 如果设置为true,则强制忽略方法上的@EnableSnapshot注解。一般在重新录制单元测试时可以临时启用这个开关
+     */
+    boolean disableSnapshot() default false;
+
+    /**
      * 是否自动加载/nop/auto-config/目录下的xxx.beans配置
      */
     boolean enableAutoConfig() default true;

@@ -1,5 +1,6 @@
 package io.nop.ooxml.xlsx.model.drawing;
 
+import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.excel.model.ExcelClientAnchor;
@@ -7,7 +8,6 @@ import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.constants.ExcelAnchorType;
 import io.nop.excel.util.UnitsHelper;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrEnumValue;
@@ -31,15 +31,21 @@ import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrEnumValue;
  */
 public class DrawingParser {
     public List<ExcelImage> parseDrawing(XNode node) {
-        List<ExcelImage> ret = new ArrayList<>(node.getChildCount());
+        KeyedList<ExcelImage> ret = new KeyedList<>(ExcelImage::getName);
 
         for (XNode child : node.getChildren()) {
             if (child.getTagName().equals("xdr:twoCellAnchor")) {
-                ret.add(parseAnchor(child));
+                ExcelImage image = parseAnchor(child);
+                // name重复，需要重命名
+                while (ret.getByKey(image.getName()) != null) {
+                    image.setName(StringHelper.nextName(image.getName()));
+                }
+                ret.add(image);
             }
         }
         return ret;
     }
+
 
     public ExcelImage parseAnchor(XNode anchorNode) {
         XNode clientData = anchorNode.childByTag("xdr:clientData");

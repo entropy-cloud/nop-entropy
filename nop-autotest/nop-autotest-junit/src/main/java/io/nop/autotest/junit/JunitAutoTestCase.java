@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
 
+import static io.nop.autotest.core.AutoTestConfigs.CFG_AUTOTEST_DISABLE_SNAPSHOT;
 import static io.nop.autotest.core.AutoTestConfigs.CFG_AUTOTEST_FORCE_SAVE_OUTPUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -56,7 +57,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
 
     protected void configExecutionMode(TestInfo testInfo) {
         EnableSnapshot enableSnapshot = testInfo.getTestMethod().get().getAnnotation(EnableSnapshot.class);
-        if (enableSnapshot != null) {
+        if (enableSnapshot != null && !CFG_AUTOTEST_DISABLE_SNAPSHOT.get()) {
             setCheckOutput(enableSnapshot.checkOutput());
             setLocalDb(enableSnapshot.localDb());
             setSqlInit(enableSnapshot.sqlInit());

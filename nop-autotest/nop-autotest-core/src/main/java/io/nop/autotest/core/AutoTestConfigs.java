@@ -22,4 +22,8 @@ public interface AutoTestConfigs {
     @Description("强制设置AutoTestCase保存执行结果，而不是校验执行结果符合预期。当我们需要根据根据录制的输入数据重新生成输出时可以开启此开关")
     IConfigReference<Boolean> CFG_AUTOTEST_FORCE_SAVE_OUTPUT = AppConfig.varRef(s_loc,"nop.autotest.force-save-output",
             Boolean.class, false);
+
+    @Description("强制设置AutoTestCase保存执行结果，禁用所有方法上的@EnableSnapshot注解")
+    IConfigReference<Boolean> CFG_AUTOTEST_DISABLE_SNAPSHOT = AppConfig.varRef(s_loc,"nop.autotest.disable-snapshot",
+            Boolean.class, false);
 }

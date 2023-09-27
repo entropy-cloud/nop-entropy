@@ -66,6 +66,10 @@ public interface XptConstants {
 
     String VAR_SCOPED_CSS_PREFIX = "scopedCssPrefix";
 
+    String VAR_XPT_REPORT_ID = "xptReportId";
+
+    String DEFAULT_XPT_REPORT_ID = "xpt-report";
+
     double DEFAULT_WIDTH = 8.5;
 
 

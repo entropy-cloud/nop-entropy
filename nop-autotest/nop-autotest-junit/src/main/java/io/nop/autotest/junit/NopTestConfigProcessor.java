@@ -19,6 +19,7 @@ import io.nop.dao.DaoConfigs;
 
 import java.util.Properties;
 
+import static io.nop.autotest.core.AutoTestConfigs.CFG_AUTOTEST_DISABLE_SNAPSHOT;
 import static io.nop.core.unittest.BaseTestCase.setTestConfig;
 import static io.nop.ioc.IocConfigs.CFG_IOC_APP_BEANS_CONTAINER_START_MODE;
 import static io.nop.ioc.IocConfigs.CFG_IOC_APP_BEANS_FILES;
@@ -42,6 +43,10 @@ public class NopTestConfigProcessor {
             setTestConfig(DaoConfigs.CFG_DATASOURCE_USERNAME, "sa");
             setTestConfig(DaoConfigs.CFG_DATASOURCE_PASSWORD, "");
             setTestConfig(DaoConfigs.CFG_DATASOURCE_JDBC_URL, "jdbc:h2:mem:" + StringHelper.generateUUID());
+        }
+
+        if(config.disableSnapshot()){
+            setTestConfig(CFG_AUTOTEST_DISABLE_SNAPSHOT,true);
         }
 
         setTestConfig(CFG_IOC_APP_BEANS_CONTAINER_START_MODE, config.beanContainerStartMode().name());
