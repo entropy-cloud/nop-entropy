@@ -9,6 +9,7 @@ package io.nop.graphql.core.fetcher;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
@@ -19,6 +20,7 @@ import io.nop.xlang.xmeta.IObjPropMeta;
 
 import java.util.function.BiFunction;
 
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_CHECK_DICT_WHEN_INIT;
 import static io.nop.graphql.core.GraphQLErrors.ARG_DICT_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_PROP_NAME;
@@ -51,7 +53,7 @@ public class DictLabelFetcherProvider implements IDataFetcherProvider {
             IDataFetcher fetcher = valueProp.getFetcher();
             if (fetcher == null)
                 fetcher = BeanPropertyFetcher.INSTANCE;
-            if (!DictProvider.instance().existsDict(dictName))
+            if (CFG_GRAPHQL_CHECK_DICT_WHEN_INIT.get() && !DictProvider.instance().existsDict(dictName))
                 throw new NopException(ERR_GRAPHQL_UNKNOWN_DICT).source(fieldDef).param(ARG_DICT_NAME, dictName);
 
             fetcher = new TransformFetcher(fetcher, loadLabel(dictName));
@@ -66,7 +68,7 @@ public class DictLabelFetcherProvider implements IDataFetcherProvider {
             String locale = env.getExecutionContext().getContext().getLocale();
             DictBean dict = DictProvider.instance().getDict(locale, dictName, env.getCache(),env.getExecutionContext());
             if (dict == null)
-                return null;
+                return StringHelper.toString(value,null);
             return dict.getLabelByValue(value);
         };
     }

@@ -63,15 +63,10 @@ public class TestLoginApi extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testLogin() {
-        forceStackTrace();
         LoginApi loginApi = buildLoginApi();
-
-        // ApiRequest<LoginRequest> request = request("request.json5", LoginRequest.class);
         ApiRequest<LoginRequest> request = input("request.json5", new TypeReference<ApiRequest<LoginRequest>>() {
         }.getType());
-
         ApiResponse<LoginResult> result = loginApi.login(request);
-
         output("response.json5", result);
 
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 1000));

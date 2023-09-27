@@ -56,4 +56,8 @@ public interface GraphQLConfigs {
     @Description("系统启动时主动初始化所有BizObject对象")
     IConfigReference<Boolean> CFG_GRAPHQL_EAGER_INIT_BIZ_OBJECT = varRef(s_loc,"nop.graphql.eager-init-biz-object",
             Boolean.class, true);
+
+    @Description("GraphQL模型装载的时候就检查字典是否存在，避免运行时报错")
+    IConfigReference<Boolean> CFG_GRAPHQL_CHECK_DICT_WHEN_INIT = varRef(s_loc,"nop.graphql.check-dict-when-init",
+            Boolean.class, true);
 }
