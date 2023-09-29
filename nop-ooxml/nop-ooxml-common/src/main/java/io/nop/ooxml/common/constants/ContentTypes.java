@@ -72,12 +72,16 @@ public final class ContentTypes {
     // image/png ISO/IEC 15948:2003 http://www.libpng.org/pub/png/spec/
     public static final String IMAGE_PNG = "image/png";
 
+    public static final String IMAGE_EMF = "image/emf";
+
     public static final String EXTENSION_PNG = "png";
 
     // image/gif http://www.w3.org/Graphics/GIF/spec-gif89a.txt
     public static final String IMAGE_GIF = "image/gif";
 
     public static final String EXTENSION_GIF = "gif";
+
+    public static final String EXTENSION_EMF = "emf";
 
     /**
      * TIFF image format.
@@ -120,6 +124,8 @@ public final class ContentTypes {
             return IMAGE_TIFF;
         else if (extension.equals(EXTENSION_XML))
             return XML;
+        else if(extension.equals(EXTENSION_EMF))
+            return IMAGE_EMF;
         else
             return null;
     }

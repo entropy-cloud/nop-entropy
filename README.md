@@ -100,7 +100,7 @@ Nop平台的前端代码在[nop-chaos项目](https://gitee.com/canonical-entropy
 
 #### 安装教程
 
-环境准备： JDK 17+、Maven 3.8.2+、Git
+环境准备： JDK 17+、Maven 3.8.9+、Git
 
 ```shell
 git clone https://gitee.com/canonical-entropy/nop-entropy.git
@@ -108,7 +108,7 @@ cd nop-entropy
 mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
 ```
 
-注意: **编译运行需要JDK11以上版本，不支持JDK8**, **在PowerShell中执行的时候需要用引号将参数包裹起来**
+注意: **编译运行需要JDK17以上版本，不支持JDK8**, **在PowerShell中执行的时候需要用引号将参数包裹起来**
 
 ```
 mvn clean install "-DskipTests" "-Dquarkus.package.type=uber-jar"
@@ -116,10 +116,7 @@ mvn clean install "-DskipTests" "-Dquarkus.package.type=uber-jar"
 
 quarkus.package.type参数是quarkus框架所识别的一个参数，指定它为uber-jar将会把nop-quarkus-demo等项目打包成一个包含所有依赖类的单一jar包。可以通过java -jar XXX-runner.jar的方式直接运行。
 
-maven3.9.4打包quarkus可能会失败，可以先用如下方式跳过quarkus打包
-````
-mvn install -DskipTests
-````
+目前已经升级到quarkus3.0版本，用低版本maven运行nop-auth-app等模块可能会失败。建议升级到maven 3.9.3版本，或者使用nop-entropy跟目录下的mvnw指令，它会自动下载并使用maven 3.9.3。
 
 * nop-idea-plugin
   nop-idea-plugin是IDEA的插件项目，必须采用Gradle编译。
