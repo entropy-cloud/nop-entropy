@@ -1,17 +1,18 @@
+<div id="xpt-report">
 <style>
-.xpt-table{
+#xpt-report .xpt-table{
    border-collapse:collapse;border-spacing:0;table-layout:fixed;
 }
-.xpt-cell-num{ text-align:right; }
-.xpt-cell{
+#xpt-report .xpt-cell-num{ text-align:right; }
+#xpt-report .xpt-cell{
    word-wrap:break-word;word-break:break-all;padding:2px;box-sizing:border-box;
 }
-.xpt-s-0{
+#xpt-report .xpt-s-0{
 font-family:等线;
 font-size:11pt;
 color:#000000;
 border:none;}
-.xpt-s-1{
+#xpt-report .xpt-s-1{
 font-family:微软雅黑;
 font-size:11pt;
 color:#000000;
@@ -21,7 +22,7 @@ border-bottom:1px dotted rgba(0,0,0,1.0);
 border-left:1px dotted rgba(0,0,0,1.0);
 border-right:1px dotted rgba(0,0,0,1.0);
 }
-.xpt-s-2{
+#xpt-report .xpt-s-2{
 vertical-align:middle;
 text-align:left;
 font-family:微软雅黑;
@@ -32,14 +33,14 @@ border-top:2px solid rgba(0,0,0,1.0);
 border-bottom:1px dotted rgba(0,0,0,1.0);
 border-left:1px dotted rgba(0,0,0,1.0);
 border-right:none;}
-.xpt-s-3{
+#xpt-report .xpt-s-3{
 font-family:微软雅黑;
 font-size:11pt;
 color:#000000;
 background-color:#FFFFFF;
 border:1px dotted rgba(0,0,0,1.0);
 }
-.xpt-s-4{
+#xpt-report .xpt-s-4{
 vertical-align:middle;
 text-align:left;
 font-family:微软雅黑;
@@ -50,7 +51,7 @@ border-top:1px dotted rgba(0,0,0,1.0);
 border-bottom:1px dotted rgba(0,0,0,1.0);
 border-left:1px dotted rgba(0,0,0,1.0);
 border-right:none;}
-.xpt-s-5{
+#xpt-report .xpt-s-5{
 font-family:微软雅黑;
 font-size:11pt;
 color:#000000;
@@ -60,7 +61,7 @@ border-bottom:1px dotted rgba(0,0,0,1.0);
 border-left:1px dotted rgba(0,0,0,1.0);
 border-right:2px solid rgba(0,0,0,1.0);
 }
-.xpt-s-6{
+#xpt-report .xpt-s-6{
 font-family:微软雅黑;
 font-weight:bold;
 font-size:11pt;
@@ -71,26 +72,26 @@ border-bottom:1px dotted rgba(0,0,0,1.0);
 border-left:2px solid rgba(0,0,0,1.0);
 border-right:1px dotted rgba(0,0,0,1.0);
 }
-.xpt-s-7{
+#xpt-report .xpt-s-7{
 font-family:微软雅黑;
 font-size:11pt;
 color:#000000;
 border:none;}
-.xpt-s-8{
+#xpt-report .xpt-s-8{
 font-family:微软雅黑;
 font-weight:bold;
 font-size:11pt;
 color:#000000;
 border:1px dashed rgba(0,0,0,1.0);
 }
-.xpt-s-9{
+#xpt-report .xpt-s-9{
 font-family:微软雅黑;
 font-size:11pt;
 color:#000000;
 border-top:1px dashed black;
 border-bottom:1px dashed black;
 border-left:none;border-right:none;}
-.xpt-s-10{
+#xpt-report .xpt-s-10{
 font-family:微软雅黑;
 font-size:11pt;
 color:#000000;
@@ -98,7 +99,7 @@ border-top:1px dashed black;
 border-bottom:1px dashed black;
 border-left:none;border-right:1px dashed black;
 }
-.xpt-s-11{
+#xpt-report .xpt-s-11{
 vertical-align:middle;
 text-align:center;
 font-family:微软雅黑;
@@ -110,7 +111,7 @@ border-top:none;border-bottom:1px solid rgba(0,0,0,1.0);
 border-left:1px solid rgba(0,0,0,1.0);
 border-right:1px solid rgba(0,0,0,1.0);
 }
-.xpt-s-12{
+#xpt-report .xpt-s-12{
 font-family:等线;
 font-size:11pt;
 color:#000000;
@@ -118,7 +119,7 @@ border-top:2px solid rgba(0,0,0,1.0);
 border-bottom:none;border-left:2px solid rgba(0,0,0,1.0);
 border-right:2px solid rgba(0,0,0,1.0);
 }
-.xpt-s-13{
+#xpt-report .xpt-s-13{
 font-family:微软雅黑;
 font-weight:bold;
 font-size:11pt;
@@ -129,14 +130,14 @@ border-bottom:1px dotted rgba(0,0,0,1.0);
 border-left:2px solid rgba(0,0,0,1.0);
 border-right:1px dotted rgba(0,0,0,1.0);
 }
-.xpt-s-14{
+#xpt-report .xpt-s-14{
 font-family:等线;
 font-size:11pt;
 color:#000000;
 border-top:none;border-bottom:none;border-left:2px solid rgba(0,0,0,1.0);
 border-right:2px solid rgba(0,0,0,1.0);
 }
-.xpt-s-15{
+#xpt-report .xpt-s-15{
 text-align:center;
 font-family:微软雅黑;
 font-size:11pt;
@@ -145,32 +146,32 @@ border-top:1px dashed black;
 border-bottom:1px dashed black;
 border-left:none;border-right:1px dashed black;
 }
-.xpt-s-16{
+#xpt-report .xpt-s-16{
 font-family:微软雅黑;
 font-size:11pt;
 color:#000000;
 border-top:1px dashed black;
 border-bottom:1px dashed black;
 border-left:none;border-right:none;}
-.xpt-s-17{
+#xpt-report .xpt-s-17{
 text-align:center;
 font-family:等线;
 font-size:11pt;
 color:#000000;
 border:none;}
-.xpt-s-18{
+#xpt-report .xpt-s-18{
 font-family:等线;
 font-size:11pt;
 color:#000000;
 background-color:#9CC2E5;
 border:none;}
-.xpt-s-19{
+#xpt-report .xpt-s-19{
 font-family:等线;
 font-size:11pt;
 color:#FFFFFF;
 background-color:rgba(255,0,0,1.0);
 border:none;}
-.xpt-s-20{
+#xpt-report .xpt-s-20{
 vertical-align:middle;
 text-align:center;
 font-family:等线;
@@ -179,7 +180,7 @@ color:#000000;
 background-color:#9CC2E5;
 border:2px solid rgba(0,0,0,1.0);
 }
-.xpt-s-21{
+#xpt-report .xpt-s-21{
 vertical-align:middle;
 text-align:center;
 font-family:等线;
@@ -189,7 +190,7 @@ background-color:#9CC2E5;
 border-top:2px solid rgba(0,0,0,1.0);
 border-bottom:2px solid rgba(0,0,0,1.0);
 border-left:none;border-right:none;}
-.xpt-s-22{
+#xpt-report .xpt-s-22{
 vertical-align:middle;
 text-align:center;
 font-family:等线;
@@ -200,7 +201,7 @@ border-top:2px solid rgba(0,0,0,1.0);
 border-bottom:2px solid rgba(0,0,0,1.0);
 border-left:none;border-right:2px solid rgba(0,0,0,1.0);
 }
-.xpt-s-23{
+#xpt-report .xpt-s-23{
 text-align:center;
 font-family:微软雅黑;
 font-size:11pt;
@@ -209,7 +210,7 @@ border-top:1px dashed black;
 border-bottom:2px solid rgba(0,0,0,1.0);
 border-left:none;border-right:1px dashed black;
 }
-.xpt-s-24{
+#xpt-report .xpt-s-24{
 text-align:center;
 font-family:微软雅黑;
 font-size:11pt;
@@ -218,20 +219,20 @@ border-top:1px dashed black;
 border-bottom:2px solid rgba(0,0,0,1.0);
 border-left:none;border-right:1px dashed black;
 }
-.xpt-s-25{
+#xpt-report .xpt-s-25{
 text-align:center;
 font-family:等线;
 font-size:11pt;
 color:#000000;
 background-color:#C5DEB5;
 border:none;}
-.xpt-s-26{
+#xpt-report .xpt-s-26{
 font-family:等线;
 font-size:11pt;
 color:#000000;
 background-color:#FFD965;
 border:none;}
-.xpt-s-27{
+#xpt-report .xpt-s-27{
 text-align:left;
 font-family:微软雅黑;
 font-size:11pt;
@@ -242,19 +243,20 @@ border-bottom:1px dotted rgba(0,0,0,1.0);
 border-left:1px dotted rgba(0,0,0,1.0);
 border-right:2px solid rgba(0,0,0,1.0);
 }
-.xpt-s-red{
+#xpt-report .xpt-s-red{
 font-family:等线;
 font-size:11pt;
 color:#FFFFFF;
 background-color:rgba(255,0,0,1.0);
 border:none;}
-.xpt-s-yellow{
+#xpt-report .xpt-s-yellow{
 font-family:等线;
 font-size:11pt;
 color:#000000;
 background-color:#FFD965;
 border:none;}
 </style>
+<div id="xpt-report-sheet-1">
 <table  class="xpt-table">
 <colgroup><col  style="width:117.0pt" /><col  style="width:88.283203125pt" /><col  style="width:111.033203125pt" /><col  style="width:76.908203125pt" /><col  style="width:107.783203125pt" /><col  style="width:86.658203125pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -327,3 +329,5 @@ border:none;}
 </tbody>
 <tfoot></tfoot>
 </table>
+</div>
+</div>
