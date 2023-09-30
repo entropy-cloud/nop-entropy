@@ -69,7 +69,7 @@
 
         <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
 
-        <quarkus.platform.version>3.3.3</quarkus.platform.version>
+        <quarkus.platform.version>3.3.2</quarkus.platform.version>
 
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -241,19 +241,7 @@
             <!--                </executions>-->
             <!--            </plugin>-->
 
-<!--            <plugin>-->
-<!--                <groupId>org.jboss.jandex</groupId>-->
-<!--                <artifactId>jandex-maven-plugin</artifactId>-->
-<!--                <version>1.2.3</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>make-index</id>-->
-<!--                        <goals>-->
-<!--                            <goal>jandex</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+
 
 <!--            <plugin>-->
 <!--                <groupId>org.apache.maven.plugins</groupId>-->
@@ -286,6 +274,20 @@
 
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.jboss.jandex</groupId>
+                    <artifactId>jandex-maven-plugin</artifactId>
+                    <version>1.2.3</version>
+                    <executions>
+                        <execution>
+                            <id>make-index</id>
+                            <goals>
+                                <goal>jandex</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>

@@ -43,3 +43,23 @@ quarkus:
 ````
 
 要开启TRACE级别的日志，必须同时配置 quarkus.log.min-level=TRACE, 否则最多只输出DEBUG级别
+
+## 分包编译
+使用了quarkus的IoC注解的bean，在打包成jar包时，必须引入jandex插件，将bean的详细信息记录在jandex索引文件中，否则quarkus只会扫描当前工程中的文件，而无法使用
+jar包中的bean。
+
+````
+ <plugin>
+    <groupId>org.jboss.jandex</groupId>
+    <artifactId>jandex-maven-plugin</artifactId>
+    <version>1.2.3</version>
+    <executions>
+        <execution>
+            <id>make-index</id>
+            <goals>
+                <goal>jandex</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+````

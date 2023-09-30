@@ -55,6 +55,8 @@ nop:
 "%dev":
   nop:
     debug: true
+#    log:
+#      level: trace
 
     auth:
       login:
@@ -76,6 +78,7 @@ nop:
       schema-introspection:
         enabled: true
 
+
 # devservices 会启用testcontainers来管理测试数据库
 quarkus:
   devservices:
@@ -94,17 +97,18 @@ quarkus:
     cors: true
 
   log:
-    level: INFO
+    level: info
+#    min-level: info
 
     console:
       json: true
 
 #    category:
-#      "io.nop":
-#        level: DEBUG
+#      "io":
+#        level: debug
 
     file:
-      enable: true
+      enable: false
       path: log/app-demo.log
 #      # 输出格式
 #      format: %d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n

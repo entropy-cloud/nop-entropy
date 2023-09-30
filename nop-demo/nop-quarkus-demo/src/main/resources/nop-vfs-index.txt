@@ -315,6 +315,7 @@
 /nop/report/demo/base/06-Sheet循环.xpt.xlsx
 /nop/report/demo/base/07-数据钻取主报表.xpt.xlsx
 /nop/report/demo/base/08-动态展开列.xpt.xlsx
+/nop/report/demo/base/09-套打.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/performance/测试同比环比.xpt.xlsx
 /nop/report/demo/spl/test-data.splx
