@@ -75,6 +75,12 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-auth-web</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>nop-js</artifactId>
+                    <groupId>io.github.entropy-cloud</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>

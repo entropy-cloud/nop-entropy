@@ -69,7 +69,7 @@
 
         <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
 
-        <quarkus.platform.version>3.3.2</quarkus.platform.version>
+        <quarkus.platform.version>3.3.3</quarkus.platform.version>
 
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -286,7 +286,6 @@
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/oss-defaults.beans.xml
-/nop/js/libs/nop-server-tool.mjs
 /nop/main/app.gateway.xml
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
