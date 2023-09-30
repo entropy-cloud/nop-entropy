@@ -436,7 +436,7 @@ public class ConfigStarter extends LifeCycleSupport {
 
     protected void configLogLevel() {
         LogLevel logLevel = LogLevel.fromText(LogConfigs.CFG_LOG_LEVEL.get());
-        if (!LoggerConfigurator.isInitialized())
+        if (!LoggerConfigurator.isInitialized() || logLevel == null)
             return;
 
         LoggerConfigurator.instance().changeRootLogLevel(logLevel);

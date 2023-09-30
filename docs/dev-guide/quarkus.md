@@ -41,3 +41,5 @@ quarkus:
         file-suffix: .yyyy-MM-dd
 
 ````
+
+要开启TRACE级别的日志，必须同时配置 quarkus.log.min-level=TRACE, 否则最多只输出DEBUG级别
