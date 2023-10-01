@@ -1,0 +1,242 @@
+[
+  {
+    "name": "io.nop.api.core.annotations.cache.Cache",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.cache.CacheEvicts",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.orm.SingleSession",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.txn.TccMethod",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.txn.TccTransactional",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.txn.Transactional",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.biz.BizAction",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.biz.BizQuery",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.biz.BizMutation",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.annotations.biz.BizSubscription",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.ApiRequest",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.ApiRequest",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.ApiMessage",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.CheckResultBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.DictBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.DictOptionBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.ErrorBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.ExtensibleBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.FieldSelectionBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.FilterBeans",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.IntRangeBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.IntRangeBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.PageBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.LongRangeBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.PointBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.PropDefBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.ServiceCallBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.TreeBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.TreeResultBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.VarMetaBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.WebContentBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.WeightedItem",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.task.TaskStatusBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.query.GroupFieldBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.query.OrderFieldBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.query.QueryBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.query.QueryFieldBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.query.QuerySourceBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.CancelRequestBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLConnection",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLConnectionInput",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLEdgeBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLErrorBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLNode",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLPageInfo",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLRequestBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLResponseBean",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.nop.api.core.beans.graphql.GraphQLSourceLocation",
+    "allPublicConstructors": true,
+    "allPublicMethods": true
+  }
+]

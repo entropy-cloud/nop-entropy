@@ -27,13 +27,26 @@
             <artifactId>quarkus-resteasy-multipart</artifactId>
             <exclusions>
                 <exclusion>
-                    <artifactId>jakarta.mail-api</artifactId>
-                    <groupId>jakarta.mail</groupId>
+                    <artifactId>angus-mail</artifactId>
+                    <groupId>org.eclipse.angus</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
+        </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jboss.jandex</groupId>
+                <artifactId>jandex-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

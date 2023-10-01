@@ -41,7 +41,5 @@
     <bean id="io.nop.auth.core.login.UserContextConfig" ioc:type="@bean:id"
           ioc:config-prefix="nop.login"/>
 
-    <bean id="nopVerifyCodeGenerator" ioc:default="true"
-          class="io.nop.auth.core.verifycode.DefaultVerifyCodeGenerator"/>
 
 </beans>

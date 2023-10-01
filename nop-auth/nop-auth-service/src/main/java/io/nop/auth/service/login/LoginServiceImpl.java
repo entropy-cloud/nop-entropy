@@ -37,6 +37,7 @@ import io.nop.core.i18n.I18nMessageManager;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +82,7 @@ public class LoginServiceImpl extends AbstractLoginService {
     protected IAuditService auditService;
 
     @Inject
+    @Nullable
     protected IVerifyCodeGenerator verifyCodeGenerator;
 
     private Set<String> allowedLoginMethods;
@@ -265,6 +267,9 @@ public class LoginServiceImpl extends AbstractLoginService {
     }
 
     boolean checkVerifyCode(LoginRequest request) {
+        if(verifyCodeGenerator == null)
+            return true;
+
         String cachedCode = userContextCache.getVerifyCode(request.getVerifySecret());
         boolean b;
         if (cachedCode != null) {
@@ -386,6 +391,9 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     @Override
     public String generateVerifyCode(String verifySecret) {
+        if(verifyCodeGenerator == null)
+            return "fake-code";
+
         VerifyCode verifyCode = verifyCodeGenerator.generateCode(verifySecret);
         LOG.debug("nop.login.generate-verify-code:{}", verifyCode.getCode());
         userContextCache.setVerifyCode(verifySecret, verifyCode.getCode());

@@ -18106,6 +18106,182 @@
     "fields": [],
     "methods": [
       {
+        "name": "instance",
+        "parameterTypes": []
+      },
+      {
+        "name": "isJsonOrYaml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadBean",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "loadDeltaBean",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.reflect.Type",
+          "io.nop.core.lang.json.DeltaJsonOptions"
+        ]
+      },
+      {
+        "name": "loadJson",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parse",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseBeanFromResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "parseBeanFromResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.reflect.Type"
+        ]
+      },
+      {
+        "name": "parseBeanFromResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.reflect.Type",
+          "boolean"
+        ]
+      },
+      {
+        "name": "parseBeanFromText",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.reflect.Type"
+        ]
+      },
+      {
+        "name": "parseBeanFromVirtualPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseBeanFromYaml",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.reflect.Type"
+        ]
+      },
+      {
+        "name": "parseNonStrict",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseNonStrict",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseSimpleJsonValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseSimpleJsonValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.commons.type.StdDataType"
+        ]
+      },
+      {
+        "name": "parseYaml",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "registerInstance",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonTool"
+        ]
+      },
+      {
+        "name": "serialize",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "serializeToYaml",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "stringify",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "stringify",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.util.function.Function",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "tryLoadBean",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Class",
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.json.JsonTool",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "generateSql",
         "parameterTypes": [
           "io.nop.core.context.IEvalContext"
@@ -20290,6 +20466,165 @@
       }
     ],
     "name": "io.nop.core.model.object.DynamicObject",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "col1",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "colDelta",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "dx1",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "dx2",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "dy1",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "dy2",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "getCol1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCol2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColDelta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDx1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDx2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDy1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDy2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRow1",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRow2",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowDelta",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "row1",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "rowDelta",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setCol1",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setColDelta",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setDx1",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setDx2",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setDy1",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setDy2",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setRow1",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setRowDelta",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.core.model.table.CellAnchor",
     "unsafeAllocated": false
   },
   {
@@ -27968,6 +28303,25 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "copy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStartPosition",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.excel.model.ExcelClientAnchor",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.excel.model.ExcelColumnConfig",
     "unsafeAllocated": false
@@ -27993,6 +28347,77 @@
       }
     ],
     "name": "io.nop.excel.model.ExcelFont",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "calcSize",
+        "parameterTypes": [
+          "io.nop.excel.model.IExcelSheet"
+        ]
+      },
+      {
+        "name": "getEmbedId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHeight",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLeft",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMimeType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTop",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWidth",
+        "parameterTypes": []
+      },
+      {
+        "name": "setEmbedId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setHeight",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setLeft",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setTop",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setWidth",
+        "parameterTypes": [
+          "double"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.model.ExcelImage",
     "unsafeAllocated": false
   },
   {
@@ -28571,6 +28996,39 @@
         ]
       },
       {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "io.nop.excel.model.constants.ExcelAnchorType"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.model._gen._ExcelClientAnchor",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
         "name": "getStyleId",
         "parameterTypes": []
       },
@@ -28741,6 +29199,149 @@
       }
     ],
     "name": "io.nop.excel.model._gen._ExcelFont",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAnchor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDataExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getImgType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLinkExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLinkUrl",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRotateDegree",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTestExpr",
+        "parameterTypes": []
+      },
+      {
+        "name": "isNoChangeAspect",
+        "parameterTypes": []
+      },
+      {
+        "name": "isPrint",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAnchor",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelClientAnchor"
+        ]
+      },
+      {
+        "name": "setData",
+        "parameterTypes": [
+          "io.nop.commons.bytes.ByteString"
+        ]
+      },
+      {
+        "name": "setDataExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setImgType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLinkExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalAction"
+        ]
+      },
+      {
+        "name": "setLinkUrl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNoChangeAspect",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setPrint",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRotateDegree",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "setTestExpr",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      }
+    ],
+    "name": "io.nop.excel.model._gen._ExcelImage",
     "unsafeAllocated": false
   },
   {
@@ -30066,6 +30667,63 @@
       }
     ],
     "name": "io.nop.excel.model._gen._XptWorkbookModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "absolute"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "anchor"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "oneCell"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "twoCell"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "value"
+      }
+    ],
+    "methods": [
+      {
+        "name": "fromCode",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "getCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.excel.model.constants.ExcelAnchorType",
     "unsafeAllocated": false
   },
   {
@@ -41355,6 +42013,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getImage",
+        "parameterTypes": []
+      },
+      {
         "name": "getNamedCell",
         "parameterTypes": [
           "java.lang.String"
@@ -41411,6 +42073,12 @@
         "name": "setCell",
         "parameterTypes": [
           "io.nop.report.core.model.ExpandedCell"
+        ]
+      },
+      {
+        "name": "setImage",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelImage"
         ]
       },
       {
@@ -42062,6 +42730,99 @@
       }
     ],
     "name": "io.nop.report.core.model.ExpandedCell",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "colChildSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "evaluateAll",
+        "parameterTypes": [
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "java.util.function.Predicate"
+        ]
+      },
+      {
+        "name": "flatMap",
+        "parameterTypes": [
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "get",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "getCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCellName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCells",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExpandIndex",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocation",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "map",
+        "parameterTypes": [
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "rowChildSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.report.core.model.ExpandedCellSet",
     "unsafeAllocated": false
   },
   {

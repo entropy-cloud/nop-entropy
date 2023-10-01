@@ -63,3 +63,36 @@ jar包中的bean。
     </executions>
 </plugin>
 ````
+
+## 原生编译
+需要使用maven 3.9.3以后版本
+
+````
+mvnw install -Dnative -DskipTests -Dquarkus.native.container-build=true
+````
+
+* windows下中文VC存在问题，配置-H:-CheckToolchain 可以跳过
+* 不能使用awt模块下的Font等类
+* 不能包含--report-unsupported-elements-at-runtime选项，否则通过Delete注解排除的class仍然会报错
+* GraalVM 23.1无法使用quarkus3.3.3进行原生编译，必须升级到3.4.1
+
+## 上传解析
+需要引入com.sun.mail依赖，并禁用内置依赖的angus-mail模块，并且不能排除jaxb-provider
+
+````xml
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-resteasy-multipart</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>angus-mail</artifactId>
+                    <groupId>org.eclipse.angus</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
+        </dependency>
+````

@@ -26,7 +26,7 @@
         <spring-cloud-alibaba.version>2021.0.4.0</spring-cloud-alibaba.version>
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
-        <quarkus.platform.version>3.3.3</quarkus.platform.version>
+        <quarkus.platform.version>3.4.1</quarkus.platform.version>
         <surefire-plugin.version>3.1.2</surefire-plugin.version>
 
         <!--        <vertx.version>4.3.1</vertx.version>-->

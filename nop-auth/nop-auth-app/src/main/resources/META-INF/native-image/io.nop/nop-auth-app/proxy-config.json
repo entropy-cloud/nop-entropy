@@ -1,8 +1,0 @@
-[
-  [
-    "io.nop.auth.dao.mapper.NopAuthRoleMapper"
-  ],
-  [
-    "io.nop.auth.dao.mapper.NopAuthUserMapper"
-  ]
-]
