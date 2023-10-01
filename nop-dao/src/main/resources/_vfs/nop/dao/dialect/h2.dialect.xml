@@ -179,8 +179,8 @@
     </functions>
 
     <sqlDataTypes>
-        <sqlDataType name="CHAR" precision="1048576" stdSqlType="CHAR"/>
-        <sqlDataType name="VARCHAR" precision="1048576" stdSqlType="VARCHAR"/>
+        <sqlDataType name="CHAR" precision="1048576" stdSqlType="CHAR" allowExceedPrecision="true" />
+        <sqlDataType name="VARCHAR" precision="1048576" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
         <sqlDataType name="CLOB" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT"/>
         <sqlDataType name="TINYINT" stdSqlType="TINYINT"/>
@@ -192,7 +192,7 @@
         <sqlDataType name="REAL" stdSqlType="REAL"/>
         <sqlDataType name="DOUBLE PRECISION" stdSqlType="DOUBLE"/>
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
-        <sqlDataType name="VARBINARY" precision="1048576" stdSqlType="VARBINARY"/>
+        <sqlDataType name="VARBINARY" precision="1048576" stdSqlType="VARBINARY" allowExceedPrecision="true"/>
         <sqlDataType name="BLOB" stdSqlType="VARBINARY" allowPrecision="false"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
