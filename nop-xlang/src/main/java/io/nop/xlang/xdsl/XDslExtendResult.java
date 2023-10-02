@@ -20,6 +20,9 @@ public class XDslExtendResult {
     private XNode postParse;
     private boolean validated;
 
+    private String extendsPath;
+    private XNode genExtends;
+
     public XDslExtendResult(XDslKeys keys) {
         this.keys = keys;
     }
@@ -42,6 +45,22 @@ public class XDslExtendResult {
 
     public void setXdef(IXDefinition xdef) {
         this.xdef = xdef;
+    }
+
+    public String getExtendsPath() {
+        return extendsPath;
+    }
+
+    public void setExtendsPath(String extendsPath) {
+        this.extendsPath = extendsPath;
+    }
+
+    public XNode getGenExtends() {
+        return genExtends;
+    }
+
+    public void setGenExtends(XNode genExtends) {
+        this.genExtends = genExtends;
     }
 
     public XNode getNodeForDump() {

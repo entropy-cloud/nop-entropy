@@ -161,6 +161,7 @@ public class RegisterModelDiscovery {
 
                 if ("xdsl-loader".equals(type)) {
                     String schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
+                    config.setXdefPath(schemaPath);
                     config.loader(fileType, path -> new DslModelParser(schemaPath).parseFromVirtualPath(path));
                 } else if ("xlsx-loader".equals(type)) {
                     String impPath = (String) BeanTool.getProperty(loader, "impPath");

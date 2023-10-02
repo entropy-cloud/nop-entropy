@@ -149,6 +149,9 @@ public class XDslExtender {
     private XDslExtendResult extendNode(IXDefinition def, IXDefNode defNode, XNode node, String currentPath,
                                         XDslExtendPhase phase, IEvalScope genScope) {
         SourceLocation loc = node.getLocation();
+        String extendsPath = node.attrText(keys.EXTENDS);
+        XNode genExtends = node.childByTag(keys.GEN_EXTENDS);
+
         XDslSource source = buildSource(def, node, currentPath, genScope);
 
         List<XDslSource> extendsList = source.getLinearizedExtends();
@@ -191,6 +194,8 @@ public class XDslExtender {
         result.setXdef(def);
         result.setBase(base);
         result.setNode(merged);
+        result.setExtendsPath(extendsPath);
+        result.setGenExtends(genExtends);
         return result;
     }
 

@@ -211,6 +211,10 @@
 /nop/templates/orm/pom.xml.xgen
 /nop/templates/orm/{appName}-api/pom.xml.xgen
 /nop/templates/orm/{appName}-app/pom.xml.xgen
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.jvm
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.legacy-jar
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.native
+/nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.native-micro
 /nop/templates/orm/{appName}-app/src/main/java/{basePackagePath}/app/{moduleClassPrefix}Application.java.xgen
 /nop/templates/orm/{appName}-app/src/main/resources/META-INF/native-image/{mavenGroupId}/{mavenArtifactId}-app/jni-config.json
 /nop/templates/orm/{appName}-app/src/main/resources/META-INF/native-image/{mavenGroupId}/{mavenArtifactId}-app/native-image.properties

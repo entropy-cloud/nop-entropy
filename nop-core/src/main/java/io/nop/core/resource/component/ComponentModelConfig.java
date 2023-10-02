@@ -21,6 +21,8 @@ public class ComponentModelConfig {
 
     private boolean supportVersion;
 
+    private String xdefPath;
+
     /**
      * 模型可以存在多种存储格式，每种格式对应一个文件类型，采用一种特定的加载器加载
      * <p>
@@ -40,6 +42,14 @@ public class ComponentModelConfig {
 
     public void setSupportVersion(boolean supportVersion) {
         this.supportVersion = supportVersion;
+    }
+
+    public String getXdefPath() {
+        return xdefPath;
+    }
+
+    public void setXdefPath(String xdefPath) {
+        this.xdefPath = xdefPath;
     }
 
     public ComponentModelConfig modelType(String modelType) {

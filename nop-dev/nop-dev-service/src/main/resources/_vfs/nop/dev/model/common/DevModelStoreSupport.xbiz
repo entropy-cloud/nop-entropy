@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <actions>
+        <query name="loadModel">
+            <arg name="path" type="String" mandatory="true"/>
+
+            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+            <return type="Map"/>
+
+            <source>
+                <c:script>
+                    const devModelStore = inject("nopDevModelStore");
+                    return devModelStore.loadModel(path);
+                </c:script>
+            </source>
+        </query>
+
+        <mutation name="saveModel">
+            <arg name="path" type="String" mandatory="true"/>
+            <arg name="data" type="Map" mandatory="true"/>
+
+            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+            <source>
+                <c:script>
+                    const devModelStore = inject("nopDevModelStore");
+                    devModelStore.saveModel(path,data);
+                </c:script>
+            </source>
+        </mutation>
+    </actions>
+</biz>

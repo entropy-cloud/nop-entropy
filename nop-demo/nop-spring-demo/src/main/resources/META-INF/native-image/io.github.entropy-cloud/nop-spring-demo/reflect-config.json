@@ -20923,6 +20923,12 @@
         ]
       },
       {
+        "name": "contentAsInt",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "contentText",
         "parameterTypes": []
       },
@@ -25885,6 +25891,10 @@
         ]
       },
       {
+        "name": "getJsonTypeHandler",
+        "parameterTypes": []
+      },
+      {
         "name": "getLockHintSql",
         "parameterTypes": [
           "io.nop.dao.dialect.lock.LockOption"
@@ -26028,6 +26038,13 @@
       },
       {
         "name": "jdbcGet",
+        "parameterTypes": [
+          "java.sql.ResultSet",
+          "int"
+        ]
+      },
+      {
+        "name": "jdbcGetString",
         "parameterTypes": [
           "java.sql.ResultSet",
           "int"
@@ -26243,6 +26260,10 @@
         ]
       },
       {
+        "name": "getJsonTypeHandler",
+        "parameterTypes": []
+      },
+      {
         "name": "getKeywordQuote",
         "parameterTypes": []
       },
@@ -26412,6 +26433,13 @@
         ]
       },
       {
+        "name": "jdbcGetString",
+        "parameterTypes": [
+          "java.sql.ResultSet",
+          "int"
+        ]
+      },
+      {
         "name": "jdbcSet",
         "parameterTypes": [
           "java.sql.PreparedStatement",
@@ -26490,6 +26518,75 @@
       }
     ],
     "name": "io.nop.dao.dialect.impl.DialectImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "fromLiteral",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.dao.dialect.IDialect"
+        ]
+      },
+      {
+        "name": "getStdSqlType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getValue",
+        "parameterTypes": [
+          "io.nop.dataset.binder.IDataParameters",
+          "int"
+        ]
+      },
+      {
+        "name": "isJavaType",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "io.nop.dataset.binder.IDataParameters",
+          "int",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "toLiteral",
+        "parameterTypes": [
+          "java.lang.Object",
+          "io.nop.dao.dialect.IDialect"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.dialect.json.DefaultJsonTypeHandler",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "setValue",
+        "parameterTypes": [
+          "io.nop.dataset.binder.IDataParameters",
+          "int",
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.dao.dialect.json.H2JsonTypeHandler",
     "unsafeAllocated": false
   },
   {
@@ -27089,6 +27186,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getJsonTypeHandler",
+        "parameterTypes": []
+      },
+      {
         "name": "getKeywordQuote",
         "parameterTypes": []
       },
@@ -27252,6 +27353,12 @@
       },
       {
         "name": "setJdbcUrlPattern",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setJsonTypeHandler",
         "parameterTypes": [
           "java.lang.String"
         ]

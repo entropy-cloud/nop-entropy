@@ -7,4 +7,6 @@
     <import resource="_dao.beans.xml"/>
 
     <import resource="_service.beans.xml"/>
+
+    <bean id="nopDevModelStore" class="io.nop.dev.service.impl.DevModelStoreImpl" />
 </beans>

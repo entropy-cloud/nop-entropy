@@ -83,7 +83,7 @@
             </layout>
         </form>
 
-        <form id="orm">
+        <form id="orm" layoutControl="tabs">
             <layout>
                 domains
                 entities
