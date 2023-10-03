@@ -22,5 +22,6 @@
         <module>nop-dev-service</module>
         <module>nop-dev-web</module>
         <module>nop-dev-app</module>
+        <module>nop-dev-core</module>
     </modules>
 </project>

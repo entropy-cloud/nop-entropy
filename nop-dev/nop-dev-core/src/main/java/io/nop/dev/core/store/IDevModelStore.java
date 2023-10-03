@@ -1,4 +1,4 @@
-package io.nop.dev.service;
+package io.nop.dev.core.store;
 
 import java.util.Map;
 
