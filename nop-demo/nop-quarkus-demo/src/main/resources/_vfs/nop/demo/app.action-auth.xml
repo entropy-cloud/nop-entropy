@@ -17,6 +17,10 @@
                           component="AMIS"
                           resourceType="SUBM" url="/nop/demo/pages/Demo/test-validator.page.yaml"/>
 
+                <resource id="model-editor-demo" displayName="模型编辑" i18n-en:displayName="Model Editor Demo" orderNo="3"
+                          icon="ant-design:appstore-twotone" routePath="/nop/dev/pages/DevModule/main"
+                          component="AMIS"
+                          resourceType="SUBM" url="/nop/dev/pages/DevModule/main.page.yaml"/>
             </children>
         </resource>
     </site>

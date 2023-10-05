@@ -5,6 +5,13 @@
 -->
 <view bizObjName="string" x:schema="/nop/schema/xdef.xdef" xdef:check-ns="auth"
       xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="xdef">
+
+    <xdef:post-parse>
+        <c:script>
+            _dsl_model.grids?.forEach(grid=> grid.cols.forEach(col=> col.init()))
+            _dsl_model.forms?.forEach(form=> form.cells.forEach(cell=> cell.init()))
+        </c:script>
+    </xdef:post-parse>
     <!--
     meta是可选的信息
     -->

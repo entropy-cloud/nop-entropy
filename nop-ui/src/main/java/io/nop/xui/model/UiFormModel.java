@@ -8,6 +8,7 @@
 package io.nop.xui.model;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.INeedInit;
 import io.nop.commons.mutable.MutableInt;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -22,7 +23,7 @@ import static io.nop.xui.XuiErrors.ARG_CELL_ID;
 import static io.nop.xui.XuiErrors.ARG_FORM_ID;
 import static io.nop.xui.XuiErrors.ERR_FORM_CELL_NOT_PROP;
 
-public class UiFormModel extends _UiFormModel {
+public class UiFormModel extends _UiFormModel implements INeedInit {
     public UiFormModel() {
 
     }
@@ -39,6 +40,10 @@ public class UiFormModel extends _UiFormModel {
             });
         });
         return count.get();
+    }
+
+    public void init(){
+        getCells().forEach(cell-> cell.init());
     }
 
     public List<LayoutTableModel> getTables() {

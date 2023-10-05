@@ -48,7 +48,7 @@ public abstract class AbstractResource implements IResource {
     public AbstractResource(String path) {
         if (!path.startsWith("/") && path.indexOf(':') < 0)
             throw new NopException(ERR_RESOURCE_INVALID_PATH).param(ARG_RESOURCE_PATH, path);
-        if (path.endsWith("/") && !path.equals("/"))
+        if (path.endsWith("/") && !path.equals("/") && !path.endsWith(":/"))
             throw new NopException(ERR_RESOURCE_INVALID_PATH).param(ARG_RESOURCE_PATH, path);
         this.path = path;
     }

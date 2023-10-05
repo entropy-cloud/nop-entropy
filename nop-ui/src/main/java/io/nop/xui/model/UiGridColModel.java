@@ -14,6 +14,10 @@ public class UiGridColModel extends _UiGridColModel {
 
     }
 
+    public void init(){
+        validate();
+    }
+
     public void validate() {
         UiRefViewModel view = getView();
         if (view != null)

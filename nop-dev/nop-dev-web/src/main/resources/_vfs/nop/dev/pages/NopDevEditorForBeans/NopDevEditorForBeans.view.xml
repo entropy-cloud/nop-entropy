@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <x:gen-extends>
+        <view-gen:GenViewFromMeta path="/nop/schema/orm/orm.xdef" xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <grids>
+        <grid id="columns">
+            <cols>
+                <col id="propId" />
+                <col id="primary" />
+                <col id="mandatory" />
+                <col id="name" />
+                <col id="code" />
+                <col id="displayName" />
+                <col id="tagSet" />
+                <col id="insertable" />
+                <col id="updatable" />
+                <col id="domain" />
+                <col id="stdSqlType" />
+                <col id="precision" />
+                <col id="scale" />
+                <col id="lazy" />
+                <col id="comment" />
+                <col id="notGenCode" />
+            </cols>
+        </grid>
+
+        <grid id="relations">
+            <cols>
+                <col id="name" />
+                <col id="displayName"/>
+                <col id="refEntityName"/>
+                <col id="refPropName" />
+                <col id="queryable"/>
+                <col id="tagSet" />
+                <col id="notGenCode" />
+                <col id="cascadeDelete" />
+                <col id="join" breakpoint="*"/>
+            </cols>
+        </grid>
+
+        <grid id="entities/entity/relations/relation/join">
+            <cols>
+                <col id="leftProp"/>
+                <col id="leftValue" />
+                <col id="rightProp" />
+                <col id="rightValue" />
+            </cols>
+        </grid>
+
+        <grid id="entities/entity/unique-keys">
+            <cols>
+                <col id="name" />
+                <col id="displayName" />
+                <col id="columns" />
+                <col id="comment" />
+            </cols>
+        </grid>
+    </grids>
+
+    <forms>
+        <form id="entities/entity">
+            <layout>
+                ===baseInfo[基础信息]====
+                name displayName
+                className tableName
+                tagSet
+                readonly kvTable
+                querySpace persistDriver
+                useShard useTenant
+                useLogicalDelete useGlobalCache
+                versionProp labelProp
+                createrProp createTimeProp
+                updaterProp updateTimeProp
+
+                ===columns-config[字段列表]===
+                !columns
+
+                ===relations-config[关联列表]====
+                !relations
+            </layout>
+        </form>
+
+        <form id="orm" layoutControl="tabs">
+            <layout>
+                domains
+                entities
+            </layout>
+        </form>
+    </forms>
+
+    <pages>
+        <simple name="main" form="orm" />
+    </pages>
+</view>

@@ -13,6 +13,9 @@ public class DevModuleDiscovery {
 
         List<DevModuleResourcePaths> list = new ArrayList<>();
 
+        if (resources == null || resources.isEmpty())
+            return list;
+
         String moduleId = findModuleId(resources);
         if (moduleId != null) {
             list.add(new StdModelPathBuilder().build(moduleId, rootPath));
@@ -20,6 +23,8 @@ public class DevModuleDiscovery {
 
         for (IResource resource : resources) {
             List<? extends IResource> children = VirtualFileSystem.instance().getChildren(resource.getStdPath());
+            if (children == null || children.isEmpty())
+                continue;
             String subModuleId = findModuleId(children);
             if (subModuleId != null) {
                 list.add(new StdModelPathBuilder().build(subModuleId, resource.getStdPath()));

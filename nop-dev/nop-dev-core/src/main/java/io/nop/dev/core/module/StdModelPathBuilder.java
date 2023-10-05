@@ -7,6 +7,7 @@ public class StdModelPathBuilder {
     public DevModuleResourcePaths build(String moduleId, String rootPath) {
         DevModuleResourcePaths paths = new DevModuleResourcePaths();
         paths.setModuleId(moduleId);
+        paths.setModuleName(moduleId.replace('/', '-'));
         paths.setRootPath(rootPath);
 
         addPath(paths, "action-auth", paths.getModuleName() + "-web", "/auth/" + paths.getModuleName() + ".action-auth.xml");
@@ -20,6 +21,7 @@ public class StdModelPathBuilder {
         String subPath = subModuleName + "/src/main/resources/_vfs/" + paths.getModuleId() + path;
         DevResourcePath devPath = new DevResourcePath();
         devPath.setModelType(modelType);
+        devPath.setEditorObjName("NopDevEditorFor" + StringHelper.camelCase(modelType, '-', true));
         devPath.setDevResourcePath(StringHelper.appendPath(paths.getRootPath(), subPath));
         devPath.setExists(VirtualFileSystem.instance().getResource(devPath.getDevResourcePath()) != null);
         paths.addModelPath(devPath);

@@ -9,6 +9,8 @@ public class DevResourcePath {
 
     private boolean exists;
 
+    private String editorObjName;
+
     public String getModelType() {
         return modelType;
     }
@@ -31,5 +33,13 @@ public class DevResourcePath {
 
     public void setExists(boolean exists) {
         this.exists = exists;
+    }
+
+    public String getEditorObjName() {
+        return editorObjName;
+    }
+
+    public void setEditorObjName(String editorObjName) {
+        this.editorObjName = editorObjName;
     }
 }

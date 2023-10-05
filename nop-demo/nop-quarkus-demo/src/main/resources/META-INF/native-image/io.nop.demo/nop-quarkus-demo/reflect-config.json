@@ -27429,6 +27429,203 @@
     "fields": [],
     "methods": [
       {
+        "name": "addModelPath",
+        "parameterTypes": [
+          "io.nop.dev.core.module.DevResourcePath"
+        ]
+      },
+      {
+        "name": "getModelPaths",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRootPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "setModelPaths",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRootPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.dev.core.module.DevModuleResourcePaths",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getDevResourcePath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getEditorObjName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModelType",
+        "parameterTypes": []
+      },
+      {
+        "name": "isExists",
+        "parameterTypes": []
+      },
+      {
+        "name": "setDevResourcePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setEditorObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setExists",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setModelType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.dev.core.module.DevResourcePath",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "INSTANCE"
+      }
+    ],
+    "methods": [
+      {
+        "name": "getNamespace",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResourceStore"
+        ]
+      },
+      {
+        "name": "register",
+        "parameterTypes": []
+      },
+      {
+        "name": "unregister",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.dev.core.resource.DevResourceNamespaceHandler",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildDelta",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.XNode",
+          "io.nop.xlang.xdef.IXDefNode",
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadModel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "saveModel",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Map"
+        ]
+      }
+    ],
+    "name": "io.nop.dev.core.store.DevModelStoreImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getModules",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.dev.service.biz.DevModuleBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getFieldLabel",
         "parameterTypes": []
       },
@@ -55559,6 +55756,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
         "name": "validate",
         "parameterTypes": []
       }
@@ -55579,6 +55780,10 @@
       },
       {
         "name": "getTables",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
         "parameterTypes": []
       },
       {
@@ -55603,6 +55808,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
         "name": "validate",
         "parameterTypes": []
       }
@@ -55619,6 +55828,10 @@
     "methods": [
       {
         "name": "containsBreakpoint",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
         "parameterTypes": []
       },
       {
@@ -59352,6 +59565,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "java.util.Collections$EmptyList",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "java.util.Collections$EmptyMap",
     "unsafeAllocated": false
   },
@@ -60339,6 +60562,16 @@
       }
     ],
     "name": "java.util.Map",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.RandomAccess",
     "unsafeAllocated": false
   },
   {

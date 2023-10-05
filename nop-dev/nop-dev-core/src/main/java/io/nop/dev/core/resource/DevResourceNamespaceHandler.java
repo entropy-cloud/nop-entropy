@@ -6,8 +6,11 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceNamespaceHandler;
 import io.nop.core.resource.IResourceStore;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.dev.core.DevCoreConstants;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 import java.io.File;
 
@@ -15,6 +18,16 @@ import static io.nop.dev.core.DevCoreConfigs.CFG_DEV_ROOT_PATH;
 
 public class DevResourceNamespaceHandler implements IResourceNamespaceHandler {
     public static DevResourceNamespaceHandler INSTANCE = new DevResourceNamespaceHandler();
+
+    @PostConstruct
+    public void register() {
+        VirtualFileSystem.instance().registerNamespaceHandler(INSTANCE);
+    }
+
+    @PreDestroy
+    public void unregister() {
+        VirtualFileSystem.instance().unregisterNamespaceHandler(INSTANCE);
+    }
 
     @Override
     public String getNamespace() {

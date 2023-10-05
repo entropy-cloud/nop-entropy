@@ -401,7 +401,7 @@
 
         <GenGridCols outputMode="xjson">
             <attr name="gridModel" mandatory="true"/>
-            <attr name="objMeta" mandatory="true"/>
+            <attr name="objMeta" optional="true"/>
             <attr name="ignoreCols" optional="true"/>
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>

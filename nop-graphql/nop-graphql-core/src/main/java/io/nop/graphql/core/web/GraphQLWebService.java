@@ -242,8 +242,8 @@ public class GraphQLWebService {
     @GET
     @Path("/p/{query: [a-zA-Z].*}")
     public CompletionStage<Response> pageQuery(@PathParam("query") String query,
-                                               @QueryParam(SYS_PARAM_SELECTION) String selection, @QueryParam(SYS_PARAM_ARGS) String args) {
-        return doPageQuery(query, selection, args);
+                                               @QueryParam(SYS_PARAM_SELECTION) String selection, String body) {
+        return doPageQuery(query, selection, body);
     }
 
     protected CompletionStage<Response> doPageQuery(@PathParam("query") String query,

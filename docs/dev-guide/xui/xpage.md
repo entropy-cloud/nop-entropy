@@ -246,3 +246,6 @@ responseKey是Nop平台的ajaxFetch函数负责识别的，amis本身并不支�
   ]
 }
 ````
+
+## API返回列表数据
+返回列表数据时会normalizeApiResponseData函数会自动将列表包装为 {items:list}，这样确保返回的data在使用时始终是Map对象。

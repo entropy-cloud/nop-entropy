@@ -3,7 +3,7 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
     <tags>
 
-        <GenFromMeta outputMode="node">
+        <GenViewFromMeta outputMode="node">
             <attr name="path" stdDomain="v-path"/>
 
             <description>
@@ -13,6 +13,49 @@
             <source>
                 <c:include src="view-gen/impl_GenFromMeta.xpl"/>
             </source>
-        </GenFromMeta>
+        </GenViewFromMeta>
+
+        <GenForm outputMode="node">
+            <attr name="schema" mandatory="true"/>
+            <attr name="formId" mandatory="true"/>
+
+            <source>
+                <form id="${formId}" editMode="edit">
+                    <layout>
+                        <c:for var="prop" items="${schema.props}">
+                            <c:script>
+                                if(prop.internal) continue;
+                            </c:script>
+                            ${prop.name}[${prop.displayName || prop.name}]
+                        </c:for>
+                    </layout>
+
+                    <cells>
+                        <c:for var="prop" items="${schema.props}">
+                            <cell id="${prop.name}" label="${prop.displayName || prop.name}"
+                                  mandatory="${prop.mandatory?true:null}" stdDomain="${prop.schema.stdDomain}" dict="${prop.schema.dict}">
+                            </cell>
+                        </c:for>
+                    </cells>
+                </form>
+            </source>
+        </GenForm>
+
+        <GenGrid outputMode="node">
+            <attr name="schema" mandatory="true"/>
+            <attr name="gridId" mandatory="true"/>
+
+            <source>
+                <grid id="${gridId}" editMode="edit">
+                    <cols>
+                        <c:for var="prop" items="${schema.props}">
+                            <col id="${prop.name}" label="${prop.displayName || prop.name}" xdsl:abstract="${prop.internal?true:null}"
+                                 mandatory="${prop.mandatory?true:null}" stdDomain="${prop.schema.stdDomain}" dict="${prop.schema.dict}">
+                            </col>
+                        </c:for>
+                    </cols>
+                </grid>
+            </source>
+        </GenGrid>
     </tags>
 </lib>
