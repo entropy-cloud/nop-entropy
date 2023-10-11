@@ -22,17 +22,16 @@ toolbar:
   - type: action
     level: primary
     label: 下载报表模型
-    actionType: ajax
+    actionType: download
     api:
       url: "/p/ReportDemo__downloadModel?reportName=${tree}"
       responseType: "blob"
   - type: action
     level: primary
     label: 导出Excel
-    actionType: ajax
+    actionType: download
     api:
       url: "/p/ReportDemo__download?reportName=${tree}&renderType=xlsx"
-      responseType: "blob"
 
   - type: action
     level: primary
@@ -40,12 +39,14 @@ toolbar:
     actionType: reload
     target: reportService
 body:
+  # 在amis的新版本中，兄弟节点已经无法督导Service返回的变量
   - type: service
     name: reportService
     api:
       url: "@query:ReportDemo__renderHtml?reportName=${tree}"
       responseKey: reportHtml
       sendOn: ${tree}
-  - type: html
-    name: html
-    html: '${reportHtml|raw}'
+    body:
+    - type: tpl
+      name: html
+      tpl: '${reportHtml|raw}'

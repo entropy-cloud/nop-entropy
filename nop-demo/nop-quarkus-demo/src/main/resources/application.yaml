@@ -59,8 +59,8 @@ nop:
 "%dev":
   nop:
     debug: true
-#    log:
-#      level: trace
+   # log:
+   #   level: trace
 
     auth:
       login:
@@ -102,7 +102,7 @@ quarkus:
 
   log:
     level: info
-#    min-level: info
+    min-level: trace
 
     console:
       json: true

@@ -27,9 +27,6 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rpc.api.ContextBinder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -39,6 +36,9 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
@@ -299,6 +299,7 @@ public class GraphQLWebService {
 
     protected void buildContent(Response.ResponseBuilder builder, String contentType, Object content, String fileName) {
         builder.header(ApiConstants.HEADER_CONTENT_TYPE, contentType);
+        builder.header("Access-Control-Expose-Headers", "content-disposition");
         if (content instanceof String) {
             LOG.debug("nop.graphql.response:{}", content);
             builder.entity(content);
@@ -306,7 +307,7 @@ public class GraphQLWebService {
             builder.entity(content);
             if (!StringHelper.isEmpty(fileName)) {
                 String encoded = StringHelper.encodeURL(fileName);
-                builder.header("Content-Disposition", "attachment;filename=" + encoded);
+                builder.header("content-disposition", "attachment; filename=" + encoded);
             }
 //            if(content instanceof File){
 //                builder.header(HttpHeaders.CONTENT_LENGTH,((File) content).length());
@@ -314,7 +315,7 @@ public class GraphQLWebService {
         } else if (content instanceof IResource) {
             if (!StringHelper.isEmpty(fileName)) {
                 String encoded = StringHelper.encodeURL(fileName);
-                builder.header("Content-Disposition", "attachment;filename=" + encoded);
+                builder.header("content-disposition", "attachment; filename=" + encoded);
             }
             buildResourceContent(builder, (IResource) content);
         } else {
