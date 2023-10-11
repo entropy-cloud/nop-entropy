@@ -510,4 +510,9 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     public IEstimatedClock getDbEstimatedClock(String querySpace) {
         return sessionFactory.getJdbcTemplate().getDbEstimatedClock(querySpace);
     }
+
+    @Override
+    public void reloadModel(){
+        sessionFactory.reloadModel();
+    }
 }

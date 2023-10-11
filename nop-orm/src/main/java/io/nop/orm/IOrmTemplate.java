@@ -268,4 +268,6 @@ public interface IOrmTemplate extends ISqlExecutor {
     void clearGlobalCacheFor(String referenceName);
 
     IEstimatedClock getDbEstimatedClock(String querySpace);
+
+    void reloadModel();
 }

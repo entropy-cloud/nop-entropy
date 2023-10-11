@@ -117,6 +117,16 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private ISequenceGenerator sequenceGenerator;
 
+    private Runnable reloadFunction;
+
+    public Runnable getReloadFunction() {
+        return reloadFunction;
+    }
+
+    public void setReloadFunction(Runnable reloadFunction) {
+        this.reloadFunction = reloadFunction;
+    }
+
     @Override
     public ISequenceGenerator getSequenceGenerator() {
         return sequenceGenerator;
@@ -281,8 +291,12 @@ public class SessionFactoryImpl implements IPersistEnv {
         this.collectionPersisters = collectionPersisters;
     }
 
-    public void reloadOrmModel() {
-        this.sqlExprMetaCache = new SqlExprMetaCache(this.columnBinderEnhancer, this.dialectProvider, this.ormModel);
+    public SqlExprMetaCache getSqlExprMetaCache() {
+        return sqlExprMetaCache;
+    }
+
+    public void setSqlExprMetaCache(SqlExprMetaCache sqlExprMetaCache) {
+        this.sqlExprMetaCache = sqlExprMetaCache;
     }
 
     public EntityTableMeta resolveEntityTableMeta(String entityName) {
@@ -459,5 +473,11 @@ public class SessionFactoryImpl implements IPersistEnv {
 
         LOG.debug("orm.bean_provider_get_bean:name={}", name);
         return beanProvider.getBean(name);
+    }
+
+    @Override
+    public void reloadModel() {
+        if(this.reloadFunction != null)
+            this.reloadFunction.run();
     }
 }

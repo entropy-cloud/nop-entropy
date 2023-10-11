@@ -18,6 +18,7 @@ import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.orm.IOrmSessionFactory;
+import io.nop.orm.eql.meta.SqlExprMetaCache;
 import io.nop.orm.loader.JdbcQueryExecutor;
 import io.nop.orm.metrics.EmptyOrmMetricsImpl;
 import io.nop.orm.metrics.OrmMetricsImpl;
@@ -25,12 +26,12 @@ import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.loader.OrmModelLoader;
 import io.nop.orm.persister.ICollectionPersister;
 import io.nop.orm.persister.IEntityPersister;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
@@ -162,11 +163,16 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         builder.build();
         Map<String, IEntityPersister> entityPersisters = builder.getEntityPersisters();
         Map<String, ICollectionPersister> collectionPersisters = builder.getCollectionPersisters();
+
+        SqlExprMetaCache sqlExprMetaCache = new SqlExprMetaCache(sessionFactory.getColumnBinderEnhancer(),
+                sessionFactory.getDialectProvider(), ormModel);
+
         sessionFactory.setEntityPersisters(entityPersisters);
         sessionFactory.setCollectionPersisters(collectionPersisters);
         sessionFactory.setOrmModel(ormModel);
         sessionFactory.setSequenceGenerator(getSequenceGenerator());
-        sessionFactory.reloadOrmModel();
+        sessionFactory.setSqlExprMetaCache(sqlExprMetaCache);
+        sessionFactory.setReloadFunction(this::reloadOrmModel);
     }
 
     @PreDestroy

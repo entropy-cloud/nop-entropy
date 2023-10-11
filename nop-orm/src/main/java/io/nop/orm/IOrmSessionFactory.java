@@ -57,4 +57,6 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
     void removeDaoListener(IOrmDaoListener daoListener);
 
     ICompiledSql compileSql(String name, String sqlText, boolean disableLogicalDelete);
+
+    void reloadModel();
 }
