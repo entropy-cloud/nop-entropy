@@ -3,11 +3,10 @@
 <!--
 支持异步执行的轻量化任务引擎。持久化状态为可选特性，如果在步骤上配置了saveState，则可以从任意步骤中断并恢复执行。
 
-@graphMode 图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
 @firstStep 当graphMode为true时，第一个执行的步骤id
 -->
 <task defaultSaveState="!boolean=false" version="!long=0"
-      restartable="!boolean=true" graphMode="!boolean=false" firstStep="var-name"
+      restartable="!boolean=true" firstStep="var-name"
       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model"
       xdef:ref="TaskStepsModel"
@@ -49,9 +48,9 @@
 
         <validator xdef:ref="../validator.xdef"/>
 
-        <catch xdef:ref="TaskStepsModel"/>
+        <catch xdef:value="xpl"/>
 
-        <finally xdef:ref="TaskStepsModel"/>
+        <finally xdef:value="xpl"/>
 
         <!--
           如果发生异常，则重试整个task
@@ -78,15 +77,15 @@
     </xdef:define>
 
     <!--
-    @next 本步骤执行完毕后缺省跳转到的步骤
+    @next 本步骤执行完毕后缺省跳转到的步骤。如果没有指定，则缺省步骤为下一个兄弟节点
     @saveState 是否需要持久化状态用于失败后重新执行本步骤时的状态恢复
     @allowStartIfComplete 如果设置为false, 则重新执行时已经完成的步骤会被跳过
-    @noWait 缺省情况下，总是等待当前步骤执行完毕之后再执行下一个步骤。但是如果设置了noWait=true，则会立刻启动下一个任务
+    @onError 当内部抛出异常的时候跳转到哪个步骤
     -->
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" returnAs="var-name"
                  extType="var-name" tagSet="csv-set"
-                 allowStartIfComplete="!boolean=false" noWait="!boolean=false" internal="!boolean=false"
-                 next="string" id="!var-name" saveState="!boolean=false">
+                 allowStartIfComplete="!boolean=false" internal="!boolean=false"
+                 next="string" onError="string" id="!var-name" saveState="!boolean=false">
     </xdef:define>
 
     <!--

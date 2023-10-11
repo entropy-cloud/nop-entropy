@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [16:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [15:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -19,7 +19,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      * xml name: catch
      * 
      */
-    private io.nop.task.model.TaskStepsModel _catch ;
+    private io.nop.core.lang.eval.IEvalAction _catch ;
     
     /**
      *  
@@ -54,7 +54,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      * xml name: finally
      * 
      */
-    private io.nop.task.model.TaskStepsModel _finally ;
+    private io.nop.core.lang.eval.IEvalAction _finally ;
     
     /**
      *  
@@ -125,12 +125,12 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      *  
      */
     
-    public io.nop.task.model.TaskStepsModel getCatch(){
+    public io.nop.core.lang.eval.IEvalAction getCatch(){
       return _catch;
     }
 
     
-    public void setCatch(io.nop.task.model.TaskStepsModel value){
+    public void setCatch(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._catch = value;
@@ -246,12 +246,12 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      *  
      */
     
-    public io.nop.task.model.TaskStepsModel getFinally(){
+    public io.nop.core.lang.eval.IEvalAction getFinally(){
       return _finally;
     }
 
     
-    public void setFinally(io.nop.task.model.TaskStepsModel value){
+    public void setFinally(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._finally = value;
@@ -489,11 +489,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._catch = io.nop.api.core.util.FreezeHelper.deepFreeze(this._catch);
-            
            this._decorators = io.nop.api.core.util.FreezeHelper.deepFreeze(this._decorators);
-            
-           this._finally = io.nop.api.core.util.FreezeHelper.deepFreeze(this._finally);
             
            this._inputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputs);
             

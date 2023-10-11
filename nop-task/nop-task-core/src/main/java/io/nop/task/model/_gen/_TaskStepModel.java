@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [86:6:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [85:6:0:0]/nop/schema/task/task.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -38,16 +38,16 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      *  
      * xml name: next
-     * 本步骤执行完毕后缺省跳转到的步骤
+     * 本步骤执行完毕后缺省跳转到的步骤。如果没有指定，则缺省步骤为下一个兄弟节点
      */
     private java.lang.String _next ;
     
     /**
      *  
-     * xml name: noWait
-     * 缺省情况下，总是等待当前步骤执行完毕之后再执行下一个步骤。但是如果设置了noWait=true，则会立刻启动下一个任务
+     * xml name: onError
+     * 当内部抛出异常的时候跳转到哪个步骤
      */
-    private boolean _noWait  = false;
+    private java.lang.String _onError ;
     
     /**
      *  
@@ -130,7 +130,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      * 
      * xml name: next
-     *  本步骤执行完毕后缺省跳转到的步骤
+     *  本步骤执行完毕后缺省跳转到的步骤。如果没有指定，则缺省步骤为下一个兄弟节点
      */
     
     public java.lang.String getNext(){
@@ -148,19 +148,19 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
-     * xml name: noWait
-     *  缺省情况下，总是等待当前步骤执行完毕之后再执行下一个步骤。但是如果设置了noWait=true，则会立刻启动下一个任务
+     * xml name: onError
+     *  当内部抛出异常的时候跳转到哪个步骤
      */
     
-    public boolean isNoWait(){
-      return _noWait;
+    public java.lang.String getOnError(){
+      return _onError;
     }
 
     
-    public void setNoWait(boolean value){
+    public void setOnError(java.lang.String value){
         checkAllowChange();
         
-        this._noWait = value;
+        this._onError = value;
            
     }
 
@@ -239,7 +239,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.put("extType",this.getExtType());
         out.put("internal",this.isInternal());
         out.put("next",this.getNext());
-        out.put("noWait",this.isNoWait());
+        out.put("onError",this.getOnError());
         out.put("returnAs",this.getReturnAs());
         out.put("saveState",this.isSaveState());
         out.put("tagSet",this.getTagSet());

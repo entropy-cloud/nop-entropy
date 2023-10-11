@@ -34,8 +34,8 @@ public class TaskStepBuilder {
         ITaskStep step = body;
 
         if (stepModel.getCatch() != null || stepModel.getFinally() != null) {
-            ITaskStep catchStep = buildSequential(stepModel.getCatch());
-            ITaskStep finallyStep = buildSequential(stepModel.getFinally());
+            ITaskStep catchStep = null;//buildSequential(stepModel.getCatch());
+            ITaskStep finallyStep = null;//buildSequential(stepModel.getFinally());
 
             TryTaskStep tryStep = new TryTaskStep();
             tryStep.setLocation(stepModel.getLocation());

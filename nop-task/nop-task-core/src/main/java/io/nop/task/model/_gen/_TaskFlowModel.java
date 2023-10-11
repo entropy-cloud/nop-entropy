@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [9:2:0:0]/nop/schema/task/task.xdef <p>
+ * generate from [8:2:0:0]/nop/schema/task/task.xdef <p>
  * 支持异步执行的轻量化任务引擎。持久化状态为可选特性，如果在步骤上配置了saveState，则可以从任意步骤中断并恢复执行。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -27,13 +27,6 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
      * 当graphMode为true时，第一个执行的步骤id
      */
     private java.lang.String _firstStep ;
-    
-    /**
-     *  
-     * xml name: graphMode
-     * 图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
-     */
-    private boolean _graphMode  = false;
     
     /**
      *  
@@ -83,25 +76,6 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         checkAllowChange();
         
         this._firstStep = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: graphMode
-     *  图模式要求每个步骤都要设置next步骤，如果next为null, 则表示exit而不是继续执行后续步骤
-     */
-    
-    public boolean isGraphMode(){
-      return _graphMode;
-    }
-
-    
-    public void setGraphMode(boolean value){
-        checkAllowChange();
-        
-        this._graphMode = value;
            
     }
 
@@ -159,7 +133,6 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         
         out.put("defaultSaveState",this.isDefaultSaveState());
         out.put("firstStep",this.getFirstStep());
-        out.put("graphMode",this.isGraphMode());
         out.put("restartable",this.isRestartable());
         out.put("version",this.getVersion());
     }
