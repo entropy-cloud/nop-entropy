@@ -36952,6 +36952,10 @@
         ]
       },
       {
+        "name": "reloadModel",
+        "parameterTypes": []
+      },
+      {
         "name": "requireSession",
         "parameterTypes": []
       },

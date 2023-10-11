@@ -75,7 +75,7 @@
 
         <columns j:list="true">
             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.fixedProps}"/>
-            <operation label="@i18n:common.operation" id="operation" width="${pageModel.table?.operationSize || '110px'}"
+            <operation label="@i18n:common.operation" id="operation" width="${pageModel.table?.operationSize || 110}"
                        toggled="@:true" fixed="right" labelClassName="text-center"
                        xpl:if="!pageModel.table?.noOperations">
                 <buttons j:list="true">

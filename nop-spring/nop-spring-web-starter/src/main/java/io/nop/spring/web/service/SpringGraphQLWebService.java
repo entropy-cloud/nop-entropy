@@ -100,7 +100,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
 
     protected ResponseEntity<Object> transformGraphQLResponse(GraphQLResponseBean response, IGraphQLExecutionContext context) {
         HttpHeaders headers = new HttpHeaders();
-        if (context.getResponseHeaders() != null) {
+        if (context != null && context.getResponseHeaders() != null) {
             context.getResponseHeaders().forEach((name, value) -> {
                 List<String> list = Arrays.asList(String.valueOf(value));
                 headers.put(name, list);
