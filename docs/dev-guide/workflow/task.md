@@ -31,9 +31,22 @@ interface ITaskStep {
 1. 在parentScope中检查when条件是否满足，不满足条件则直接跳过步骤
 2. 在parentScope中执行input表达式得到输入变量，然后将它们设置到当前步骤的scope中
 3. 注册超时时间，超时时间到达的时候取消整个step的执行，step的状态转换为TIMEOUT
-4. 注册错误处理，如果失败，则执行catch处理。
+4. 注册错误处理，如果失败，则执行catch处理。如果catch，则认为步骤状态恢复到正常，步骤相当于是成功结束。
 5. 注册重试策略，如果后续执行失败，则按照重试策略重试
 6. 检查throttle和rate-limit配置，对请求进行限速
 7. 执行decorator
 8. 执行步骤body
-9. body执行完毕后，根据output设置将步骤scope中的变量保存到全局scope中
+9. body执行完毕后，根据output设置将步骤scope中的变量保存到全局scope中。抛出异常的时候不会执行output处理。
+
+## 状态管理
+
+* 可以看见parentScope中的变量，但是修改不了。
+* 可以控制不查找parentScope中的变量
+* catch和finally都是立刻执行的脚本函数，不涉及到异步状态保持
+
+
+## 执行
+* 如果没有指定next，则next为下一个兄弟节点。
+* 标签库可以作为接口的实现。
+* 任务执行有明确的生命周期概念。生命周期结束时自动回收相关资源。
+* scope对应于当前step， taskScope对应于任务上下文

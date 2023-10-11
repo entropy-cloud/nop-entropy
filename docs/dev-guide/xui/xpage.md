@@ -249,3 +249,22 @@ responseKey是Nop平台的ajaxFetch函数负责识别的，amis本身并不支�
 
 ## API返回列表数据
 返回列表数据时会normalizeApiResponseData函数会自动将列表包装为 {items:list}，这样确保返回的data在使用时始终是Map对象。
+
+## 表格编辑
+* 行编辑时上下文环境中存在变量index，对应于当前行的下标
+* TableRow具有itemIndex属性
+* IRow.change(values)可以修改值
+* TableStore.getRowById(id)得到IRow
+* props.store.row可以得到当前行，store.rowIndex对应行下标
+
+## store操作
+
+* store.changeValue('x',123)
+* 
+
+## 调试
+可以在onClick事件中插入debugger指令。
+
+````
+"onClick": "debugger; props.store.closeDialog()"
+````
