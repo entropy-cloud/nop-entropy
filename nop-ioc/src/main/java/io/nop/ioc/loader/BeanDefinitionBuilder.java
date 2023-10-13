@@ -631,7 +631,8 @@ public class BeanDefinitionBuilder {
             IBeanPropertyModel propModel = classModel.getBeanModel().getPropertyModel(propName);
             if (propModel == null)
                 return;
-            IBeanPropValueResolver resolver = ConfigPropHelper.buildConfigVarResolver(propModel, configPrefix, introspection);
+            IBeanPropValueResolver resolver = ConfigPropHelper.buildConfigVarResolver(propModel,
+                    bean.getLocation(),configPrefix, introspection);
             if (resolver != null) {
                 bean.addProp(propName, new BeanProperty(null, propModel.getSetter(),
                         propModel.getRawClass(), resolver, true, true));

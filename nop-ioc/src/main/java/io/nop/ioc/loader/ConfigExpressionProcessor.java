@@ -57,7 +57,7 @@ public class ConfigExpressionProcessor {
         }
 
         if (expr.charAt(0) == '@') {
-            return parsePrefixExpr(bean, propName, expr, expectedType);
+            return parsePrefixExpr(bean, loc, propName, expr, expectedType);
         }
 
         return buildValue(loc, expr, expectedType);
@@ -95,10 +95,10 @@ public class ConfigExpressionProcessor {
                 return value;
             } else {
                 String defaultValue = sc.nextUntil('}', false).trim().toString();
-                return new ConfigValueResolver(false, configVars, false, defaultValue);
+                return new ConfigValueResolver(sc.location(),false, configVars, false, defaultValue);
             }
         } else {
-            return new ConfigValueResolver(false, configVars, true, null);
+            return new ConfigValueResolver(sc.location(),false, configVars, true, null);
         }
     }
 
@@ -106,7 +106,7 @@ public class ConfigExpressionProcessor {
                                          IGenericType expectedType) {
         if (sc.cur == '@') {
             String value = sc.nextUntil('}', false).trim().toString();
-            return parsePrefixExpr(bean, propName, value, expectedType);
+            return parsePrefixExpr(bean, sc.location(), propName, value, expectedType);
         }
         SimpleExprParser parser = new SimpleExprParser();
         int beginPos = sc.pos;
@@ -119,7 +119,7 @@ public class ConfigExpressionProcessor {
         return new ExpressionValueResolver(new ExprEvalAction(executable), code);
     }
 
-    public static IBeanPropValueResolver parsePrefixExpr(BeanDefinition bean, String propName, String value,
+    public static IBeanPropValueResolver parsePrefixExpr(BeanDefinition bean, SourceLocation loc, String propName, String value,
                                                          IGenericType expectedType) {
         if (value.startsWith(IocConstants.PREFIX_BEAN)) {
             if (value.equals(IocConstants.CONFIG_BEAN_ID)) {
@@ -144,7 +144,7 @@ public class ConfigExpressionProcessor {
                 value = value.substring(0, pos).trim();
             }
             List<String> configVars = StringHelper.stripedSplit(value, ',');
-            return new ConfigValueResolver(reactive, configVars, defaultValue == null, defaultValue);
+            return new ConfigValueResolver(loc,reactive, configVars, defaultValue == null, defaultValue);
         } else {
             throw new NopException(ERR_IOC_INVALID_BIND_EXPR).source(bean).param(ARG_BEAN_NAME, bean.getId())
                     .param(ARG_TRACE, bean.getTrace()).param(ARG_PROP_NAME, propName).param(ARG_EXPR, value);

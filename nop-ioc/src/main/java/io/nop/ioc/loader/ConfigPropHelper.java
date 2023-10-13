@@ -8,6 +8,7 @@
 package io.nop.ioc.loader;
 
 import io.nop.api.core.annotations.config.ConfigBean;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
@@ -23,15 +24,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ConfigPropHelper {
-    public static IBeanPropValueResolver buildConfigVarResolver(IBeanPropertyModel propModel, String configPrefix,
+    public static IBeanPropValueResolver buildConfigVarResolver(IBeanPropertyModel propModel, SourceLocation loc, String configPrefix,
                                                                 IBeanClassIntrospection introspection) {
         IGenericType type = propModel.getType();
         if (introspection.isAllowedConfigVarType(type)) {
             String configVar = buildConfigVar(configPrefix, propModel);
-            return new ConfigValueResolver(true, configVar, propModel.getDefaultValue());
+            return new ConfigValueResolver(loc,true, configVar, propModel.getDefaultValue());
         } else if (isConfigBean(type)) {
             String configVar = buildConfigVar(configPrefix, propModel);
-            return buildBeanResolver(type.getRawClass(), configVar, introspection);
+            return buildBeanResolver(type.getRawClass(),loc, configVar, introspection);
         } else {
             return null;
         }
@@ -41,13 +42,13 @@ public class ConfigPropHelper {
         return !type.isAbstract() && type.getRawClass().isAnnotationPresent(ConfigBean.class);
     }
 
-    static IBeanPropValueResolver buildBeanResolver(Class<?> beanClass, String configPrefix,
+    static IBeanPropValueResolver buildBeanResolver(Class<?> beanClass, SourceLocation loc, String configPrefix,
                                                     IBeanClassIntrospection introspection) {
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(beanClass);
         Map<String, IBeanPropValueResolver> props = new LinkedHashMap<>();
         for (IBeanPropertyModel propModel : beanModel.getPropertyModels().values()) {
             if (propModel.isWritable()) {
-                IBeanPropValueResolver resolver = buildConfigVarResolver(propModel, configPrefix, introspection);
+                IBeanPropValueResolver resolver = buildConfigVarResolver(propModel, loc, configPrefix, introspection);
                 if (resolver != null) {
                     props.put(propModel.getName(), resolver);
                 }

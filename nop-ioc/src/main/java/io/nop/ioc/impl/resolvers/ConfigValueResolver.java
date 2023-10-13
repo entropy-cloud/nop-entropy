@@ -7,8 +7,8 @@
  */
 package io.nop.ioc.impl.resolvers;
 
-import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.IocConstants;
@@ -24,21 +24,24 @@ import static io.nop.ioc.IocErrors.ARG_CONFIG_VARS;
 import static io.nop.ioc.IocErrors.ERR_IOC_EMPTY_CONFIG_VAR;
 
 public class ConfigValueResolver implements IBeanPropValueResolver {
+    private final SourceLocation location;
     private final List<String> configVars;
     private final Object defaultValue;
 
     private final boolean reactive;
     private final boolean mandatory;
 
-    public ConfigValueResolver(boolean reactive, List<String> configVars, boolean mandatory, Object defaultValue) {
+    public ConfigValueResolver(SourceLocation location,
+                               boolean reactive, List<String> configVars, boolean mandatory, Object defaultValue) {
+        this.location = location;
         this.reactive = reactive;
         this.configVars = configVars;
         this.mandatory = mandatory;
         this.defaultValue = defaultValue;
     }
 
-    public ConfigValueResolver(boolean reactive, String configVar, Object defaultValue) {
-        this(reactive, Collections.singletonList(configVar), false, defaultValue);
+    public ConfigValueResolver(SourceLocation location, boolean reactive, String configVar, Object defaultValue) {
+        this(location, reactive, Collections.singletonList(configVar), false, defaultValue);
     }
 
     @Override
@@ -64,14 +67,27 @@ public class ConfigValueResolver implements IBeanPropValueResolver {
 
     @Override
     public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
-        for (int i = 0, n = configVars.size(); i < n; i++) {
+        int n = configVars.size();
+        for (int i = 0; i < n; i++) {
             Object value = container.getConfigValue(configVars.get(i));
             if (!StringHelper.isEmptyObject(value))
                 return value;
         }
+
         if (mandatory) {
             throw new NopException(ERR_IOC_EMPTY_CONFIG_VAR).param(ARG_CONFIG_VARS, configVars);
         }
+
+        if (n > 0) {
+            Class clazz = defaultValue == null ? String.class : defaultValue.getClass();
+            String varName = configVars.get(n-1);
+            // 调用getConfigReference会在configProvider中注册配置变量
+            Object value = container.getConfigProvider().getConfigReference(varName, clazz, defaultValue, location).get();
+            if(value == null)
+                value = defaultValue;
+            return value;
+        }
+
         return defaultValue;
     }
 }
