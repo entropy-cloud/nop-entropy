@@ -89,7 +89,7 @@
                    sortable="boolean" noOperations="boolean"
                    multiple="boolean" pickerMode="boolean"
                    rowDrag="boolean" colDrag="boolean" pager="string"
-                   operationSize="string">
+                   operationSize="int">
                 <api xdef:ref="api.xdef"/>
                 <initFetchOn xdef:value="string"/>
                 <stopAutoRefreshWhen xdef:value="string"/>
