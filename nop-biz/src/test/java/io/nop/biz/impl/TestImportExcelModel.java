@@ -19,7 +19,7 @@ import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestParseTreeTable extends BaseTestCase {
+public class TestImportExcelModel extends BaseTestCase {
     @BeforeAll
     public static void beforeAll() {
         CoreInitialization.initialize();
