@@ -235,3 +235,11 @@ nop:
 
 nop.file.store-impl指定为oss时会使用对象存储来保存文件，否则会使用本地文件系统，存放在/nop/file目录下
 
+** 使用oss需要引入nop-integration-oss模块**
+
+## 配置变量
+
+* nop.file.store-dir
+使用本地文件系统存储上传文件时使用的目录，缺省为/nop/file
+* nop.file.store-impl
+如果设置为oss则表示启用分布式存储，否则使用本地存储

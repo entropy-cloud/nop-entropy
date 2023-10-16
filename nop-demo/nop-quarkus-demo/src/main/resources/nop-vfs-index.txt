@@ -122,6 +122,7 @@
 /nop/auth/orm/_app.orm.xml
 /nop/auth/orm/app.orm.xml
 /nop/auth/pages/DemoPage/action.js
+/nop/auth/pages/DemoPage/demo-plain.page.yaml
 /nop/auth/pages/DemoPage/demo.lib.xjs
 /nop/auth/pages/DemoPage/demo.page.yaml
 /nop/auth/pages/DemoPage/parts/sub2.lib.js

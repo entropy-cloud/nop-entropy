@@ -130,3 +130,5 @@ prop还具有如下节点配置：
 * transformIn用于将前台提交的参数值转换为后台使用的值，执行上下文中存在value, data等变量，data对应于前台传入的请求参数，value对应于属性值
 * transformOut用于将实体上的属性值转换为返回到前台的结果值。transformOut根据上下文中的value,data等变量进行处理，返回结果值
 * getter和setter相当于替代实体上的setXX和getXX方法，上下文中存在entity, value等参数
+
+ui:filterOp实际对应前端生成的控件的name格式为 `filter_{name}__{filterOp}`，例如`filter_userStatus__in`

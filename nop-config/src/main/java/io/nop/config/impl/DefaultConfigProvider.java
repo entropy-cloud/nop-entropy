@@ -176,7 +176,7 @@ public class DefaultConfigProvider implements IConfigProvider {
                     sb.append(entry.getKey()).append('=').append(ConvertHelper.toString(value, "")).append("\n");
                 }
             }
-            LOG.debug("nop.config.vars=\n{}", sb);
+            LOG.info("nop.config.vars=\n{}", sb);
         }
     }
 
@@ -231,12 +231,14 @@ public class DefaultConfigProvider implements IConfigProvider {
 
         IConfigReference<?> ref = getConfigRef(loc, varName, clazz, defaultValue);
 
-        if (ref.getValueType() != clazz && !clazz.isAssignableFrom(ref.getValueType())) {
+        if (ref.getValueType() == clazz)
+            return (IConfigReference<T>) ref;
+
+        if (clazz != String.class && clazz != Object.class && !clazz.isAssignableFrom(ref.getValueType())) {
             LOG.warn("nop.config.var-type-not-unique:var={},type={},defType={}", varName, clazz, ref.getValueType());
-            return new CastTypeConfigReference<>(ref, clazz);
         }
 
-        return (IConfigReference<T>) ref;
+        return new CastTypeConfigReference<>(ref, clazz);
     }
 
     private DefaultConfigReference<?> buildFromDefined(String varName, IConfigReference<?> ref) {

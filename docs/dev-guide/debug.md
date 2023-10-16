@@ -1,5 +1,8 @@
 # 开发调试
 
+## debug模式
+设置nop.debug=true会开启debug模式，此时才会注册DevDoc等用于调试的后台服务。
+
 ## 错误定位
 
 后台抛出异常时一般会统一使用NopException异常类，它具有SourceLocation属性，会提示错误发生时对应的XLang程序源码位置。NopException类上还报错了XLang执行堆栈，打印异常消息时会输出Xpl堆栈信息。例如
@@ -21,7 +24,7 @@ io.nop.api.core.exceptions.NopException: NopException[seq=4,status=-1,errorCode=
 ## 日志信息
 
 1. 配置项信息
-系统启动的时候会打印所有配置参数的值以及所在的配置文件（因为可能存在多个配置文件，而且高优先级的文件会覆盖低优先级的文件）
+如果设置了nop.debug=true，则系统启动的时候会打印所有配置参数的值以及所在的配置文件（因为可能存在多个配置文件，而且高优先级的文件会覆盖低优先级的文件）
 ````
 # [84:11:0:0]classpath:application.yaml
 quarkus.log.level=INFO
@@ -34,6 +37,15 @@ quarkus.log.level=INFO
 ````
 
 3. 动态装配的bean
+将io.nop.ioc的调试级别设置为debug，则系统启动的时候会打印出条件bean的执行情况。
+````
+quarkus:
+  log:
+    category:
+      "io.nop":
+        level: DEBUG
+````
+
 NopIoC容器会先分析所有bean的存在条件，然后再创建bean。分析结果会打印到日志文件中。对于disabled的bean会打印出禁用的原因
 
 ````
