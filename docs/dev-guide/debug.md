@@ -120,6 +120,8 @@ Nop平台的nop-idea-plugin模块提供了IDEA开发插件，其中包含了针�
 Quarkus框架内置了graphql-ui调试工具。以调试模式启动应用之后，通过链接/q/graphql-ui可以访问到调试页面。
 在此页面上可以查看所有后台GraphQL端点和类型的定义，并且输入代码时会自动提示候选文本。
 
+![](../tutorial/graphql-ui.png)
+
 # 常见问题
 
 ## 前端
