@@ -65,7 +65,7 @@ public class OkHttpClientImpl implements IHttpClient {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 int status = response.code();
-                String text = response.body().string();
+                String text = response.body() == null ? "" : response.body().string();
                 DefaultHttpResponse res = new DefaultHttpResponse();
                 res.setHttpStatus(status);
                 res.setBodyAsText(text);
@@ -96,7 +96,7 @@ public class OkHttpClientImpl implements IHttpClient {
         requestBuilder.url(request.getUrl());
 
         String method = request.getMethod();
-        String json = JSON.serialize(request.getBody(), config.isPrettyJson());
+        String json = request.getBody() == null ? "" : JSON.serialize(request.getBody(), config.isPrettyJson());
 
         final RequestBody body = RequestBody.create(MEDIA_TYPE_JSON, json);
         requestBuilder.method(method, body);

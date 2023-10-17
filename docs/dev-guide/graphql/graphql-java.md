@@ -350,3 +350,9 @@ NopAuthDept_findList{
 ## 文件上传下载
 
 参见[upload.md](upload.md)
+
+## REST链接
+NopGraphQL引擎支持通过REST链接的方式调用后台服务函数。
+在某种意义上它统一了GraphQL和REST，使得它们可以实现同样的功能，区别仅仅是请求和响应消息的格式不同
+
+参见 [rest.md](rest.md)

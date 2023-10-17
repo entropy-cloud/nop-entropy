@@ -95,8 +95,14 @@ public class SpringFileService extends AbstractGraphQLFileService {
 引入nop-quarkus-web-starter或者nop-quarkus-spring-starter依赖后，会自动引入
 
 * nop-file-dao： 包含文件上传下载服务NopFileStoreBizModel的实现
-* nop-integration-sso: 包含AmazonS3对象存储支持，阿里云OSS，腾讯云COS，七牛云，京东云，minio都支持这一接口标准。
 * nop-file-spring或者 nop-file-quarkus: 引入处理/f/upload和/f/download链接的REST服务
+
+**使用oss云存储支持时需要引入nop-integration-oss模块**
+
+* nop-integration-oss: 包含AmazonS3对象存储支持，阿里云OSS，腾讯云COS，七牛云，京东云，minio都支持这一接口标准。
+
+nop-integration-oss目前是可选模块，使用云存储来保存附件时需要自行引入这个模块。
+
 
 # 实体字段支持附件类型
 
@@ -229,13 +235,15 @@ nop:
     oss:
       enabled: true
       endpoint: http://localhost:9000
+      #default-bucket-name: nop-file
       access-key: xxx
       secret-key: yyy
+      #path-style-access: false
 ````
 
-nop.file.store-impl指定为oss时会使用对象存储来保存文件，否则会使用本地文件系统，存放在/nop/file目录下
+* nop.file.store-impl指定为oss时会使用对象存储来保存文件，否则会使用本地文件系统，存放在/nop/file目录下
+* 阿里云要求pathStyleAccess必须设置为false
 
-** 使用oss需要引入nop-integration-oss模块**
 
 ## 配置变量
 
@@ -243,3 +251,5 @@ nop.file.store-impl指定为oss时会使用对象存储来保存文件，否则�
 使用本地文件系统存储上传文件时使用的目录，缺省为/nop/file
 * nop.file.store-impl
 如果设置为oss则表示启用分布式存储，否则使用本地存储
+* nop.file.upload-url 全局指定的上传文件端点，缺省为/f/upload
+* nop.file.upload.max-size 全局指定的上传文件大小限制。每个prop上指定的ui:maxUploadSize不能超过这个值，实际起作用的是min(prop.uploadFileSize,global.uploadMaxSize)

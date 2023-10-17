@@ -82,28 +82,28 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
     public void start() {
         final IOReactorConfig.Builder ioReactorConfigBuilder = IOReactorConfig.custom();
         if (clientConfig.getWriteTimeout() != null) {
-            ioReactorConfigBuilder.setSoTimeout((int) clientConfig.getWriteTimeout().get(ChronoUnit.MILLIS), TimeUnit.MILLISECONDS);
+            ioReactorConfigBuilder.setSoTimeout((int) clientConfig.getWriteTimeout().toMillis(), TimeUnit.MILLISECONDS);
         }
         IOReactorConfig ioReactorConfig = ioReactorConfigBuilder.build();
 
         AsyncClientConnectionManager connManager = initConnectionManager();
 
         this.client = HttpAsyncClients.custom().setIOReactorConfig(ioReactorConfig).setConnectionManager(connManager)
-                .evictExpiredConnections().evictIdleConnections(TimeValue.ofMilliseconds(clientConfig.getMaxIdleTime().get(ChronoUnit.MILLIS)))
+                .evictExpiredConnections().evictIdleConnections(TimeValue.ofMilliseconds(clientConfig.getMaxIdleTime().toMillis()))
                 .setUserAgent(clientConfig.getUserAgent()).build();
 
         RequestConfig.Builder builder = RequestConfig.custom();
         if (clientConfig.getKeepAliveDuration() != null) {
-            builder.setDefaultKeepAlive(clientConfig.getKeepAliveDuration().get(ChronoUnit.MILLIS), TimeUnit.MILLISECONDS);
+            builder.setDefaultKeepAlive(clientConfig.getKeepAliveDuration().toMillis(), TimeUnit.MILLISECONDS);
         }
 
         if (clientConfig.getConnectTimeout() != null) {
-            builder.setConnectTimeout(clientConfig.getConnectTimeout().get(ChronoUnit.MILLIS), TimeUnit.MILLISECONDS);
-            builder.setConnectionRequestTimeout(clientConfig.getConnectTimeout().get(ChronoUnit.MILLIS), TimeUnit.MILLISECONDS);
+            builder.setConnectTimeout(clientConfig.getConnectTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            builder.setConnectionRequestTimeout(clientConfig.getConnectTimeout().toMillis(), TimeUnit.MILLISECONDS);
         }
 
         if (clientConfig.getReadTimeout() != null) {
-            builder.setResponseTimeout(clientConfig.getReadTimeout().get(ChronoUnit.MILLIS), TimeUnit.MILLISECONDS);
+            builder.setResponseTimeout(clientConfig.getReadTimeout().toMillis(), TimeUnit.MILLISECONDS);
         }
 
         this.defaultRequestConfig = builder.build();

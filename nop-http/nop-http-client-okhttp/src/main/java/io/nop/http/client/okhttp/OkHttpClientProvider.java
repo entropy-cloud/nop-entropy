@@ -86,7 +86,7 @@ public class OkHttpClientProvider extends LifeCycleSupport {
         ConnectionPool pool = null;
 
         if (config.getMaxIdleTime() != null && config.getMaxIdleCount() > 0) {
-            pool = new ConnectionPool(config.getMaxIdleCount(), config.getMaxIdleTime().get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
+            pool = new ConnectionPool(config.getMaxIdleCount(), config.getMaxIdleTime().toMillis(), TimeUnit.MILLISECONDS);
         }
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
@@ -135,6 +135,8 @@ public class OkHttpClientProvider extends LifeCycleSupport {
             }
             builder.addInterceptor(interceptor);
         }
+
+        builder.addInterceptor(new OkHttpTimeoutInterceptor());
 
         if (interceptors != null) {
             for (Interceptor interceptor : interceptors) {
