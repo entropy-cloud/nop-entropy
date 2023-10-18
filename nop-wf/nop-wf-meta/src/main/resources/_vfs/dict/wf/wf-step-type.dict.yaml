@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 步骤类型
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 普通步骤
+    value: step
+    description: 
+  
+  - label: 汇聚步骤
+    value: join
+    description: 
+  
+  - label: 子流程
+    value: subflow
+    description: 
+  

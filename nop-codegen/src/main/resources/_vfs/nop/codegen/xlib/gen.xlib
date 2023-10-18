@@ -135,6 +135,7 @@
                         builder.defineGlobalVar('basePackageName', pkgName);
                         builder.defineGlobalVar('basePackagePath', pkgPath);
                         builder.defineGlobalVar('deltaDir', ormModel['ext:deltaDir']);
+                        builder.defineGlobalVar('useCoreModule',ormModel['ext:useCoreModule'].$toBoolean());
 
                         builder.defineLoopVar("entityModel","ormModel", model => model.entityModels);
                         builder.defineLoopVar("toManyRelation","entityModel",entityModel=> entityModel.toOneRelations);

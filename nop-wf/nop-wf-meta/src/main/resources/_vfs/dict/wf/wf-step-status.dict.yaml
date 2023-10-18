@@ -1,0 +1,47 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 步骤状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 已创建
+    value: 0
+    description: 
+  
+  - label: 已暂停
+    value: 10
+    description: 
+  
+  - label: 等待中
+    value: 20
+    description: join步骤在等待上游步骤完成的过程中或者flow步骤在等待子流程完成的过程中处于此状态
+  
+  - label: 执行中
+    value: 30
+    description: 步骤处于激活状态，一般此时在界面上才显示操作按钮
+  
+  - label: 已完成
+    value: 40
+    description: 步骤正常结束
+  
+  - label: 已超时
+    value: 50
+    description: 已超时
+  
+  - label: 已失败
+    value: 60
+    description: 步骤异常结束
+  
+  - label: 已中止
+    value: 70
+    description: 主动中止
+  
+  - label: 已退回
+    value: 80
+    description: 退回当前步骤时，当前步骤的状态标记为REJECTED，便于和正常的历史状态区分开来
+  
+  - label: 已撤销
+    value: 90
+    description: 发送到下一步骤之后，在下一步骤的状态转变为历史状态之前，可以执行撤回操作，被撤回的下一步骤状态变为WITHDRAWN。
+  

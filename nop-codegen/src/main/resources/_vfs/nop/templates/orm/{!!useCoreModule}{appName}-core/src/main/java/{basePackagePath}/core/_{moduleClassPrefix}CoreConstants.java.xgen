@@ -1,7 +1,6 @@
-<c:unit xpl:outputMode="text">package ${basePackageName}.dao;
+<c:unit xpl:outputMode="text">package ${basePackageName}.core;
 
-public interface _${moduleClassPrefix}DaoConstants {
-    <c:if test="${!useCoreModule}">
+public interface _${moduleClassPrefix}CoreConstants {
     <c:for var="dict" items="${ormModel.dicts}">
         <c:script>
             const intValue = dict.valueType == 'int';
@@ -26,6 +25,5 @@ public interface _${moduleClassPrefix}DaoConstants {
             </c:if>
         </c:for>
     </c:for>
-    </c:if>
 }
 </c:unit>

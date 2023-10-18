@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 工作状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 未处理
+    value: 0
+    description: 
+  
+  - label: 已读
+    value: 10
+    description: 
+  
+  - label: 已处理
+    value: 20
+    description: 
+  

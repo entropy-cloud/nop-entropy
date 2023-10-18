@@ -1,0 +1,39 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 工作流
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 已创建
+    value: 0
+    description: 
+  
+  - label: 已暂停
+    value: 10
+    description: 
+  
+  - label: 等待中
+    value: 20
+    description: 等待调度
+  
+  - label: 执行中
+    value: 30
+    description: 
+  
+  - label: 已完成
+    value: 40
+    description: 
+  
+  - label: 已超时
+    value: 50
+    description: 
+  
+  - label: 已失败
+    value: 60
+    description: 
+  
+  - label: 已中止
+    value: 70
+    description: 
+  

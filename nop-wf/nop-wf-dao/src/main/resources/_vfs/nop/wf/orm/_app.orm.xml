@@ -1,13 +1,55 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<orm ext:mavenArtifactId="nop-wf" ext:entityPackageName="io.nop.wf.dao.entity" ext:registerShortName="true"
-     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.wf" ext:appName="nop-wf"
-     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
-     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
-     xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:ui="ui">
+<orm ext:mavenArtifactId="nop-wf" ext:entityPackageName="io.nop.wf.dao.entity" ext:useCoreModule="true"
+     ext:registerShortName="true" ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.wf"
+     ext:appName="nop-wf" ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql"
+     ext:mavenVersion="2.0.0-SNAPSHOT" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
+     xmlns:ui="ui">
 
     <x:post-extends x:override="replace">
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
+
+    <dicts>
+        <dict label="步骤类型" name="wf/wf-step-type" valueType="string" i18n-en:label="Workflow Step Type">
+            <option code="STEP" label="普通步骤" value="step"/>
+            <option code="JOIN" label="汇聚步骤" value="join"/>
+            <option code="SUBFLOW" label="子流程" value="subflow"/>
+        </dict>
+        <dict label="工作状态" name="wf/work-status" valueType="int" i18n-en:label="Work Status">
+            <option label="未处理" value="0"/>
+            <option label="已读" value="10"/>
+            <option label="已处理" value="20"/>
+        </dict>
+        <dict label="步骤状态" name="wf/wf-step-status" valueType="int" i18n-en:label="Workflow Step Status">
+            <option code="CREATED" label="已创建" value="0"/>
+            <option code="SUSPENDED" label="已暂停" value="10"/>
+            <option code="WAITING" label="等待中" value="20"/>
+            <option code="ACTIVATED" label="执行中" value="30"/>
+            <option code="COMPLETED" label="已完成" value="40"/>
+            <option code="EXPIRED" label="已超时" value="50"/>
+            <option code="FAILED" label="已失败" value="60"/>
+            <option code="KILLED" label="已中止" value="70"/>
+            <option code="REJECTED" label="已退回" value="80"/>
+            <option code="WITHDRAWN" label="已撤销" value="90"/>
+        </dict>
+        <dict label="工作流" name="wf/wf-status" valueType="int" i18n-en:label="Workflow Status">
+            <option code="CREATED" label="已创建" value="0"/>
+            <option code="SUSPENDED" label="已暂停" value="10"/>
+            <option code="WAITING" label="等待中" value="20"/>
+            <option code="ACTIVATED" label="执行中" value="30"/>
+            <option code="COMPLETED" label="已完成" value="40"/>
+            <option code="EXPIRED" label="已超时" value="50"/>
+            <option code="FAILED" label="已失败" value="60"/>
+            <option code="KILLED" label="已中止" value="70"/>
+        </dict>
+        <dict label="工作流定义状态" name="wf/wf-def-status" valueType="int" i18n-en:label="Workflow Definition Status">
+            <option code="UNPUBLISHED" label="未发布" value="0"/>
+            <option code="PUBLISHED" label="已发布" value="1"/>
+            <option code="DEPRECATED" label="已过时" value="2"/>
+            <option code="ARCHIVED" label="已归档" value="3"/>
+        </dict>
+    </dicts>
 
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
@@ -49,10 +91,10 @@
                 <column code="DESCRIPTION" displayName="描述" name="description" precision="1000" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Description"/>
                 <column code="MODEL_TEXT" displayName="模型文本" domain="mediumtext" mandatory="true" name="modelText"
-                        precision="16777215" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="16777216" propId="6" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Model Text"/>
-                <column code="STATUS" defaultValue="wf/wf-def-status" displayName="状态" mandatory="true" name="status"
-                        propId="7" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Status"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="7" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="wf/wf-def-status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

@@ -1,0 +1,6 @@
+<c:unit xpl:outputMode="text"><![CDATA[package ${basePackageName}.core;
+
+public interface ${moduleClassPrefix}CoreConstants extends _${moduleClassPrefix}CoreConstants{
+
+}
+]]></c:unit>

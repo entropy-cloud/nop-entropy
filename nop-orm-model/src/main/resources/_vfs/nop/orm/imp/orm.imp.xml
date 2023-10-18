@@ -55,6 +55,10 @@
                     <schema stdDomain="xml-name"/>
                 </field>
 
+                <field name="ext:useCoreModule" displayName="useCoreModule">
+                    <schema stdDomain="boolean"/>
+                </field>
+
             </fields>
         </sheet>
 
