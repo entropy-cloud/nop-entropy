@@ -18,13 +18,13 @@ public class WfActorBean implements IWfActor{
     private String deptId;
     private String name;
 
-    private List<WfActorBean> users;
+    private List<WfUserActorBean> users;
 
-    public List<WfActorBean> getUsers() {
+    public List<WfUserActorBean> getUsers() {
         return users;
     }
 
-    public void setUsers(List<WfActorBean> users) {
+    public void setUsers(List<WfUserActorBean> users) {
         this.users = users;
     }
 

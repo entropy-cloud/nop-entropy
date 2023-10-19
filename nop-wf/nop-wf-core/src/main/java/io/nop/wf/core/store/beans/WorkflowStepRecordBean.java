@@ -39,7 +39,7 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private String subWfName;
 
-    private String subWfVersion;
+    private Long subWfVersion;
 
     private String subWfId;
 
@@ -299,11 +299,11 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
         this.subWfName = subWfName;
     }
 
-    public String getSubWfVersion() {
+    public Long getSubWfVersion() {
         return subWfVersion;
     }
 
-    public void setSubWfVersion(String subWfVersion) {
+    public void setSubWfVersion(Long subWfVersion) {
         this.subWfVersion = subWfVersion;
     }
 
