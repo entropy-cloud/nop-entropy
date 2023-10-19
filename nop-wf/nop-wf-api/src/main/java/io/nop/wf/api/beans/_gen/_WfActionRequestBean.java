@@ -21,19 +21,19 @@
             this._wfName = value;
         }
     
-        private String _wfVersion;
+        private Long _wfVersion;
 
         /**
          * 工作流版本 
          */
-        public String getWfVersion(){
+        public Long getWfVersion(){
             return _wfVersion;
         }
 
         /**
          * 工作流版本 
          */
-        public void setWfVersion(String value){
+        public void setWfVersion(Long value){
             this._wfVersion = value;
         }
     

@@ -62,13 +62,13 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     }
 
     @Override
-    public IResource getModelResource(String wfName, String wfVersion) {
+    public IResource getModelResource(String wfName, Long wfVersion) {
         return workflowModelStore.getModelResource(wfName, wfVersion);
     }
 
     @Nonnull
     @Override
-    public IWorkflow newWorkflow(String wfName, String wfVersion) {
+    public IWorkflow newWorkflow(String wfName, Long wfVersion) {
         IWorkflowModel wfModel = getWorkflowModel(wfName, wfVersion);
         IWorkflowRecord wfRecord = workflowStore.newWfRecord(wfModel);
         return new WorkflowImpl(workflowEngine, workflowStore, wfModel, wfRecord);
@@ -87,12 +87,12 @@ public class WorkflowManagerImpl implements IWorkflowManager {
 
     @Nonnull
     @Override
-    public IWorkflowModel getWorkflowModel(String wfName, String wfVersion) {
+    public IWorkflowModel getWorkflowModel(String wfName, Long wfVersion) {
         return workflowModelStore.getWorkflowModel(wfName, wfVersion);
     }
 
     @Override
-    public void removeModelCache(String wfName, String wfVersion) {
+    public void removeModelCache(String wfName, Long wfVersion) {
         workflowModelStore.removeModelCache(wfName, wfVersion);
     }
 

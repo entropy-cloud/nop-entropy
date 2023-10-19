@@ -7,7 +7,7 @@
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="long"/>
         </prop>
         <prop name="args" displayName="启动参数" i18n-en:displayName="Start Args">
             <schema type="java.util.Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
@@ -16,7 +16,7 @@
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="parentWfVersion" displayName="父工作流版本" i18n-en:displayName="Parent Workflow Version">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="java.lang.Long"/>
         </prop>
         <prop name="parentWfId" displayName="父工作流ID" i18n-en:displayName="Parent Workflow ID">
             <schema type="java.lang.String" precision="500"/>

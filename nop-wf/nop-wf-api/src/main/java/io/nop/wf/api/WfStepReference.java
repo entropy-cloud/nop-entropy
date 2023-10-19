@@ -18,12 +18,12 @@ public class WfStepReference implements Serializable {
     private static final long serialVersionUID = 5073441321371891430L;
 
     private final String wfName;
-    private final String wfVersion;
+    private final Long wfVersion;
     private final String wfId;
     private final String stepId;
 
     public WfStepReference(@JsonProperty("wfName") String wfName,
-                           @JsonProperty("wfVersion") String wfVersion,
+                           @JsonProperty("wfVersion") Long wfVersion,
                            @JsonProperty("wfId") String wfId,
                            @JsonProperty("stepId") String stepId) {
         this.wfName = wfName;
@@ -40,7 +40,7 @@ public class WfStepReference implements Serializable {
         return wfName;
     }
 
-    public String getWfVersion() {
+    public Long getWfVersion() {
         return wfVersion;
     }
 

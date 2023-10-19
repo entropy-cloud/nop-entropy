@@ -34,7 +34,7 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
         return getWorkflow().getWfName();
     }
 
-    default String getWfVersion() {
+    default Long getWfVersion() {
         return getWorkflow().getWfVersion();
     }
 

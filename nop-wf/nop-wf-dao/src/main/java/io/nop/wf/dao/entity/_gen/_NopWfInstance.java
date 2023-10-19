@@ -28,7 +28,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_wfName = "wfName";
     public static final int PROP_ID_wfName = 2;
     
-    /* 工作流版本: WF_VERSION VARCHAR */
+    /* 工作流版本: WF_VERSION BIGINT */
     public static final String PROP_NAME_wfVersion = "wfVersion";
     public static final int PROP_ID_wfVersion = 3;
     
@@ -80,7 +80,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_parentWfName = "parentWfName";
     public static final int PROP_ID_parentWfName = 15;
     
-    /* 父流程版本: PARENT_WF_VERSION VARCHAR */
+    /* 父流程版本: PARENT_WF_VERSION BIGINT */
     public static final String PROP_NAME_parentWfVersion = "parentWfVersion";
     public static final int PROP_ID_parentWfVersion = 16;
     
@@ -290,7 +290,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     private java.lang.String _wfName;
     
     /* 工作流版本: WF_VERSION */
-    private java.lang.String _wfVersion;
+    private java.lang.Long _wfVersion;
     
     /* 工作流参数: WF_PARAMS */
     private java.lang.String _wfParams;
@@ -329,7 +329,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     private java.lang.String _parentWfName;
     
     /* 父流程版本: PARENT_WF_VERSION */
-    private java.lang.String _parentWfVersion;
+    private java.lang.Long _parentWfVersion;
     
     /* 父流程ID: PARENT_WF_ID */
     private java.lang.String _parentWfId;
@@ -595,9 +595,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
             }
         
             case PROP_ID_wfVersion:{
-               java.lang.String typedValue = null;
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
+                   typedValue = ConvertHelper.toLong(value,
                        err-> newTypeConversionError(PROP_NAME_wfVersion));
                }
                setWfVersion(typedValue);
@@ -725,9 +725,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
             }
         
             case PROP_ID_parentWfVersion:{
-               java.lang.String typedValue = null;
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
+                   typedValue = ConvertHelper.toLong(value,
                        err-> newTypeConversionError(PROP_NAME_parentWfVersion));
                }
                setParentWfVersion(typedValue);
@@ -949,7 +949,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
         
             case PROP_ID_wfVersion:{
                onInitProp(propId);
-               this._wfVersion = (java.lang.String)value;
+               this._wfVersion = (java.lang.Long)value;
                
                break;
             }
@@ -1040,7 +1040,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
         
             case PROP_ID_parentWfVersion:{
                onInitProp(propId);
-               this._parentWfVersion = (java.lang.String)value;
+               this._parentWfVersion = (java.lang.Long)value;
                
                break;
             }
@@ -1225,7 +1225,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流版本: WF_VERSION
      */
-    public java.lang.String getWfVersion(){
+    public java.lang.Long getWfVersion(){
          onPropGet(PROP_ID_wfVersion);
          return _wfVersion;
     }
@@ -1233,7 +1233,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流版本: WF_VERSION
      */
-    public void setWfVersion(java.lang.String value){
+    public void setWfVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_wfVersion,value)){
             this._wfVersion = value;
             internalClearRefs(PROP_ID_wfVersion);
@@ -1472,7 +1472,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程版本: PARENT_WF_VERSION
      */
-    public java.lang.String getParentWfVersion(){
+    public java.lang.Long getParentWfVersion(){
          onPropGet(PROP_ID_parentWfVersion);
          return _parentWfVersion;
     }
@@ -1480,7 +1480,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程版本: PARENT_WF_VERSION
      */
-    public void setParentWfVersion(java.lang.String value){
+    public void setParentWfVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_parentWfVersion,value)){
             this._parentWfVersion = value;
             internalClearRefs(PROP_ID_parentWfVersion);

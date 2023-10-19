@@ -28,7 +28,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_wfName = "wfName";
     public static final int PROP_ID_wfName = 2;
     
-    /* 工作流版本: WF_VERSION VARCHAR */
+    /* 工作流版本: WF_VERSION BIGINT */
     public static final String PROP_NAME_wfVersion = "wfVersion";
     public static final int PROP_ID_wfVersion = 3;
     
@@ -133,7 +133,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     private java.lang.String _wfName;
     
     /* 工作流版本: WF_VERSION */
-    private java.lang.String _wfVersion;
+    private java.lang.Long _wfVersion;
     
     /* 显示名称: DISPLAY_NAME */
     private java.lang.String _displayName;
@@ -306,9 +306,9 @@ public class _NopWfDefinition extends DynamicOrmEntity{
             }
         
             case PROP_ID_wfVersion:{
-               java.lang.String typedValue = null;
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
+                   typedValue = ConvertHelper.toLong(value,
                        err-> newTypeConversionError(PROP_NAME_wfVersion));
                }
                setWfVersion(typedValue);
@@ -440,7 +440,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
         
             case PROP_ID_wfVersion:{
                onInitProp(propId);
-               this._wfVersion = (java.lang.String)value;
+               this._wfVersion = (java.lang.Long)value;
                
                break;
             }
@@ -562,7 +562,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     /**
      * 工作流版本: WF_VERSION
      */
-    public java.lang.String getWfVersion(){
+    public java.lang.Long getWfVersion(){
          onPropGet(PROP_ID_wfVersion);
          return _wfVersion;
     }
@@ -570,7 +570,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     /**
      * 工作流版本: WF_VERSION
      */
-    public void setWfVersion(java.lang.String value){
+    public void setWfVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_wfVersion,value)){
             this._wfVersion = value;
             internalClearRefs(PROP_ID_wfVersion);

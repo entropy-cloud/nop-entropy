@@ -13,16 +13,16 @@ import io.nop.wf.core.model.IWorkflowModel;
 import java.util.List;
 
 public interface IWorkflowModelStore {
-    String getLatestVersion(String wfName);
+    Long getLatestVersion(String wfName);
 
     /**
      * 得到工作流模型的所有版本号，从小到到排列
      */
-    List<String> getAllVersions(String wfName);
+    List<Long> getAllVersions(String wfName);
 
-    IResource getModelResource(String wfName, String wfVersion);
+    IResource getModelResource(String wfName, Long wfVersion);
 
-    IWorkflowModel getWorkflowModel(String wfName, String wfVersion);
+    IWorkflowModel getWorkflowModel(String wfName, Long wfVersion);
 
-    void removeModelCache(String wfName, String wfVersion);
+    void removeModelCache(String wfName, Long wfVersion);
 }

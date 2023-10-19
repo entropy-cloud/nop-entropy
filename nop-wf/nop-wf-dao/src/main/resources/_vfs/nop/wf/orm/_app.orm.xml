@@ -78,8 +78,8 @@
                         i18n-en:displayName="Definition ID" ui:show="X"/>
                 <column code="WF_NAME" displayName="工作流名称" mandatory="true" name="wfName" precision="500" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow Name"/>
-                <column code="WF_VERSION" displayName="工作流版本" mandatory="true" name="wfVersion" precision="50"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow Version"/>
+                <column code="WF_VERSION" displayName="工作流版本" mandatory="true" name="wfVersion" propId="3"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Workflow Version"/>
                 <column code="DISPLAY_NAME" displayName="显示名称" mandatory="true" name="displayName" precision="200"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
                         i18n-en:displayName="DisplayName"/>
@@ -116,8 +116,8 @@
                         i18n-en:displayName="Workflow ID"/>
                 <column code="WF_NAME" displayName="工作流名称" mandatory="true" name="wfName" precision="500" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow Name"/>
-                <column code="WF_VERSION" displayName="工作流版本" mandatory="true" name="wfVersion" precision="50"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow Version"/>
+                <column code="WF_VERSION" displayName="工作流版本" mandatory="true" name="wfVersion" propId="3"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Workflow Version"/>
                 <column code="WF_PARAMS" displayName="工作流参数" name="wfParams" precision="4000" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow Params"/>
                 <column code="TITLE" comment="工作流实例的描述性标题" displayName="实例标题" mandatory="true" name="title"
@@ -143,8 +143,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjId"/>
                 <column code="PARENT_WF_NAME" displayName="父工作流名称" name="parentWfName" precision="500" propId="15"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Flow Name"/>
-                <column code="PARENT_WF_VERSION" displayName="父流程版本" name="parentWfVersion" precision="32" propId="16"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Flow Version"/>
+                <column code="PARENT_WF_VERSION" displayName="父流程版本" name="parentWfVersion" propId="16"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Parent Flow Version"/>
                 <column code="PARENT_WF_ID" displayName="父流程ID" name="parentWfId" precision="32" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Flow ID"/>
                 <column code="PARENT_STEP_ID" displayName="父流程步骤ID" name="parentStepId" precision="200" propId="18"
@@ -218,8 +218,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow ID" ui:show="X"/>
                 <column code="SUB_WF_NAME" displayName="子工作流名" name="subWfName" precision="200" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow Name"/>
-                <column code="SUB_WF_VERSION" displayName="子流程版本" name="subWfVersion" precision="32" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow Version"/>
+                <column code="SUB_WF_VERSION" displayName="子流程版本" name="subWfVersion" propId="9" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="Sub Flow Version"/>
                 <column code="IS_READ" displayName="是否已读" name="isRead" propId="10" stdDataType="boolean"
                         stdSqlType="BOOLEAN" i18n-en:displayName="Is Read"/>
                 <column code="ACTOR_TYPE" displayName="参与者类型" name="actorType" precision="10" propId="11"

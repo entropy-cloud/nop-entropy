@@ -241,7 +241,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             }
 
             // 如果支持版本且当前传入的路径没有包含版本，则尝试查找版本号最大的数据返回
-            if (config.isSupportVersion() && !ResourceVersionHelper.endsWithIntegerVersion(subName)) {
+            if (config.isSupportVersion() && !ResourceVersionHelper.endsWithNumberVersion(subName)) {
                 for (Map.Entry<String, IResourceObjectLoader<? extends IComponentModel>> entry : config.getLoaders().entrySet()) {
                     String fileType = entry.getKey();
                     Collection<? extends IResource> resources = VirtualFileSystem.instance().getChildren(fullPath);

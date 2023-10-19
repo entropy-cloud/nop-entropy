@@ -23,26 +23,21 @@ public interface IWorkflowManager {
 
     IWorkflowModel parseWorkflowNode(XNode node);
 
-    IResource getModelResource(String wfName, String wfVersion);
+    IResource getModelResource(String wfName, Long wfVersion);
 
     @Nonnull
-    IWorkflow newWorkflow(String wfName, String wfVersion);
+    IWorkflow newWorkflow(String wfName, Long wfVersion);
 
     /**
-     * 如果使用缺省存储，则wfName和wfVersion都可以为空
-     *
-     * @param wfName    任意为空，则采用缺省recordStore
-     * @param wfVersion
      * @param wfId      工作流实例id
-     * @return
      */
     @Nonnull
     IWorkflow getWorkflow(String wfId);
 
     @Nonnull
-    IWorkflowModel getWorkflowModel(String wfName, String wfVersion);
+    IWorkflowModel getWorkflowModel(String wfName, Long wfVersion);
 
-    void removeModelCache(String wfName, String wfVersion);
+    void removeModelCache(String wfName, Long wfVersion);
 
     void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
                           Map<String, Object> results, @Nonnull IEvalScope scope);

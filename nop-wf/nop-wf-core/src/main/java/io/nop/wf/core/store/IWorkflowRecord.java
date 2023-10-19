@@ -16,7 +16,7 @@ public interface IWorkflowRecord {
 
     String getWfName();
 
-    String getWfVersion();
+    Long getWfVersion();
 
     Integer getStatus();
 
@@ -52,7 +52,7 @@ public interface IWorkflowRecord {
 
     String getParentWfName();
 
-    String getParentWfVersion();
+    Long getParentWfVersion();
 
     String getParentWfId();
 

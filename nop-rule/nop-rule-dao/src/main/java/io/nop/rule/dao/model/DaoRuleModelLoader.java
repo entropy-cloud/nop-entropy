@@ -70,7 +70,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         String ruleName = list.get(0);
         Integer ruleVersion = null;
         if (list.size() > 1) {
-            ruleVersion = ResourceVersionHelper.getIntegerVersion(list.get(1));
+            ruleVersion = ResourceVersionHelper.getNumberVersion(list.get(1));
         }
         RuleModel ruleModel = loadRule(ruleName, ruleVersion);
 

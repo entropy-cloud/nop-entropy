@@ -52,7 +52,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_subWfName = "subWfName";
     public static final int PROP_ID_subWfName = 8;
     
-    /* 子流程版本: SUB_WF_VERSION VARCHAR */
+    /* 子流程版本: SUB_WF_VERSION BIGINT */
     public static final String PROP_NAME_subWfVersion = "subWfVersion";
     public static final int PROP_ID_subWfVersion = 9;
     
@@ -325,7 +325,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     private java.lang.String _subWfName;
     
     /* 子流程版本: SUB_WF_VERSION */
-    private java.lang.String _subWfVersion;
+    private java.lang.Long _subWfVersion;
     
     /* 是否已读: IS_READ */
     private java.lang.Boolean _isRead;
@@ -684,9 +684,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             }
         
             case PROP_ID_subWfVersion:{
-               java.lang.String typedValue = null;
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
+                   typedValue = ConvertHelper.toLong(value,
                        err-> newTypeConversionError(PROP_NAME_subWfVersion));
                }
                setSubWfVersion(typedValue);
@@ -1040,7 +1040,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_subWfVersion:{
                onInitProp(propId);
-               this._subWfVersion = (java.lang.String)value;
+               this._subWfVersion = (java.lang.Long)value;
                
                break;
             }
@@ -1402,7 +1402,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子流程版本: SUB_WF_VERSION
      */
-    public java.lang.String getSubWfVersion(){
+    public java.lang.Long getSubWfVersion(){
          onPropGet(PROP_ID_subWfVersion);
          return _subWfVersion;
     }
@@ -1410,7 +1410,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子流程版本: SUB_WF_VERSION
      */
-    public void setSubWfVersion(java.lang.String value){
+    public void setSubWfVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_subWfVersion,value)){
             this._subWfVersion = value;
             internalClearRefs(PROP_ID_subWfVersion);

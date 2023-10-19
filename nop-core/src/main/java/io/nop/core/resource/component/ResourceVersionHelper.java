@@ -8,7 +8,7 @@ public class ResourceVersionHelper {
     /**
      * 格式为v123这种形式，前缀+整数
      */
-    public static boolean isIntegerVersionString(String str) {
+    public static boolean isNumberVersionString(String str) {
         if (StringHelper.isEmpty(str))
             return false;
 
@@ -25,12 +25,12 @@ public class ResourceVersionHelper {
         return true;
     }
 
-    public static boolean endsWithIntegerVersion(String str) {
+    public static boolean endsWithNumberVersion(String str) {
         String last = StringHelper.lastPart(str, '/');
-        return isIntegerVersionString(last);
+        return isNumberVersionString(last);
     }
 
-    public static int getIntegerVersion(String str) {
+    public static long getNumberVersion(String str) {
         int pos = str.lastIndexOf('/');
         if (pos < 0) {
             pos = 0;
@@ -43,20 +43,20 @@ public class ResourceVersionHelper {
         int pos2 = str.indexOf('.', pos);
         if (pos2 < 0)
             pos2 = str.length();
-        return ConvertHelper.toInt(str.substring(pos, pos2));
+        return ConvertHelper.toLong(str.substring(pos, pos2));
     }
 
     /**
      * 版本号大的排在前面
      */
-    public static int compareWithIntegerVersion(String str1, String str2) {
-        int v1 = getIntegerVersion(str1);
-        int v2 = getIntegerVersion(str2);
-        return Integer.compare(v2, v1);
+    public static int compareWithNumberVersion(String str1, String str2) {
+        long v1 = getNumberVersion(str1);
+        long v2 = getNumberVersion(str2);
+        return Long.compare(v2, v1);
     }
 
     public static int compareResourceVersion(IResource res1, IResource res2) {
-        return compareWithIntegerVersion(res1.getPath(), res2.getPath());
+        return compareWithNumberVersion(res1.getPath(), res2.getPath());
     }
 
     public static boolean isVersionFile(IResource resource, String fileType) {

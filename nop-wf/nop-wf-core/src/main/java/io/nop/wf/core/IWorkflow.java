@@ -33,7 +33,7 @@ public interface IWorkflow {
         return getRecord().getWfName();
     }
 
-    default String getWfVersion() {
+    default Long getWfVersion() {
         return getRecord().getWfVersion();
     }
 

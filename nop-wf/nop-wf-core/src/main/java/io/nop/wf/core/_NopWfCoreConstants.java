@@ -3,21 +3,6 @@ package io.nop.wf.core;
 public interface _NopWfCoreConstants {
     
     /**
-     * 步骤类型: 普通步骤 
-     */
-    String WF_STEP_TYPE_STEP = "step";
-                    
-    /**
-     * 步骤类型: 汇聚步骤 
-     */
-    String WF_STEP_TYPE_JOIN = "join";
-                    
-    /**
-     * 步骤类型: 子流程 
-     */
-    String WF_STEP_TYPE_SUBFLOW = "subflow";
-                    
-    /**
      * 步骤状态: 已创建 
      */
     int WF_STEP_STATUS_CREATED = 0;

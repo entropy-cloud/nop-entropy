@@ -6,8 +6,8 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.store.IWorkflowModelStore;
 import io.nop.wf.dao.entity.NopWfDefinition;
-
 import jakarta.inject.Inject;
+
 import java.util.List;
 
 public class DaoWorkflowModelStore implements IWorkflowModelStore {
@@ -31,27 +31,27 @@ public class DaoWorkflowModelStore implements IWorkflowModelStore {
     }
 
     @Override
-    public String getLatestVersion(String wfName) {
+    public Long getLatestVersion(String wfName) {
         return null;
     }
 
     @Override
-    public List<String> getAllVersions(String wfName) {
+    public List<Long> getAllVersions(String wfName) {
         return null;
     }
 
     @Override
-    public IResource getModelResource(String wfName, String wfVersion) {
+    public IResource getModelResource(String wfName, Long wfVersion) {
         return null;
     }
 
     @Override
-    public IWorkflowModel getWorkflowModel(String wfName, String wfVersion) {
+    public IWorkflowModel getWorkflowModel(String wfName, Long wfVersion) {
         return null;
     }
 
     @Override
-    public void removeModelCache(String wfName, String wfVersion) {
+    public void removeModelCache(String wfName, Long wfVersion) {
 
     }
 }

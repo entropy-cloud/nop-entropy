@@ -21,19 +21,19 @@
             this._wfName = value;
         }
     
-        private String _wfVersion;
+        private Long _wfVersion;
 
         /**
          * 工作流版本 
          */
-        public String getWfVersion(){
+        public Long getWfVersion(){
             return _wfVersion;
         }
 
         /**
          * 工作流版本 
          */
-        public void setWfVersion(String value){
+        public void setWfVersion(Long value){
             this._wfVersion = value;
         }
     
@@ -101,19 +101,19 @@
             this._parentWfName = value;
         }
     
-        private String _parentWfVersion;
+        private Long _parentWfVersion;
 
         /**
          * 父工作流版本 
          */
-        public String getParentWfVersion(){
+        public Long getParentWfVersion(){
             return _parentWfVersion;
         }
 
         /**
          * 父工作流版本 
          */
-        public void setParentWfVersion(String value){
+        public void setParentWfVersion(Long value){
             this._parentWfVersion = value;
         }
     

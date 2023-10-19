@@ -7,7 +7,7 @@
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="long"/>
         </prop>
         <prop name="wfId" displayName="工作流ID" i18n-en:displayName="Workflow ID" mandatory="true">
             <schema type="java.lang.String" precision="50"/>
