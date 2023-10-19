@@ -18,6 +18,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.utils.JavaGenericTypeBuilder;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.WfConstants;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.WfActorBean;
@@ -270,7 +271,7 @@ public class WfRuntime implements IEvalContext, Executor {
     }
 
     public void saveWfRecord(int status) {
-        wf.getRecord().transitToStatus(WfConstants.WF_STATUS_CREATED);
+        wf.getRecord().transitToStatus(NopWfCoreConstants.WF_STATUS_CREATED);
 
         wf.getStore().saveWfRecord(wf.getRecord());
 

@@ -11,11 +11,6 @@
     </x:post-extends>
 
     <dicts>
-        <dict label="步骤类型" name="wf/wf-step-type" valueType="string" i18n-en:label="Workflow Step Type">
-            <option code="STEP" label="普通步骤" value="step"/>
-            <option code="JOIN" label="汇聚步骤" value="join"/>
-            <option code="SUBFLOW" label="子流程" value="subflow"/>
-        </dict>
         <dict label="工作状态" name="wf/work-status" valueType="int" i18n-en:label="Work Status">
             <option label="未处理" value="0"/>
             <option label="已读" value="10"/>
@@ -212,7 +207,7 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
                 <column code="STEP_TYPE" displayName="步骤类型" mandatory="true" name="stepType" precision="10" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Step Type"
-                        ext:dict="wf/wf-step-type"/>
+                        ext:dict="io.nop.wf.core.model.WfStepType"/>
                 <column code="STEP_NAME" displayName="步骤名称" mandatory="true" name="stepName" precision="200" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Step Name"/>
                 <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="5" stdDataType="int"

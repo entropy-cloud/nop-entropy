@@ -657,6 +657,8 @@
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_drop_{appName}.sql.xgen
 /nop/templates/orm/pom.xml.xgen
+/nop/templates/orm/{!!useCoreModule}{appName}-core/src/main/java/{basePackagePath}/core/_{moduleClassPrefix}CoreConstants.java.xgen
+/nop/templates/orm/{!!useCoreModule}{appName}-core/src/main/java/{basePackagePath}/core/{moduleClassPrefix}CoreConstants.java.xgen
 /nop/templates/orm/{appName}-api/pom.xml.xgen
 /nop/templates/orm/{appName}-app/pom.xml.xgen
 /nop/templates/orm/{appName}-app/src/main/docker/Dockerfile.jvm

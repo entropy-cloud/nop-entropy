@@ -46,19 +46,19 @@ public interface IWorkflow {
     }
 
     default boolean isStarted() {
-        return getWfStatus() > WfConstants.WF_STATUS_CREATED;
+        return getWfStatus() > NopWfCoreConstants.WF_STATUS_CREATED;
     }
 
     default boolean isEnded() {
-        return getWfStatus() >= WfConstants.WF_STATUS_HISTORY_BOUND;
+        return getWfStatus() >= NopWfCoreConstants.WF_STATUS_HISTORY_BOUND;
     }
 
-    default boolean isRunning() {
-        return getWfStatus() == WfConstants.WF_STATUS_RUNNING;
+    default boolean isActivated() {
+        return getWfStatus() == NopWfCoreConstants.WF_STATUS_ACTIVATED;
     }
 
     default boolean isSuspended() {
-        return getWfStatus() == WfConstants.WF_STATUS_SUSPENDED;
+        return getWfStatus() == NopWfCoreConstants.WF_STATUS_SUSPENDED;
     }
 
     /**

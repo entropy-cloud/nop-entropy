@@ -202,6 +202,27 @@ public NopAuthUserAdminBizModel extends CrudBizModel<NopAuthUser>{
 XXX_findPage(query:QueryBeanInput):PageBean_XXX
 ```
 
+### 返回值类型
+BizModel上的服务方法不需要将返回值类型包装为ApiResponse，框架自身会负责进行ApiResponse包装。而且如果返回String类型，那么对应到前台就是String，不会自动解析为JSON。
+如果返回Map或者其他bean对象，则会按照DataLoader机制进行属性加载然后返回。如果返回的是CompletionStage，则表示异步执行。
+
+````
+@BizQuery
+public Map<String,Object> myMethod(){
+   ...
+}
+
+@BizQuery
+public CompletionStage<Map<String,Object>> myMethod2Async(){
+   return ...
+}
+
+@BizQuery
+public MyResultBean myMethod3(){
+   return ...
+}
+````
+
 ## 四. 框架无关的设计
 
 使用传统的Web框架在编写业务代码的时候总是不可避免的会用到框架特有的一些环境对象，例如HttpServletRequest或者SpringMVC中的ModelAndView等。这些对象都和框架特定的运行时环境强相关，使得我们的代码与某个运行时环境绑定，难以应用到多种使用场景中。最明显的，一个为在线API调用编制的服务函数，一般无法直接作为消息队列的消费者来使用。我们必须抽象出一个额外的层次:Service层，然后在Service层的基础上分别包装为Controller和MessageConsumer，让它们负责响应Web请求和消息队列。
@@ -356,3 +377,40 @@ NopGraphQL引擎支持通过REST链接的方式调用后台服务函数。
 在某种意义上它统一了GraphQL和REST，使得它们可以实现同样的功能，区别仅仅是请求和响应消息的格式不同
 
 参见 [rest.md](rest.md)
+
+## GraphQL结果组合
+GraphQL提供了REST所不具备的结果组合能力，可以极大提升系统的可组合性和运行时性能。下面以DevDocBizModel中的实现做一个简要说明。
+
+在前台我们可以查询后台的全局对象定义，每个全局对象具有methods属性，返回这个全局对象上所定义的方法
+````graphql
+query{
+   DevDoc__globalVars{
+      name
+      methods
+   }
+}
+````
+
+在DevDocBizModel的实现中，globalVars方法中只初始化了GlobalVarDefinition的name属性等简单属性，并没有加载复杂的methods属性。
+globalVars方法返回`List<GlobalVarDefinition>`之后，由GraphQL引擎进行后续处理，它发现需要返回methods属性之后，会调用methods所对应的DataLoader,
+实际构造`List<FunctionDefBean>`返回。
+
+**如果客户端没有请求methods属性，则后台可以避免执行methods加载函数，从而提升性能**
+
+````java
+@BizModel("DevDoc")
+public class DevDocBizModel{
+   @BizQuery
+   @Description("全局变量")
+   public List<GlobalVariableDefBean> globalVars() {
+       return ...
+   }
+   
+   @BizLoader(forType = GlobalVariableDefBean.class)
+   public List<FunctionDefBean> methods(@ContextSource GlobalVariableDefBean varDef) {
+       return ...
+   }
+}
+````
+
+完整实现参考[DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)

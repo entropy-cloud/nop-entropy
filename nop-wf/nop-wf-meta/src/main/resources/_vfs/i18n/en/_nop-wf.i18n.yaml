@@ -41,6 +41,7 @@ prop:
       description: Description
       modelText: Model Text
       status: Status
+      status_label: null
       version: Version
       createdBy: Created By
       createTime: Create Time

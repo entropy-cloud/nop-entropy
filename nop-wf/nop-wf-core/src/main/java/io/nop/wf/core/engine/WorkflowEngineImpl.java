@@ -53,6 +53,7 @@ import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import org.slf4j.Logger;
@@ -128,8 +129,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     private void initCreateStatus(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
         IWorkflowRecord wfRecord = wf.getRecord();
-        if (wfRecord.getStatus() == WfConstants.WF_STATUS_UNKNOWN) {
-            wfRt.saveWfRecord(WfConstants.WF_STATUS_CREATED);
+        if (wfRecord.getStatus() <= NopWfCoreConstants.WF_STATUS_CREATED) {
+            wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_CREATED);
         }
     }
 
@@ -137,7 +138,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public boolean isAllowStart(IWorkflowImplementor wf, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         IWorkflowRecord record = wf.getRecord();
-        if (record.getStatus() > WfConstants.WF_STATUS_CREATED) {
+        if (record.getStatus() > NopWfCoreConstants.WF_STATUS_CREATED) {
             return false;
         }
 
@@ -154,7 +155,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public void start(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         IWorkflowRecord record = wf.getRecord();
-        if (record.getStatus() > WfConstants.WF_STATUS_CREATED) {
+        if (record.getStatus() > NopWfCoreConstants.WF_STATUS_CREATED) {
             throw wfRt.newError(ERR_WF_ALREADY_STARTED);
         }
 
@@ -296,14 +297,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         // 子流程步骤和需要等待合并的步骤新建时处于waiting状态，其他情况都是activated状态
         if (step.isFlowType()) {
-            stepRecord.transitToStatus(WfConstants.ACTIVITY_STATUS_WAITING);
+            stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
             startSubflow(stepModel.getStart(), step, wfRt);
         } else if (stepModel.getJoinType() == WfJoinType.and) {
-            stepRecord.transitToStatus(WfConstants.ACTIVITY_STATUS_WAITING);
+            stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
         } else if (!wf.isAllSignalOn(stepModel.getWaitSignals())) {
-            stepRecord.transitToStatus(WfConstants.ACTIVITY_STATUS_WAITING);
+            stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
         } else {
-            stepRecord.transitToStatus(WfConstants.ACTIVITY_STATUS_ACTIVATED);
+            stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
         }
 
         saveStepRecord(step);
@@ -344,7 +345,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWorkflowRecord wfRecord = wfRt.getWf().getRecord();
         wfRecord.setStartTime(CoreMetrics.currentTimestamp());
         wfRecord.setStarter(wfRt.getCaller());
-        wfRt.saveWfRecord(WfConstants.WF_STATUS_RUNNING);
+        wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
 
         wfRt.triggerEvent(WfConstants.EVENT_AFTER_START);
     }
@@ -363,7 +364,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             }
         }
         if (allWaitFinished) {
-            step.getRecord().transitToStatus(WfConstants.ACTIVITY_STATUS_ACTIVATED);
+            step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
             wfRt.triggerEvent(WfConstants.EVENT_ACTIVATE_STEP);
         }
     }
@@ -443,7 +444,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWfActor caller = wfRt.getCaller();
         wf.getRecord().setSuspendCaller(caller);
 
-        wfRt.saveWfRecord(WfConstants.WF_STATUS_SUSPENDED);
+        wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_SUSPENDED);
         wfRt.triggerEvent(WfConstants.EVENT_SUSPEND);
     }
 
@@ -464,7 +465,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWfActor caller = wfRt.getCaller();
         wf.getRecord().setResumeCaller(caller);
 
-        wfRt.saveWfRecord(WfConstants.WF_STATUS_RUNNING);
+        wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
         wfRt.triggerEvent(WfConstants.EVENT_RESUME);
     }
 
@@ -499,7 +500,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         wfRt.markEnd();
         wfRt.execute(() -> {
-            doEndWorkflow(WfConstants.WF_STATUS_KILLED, wfRt);
+            doEndWorkflow(NopWfCoreConstants.WF_STATUS_KILLED, wfRt);
         });
 
         wfRt.triggerEvent(WfConstants.EVENT_AFTER_KILL);
@@ -575,7 +576,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             step.getRecord().setCaller(caller);
         }
 
-        this.doExitStep(step, WfConstants.ACTIVITY_STATUS_KILLED, wfRt);
+        this.doExitStep(step, NopWfCoreConstants.WF_STEP_STATUS_KILLED, wfRt);
         wfRt.triggerEvent(WfConstants.EVENT_KILL_STEP);
     }
 
@@ -653,9 +654,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
             if (!actionModel.isLocal()) {
                 if (!step.isHistory() && !step.isWaiting()) {
-                    int status = WfConstants.ACTIVITY_STATUS_COMPLETED;
+                    int status = NopWfCoreConstants.WF_STEP_STATUS_COMPLETED;
                     if (actionModel.isForReject()) {
-                        status = WfConstants.ACTIVITY_STATUS_REJECT;
+                        status = NopWfCoreConstants.WF_STEP_STATUS_REJECTED;
                     }
                     doExitStep(step, status, wfRt);
                 }
@@ -707,7 +708,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
 
         if (stepModel.getJoinType() == WfJoinType.and) {
-            step.getRecord().transitToStatus(WfConstants.ACTIVITY_STATUS_WAITING);
+            step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
             saveStepRecord(step);
         }
     }
@@ -726,7 +727,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             if (nextStep.isHistory()) {
                 throw wfRt.newError(ERR_WF_WITHDRAW_ACTION_IS_NOT_ALLOWED);
             } else {
-                this.doExitStep(nextStep, WfConstants.ACTIVITY_STATUS_WITHDRAWN, wfRt);
+                this.doExitStep(nextStep, NopWfCoreConstants.WF_STEP_STATUS_WITHDRAWN, wfRt);
             }
         }
         if (step.isHistory()) {
@@ -907,7 +908,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 LOG.info("wf.auto_end_since_all_steps_finished:wfRecord={}", wfRecord);
             }
             if (bEnd) {
-                this.doEndWorkflow(WfConstants.WF_STATUS_COMPLETED, wfRt);
+                this.doEndWorkflow(NopWfCoreConstants.WF_STATUS_COMPLETED, wfRt);
             }
         }
     }
@@ -1071,9 +1072,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         // 分成三种情况：等待/活动/历史
         int status = step.getRecord().getStatus();
-        if (status == WfConstants.ACTIVITY_STATUS_ACTIVATED) {
+        if (status == NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED) {
             return actionModel.isForActivated();
-        } else if (status == WfConstants.ACTIVITY_STATUS_WAITING) {
+        } else if (status == NopWfCoreConstants.WF_STEP_STATUS_WAITING) {
             return actionModel.isForWaiting();
         } else if (step.isHistory()) {
             return actionModel.isForHistory();
@@ -1091,7 +1092,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         for (IWorkflowStep nextStep : step.getNextSteps()) {
             if (nextStep.isHistory()) {
-                if (nextStep.getRecord().getStatus() == WfConstants.ACTIVITY_STATUS_REJECT)
+                if (nextStep.getRecord().getStatus() == NopWfCoreConstants.WF_STEP_STATUS_REJECTED)
                     continue;
 
                 LOG.debug("wf.next-step-is-history-so-not-allow-withdraw:nextStep={},step={}",

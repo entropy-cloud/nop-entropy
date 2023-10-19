@@ -41,6 +41,7 @@ prop:
       modelText: 模型文本
       remark: 备注
       status: 状态
+      status_label: 状态
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

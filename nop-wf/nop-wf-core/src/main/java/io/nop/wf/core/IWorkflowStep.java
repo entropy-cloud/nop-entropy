@@ -66,31 +66,31 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     }
 
     default boolean isHistory() {
-        return getStepStatus() >= WfConstants.ACTIVITY_STATUS_HISTORY_BOUND;
+        return getStepStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND;
     }
 
     default boolean isWaiting() {
-        return getStepStatus() == WfConstants.ACTIVITY_STATUS_WAITING;
+        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_WAITING;
     }
 
     default boolean isActivated() {
-        return getStepStatus() == WfConstants.ACTIVITY_STATUS_ACTIVATED;
+        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED;
     }
 
     default boolean isSuspended() {
-        return getStepStatus() == WfConstants.ACTIVITY_STATUS_SUSPENDED;
+        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_SUSPENDED;
     }
 
     default boolean isKilled() {
-        return getStepStatus() == WfConstants.ACTIVITY_STATUS_KILLED;
+        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_KILLED;
     }
 
     default boolean isWithdrawn() {
-        return getStepStatus() == WfConstants.ACTIVITY_STATUS_WITHDRAWN;
+        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_WITHDRAWN;
     }
 
-    default boolean isReject() {
-        return getStepStatus() == WfConstants.ACTIVITY_STATUS_REJECT;
+    default boolean isRejected() {
+        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_REJECTED;
     }
 
     default boolean isJoinType() {

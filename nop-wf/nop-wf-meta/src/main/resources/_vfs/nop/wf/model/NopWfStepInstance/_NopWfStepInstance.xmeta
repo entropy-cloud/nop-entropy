@@ -28,7 +28,7 @@
         </prop>
         <prop name="stepType" displayName="步骤类型" i18n-en:displayName="Step Type" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="10" dict="wf/wf-step-type"/>
+            <schema type="java.lang.String" precision="10" dict="io.nop.wf.core.model.WfStepType"/>
         </prop>
         <prop name="stepName" displayName="步骤名称" i18n-en:displayName="Step Name" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
