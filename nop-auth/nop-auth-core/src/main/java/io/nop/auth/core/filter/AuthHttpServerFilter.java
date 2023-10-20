@@ -223,7 +223,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         context.addCookie("Lax", cookie);
     }
 
-    private boolean hasOAuthCode(IHttpServerContext routeContext) {
+    protected boolean hasOAuthCode(IHttpServerContext routeContext) {
         return routeContext.getQueryParam(AuthCoreConstants.PARAM_CODE) != null
                 && routeContext.getQueryParam(AuthCoreConstants.PARAM_STATE) != null;
     }

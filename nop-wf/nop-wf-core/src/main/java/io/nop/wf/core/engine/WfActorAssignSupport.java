@@ -9,16 +9,16 @@ package io.nop.wf.core.engine;
 
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.wf.core.WfConstants;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.IWfActorResolver;
 import io.nop.wf.api.actor.WfActorCandidatesBean;
 import io.nop.wf.api.actor.WfAssignmentSelection;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.WfAssignmentActorModel;
 import io.nop.wf.core.model.WfAssignmentModel;
 import io.nop.xlang.api.XLang;
-
 import jakarta.inject.Inject;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,14 +26,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static io.nop.wf.core.WfErrors.ARG_ACTOR_CANDIDATES;
-import static io.nop.wf.core.WfErrors.ARG_VALUE;
-import static io.nop.wf.core.WfErrors.ARG_WF_ACTOR_ID;
-import static io.nop.wf.core.WfErrors.ARG_WF_ACTOR_TYPE;
-import static io.nop.wf.core.WfErrors.ERR_WF_ASSIGNMENT_DYNAMIC_RETURN_NOT_WF_ACTOR;
-import static io.nop.wf.core.WfErrors.ERR_WF_ASSIGNMENT_OWNER_EXPR_RESULT_NOT_WF_ACTOR;
-import static io.nop.wf.core.WfErrors.ERR_WF_SELECTED_ACTOR_COUNT_NOT_ONE;
-import static io.nop.wf.core.WfErrors.ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_CANDIDATES;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_VALUE;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ACTOR_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ACTOR_TYPE;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ASSIGNMENT_DYNAMIC_RETURN_NOT_WF_ACTOR;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ASSIGNMENT_OWNER_EXPR_RESULT_NOT_WF_ACTOR;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_SELECTED_ACTOR_COUNT_NOT_ONE;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT;
 
 public class WfActorAssignSupport {
     private IWfActorResolver wfActorResolver;
@@ -81,9 +81,9 @@ public class WfActorAssignSupport {
     }
 
     private List<IWfActor> getDynamicActors(WfAssignmentActorModel actorModel, WfRuntime wfRt) {
-        String tagName = StringHelper.removeHead(actorModel.getType(), WfConstants.WF_ACTOR_NS_PREFIX);
-        wfRt.setValue(WfConstants.VAR_WF_ACTOR_MODEL, actorModel);
-        Object value = XLang.getTagAction(WfConstants.WF_ACTOR_LIB_PATH, tagName).invoke(wfRt);
+        String tagName = StringHelper.removeHead(actorModel.getType(), NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
+        wfRt.setValue(NopWfCoreConstants.VAR_WF_ACTOR_MODEL, actorModel);
+        Object value = XLang.getTagAction(NopWfCoreConstants.WF_ACTOR_LIB_PATH, tagName).invoke(wfRt);
         if (value == null)
             return Collections.emptyList();
 
@@ -151,7 +151,7 @@ public class WfActorAssignSupport {
                     if (!candidates.containsSelectedActor(actor))
                         throw wfRt.newError(ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT)
                                 .source(assignment)
-                                .param(ARG_WF_ACTOR_TYPE, actor.getType())
+                                .param(ARG_WF_ACTOR_TYPE, actor.getActorType())
                                 .param(ARG_WF_ACTOR_ID, actor.getActorId())
                                 .param(ARG_ACTOR_CANDIDATES, candidates);
                 }
@@ -165,7 +165,7 @@ public class WfActorAssignSupport {
                 if (!candidates.containsSelectedActor(actor))
                     throw wfRt.newError(ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT)
                             .source(assignment)
-                            .param(ARG_WF_ACTOR_TYPE, actor.getType())
+                            .param(ARG_WF_ACTOR_TYPE, actor.getActorType())
                             .param(ARG_WF_ACTOR_ID, actor.getActorId())
                             .param(ARG_ACTOR_CANDIDATES, candidates);
 
@@ -202,7 +202,7 @@ public class WfActorAssignSupport {
         if (assignment == null || assignment.getDefaultOwnerExpr() == null)
             return null;
 
-        if (actor.getType().equals(IWfActor.ACTOR_TYPE_USER))
+        if (actor.getActorType().equals(IWfActor.ACTOR_TYPE_USER))
             return actor;
 
         Object value = assignment.getDefaultOwnerExpr().invoke(wfRt);

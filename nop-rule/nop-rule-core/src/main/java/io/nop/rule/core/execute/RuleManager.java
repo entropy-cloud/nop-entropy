@@ -40,19 +40,19 @@ public class RuleManager implements IRuleManager {
     }
 
     @Override
-    public IExecutableRule getRule(String ruleName, Integer ruleVersion) {
+    public IExecutableRule getRule(String ruleName, Long ruleVersion) {
         return getRuleModel(ruleName, ruleVersion).getExecutableRule();
     }
 
     @Override
-    public RuleModel getRuleModel(String ruleName, Integer ruleVersion) {
+    public RuleModel getRuleModel(String ruleName, Long ruleVersion) {
         String path = RuleServiceHelper.buildResolveRulePath(ruleName, ruleVersion);
         RuleModel ruleModel = (RuleModel) ResourceComponentManager.instance().loadComponentModel(path);
         return ruleModel;
     }
 
     @Override
-    public Map<String, Object> executeRule(String ruleName, Integer ruleVersion, IRuleRuntime ruleRt) {
+    public Map<String, Object> executeRule(String ruleName, Long ruleVersion, IRuleRuntime ruleRt) {
         try {
             RuleModel ruleModel = getRuleModel(ruleName, ruleVersion);
             if (ruleModel.getRuleVersion() != null)

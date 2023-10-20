@@ -14,6 +14,8 @@ import java.sql.Timestamp;
 public interface IWorkflowRecord {
     String getWfId();
 
+    void setWfId(String wfId);
+
     String getWfName();
 
     Long getWfVersion();

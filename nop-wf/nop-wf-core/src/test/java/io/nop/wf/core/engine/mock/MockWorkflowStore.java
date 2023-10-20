@@ -1,5 +1,16 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.wf.core.engine.mock;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.objects.Pair;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.model.IWorkflowActionModel;
@@ -9,35 +20,56 @@ import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
+import io.nop.wf.core.store.beans.WorkflowActionRecordBean;
+import io.nop.wf.core.store.beans.WorkflowRecordBean;
+import io.nop.wf.core.store.beans.WorkflowStepRecordBean;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class MockWorkflowStore implements IWorkflowStore {
+    private Map<Pair<String, String>, Object> boMap = new HashMap<>();
+
     @Override
     public Object loadBizEntity(String bizObjType, String bizEntityId) {
-        return null;
+        return boMap.get(Pair.of(bizObjType, bizEntityId));
     }
 
     @Override
     public void updateBizEntityState(String bizObjType, Object bizEntity, String bizEntityStateProp, String state) {
-
+        BeanTool.setComplexProperty(bizEntity, bizEntityStateProp, state);
     }
 
     @Override
-    public IWorkflowRecord newWfRecord(IWorkflowModel model) {
-        return null;
+    public IWorkflowRecord newWfRecord(IWorkflowModel wfModel) {
+        WorkflowRecordBean wfRecord = new WorkflowRecordBean();
+        wfRecord.setWfName(wfModel.getWfName());
+        wfRecord.setWfVersion(wfModel.getWfVersion());
+        return wfRecord;
     }
 
     @Override
     public IWorkflowStepRecord newStepRecord(IWorkflowRecord wfRecord, IWorkflowStepModel stepModel) {
-        return null;
+        WorkflowStepRecordBean stepRecord = new WorkflowStepRecordBean();
+        stepRecord.setStepId(StringHelper.generateUUID());
+        stepRecord.setStepName(stepModel.getName());
+        stepRecord.setWfRecord(wfRecord);
+        stepRecord.setCreateTime(CoreMetrics.currentTimestamp());
+        ((WorkflowRecordBean) wfRecord).addStep(stepRecord);
+        return stepRecord;
     }
 
     @Override
     public IWorkflowActionRecord newActionRecord(IWorkflowStepRecord stepRecord, IWorkflowActionModel actionModel) {
-        return null;
+        WorkflowActionRecordBean actionRecord = new WorkflowActionRecordBean();
+        actionRecord.setSid(StringHelper.generateUUID());
+        actionRecord.setActionName(actionModel.getName());
+        actionRecord.setStepRecord(stepRecord);
+        actionRecord.setExecTime(CoreMetrics.currentTimestamp());
+        wfRecord.getActions().add(actionRecord);
+        return actionRecord;
     }
 
     @Override

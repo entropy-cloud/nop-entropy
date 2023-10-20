@@ -38,6 +38,26 @@ public class AuthFilterConfig {
      */
     private String authCookie = AuthCoreConstants.COOKIE_NOP_TOKEN;
 
+    private boolean rememberMeEnabled;
+    private String rememberMeCookie = "nop-me";
+
+
+    public boolean isRememberMeEnabled() {
+        return rememberMeEnabled;
+    }
+
+    public void setRememberMeEnabled(boolean rememberMeEnabled) {
+        this.rememberMeEnabled = rememberMeEnabled;
+    }
+
+    public String getRememberMeCookie() {
+        return rememberMeCookie;
+    }
+
+    public void setRememberMeCookie(String rememberMeCookie) {
+        this.rememberMeCookie = rememberMeCookie;
+    }
+
     public String getAuthCookie() {
         return authCookie;
     }

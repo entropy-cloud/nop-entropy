@@ -7,7 +7,7 @@
  */
 package io.nop.wf.core.model;
 
-import io.nop.wf.core.WfConstants;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model._gen._WfAssignmentActorModel;
 
 public class WfAssignmentActorModel extends _WfAssignmentActorModel {
@@ -16,6 +16,6 @@ public class WfAssignmentActorModel extends _WfAssignmentActorModel {
     }
 
     public boolean isDynamic() {
-        return getType().startsWith(WfConstants.WF_ACTOR_NS_PREFIX);
+        return getType().startsWith(NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
     }
 }

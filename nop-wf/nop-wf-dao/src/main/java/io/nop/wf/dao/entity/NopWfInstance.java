@@ -31,7 +31,7 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     public void setStarter(IWfActor starter) {
         if (starter != null) {
             setStarterId(starter.getActorId());
-            setStarterName(starter.getName());
+            setStarterName(starter.getActorName());
             setStarterDeptId(starter.getDeptId());
         } else {
             setStarterId(null);
@@ -43,9 +43,9 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     @Override
     public void setManager(IWfActor actor) {
         if (actor != null) {
-            setManagerType(actor.getType());
+            setManagerType(actor.getActorType());
             setManagerId(actor.getActorId());
-            setManagerName(actor.getName());
+            setManagerName(actor.getActorName());
             setManagerDeptId(actor.getDeptId());
         } else {
             setManagerType(null);
@@ -74,7 +74,7 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     public void setSuspendCaller(IWfActor caller) {
         if (caller != null) {
             setSuspenderId(caller.getActorId());
-            setSuspenderName(caller.getName());
+            setSuspenderName(caller.getActorName());
         } else {
             setSuspenderId(null);
             setSuspenderName(null);
@@ -90,7 +90,7 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     public void setCanceller(IWfActor caller) {
         if (caller != null) {
             setCancellerId(caller.getActorId());
-            setCancellerName(caller.getName());
+            setCancellerName(caller.getActorName());
         } else {
             setCancellerId(null);
             setCancellerName(null);

@@ -7,7 +7,7 @@
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="ruleVersion" displayName="规则版本" i18n-en:displayName="Rule Version" mandatory="true">
-            <schema type="java.lang.Integer"/>
+            <schema type="java.lang.Long"/>
         </prop>
         <prop name="ruleMatch" displayName="是否匹配" i18n-en:displayName="Rule Match" mandatory="true">
             <schema type="boolean"/>

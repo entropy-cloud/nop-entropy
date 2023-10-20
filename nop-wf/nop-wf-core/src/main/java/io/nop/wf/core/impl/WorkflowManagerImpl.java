@@ -8,7 +8,6 @@
 package io.nop.wf.core.impl;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -28,8 +27,8 @@ import jakarta.inject.Inject;
 
 import java.util.Map;
 
-import static io.nop.wf.core.WfErrors.ARG_WF_ID;
-import static io.nop.wf.core.WfErrors.ERR_WF_MISSING_WF_INSTANCE;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MISSING_WF_INSTANCE;
 
 public class WorkflowManagerImpl implements IWorkflowManager {
     private IWorkflowStore workflowStore;

@@ -32,9 +32,9 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
     @Override
     public void setActor(IWfActor actor) {
         if (actor != null) {
-            setActorType(actor.getType());
+            setActorType(actor.getActorType());
             setActorId(actor.getActorId());
-            setActorName(actor.getName());
+            setActorName(actor.getActorName());
             setActorDeptId(actor.getDeptId());
         } else {
             setActorType(null);
@@ -48,7 +48,7 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
     public void setOwner(IWfActor owner) {
         if (owner != null) {
             setOwnerId(owner.getActorId());
-            setOwnerName(owner.getName());
+            setOwnerName(owner.getActorName());
         } else {
             setOwnerId(null);
             setOwnerName(null);
@@ -72,7 +72,7 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
     public void setCaller(IWfActor caller) {
         if (caller != null) {
             setCallerId(caller.getActorId());
-            setCallerName(caller.getName());
+            setCallerName(caller.getActorName());
         } else {
             setCallerId(null);
             setCallerName(null);

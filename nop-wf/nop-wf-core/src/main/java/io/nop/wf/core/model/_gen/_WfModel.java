@@ -167,7 +167,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * xml name: wfVersion
      * 
      */
-    private java.lang.String _wfVersion ;
+    private long _wfVersion  = 0L;
     
     /**
      * 
@@ -679,12 +679,12 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      *  
      */
     
-    public java.lang.String getWfVersion(){
+    public long getWfVersion(){
       return _wfVersion;
     }
 
     
-    public void setWfVersion(java.lang.String value){
+    public void setWfVersion(long value){
         checkAllowChange();
         
         this._wfVersion = value;

@@ -1,10 +1,24 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.wf.core.store.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.collections.KeyedList;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.sql.Timestamp;
+import java.util.List;
+
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_DUPLICATE_STEP_ID;
 
 @DataBean
 public class WorkflowRecordBean implements IWorkflowRecord {
@@ -49,6 +63,27 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     private boolean willEnd;
 
+    private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
+
+    public List<WorkflowStepRecordBean> getSteps() {
+        return steps;
+    }
+
+    public void setSteps(List<WorkflowStepRecordBean> steps) {
+        this.steps = KeyedList.fromList(steps, WorkflowStepRecordBean::getStepId);
+    }
+
+    public WorkflowStepRecordBean getStep(String stepId) {
+        return steps.getByKey(stepId);
+    }
+
+    public void addStep(WorkflowStepRecordBean step) {
+        if (steps.containsKey(step.getStepId()))
+            throw new NopException(ERR_WF_DUPLICATE_STEP_ID)
+                    .param(ARG_STEP_ID, step.getStepId()).param(ARG_STEP_NAME, step.getStepName());
+        this.steps.add(step);
+    }
+
     @Override
     public void transitToStatus(int status) {
         this.setStatus(status);
@@ -58,7 +93,7 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     public void setStarter(IWfActor starter) {
         if (starter != null) {
             setStarterId(starter.getActorId());
-            setStarterName(starter.getName());
+            setStarterName(starter.getActorName());
             setStarterDeptId(starter.getDeptId());
         } else {
             setStarterId(null);
@@ -70,9 +105,9 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     @Override
     public void setManager(IWfActor actor) {
         if (actor != null) {
-            setManagerType(actor.getType());
+            setManagerType(actor.getActorType());
             setManagerId(actor.getActorId());
-            setManagerName(actor.getName());
+            setManagerName(actor.getActorName());
             setManagerDeptId(actor.getDeptId());
         } else {
             setManagerType(null);
@@ -96,7 +131,7 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     public void setSuspendCaller(IWfActor caller) {
         if (caller != null) {
             setSuspenderId(caller.getActorId());
-            setSuspenderName(caller.getName());
+            setSuspenderName(caller.getActorName());
         } else {
             setSuspenderId(null);
             setSuspenderName(null);
@@ -112,7 +147,7 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     public void setCanceller(IWfActor caller) {
         if (caller != null) {
             setCancellerId(caller.getActorId());
-            setCancellerName(caller.getName());
+            setCancellerName(caller.getActorName());
         } else {
             setCancellerId(null);
             setCancellerName(null);

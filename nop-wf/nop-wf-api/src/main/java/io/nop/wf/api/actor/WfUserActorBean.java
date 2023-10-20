@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.wf.api.actor;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -11,13 +18,13 @@ import java.util.List;
 @DataBean
 public class WfUserActorBean implements IWfActor {
     private String actorId;
-    private String name;
+    private String actorName;
 
     private String deptId;
 
     @JsonIgnore
     @Override
-    public String getType() {
+    public String getActorType() {
         return ACTOR_TYPE_USER;
     }
 
@@ -47,11 +54,11 @@ public class WfUserActorBean implements IWfActor {
     }
 
     @Override
-    public String getName() {
-        return name;
+    public String getActorName() {
+        return actorName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setActorName(String actorName) {
+        this.actorName = actorName;
     }
 }

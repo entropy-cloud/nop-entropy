@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.rule.dao.model;
 
 import io.nop.api.core.ApiConstants;
@@ -68,7 +75,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
                     .param(ARG_PATH, path);
 
         String ruleName = list.get(0);
-        Integer ruleVersion = null;
+        Long ruleVersion = null;
         if (list.size() > 1) {
             ruleVersion = ResourceVersionHelper.getNumberVersion(list.get(1));
         }
@@ -78,7 +85,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         return ruleModel;
     }
 
-    public RuleModel loadRule(String ruleName, Integer ruleVersion) {
+    public RuleModel loadRule(String ruleName, Long ruleVersion) {
         NopRuleDefinition entity = loadRuleDefinition(ruleName, ruleVersion);
         RuleModel model = buildRuleModel(entity);
         String path = DaoEntityResource.makeDaoResource(entity);
@@ -86,7 +93,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         return model;
     }
 
-    public NopRuleDefinition loadRuleDefinition(String ruleName, Integer ruleVersion) {
+    public NopRuleDefinition loadRuleDefinition(String ruleName, Long ruleVersion) {
         Guard.notEmpty(ruleName, "ruleName");
 
         IEntityDao<NopRuleDefinition> dao = daoProvider.daoFor(NopRuleDefinition.class);

@@ -11,7 +11,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
-public interface WfErrors {
+public interface NopWfCoreErrors {
     String ARG_WF_NAME = "wfName";
     String ARG_STEP_NAME = "stepName";
     String ARG_ACTION_NAME = "actionName";
@@ -132,11 +132,14 @@ public interface WfErrors {
                     "没有匹配的目标步骤：{targetCases}", ARG_TARGET_CASES);
 
     ErrorCode ERR_WF_NOT_ALLOW_SUSPEND =
-            define("nop.err.wf.not-allow-suspend","工作流实例不允许暂停操作");
+            define("nop.err.wf.not-allow-suspend", "工作流实例不允许暂停操作");
 
     ErrorCode ERR_WF_NOT_ALLOW_REMOVE =
-            define("nop.err.wf.not-allow-remove","正在运行的工作流实例不允许删除。需要先停止才能删除");
+            define("nop.err.wf.not-allow-remove", "正在运行的工作流实例不允许删除。需要先停止才能删除");
 
     ErrorCode ERR_WF_MISSING_WF_INSTANCE =
-            define("nop.err.wf.missing-wf-instance","工作流实例[{wfId}]不存在");
+            define("nop.err.wf.missing-wf-instance", "工作流实例[{wfId}]不存在");
+
+    ErrorCode ERR_WF_DUPLICATE_STEP_ID =
+            define("nop.err.wf.duplicate-step-id", "步骤实例的id重复:{stepId}", ARG_STEP_ID);
 }

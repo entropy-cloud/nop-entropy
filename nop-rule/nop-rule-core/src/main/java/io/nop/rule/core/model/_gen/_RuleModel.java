@@ -75,7 +75,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
      * xml name: ruleVersion
      * 
      */
-    private java.lang.Integer _ruleVersion ;
+    private java.lang.Long _ruleVersion ;
     
     /**
      * 
@@ -287,12 +287,12 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
      *  
      */
     
-    public java.lang.Integer getRuleVersion(){
+    public java.lang.Long getRuleVersion(){
       return _ruleVersion;
     }
 
     
-    public void setRuleVersion(java.lang.Integer value){
+    public void setRuleVersion(java.lang.Long value){
         checkAllowChange();
         
         this._ruleVersion = value;

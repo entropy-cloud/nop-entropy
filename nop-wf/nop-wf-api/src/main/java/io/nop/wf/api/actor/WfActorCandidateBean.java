@@ -78,7 +78,7 @@ public class WfActorCandidateBean {
 
     public boolean containsSelectedActor(IWfActor actor) {
         if (isSelectUser()) {
-            if (!IWfActor.ACTOR_TYPE_USER.equals(actor.getType()))
+            if (!IWfActor.ACTOR_TYPE_USER.equals(actor.getActorType()))
                 return false;
             return containsUser(actor.getActorId());
         }

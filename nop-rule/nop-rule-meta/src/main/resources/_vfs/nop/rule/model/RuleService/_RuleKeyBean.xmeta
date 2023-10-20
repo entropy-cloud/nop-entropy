@@ -7,7 +7,7 @@
             <schema type="java.lang.String" precision="500"/>
         </prop>
         <prop name="ruleVersion" displayName="规则版本" i18n-en:displayName="Rule Version">
-            <schema type="java.lang.Integer"/>
+            <schema type="java.lang.Long"/>
         </prop>
     </props>
 </meta>

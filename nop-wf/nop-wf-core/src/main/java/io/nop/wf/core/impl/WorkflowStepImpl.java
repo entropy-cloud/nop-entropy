@@ -9,15 +9,15 @@ package io.nop.wf.core.impl;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.context.IServiceContext;
-import io.nop.wf.core.IWorkflowStep;
-import io.nop.wf.core.WfConstants;
-import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.IWorkflowStep;
+import io.nop.wf.core.NopWfCoreConstants;
+import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.store.IWorkflowStepRecord;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +115,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
             record.setIsRead(true);
             record.setReadTime(CoreMetrics.currentTimestamp());
             wf.getStore().saveStepRecord(record);
-            wf.getEngine().triggerStepEvent(this, WfConstants.EVENT_MARK_READ, ctx);
+            wf.getEngine().triggerStepEvent(this, NopWfCoreConstants.EVENT_MARK_READ, ctx);
         }
     }
 

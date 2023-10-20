@@ -19,6 +19,8 @@ public interface IWorkflowStepRecord {
 
     Integer getStatus();
 
+    String getWfId();
+
     void transitToStatus(int status);
 
     String getActorType();

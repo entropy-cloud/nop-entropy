@@ -53,10 +53,10 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
 
         IWfActor manager = wf.getManagerActor();
         if (manager != null) {
-            res.setManagerType(manager.getType());
+            res.setManagerType(manager.getActorType());
             res.setManagerId(manager.getActorId());
             res.setManagerDeptId(manager.getDeptId());
-            res.setManagerName(manager.getName());
+            res.setManagerName(manager.getActorName());
         }
         return res;
     }

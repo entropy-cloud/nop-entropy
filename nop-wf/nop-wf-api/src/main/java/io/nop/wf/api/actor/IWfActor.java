@@ -7,6 +7,7 @@
  */
 package io.nop.wf.api.actor;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nonnull;
 import java.util.List;
 import java.util.Objects;
@@ -31,15 +32,16 @@ public interface IWfActor {
      */
     String ACTOR_TYPE_EXECUTOR = "executor";
 
-    String getType();
+    String getActorType();
 
     String getActorId();
 
+    @JsonIgnore
     default String getActorKey() {
-        return getType().equals(ACTOR_TYPE_USER) ? getActorId() : getType() + ":" + getActorId();
+        return getActorType().equals(ACTOR_TYPE_USER) ? getActorId() : getActorType() + ":" + getActorId();
     }
 
-    String getName();
+    String getActorName();
 
     /**
      * 限定在某个部门范围内
@@ -63,7 +65,7 @@ public interface IWfActor {
      * @return
      */
     default boolean containsUser(String userId) {
-        if (ACTOR_TYPE_USER.equals(getType()))
+        if (ACTOR_TYPE_USER.equals(getActorType()))
             return getActorId().equals(userId);
 
         List<? extends IWfActor> users = getUsers();
@@ -79,7 +81,7 @@ public interface IWfActor {
     // 不应包含getDefaultUser这种涉及到复杂选择逻辑的方法
 
     default boolean isSame(IWfActor actor) {
-        return getType().equals(actor.getType()) && getActorId().equals(actor.getActorId()) && Objects.equals(getDeptId(),
+        return getActorType().equals(actor.getActorType()) && getActorId().equals(actor.getActorId()) && Objects.equals(getDeptId(),
                 actor.getDeptId());
     }
 }

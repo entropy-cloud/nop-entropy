@@ -30,10 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.nop.wf.core.WfErrors.ARG_STEP_ID;
-import static io.nop.wf.core.WfErrors.ARG_WF_NAME;
-import static io.nop.wf.core.WfErrors.ARG_WF_VERSION;
-import static io.nop.wf.core.WfErrors.ERR_WF_STEP_INSTANCE_NOT_EXISTS;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_INSTANCE_NOT_EXISTS;
 
 public class WorkflowImpl implements IWorkflowImplementor {
     private final IWorkflowEngine wfEngine;

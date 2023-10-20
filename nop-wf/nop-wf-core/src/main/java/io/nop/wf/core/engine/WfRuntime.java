@@ -18,10 +18,9 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.utils.JavaGenericTypeBuilder;
-import io.nop.wf.core.NopWfCoreConstants;
-import io.nop.wf.core.WfConstants;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.WfActorBean;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
 import io.nop.wf.core.model.WfListenerModel;
@@ -36,9 +35,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-import static io.nop.wf.core.WfErrors.ARG_WF_ID;
-import static io.nop.wf.core.WfErrors.ARG_WF_NAME;
-import static io.nop.wf.core.WfErrors.ARG_WF_VERSION;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
 
 /**
  * 每次调用工作流对象上的action时所创建的运行时对象。在EL表达式中可以通过wfRt变量来访问该运行时对象
@@ -89,8 +88,8 @@ public class WfRuntime implements IEvalContext, Executor {
 
     private IEvalScope newEvalScope() {
         IEvalScope scope = serviceContext.getEvalScope().newChildScope();
-        scope.setLocalValue(null, WfConstants.VAR_WF, wf);
-        scope.setLocalValue(null, WfConstants.VAR_WF_RT, this);
+        scope.setLocalValue(null, NopWfCoreConstants.VAR_WF, wf);
+        scope.setLocalValue(null, NopWfCoreConstants.VAR_WF_RT, this);
         return scope;
     }
 
@@ -122,14 +121,14 @@ public class WfRuntime implements IEvalContext, Executor {
         if (args != null) {
             scope.setLocalValues(args);
 
-            this.targetSteps = ConvertHelper.toCsvSet(getValue(WfConstants.VAR_TARGET_STEPS));
-            this.rejectSteps = ConvertHelper.toCsvSet(getValue(WfConstants.VAR_REJECT_STEPS));
+            this.targetSteps = ConvertHelper.toCsvSet(getValue(NopWfCoreConstants.VAR_TARGET_STEPS));
+            this.rejectSteps = ConvertHelper.toCsvSet(getValue(NopWfCoreConstants.VAR_REJECT_STEPS));
         }
     }
 
     public List<IWfActor> getSelectedActors() {
         if (selectedActors == null) {
-            selectedActors = resolveActors(getValue(WfConstants.VAR_SELECTED_ACTORS));
+            selectedActors = resolveActors(getValue(NopWfCoreConstants.VAR_SELECTED_ACTORS));
         }
         return selectedActors;
     }
@@ -141,7 +140,7 @@ public class WfRuntime implements IEvalContext, Executor {
         List<WfActorBean> actors = BeanTool.castBeanToType(value, JavaGenericTypeBuilder.buildListType(WfActorBean.class));
         List<IWfActor> ret = new ArrayList<>(actors.size());
         for (WfActorBean actorInfo : actors) {
-            ret.add(wf.resolveActor(actorInfo.getType(), actorInfo.getActorId(), actorInfo.getDeptId()));
+            ret.add(wf.resolveActor(actorInfo.getActorType(), actorInfo.getActorId(), actorInfo.getDeptId()));
         }
         return ret;
     }
@@ -152,7 +151,7 @@ public class WfRuntime implements IEvalContext, Executor {
 
     public Map<String, List<IWfActor>> getSelectedStepActors() {
         if (selectedStepActors == null)
-            selectedStepActors = resolveStepActors(getValue(WfConstants.VAR_SELECTED_STEP_ACTORS));
+            selectedStepActors = resolveStepActors(getValue(NopWfCoreConstants.VAR_SELECTED_STEP_ACTORS));
         return selectedStepActors;
     }
 
@@ -275,7 +274,7 @@ public class WfRuntime implements IEvalContext, Executor {
 
         wf.getStore().saveWfRecord(wf.getRecord());
 
-        triggerEvent(WfConstants.EVENT_AFTER_SAVE);
+        triggerEvent(NopWfCoreConstants.EVENT_AFTER_SAVE);
     }
 
     public IWorkflowActionRecord getActionRecord() {

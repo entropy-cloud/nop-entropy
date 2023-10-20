@@ -28,7 +28,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_ruleName = "ruleName";
     public static final int PROP_ID_ruleName = 2;
     
-    /* 规则版本: RULE_VERSION INTEGER */
+    /* 规则版本: RULE_VERSION BIGINT */
     public static final String PROP_NAME_ruleVersion = "ruleVersion";
     public static final int PROP_ID_ruleVersion = 3;
     
@@ -156,7 +156,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     private java.lang.String _ruleName;
     
     /* 规则版本: RULE_VERSION */
-    private java.lang.Integer _ruleVersion;
+    private java.lang.Long _ruleVersion;
     
     /* 显示名称: DISPLAY_NAME */
     private java.lang.String _displayName;
@@ -341,9 +341,9 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
             }
         
             case PROP_ID_ruleVersion:{
-               java.lang.Integer typedValue = null;
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
+                   typedValue = ConvertHelper.toLong(value,
                        err-> newTypeConversionError(PROP_NAME_ruleVersion));
                }
                setRuleVersion(typedValue);
@@ -495,7 +495,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
         
             case PROP_ID_ruleVersion:{
                onInitProp(propId);
-               this._ruleVersion = (java.lang.Integer)value;
+               this._ruleVersion = (java.lang.Long)value;
                
                break;
             }
@@ -631,7 +631,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     /**
      * 规则版本: RULE_VERSION
      */
-    public java.lang.Integer getRuleVersion(){
+    public java.lang.Long getRuleVersion(){
          onPropGet(PROP_ID_ruleVersion);
          return _ruleVersion;
     }
@@ -639,7 +639,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     /**
      * 规则版本: RULE_VERSION
      */
-    public void setRuleVersion(java.lang.Integer value){
+    public void setRuleVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_ruleVersion,value)){
             this._ruleVersion = value;
             internalClearRefs(PROP_ID_ruleVersion);

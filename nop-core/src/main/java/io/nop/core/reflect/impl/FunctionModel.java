@@ -8,6 +8,9 @@
 package io.nop.core.reflect.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.BizSubscription;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
@@ -32,6 +35,8 @@ public class FunctionModel extends AnnotatedElement implements IFunctionModel {
     private SourceLocation location;
     private String name;
     private String implName;
+
+    private String bizActionName;
     private int modifiers = Modifier.PUBLIC;
     private List<FunctionArgument> args = Collections.emptyList();
     private IGenericType returnType = PredefinedGenericTypes.ANY_TYPE;
@@ -89,6 +94,35 @@ public class FunctionModel extends AnnotatedElement implements IFunctionModel {
         ret.setMinArgCount(minArgCount);
         ret.setMaxArgCount(maxArgCount);
         return ret;
+    }
+
+    @Override
+    public String getBizActionName() {
+        if (bizActionName == null) {
+            bizActionName = guessBizActionName();
+        }
+        return bizActionName;
+    }
+
+    private String guessBizActionName() {
+        BizQuery bizQuery = getAnnotation(BizQuery.class);
+        if (bizQuery != null && !bizQuery.value().isEmpty()) {
+            return bizQuery.value();
+        }
+
+        BizMutation bizMutation = getAnnotation(BizMutation.class);
+        if (bizMutation != null && !bizMutation.value().isEmpty()) {
+            return bizMutation.value();
+        }
+
+        BizSubscription bizSubscription = getAnnotation(BizSubscription.class);
+        if (bizSubscription != null && !bizSubscription.value().isEmpty())
+            return bizSubscription.value();
+
+        String methodName = getName();
+        if (methodName.endsWith("Async") && isAsync())
+            return methodName.substring(0, methodName.length() - "Async".length());
+        return methodName;
     }
 
     @Override

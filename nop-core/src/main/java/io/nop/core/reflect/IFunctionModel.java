@@ -45,6 +45,8 @@ public interface IFunctionModel
 
     IGenericType getReturnType();
 
+    String getBizActionName();
+
     /**
      * 浅拷贝
      */

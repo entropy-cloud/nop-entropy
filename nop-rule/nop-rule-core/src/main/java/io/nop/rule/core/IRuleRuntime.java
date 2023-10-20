@@ -22,9 +22,9 @@ public interface IRuleRuntime extends IEvalContext {
 
     void setRuleName(String ruleName);
 
-    Integer getRuleVersion();
+    Long getRuleVersion();
 
-    void setRuleVersion(Integer ruleVersion);
+    void setRuleVersion(Long ruleVersion);
 
     Map<String, Object> getInputs();
 

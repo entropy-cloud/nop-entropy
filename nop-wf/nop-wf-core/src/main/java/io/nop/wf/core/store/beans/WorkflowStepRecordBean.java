@@ -1,8 +1,17 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.wf.core.store.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.util.StringHelper;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 
 import java.sql.Timestamp;
@@ -12,6 +21,8 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     private String stepId;
 
     private String stepName;
+
+    private String wfId;
     private Integer status;
     private String actorType;
     private String actorId;
@@ -54,13 +65,19 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     }
 
+    public void setWfRecord(IWorkflowRecord wfRecord){
+        if(wfRecord.getWfId() == null){
+            wfRecord.setWfId(StringHelper.generateUUID());
+        }
+        setWfId(wfRecord.getWfId());
+    }
 
     @Override
     public void setActor(IWfActor actor) {
         if (actor != null) {
-            setActorType(actor.getType());
+            setActorType(actor.getActorType());
             setActorId(actor.getActorId());
-            setActorName(actor.getName());
+            setActorName(actor.getActorName());
             setActorDeptId(actor.getDeptId());
         } else {
             setActorType(null);
@@ -74,7 +91,7 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     public void setOwner(IWfActor owner) {
         if (owner != null) {
             setOwnerId(owner.getActorId());
-            setOwnerName(owner.getName());
+            setOwnerName(owner.getActorName());
         } else {
             setOwnerId(null);
             setOwnerName(null);
@@ -98,7 +115,7 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     public void setCaller(IWfActor caller) {
         if (caller != null) {
             setCallerId(caller.getActorId());
-            setCallerName(caller.getName());
+            setCallerName(caller.getActorName());
         } else {
             setCallerId(null);
             setCallerName(null);
@@ -313,5 +330,14 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     public void setSubWfId(String subWfId) {
         this.subWfId = subWfId;
+    }
+
+    @Override
+    public String getWfId() {
+        return wfId;
+    }
+
+    public void setWfId(String wfId) {
+        this.wfId = wfId;
     }
 }

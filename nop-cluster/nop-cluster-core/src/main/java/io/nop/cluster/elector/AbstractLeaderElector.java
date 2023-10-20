@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2017-2023 Nop Platform. All rights reserved.
+ * Author: canonical_entropy@163.com
+ * Blog:   https://www.zhihu.com/people/canonical-entropy
+ * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
+ * Github: https://github.com/entropy-cloud/nop-chaos
+ */
 package io.nop.cluster.elector;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
@@ -7,11 +14,11 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.io.net.IServerAddrFinder;
 import io.nop.commons.util.NetHelper;
 import io.nop.commons.util.StringHelper;
-
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -163,10 +170,11 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
         this.electionPromise = new CompletableFuture<>();
     }
 
-    protected void updateLeader(LeaderEpoch leader) {
+    protected synchronized void updateLeader(LeaderEpoch leader) {
         LeaderEpoch current = this.leaderEpoch;
-        if (current == null) {
-
+        if (current == null || current.getEpoch() < leader.getEpoch()) {
+            this.leaderEpoch = leader;
+            this.electionPromise.complete(leader);
         }
     }
 

@@ -34,6 +34,10 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
 
     @Override
     public String getMethodName(IFunctionModel method) {
+        String bizActionName = method.getBizActionName();
+        if (bizActionName != null)
+            return bizActionName;
+
         String methodName = method.getName();
         if (methodName.endsWith("Async") && method.isAsync())
             return methodName.substring(0, methodName.length() - "Async".length());

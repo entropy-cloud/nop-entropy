@@ -979,10 +979,14 @@ public class StringHelper extends ApiStringHelper {
      * @param allowChars 可选字符集合
      */
     public static String randomString(int n, String allowChars) {
+        IRandom rand = MathHelper.random();
+        return randomString(n, allowChars, rand);
+    }
+
+    public static String randomString(int n, String allowChars, IRandom rand) {
         Guard.checkArgument(n < Lazy.s_maxRepeatLen, "random n is too large", n);
 
         char[] chars = new char[n];
-        IRandom rand = MathHelper.random();
         int m = allowChars.length();
         for (int i = 0; i < n; i++) {
             chars[i] = allowChars.charAt(rand.nextInt(m));
@@ -4312,7 +4316,7 @@ public class StringHelper extends ApiStringHelper {
                 String seq = varName.substring(pos + 1, varName.length() - 1);
                 if (StringHelper.isInt(seq)) {
                     int intValue = StringHelper.parseInt(seq, 10);
-                    return varName.substring(0,pos + 1) + (intValue + 1) + ")";
+                    return varName.substring(0, pos + 1) + (intValue + 1) + ")";
                 }
             }
         } else if (c == ']') {
@@ -4321,7 +4325,7 @@ public class StringHelper extends ApiStringHelper {
                 String seq = varName.substring(pos + 1, varName.length() - 1);
                 if (StringHelper.isInt(seq)) {
                     int intValue = StringHelper.parseInt(seq, 10);
-                    return varName.substring(0,pos + 1) + (intValue + 1) + "]";
+                    return varName.substring(0, pos + 1) + (intValue + 1) + "]";
                 }
             }
         }
@@ -4329,7 +4333,7 @@ public class StringHelper extends ApiStringHelper {
         if (isDigit(c)) {
             if (c < '9') {
                 char c2 = (char) (c + 1);
-                return varName.substring(0,varName.length() - 1) + c2;
+                return varName.substring(0, varName.length() - 1) + c2;
             } else {
                 int pos = _searchNotDigit(varName);
                 if (pos < 0) {

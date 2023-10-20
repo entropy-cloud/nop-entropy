@@ -51,7 +51,7 @@
                 <column code="RULE_NAME" displayName="规则名称" mandatory="true" name="ruleName" precision="500" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Rule Name"/>
                 <column code="RULE_VERSION" displayName="规则版本" mandatory="true" name="ruleVersion" propId="3"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Rule Version"/>
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Rule Version"/>
                 <column code="DISPLAY_NAME" displayName="显示名称" mandatory="true" name="displayName" precision="200"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
                         i18n-en:displayName="DisplayName"/>

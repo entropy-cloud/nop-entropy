@@ -8,4 +8,5 @@
 package io.nop.wf.core.model;
 
 public interface IWorkflowActionModel extends IWorkflowArgumentsModel, IWorkflowConditionalModel {
+    String getName();
 }

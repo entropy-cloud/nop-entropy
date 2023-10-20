@@ -7,5 +7,26 @@
  */
 package io.nop.wf.core.store;
 
+import io.nop.wf.api.actor.IWfActor;
+
+import java.security.Timestamp;
+
 public interface IWorkflowActionRecord {
+    String getSid();
+
+    String getWfId();
+
+    String getStepId();
+
+    String getActionName();
+
+    Timestamp getExecTime();
+
+    String getCallerId();
+
+    String getCallerName();
+
+    void setCaller(IWfActor caller);
+
+    String getOpinion();
 }

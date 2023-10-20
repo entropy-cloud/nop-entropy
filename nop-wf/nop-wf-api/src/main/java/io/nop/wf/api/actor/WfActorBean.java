@@ -13,10 +13,10 @@ import java.util.List;
 
 @DataBean
 public class WfActorBean implements IWfActor{
-    private String type;
+    private String actorType;
     private String actorId;
     private String deptId;
-    private String name;
+    private String actorName;
 
     private List<WfUserActorBean> users;
 
@@ -28,12 +28,12 @@ public class WfActorBean implements IWfActor{
         this.users = users;
     }
 
-    public String getType() {
-        return type;
+    public String getActorType() {
+        return actorType;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setActorType(String actorType) {
+        this.actorType = actorType;
     }
 
     public String getActorId() {
@@ -52,11 +52,11 @@ public class WfActorBean implements IWfActor{
         this.deptId = deptId;
     }
 
-    public String getName() {
-        return name;
+    public String getActorName() {
+        return actorName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setActorName(String actorName) {
+        this.actorName = actorName;
     }
 }

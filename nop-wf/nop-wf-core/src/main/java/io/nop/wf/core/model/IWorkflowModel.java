@@ -12,17 +12,17 @@ import io.nop.api.core.exceptions.NopException;
 import jakarta.annotation.Nonnull;
 import java.util.List;
 
-import static io.nop.wf.core.WfErrors.ARG_ACTION_NAME;
-import static io.nop.wf.core.WfErrors.ARG_STEP_NAME;
-import static io.nop.wf.core.WfErrors.ARG_WF_NAME;
-import static io.nop.wf.core.WfErrors.ARG_WF_VERSION;
-import static io.nop.wf.core.WfErrors.ERR_WF_UNKNOWN_ACTION;
-import static io.nop.wf.core.WfErrors.ERR_WF_UNKNOWN_STEP;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_ACTION;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_STEP;
 
 public interface IWorkflowModel {
     String getWfName();
 
-    String getWfVersion();
+    long getWfVersion();
 
     @Nonnull
     List<? extends IWorkflowActionModel> getActions();
