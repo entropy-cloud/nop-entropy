@@ -144,7 +144,7 @@ public interface TestRpc {
     ApiResponse<MyResponse> myMethod(ApiRequest<MyRequest> req);
 
     @BizMutation 
-    MyResponse myMethod(MyRequest req);
+    MyResponse myMethod(@RequestBean MyRequest req);
 
     @BizMutation
     CompletionStage<ApiResponse<MyResponse>> myMethodAsync(ApiRequest<MyRequest> req);
@@ -154,10 +154,18 @@ public interface TestRpc {
 ### BizSelection支持
 在客户端接口上可以增加`@BizSelection`注解，它会自动设置ApiRequest的selection段。如果指定了字段列表，以指定的列表为准，否则以函数返回类型的所有非lazy字段为准。
 ````
+@BizModel("TestRpc")
+public interface TestRpc{
     @BizMutation 
+    MyResponse myMethod(@RequestBean MyRequest req);
+    
+    @BizMutation("myMethod")
     @BizSelection
-    MyResponse myMethod(MyRequest req);
+    SubResponse myMethodForSelected(@RequestBean MyRequest req);
+}
 ````
+以上两个方法都会调用到后台的TestRpcBizModel对象上的myMethod方法，只是第二个方法会传入selection，对应于SubResponse，只要求返回SubResponse范围内的字段。
+
 
 ### 服务端实现
 
