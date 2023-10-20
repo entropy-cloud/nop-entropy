@@ -7,16 +7,20 @@
  */
 package io.nop.rpc.core.reflect;
 
+import io.nop.api.core.annotations.biz.BizSelection;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiInvokeHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.IGenericType;
 
 import java.util.HashMap;
@@ -77,10 +81,27 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
 
         ApiHeaders.setSvcName(req, serviceName);
         ApiHeaders.setSvcAction(req, methodName);
+        initSelection(req, method);
+
         if (params != null && req.getData() == null) {
             req.setData(params);
         }
         return req;
+    }
+
+    void initSelection(ApiRequest<?> req, IFunctionModel method) {
+        if (req.getSelection() == null) {
+            BizSelection selection = method.getAnnotation(BizSelection.class);
+            if (selection != null) {
+                if (selection.value().length > 0) {
+                    req.setSelection(FieldSelectionBean.fromProp(selection.value()));
+                } else {
+                    IBeanModel responseBeanModel = getResponseBeanModel(method);
+                    FieldSelectionBean selectionBean = FieldSelectionBean.fromProps(responseBeanModel.getDefaultSelectionPropNames());
+                    req.setSelection(selectionBean);
+                }
+            }
+        }
     }
 
     @Override
@@ -95,6 +116,13 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
         }
 
         return normalizeType(returnType, ApiInvokeHelper.getResponseData(response));
+    }
+
+    IBeanModel getResponseBeanModel(IFunctionModel method) {
+        IGenericType returnType = method.getReturnType();
+        if (ApiResponse.class == returnType.getRawClass())
+            returnType = returnType.getTypeParameters().get(0);
+        return ReflectionManager.instance().getBeanModelForType(returnType);
     }
 
     ApiResponse<Object> normalizeResponse(IGenericType bodyType, ApiResponse<Object> res) {

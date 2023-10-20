@@ -151,6 +151,16 @@ public interface TestRpc {
 }
 ````
 
+### BizSelection支持
+在客户端接口上可以增加`@BizSelection`注解，它会自动设置ApiRequest的selection段。如果指定了字段列表，以指定的列表为准，否则以函数返回类型的所有非lazy字段为准。
+````
+    @BizMutation 
+    @BizSelection
+    MyResponse myMethod(MyRequest req);
+````
+
+### 服务端实现
+
 服务端的实现函数也可以根据需要采用以下几种不同的参数形式
 ````javascript
 
@@ -170,6 +180,7 @@ public interface TestRpc {
 
 在服务端, FieldSelection和IServiceContext都是可选参数，如果函数声明中没有对应参数，则表示忽略此参数。同时如果是异步执行，则一般约定方法名加上Async后缀，
 同时返回值类型为CompletionStage。
+
 
 ### 一般REST服务接口
 

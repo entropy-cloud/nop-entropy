@@ -18,6 +18,7 @@ import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.type.IGenericType;
 
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -124,6 +125,16 @@ public interface IBeanModel extends IBeanCollectionAdapter {
     boolean isAllowMakeExtProperty();
 
     Map<String, IBeanPropertyModel> getPropertyModels();
+
+    default List<String> getDefaultSelectionPropNames() {
+        List<String> ret = new ArrayList<>();
+        forEachProp(prop -> {
+            if (prop.isSerializable() && prop.isReadable() && prop.isWritable() && !prop.isLazyLoad()) {
+                ret.add(prop.getName());
+            }
+        });
+        return ret;
+    }
 
     default void forEachProp(Consumer<IBeanPropertyModel> action) {
         for (IBeanPropertyModel propModel : getPropertyModels().values()) {
