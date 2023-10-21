@@ -8,11 +8,14 @@
 package io.nop.wf.core.store.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.collections.KeyedList;
+import io.nop.commons.util.StringHelper;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
+import java.util.List;
 
 @DataBean
 public class WorkflowActionRecordBean implements IWorkflowActionRecord {
@@ -36,7 +39,7 @@ public class WorkflowActionRecordBean implements IWorkflowActionRecord {
         }
     }
 
-    public void setStepRecord(IWorkflowStepRecord stepRecord){
+    public void setStepRecord(IWorkflowStepRecord stepRecord) {
         setWfId(stepRecord.getWfId());
         setStepId(stepRecord.getStepId());
     }

@@ -19,11 +19,11 @@ CREATE TABLE nop_wf_definition(
 CREATE TABLE nop_wf_step_instance_link(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
   STEP_ID VARCHAR(32) NOT NULL    COMMENT '步骤ID',
-  PREV_STEP_ID VARCHAR(32) NOT NULL    COMMENT '迁移步骤 ID',
+  NEXT_STEP_ID VARCHAR(32) NOT NULL    COMMENT '下一步骤 ID',
   EXEC_ACTION VARCHAR(200) NOT NULL    COMMENT '执行动作',
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
-  constraint PK_nop_wf_step_instance_link primary key (WF_ID,STEP_ID,PREV_STEP_ID)
+  constraint PK_nop_wf_step_instance_link primary key (WF_ID,STEP_ID,NEXT_STEP_ID)
 );
 
 CREATE TABLE nop_wf_action(

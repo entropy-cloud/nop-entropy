@@ -9,7 +9,7 @@ package io.nop.wf.core.store;
 
 import io.nop.wf.api.actor.IWfActor;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
 
 public interface IWorkflowActionRecord {
     String getSid();

@@ -21,7 +21,7 @@ public class NopWfStepInstanceLinkPkBuilder{
         return this;
     }
    
-    public NopWfStepInstanceLinkPkBuilder setPrevStepId(java.lang.String value){
+    public NopWfStepInstanceLinkPkBuilder setNextStepId(java.lang.String value){
         this.values[2] = value;
         return this;
     }

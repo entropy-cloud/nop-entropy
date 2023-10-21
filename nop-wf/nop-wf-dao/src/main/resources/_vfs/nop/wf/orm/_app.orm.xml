@@ -309,9 +309,9 @@
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
                 <column code="STEP_ID" displayName="步骤ID" mandatory="true" name="stepId" precision="32" primary="true"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Step ID"/>
-                <column code="PREV_STEP_ID" displayName="迁移步骤 ID" mandatory="true" name="prevStepId" precision="32"
+                <column code="NEXT_STEP_ID" displayName="下一步骤 ID" mandatory="true" name="nextStepId" precision="32"
                         primary="true" propId="3" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Prev Step ID"/>
+                        i18n-en:displayName="Next Step ID"/>
                 <column code="EXEC_ACTION" displayName="执行动作" domain="wfAction" mandatory="true" name="execAction"
                         precision="200" propId="4" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="EXEC_ACTION"/>
@@ -336,10 +336,10 @@
                     </join>
                     <ref-set/>
                 </to-one>
-                <to-one displayName="工作流步骤" name="prevWfStep" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Prev Workflow Step">
+                <to-one displayName="工作流步骤" name="nextWfStep" refEntityName="io.nop.wf.dao.entity.NopWfStepInstance"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Next Workflow Step">
                     <join>
-                        <on leftProp="prevStepId" rightProp="stepId"/>
+                        <on leftProp="nextStepId" rightProp="stepId"/>
                     </join>
                     <ref-set/>
                 </to-one>

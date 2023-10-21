@@ -10,9 +10,11 @@ package io.nop.wf.core.engine.mock;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
+import io.nop.core.model.tree.TreeVisitors;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.IWorkflowVarSet;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
@@ -22,15 +24,26 @@ import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 import io.nop.wf.core.store.beans.WorkflowActionRecordBean;
 import io.nop.wf.core.store.beans.WorkflowRecordBean;
+import io.nop.wf.core.store.beans.WorkflowStepLinkBean;
 import io.nop.wf.core.store.beans.WorkflowStepRecordBean;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class MockWorkflowStore implements IWorkflowStore {
-    private Map<Pair<String, String>, Object> boMap = new HashMap<>();
+    private Map<Pair<String, String>, Object> boMap = new ConcurrentHashMap<>();
+    private Map<String, WorkflowRecordBean> workflowBeans = new ConcurrentHashMap<>();
+
+    private Map<String, WorkflowStepRecordBean> stepBeans = new ConcurrentHashMap<>();
 
     @Override
     public Object loadBizEntity(String bizObjType, String bizEntityId) {
@@ -68,43 +81,59 @@ public class MockWorkflowStore implements IWorkflowStore {
         actionRecord.setActionName(actionModel.getName());
         actionRecord.setStepRecord(stepRecord);
         actionRecord.setExecTime(CoreMetrics.currentTimestamp());
-        wfRecord.getActions().add(actionRecord);
+        ((WorkflowStepRecordBean) stepRecord).addAction(actionRecord);
         return actionRecord;
     }
 
     @Override
     public void saveWfRecord(IWorkflowRecord wfRecord) {
-
+        WorkflowRecordBean record = (WorkflowRecordBean) wfRecord;
+        if (wfRecord.getWfId() == null)
+            wfRecord.setWfId(StringHelper.generateUUID());
+        workflowBeans.put(wfRecord.getWfId(), record);
     }
 
     @Override
     public void removeWfRecord(IWorkflowRecord wfRecord) {
-
+        workflowBeans.remove(wfRecord.getWfId());
     }
 
     @Override
     public void saveStepRecord(IWorkflowStepRecord stepRecord) {
-
+        WorkflowRecordBean wfRecord = workflowBeans.get(stepRecord.getWfId());
+        if (wfRecord.getStep(stepRecord.getStepId()) == null) {
+            wfRecord.addStep((WorkflowStepRecordBean) stepRecord);
+        }
+        stepBeans.put(stepRecord.getStepId(), (WorkflowStepRecordBean) stepRecord);
     }
 
     @Override
     public void saveActionRecord(IWorkflowActionRecord actionRecord) {
-
+        WorkflowRecordBean wfRecord = workflowBeans.get(actionRecord.getWfId());
+        WorkflowStepRecordBean stepRecord = wfRecord.getStep(actionRecord.getStepId());
+        if (stepRecord.getAction(actionRecord.getSid()) == null) {
+            stepRecord.addAction((WorkflowActionRecordBean) actionRecord);
+        }
     }
 
     @Override
     public void addNextStepRecord(IWorkflowStepRecord currentStep, String actionId, IWorkflowStepRecord nextStep) {
-
+        WorkflowStepRecordBean stepRecord = (WorkflowStepRecordBean) currentStep;
+        if (nextStep.getStepId() == null)
+            ((WorkflowStepRecordBean) nextStep).setStepId(StringHelper.generateUUID());
+        stepRecord.addNextStepLink(nextStep.getStepId()).setExecAction(actionId);
     }
 
     @Override
     public void addNextSpecialStep(IWorkflowStepRecord currentStep, String actionId, String specialStepId) {
+        WorkflowStepRecordBean stepRecord = (WorkflowStepRecordBean) currentStep;
+        stepRecord.addNextStepLink(specialStepId).setExecAction(actionId);
 
     }
 
     @Override
     public IWorkflowRecord getWfRecord(String wfName, String wfVersion, String wfId) {
-        return null;
+        return workflowBeans.get(wfId);
     }
 
     @Override
@@ -129,71 +158,171 @@ public class MockWorkflowStore implements IWorkflowStore {
 
     @Override
     public IWorkflowStepRecord getStepRecordById(IWorkflowRecord wfRecord, String stepId) {
-        return null;
+        return ((WorkflowRecordBean) wfRecord).getStep(stepId);
     }
 
     @Override
     public IWorkflowStepRecord getLatestStepRecordByName(IWorkflowRecord wfRecord, String stepName) {
-        return null;
+        return ((WorkflowRecordBean) wfRecord).getSteps().stream().filter(step -> step.getStepName().equals(stepName))
+                .sorted(Comparator.comparing(WorkflowStepRecordBean::getCreateTime).reversed())
+                .findFirst().orElse(null);
     }
 
     @Override
     public Collection<? extends IWorkflowStepRecord> getStepRecords(IWorkflowRecord wfRecord, boolean includeHistory) {
-        return null;
+        if (includeHistory) {
+            return ((WorkflowRecordBean) wfRecord).getSteps();
+        }
+        return ((WorkflowRecordBean) wfRecord).getSteps().stream().filter(step -> !step.isHistory()).collect(Collectors.toList());
     }
 
     @Override
     public Collection<? extends IWorkflowStepRecord> getStepRecordsByName(IWorkflowRecord wfRecord, String stepName) {
-        return null;
+        return ((WorkflowRecordBean) wfRecord).getSteps().stream()
+                .filter(step -> step.getStepName().equals(stepName)).collect(Collectors.toList());
     }
 
     @Override
     public Collection<? extends IWorkflowStepRecord> getPrevStepRecords(IWorkflowStepRecord stepRecord) {
-        return null;
+        List<WorkflowStepRecordBean> ret = new ArrayList<>();
+        WorkflowRecordBean wfBean = workflowBeans.get(stepRecord.getWfId());
+        wfBean.getSteps().forEach(step -> {
+            step.getNextStepLinks().forEach(link -> {
+                if (link.getNextStepId().equals(stepRecord.getStepId())) {
+                    ret.add(step);
+                }
+            });
+        });
+        return ret;
     }
 
     @Override
     public Collection<? extends IWorkflowStepRecord> getNextStepRecords(IWorkflowStepRecord stepRecord) {
-        return null;
+        List<WorkflowStepRecordBean> ret = new ArrayList<>();
+        ((WorkflowStepRecordBean) stepRecord).getNextStepLinks()
+                .forEach(link -> {
+                    WorkflowStepRecordBean step = stepBeans.get(link.getNextStepId());
+                    if (step != null)
+                        ret.add(step);
+                });
+        return ret;
     }
 
     @Override
     public IWorkflowStepRecord getPrevStepRecordByName(IWorkflowStepRecord stepRecord, String stepName) {
+        Iterator<IWorkflowStepRecord> it = TreeVisitors.widthFirstIterator(this::getPrevStepRecords,
+                stepRecord, false, k -> k.getStepName().equals(stepName));
+        if (it.hasNext())
+            return it.next();
         return null;
     }
 
     @Override
     public IWorkflowStepRecord getNextStepRecordByName(IWorkflowStepRecord stepRecord, String stepName) {
+        Iterator<IWorkflowStepRecord> it = TreeVisitors.widthFirstIterator(this::getNextStepRecords,
+                stepRecord, false, k -> k.getStepName().equals(stepName));
+        if (it.hasNext())
+            return it.next();
         return null;
     }
 
     @Override
     public IWorkflowStepRecord getNextStepRecordByName(IWorkflowStepRecord stepRecord, String stepName, IWfActor actor) {
+        Iterator<IWorkflowStepRecord> it = TreeVisitors.widthFirstIterator(this::getNextStepRecords,
+                stepRecord, false, k -> k.getStepName().equals(stepName)
+                        && actor.isActor(k.getActorType(), k.getActorId(), k.getActorDeptId()));
+        if (it.hasNext())
+            return it.next();
         return null;
     }
 
     @Override
     public Collection<? extends IWorkflowStepRecord> getJoinWaitStepRecords(IWorkflowStepRecord stepRecord, String joinKey, Set<String> stepNames) {
-        return null;
+        List<IWorkflowStepRecord> ret = new ArrayList<>();
+
+        WorkflowRecordBean wfBean = workflowBeans.get(stepRecord.getWfId());
+        String joinValue = stepRecord.getJoinValue(joinKey);
+        for (WorkflowStepRecordBean step : wfBean.getSteps()) {
+            if (step.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
+                continue;
+
+            if (!stepNames.contains(step.getStepName()))
+                continue;
+
+            String waitJoinValue = step.getJoinValue(joinKey);
+            if (Objects.equals(joinValue, waitJoinValue)) {
+                ret.add(step);
+            }
+        }
+        return ret;
     }
 
     @Override
     public Collection<? extends IWorkflowStepRecord> getPrevStepRecordsByName(IWorkflowStepRecord stepRecord, Collection<String> stepNames) {
-        return null;
+        final Set<IWorkflowStepRecord> ret = new LinkedHashSet<>();
+
+        Iterator<IWorkflowStepRecord> it = TreeVisitors.widthFirstIterator(this::getPrevStepRecords,
+                stepRecord, false, step -> {
+                    if (stepNames.contains(step.getStepName())) {
+                        ret.add(step);
+                        // 不再继续查找这一分支
+                        return false;
+                    }
+                    return true;
+                });
+
+        while (it.hasNext()) {
+            ret.add(it.next());
+        }
+        return ret;
     }
 
     @Override
     public Collection<? extends IWorkflowStepRecord> getNextStepRecordsByName(IWorkflowStepRecord stepRecord, Collection<String> stepNames) {
-        return null;
+        final Set<IWorkflowStepRecord> ret = new LinkedHashSet<>();
+
+        Iterator<IWorkflowStepRecord> it = TreeVisitors.widthFirstIterator(this::getNextStepRecords,
+                stepRecord, false, step -> {
+                    if (stepNames.contains(step.getStepName())) {
+                        ret.add(step);
+                        // 不再继续查找这一分支
+                        return false;
+                    }
+                    return true;
+                });
+
+        while (it.hasNext()) {
+            ret.add(it.next());
+        }
+        return ret;
     }
 
     @Override
     public boolean isAllStepsHistory(IWorkflowRecord wfRecord) {
-        return false;
+        WorkflowRecordBean record = (WorkflowRecordBean) wfRecord;
+        return record.getSteps().stream().allMatch(WorkflowStepRecordBean::isHistory);
     }
 
     @Override
     public IWorkflowStepRecord getNextWaitingStepRecord(IWorkflowStepRecord stepRecord, String joinKey, String stepName, IWfActor actor) {
+        String curJoinValue = stepRecord.getJoinValue(joinKey);
+
+        for (WorkflowStepLinkBean link : ((WorkflowStepRecordBean) stepRecord).getNextStepLinks()) {
+            IWorkflowStepRecord next = stepBeans.get(link.getNextStepId());
+            if (next == null)
+                continue;
+
+            if (next.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
+                continue;
+
+            if (next.getStepName().equals(stepName)) {
+                String joinValue = next.getJoinValue(joinKey);
+                if (Objects.equals(curJoinValue, joinValue)) {
+                    return next;
+                }
+            }
+        }
+
         return null;
     }
 

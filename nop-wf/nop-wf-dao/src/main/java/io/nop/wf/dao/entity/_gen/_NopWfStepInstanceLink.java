@@ -28,9 +28,9 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     public static final String PROP_NAME_stepId = "stepId";
     public static final int PROP_ID_stepId = 2;
     
-    /* 迁移步骤 ID: PREV_STEP_ID VARCHAR */
-    public static final String PROP_NAME_prevStepId = "prevStepId";
-    public static final int PROP_ID_prevStepId = 3;
+    /* 下一步骤 ID: NEXT_STEP_ID VARCHAR */
+    public static final String PROP_NAME_nextStepId = "nextStepId";
+    public static final int PROP_ID_nextStepId = 3;
     
     /* 执行动作: EXEC_ACTION VARCHAR */
     public static final String PROP_NAME_execAction = "execAction";
@@ -55,11 +55,11 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     public static final String PROP_NAME_wfStep = "wfStep";
     
     /* relation: 工作流步骤 */
-    public static final String PROP_NAME_prevWfStep = "prevWfStep";
+    public static final String PROP_NAME_nextWfStep = "nextWfStep";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId,PROP_NAME_stepId,PROP_NAME_prevStepId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId,PROP_ID_stepId,PROP_ID_prevStepId};
+    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId,PROP_NAME_stepId,PROP_NAME_nextStepId);
+    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId,PROP_ID_stepId,PROP_ID_nextStepId};
 
     private static final String[] PROP_ID_TO_NAME = new String[7];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -71,8 +71,8 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_stepId] = PROP_NAME_stepId;
           PROP_NAME_TO_ID.put(PROP_NAME_stepId, PROP_ID_stepId);
       
-          PROP_ID_TO_NAME[PROP_ID_prevStepId] = PROP_NAME_prevStepId;
-          PROP_NAME_TO_ID.put(PROP_NAME_prevStepId, PROP_ID_prevStepId);
+          PROP_ID_TO_NAME[PROP_ID_nextStepId] = PROP_NAME_nextStepId;
+          PROP_NAME_TO_ID.put(PROP_NAME_nextStepId, PROP_ID_nextStepId);
       
           PROP_ID_TO_NAME[PROP_ID_execAction] = PROP_NAME_execAction;
           PROP_NAME_TO_ID.put(PROP_NAME_execAction, PROP_ID_execAction);
@@ -92,8 +92,8 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /* 步骤ID: STEP_ID */
     private java.lang.String _stepId;
     
-    /* 迁移步骤 ID: PREV_STEP_ID */
-    private java.lang.String _prevStepId;
+    /* 下一步骤 ID: NEXT_STEP_ID */
+    private java.lang.String _nextStepId;
     
     /* 执行动作: EXEC_ACTION */
     private java.lang.String _execAction;
@@ -148,7 +148,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_wfId || propId == PROP_ID_stepId || propId == PROP_ID_prevStepId;
+            return propId == PROP_ID_wfId || propId == PROP_ID_stepId || propId == PROP_ID_nextStepId;
           
     }
 
@@ -180,8 +180,8 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
             case PROP_ID_stepId:
                return getStepId();
         
-            case PROP_ID_prevStepId:
-               return getPrevStepId();
+            case PROP_ID_nextStepId:
+               return getNextStepId();
         
             case PROP_ID_execAction:
                return getExecAction();
@@ -223,13 +223,13 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_prevStepId:{
+            case PROP_ID_nextStepId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_prevStepId));
+                       err-> newTypeConversionError(PROP_NAME_nextStepId));
                }
-               setPrevStepId(typedValue);
+               setNextStepId(typedValue);
                break;
             }
         
@@ -286,9 +286,9 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_prevStepId:{
+            case PROP_ID_nextStepId:{
                onInitProp(propId);
-               this._prevStepId = (java.lang.String)value;
+               this._nextStepId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -359,20 +359,20 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     }
     
     /**
-     * 迁移步骤 ID: PREV_STEP_ID
+     * 下一步骤 ID: NEXT_STEP_ID
      */
-    public java.lang.String getPrevStepId(){
-         onPropGet(PROP_ID_prevStepId);
-         return _prevStepId;
+    public java.lang.String getNextStepId(){
+         onPropGet(PROP_ID_nextStepId);
+         return _nextStepId;
     }
 
     /**
-     * 迁移步骤 ID: PREV_STEP_ID
+     * 下一步骤 ID: NEXT_STEP_ID
      */
-    public void setPrevStepId(java.lang.String value){
-        if(onPropSet(PROP_ID_prevStepId,value)){
-            this._prevStepId = value;
-            internalClearRefs(PROP_ID_prevStepId);
+    public void setNextStepId(java.lang.String value){
+        if(onPropSet(PROP_ID_nextStepId,value)){
+            this._nextStepId = value;
+            internalClearRefs(PROP_ID_nextStepId);
             orm_id();
         }
     }
@@ -479,19 +479,19 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 工作流步骤
      */
-    public io.nop.wf.dao.entity.NopWfStepInstance getPrevWfStep(){
-       return (io.nop.wf.dao.entity.NopWfStepInstance)internalGetRefEntity(PROP_NAME_prevWfStep);
+    public io.nop.wf.dao.entity.NopWfStepInstance getNextWfStep(){
+       return (io.nop.wf.dao.entity.NopWfStepInstance)internalGetRefEntity(PROP_NAME_nextWfStep);
     }
 
-    public void setPrevWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
+    public void setNextWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
        if(refEntity == null){
          
-         this.setPrevStepId(null);
+         this.setNextStepId(null);
          
        }else{
-          internalSetRefEntity(PROP_NAME_prevWfStep, refEntity,()->{
+          internalSetRefEntity(PROP_NAME_nextWfStep, refEntity,()->{
              
-                    this.setPrevStepId(refEntity.getStepId());
+                    this.setNextStepId(refEntity.getStepId());
                  
           });
        }

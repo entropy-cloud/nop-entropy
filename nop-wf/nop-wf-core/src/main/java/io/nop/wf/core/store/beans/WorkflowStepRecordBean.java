@@ -7,14 +7,18 @@
  */
 package io.nop.wf.core.store.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.StringHelper;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @DataBean
 public class WorkflowStepRecordBean implements IWorkflowStepRecord {
@@ -54,6 +58,41 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private String subWfId;
 
+    private KeyedList<WorkflowActionRecordBean> actions = new KeyedList<>(WorkflowActionRecordBean::getSid);
+
+    private List<WorkflowStepLinkBean> nextStepLinks;
+
+    public WorkflowStepLinkBean addNextStepLink(String nextStepId) {
+        WorkflowStepLinkBean link = new WorkflowStepLinkBean();
+        link.setWfId(getWfId());
+        link.setStepId(getStepId());
+        link.setNextStepId(nextStepId);
+        return link;
+    }
+
+    public WorkflowActionRecordBean getAction(String actionId) {
+        return actions.getByKey(actionId);
+    }
+
+    public List<WorkflowActionRecordBean> getActions() {
+        return actions;
+    }
+
+    public void setActions(List<WorkflowActionRecordBean> actions) {
+        this.actions = KeyedList.fromList(actions, WorkflowActionRecordBean::getSid);
+    }
+
+    public void addAction(WorkflowActionRecordBean action) {
+        if (action.getSid() == null)
+            action.setSid(StringHelper.generateUUID());
+        this.actions.add(action);
+    }
+
+    @JsonIgnore
+    public boolean isHistory() {
+        return getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND;
+    }
+
     @Override
     public void transitToStatus(int status) {
         setStatus(status);
@@ -65,8 +104,13 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     }
 
-    public void setWfRecord(IWorkflowRecord wfRecord){
-        if(wfRecord.getWfId() == null){
+    @Override
+    public String getJoinValue(String targetStep) {
+        return null;
+    }
+
+    public void setWfRecord(IWorkflowRecord wfRecord) {
+        if (wfRecord.getWfId() == null) {
             wfRecord.setWfId(StringHelper.generateUUID());
         }
         setWfId(wfRecord.getWfId());
@@ -339,5 +383,13 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     public void setWfId(String wfId) {
         this.wfId = wfId;
+    }
+
+    public List<WorkflowStepLinkBean> getNextStepLinks() {
+        return nextStepLinks;
+    }
+
+    public void setNextStepLinks(List<WorkflowStepLinkBean> nextStepLinks) {
+        this.nextStepLinks = nextStepLinks;
     }
 }

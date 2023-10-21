@@ -47,6 +47,8 @@ public interface IWorkflowStepRecord {
 
     void setJoinValue(String targetStep, String joinValue);
 
+    String getJoinValue(String targetStep);
+
     void setActor(IWfActor actor);
 
     void setOwner(IWfActor owner);

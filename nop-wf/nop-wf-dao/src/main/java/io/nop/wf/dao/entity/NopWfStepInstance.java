@@ -30,6 +30,11 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
     }
 
     @Override
+    public String getJoinValue(String targetStep) {
+        return null;
+    }
+
+    @Override
     public void setActor(IWfActor actor) {
         if (actor != null) {
             setActorType(actor.getActorType());

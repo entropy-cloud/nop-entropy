@@ -9,6 +9,7 @@ package io.nop.wf.api.actor;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.Nonnull;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -83,5 +84,9 @@ public interface IWfActor {
     default boolean isSame(IWfActor actor) {
         return getActorType().equals(actor.getActorType()) && getActorId().equals(actor.getActorId()) && Objects.equals(getDeptId(),
                 actor.getDeptId());
+    }
+
+    default boolean isActor(String actorType, String actorId, String actorDeptId) {
+        return getActorType().equals(actorType) && getActorId().equals(actorId) && Objects.equals(getDeptId(), actorDeptId);
     }
 }
