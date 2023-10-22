@@ -58,7 +58,8 @@ NopLayout规定了如下规则：
 </form>
 ```
 
-deptId字段前标记符号`!`，表示不显示Label，最后得到
+deptId字段前标记符号`!`，表示不显示Label，最后得到 
+![](layout/aside-filter.png)
 
 # 二. 字段控件推定
 
