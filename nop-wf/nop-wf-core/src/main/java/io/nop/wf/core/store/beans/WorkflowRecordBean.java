@@ -61,6 +61,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private String suspenderId;
     private String suspenderName;
 
+    private String createrId;
+
     private boolean willEnd;
 
     private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
@@ -416,4 +418,12 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.suspenderName = suspenderName;
     }
 
+    @Override
+    public String getCreaterId() {
+        return createrId;
+    }
+
+    public void setCreaterId(String createrId) {
+        this.createrId = createrId;
+    }
 }

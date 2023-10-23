@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class MockWorkflowStore implements IWorkflowStore {
@@ -169,11 +170,18 @@ public class MockWorkflowStore implements IWorkflowStore {
     }
 
     @Override
-    public Collection<? extends IWorkflowStepRecord> getStepRecords(IWorkflowRecord wfRecord, boolean includeHistory) {
-        if (includeHistory) {
+    public Collection<? extends IWorkflowStepRecord> getStepRecords(IWorkflowRecord wfRecord, boolean includeHistory,
+                                                                    Predicate<? super IWorkflowStepRecord> filter) {
+        if (includeHistory && filter == null) {
             return ((WorkflowRecordBean) wfRecord).getSteps();
         }
-        return ((WorkflowRecordBean) wfRecord).getSteps().stream().filter(step -> !step.isHistory()).collect(Collectors.toList());
+        return ((WorkflowRecordBean) wfRecord).getSteps().stream().filter(step -> {
+            if (!includeHistory && step.isHistory())
+                return false;
+            if (filter != null)
+                return filter.test(step);
+            return true;
+        }).collect(Collectors.toList());
     }
 
     @Override

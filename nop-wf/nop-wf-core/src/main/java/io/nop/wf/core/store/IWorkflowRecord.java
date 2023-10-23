@@ -26,7 +26,11 @@ public interface IWorkflowRecord {
 
     String getBizObjName();
 
+    void setBizObjName(String bizObjName);
+
     String getBizObjId();
+
+    void setBizObjId(String bizObjId);
 
     Timestamp getStartTime();
 
@@ -43,6 +47,8 @@ public interface IWorkflowRecord {
     String getManagerDeptId();
 
     String getStarterId();
+
+    String getCreaterId();
 
     void setStarter(IWfActor starter);
 

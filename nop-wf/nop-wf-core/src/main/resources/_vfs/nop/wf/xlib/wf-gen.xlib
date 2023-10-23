@@ -1,0 +1,12 @@
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <AutoJoinSupport>
+            <attr name="_dsl_root"/>
+
+            <source>
+
+            </source>
+        </AutoJoinSupport>
+    </tags>
+</lib>

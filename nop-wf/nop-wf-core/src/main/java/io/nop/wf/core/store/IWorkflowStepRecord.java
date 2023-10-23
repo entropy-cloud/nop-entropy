@@ -7,8 +7,10 @@
  */
 package io.nop.wf.core.store;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.NopWfCoreConstants;
 
 import java.sql.Timestamp;
 
@@ -18,6 +20,16 @@ public interface IWorkflowStepRecord {
     String getStepName();
 
     Integer getStatus();
+
+    @JsonIgnore
+    default boolean isActivated() {
+        return getStatus() == NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED;
+    }
+
+    @JsonIgnore
+    default boolean isWaiting() {
+        return getStatus() == NopWfCoreConstants.WF_STEP_STATUS_WAITING;
+    }
 
     String getWfId();
 
@@ -68,4 +80,10 @@ public interface IWorkflowStepRecord {
     void setAppState(String appState);
 
     void setCaller(IWfActor caller);
+
+    String getSubWfName();
+
+    Long getSubWfVersion();
+
+    String getSubWfId();
 }

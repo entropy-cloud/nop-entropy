@@ -56,6 +56,8 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     void clearCache(String modelType);
 
+    void removeCachedModel(String path);
+
     IComponentModel loadComponentModel(String modelPath);
 
     /**

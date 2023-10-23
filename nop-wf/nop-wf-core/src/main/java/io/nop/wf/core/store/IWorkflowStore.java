@@ -16,6 +16,7 @@ import io.nop.wf.core.model.IWorkflowStepModel;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public interface IWorkflowStore {
 
@@ -62,7 +63,8 @@ public interface IWorkflowStore {
 
     IWorkflowStepRecord getLatestStepRecordByName(IWorkflowRecord wfRecord, String stepName);
 
-    Collection<? extends IWorkflowStepRecord> getStepRecords(IWorkflowRecord wfRecord, boolean includeHistory);
+    Collection<? extends IWorkflowStepRecord> getStepRecords(IWorkflowRecord wfRecord, boolean includeHistory,
+                                                             Predicate<? super IWorkflowStepRecord> filter);
 
     Collection<? extends IWorkflowStepRecord> getStepRecordsByName(IWorkflowRecord wfRecord, String stepName);
 

@@ -91,6 +91,12 @@ public interface IWorkflow {
      */
     List<? extends IWorkflowStep> getStepsByName(String stepName);
 
+    List<? extends IWorkflowStep> getActivatedSteps();
+
+    List<? extends IWorkflowStep> getWaitingSteps();
+
+    List<? extends IWorkflowStep> getSteps(boolean includeHistory);
+
     /**
      * 获取跳转到指定步骤时的actor设置
      *

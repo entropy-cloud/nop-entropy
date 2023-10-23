@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<wf x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="wf-start"/>
+
+    <end/>
+
+    <steps>
+        <step displayName="启动" name="wf-start">
+            <assignment ignoreNoAssign="true">
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sh"/>
+            </ref-actions>
+        </step>
+        <step displayName="已审核" name="ysh">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="2" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp"/>
+            </ref-actions>
+        </step>
+        <join displayName="已审批" joinType="and" name="ysp">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp1"/>
+            </ref-actions>
+        </join>
+    </steps>
+
+    <actions>
+        <action displayName="审核" name="sh">
+            <transition>
+                <to-step stepName="ysh"/>
+            </transition>
+        </action>
+        <action displayName="审批" name="sp">
+            <transition>
+                <to-step stepName="ysp"/>
+            </transition>
+        </action>
+        <action displayName="审批1" name="sp1">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+</wf>

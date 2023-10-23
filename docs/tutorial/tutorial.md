@@ -474,7 +474,6 @@ layout是一种专用的布局领域语言，它将布局信息和具体字段�
 http://localhost:8080/index.html?#/amis/app/mall/pages/LitemallGoods/main.page.yaml
 ```
 
-## 六. 自动化测试
 
 它实际对应的页面是 `src/main/resources/_vfs/app/mall/pages/LitemallGoods/main.page.yaml`，其中的内容为
 

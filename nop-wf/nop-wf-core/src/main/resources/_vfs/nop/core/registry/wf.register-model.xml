@@ -1,0 +1,12 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="wf">
+
+    <resolve-handler resolveInDir="module:/wf"/>
+
+    <loaders>
+
+        <loader fileType="xwf" schemaPath="/nop/schema/wf/wf.xdef"/>
+
+    </loaders>
+
+</model>

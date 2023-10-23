@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<wf xmlns:cp="cp" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xp" xmlns:wf-actor="wf-actor">
+
+    <start startStepName="start"/>
+
+    <steps>
+        <step name="start">
+            <assignment selection="auto" ignoreNoAssign="false">
+                <actors>
+                    <actor actorType="dynamic">
+                        <wf-actor:CurrentUser xpl:libs="/nop/wf/xlib/wf-actor.xlib" />
+                    </actor>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+</wf>

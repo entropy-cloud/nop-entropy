@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<wf x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <diagram>{}</diagram>
+
+    <actions>
+        <action name="invokeJoin1" displayName="动作0">
+            <transition>
+                <to-step stepName="join"/>
+            </transition>
+        </action>
+        <action name="invokeJoin2" displayName="动作0">
+            <transition>
+                <to-step stepName="join"/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment selection="multiple">
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="invokeJoin1"/>
+                <ref-action name="invokeJoin2"/>
+            </ref-actions>
+        </step>
+        <join displayName="合并步骤" name="join">
+            <assignment>
+                <actors>
+                    <actor actorId="actor2" actorType="user"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </join>
+    </steps>
+
+    <start startStepName="wf-start"/>
+</wf>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<wf x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="wf-start"/>
+
+    <end/>
+
+    <steps>
+        <step displayName="启动" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sh"/>
+            </ref-actions>
+        </step>
+        <step displayName="已审核" name="ysh1">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp1"/>
+            </ref-actions>
+        </step>
+        <step displayName="已审核2" name="ysh2">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp2"/>
+            </ref-actions>
+        </step>
+        <join displayName="合并步骤" name="join">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </join>
+    </steps>
+
+    <actions>
+        <action displayName="审核" name="sh">
+            <transition>
+                <to-step stepName="ysh1"/>
+                <to-step stepName="ysh2"/>
+            </transition>
+        </action>
+        <action displayName="审批1" name="sp1">
+            <transition>
+                <to-step stepName="join"/>
+            </transition>
+        </action>
+        <action displayName="审批2" name="sp2">
+            <transition>
+                <to-step stepName="join"/>
+            </transition>
+        </action>
+    </actions>
+</wf>

@@ -974,7 +974,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     void killSteps(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
         IWorkflowStore wfStore = wf.getStore();
-        for (IWorkflowStepRecord record : wfStore.getStepRecords(wf.getRecord(), false)) {
+        for (IWorkflowStepRecord record : wfStore.getStepRecords(wf.getRecord(), false,null)) {
             IWorkflowStepImplementor step = wf.getStepByRecord(record);
             WfRuntime stepRt = newWfRuntime(step.getWorkflow(), wfRt.getServiceContext());
             _killStep(step, stepRt);

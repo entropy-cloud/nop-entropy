@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<wf x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <start startStepName="start"/>
+
+    <end/>
+
+    <steps>
+        <step displayName="开始" name="start">
+            <assignment selection="auto">
+                <actors>
+                    <actor selectUser="true" actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-step stepName="cyStart"/>
+                <to-step stepName="mainStart"/>
+            </transition>
+        </step>
+        <step displayName="开始传阅" name="cyStart">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="cy"/>
+            </ref-actions>
+        </step>
+        <step displayName="主流程开始" name="mainStart">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sh"/>
+            </ref-actions>
+        </step>
+        <step displayName="已审核" name="ysh">
+            <assignment selection="auto">
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+
+    <actions>
+        <action displayName="审核" name="sh">
+            <transition>
+                <to-step stepName="ysh"/>
+            </transition>
+        </action>
+        <action displayName="传阅" name="cy">
+            <transition>
+                <to-empty/>
+            </transition>
+        </action>
+    </actions>
+</wf>

@@ -1,0 +1,11 @@
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <CurrentUser>
+
+            <source>
+
+            </source>
+        </CurrentUser>
+    </tags>
+</lib>

@@ -11,10 +11,10 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.WorkflowTransitionTarget;
-import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.engine.IWorkflowEngine;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
@@ -156,11 +156,31 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
+    public List<? extends IWorkflowStep> getActivatedSteps() {
+        Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecords(wfRecord,
+                false, IWorkflowStepRecord::isActivated);
+        return getStepsByRecords(stepRecords);
+    }
+
+    @Override
+    public List<? extends IWorkflowStep> getWaitingSteps() {
+        Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecords(wfRecord,
+                false, IWorkflowStepRecord::isWaiting);
+        return getStepsByRecords(stepRecords);
+    }
+
+    @Override
+    public List<? extends IWorkflowStep> getSteps(boolean includeHistory) {
+        Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecords(wfRecord, includeHistory, null);
+        return getStepsByRecords(stepRecords);
+    }
+
+    @Override
     public List<IWorkflowStepImplementor> getStepsByRecords(Collection<? extends IWorkflowStepRecord> records) {
         if (records == null || records.isEmpty())
             return Collections.emptyList();
 
-        List<IWorkflowStepImplementor> steps = new ArrayList<IWorkflowStepImplementor>(records.size());
+        List<IWorkflowStepImplementor> steps = new ArrayList<>(records.size());
         for (IWorkflowStepRecord stepRecord : records) {
             if (stepRecord == null)
                 throw new IllegalArgumentException("wf.err_null_step_record");

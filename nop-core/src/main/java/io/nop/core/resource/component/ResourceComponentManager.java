@@ -429,6 +429,14 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             cache.clear();
     }
 
+    public void removeCachedModel(String path) {
+        ComponentModelConfig config = getModelConfigByModelPath(path);
+        ResourceLoadingCache<?> cache = getModelCache(config.getModelType());
+        if (cache != null) {
+            cache.remove(path);
+        }
+    }
+
     protected String findModelTypeFromPath(String resourcePath) {
         String fileType = StringHelper.fileType(resourcePath);
         ComponentModelLoader loader = findByFileType(fileTypeLoaders, fileType);

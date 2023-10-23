@@ -53,7 +53,7 @@ public class DaoWorkflowModelStore implements IWorkflowModelStore {
     }
 
     @Override
-    public IWorkflowModel getWorkflowModel(String wfName, Long wfVersion) {
+    public IWorkflowModel getModel(String wfName, Long wfVersion) {
         return null;
     }
 

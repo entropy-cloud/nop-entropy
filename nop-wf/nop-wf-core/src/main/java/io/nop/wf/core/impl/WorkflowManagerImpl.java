@@ -87,7 +87,7 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     @Nonnull
     @Override
     public IWorkflowModel getWorkflowModel(String wfName, Long wfVersion) {
-        return workflowModelStore.getWorkflowModel(wfName, wfVersion);
+        return workflowModelStore.getModel(wfName, wfVersion);
     }
 
     @Override

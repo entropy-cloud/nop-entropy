@@ -76,4 +76,8 @@ public class ResourceVersionHelper {
             return false;
         return true;
     }
+
+    public static String buildPath(String basePath, String name, Long version, String fileType) {
+        return StringHelper.appendPath(basePath, name) + "/v" + version + "." + fileType;
+    }
 }

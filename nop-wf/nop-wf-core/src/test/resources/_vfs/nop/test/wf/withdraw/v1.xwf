@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<wf bizEntityStateProp="statusId" x:dump="true" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <diagram/>
+
+    <actions>
+        <action displayName="撤回" common="true" forWithdraw="true" name="_withdrawAction"/>
+        <action displayName="审核" name="sh">
+            <transition bizEntityState="20">
+                <to-step stepName="ysh"/>
+            </transition>
+        </action>
+        <action displayName="审批" name="sp">
+            <transition bizEntityState="20">
+                <to-step stepName="ysp"/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="开始步骤" allowWithdraw="true" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sh"/>
+            </ref-actions>
+        </step>
+        <step displayName="已审核" name="ysh">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp"/>
+            </ref-actions>
+        </step>
+        <step displayName="已审批" name="ysp">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+
+    <start startStepName="wf-start"/>
+</wf>
