@@ -64,6 +64,9 @@ public class ExcelOfficePackage extends OfficePackage {
     public ThemesPart getTheme1() {
         String path = "xl/theme/theme1.xml";
         IOfficePackagePart part = getFile(path);
+        if(part == null)
+            return null;
+
         if (part instanceof ThemesPart)
             return (ThemesPart) part;
 
