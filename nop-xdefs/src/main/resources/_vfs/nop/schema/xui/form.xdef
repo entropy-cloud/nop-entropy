@@ -1,5 +1,6 @@
 <!--
 表单模型
+@title 表单作为弹出页面使用时对应的对话框标题
 @editMode [控件编辑模式] edit:编辑模式, add:新增模式, view:查看模式, query:查询条件。不同的模式下使用的控件可能不同
 @layoutControl 如果设置为wizard，则表示采用向导布局来组织页面。如果设置为tabs，则采用标签页来组织页面。
 @resetAfterSubmit 提交表单成功后，重置当前表单至初始状态
@@ -83,6 +84,8 @@
     <cells xdef:body-type="list" xdef:key-attr="id">
         <!--
         @notSubmit 仅用于前台控制，不提交到后台
+        @custom 如果设置为true，则不要求该字段在meta中定义。否则一般情况下view模型会与某个objMeta绑定，所有字段都会继承meta中定义的属性，如显示名称，类型信息等。
+        @submitOnChange 只要控件值发生改变就会自动触发表单提交。
         -->
         <cell id="!string" notSubmit="!boolean=false" custom="!boolean=false"
               collapseTitle="string" titlePosition="string" submitOnChange="boolean"

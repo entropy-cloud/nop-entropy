@@ -22,11 +22,11 @@
 
     <actors xdef:body-type="list">
         <!--
-          @type actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
+          @actorType actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
           @selectUser 选择actor本身还是actor对应的user
           @assignForUser 是否为actor中的每个用户生成步骤实例
         -->
-        <actor actorId="string" type="!string" deptId="string" selectUser="!boolean=true" assignForUser="!boolean=false"
+        <actor actorId="string" actorType="!string" deptId="string" selectUser="!boolean=true" assignForUser="!boolean=false"
                xdef:allow-multiple="true" xdef:name="WfAssignmentActorModel"/>
     </actors>
 

@@ -1,0 +1,55 @@
+<wf xmlns:cp="cp">
+
+    <x:config>
+        <cp:import lib="/test_actor.xlib" namespace="test_actor"/>
+    </x:config>
+    <start startStepId="start"/>
+
+    <end/>
+
+    <steps>
+        <step id="start"  displayName="启动" >
+            <assignment selection="noSelect" >
+                <actor type="user" id="1"/>
+            </assignment>
+            <ref-actions>
+                <ref-action actionId="sh" />
+            </ref-actions>
+        </step>
+        <step id="ysh"  displayName="已审核" >
+            <assignment selection="noSelect" >
+                <actor type="user" id="1"/>
+            </assignment>
+            <ref-actions>
+                <ref-action actionId="sp"/>
+            </ref-actions>
+        </step>
+        <step id="ysp"  displayName="已审核" >
+            <assignment selection="noSelect" >
+                <actor type="user" id="1"/>
+            </assignment>
+            <ref-actions>
+                <ref-action actionId="end"/>
+            </ref-actions>
+        </step>
+    </steps>
+
+    <actions>
+        <action id="end" displayName="审核">
+            <transition>
+               <to-end/>
+            </transition>
+        </action>
+        <action id="sp" displayName="审核">
+            <transition>
+                <to-step stepId="ysp" />
+            </transition>
+        </action>
+        <action id="sh" displayName="审核">
+            <transition splitType="and">
+                <to-step stepId="ysh" />
+                <to-assigned />
+            </transition>
+        </action>
+    </actions>
+</wf>

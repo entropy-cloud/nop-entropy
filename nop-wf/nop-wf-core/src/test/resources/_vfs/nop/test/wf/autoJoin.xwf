@@ -1,0 +1,45 @@
+<wf xmlns:c="c" xmlns:cp="cp" x:dump="true">
+
+    <diagram/>
+    <x:config>
+        <cp:import lib="/test_actor.xlib" namespace="test_actor"/>
+    </x:config>
+    <actions>
+        <action id="sh" displayName="审核">
+            <transition   >
+                <to-step stepId="join" >
+                </to-step>
+            </transition>
+        </action>
+        <action id="sp" displayName="审批">
+            <transition   >
+            <to-end/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step id="wf-start" displayName="开始步骤" >
+            <assignment  >
+                <actor id="1"     type="user"  />
+            </assignment>
+            <ref-actions>
+                <ref-action actionId="sh" />
+            </ref-actions>
+        </step>
+        <join id="join"  displayName="会签步骤" specialType="auto"  >
+            <assignment ignoreNoAssign="false" selection="noSelect">
+                <actor id="1"  type="user"  />
+                <actor id="2"  type="user"  />
+            </assignment>
+            <ref-actions>
+                <ref-action actionId="sp"/>
+            </ref-actions>
+        </join>
+    </steps>
+    <x:post-extends>
+        <cp:import namespace="test_wf_gen" lib="/test_wf_gen.xlib" />
+        <test_wf_gen:AutoJoinSupport />
+    </x:post-extends>
+    <start startStepId="wf-start"/>
+</wf>
