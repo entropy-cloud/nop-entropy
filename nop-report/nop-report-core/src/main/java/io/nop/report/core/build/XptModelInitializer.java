@@ -53,14 +53,14 @@ import static io.nop.report.core.XptErrors.ERR_XPT_ROW_PARENT_CONTAINS_LOOP;
 /**
  * 分析rowParent和colParent的关联关系，产生的分析结果保存在XptCellModel中
  */
-public class XptModelBuilder {
+public class XptModelInitializer {
     private final XLangCompileTool cp;
 
-    public XptModelBuilder(XLangCompileTool cp) {
+    public XptModelInitializer(XLangCompileTool cp) {
         this.cp = cp;
     }
 
-    public void build(ExcelWorkbook workbook) {
+    public void initialize(ExcelWorkbook workbook) {
         if (workbook.getModel() == null)
             workbook.setModel(new XptWorkbookModel());
 
