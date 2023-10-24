@@ -23,7 +23,7 @@ import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptModelBuilder;
 import io.nop.report.core.engine.IReportEngine;
-import io.nop.report.core.engine.ReportSheetGenerator;
+import io.nop.report.core.engine.ExpandedSheetGenerator;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.report.core.imp.ExcelTemplateToXptModelTransformer;
@@ -43,7 +43,7 @@ public class ExcelReportHelper extends ExcelHelper {
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
 
         IBinaryTemplateOutput output = new XlsxReportRendererFactory()
-                .buildRenderer(xptModel, new ReportSheetGenerator(xptModel));
+                .buildRenderer(xptModel, new ExpandedSheetGenerator(xptModel));
         output.generateToResource(resource, scope);
     }
 
@@ -64,7 +64,7 @@ public class ExcelReportHelper extends ExcelHelper {
         scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
 
         ExcelWorkbook workbook = buildXptModelFromImpModel(impModelPath);
-        ITextTemplateOutput output = new HtmlReportRendererFactory().buildRenderer(workbook, new ReportSheetGenerator(workbook));
+        ITextTemplateOutput output = new HtmlReportRendererFactory().buildRenderer(workbook, new ExpandedSheetGenerator(workbook));
         return output.generateText(scope);
     }
 

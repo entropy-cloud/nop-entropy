@@ -54,7 +54,7 @@ public class ReportEngine implements IReportEngine {
             throw new NopException(ERR_XPT_UNSUPPORTED_RENDER_TYPE)
                     .param(ARG_RENDER_TYPE, renderType);
 
-        return rendererFactory.buildRenderer(model, new ReportSheetGenerator(model));
+        return rendererFactory.buildRenderer(model, new ExpandedSheetGenerator(model));
     }
 
     @Override

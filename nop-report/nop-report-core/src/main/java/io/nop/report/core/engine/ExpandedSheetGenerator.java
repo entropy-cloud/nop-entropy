@@ -8,34 +8,22 @@
 package io.nop.report.core.engine;
 
 import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.ProcessResult;
-import io.nop.commons.bytes.ByteString;
-import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.model.table.CellPosition;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.ResourceHelper;
-import io.nop.excel.model.ExcelClientAnchor;
-import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.model.ILoopModel;
-import io.nop.excel.model.XptCellModel;
-import io.nop.excel.model.XptRowModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
 import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.expand.TableExpander;
-import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCol;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
@@ -43,22 +31,17 @@ import io.nop.report.core.model.ExpandedTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static io.nop.core.CoreErrors.ARG_CELL;
-import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_IMAGE_DATA;
-
-public class ReportSheetGenerator implements IExcelSheetGenerator {
-    public static final Logger LOG = LoggerFactory.getLogger(ReportSheetGenerator.class);
+public class ExpandedSheetGenerator implements IExcelSheetGenerator {
+    public static final Logger LOG = LoggerFactory.getLogger(ExpandedSheetGenerator.class);
 
     private final ExcelWorkbook workbook;
 
-    public ReportSheetGenerator(ExcelWorkbook workbook) {
+    public ExpandedSheetGenerator(ExcelWorkbook workbook) {
         this.workbook = workbook;
     }
 
@@ -139,35 +122,13 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
 
         new TableExpander(expandedSheet.getTable()).expand(xptRt);
 
-        evaluateSheet(expandedSheet, xptRt);
+        ExpandedSheetEvaluator.INSTANCE.evaluateSheetCells(expandedSheet, xptRt);
 
-        evaluateImages(expandedSheet, sheet.getImages(), xptRt);
+        ExpandedSheetEvaluator.INSTANCE.evaluateImages(expandedSheet, sheet.getImages(), xptRt);
 
         dropRemoved(expandedSheet);
 
         consumer.accept(expandedSheet);
-    }
-
-    private void evaluateSheet(ExpandedSheet expandedSheet, IXptRuntime xptRt) {
-        for (ExpandedRow row : expandedSheet.getTable().getRows()) {
-            xptRt.setRow(row);
-            XptRowModel rowModel = row.getModel();
-
-            row.forEachRealCell(cell -> {
-                xptRt.evaluateCell(cell);
-            });
-
-            if (rowModel != null) {
-                xptRt.setRow(row);
-                Boolean visible = ConvertHelper.toBoolean(runXpl(rowModel.getVisibleExpr(), xptRt));
-                if (visible != null) {
-                    row.setHidden(!visible);
-                }
-
-                String styleId = ConvertHelper.toString(runXpl(rowModel.getStyleIdExpr(), xptRt));
-                row.setStyleId(styleId);
-            }
-        }
     }
 
     private void dropRemoved(ExpandedSheet sheet) {
@@ -271,101 +232,5 @@ public class ReportSheetGenerator implements IExcelSheetGenerator {
         return predicate.passConditions(xptRt);
     }
 
-    private void evaluateImages(ExpandedSheet sheet, List<ExcelImage> images, IXptRuntime xptRt) {
-        if (images == null || images.isEmpty())
-            return;
 
-        Map<CellPosition, List<ExcelImage>> map = new HashMap<>();
-        for (ExcelImage image : images) {
-            CellPosition pos = image.getAnchor().getStartPosition();
-            map.computeIfAbsent(pos, k -> new ArrayList<>(1)).add(image);
-            image.calcSize(sheet);
-        }
-
-        List<ExcelImage> genImages = new ArrayList<>();
-        MutableInt index = new MutableInt(0);
-        sheet.getTable().forEachCell((cell, rowIndex, colIndex) -> {
-            ExpandedCell ec = (ExpandedCell) cell.getRealCell();
-            if (ec != null) {
-                XptCellModel cm = ec.getModel();
-                if (cm != null) {
-                    List<ExcelImage> list = map.get(cm.getCellPosition());
-                    if (list != null) {
-                        for (ExcelImage image : list) {
-                            image = genImage(ec, image, xptRt, index);
-                            if (image != null) {
-                                image.calcSize(sheet);
-                                index.incrementAndGet();
-                                genImages.add(image);
-                            }
-                        }
-                    }
-                }
-            }
-            return ProcessResult.CONTINUE;
-        });
-        sheet.setImages(genImages);
-    }
-
-    private ExcelImage genImage(ExpandedCell cell,
-                                ExcelImage model, IXptRuntime xptRt, MutableInt index) {
-        xptRt.setCell(cell);
-        xptRt.setRow(cell.getRow());
-
-        if (model.getTestExpr() != null) {
-            if (!model.getTestExpr().passConditions(xptRt))
-                return null;
-        }
-
-        ExcelImage ret = newExcelImage(cell, model, index);
-        xptRt.setImage(ret);
-
-        if (model.getDataExpr() != null) {
-            Object data = model.getDataExpr().invoke(xptRt);
-            if (data == null)
-                return null;
-
-            if (data instanceof ExcelImage)
-                return (ExcelImage) data;
-
-            if (data instanceof IResource) {
-                IResource resource = (IResource) data;
-                byte[] bytes = ResourceHelper.readBytes(resource);
-                ret.setData(ByteString.of(bytes));
-                String fileExt = StringHelper.fileExt(resource.getPath());
-                if (!StringHelper.isEmpty(fileExt)) {
-                    ret.setImgType(fileExt);
-                }
-            } else if (data instanceof ByteString) {
-                ret.setData((ByteString) data);
-            } else if (data instanceof byte[]) {
-                ret.setData(ByteString.of((byte[]) data));
-            } else {
-                throw new NopException(ERR_XPT_INVALID_IMAGE_DATA)
-                        .param(ARG_CELL, cell);
-            }
-        }
-
-        return ret;
-    }
-
-    private static ExcelImage newExcelImage(ExpandedCell cell, ExcelImage model, MutableInt index) {
-        ExcelImage ret = new ExcelImage();
-        ret.setName(model.getName() + '-' + index);
-        ret.setDescription(model.getDescription());
-        ret.setImgType(model.getImgType());
-        ret.setRotateDegree(model.getRotateDegree());
-        ret.setNoChangeAspect(model.isNoChangeAspect());
-        ret.setPrint(model.isPrint());
-        ret.setLinkUrl(model.getLinkUrl());
-
-        ExcelClientAnchor anchor = model.getAnchor();
-        ExcelClientAnchor retAnchor = anchor.copy();
-        retAnchor.setRow1(cell.getRowIndex());
-        retAnchor.setCol1(cell.getColIndex());
-        ret.setAnchor(retAnchor);
-
-        ret.setData(model.getData());
-        return ret;
-    }
 }
