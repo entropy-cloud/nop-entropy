@@ -21,7 +21,7 @@ import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.report.core.XptConstants;
-import io.nop.report.core.build.XptModelBuilder;
+import io.nop.report.core.build.XptModelInitializer;
 import io.nop.report.core.engine.IReportEngine;
 import io.nop.report.core.engine.ExpandedSheetGenerator;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
@@ -77,7 +77,7 @@ public class ExcelReportHelper extends ExcelHelper {
         new ExcelTemplateToXptModelTransformer(XLang.newEvalScope()).transform(template, impModel);
 
         XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
-        new XptModelBuilder(cp).build(template);
+        new XptModelInitializer(cp).initialize(template);
 
         return template;
     }

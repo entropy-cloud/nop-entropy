@@ -54,7 +54,7 @@ public class XptModelLoader {
 
         // 分析rowParent/colParent设置，建立单元格的父子关系
         XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
-        new XptModelBuilder(cp).build(workbook);
+        new XptModelInitializer(cp).initialize(workbook);
         return workbook;
     }
 }
