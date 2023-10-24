@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [58:22:0:0]/nop/schema/excel/workbook.xdef <p>
+ * generate from [61:22:0:0]/nop/schema/excel/workbook.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -36,9 +36,9 @@ public abstract class _ExcelColumnConfig extends io.nop.core.resource.component.
     private io.nop.core.lang.eval.IEvalAction _styleIdExpr ;
     
     /**
-     *  
+     *  列宽
      * xml name: width
-     * 
+     * 列的宽度，单位为pt
      */
     private java.lang.Double _width ;
     
@@ -100,9 +100,9 @@ public abstract class _ExcelColumnConfig extends io.nop.core.resource.component.
 
     
     /**
-     * 
+     * 列宽
      * xml name: width
-     *  
+     *  列的宽度，单位为pt
      */
     
     public java.lang.Double getWidth(){

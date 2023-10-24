@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [97:34:0:0]/nop/schema/excel/workbook.xdef <p>
+ * generate from [100:34:0:0]/nop/schema/excel/workbook.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -59,7 +59,9 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: expandExpr
-     * 
+     * 单元格展开时首先根据expandExpr计算得到expandedValue。如果没有指定expandExpr，但是指定了field和ds,
+     * 在自动根据ds中的field数据进行分组汇总，返回分组汇总得到的结果。
+     * 注意：展开表达式执行时还没有完成Excel层次坐标的构建，所以这里不能使用层次坐标表达式
      */
     private io.nop.core.lang.eval.IEvalAction _expandExpr ;
     
@@ -73,7 +75,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: expandOrderBy
-     * 
+     * 对expandExpr返回的列表进行排序
      */
     private java.util.List<io.nop.api.core.beans.query.OrderFieldBean> _expandOrderBy ;
     
@@ -102,7 +104,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: formatExpr
-     * 
+     * 在valueExpr执行后执行，计算得到用于显示的单元格文本
      */
     private io.nop.core.lang.eval.IEvalAction _formatExpr ;
     
@@ -138,7 +140,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: rowTestExpr
-     * 
+     * 返回false的时候表示当前单元格所在的行需要被删除
      */
     private io.nop.core.lang.eval.IEvalPredicate _rowTestExpr ;
     
@@ -152,7 +154,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: valueExpr
-     * 
+     * 在单元格展开之后执行，可以通过层次坐标获取到相关联单元格
      */
     private io.nop.core.lang.eval.IEvalAction _valueExpr ;
     
@@ -280,7 +282,9 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: expandExpr
-     *  
+     *  单元格展开时首先根据expandExpr计算得到expandedValue。如果没有指定expandExpr，但是指定了field和ds,
+     * 在自动根据ds中的field数据进行分组汇总，返回分组汇总得到的结果。
+     * 注意：展开表达式执行时还没有完成Excel层次坐标的构建，所以这里不能使用层次坐标表达式
      */
     
     public io.nop.core.lang.eval.IEvalAction getExpandExpr(){
@@ -318,7 +322,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: expandOrderBy
-     *  
+     *  对expandExpr返回的列表进行排序
      */
     
     public java.util.List<io.nop.api.core.beans.query.OrderFieldBean> getExpandOrderBy(){
@@ -395,7 +399,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: formatExpr
-     *  
+     *  在valueExpr执行后执行，计算得到用于显示的单元格文本
      */
     
     public io.nop.core.lang.eval.IEvalAction getFormatExpr(){
@@ -491,7 +495,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: rowTestExpr
-     *  
+     *  返回false的时候表示当前单元格所在的行需要被删除
      */
     
     public io.nop.core.lang.eval.IEvalPredicate getRowTestExpr(){
@@ -529,7 +533,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: valueExpr
-     *  
+     *  在单元格展开之后执行，可以通过层次坐标获取到相关联单元格
      */
     
     public io.nop.core.lang.eval.IEvalAction getValueExpr(){

@@ -30,7 +30,7 @@
         </prop>
         <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="java.lang.Long"/>
         </prop>
         <prop name="displayName" displayName="显示名称" i18n-en:displayName="DisplayName" tagSet="disp" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">

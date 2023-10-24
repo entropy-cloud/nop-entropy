@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [200:14:0:0]/nop/schema/excel/workbook.xdef <p>
+ * generate from [224:14:0:0]/nop/schema/excel/workbook.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -66,7 +66,7 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
     /**
      *  
      * xml name: sheetNameExpr
-     * 
+     * 动态生成sheet的名称，返回值类型必须是字符串
      */
     private io.nop.core.lang.eval.IEvalAction _sheetNameExpr ;
     
@@ -82,7 +82,7 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
     /**
      *  
      * xml name: testExpr
-     * 
+     * 如果返回false，则跳过当前sheet的生成。判断通过之后才会执行beginLoop
      */
     private io.nop.core.lang.eval.IEvalPredicate _testExpr ;
     
@@ -222,7 +222,7 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
     /**
      * 
      * xml name: sheetNameExpr
-     *  
+     *  动态生成sheet的名称，返回值类型必须是字符串
      */
     
     public io.nop.core.lang.eval.IEvalAction getSheetNameExpr(){
@@ -262,7 +262,7 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
     /**
      * 
      * xml name: testExpr
-     *  
+     *  如果返回false，则跳过当前sheet的生成。判断通过之后才会执行beginLoop
      */
     
     public io.nop.core.lang.eval.IEvalPredicate getTestExpr(){

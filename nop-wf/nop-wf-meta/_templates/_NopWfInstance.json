@@ -1,7 +1,7 @@
 {
   "wfId": "",
   "wfName": "",
-  "wfVersion": "",
+  "wfVersion": 0,
   "wfParams": "",
   "title": "",
   "status": 0,
@@ -15,7 +15,7 @@
   "bizObjName": "",
   "bizObjId": "",
   "parentWfName": "",
-  "parentWfVersion": "",
+  "parentWfVersion": 0,
   "parentWfId": "",
   "parentStepId": "",
   "starterId": "",

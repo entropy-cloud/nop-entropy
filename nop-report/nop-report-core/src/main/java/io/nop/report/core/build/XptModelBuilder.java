@@ -74,9 +74,17 @@ public class XptModelBuilder {
             sheet.setModel(new XptSheetModel());
 
         initCols(sheet);
+        //初始化每个单元格对应的XptCellModel模型
         initXptModels(sheet);
+
+        // 根据rowParent和colParent配置建立父子关联，初始化parent的childCells集合
+        // 缺省左侧最近的展开单元格为行父格，上方最近的展开单元格为列父格
         initParentChildren(sheet);
+
+        // 根据父子关系计算得到父单元格所管辖的所有子单元格
         initDuplicateCells(sheet);
+
+        // 根据父子关系计算得到单元格展开时哪些父单元格需要被自动延展。如果父单元格与子单元格不在一行或者一列中，则不需要被延展。
         initExtendCells(sheet);
 
         // new XptStructureToNode().buildNodeForSheet(sheet).dump();

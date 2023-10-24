@@ -5,7 +5,7 @@
 
     <loaders>
 
-        <loader fileType="xwf" schemaPath="/nop/schema/wf/wf.xdef"/>
+        <xdsl-loader fileType="xwf" schemaPath="/nop/schema/wf/wf.xdef"/>
 
     </loaders>
 

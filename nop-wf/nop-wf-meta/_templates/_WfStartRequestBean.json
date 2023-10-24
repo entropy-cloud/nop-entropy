@@ -1,9 +1,9 @@
 {
   "wfName": "",
-  "wfVersion": "",
+  "wfVersion": 0,
   "args": null,
   "parentWfName": "",
-  "parentWfVersion": "",
+  "parentWfVersion": 0,
   "parentWfId": "",
   "parentWfStepId": ""
 }

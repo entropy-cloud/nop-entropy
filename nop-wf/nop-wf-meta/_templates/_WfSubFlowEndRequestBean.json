@@ -1,11 +1,11 @@
 {
   "wfName": "",
-  "wfVersion": "",
+  "wfVersion": 0,
   "wfId": "",
   "status": 0,
   "results": null,
   "parentWfName": "",
-  "parentWfVersion": "",
+  "parentWfVersion": 0,
   "parentWfId": "",
   "parentWfStepId": ""
 }

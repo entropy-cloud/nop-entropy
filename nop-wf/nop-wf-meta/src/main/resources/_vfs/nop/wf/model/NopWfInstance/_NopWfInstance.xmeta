@@ -30,7 +30,7 @@
         </prop>
         <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
+            <schema type="java.lang.Long"/>
         </prop>
         <prop name="wfParams" displayName="工作流参数" i18n-en:displayName="Workflow Params" queryable="true" sortable="true"
               insertable="true" updatable="true">
@@ -82,7 +82,7 @@
         </prop>
         <prop name="parentWfVersion" displayName="父流程版本" i18n-en:displayName="Parent Flow Version" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="32"/>
+            <schema type="java.lang.Long"/>
         </prop>
         <prop name="parentWfId" displayName="父流程ID" i18n-en:displayName="Parent Flow ID" queryable="true"
               sortable="true" insertable="true" updatable="true" ext:relation="wfInstance">

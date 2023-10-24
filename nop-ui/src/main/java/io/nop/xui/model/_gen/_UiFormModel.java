@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [16:2:0:0]/nop/schema/xui/form.xdef <p>
+ * generate from [17:2:0:0]/nop/schema/xui/form.xdef <p>
  * 表单模型
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -322,7 +322,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: title
-     * 
+     * 表单作为弹出页面使用时对应的对话框标题
      */
     private java.lang.String _title ;
     
@@ -1233,7 +1233,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: title
-     *  
+     *  表单作为弹出页面使用时对应的对话框标题
      */
     
     public java.lang.String getTitle(){

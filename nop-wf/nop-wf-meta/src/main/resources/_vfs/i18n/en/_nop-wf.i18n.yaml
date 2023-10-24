@@ -156,14 +156,14 @@ prop:
     NopWfStepInstanceLink:
       wfId: Workflow ID
       stepId: Step ID
-      prevStepId: Prev Step ID
+      nextStepId: Next Step ID
       execAction: EXEC_ACTION
       createdBy: Created By
       createTime: Create Time
       wfInstance: Workflow Instance
       wfInstance.title: Workflow Instance
       wfStep: Workflow Step
-      prevWfStep: Prev Workflow Step
+      nextWfStep: Next Workflow Step
     NopWfVar:
       wfId: Workflow ID
       fieldName: Field Name

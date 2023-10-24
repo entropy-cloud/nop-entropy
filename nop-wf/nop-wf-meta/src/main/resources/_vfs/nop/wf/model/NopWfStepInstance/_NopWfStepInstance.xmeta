@@ -52,7 +52,7 @@
         </prop>
         <prop name="subWfVersion" displayName="子流程版本" i18n-en:displayName="Sub Flow Version" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="32"/>
+            <schema type="java.lang.Long"/>
         </prop>
         <prop name="isRead" displayName="是否已读" i18n-en:displayName="Is Read" queryable="true" sortable="true"
               insertable="true" updatable="true">

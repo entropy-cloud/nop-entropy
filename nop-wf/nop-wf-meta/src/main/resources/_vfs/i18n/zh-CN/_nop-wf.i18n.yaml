@@ -157,8 +157,8 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       execAction: 执行动作
-      prevStepId: 迁移步骤 ID
-      prevWfStep: 工作流步骤
+      nextStepId: 下一步骤 ID
+      nextWfStep: 工作流步骤
       stepId: 步骤ID
       wfId: 工作流实例ID
       wfInstance: 工作流实例

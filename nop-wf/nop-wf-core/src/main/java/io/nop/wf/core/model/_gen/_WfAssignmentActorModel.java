@@ -23,6 +23,13 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: actorType
+     * actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
+     */
+    private java.lang.String _actorType ;
+    
+    /**
+     *  
      * xml name: assignForUser
      * 是否为actor中的每个用户生成步骤实例
      */
@@ -43,13 +50,6 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     private boolean _selectUser  = true;
     
     /**
-     *  
-     * xml name: type
-     * actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
-     */
-    private java.lang.String _type ;
-    
-    /**
      * 
      * xml name: actorId
      *  
@@ -64,6 +64,25 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._actorId = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: actorType
+     *  actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
+     */
+    
+    public java.lang.String getActorType(){
+      return _actorType;
+    }
+
+    
+    public void setActorType(java.lang.String value){
+        checkAllowChange();
+        
+        this._actorType = value;
            
     }
 
@@ -125,25 +144,6 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     }
 
     
-    /**
-     * 
-     * xml name: type
-     *  actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
-     */
-    
-    public java.lang.String getType(){
-      return _type;
-    }
-
-    
-    public void setType(java.lang.String value){
-        checkAllowChange();
-        
-        this._type = value;
-           
-    }
-
-    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -158,10 +158,10 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
         super.outputJson(out);
         
         out.put("actorId",this.getActorId());
+        out.put("actorType",this.getActorType());
         out.put("assignForUser",this.isAssignForUser());
         out.put("deptId",this.getDeptId());
         out.put("selectUser",this.isSelectUser());
-        out.put("type",this.getType());
     }
 }
  // resume CPD analysis - CPD-ON

@@ -16,6 +16,6 @@ public class WfAssignmentActorModel extends _WfAssignmentActorModel {
     }
 
     public boolean isDynamic() {
-        return getType().startsWith(NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
+        return getActorType().startsWith(NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
     }
 }

@@ -65,7 +65,7 @@ public class WfActorAssignSupport {
                     addActor(ret, actorKeys, actor, item.isAssignForUser());
                 }
             } else {
-                IWfActor actor = resolveActor(item.getType(), item.getActorId(), item.getDeptId());
+                IWfActor actor = resolveActor(item.getActorType(), item.getActorId(), item.getDeptId());
                 addActor(ret, actorKeys, actor, item.isAssignForUser());
             }
         }
@@ -81,7 +81,7 @@ public class WfActorAssignSupport {
     }
 
     private List<IWfActor> getDynamicActors(WfAssignmentActorModel actorModel, WfRuntime wfRt) {
-        String tagName = StringHelper.removeHead(actorModel.getType(), NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
+        String tagName = StringHelper.removeHead(actorModel.getActorType(), NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
         wfRt.setValue(NopWfCoreConstants.VAR_WF_ACTOR_MODEL, actorModel);
         Object value = XLang.getTagAction(NopWfCoreConstants.WF_ACTOR_LIB_PATH, tagName).invoke(wfRt);
         if (value == null)
@@ -93,13 +93,13 @@ public class WfActorAssignSupport {
             for (Object o : (Collection<?>) value) {
                 if (!(o instanceof IWfActor)) {
                     throw wfRt.newError(ERR_WF_ASSIGNMENT_DYNAMIC_RETURN_NOT_WF_ACTOR)
-                            .source(actorModel).param(ARG_WF_ACTOR_TYPE, actorModel.getType());
+                            .source(actorModel).param(ARG_WF_ACTOR_TYPE, actorModel.getActorType());
                 }
             }
             return CollectionHelper.toList(value);
         } else {
             throw wfRt.newError(ERR_WF_ASSIGNMENT_DYNAMIC_RETURN_NOT_WF_ACTOR)
-                    .source(actorModel).param(ARG_WF_ACTOR_TYPE, actorModel.getType());
+                    .source(actorModel).param(ARG_WF_ACTOR_TYPE, actorModel.getActorType());
         }
     }
 
@@ -191,7 +191,7 @@ public class WfActorAssignSupport {
                     ret.addActorCandidate(actor, item.isSelectUser(), item.isAssignForUser());
                 }
             } else {
-                IWfActor actor = resolveActor(item.getType(), item.getActorId(), item.getDeptId());
+                IWfActor actor = resolveActor(item.getActorType(), item.getActorId(), item.getDeptId());
                 ret.addActorCandidate(actor, item.isSelectUser(), item.isAssignForUser());
             }
         }

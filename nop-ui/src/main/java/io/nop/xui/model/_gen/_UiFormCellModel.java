@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [87:10:0:0]/nop/schema/xui/form.xdef <p>
+ * generate from [90:10:0:0]/nop/schema/xui/form.xdef <p>
  * 单个字段对应的界面描述
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -45,7 +45,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     /**
      *  
      * xml name: submitOnChange
-     * 
+     * 只要控件值发生改变就会自动触发表单提交。
      */
     private java.lang.Boolean _submitOnChange ;
     
@@ -135,7 +135,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
     /**
      * 
      * xml name: submitOnChange
-     *  
+     *  只要控件值发生改变就会自动触发表单提交。
      */
     
     public java.lang.Boolean getSubmitOnChange(){

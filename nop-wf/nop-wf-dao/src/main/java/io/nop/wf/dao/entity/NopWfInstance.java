@@ -22,6 +22,10 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     public NopWfInstance() {
     }
 
+    public String getCreaterId(){
+        return getCreatedBy();
+    }
+
     @Override
     public void transitToStatus(int status) {
         this.setStatus(status);
