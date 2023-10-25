@@ -10,7 +10,7 @@ package io.nop.ooxml.xlsx.imp;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.excel.imp.WorkbookDataParser;
+import io.nop.excel.imp.ImportExcelParser;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
@@ -51,7 +51,7 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
     public Object loadObjectFromPath(String path) {
         ImportModel importModel = getImportModel();
         ExcelWorkbook wk = new ExcelWorkbookParser().parseFromVirtualPath(path);
-        WorkbookDataParser parser = new WorkbookDataParser(importModel);
+        ImportExcelParser parser = new ImportExcelParser(importModel);
         parser.setReturnDynamicObject(returnDynamicObject);
         return parser.parseFromWorkbook(wk);
     }
@@ -59,7 +59,7 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
     public Object parseFromResource(IResource resource) {
         ImportModel importModel = getImportModel();
         ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
-        WorkbookDataParser parser = new WorkbookDataParser(importModel);
+        ImportExcelParser parser = new ImportExcelParser(importModel);
         parser.setReturnDynamicObject(returnDynamicObject);
         return parser.parseFromWorkbook(wk);
     }

@@ -20,7 +20,7 @@ import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICell;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.imp.ITableDataEventListener;
-import io.nop.excel.imp.TableDataParser;
+import io.nop.excel.imp.TreeTableDataParser;
 import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
 import io.nop.excel.imp.model.ImportModel;
@@ -71,8 +71,8 @@ public class ExcelTemplateToXptModelTransformer {
     }
 
     private void transformSheet(ExcelSheet sheet, ImportSheetModel sheetModel) {
-        new TableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel,
-                new DataListener(sheet));
+        new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel,
+                new BuildXptModelListener(sheet));
     }
 
     private ImportSheetModel getSheetModel(ImportModel model, ExcelSheet sheet) {
@@ -94,7 +94,7 @@ public class ExcelTemplateToXptModelTransformer {
         object;
     }
 
-    static class DataListener implements ITableDataEventListener {
+    static class BuildXptModelListener implements ITableDataEventListener {
         private final ExcelSheet sheet;
         private final List<FieldRange> parents = new ArrayList<>();
 
@@ -125,7 +125,7 @@ public class ExcelTemplateToXptModelTransformer {
             }
         }
 
-        public DataListener(ExcelSheet sheet) {
+        public BuildXptModelListener(ExcelSheet sheet) {
             this.sheet = sheet;
         }
 

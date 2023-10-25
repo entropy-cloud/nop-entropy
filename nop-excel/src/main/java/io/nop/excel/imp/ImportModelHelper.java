@@ -23,7 +23,7 @@ public class ImportModelHelper {
     }
 
     public static DynamicObject parseSheet(ImportSheetModel impModel, ExcelSheet sheet, XLangCompileTool cp, IEvalScope scope) {
-        return new WorkbookDataParser(null, cp).parseSheet(impModel, sheet, scope);
+        return new ImportExcelParser(null, cp).parseSheet(impModel, sheet, scope);
     }
 
     public static DynamicObject parseSheet(ImportSheetModel impModel, ExcelSheet sheet, IEvalScope scope) {

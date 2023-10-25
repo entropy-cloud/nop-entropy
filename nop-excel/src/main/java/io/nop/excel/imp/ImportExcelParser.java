@@ -47,8 +47,8 @@ import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 /**
  * 从表格数据中解析得到对象结构。通过ImportModel提供对象结构信息
  */
-public class WorkbookDataParser {
-    static final Logger LOG = LoggerFactory.getLogger(WorkbookDataParser.class);
+public class ImportExcelParser {
+    static final Logger LOG = LoggerFactory.getLogger(ImportExcelParser.class);
 
     private final ImportModel importModel;
     private final XLangCompileTool compileTool;
@@ -64,16 +64,16 @@ public class WorkbookDataParser {
         this.returnDynamicObject = returnDynamicObject;
     }
 
-    public WorkbookDataParser(ImportModel importModel, XLangCompileTool compileTool) {
+    public ImportExcelParser(ImportModel importModel, XLangCompileTool compileTool) {
         this.importModel = importModel;
         this.compileTool = compileTool;
     }
 
-    public WorkbookDataParser(ImportModel importModel) {
+    public ImportExcelParser(ImportModel importModel) {
         this(importModel, XLang.newCompileTool().allowUnregisteredScopeVar(true));
     }
 
-    public WorkbookDataParser() {
+    public ImportExcelParser() {
         this(null, XLang.newCompileTool().allowUnregisteredScopeVar(true));
     }
 
@@ -163,7 +163,7 @@ public class WorkbookDataParser {
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj, list);
 
         for (ExcelSheet sheet : sheets) {
-            new TableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
+            new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
         }
 
         if (sheetModel.getFieldName() != null) {
@@ -180,7 +180,7 @@ public class WorkbookDataParser {
     private void parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, DynamicObject obj, IEvalScope scope) {
         //new SheetBeanParser(sheetModel, compileTool, cache, importModel.isDump()).parseFromSheet(sheet, obj, scope);
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj);
-        new TableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
+        new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
     }
 
     private List<ExcelSheet> collectMatchedSheets(ImportSheetModel sheetModel, Map<String, ExcelSheet> sheets,

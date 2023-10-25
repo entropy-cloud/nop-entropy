@@ -36,10 +36,10 @@ import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_INVALID_DATA_ROW;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_UNKNOWN_FIELD;
 
-public class TableDataParser {
+public class TreeTableDataParser {
     private final IEvalScope scope;
 
-    public TableDataParser(IEvalScope scope) {
+    public TreeTableDataParser(IEvalScope scope) {
         this.scope = scope;
     }
 
