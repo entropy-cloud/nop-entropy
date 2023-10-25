@@ -92,22 +92,24 @@
                       xdef:name="ObjConditionExpr" xdef:value="xpl"/>
 
             <!--
-            对前台输入的值进行适配转换
+            对前台输入的值进行适配转换。通过data变量访问前台提交的数据集合，通过value变量访问前台传入的属性值。返回值为变换后的值
             -->
             <transformIn xdef:value="xpl"/>
 
             <!--
-            后台返回的值可能需要进行格式转换
+            后台返回的值可能需要进行格式转换。通过entity变量访问当前实体，通过value变量访问属性值，返回值为变换后的值
             -->
             <transformOut xdef:value="xpl"/>
 
             <!--
-            根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set
+            根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set。
+            上下文中可以通过entity变量访问当前实体对象。
             -->
             <getter xdef:value="xpl"/>
 
             <!--
-            对外部传入的值进行处理，可能会设置entity对象的属性
+            对外部传入的值进行处理，可能会设置entity对象的属性。
+            上下文中可以通过entity变量访问当前实体，通过value变量访问设置的属性值
             -->
             <setter xdef:value="xpl"/>
         </prop>

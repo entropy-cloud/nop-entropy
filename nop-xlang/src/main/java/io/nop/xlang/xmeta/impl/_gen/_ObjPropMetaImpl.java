@@ -109,7 +109,8 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: getter
-     * 根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set
+     * 根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set。
+     * 上下文中可以通过entity变量访问当前实体对象。
      */
     private io.nop.core.lang.eval.IEvalAction _getter ;
     
@@ -201,7 +202,8 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: setter
-     * 对外部传入的值进行处理，可能会设置entity对象的属性
+     * 对外部传入的值进行处理，可能会设置entity对象的属性。
+     * 上下文中可以通过entity变量访问当前实体，通过value变量访问设置的属性值
      */
     private io.nop.core.lang.eval.IEvalAction _setter ;
     
@@ -222,14 +224,14 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      *  
      * xml name: transformIn
-     * 对前台输入的值进行适配转换
+     * 对前台输入的值进行适配转换。通过data变量访问前台提交的数据集合，通过value变量访问前台传入的属性值。返回值为变换后的值
      */
     private io.nop.core.lang.eval.IEvalAction _transformIn ;
     
     /**
      *  
      * xml name: transformOut
-     * 后台返回的值可能需要进行格式转换
+     * 后台返回的值可能需要进行格式转换。通过entity变量访问当前实体，通过value变量访问属性值，返回值为变换后的值
      */
     private io.nop.core.lang.eval.IEvalAction _transformOut ;
     
@@ -571,7 +573,8 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: getter
-     *  根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set
+     *  根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set。
+     * 上下文中可以通过entity变量访问当前实体对象。
      */
     
     public io.nop.core.lang.eval.IEvalAction getGetter(){
@@ -819,7 +822,8 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: setter
-     *  对外部传入的值进行处理，可能会设置entity对象的属性
+     *  对外部传入的值进行处理，可能会设置entity对象的属性。
+     * 上下文中可以通过entity变量访问当前实体，通过value变量访问设置的属性值
      */
     
     public io.nop.core.lang.eval.IEvalAction getSetter(){
@@ -876,7 +880,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: transformIn
-     *  对前台输入的值进行适配转换
+     *  对前台输入的值进行适配转换。通过data变量访问前台提交的数据集合，通过value变量访问前台传入的属性值。返回值为变换后的值
      */
     
     public io.nop.core.lang.eval.IEvalAction getTransformIn(){
@@ -895,7 +899,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
     /**
      * 
      * xml name: transformOut
-     *  后台返回的值可能需要进行格式转换
+     *  后台返回的值可能需要进行格式转换。通过entity变量访问当前实体，通过value变量访问属性值，返回值为变换后的值
      */
     
     public io.nop.core.lang.eval.IEvalAction getTransformOut(){

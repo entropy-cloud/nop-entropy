@@ -414,3 +414,54 @@ public class DevDocBizModel{
 ````
 
 完整实现参考[DevDocBizModel.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-biz/src/main/java/io/nop/biz/dev/DevDocBizModel.java)
+
+## 在XBiz模型中定义Loader
+
+在xbiz中定义query,mutation和loader与在Java中定义是等价的。例如
+
+````java
+@BizModel("NopAuthRole")
+public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
+    @BizLoader
+    @GraphQLReturn(bizObjName = "NopAuthUser")
+    public List<NopAuthUser> roleUsers(@ContextSource NopAuthRole role) {
+        return role.getUserMappings().stream().map(NopAuthUserRole::getUser)
+                .sorted(comparing(NopAuthUser::getUserName)).collect(Collectors.toList());
+    }
+}    
+````
+
+如果写到xbiz文件中，就对应如下方式
+````xml
+<loaders>
+   <loader name="roleUsers">
+      <arg name="role" kind="ContextSource" type="io.nop.auth.dao.entity.NopAuthRole"/>
+      <return type="List&lt;io.nop.auth.dao.entity.NopAuthUser>"/>
+      
+      <source>
+         <c:script>
+            const users = role.userMappings.map(m=>m.user);
+            return _.sortBy(users,"userName")
+         </c:script>
+      </source>
+   </loader>
+</loaders>
+````
+
+注意：所有GraphQL中能够使用的属性都必须在meta中配置。仅定义loader并不会自动生成属性定义，这主要是为了保证meta模型的语义完整性。
+
+## 通过meta的getter来实现自定义属性
+
+有些简单的属性适配问题，如果使用xbiz中的loader机制可能觉得过于繁琐，可以直接在meta中通过getter属性来配置。
+
+````xml
+<prop name="nameEx">
+   <getter>
+      <c:script>
+         // 这里entity表示当前实体
+         return entity.name + 'M'
+      </c:script>
+   </getter>
+</prop>
+````
+
