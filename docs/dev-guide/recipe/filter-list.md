@@ -41,6 +41,8 @@ XView模型中定义的grid可以配置filter条件，使用该grid生成的表�
 </grid>    
 ````
 
+**注意在grid中配置的条件是作为前端的查询条件传播到后台的**
+
 ### C. 后台XMeta对象配置过滤条件
 xmeta配置文件中可以配置filter过滤条件。如果在meta中配置，则新增、修改的时候也会按照这里的过滤条件自动设置。例如
 ````
@@ -66,6 +68,8 @@ query{
    }
 }
 ````
+
+在meta中增加的过滤条件是在后台拼接的，前台看不见。而且它会影响到新建和修改操作，新建和修改会按照过滤条件中的值进行设置，确保实体满足filer要求
 
 ### D. 在后台BizModel中增加新的方法
 ````
@@ -134,3 +138,50 @@ query.addFilter(FilterBeans.assertOp("sql",sql));
 ````
 
 SQL.begin()会返回一个SqlBuilder对象，它提供了很多帮助函数用于简化SQL语句的拼接。
+
+
+### F. 在XBiz模型文件中配置过滤条件
+
+````xml
+<query name="active_findPage" x:prototype="findPage">
+
+    <source>
+        <c:import class="io.nop.auth.api.AuthApiConstants" />
+
+        <bo:DoFindPage query="${query}" selection="${selection}" xpl:lib="/nop/biz/xlib/bo.xlib">
+            <filter>
+                <eq name="status" value="${AuthApiConstants.USER_STATUS_ACTIVE}" />
+            </filter>
+        </bo:DoFindPage>
+    </source>
+</query>
+````
+
+* 在xbiz文件中配置的方法优先级更高，如果和Java中BizModel的函数名重名，则会覆盖Java中的实现。
+
+* bo.xlib提供了一系列缺省实现，我们可以在缺省实现的基础上增加额外的过滤条件。
+
+* 自动生成xbiz文件中已经包含了findPage/findList/save/update等标准CRUD函数的参数声明，通过`x:prototype="findPage"`继承已有配置，则可以简化类似函数的编写。
+一般在标准函数上的扩展，我们命名时都采用规则`{extName}_{stdName}`，这样前台可以自动推定得到GraphQL调用的参数类型和返回值类型，从而避免在前台再声明类型。
+
+上面的代码完全展开后对应如下代码(可以在`_dump`目录下查看)
+````xml
+<!--LOC:[49:26:0:0]/nop/core/xlib/biz-gen.xlib#/nop/auth/model/NopAuthUser/_NopAuthUser.xbiz
+ @name=[6:22:0:0]/nop/auth/model/NopAuthUser/NopAuthUser.xbiz
+-->
+<query name="active_findPage">
+    <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
+    <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean" kind="FieldSelection"/>
+    <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+    <return type="PageBean&lt;io.nop.auth.dao.entity.NopAuthUser&gt;"/>
+<!--LOC:[8:14:0:0]/nop/auth/model/NopAuthUser/NopAuthUser.xbiz-->
+    <source>
+        <c:import class="io.nop.auth.api.AuthApiConstants"/>
+        <bo:DoFindPage query="${query}" selection="${selection}" xpl:lib="/nop/biz/xlib/bo.xlib">
+            <filter>
+                <eq name="status" value="${AuthApiConstants.USER_STATUS_ACTIVE}"/>
+            </filter>
+        </bo:DoFindPage>
+    </source>
+</query>
+````
