@@ -339,3 +339,22 @@ DynamicReportDataSet --> a3[field]
 
 
 
+# 模型化数据导入
+
+````mermaid
+graph LR
+
+ImportExcelParser --> TreeTableDataParser --> ImportDataCollector --> DynamicObject
+````
+
+ImportExcelParser会分析ExcelWorkbook中单元格的布局，按照通用的规则识别出Tree结构，解析得到对象。
+
+
+````mermaid
+graph LR
+
+ExcelTemplateToXptModelTransformer --> TreeTableDataParser --> BuildXptModelListener --> XptModel
+````
+
+
+ExcelTemplateToXptModelTransformer分析ExcelWorkbook的结构，自动将它转换为报表模型

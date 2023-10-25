@@ -23,6 +23,10 @@ dao = daoProvider.daoFor(MyEntity.class);
 ````
 daoProvider统一关系系统中所有的dao对象，可以按照实体名、实体Java类、表名等不同方式获取到对应的dao对象。
 
+# 在CrudBizModel的派生类中获取dao
+
+1. 获取当前实体的dao: this.dao()
+2. 获取指定类型实体的dao: this.daoFor(MyEntity.class)
 
 # 常用函数
 
