@@ -19,7 +19,7 @@ public interface XptConstants {
     String VAR_XPT_RT = "xptRt";
 
     String VAR_IMAGE = "image";
-
+    String VAR_WORKBOOK = "workbook";
     String VAR_ENTITY = "entity";
     String VAR_SHEET_TPL = "sheetTpl";
     String VAR_WORKBOOK_TPL = "workbookTpl";

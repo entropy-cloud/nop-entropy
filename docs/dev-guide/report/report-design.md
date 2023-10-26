@@ -1,10 +1,16 @@
-# NopReport报表引擎源码分析
+# 非线性中国式报表引擎NopReport源码解析
+
+日常开发中我们经常需要导入导出Excel数据，生成Excel和Word报表等，常用的[easyexcel](https://gitee.com/easyexcel/easyexcel), [poi-tl](https://gitee.com/mirrors/poi-tl)等软件包都依赖底层的POI引擎，体积臃肿，同时在功能方面也难以处理结构复杂的异形表格。在制作复杂的中国式报表时，一般还是需要使用润乾和帆软这样的专业报表软件公司所提供的报表引擎。
+
+很多年前，润乾公司首创了支持行列对称展开的非线性报表生成算法，后来发展成为商业报表软件的翘楚，后续的报表软件如帆软等也都模仿了类似的报表生成算法。NopReport报表引擎为这个算法提供了一个非常精简的开源实现（约3000行代码），可以很容易的进行定制和扩展。本文详细介绍了NopReport报表引擎的基本实现原理，以及非线性报表生成算法的技术细节。
 
 # 一. 报表模型DSL的设计
 
 ## 报表模型作为Excel模型的扩展
 
 根据可逆计算理论，模板(Template)可以看作是原始模型对象的一种抽象化，在结构层面它可以看作是原始模型对象的一种增强。也就是说，任何一个原始模型对象都应该可以被看作是一种合法的模板对象。在这种设计思想指引下，NopReport中将报表模型的DSL设计为Excel模型的扩展模型，它在Excel的DSL的基础上增加了model子节点。
+
+> 任意一个Excel都可以看作是一个合法的报表模板，报表模板可以看作是普通Excel+扩展模型信息
 
 ```mermaid
 graph LR
@@ -15,6 +21,11 @@ graph LR
   Workbook --> Cell
   Cell -.-> x3[[XptCellModel]]
   Workbook -.-> x4[[XptWorkbokModel]]
+
+  style x1 fill:#eecc00
+  style x2 fill:#eecc00
+  style x3 fill:#eecc00
+  style x4 fill:#eecc00
 ```
 
 对应的元模型定义为
@@ -42,9 +53,29 @@ graph LR
 </workbook>
 ```
 
+DSL的属性设计与OOXML标准中Excel的属性设置基本保持一致，便于实现与Excel格式的双向转换。
+
 ## 利用Excel内置的机制实现可视化
 
 我们可以利用Excel内置的一些扩展机制来保存扩展模型信息，从而将Excel改造为可视化报表设计器。
+
+````mermaid
+graph LR;
+
+subgraph DSL
+   direction LR
+   Excel模型 --> 扩展模型
+end
+
+subgraph UI
+   direction LR
+   Excel可视化 --> 扩展可视化
+end
+
+DSL <-..-> UI
+
+
+````
 
 1. 利用单元格的Comment来保存扩展模型信息
 
@@ -75,24 +106,38 @@ graph LR
       ReportEngine --> a1[/Parse/]
       ReportEngine --> a2[/Generate/]
       ReportEngine --> a3[/Render/]
-      a1[/Parse/] --> ExcelWorkbookParser
-      a1[/Parse/] --> ExcelToXptModelTransformer
-      a1[/Parse/] --> XptModelInitializer
+      a1 --> ExcelWorkbookParser
+      a1 --> ExcelToXptModelTransformer
+      a1 --> XptModelInitializer
 
-      a2[/Generate/] --> TableExpander
+      a2 --> TableExpander
       TableExpander --> CellRowExpander
       TableExpander --> CellColExpander
-      a2[/Generate/] --> ExpandedSheetEvaluator
+      a2 --> ExpandedSheetEvaluator
 
-      a3[/Render/] --> HtmlReportRendererFactory
-      a3[/Render/] --> XlsxReportRendererFactory
+      a3 --> HtmlReportRendererFactory
+      a3 --> XlsxReportRendererFactory
+
+      style a1 fill:#eecc00
+      style a2 fill:#eecc00
+      style a3 fill:#eecc00
 ```
 
 ## 层次坐标
 
+
+````mermaid
+graph LR
+层次坐标 --> ExpandedCellSet
+````
+
+通过层次坐标可以在父子单元格组成的树结构中定位指定单元格集合。
+
+
 ```
-CellName[cellCoordinates ; cellCoordinates]
+层次坐标格式： CellName[rowCoordinates ; colCoordinates]
 ```
+
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/absolute-coord-value.png)
 
@@ -105,7 +150,7 @@ A1 --> D1
 
 D1是A1的rowParent，所以A1展开的时候，D1会自动延展。
 
-层次坐标的意思是利用树形结构中父格的坐标进行进一步过滤，并且可以利用相对坐标来访问兄弟节点。
+层次坐标中可以利用相对坐标来访问兄弟节点。
 
 ```mermaid
 graph TD
@@ -119,14 +164,25 @@ C-0 --> F-0
 A-1 --> B-10
 ```
 
-假设有如上的一个父子结构，在B-10节点中如下坐标`[A:-1,B:1]`指向的是当前A节点的前一个节点下的第一个B节点，即B-00
+假设有如上的一个父子结构，在B-10节点中如下坐标`D[A:-1,B:1]`指向的是D-0节点
+
+1.  A:-1表示当前A节点的前一个节点，即A-0
+2.  B:1表示A-0节点范围内的第一个B节点，即B-00
+3.  在B-00范围内查找D节点，得到D-0
 
 ## 表格展开
 
-实现代码在[TableExpander.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/expand/TableExpander.java)中
+非线性报表引擎的关键技术就是报表模板的展开算法，基本思想是父格展开时自动递归复制所有子单元格，而子单元格展开时，自动延展同一行或者同一列的父单元格。
 
+> 如果父单元格与展开单元格不在同一行或者同一列中，则不需要被延展。
+
+具体流程：
 1. 自上而下，自左而右，依次执行单元格的展开逻辑
 2. 如果父格尚未展开，则先展开父格
+
+
+实现代码在[TableExpander.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/expand/TableExpander.java)中
+
 
 ```java
 public void expand(IXptRuntime xptRt) {
@@ -177,7 +233,7 @@ expandCells(cell, expandCount)
 
 ## 展开单元格：ExpandedCell
 
-非线性报表的单元格展开算法中核心的数据结构是ExpandedCell。
+非线性报表的单元格展开算法中核心的数据结构是ExpandedCell。它的设计需要支持快速插入和复制，而且行和列处于对称地位（所有针对行的操作都可以直接翻译为针对列的操作）。
 
 ```mermaid
 graph TD
@@ -199,6 +255,11 @@ a1[/值/] --valueExpr--> value
 a1[/值/] --formatExpr--> formattedValue
 
 a4[/合并单元格/] --> realCell
+
+style a1 fill:#eecc00
+style a2 fill:#eecc00
+style a3 fill:#eecc00
+style a4 fill:#eecc00
 ```
 
 ```java
@@ -256,6 +317,9 @@ NopReport区分了expandedValue, value和formattedValue
 
 ## 动态数据集：DynamicReportDataSet
 
+报表引擎中最常用的数据类型就是数据集，一般是通过JDBC请求读取到的列表数据。NopReport提供了DynamicReportDataSet结构来简化报表引擎对表格数据的使用。
+
+
 参见代码[DynamicReportDataSet.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/dataset/DynamicReportDataSet.java)
 
 ```mermaid
@@ -274,6 +338,10 @@ DynamicReportDataSet --> a3[field]
 > 单元格可能同时具有行父格和列父格，它自身在执行ds1.field(name)这样的函数时，会取行父格与列父格中子数据集的**交集**，得到一个当前可见的集合列表，然后再执行相关操作
 
 
+* 行父格和行子格不一定在同一行，但是一个行父格会管辖一块包含所有行子格的连续区域。处于不同的父格的区域不会出现交叉，只会嵌套，构成严格的树形关系。
+* 同理，列父格的逻辑类似。
+
+
 ## 报表上下文： XptRuntime
 
 ````mermaid
@@ -286,10 +354,17 @@ var --> row
 var --> sheet
 var --> workbook
 XptRuntime --> helpFn[/帮助函数/]
-helpFn --> a1[getNamedCell（cellName）]
-helpFn --> a2[getNamedCellSet（cellName）]
-helpFn --> a3[incAndGet（name）]
+helpFn --> a1[getNamedCell]
+helpFn --> a2[getNamedCellSet]
+helpFn --> a3[incAndGet]
+
+style var fill:#eecc00
+style helpFn fill:#eecc00
 ````
+
+XptRuntime在报表展开算法执行的过程中会记录当前正在处理的单元格，从而在表达式中可以使用相对层次坐标来定位单元格。
+
+XptRuntime还提供了一些使用相对坐标的函数，比如getNamedCells(cellName)返回指定模板单元格生成的、当前单元格可见的所有单元格。这里的可见指的是同属于同一个最近的父单元格。
 
 # 四. 报表表达式引擎设计
 
@@ -356,7 +431,9 @@ public static Number SUM(@Name("values") Object values) {
 
 ## 性能优化
 
-报表展开为纯函数式运算，因此表达式的计算结果可以进行缓存。ExpandedCell提供了一个缓存集合，可以通过
+* NopReport没有使用POI库，甚至XML解析器都是手工实现，自行实现了一套Excel文件的流式解析和生成工具，从而避免了POI库所带来的一系列复杂性和性能损耗，同时也极大降低了运行时代码体积。
+
+* 报表展开为纯函数式运算，因此表达式的计算结果可以进行缓存。ExpandedCell提供了一个缓存集合，可以通过
 
 ```java
    ExpandedCell firstCell = xptRt.getNamedCell(cellName);

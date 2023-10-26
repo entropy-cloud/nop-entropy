@@ -113,6 +113,9 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
 
         if (XptConstants.VAR_IMAGE.equals(name))
             return image;
+
+        if(XptConstants.VAR_WORKBOOK.equals(name))
+            return workbook;
         // 这里只判断扩展属性名，因此对于不识别的属性直接返回null
         return null;
     }
