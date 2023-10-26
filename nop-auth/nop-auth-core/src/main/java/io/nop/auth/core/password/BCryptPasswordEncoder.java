@@ -63,7 +63,7 @@ public class BCryptPasswordEncoder implements IPasswordEncoder {
     }
 
     @Override
-    public String encodePassword(String seedSalt, String password) {
+    public String encodePassword(String type, String seedSalt, String password) {
         String salt;
         if (strength > 0) {
             if (random != null) {
@@ -78,7 +78,7 @@ public class BCryptPasswordEncoder implements IPasswordEncoder {
     }
 
     @Override
-    public boolean passwordMatches(String salt, String password, String encodedPassword) {
+    public boolean passwordMatches(String type, String salt, String password, String encodedPassword) {
         if (!BCRYPT_PATTERN.matcher(encodedPassword).matches()) {
             logger.warn("Encoded password does not look like BCrypt");
             return false;

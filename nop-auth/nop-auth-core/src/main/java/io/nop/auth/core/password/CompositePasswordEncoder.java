@@ -44,14 +44,14 @@ public class CompositePasswordEncoder implements IPasswordEncoder {
     }
 
     @Override
-    public String encodePassword(String salt, String password) {
-        String encoded = firstEncoder.encodePassword(salt, password);
-        return secondEncoder.encodePassword(salt, encoded);
+    public String encodePassword(String type, String salt, String password) {
+        String encoded = firstEncoder.encodePassword(type, salt, password);
+        return secondEncoder.encodePassword(type, salt, encoded);
     }
 
     @Override
-    public boolean passwordMatches(String salt, String password, String encodedPassword) {
-        String encoded = firstEncoder.encodePassword(salt, password);
-        return secondEncoder.passwordMatches(salt, encoded, encodedPassword);
+    public boolean passwordMatches(String type, String salt, String password, String encodedPassword) {
+        String encoded = firstEncoder.encodePassword(type, salt, password);
+        return secondEncoder.passwordMatches(type, salt, encoded, encodedPassword);
     }
 }

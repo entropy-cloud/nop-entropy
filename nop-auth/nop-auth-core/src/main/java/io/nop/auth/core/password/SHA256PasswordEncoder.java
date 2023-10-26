@@ -17,12 +17,12 @@ public class SHA256PasswordEncoder implements IPasswordEncoder {
     }
 
     @Override
-    public String encodePassword(String salt, String password) {
+    public String encodePassword(String type, String salt, String password) {
         return StringHelper.sha256Hash(password, salt);
     }
 
     @Override
-    public boolean passwordMatches(String salt, String password, String encodedPassword) {
+    public boolean passwordMatches(String type, String salt, String password, String encodedPassword) {
         return StringHelper.sha256Hash(password, salt).equals(encodedPassword);
     }
 }
