@@ -208,6 +208,10 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 cache.clear();
             }
         });
+
+
+        // 清空资源文件的依赖关系缓存
+        this.dependsManager.clear();
     }
 
     public void setDependsPersister(IResourceDependsPersister persister) {
