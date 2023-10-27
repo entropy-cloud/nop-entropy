@@ -246,6 +246,12 @@ expandCells(cell, expandCount)
     }
 ````
 
+* 行父格和行子格不一定在同一行，但是一个行父格会管辖一块包含所有行子格的连续区域。**处于不同的父格的区域不会出现交叉，只会嵌套，构成严格的树形关系**。
+* 同理，列父格的逻辑类似。
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/expand-span.png)
+
+
 # 三. 核心数据结构讲解
 
 ## 展开单元格：ExpandedCell
@@ -358,8 +364,6 @@ style a1 fill:#eecc00
 > 单元格可能同时具有行父格和列父格，它自身在执行ds1.field(name)这样的函数时，会取行父格与列父格中子数据集的**交集**，得到一个当前可见的集合列表，然后再执行相关操作
 
 
-* 行父格和行子格不一定在同一行，但是一个行父格会管辖一块包含所有行子格的连续区域。处于不同的父格的区域不会出现交叉，只会嵌套，构成严格的树形关系。
-* 同理，列父格的逻辑类似。
 
 
 ## 报表上下文： XptRuntime
