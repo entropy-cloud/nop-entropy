@@ -112,26 +112,11 @@ public class CellColExpander extends AbstractCellExpander {
                 newCol.useNextColStyle();
             }
             duplicateCol(r, cell, expandIndex, expandValue, newCol, cellMap, processing);
-
         }
 
-        initColChildren(cellMap);
+        initColParent(cellMap);
 
-        for (ExpandedCell newCell : cellMap.values()) {
-            table.addNamedCell(newCell);
-
-            if (newCell.getMergeAcross() > 0 || newCell.getMergeDown() > 0)
-                newCell.markProxy();
-
-
-            if (newCell.getRowParent() != null) {
-                newCell.getRowParent().addRowChild(newCell);
-            }
-
-            if (newCell.getColParent() != null) {
-                newCell.getColParent().addColChild(newCell);
-            }
-        }
+        addNewCellToParentDescendants(table, cellMap);
         return incSpan;
     }
 
@@ -176,7 +161,7 @@ public class CellColExpander extends AbstractCellExpander {
         return expandIndex >= expandInplaceCount;
     }
 
-    private void initColChildren(Map<ExpandedCell, ExpandedCell> cellMap) {
+    private void initColParent(Map<ExpandedCell, ExpandedCell> cellMap) {
         for (Map.Entry<ExpandedCell, ExpandedCell> entry : cellMap.entrySet()) {
             ExpandedCell cell = entry.getKey();
             ExpandedCell newCell = entry.getValue();

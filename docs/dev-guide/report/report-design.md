@@ -172,7 +172,7 @@ A-1 --> B-10
 
 ## 表格展开
 
-非线性报表引擎的关键技术就是报表模板的展开算法，基本思想是父格展开时自动递归复制所有子单元格，而子单元格展开时，自动延展同一行或者同一列的父单元格。
+非线性报表引擎的关键技术就是报表模板的展开算法，基本思想是**父格展开时自动递归复制所有子单元格，而子单元格展开时，自动延展同一行或者同一列的父单元格**。
 
 > 如果父单元格与展开单元格不在同一行或者同一列中，则不需要被延展。
 
@@ -228,6 +228,23 @@ expandCount = duplicate(expandedList, cell)
 expandCells(cell, expandCount)
 ```
 
+新插入的单元格需要建立父子关系，需要注意维护所有父格的rowDescendants集合。这里采用了空间换时间的方案。
+````java
+    public void addRowChild(ExpandedCell cell) {
+        if (rowDescendants == null)
+            rowDescendants = new HashMap<>();
+
+        addToList(rowDescendants, cell);
+
+        ExpandedCell p = rowParent;
+        while (p != null) {
+            if (p.rowDescendants == null)
+                p.rowDescendants = new HashMap<>();
+            addToList(p.rowDescendants, cell);
+            p = p.getRowParent();
+        }
+    }
+````
 
 # 三. 核心数据结构讲解
 
@@ -317,7 +334,7 @@ NopReport区分了expandedValue, value和formattedValue
 
 ## 动态数据集：DynamicReportDataSet
 
-报表引擎中最常用的数据类型就是数据集，一般是通过JDBC请求读取到的列表数据。NopReport提供了DynamicReportDataSet结构来简化报表引擎对表格数据的使用。
+报表引擎中用户最常用的数据类型就是数据集，一般是通过JDBC请求读取到的列表数据。NopReport提供了DynamicReportDataSet结构来简化报表引擎对表格数据的使用。
 
 
 参见代码[DynamicReportDataSet.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/dataset/DynamicReportDataSet.java)
@@ -328,10 +345,13 @@ graph LR
 DynamicReportDataSet --> a1[/current/]
 DynamicReportDataSet --> a2[group]
 DynamicReportDataSet --> a3[field]
+
+style a1 fill:#eecc00
 ```
 
 1. DynamicReportDataSet提供了group/groupBy/where/filter/sort/field/select/sum/max/min等大量集合选择和运算函数。
 2. 它的计算结果与当前单元格密切相关，它根据xptRt.cell来获取到当前单元格，然后根据父格的expandedValue取交集得到当前所处理的数据集合。
+3. current()函数实现动态查找当前实际可用数据列表。
 
 > ds=ds1, expandType=r, field=xxx这种配置实际等价于 expandType=r,expandExpr=ds1.group("xxx")，它会设置展开单元格的expandedValue为分组汇总后的子数据集。
 > 

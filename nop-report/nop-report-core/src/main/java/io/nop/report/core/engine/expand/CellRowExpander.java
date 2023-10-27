@@ -101,6 +101,7 @@ public class CellRowExpander extends AbstractCellExpander {
             ExpandedRow r = table.getRow(index);
             int newIndex = index + expandSpan * expandIndex;
 
+            // 如果在模板中预留了一些空间（expandInplaceCount），则会复用这些空间，而不会插入行
             boolean needInsert = isNeedInsert(expandIndex,
                     xptModel == null || xptModel.getExpandInplaceCount() == null ? -1 : xptModel.getExpandInplaceCount());
 
@@ -119,23 +120,9 @@ public class CellRowExpander extends AbstractCellExpander {
             duplicateRow(r, cell, expandIndex, expandValue, newRow, cellMap, processing);
         }
 
-        initRowChildren(cellMap);
+        initRowParent(cellMap);
 
-        for (ExpandedCell newCell : cellMap.values()) {
-            table.addNamedCell(newCell);
-
-            if (newCell.getMergeAcross() > 0 || newCell.getMergeDown() > 0)
-                newCell.markProxy();
-
-            if (newCell.getRowParent() != null) {
-                newCell.getRowParent().addRowChild(newCell);
-            }
-
-
-            if (newCell.getColParent() != null) {
-                newCell.getColParent().addColChild(newCell);
-            }
-        }
+        addNewCellToParentDescendants(table, cellMap);
         return incSpan;
     }
 
@@ -181,7 +168,7 @@ public class CellRowExpander extends AbstractCellExpander {
         return expandIndex >= expandInplaceCount;
     }
 
-    private void initRowChildren(Map<ExpandedCell, ExpandedCell> cellMap) {
+    private void initRowParent(Map<ExpandedCell, ExpandedCell> cellMap) {
         for (Map.Entry<ExpandedCell, ExpandedCell> entry : cellMap.entrySet()) {
             ExpandedCell cell = entry.getKey();
             ExpandedCell newCell = entry.getValue();

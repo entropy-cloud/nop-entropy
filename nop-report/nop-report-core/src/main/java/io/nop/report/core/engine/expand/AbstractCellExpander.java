@@ -13,6 +13,7 @@ import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.dataset.DynamicReportDataSet;
 import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.model.ExpandedCell;
+import io.nop.report.core.model.ExpandedTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +100,7 @@ public abstract class AbstractCellExpander implements ICellExpander {
     }
 
     protected abstract int duplicateCell(ExpandedCell cell, int expandIndex, Object expandValue,
-                                          Collection<ExpandedCell> processing);
+                                         Collection<ExpandedCell> processing);
 
     protected Map<String, List<ExpandedCell>> getNewListMap(Map<String, List<ExpandedCell>> listMap, Map<ExpandedCell, ExpandedCell> cellMap) {
         Map<String, List<ExpandedCell>> ret = CollectionHelper.newHashMap(listMap.size());
@@ -147,6 +148,27 @@ public abstract class AbstractCellExpander implements ICellExpander {
                 for (ExpandedCell child : list) {
                     child.markEvaluated();
                 }
+            }
+        }
+    }
+
+    /**
+     * 维护新建单元格的父子关系
+     */
+    protected void addNewCellToParentDescendants(ExpandedTable table, Map<ExpandedCell, ExpandedCell> cellMap) {
+        for (ExpandedCell newCell : cellMap.values()) {
+            table.addNamedCell(newCell);
+
+            if (newCell.getMergeAcross() > 0 || newCell.getMergeDown() > 0)
+                newCell.markProxy();
+
+            // 新生成的单元格又可能既有rowParent，又有colParent，都需要维护对应的父子关系
+            if (newCell.getRowParent() != null) {
+                newCell.getRowParent().addRowChild(newCell);
+            }
+
+            if (newCell.getColParent() != null) {
+                newCell.getColParent().addColChild(newCell);
             }
         }
     }
