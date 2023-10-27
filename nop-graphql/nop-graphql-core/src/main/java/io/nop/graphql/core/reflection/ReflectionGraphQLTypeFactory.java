@@ -320,7 +320,8 @@ public class ReflectionGraphQLTypeFactory {
         beanModel.forEachSerializableProp(propModel -> {
             GraphQLFieldDefinition field = new GraphQLFieldDefinition();
             field.setName(propModel.getName());
-            field.setLazy(propModel.isLazyLoad());
+            if (propModel.isLazyLoad())
+                field.setLazy(propModel.isLazyLoad());
 
             IGenericType type = propModel.getType();
             GraphQLType gqlType = buildGraphQLType(type, propModel.getBizObjName(), registry, creatingTypes, false);

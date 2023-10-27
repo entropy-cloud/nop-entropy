@@ -254,9 +254,9 @@ public class GraphQLBizModel {
         }
     }
 
-    public void mergeTo(GraphQLObjectDefinition objDef) {
+    public void mergeLoaderTo(GraphQLObjectDefinition objDef, boolean force) {
         for (GraphQLFieldDefinition fieldDef : this.loaders.values()) {
-            objDef.mergeField(fieldDef);
+            objDef.mergeField(fieldDef,force);
         }
     }
 

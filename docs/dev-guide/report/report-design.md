@@ -194,7 +194,7 @@ public void expand(IXptRuntime xptRt) {
       if (cell.isRemoved() || cell.isExpanded())
             continue;
 
-      if (cell.getColParent() != null && !cell.    getColParent().isExpanded()) {
+      if (cell.getColParent() != null && !cell.getColParent().isExpanded()) {
             processing.push(cell);
             processing.push(cell.getColParent());
             continue;
@@ -477,6 +477,20 @@ public static Number SUM(@Name("values") Object values) {
 2. 在xpl段中，可以使用`<c:import>`标签引入外部模板库，模板库可以通过Delta定制机制进行定制
 3. 在xpl段中，可以通过import语句引入Java类，可以通过`inject(beanName)`函数使用IoC容器中的bean
 4. 通过ReportFunctionProvider可以将任意的Java静态函数注册为报表表达式可以使用的函数
+
+例如，可以通过spl.xlib标签库引入润乾SPL计算引擎来计算得到数据集。
+````xml
+<beforeExpand>
+   <spl:MakeDataSet xpl:lib="/nop/report/spl/spl.xlib" dsName="ds1" src="/nop/report/demo/spl/test-data.splx"/>
+
+   <c:script>
+      import xx.MyBean;
+
+      const myHelper = inject("myHelper");
+      assign("ds2", myHelper.genDataSet())
+   </script>
+</beforeExpand>
+````
 
 **有了IoC容器和模板语言，一般不再需要额外设计插件机制**，即使是远程加载Jar包，动态初始化bean等复杂的扩展机制，也可以通过Xpl标签库引入，通过标签调用屏蔽所有底层的复杂性。
 

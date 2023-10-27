@@ -156,7 +156,7 @@ public class ReflectionBizModelBuilder {
 
                 GraphQLObjectDefinition loaderType = getLoaderForType(bizLoader, registry);
                 if (loaderType != null) {
-                    loaderType.mergeField(field);
+                    loaderType.mergeField(field,false);
                 } else {
                     ret.addLoader(name, field);
                 }

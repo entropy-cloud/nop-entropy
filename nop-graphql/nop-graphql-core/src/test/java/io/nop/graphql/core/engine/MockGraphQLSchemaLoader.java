@@ -68,7 +68,7 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
 
     private void merge(GraphQLObjectDefinition obj) {
         GraphQLObjectDefinition old = defs.get(obj.getName());
-        old.merge(obj);
+        old.merge(obj,false);
     }
 
     @Override

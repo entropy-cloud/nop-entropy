@@ -34,7 +34,7 @@ public class GraphQLDocumentHelper {
                 GraphQLObjectDefinition oldDef = defs.putIfAbsent(objDef.getName(), objDef);
                 if (oldDef != null) {
                     if (objDef.getExtension()) {
-                        oldDef.merge(objDef);
+                        oldDef.merge(objDef, true);
                     } else {
                         throw new NopException(ERR_GRAPHQL_DUPLICATE_OBJ_DEF).source(def)
                                 .param(ARG_OBJ_NAME, objDef.getName()).param(ARG_OLD_LOC, oldDef.getLocation());

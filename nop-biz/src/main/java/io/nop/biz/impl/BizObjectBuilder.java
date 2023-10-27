@@ -96,12 +96,29 @@ public class BizObjectBuilder {
             }
         }
 
+        GraphQLObjectDefinition bizObjDef = null;
         GraphQLBizModel bizModel = null;
         if (bizModels != null) {
             bizModel = bizModels.getBizModel(bizObj.getBizObjName());
             if (bizModel != null) {
-                bizModel.mergeTo(objDef);
+                bizObjDef = new GraphQLObjectDefinition();
+                bizObjDef.setName(bizObj.getBizObjName());
+                bizModel.mergeLoaderTo(bizObjDef, false);
             }
+        }
+
+        GraphQLObjectDefinition dslObjDef = buildBizLoaders(objDef.getName(), bizObj.getBizModel());
+        if (dslObjDef != null) {
+            if (bizObjDef == null) {
+                bizObjDef = dslObjDef;
+            } else {
+                bizObjDef.merge(dslObjDef, true);
+            }
+        }
+
+        if (bizObjDef != null) {
+            // 以meta上的信息为准，不会覆盖meta中的配置
+            objDef.merge(bizObjDef, false);
         }
 
         if (objDef.getFields() == null || objDef.getFields().isEmpty()) {
@@ -109,7 +126,6 @@ public class BizObjectBuilder {
                 throw new NopException(ERR_BIZ_UNKNOWN_BIZ_OBJ_NAME).param(ARG_BIZ_OBJ_NAME, bizObj.getBizObjName());
         }
 
-        buildLoaders(objDef, bizObj.getBizModel());
         bizObj.setObjectDefinition(objDef);
 
         buildOperations(bizObj, bizModel);
@@ -236,18 +252,21 @@ public class BizObjectBuilder {
         return bo;
     }
 
-    private void buildLoaders(GraphQLObjectDefinition objDef, BizModel bizModel) {
+    private GraphQLObjectDefinition buildBizLoaders(String bizObjName, BizModel bizModel) {
         if (bizModel == null)
-            return;
+            return null;
 
+        GraphQLObjectDefinition objDef = new GraphQLObjectDefinition();
+        objDef.setName(bizObjName);
         List<BizLoaderModel> loaders = bizModel.getLoaders();
         if (loaders != null) {
             for (BizLoaderModel loader : loaders) {
                 GraphQLFieldDefinition field = BizModelToGraphQLDefinition.INSTANCE.toBuilder(objDef.getName(), loader,
                         typeRegistry);
-                objDef.mergeField(field);
+                objDef.addField(field);
             }
         }
+        return objDef;
     }
 
     private void buildOperations(BizObjectImpl bizObj, GraphQLBizModel gqlBizModel) {

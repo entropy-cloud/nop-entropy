@@ -131,8 +131,6 @@ public class RpcSelectionSetBuilder {
     }
 
     boolean isLazy(GraphQLFieldDefinition fieldDef) {
-        return fieldDef.isLazy();
-        //IObjPropMeta propMeta = fieldDef.getPropMeta();
-        //return propMeta != null && propMeta.isLazy();
+        return fieldDef.getLazy() != null && fieldDef.getLazy();
     }
 }

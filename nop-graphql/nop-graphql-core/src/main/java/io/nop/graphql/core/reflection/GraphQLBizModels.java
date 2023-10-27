@@ -62,7 +62,7 @@ public class GraphQLBizModels {
             if (count != 5)
                 continue;
 
-            String bizObjName = fileName.substring(0,fileName.length() - ".xbiz".length());
+            String bizObjName = fileName.substring(0, fileName.length() - ".xbiz".length());
             makeBizModel(bizObjName).setBizPath(resource.getStdPath());
         }
 
@@ -110,7 +110,7 @@ public class GraphQLBizModels {
     public void customize(GraphQLObjectDefinition objDef) {
         GraphQLBizModel bizModel = bizModels.get(objDef.getName());
         if (bizModel != null) {
-            bizModel.mergeTo(objDef);
+            bizModel.mergeLoaderTo(objDef, false);
         }
     }
 }

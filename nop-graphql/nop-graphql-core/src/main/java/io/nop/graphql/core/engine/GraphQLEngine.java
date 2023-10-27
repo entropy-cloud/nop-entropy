@@ -22,6 +22,7 @@ import io.nop.commons.cache.LocalCache;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
 import io.nop.graphql.core.GraphQLConfigs;
 import io.nop.graphql.core.GraphQLErrors;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -44,12 +45,12 @@ import io.nop.graphql.core.schema.BuiltinSchemaLoader;
 import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.rpc.api.flowcontrol.IFlowControlRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -71,7 +72,7 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION;
 public class GraphQLEngine implements IGraphQLEngine {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLEngine.class);
 
-    private final LocalCache<String, GraphQLDocument> documentCache;
+    private final LocalCache<String, ResourceCacheEntryWithLoader<GraphQLDocument>> documentCache;
 
     private GraphQLSchema builtinSchema;
 
@@ -97,7 +98,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         this.documentCache = LocalCache.newCache(
                 "graphql-parse-cache", newConfig(GraphQLConfigs.CFG_GRAPHQL_QUERY_PARSE_CACHE_SIZE.get()).useMetrics()
                         .expireAfterWrite(GraphQLConfigs.CFG_GRAPHQL_QUERY_PARSE_CACHE_TIMEOUT.get()),
-                this::parseOperationFromText);
+                this::parseDocumentWithLoader);
     }
 
     public void setBuiltinSchema(GraphQLSchema schema) {
@@ -122,7 +123,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         this.flowControlRunner = flowControlRunner;
     }
 
-    public LocalCache<String, GraphQLDocument> getDocumentCache() {
+    public LocalCache<String, ResourceCacheEntryWithLoader<GraphQLDocument>> getDocumentCache() {
         return documentCache;
     }
 
@@ -182,6 +183,11 @@ public class GraphQLEngine implements IGraphQLEngine {
         if (!doc.isOperationQuery())
             throw new NopException(ERR_GRAPHQL_DOC_OPERATION_SIZE_NOT_ONE);
 
+        initDocument(doc);
+        return doc;
+    }
+
+    private void initDocument(GraphQLDocument doc) {
         doc.init();
         GraphQLOperation op = doc.getOperation();
         int maxDepth = CFG_GRAPHQL_QUERY_MAX_DEPTH.get();
@@ -192,7 +198,15 @@ public class GraphQLEngine implements IGraphQLEngine {
 
         resolveSelections(doc, maxDepth);
         doc.freeze(true);
-        return doc;
+    }
+
+    private ResourceCacheEntryWithLoader<GraphQLDocument> parseDocumentWithLoader(String text) {
+        GraphQLDocument doc = parseOperationFromText(text);
+        return new ResourceCacheEntryWithLoader<>("graphql-document-cache-item", k -> {
+            GraphQLDocument newDoc = doc.deepClone();
+            initDocument(newDoc);
+            return newDoc;
+        });
     }
 
     void resolveSelections(GraphQLDocument doc, int maxDepth) {
@@ -224,7 +238,7 @@ public class GraphQLEngine implements IGraphQLEngine {
             throw new NopException(GraphQLErrors.ERR_GRAPHQL_PARSE_EXCEED_MAX_LENGTH);
         if (skipCache)
             return parseOperationFromText(query);
-        return documentCache.get(query);
+        return documentCache.get(query).getObject(true);
     }
 
     @Override

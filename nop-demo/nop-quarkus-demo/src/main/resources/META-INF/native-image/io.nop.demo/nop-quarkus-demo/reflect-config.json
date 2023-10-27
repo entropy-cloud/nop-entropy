@@ -5431,6 +5431,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRememberMeCookie",
+        "parameterTypes": []
+      },
+      {
         "name": "isDefaultPublic",
         "parameterTypes": []
       },
@@ -5439,6 +5443,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "isRememberMeEnabled",
+        "parameterTypes": []
       },
       {
         "name": "setAuthCookie",
@@ -5474,6 +5482,18 @@
         "name": "setPublicPaths",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setRememberMeCookie",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRememberMeEnabled",
+        "parameterTypes": [
+          "boolean"
         ]
       }
     ],
@@ -5531,6 +5551,12 @@
           "io.nop.http.api.server.IHttpServerContext",
           "java.util.function.Supplier",
           "io.nop.auth.core.login.AuthToken"
+        ]
+      },
+      {
+        "name": "hasOAuthCode",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext"
         ]
       },
       {
@@ -6149,12 +6175,29 @@
         ]
       },
       {
+        "name": "encodePassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "generateSalt",
         "parameterTypes": []
       },
       {
         "name": "passwordMatches",
         "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "passwordMatches",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
@@ -6179,6 +6222,14 @@
         ]
       },
       {
+        "name": "encodePassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "generateSalt",
         "parameterTypes": []
       },
@@ -6197,6 +6248,15 @@
       {
         "name": "passwordMatches",
         "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "passwordMatches",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
@@ -6317,12 +6377,29 @@
         ]
       },
       {
+        "name": "encodePassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "generateSalt",
         "parameterTypes": []
       },
       {
         "name": "passwordMatches",
         "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "passwordMatches",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
@@ -14711,6 +14788,114 @@
       }
     ],
     "name": "io.nop.biz.dict.ObjDictLoader",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAction",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getBizModel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocation",
+        "parameterTypes": []
+      },
+      {
+        "name": "getObjMeta",
+        "parameterTypes": []
+      },
+      {
+        "name": "getObjectDefinition",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperationDefinition",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLOperationType",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getOperationDefinitions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOperationDefinitions",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLOperationType"
+        ]
+      },
+      {
+        "name": "getStateMachine",
+        "parameterTypes": []
+      },
+      {
+        "name": "method_invoke",
+        "parameterTypes": [
+          "java.lang.String",
+          "[Ljava.lang.Object;",
+          "io.nop.core.lang.eval.IEvalScope"
+        ]
+      },
+      {
+        "name": "setActions",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setBizModel",
+        "parameterTypes": [
+          "io.nop.biz.model.BizModel"
+        ]
+      },
+      {
+        "name": "setLocation",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation"
+        ]
+      },
+      {
+        "name": "setObjMeta",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
+        "name": "setObjectDefinition",
+        "parameterTypes": [
+          "io.nop.graphql.core.ast.GraphQLObjectDefinition"
+        ]
+      },
+      {
+        "name": "setOperations",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setStateMachine",
+        "parameterTypes": [
+          "io.nop.fsm.execution.IStateMachine"
+        ]
+      }
+    ],
+    "name": "io.nop.biz.impl.BizObjectImpl",
     "unsafeAllocated": false
   },
   {
@@ -23321,6 +23506,12 @@
         "name": "registerInstance",
         "parameterTypes": [
           "io.nop.core.resource.component.IResourceComponentManager"
+        ]
+      },
+      {
+        "name": "removeCachedModel",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -43203,6 +43394,12 @@
         "parameterTypes": [
           "java.lang.Integer"
         ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
       }
     ],
     "name": "io.nop.rule.api.beans._gen._RuleKeyBean",
@@ -43325,6 +43522,12 @@
         "parameterTypes": [
           "java.lang.Integer"
         ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
       }
     ],
     "name": "io.nop.rule.api.beans._gen._RuleMetaBean",
@@ -43365,6 +43568,12 @@
         "name": "setRuleVersion",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Long"
         ]
       }
     ],
@@ -43427,6 +43636,12 @@
         "parameterTypes": [
           "java.lang.Integer"
         ]
+      },
+      {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
       }
     ],
     "name": "io.nop.rule.api.beans._gen._RuleResultBean",
@@ -43448,7 +43663,29 @@
         ]
       },
       {
+        "name": "executeRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Long",
+          "io.nop.rule.core.IRuleRuntime"
+        ]
+      },
+      {
         "name": "getRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "getRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Long"
+        ]
+      },
+      {
+        "name": "getRuleModel",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Integer"
@@ -43458,7 +43695,7 @@
         "name": "getRuleModel",
         "parameterTypes": [
           "java.lang.String",
-          "java.lang.Integer"
+          "java.lang.Long"
         ]
       },
       {
@@ -44834,6 +45071,12 @@
         ]
       },
       {
+        "name": "setRuleVersion",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
         "name": "setStatus",
         "parameterTypes": [
           "java.lang.Integer"
@@ -45837,10 +46080,24 @@
         ]
       },
       {
+        "name": "loadRule",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Long"
+        ]
+      },
+      {
         "name": "loadRuleDefinition",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "loadRuleDefinition",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Long"
         ]
       },
       {
@@ -57855,6 +58112,31 @@
       }
     ],
     "name": "java.lang.Iterable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.lang.Object",
     "unsafeAllocated": false
   },
   {

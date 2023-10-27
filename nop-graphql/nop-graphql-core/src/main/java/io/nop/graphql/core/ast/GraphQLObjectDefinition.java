@@ -7,10 +7,8 @@
  */
 package io.nop.graphql.core.ast;
 
-import io.nop.api.core.annotations.core.Ordered;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
-import io.nop.core.reflect.IFunctionModel;
 import io.nop.graphql.core.ast._gen._GraphQLObjectDefinition;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
 import io.nop.graphql.core.schema.utils.GraphQLSourcePrinter;
@@ -24,14 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.nop.api.core.util.IOrdered.NORMAL_PRIORITY;
 import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_OLD_LOC;
-import static io.nop.graphql.core.GraphQLErrors.ARG_OLD_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_EXTEND_TYPE_MISMATCH;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_FETCHER_IS_ALREADY_DEFINED;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NO_TYPE;
 
 public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements INeedInit {
@@ -110,9 +102,11 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
         return fieldsMap.get(name);
     }
 
-    public void merge(GraphQLObjectDefinition def) {
+    public void merge(GraphQLObjectDefinition def, boolean force) {
+        if(def.getFields() == null)
+            return;
         for (GraphQLFieldDefinition field : def.getFields()) {
-            mergeField(field);
+            mergeField(field, force);
         }
     }
 
@@ -133,7 +127,7 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
         }
     }
 
-    public void mergeField(GraphQLFieldDefinition field) {
+    public void mergeField(GraphQLFieldDefinition field, boolean replace) {
         if (fieldsMap == null)
             this.init();
 
@@ -145,75 +139,69 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                 this.fields.add(field);
             }
         } else {
-            if (old.getFunctionModel() != null && field.getFunctionModel() != null) {
-                int p1 = getPriority(old.getFunctionModel());
-                int p2 = getPriority(field.getFunctionModel());
-                if (p1 < p2) {
-                    // 原先的优先级更高，则舍弃当前的方法
-                    LOG.info("nop.graphql.ignore-method-with-lower-priority:old={},new={}", old.getFunctionModel(),
-                            field.getFunctionModel());
-                    return;
+            if (replace) {
+                if (field.getFetcher() != null) {
+                    if (old.getFetcher() != null && old.getFetcher() != BeanPropertyFetcher.INSTANCE) {
+                        LOG.info("nop.graphql.replace-fetcher:field={},old={},new={}", field.getName(),
+                                old.getLocation(), field.getLocation());
+                    }
+                    old.setLocation(field.getLocation());
+                    old.setFetcher(field.getFetcher());
+                    // serviceAction与fetcher应该是配对的
+                    old.setServiceAction(field.getServiceAction());
                 }
 
-                if (p1 > p2) {
-                    LOG.info("nop.graphql.replace-method-with-higher-priority:old={},new={}", old.getFunctionModel(),
-                            field.getFunctionModel());
-                    return;
+                if (field.getMakerCheckerMeta() != null)
+                    old.setMakerCheckerMeta(field.getMakerCheckerMeta());
+
+                if (field.getServiceAction() != null && field.getFetcher() == null) {
+                    old.setServiceAction(field.getServiceAction());
                 }
 
-                throw new NopException(ERR_GRAPHQL_FIELD_FETCHER_IS_ALREADY_DEFINED).source(field)
-                        .param(ARG_OBJ_NAME, getName()).param(ARG_FIELD_NAME, field.getName())
-                        .param(ARG_OLD_LOC, old.getLocation());
-            }
+                if (field.getPropMeta() != null) {
+                    old.setPropMeta(field.getPropMeta());
+                }
 
-            if (old.getFetcher() != null && field.getFetcher() != null
-                    && old.getFetcher() != BeanPropertyFetcher.INSTANCE)
-                throw new NopException(ERR_GRAPHQL_FIELD_FETCHER_IS_ALREADY_DEFINED).source(field)
-                        .param(ARG_OBJ_NAME, getName()).param(ARG_FIELD_NAME, field.getName())
-                        .param(ARG_OLD_LOC, old.getLocation());
 
-            if (old.getFetcher() == null || old.getFetcher() == BeanPropertyFetcher.INSTANCE) {
-                old.setFetcher(field.getFetcher());
-            }
+                if (field.getAuth() != null) {
+                    old.setAuth(field.getAuth());
+                }
 
-            if (old.getMakerCheckerMeta() == null)
-                old.setMakerCheckerMeta(field.getMakerCheckerMeta());
+                if (field.getLazy() != null)
+                    old.setLazy(field.getLazy());
 
-            if (old.getServiceAction() == null) {
-                old.setServiceAction(field.getServiceAction());
-            }
+                if (field.getType() != null) {
+                    old.setType(field.getType());
+                }
+            } else {
 
-            if (old.getPropMeta() == null) {
-                old.setPropMeta(field.getPropMeta());
-            }
+                if (old.getFetcher() == null || old.getFetcher() == BeanPropertyFetcher.INSTANCE) {
+                    old.setFetcher(field.getFetcher());
+                }
 
-            if (old.getAuth() == null) {
-                old.setAuth(field.getAuth());
-            }
+                if (old.getMakerCheckerMeta() == null)
+                    old.setMakerCheckerMeta(field.getMakerCheckerMeta());
 
-            // old或者field任意一个标记为lazy则认为是lazy的
-            if(field.isLazy())
-                old.setLazy(field.isLazy());
+                if (old.getServiceAction() == null) {
+                    old.setServiceAction(field.getServiceAction());
+                }
 
-            if (old.getType() == null) {
-                old.setType(field.getType());
-            } else if (field.getType() != null) {
-                GraphQLType mergedType = old.getType().mergeType(field.getType());
-                if (mergedType == null) {
-                    throw new NopException(ERR_GRAPHQL_FIELD_EXTEND_TYPE_MISMATCH).param(ARG_OBJ_NAME, getName())
-                            .param(ARG_FIELD_NAME, field.getName()).param(ARG_TYPE, field.getType())
-                            .param(ARG_OLD_TYPE, old.getType());
-                } else {
-                    if (mergedType.getASTParent() != null && mergedType.getASTParent() != field)
-                        mergedType = mergedType.deepClone();
-                    field.setType(mergedType);
+                if (old.getPropMeta() == null) {
+                    old.setPropMeta(field.getPropMeta());
+                }
+
+
+                if (old.getAuth() == null) {
+                    old.setAuth(field.getAuth());
+                }
+
+                if (old.getLazy() == null)
+                    old.setLazy(field.getLazy());
+
+                if (old.getType() == null) {
+                    old.setType(field.getType());
                 }
             }
         }
-    }
-
-    int getPriority(IFunctionModel fn) {
-        Ordered priority = fn.getAnnotation(Ordered.class);
-        return priority == null ? NORMAL_PRIORITY : priority.value();
     }
 }
