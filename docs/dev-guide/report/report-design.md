@@ -135,52 +135,7 @@ graph LR
       style a3 fill:#eecc00
 ```
 
-## 层次坐标
 
-
-````mermaid
-graph LR
-层次坐标 --> ExpandedCellSet
-````
-
-通过层次坐标可以在父子单元格组成的树结构中定位指定单元格集合。
-
-
-```
-层次坐标格式： CellName[rowCoordinates ; colCoordinates]
-```
-
-
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/absolute-coord-value.png)
-
-```mermaid
-graph RL
-B1 --> A1
-C1 --> B1
-A1 --> D1 
-```
-
-D1是A1的rowParent，所以A1展开的时候，D1会自动延展。
-
-层次坐标中可以利用相对坐标来访问兄弟节点。
-
-```mermaid
-graph TD
-
-A-0 --> B-00
-A-0 --> B-01
-A-0 --> C-0
-B-00 --> D-0
-C-0 --> F-0
-
-A-1 --> B-10
-```
-
-假设有如上的一个父子结构，在B-10节点中如下坐标`D[A:-1,B:1]`指向的是D-0节点
-
-1.  A:-1表示当前A节点的前一个节点，即A-0
-2.  B:1表示A-0节点范围内的第一个B节点，即B-00
-3.  在B-00范围内查找D节点，得到D-0
 
 ## 表格展开
 
@@ -264,6 +219,53 @@ expandCells(cell, expandCount)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/expand-span.png)
 
 
+## 层次坐标
+
+
+````mermaid
+graph LR
+层次坐标 --> ExpandedCellSet
+````
+
+通过层次坐标可以在父子单元格组成的树结构中定位指定单元格集合。
+
+
+```
+层次坐标格式： CellName[rowCoordinates ; colCoordinates]
+```
+
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/absolute-coord-value.png)
+
+```mermaid
+graph RL
+B1 --> A1
+C1 --> B1
+A1 --> D1 
+```
+
+D1是A1的rowParent，所以A1展开的时候，D1会自动延展。
+
+层次坐标中可以利用相对坐标来访问兄弟节点。
+
+```mermaid
+graph TD
+
+A-0 --> B-00
+A-0 --> B-01
+A-0 --> C-0
+B-00 --> D-0
+C-0 --> F-0
+
+A-1 --> B-10
+```
+
+假设有如上的一个父子结构，在B-10节点中如下坐标`D[A:-1,B:1]`指向的是D-0节点
+
+1.  A:-1表示当前A节点的前一个节点，即A-0
+2.  B:1表示A-0节点范围内的第一个B节点，即B-00
+3.  在B-00范围内查找D节点，得到D-0
+   
 # 三. 核心数据结构讲解
 
 ## 展开单元格：ExpandedCell
@@ -401,6 +403,7 @@ style helpFn fill:#eecc00
 XptRuntime在报表展开算法执行的过程中会记录当前正在处理的单元格，从而在表达式中可以使用相对层次坐标来定位单元格。
 
 XptRuntime还提供了一些使用相对坐标的函数，比如getNamedCells(cellName)返回指定模板单元格生成的、当前单元格可见的所有单元格。这里的可见指的是同属于同一个最近的父单元格。
+
 
 # 四. 报表表达式引擎设计
 
