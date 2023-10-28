@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<wf x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <start startStepName="wf-start"/>
 
@@ -56,4 +56,4 @@
             </transition>
         </action>
     </actions>
-</wf>
+</workflow>

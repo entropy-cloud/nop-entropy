@@ -18,6 +18,7 @@ public class RefactorWf extends BaseTestCase {
             File dir = new File(subFile.getParentFile(), StringHelper.fileNameNoExt(subFile.getName()));
             File wfFile = new File(dir, "v1.xwf");
             XNode node = XNodeParser.instance().parseFromResource(new FileResource(wfFile));
+            node.setTagName("workflow");
             node.setAttr("x:schema", "/nop/schema/wf/wf.xdef");
             node.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
             node.removeAttr("x:extended");

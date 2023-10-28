@@ -61,6 +61,7 @@ public class MockWorkflowStore implements IWorkflowStore {
         WorkflowRecordBean wfRecord = new WorkflowRecordBean();
         wfRecord.setWfName(wfModel.getWfName());
         wfRecord.setWfVersion(wfModel.getWfVersion());
+        wfRecord.setStatus(NopWfCoreConstants.WF_STATUS_CREATED);
         return wfRecord;
     }
 

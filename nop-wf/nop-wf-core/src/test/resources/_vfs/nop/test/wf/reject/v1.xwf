@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<wf bizEntityStateProp="statusId" x:dump="true" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<workflow bizEntityStateProp="statusId" x:dump="true" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <diagram/>
 
@@ -51,4 +51,4 @@
     </steps>
 
     <start startStepName="wf-start"/>
-</wf>
+</workflow>

@@ -25,12 +25,9 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel {
         return null;
     }
 
+    @Override
     public WfStepType getType() {
-        return null;
-    }
-
-    public String getDueAction() {
-        return null;
+        return WfStepType.step;
     }
 
     @Nonnull

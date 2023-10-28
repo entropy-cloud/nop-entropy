@@ -13,4 +13,9 @@ public class WfJoinStepModel extends _WfJoinStepModel {
     public WfJoinStepModel() {
 
     }
+
+    @Override
+    public WfStepType getType() {
+        return WfStepType.join;
+    }
 }

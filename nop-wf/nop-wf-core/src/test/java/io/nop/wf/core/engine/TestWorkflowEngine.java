@@ -9,6 +9,7 @@ package io.nop.wf.core.engine;
 
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
@@ -20,6 +21,8 @@ import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.ResourceWorkflowModelStore;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -38,6 +41,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestWorkflowEngine extends BaseTestCase {
     WorkflowManagerImpl workflowManager;
     MockWorkflowStore store;
+
+    @BeforeAll
+    public static void init(){
+        CoreInitialization.initialize();
+    }
+
+    @AfterAll
+    public static void destroy(){
+        CoreInitialization.destroy();
+    }
 
     @BeforeEach
     void setUp() {

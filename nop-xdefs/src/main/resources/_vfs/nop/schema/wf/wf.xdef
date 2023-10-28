@@ -7,7 +7,7 @@
 <workflow displayName="string" bizEntityStateProp="prop-name"
           xdef:default-extends="/nop/core/defaults/default.wf.xml"
           defaultPriority="!int=100" allowStepLoop="!boolean=false"
-          wfName="!string" wfVersion="!long=0"
+          wfName="string" wfVersion="!long=0"
           x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
           xmlns:xdef="/nop/schema/xdef.xdef"
           xdef:name="WfModel" xdef:bean-package="io.nop.wf.core.model"
@@ -125,6 +125,9 @@
                         appState="#string" wfAppState="#string" bizEntityState="#string"
                         xdef:name="WfTransitionModel">
 
+                <!--
+                @order transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
+                -->
                 <xdef:define xdef:name="WfTransitionToModel" caseValue="string" order="!int=0">
                     <when xdef:value="xpl-predicate"/>
                     <before-transition xdef:value="xpl"/>

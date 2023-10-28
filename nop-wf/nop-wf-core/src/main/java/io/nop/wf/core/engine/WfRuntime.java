@@ -270,7 +270,7 @@ public class WfRuntime implements IEvalContext, Executor {
     }
 
     public void saveWfRecord(int status) {
-        wf.getRecord().transitToStatus(NopWfCoreConstants.WF_STATUS_CREATED);
+        wf.getRecord().transitToStatus(status);
 
         wf.getStore().saveWfRecord(wf.getRecord());
 
