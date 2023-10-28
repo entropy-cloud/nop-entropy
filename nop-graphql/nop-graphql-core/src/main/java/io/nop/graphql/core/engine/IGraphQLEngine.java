@@ -31,6 +31,8 @@ import java.util.concurrent.Flow;
 public interface IGraphQLEngine {
     IGraphQLSchemaLoader getSchemaLoader();
 
+    void clearCache();
+
     GraphQLDocument parseOperation(String query, boolean skipCache);
 
     GraphQLTypeDefinition getTypeDefinition(String typeName);

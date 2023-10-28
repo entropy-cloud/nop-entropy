@@ -57,6 +57,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
 import static io.nop.graphql.core.GraphQLErrors.ARG_EXPECTED_OPERATION_TYPE;
@@ -72,6 +73,7 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION;
 public class GraphQLEngine implements IGraphQLEngine {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLEngine.class);
 
+    // 不能直接缓存GraphQLDocument。因为xbiz文件有可能动态更新，所以缓存需要监听资源文件的变化
     private final LocalCache<String, ResourceCacheEntryWithLoader<GraphQLDocument>> documentCache;
 
     private GraphQLSchema builtinSchema;
@@ -99,6 +101,10 @@ public class GraphQLEngine implements IGraphQLEngine {
                 "graphql-parse-cache", newConfig(GraphQLConfigs.CFG_GRAPHQL_QUERY_PARSE_CACHE_SIZE.get()).useMetrics()
                         .expireAfterWrite(GraphQLConfigs.CFG_GRAPHQL_QUERY_PARSE_CACHE_TIMEOUT.get()),
                 this::parseDocumentWithLoader);
+    }
+
+    public void clearCache() {
+        documentCache.clear();
     }
 
     public void setBuiltinSchema(GraphQLSchema schema) {
@@ -238,7 +244,7 @@ public class GraphQLEngine implements IGraphQLEngine {
             throw new NopException(GraphQLErrors.ERR_GRAPHQL_PARSE_EXCEED_MAX_LENGTH);
         if (skipCache)
             return parseOperationFromText(query);
-        return documentCache.get(query).getObject(true);
+        return documentCache.get(query).getObject(CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED.get());
     }
 
     @Override

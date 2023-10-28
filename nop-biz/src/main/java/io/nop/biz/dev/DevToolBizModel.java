@@ -14,16 +14,23 @@ import io.nop.api.core.annotations.core.Locale;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.graphql.core.engine.IGraphQLEngine;
+import jakarta.inject.Inject;
 
 @Locale("zh-CN")
 @BizModel("DevTool")
 public class DevToolBizModel {
+
+    @Inject
+    IGraphQLEngine graphQLEngine;
+
     @BizMutation
     @Description("清空组件缓存")
     public void clearComponentCache() {
         refreshVirtualFileSystem();
         ResourceComponentManager.instance().clearAllCache();
         GlobalCacheRegistry.instance().clearAllCache();
+        graphQLEngine.clearCache();
     }
 
     @BizMutation

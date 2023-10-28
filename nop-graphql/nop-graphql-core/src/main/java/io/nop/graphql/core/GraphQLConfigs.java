@@ -60,4 +60,8 @@ public interface GraphQLConfigs {
     @Description("GraphQL模型装载的时候就检查字典是否存在，避免运行时报错")
     IConfigReference<Boolean> CFG_GRAPHQL_CHECK_DICT_WHEN_INIT = varRef(s_loc,"nop.graphql.check-dict-when-init",
             Boolean.class, true);
+
+    @Description("GraphQL解析结果是否需要检查动态更新")
+    IConfigReference<Boolean> CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED = varRef(s_loc,"nop.graphql.parse-cache-check-changed",
+            Boolean.class, true);
 }
