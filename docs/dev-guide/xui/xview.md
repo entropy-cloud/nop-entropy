@@ -357,3 +357,9 @@ custom=true表示此字段不需要在meta中定义。两个下划线作为前�
     </cell>
 ````
 
+## 14. 通过url指定查询条件和排序条件
+
+````xml
+<api url="@query:NopAuthUser__findList?filter_userStatus=1&amp;orderField=userName&amp;orderDir=asc" />
+````
+排序条件通过orderField={fieldName}&orderDir={asc|desc}来表示，也可以传入Array格式的

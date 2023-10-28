@@ -6,6 +6,7 @@
 
 # 一. 报表模型DSL的设计
 
+
 ## 报表模型作为Excel模型的扩展
 
 根据可逆计算理论，模板(Template)可以看作是原始模型对象的一种抽象化，在结构层面它可以看作是原始模型对象的一种增强。也就是说，任何一个原始模型对象都应该可以被看作是一种合法的模板对象。在这种设计思想指引下，NopReport中将报表模型的DSL设计为Excel模型的扩展模型，它在Excel的DSL的基础上增加了model子节点。
@@ -88,7 +89,15 @@ DSL <-..-> UI
 
 **如果上下游所有的工具都满足可逆计算原理，则这些工具可以自动实现无缝融合**
 
-# 二. 报表引擎的执行逻辑
+# 二. 非线性中国式报表理论
+
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/runqian-report.png)
+
+润乾公司的创始人蒋步星学长发明了非线性中国式报表模型的相关理论，是报表引擎领域一项真正原创的技术。后续的商业报表公司如帆软报表等都延续了这种类Excel单元格展开的设计思想。
+
+NopReport提供了非线性报表展开算法的一个开源实现，但是它的具体实现细节是根据相关报表工具的用户使用文档推理得到，与原报表工具的实现方案并没有直接的关系。
+
+## 报表引擎的执行逻辑
 
 NopReport的功能功能在[ReportEngine](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-report/nop-report-core/src/main/java/io/nop/report/core/engine/ReportEngine.java)对象中实现，它的主要工作可以分为如下三个部分：
 
