@@ -95,6 +95,9 @@ DSL <-..-> UI
 
 润乾公司的创始人蒋步星学长发明了非线性中国式报表模型的相关理论，是报表引擎领域一项真正原创的技术。后续的商业报表公司如帆软报表等都延续了这种类Excel单元格展开的设计思想。
 
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/chinese-style-report.png)
+![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/nonlinear-report-model.png)
+
 NopReport提供了非线性报表展开算法的一个开源实现，但是它的具体实现细节是根据相关报表工具的用户使用文档推理得到，与原报表工具的实现方案并没有直接的关系。
 
 ## 报表引擎的执行逻辑
