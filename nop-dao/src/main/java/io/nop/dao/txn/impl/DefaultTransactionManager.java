@@ -8,6 +8,7 @@
 package io.nop.dao.txn.impl;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
@@ -17,10 +18,10 @@ import io.nop.dao.txn.ITransactionListener;
 import io.nop.dao.txn.ITransactionManager;
 import io.nop.dao.txn.ITransactionMetrics;
 import io.nop.dao.utils.DaoHelper;
-
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+
 import javax.sql.DataSource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,6 +73,16 @@ public class DefaultTransactionManager implements ITransactionManager {
                 transactionFactoryMap.put(name, new JdbcTransactionFactory(ds));
             }
         }
+    }
+
+    public void addQuerySpace(String querySpace, DataSource ds) {
+        Guard.notEmpty(querySpace, "querySpace");
+        Guard.notNull(ds, "ds");
+        transactionFactoryMap.put(querySpace, new JdbcTransactionFactory(ds));
+    }
+
+    public void removeQuerySpace(String querySpace) {
+        this.transactionFactoryMap.remove(querySpace);
     }
 
     public void setTxnGroupMapConfig(String config) {
