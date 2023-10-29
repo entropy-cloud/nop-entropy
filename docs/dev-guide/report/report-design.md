@@ -98,6 +98,8 @@ DSL <-..-> UI
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/chinese-style-report.png)
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report/nonlinear-report-model.png)
 
+> 所谓的非线性报表是相对于线性报表而言。国外的水晶报表只能沿着一个方向延展，列方向一般是固定的，所以被定义为线性报表。非线性报表是行与列都构成复杂的树形嵌套关系，不再是线性平铺
+
 NopReport提供了非线性报表展开算法的一个开源实现，但是它的具体实现细节是根据相关报表工具的用户使用文档推理得到，与原报表工具的实现方案并没有直接的关系。
 
 ## 报表引擎的执行逻辑
@@ -221,13 +223,15 @@ expandCells(cell, expandCount)
 
 ## 层次坐标
 
+非线性报表模型理论中发明的层次坐标概念提供了一种访问展开后的单元格的一种精确、快捷的方式，使用它可以极大简化报表计算逻辑的表达。
+类似同步、环比这样的常见计算都可以使用层次坐标来进行简单的表达。
 
 ````mermaid
 graph LR
 层次坐标 --> ExpandedCellSet
 ````
 
-通过层次坐标可以在父子单元格组成的树结构中定位指定单元格集合。
+一个层次坐标相当于是一个选择符，通过层次坐标可以在父子单元格组成的树结构中定位选择出满足条件的单元格集合。
 
 
 ```
