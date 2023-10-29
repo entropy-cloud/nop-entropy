@@ -4,6 +4,10 @@
 
 很多年前，润乾公司首创了支持行列对称展开的非线性报表生成算法，后来发展成为商业报表软件的翘楚，后续的报表软件如帆软等也都模仿了类似的报表生成算法。NopReport报表引擎为这个算法提供了一个非常精简的开源实现（约3000行代码），可以很容易的进行定制和扩展。本文详细介绍了NopReport报表引擎的基本实现原理，以及非线性报表生成算法的技术细节。
 
+算法讲解视频：https://www.bilibili.com/video/BV17g4y1o7wr/
+使用示例视频：https://www.bilibili.com/video/BV1Sa4y1K7tD/
+引擎使用文档：https://zhuanlan.zhihu.com/p/620250740
+
 # 一. 报表模型DSL的设计
 
 
