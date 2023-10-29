@@ -24,6 +24,7 @@ import jakarta.inject.Named;
 
 import javax.sql.DataSource;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
@@ -73,6 +74,10 @@ public class DefaultTransactionManager implements ITransactionManager {
                 transactionFactoryMap.put(name, new JdbcTransactionFactory(ds));
             }
         }
+    }
+
+    public Set<String> getNamedQuerySpaces() {
+        return transactionFactoryMap.keySet();
     }
 
     public void addQuerySpace(String querySpace, DataSource ds) {
