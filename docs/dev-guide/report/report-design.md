@@ -536,3 +536,11 @@ ExcelTemplateToXptModelTransformer --> TreeTableDataParser --> BuildXptModelList
 ```
 
 ExcelTemplateToXptModelTransformer分析ExcelWorkbook的结构，自动将它转换为报表模型
+
+基于可逆计算理论设计的低代码平台NopPlatform已开源：
+- gitee: https://gitee.com/canonical-entropy/nop-entropy
+- github: https://github.com/entropy-cloud/nop-entropy
+- 开发示例：https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md
+- 文档入口：https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/index.md
+- 理论介绍：https://zhuanlan.zhihu.com/p/64004026
+- 可逆计算原理和Nop平台介绍及答疑: https://www.bilibili.com/video/BV14u411T715/
