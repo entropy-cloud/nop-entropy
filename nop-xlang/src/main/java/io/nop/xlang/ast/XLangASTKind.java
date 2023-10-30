@@ -101,112 +101,114 @@ public enum XLangASTKind{
         
             ConcatExpression, // ordinal: 48
         
-            BraceExpression, // ordinal: 49
+            TemplateExpression, // ordinal: 49
         
-            ObjectBinding, // ordinal: 50
+            BraceExpression, // ordinal: 50
         
-            PropertyBinding, // ordinal: 51
+            ObjectBinding, // ordinal: 51
         
-            RestBinding, // ordinal: 52
+            PropertyBinding, // ordinal: 52
         
-            ArrayBinding, // ordinal: 53
+            RestBinding, // ordinal: 53
         
-            ArrayElementBinding, // ordinal: 54
+            ArrayBinding, // ordinal: 54
         
-            ExportDeclaration, // ordinal: 55
+            ArrayElementBinding, // ordinal: 55
         
-            ExportNamedDeclaration, // ordinal: 56
+            ExportDeclaration, // ordinal: 56
         
-            ExportAllDeclaration, // ordinal: 57
+            ExportNamedDeclaration, // ordinal: 57
         
-            ExportSpecifier, // ordinal: 58
+            ExportAllDeclaration, // ordinal: 58
         
-            ImportDeclaration, // ordinal: 59
+            ExportSpecifier, // ordinal: 59
         
-            ImportAsDeclaration, // ordinal: 60
+            ImportDeclaration, // ordinal: 60
         
-            ImportSpecifier, // ordinal: 61
+            ImportAsDeclaration, // ordinal: 61
         
-            ImportDefaultSpecifier, // ordinal: 62
+            ImportSpecifier, // ordinal: 62
         
-            ImportNamespaceSpecifier, // ordinal: 63
+            ImportDefaultSpecifier, // ordinal: 63
         
-            AwaitExpression, // ordinal: 64
+            ImportNamespaceSpecifier, // ordinal: 64
         
-            Decorators, // ordinal: 65
+            AwaitExpression, // ordinal: 65
         
-            QualifiedName, // ordinal: 66
+            Decorators, // ordinal: 66
         
-            Decorator, // ordinal: 67
+            QualifiedName, // ordinal: 67
         
-            MetaObject, // ordinal: 68
+            Decorator, // ordinal: 68
         
-            MetaProperty, // ordinal: 69
+            MetaObject, // ordinal: 69
         
-            MetaArray, // ordinal: 70
+            MetaProperty, // ordinal: 70
         
-            UsingStatement, // ordinal: 71
+            MetaArray, // ordinal: 71
         
-            MacroExpression, // ordinal: 72
+            UsingStatement, // ordinal: 72
         
-            TextOutputExpression, // ordinal: 73
+            MacroExpression, // ordinal: 73
         
-            EscapeOutputExpression, // ordinal: 74
+            TextOutputExpression, // ordinal: 74
         
-            CollectOutputExpression, // ordinal: 75
+            EscapeOutputExpression, // ordinal: 75
         
-            CompareOpExpression, // ordinal: 76
+            CollectOutputExpression, // ordinal: 76
         
-            AssertOpExpression, // ordinal: 77
+            CompareOpExpression, // ordinal: 77
         
-            BetweenOpExpression, // ordinal: 78
+            AssertOpExpression, // ordinal: 78
         
-            GenNodeExpression, // ordinal: 79
+            BetweenOpExpression, // ordinal: 79
         
-            GenNodeAttrExpression, // ordinal: 80
+            GenNodeExpression, // ordinal: 80
         
-            OutputXmlAttrExpression, // ordinal: 81
+            GenNodeAttrExpression, // ordinal: 81
         
-            OutputXmlExtAttrsExpression, // ordinal: 82
+            OutputXmlAttrExpression, // ordinal: 82
         
-            TypeOfExpression, // ordinal: 83
+            OutputXmlExtAttrsExpression, // ordinal: 83
         
-            InstanceOfExpression, // ordinal: 84
+            TypeOfExpression, // ordinal: 84
         
-            CastExpression, // ordinal: 85
+            InstanceOfExpression, // ordinal: 85
         
-            ArrayTypeNode, // ordinal: 86
+            CastExpression, // ordinal: 86
         
-            ParameterizedTypeNode, // ordinal: 87
+            ArrayTypeNode, // ordinal: 87
         
-            TypeNameNode, // ordinal: 88
+            ParameterizedTypeNode, // ordinal: 88
         
-            UnionTypeDef, // ordinal: 89
+            TypeNameNode, // ordinal: 89
         
-            IntersectionTypeDef, // ordinal: 90
+            UnionTypeDef, // ordinal: 90
         
-            ObjectTypeDef, // ordinal: 91
+            IntersectionTypeDef, // ordinal: 91
         
-            PropertyTypeDef, // ordinal: 92
+            ObjectTypeDef, // ordinal: 92
         
-            TupleTypeDef, // ordinal: 93
+            PropertyTypeDef, // ordinal: 93
         
-            TypeParameterNode, // ordinal: 94
+            TupleTypeDef, // ordinal: 94
         
-            TypeAliasDeclaration, // ordinal: 95
+            TypeParameterNode, // ordinal: 95
         
-            FunctionTypeDef, // ordinal: 96
+            TypeAliasDeclaration, // ordinal: 96
         
-            FunctionArgTypeDef, // ordinal: 97
+            FunctionTypeDef, // ordinal: 97
         
-            EnumDeclaration, // ordinal: 98
+            FunctionArgTypeDef, // ordinal: 98
         
-            EnumMember, // ordinal: 99
+            EnumDeclaration, // ordinal: 99
         
-            ClassDefinition, // ordinal: 100
+            EnumMember, // ordinal: 100
         
-            FieldDeclaration, // ordinal: 101
+            ClassDefinition, // ordinal: 101
         
-            CustomExpression, // ordinal: 102
+            FieldDeclaration, // ordinal: 102
+        
+            CustomExpression, // ordinal: 103
         
 }

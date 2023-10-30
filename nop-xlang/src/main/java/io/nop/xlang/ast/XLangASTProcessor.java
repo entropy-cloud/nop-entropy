@@ -156,6 +156,9 @@ public class XLangASTProcessor<T,C>{
             case ConcatExpression:
                 return processConcatExpression((ConcatExpression)node,context);
         
+            case TemplateExpression:
+                return processTemplateExpression((TemplateExpression)node,context);
+        
             case BraceExpression:
                 return processBraceExpression((BraceExpression)node,context);
         
@@ -517,6 +520,10 @@ public class XLangASTProcessor<T,C>{
 	}
     
 	public T processConcatExpression(ConcatExpression node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processTemplateExpression(TemplateExpression node, C context){
         return defaultProcess(node, context);
 	}
     

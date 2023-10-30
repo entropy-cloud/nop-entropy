@@ -50,4 +50,10 @@ public class Literal extends _Literal implements MetaValue {
         ret.setValue(num);
         return ret;
     }
+
+    public static boolean isStringLiteral(Expression expr) {
+        if (expr instanceof Literal)
+            return ((Literal) expr).getValue() instanceof String;
+        return false;
+    }
 }

@@ -37,6 +37,7 @@ import io.nop.xlang.ast.PropertyAssignment;
 import io.nop.xlang.ast.PropertyKind;
 import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.SpreadElement;
+import io.nop.xlang.ast.TemplateExpression;
 import io.nop.xlang.ast.UnaryExpression;
 import io.nop.xlang.ast.UpdateExpression;
 import io.nop.xlang.ast.XLangASTBuilder;
@@ -79,7 +80,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         return parser;
     }
 
-    public SimpleExprParser subExpr(boolean subExpr){
+    public SimpleExprParser subExpr(boolean subExpr) {
         this.subExpr = subExpr;
         return this;
     }
@@ -113,7 +114,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
     public Expression parseExpr(TextScanner sc) {
         Expression ret = makeCompileResult(simpleExpr(sc));
 
-        if(!subExpr)
+        if (!subExpr)
             sc.checkEnd();
         return ret;
     }
@@ -137,7 +138,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         while (isExprStart(sc, phase)) {
             boolean cpExpr = sc.cur == '#';
             checkAllowMacroExpr(sc);
-            sc.next(2);
+            skipExprStart(sc);
             sc.skipBlank();
 
             if (phase == ExprPhase.compile) {
@@ -154,7 +155,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
             if (expr != null) {
                 list.add(expr);
             }
-            sc.consume('}');
+            consumeExprEnd(sc);
 
             text = sc.nextUntil(s -> isExprStart(sc, phase), true, "");
             if (text.length() > 0) {
@@ -170,7 +171,15 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         if (list.size() == 1)
             return makeCompileResult(list.get(0));
 
-        return makeCompileResult(newConcatExpr(loc, list));
+        return makeCompileResult(newTemplateExpr(loc, list, phase));
+    }
+
+    protected void skipExprStart(TextScanner sc) {
+        sc.next(2);
+    }
+
+    protected void consumeExprEnd(TextScanner sc) {
+        sc.consume('}');
     }
 
     protected void checkAllowMacroExpr(TextScanner sc) {
@@ -827,11 +836,32 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         return SequenceExpression.valueOf(loc, exprs);
     }
 
+    protected Expression newTemplateExpr(SourceLocation loc, List<Expression> exprs, ExprPhase phase) {
+        if (exprs.isEmpty())
+            return null;
+        String prefix;
+        switch (phase) {
+            case transform:
+                prefix = "%{";
+                break;
+            case compile:
+                prefix = "#{";
+                break;
+            case binding:
+                prefix = "@{";
+                break;
+            default:
+                prefix = "${";
+        }
+        return TemplateExpression.valueOf(loc, exprs, prefix, "}");
+    }
+
     protected Expression newConcatExpr(SourceLocation loc, List<Expression> exprs) {
         if (exprs.isEmpty())
             return null;
         return ConcatExpression.valueOf(loc, exprs);
     }
+
 
     protected Expression newBraceExpr(SourceLocation loc, Expression expr) {
         if (expr instanceof BraceExpression)

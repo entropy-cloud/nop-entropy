@@ -43,6 +43,7 @@ import io.nop.xlang.ast.ExportAllDeclaration;
 import io.nop.xlang.ast.ExportDeclaration;
 import io.nop.xlang.ast.ExportNamedDeclaration;
 import io.nop.xlang.ast.ExportSpecifier;
+import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.ExpressionStatement;
 import io.nop.xlang.ast.FieldDeclaration;
 import io.nop.xlang.ast.ForInStatement;
@@ -91,6 +92,7 @@ import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.SwitchStatement;
+import io.nop.xlang.ast.TemplateExpression;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.TemplateStringLiteral;
 import io.nop.xlang.ast.TextOutputExpression;
@@ -454,6 +456,22 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
     @Override
     public void visitConcatExpression(ConcatExpression node) {
         super.visitConcatExpression(node);
+    }
+
+    @Override
+    public void visitTemplateExpression(TemplateExpression node) {
+        for (Expression expr : node.getExpressions()) {
+            if (expr instanceof Literal) {
+                Object value = ((Literal) expr).getValue();
+                if (value instanceof String) {
+                    print(value);
+                    continue;
+                }
+            }
+            print(node.getPrefix());
+            visit(expr);
+            print(node.getPostfix());
+        }
     }
 
     @Override

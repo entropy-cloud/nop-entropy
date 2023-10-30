@@ -1,0 +1,16 @@
+<template>
+
+    <div>
+        <ul>
+            <li v-for="(item,index) in items" v-bind:key="item.id">
+                <span v-if="item.isVisible">{{item.name}}</span>
+            </li>
+        </ul>
+        <child-component>
+            <template v-slot:default="scopeVariable">
+                <p>{{scopeVariable}}</p>
+            </template>
+        </child-component>
+        <button v-bind:class="btnClass" v-on:click="handleClick">Click me</button>
+    </div>
+</template>

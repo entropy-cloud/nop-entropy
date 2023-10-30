@@ -206,6 +206,10 @@ public class XLangASTVisitor extends AbstractVisitor<XLangASTNode>{
                     visitConcatExpression((ConcatExpression)node);
                     return;
             
+                case TemplateExpression:
+                    visitTemplateExpression((TemplateExpression)node);
+                    return;
+            
                 case BraceExpression:
                     visitBraceExpression((BraceExpression)node);
                     return;
@@ -705,6 +709,11 @@ public class XLangASTVisitor extends AbstractVisitor<XLangASTNode>{
             }
         
             public void visitConcatExpression(ConcatExpression node){
+            
+                    this.visitChildren(node.getExpressions());         
+            }
+        
+            public void visitTemplateExpression(TemplateExpression node){
             
                     this.visitChildren(node.getExpressions());         
             }

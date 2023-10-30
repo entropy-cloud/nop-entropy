@@ -480,6 +480,14 @@ public class XLangAST {
         List<Expression> expressions;
     }
 
+    class TemplateExpression extends Expression{
+        String prefix;
+        String postfix;
+
+        @PropMeta(mandatory = true)
+        List<Expression> expressions;
+    }
+
     class BraceExpression extends Expression {
         @PropMeta(mandatory = true)
         Expression expr;

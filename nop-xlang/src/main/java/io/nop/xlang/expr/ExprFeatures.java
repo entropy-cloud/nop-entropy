@@ -26,4 +26,6 @@ public class ExprFeatures {
 
     public static final int ALL = LAMBDA_FUNCTION | FUNCTION_DEF | STATEMENT | FUNCTION_CALL | OBJECT_CALL | BIT_OP
             | SELF_ASSIGN | CP_EXPR | TAG_FUNC | JSON | OBJECT_PROP | ARRAY_INDEX | SELF_INC | IMPORT | NEW;
+
+    public static final int SIMPLE = FUNCTION_CALL | OBJECT_CALL | BIT_OP | JSON | OBJECT_PROP | ARRAY_INDEX;
 }

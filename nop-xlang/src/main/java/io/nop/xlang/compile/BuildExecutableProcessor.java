@@ -95,6 +95,7 @@ import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.SuperExpression;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.SwitchStatement;
+import io.nop.xlang.ast.TemplateExpression;
 import io.nop.xlang.ast.TemplateStringExpression;
 import io.nop.xlang.ast.TemplateStringLiteral;
 import io.nop.xlang.ast.TextOutputExpression;
@@ -1410,6 +1411,14 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
 
     @Override
     public IExecutableExpression processConcatExpression(ConcatExpression node, IXLangCompileScope context) {
+        IExecutableExpression[] exprs = buildArgExprs(node.getExpressions(), context);
+        if (exprs == null || exprs.length == 0)
+            return null;
+        return new ConcatExecutable(node.getLocation(), exprs);
+    }
+
+    @Override
+    public IExecutableExpression processTemplateExpression(TemplateExpression node, IXLangCompileScope context) {
         IExecutableExpression[] exprs = buildArgExprs(node.getExpressions(), context);
         if (exprs == null || exprs.length == 0)
             return null;

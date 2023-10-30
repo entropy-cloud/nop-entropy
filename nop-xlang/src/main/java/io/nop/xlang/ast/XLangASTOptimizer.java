@@ -157,6 +157,9 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
                 case ConcatExpression:
                 return optimizeConcatExpression((ConcatExpression)node,context);
             
+                case TemplateExpression:
+                return optimizeTemplateExpression((TemplateExpression)node,context);
+            
                 case BraceExpression:
                 return optimizeBraceExpression((BraceExpression)node,context);
             
@@ -1587,6 +1590,24 @@ public class XLangASTOptimizer<C> extends AbstractOptimizer<XLangASTNode,C>{
     
 	public XLangASTNode optimizeConcatExpression(ConcatExpression node, C context){
         ConcatExpression ret = node;
+
+        
+                    if(node.getExpressions() != null){
+                    
+                            java.util.List<io.nop.xlang.ast.Expression> expressionsOpt = optimizeList(node.getExpressions(),true, context);
+                            if(expressionsOpt != node.getExpressions()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(expressionsOpt); ret = node.deepClone();}
+                                ret.setExpressions(expressionsOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public XLangASTNode optimizeTemplateExpression(TemplateExpression node, C context){
+        TemplateExpression ret = node;
 
         
                     if(node.getExpressions() != null){

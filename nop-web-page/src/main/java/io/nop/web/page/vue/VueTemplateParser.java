@@ -7,12 +7,172 @@
  */
 package io.nop.web.page.vue;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.text.tokenizer.TextScanner;
+import io.nop.commons.util.objects.Pair;
+import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.XNode;
+import io.nop.xlang.ast.Expression;
 
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import static io.nop.web.page.vue.VueErrors.ARG_SLOT_NAME;
+import static io.nop.web.page.vue.VueErrors.ERR_VUE_SLOT_NOT_ALLOW_SLOT_CHILD;
+import static io.nop.web.page.vue.VueErrors.ERR_VUE_TEMPLATE_NO_SLOT_NAME;
+
+/**
+ * 解析简化的Vue模板
+ */
 public class VueTemplateParser {
-    public List<VueNode> parseTemplate(XNode node) {
+    public static VueTemplateParser INSTANCE = new VueTemplateParser();
+
+    public VueNode parseTemplate(XNode node) {
+        VueNode ret = new VueNode();
+        ret.setLocation(node.getLocation());
+        ret.setType(VueConstants.TAG_TEMPLATE);
+        if (node.hasContent()) {
+            ret.setContent(parseContent(node));
+        } else if (node.hasChild()) {
+            ret.setChildren(parseChildren(node));
+        }
+        return ret;
+    }
+
+    private Expression parseContent(XNode node) {
+        ValueWithLocation vl = node.content();
+        return parseTemplateExpr(vl);
+    }
+
+    private Expression parseTemplateExpr(ValueWithLocation vl) {
+        if (vl.isEmpty())
+            return null;
+        return new VueExpressionParser().parseTemplateExpr(vl.getLocation(), vl.asString());
+    }
+
+    private Expression parseExpr(ValueWithLocation vl) {
+        if (vl.isEmpty())
+            return null;
+        return new VueExpressionParser().parseExpr(vl.getLocation(), vl.asString());
+    }
+
+    private List<VueNode> parseChildren(XNode node) {
+        return node.getChildren().stream().map(this::parseVueNode).collect(Collectors.toList());
+    }
+
+    private VueNode parseVueNode(XNode node) {
+        VueNode ret = new VueNode();
+        ret.setLocation(node.getLocation());
+        ret.setType(node.getTagName());
+
+        node.forEachAttr((name, vl) -> {
+            if (name.equals(VueConstants.PROP_REF)) {
+                ret.setRef(vl.asString());
+            } else if (name.equals(VueConstants.V_IF)) {
+                Expression expr = parseExpr(vl);
+                ret.setIfExpr(expr);
+            } else if (name.equals(VueConstants.V_FOR)) {
+                parseFor(vl, ret);
+            } else if (name.startsWith(VueConstants.V_BIND_PREFIX)) {
+                String key = name.substring(VueConstants.V_BIND_PREFIX.length());
+                Expression expr = parseExpr(vl);
+                if (key.equals(VueConstants.PROP_KEY)) {
+                    ret.setKey(expr);
+                } else {
+                    ret.addProp(key, expr);
+                }
+            } else if (name.startsWith(VueConstants.V_ON_PREFIX)) {
+                String event = name.substring(VueConstants.V_ON_PREFIX.length());
+                Expression expr = parseExpr(vl);
+                ret.addEventListener(event, expr);
+            } else {
+                ret.addProp(name, vl.asString());
+            }
+        });
+
+        if (node.hasContent()) {
+            ret.setContent(parseContent(node));
+        } else if (node.hasChild()) {
+            List<VueNode> children = parseChildren(node);
+            Map<String, VueSlot> slots = null;
+            Iterator<VueNode> it = children.iterator();
+            while (it.hasNext()) {
+                VueNode child = it.next();
+                if (child.getType().equals(VueConstants.TAG_TEMPLATE)) {
+                    it.remove();
+
+                    Pair<String, String> slotArg = parseSlotArg(child);
+                    if (slotArg == null)
+                        throw new NopException(ERR_VUE_TEMPLATE_NO_SLOT_NAME)
+                                .loc(child.getLocation());
+
+                    if (child.getSlots() != null)
+                        throw new NopException(ERR_VUE_SLOT_NOT_ALLOW_SLOT_CHILD)
+                                .loc(child.getLocation()).param(ARG_SLOT_NAME, slotArg.getKey());
+
+                    if (slots == null)
+                        slots = new LinkedHashMap<>();
+
+                    VueSlot slot = new VueSlot();
+                    slot.setLocation(child.getLocation());
+                    slot.setSlotName(slotArg.getKey());
+                    slot.setSlotVar(slotArg.getValue());
+                    slot.setContent(child.getContent());
+                    slot.setChildren(child.getChildren());
+                    slots.put(slot.getSlotName(), slot);
+                }
+            }
+
+            ret.setSlots(slots);
+
+            if (!children.isEmpty()) {
+                ret.setChildren(children);
+            }
+        }
+        return ret;
+    }
+
+    private void parseFor(ValueWithLocation vl, VueNode node) {
+        TextScanner sc = TextScanner.fromString(vl.getLocation(), vl.asString());
+        sc.skipBlank();
+        if (sc.tryMatch('(')) {
+            String varName = sc.nextJavaVar();
+            sc.skipBlank();
+            node.setItemVarName(varName);
+            if (sc.tryMatch(',')) {
+                String indexName = sc.nextJavaVar();
+                node.setIndexVarName(indexName);
+                sc.skipBlank();
+            }
+            sc.match(')');
+        } else {
+            String varName = sc.nextJavaVar();
+            sc.skipBlank();
+            node.setItemVarName(varName);
+        }
+        sc.match("in");
+        Expression expr = new VueExpressionParser().parseExpr(sc);
+        sc.checkEnd();
+        node.setItemsExpr(expr);
+    }
+
+    private Pair<String, String> parseSlotArg(VueNode node) {
+        if (node.getProps() == null)
+            return null;
+
+        for (Map.Entry<String, Object> entry : node.getProps().entrySet()) {
+            String name = entry.getKey();
+            if (name.startsWith(VueConstants.V_SLOT_PREFIX)) {
+                String slotName = name.substring(VueConstants.V_SLOT_PREFIX.length());
+                String slotVar = (String) entry.getValue();
+                return Pair.of(slotName, slotVar);
+            }
+        }
         return null;
     }
+
+
 }
