@@ -42,7 +42,7 @@ public class VueSlot implements IVueNode {
         this.location = location;
     }
 
-    public Expression getContent() {
+    public Expression getContentExpr() {
         return content;
     }
 

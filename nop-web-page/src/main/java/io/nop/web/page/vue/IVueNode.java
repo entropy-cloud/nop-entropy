@@ -8,7 +8,7 @@ import java.util.List;
 public interface IVueNode {
     SourceLocation getLocation();
 
-    Expression getContent();
+    Expression getContentExpr();
 
     List<VueNode> getChildren();
 }

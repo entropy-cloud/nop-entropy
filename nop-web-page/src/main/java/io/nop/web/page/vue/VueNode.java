@@ -10,6 +10,7 @@ package io.nop.web.page.vue;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.TemplateExpression;
@@ -26,7 +27,7 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
     private SourceLocation location;
     private String type;
     private String ref;
-    private Expression key;
+    private Expression keyExpr;
     private Expression itemsExpr;
     private String indexVarName;
     private String itemVarName;
@@ -37,9 +38,27 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
     private Expression ifExpr;
     private Map<String, Object> props;
     private Map<String, Expression> eventHandlers;
-    private Expression content;
+
+    private Expression htmlExpr;
+    private Expression contentExpr;
     private List<VueNode> children;
     private Map<String, VueSlot> slots;
+
+    /**
+     * 如果首字母大写或者包含-，则认为是组件
+     */
+    public boolean isComponent() {
+        return Character.isUpperCase(type.charAt(0)) || type.indexOf('-') > 0;
+    }
+
+    /**
+     * 如果首字母大写或者包含-，则认为是组件
+     */
+    public String getComponentName() {
+        if (isComponent())
+            return StringHelper.camelCase(type, '-', true);
+        return null;
+    }
 
     public XNode toNode() {
         XNode node = XNode.make(type);
@@ -61,8 +80,8 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
             node.setAttr(VueConstants.V_FOR, expr);
         }
 
-        if (key != null) {
-            node.setAttr(VueConstants.V_BIND_PREFIX + VueConstants.PROP_KEY, key.toExprString());
+        if (keyExpr != null) {
+            node.setAttr(VueConstants.V_BIND_KEY, keyExpr.toExprString());
         }
 
         if (ifExpr != null) {
@@ -86,8 +105,12 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
             });
         }
 
-        if (content != null) {
-            String text = TemplateExpression.toTemplateString(content, "{{", "}}");
+        if (htmlExpr != null) {
+            node.setAttr(VueConstants.V_HTML, htmlExpr.toExprString());
+        }
+
+        if (contentExpr != null) {
+            String text = TemplateExpression.toTemplateString(contentExpr, "{{", "}}");
             node.setContentValue(text);
         }
 
@@ -106,6 +129,14 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
         return node;
     }
 
+    public Expression getHtmlExpr() {
+        return htmlExpr;
+    }
+
+    public void setHtmlExpr(Expression htmlExpr) {
+        this.htmlExpr = htmlExpr;
+    }
+
     @Override
     public SourceLocation getLocation() {
         return location;
@@ -115,12 +146,12 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
         this.location = location;
     }
 
-    public Expression getContent() {
-        return content;
+    public Expression getContentExpr() {
+        return contentExpr;
     }
 
-    public void setContent(Expression content) {
-        this.content = content;
+    public void setContentExpr(Expression contentExpr) {
+        this.contentExpr = contentExpr;
     }
 
     public Map<String, VueSlot> getSlots() {
@@ -159,12 +190,12 @@ public class VueNode implements IVueNode, ISourceLocationGetter {
         this.ref = ref;
     }
 
-    public Expression getKey() {
-        return key;
+    public Expression getKeyExpr() {
+        return keyExpr;
     }
 
-    public void setKey(Expression key) {
-        this.key = key;
+    public void setKeyExpr(Expression keyExpr) {
+        this.keyExpr = keyExpr;
     }
 
     public Expression getIfExpr() {

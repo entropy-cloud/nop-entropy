@@ -35,7 +35,7 @@ public class VueTemplateParser {
         ret.setLocation(node.getLocation());
         ret.setType(VueConstants.TAG_TEMPLATE);
         if (node.hasContent()) {
-            ret.setContent(parseContent(node));
+            ret.setContentExpr(parseContent(node));
         } else if (node.hasChild()) {
             ret.setChildren(parseChildren(node));
         }
@@ -76,14 +76,16 @@ public class VueTemplateParser {
                 ret.setIfExpr(expr);
             } else if (name.equals(VueConstants.V_FOR)) {
                 parseFor(vl, ret);
+            } else if (name.equals(VueConstants.V_HTML)) {
+                Expression expr = parseExpr(vl);
+                ret.setHtmlExpr(expr);
+            } else if (name.equals(VueConstants.V_BIND_KEY)) {
+                Expression expr = parseExpr(vl);
+                ret.setKeyExpr(expr);
             } else if (name.startsWith(VueConstants.V_BIND_PREFIX)) {
                 String key = name.substring(VueConstants.V_BIND_PREFIX.length());
                 Expression expr = parseExpr(vl);
-                if (key.equals(VueConstants.PROP_KEY)) {
-                    ret.setKey(expr);
-                } else {
-                    ret.addProp(key, expr);
-                }
+                ret.addProp(key, expr);
             } else if (name.startsWith(VueConstants.V_ON_PREFIX)) {
                 String event = name.substring(VueConstants.V_ON_PREFIX.length());
                 Expression expr = parseExpr(vl);
@@ -94,7 +96,7 @@ public class VueTemplateParser {
         });
 
         if (node.hasContent()) {
-            ret.setContent(parseContent(node));
+            ret.setContentExpr(parseContent(node));
         } else if (node.hasChild()) {
             List<VueNode> children = parseChildren(node);
             Map<String, VueSlot> slots = null;
@@ -120,7 +122,7 @@ public class VueTemplateParser {
                     slot.setLocation(child.getLocation());
                     slot.setSlotName(slotArg.getKey());
                     slot.setSlotVar(slotArg.getValue());
-                    slot.setContent(child.getContent());
+                    slot.setContent(child.getContentExpr());
                     slot.setChildren(child.getChildren());
                     slots.put(slot.getSlotName(), slot);
                 }
