@@ -14,6 +14,13 @@ public class WfTransitionToModel extends _WfTransitionToModel implements IWorkfl
 
     }
 
+    /**
+     * 是否回退链接，在计算流程图的生成树的时候会忽略backLink的连接
+     */
+    public boolean isBackLink(){
+        return false;
+    }
+
     public String getStepName(){
         return null;
     }

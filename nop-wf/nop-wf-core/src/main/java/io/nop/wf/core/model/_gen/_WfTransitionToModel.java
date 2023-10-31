@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [128:18:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [131:18:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -38,7 +38,7 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
     /**
      *  
      * xml name: order
-     * 
+     * transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
      */
     private int _order  = 0;
     
@@ -109,7 +109,7 @@ public abstract class _WfTransitionToModel extends io.nop.core.resource.componen
     /**
      * 
      * xml name: order
-     *  
+     *  transition-to节点的执行顺序。当splitType=or的时候，如果排在前面的节点如果满足条件，就不会检查排在后面的节点
      */
     
     public int getOrder(){
