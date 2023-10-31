@@ -20,7 +20,7 @@ public class IndentPrinter implements Appendable {
     private int lastLinePos;
     private int outputLength;
 
-    private String indentStr = "    ";
+    private String indentStr = "  ";
 
     private String lineBreak = "\n";
 
@@ -52,12 +52,14 @@ public class IndentPrinter implements Appendable {
         return this;
     }
 
-    public void incIndent() {
+    public IndentPrinter incIndent() {
         indentLevel++;
+        return this;
     }
 
-    public void decIndent() {
+    public IndentPrinter decIndent() {
         indentLevel--;
+        return this;
     }
 
     @Override
@@ -116,7 +118,7 @@ public class IndentPrinter implements Appendable {
         }
     }
 
-    public void indent() {
+    public IndentPrinter indent() {
         br();
 
         if (indentLevel > 0) {
@@ -129,5 +131,6 @@ public class IndentPrinter implements Appendable {
                 throw NopException.adapt(e);
             }
         }
+        return this;
     }
 }
