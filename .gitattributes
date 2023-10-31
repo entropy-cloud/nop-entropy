@@ -16,3 +16,4 @@
 *.tokens text eol=lf
 *.xpl text eol=lf
 *.md text eol=lf
+*.csv text eol=lf
