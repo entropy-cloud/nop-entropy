@@ -13,10 +13,13 @@ import com.lowagie.text.Font;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Phrase;
 import com.lowagie.text.Table;
+import com.lowagie.text.alignment.HorizontalAlignment;
+import com.lowagie.text.alignment.VerticalAlignment;
 import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfWriter;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.excel.model.constants.ExcelHorizontalAlignment;
 import org.junit.jupiter.api.Test;
 
 import java.awt.*;
@@ -34,7 +37,7 @@ public class TestOpenPdf extends BaseTestCase {
 
             // Create a new table
             Table table = new Table(3);
-            table.setWidth(100);
+            table.setWidths(new float[]{100,50,250});
             table.setBorderWidth(1);
             table.setBorderColor(Color.BLACK);
             table.setPadding(0);
@@ -45,11 +48,12 @@ public class TestOpenPdf extends BaseTestCase {
             Cell cell = new Cell(new Phrase("Cell 1",font));
             cell.setRowspan(2);
             cell.setColspan(2);
+            cell.setLeading(500);
             cell.setBackgroundColor(Color.YELLOW);
             cell.setBorderWidth(2);
             cell.setBorderColor(Color.RED);
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            cell.setVerticalAlignment(VerticalAlignment.CENTER);
             table.addCell(cell,0,0);
 
             // Create another cell and set its properties
@@ -58,8 +62,9 @@ public class TestOpenPdf extends BaseTestCase {
             cell.setBackgroundColor(Color.CYAN);
             cell.setBorderWidth(1);
             cell.setBorderColor(Color.BLACK);
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            cell.setVerticalAlignment(VerticalAlignment.CENTER);
+            cell.setLeading(100);
             table.addCell(cell,0,2);
 
             // Create another cell and set its properties
@@ -68,8 +73,9 @@ public class TestOpenPdf extends BaseTestCase {
             cell.setBackgroundColor(Color.LIGHT_GRAY);
             cell.setBorderWidth(1);
             cell.setBorderColor(Color.BLACK);
-            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            cell.setVerticalAlignment(VerticalAlignment.CENTER);
+            cell.setLeading(400);
             table.addCell(cell,1,2);
 
             // Add the table to the document
