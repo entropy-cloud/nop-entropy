@@ -22,6 +22,7 @@ import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.Literal;
 import io.nop.xlang.ast.OutputXmlAttrExpression;
 import io.nop.xlang.ast.OutputXmlExtAttrsExpression;
+import io.nop.xlang.ast.TemplateExpression;
 import io.nop.xlang.ast.XLangEscapeMode;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.XLangParseBuffer;
@@ -154,6 +155,12 @@ public class OutputParseHelper {
                 subExpr.setASTParent(null);
                 outputExpr(buf, escapeMode, subExpr);
             }
+        } else if (valueExpr instanceof TemplateExpression) {
+            TemplateExpression concat = (TemplateExpression) valueExpr;
+            for (Expression subExpr : concat.getExpressions()) {
+                subExpr.setASTParent(null);
+                outputExpr(buf, escapeMode, subExpr);
+            }
         } else {
             buf.add(EscapeOutputExpression.valueOf(loc, escapeMode, valueExpr));
         }
@@ -196,7 +203,7 @@ public class OutputParseHelper {
                 }
 
                 // xpl:disableNs和xpl:enableNs总是被处理？
-                if(name.equals(XplConstants.ATTR_XPL_ENABLE_NS) || name.equals(XplConstants.ATTR_XPL_DISABLE_NS))
+                if (name.equals(XplConstants.ATTR_XPL_ENABLE_NS) || name.equals(XplConstants.ATTR_XPL_DISABLE_NS))
                     return;
 
                 if (XplParseHelper.hasExpr(value.asString())) {
