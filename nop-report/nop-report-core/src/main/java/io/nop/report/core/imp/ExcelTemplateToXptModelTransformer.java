@@ -392,7 +392,7 @@ public class ExcelTemplateToXptModelTransformer {
 
     private static IEvalAction getExpandFieldAction(String name) {
         return new EvalCode(null, "cell.getExpandField('" + name + "')", ctx -> {
-            return ((IXptRuntime) ctx).getCell().getExpandField(ctx.getEvalScope(), name);
+            return ((IXptRuntime) ctx).getCell().getExpandField(name);
         });
     }
 }

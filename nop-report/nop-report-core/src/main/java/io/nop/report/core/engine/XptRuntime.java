@@ -114,7 +114,7 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
         if (XptConstants.VAR_IMAGE.equals(name))
             return image;
 
-        if(XptConstants.VAR_WORKBOOK.equals(name))
+        if (XptConstants.VAR_WORKBOOK.equals(name))
             return workbook;
         // 这里只判断扩展属性名，因此对于不识别的属性直接返回null
         return null;
@@ -151,11 +151,11 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
         }
 
         if (cell.getRowParent() != null) {
-            return cell.getRowParent().getExpandField(scope, field);
+            return cell.getRowParent().getExpandField(field);
         }
 
         if (cell.getColParent() != null) {
-            return cell.getColParent().getExpandField(scope, field);
+            return cell.getColParent().getExpandField(field);
         }
 
         if (sheet.getModel().getSheetVarName() != null) {
@@ -170,12 +170,12 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
 
     @Override
     public DynamicReportDataSet ds(String dsName) {
-        return DynamicReportDataSet.makeDataSet(getEvalScope(), dsName);
+        return DynamicReportDataSet.makeDataSet(this, dsName);
     }
 
     @Override
     public DynamicReportDataSet makeDs(String dsName, Object value) {
-        return DynamicReportDataSet.makeDataSetFromValue(getEvalScope(), dsName, value);
+        return DynamicReportDataSet.makeDataSetFromValue(dsName, value, this);
     }
 
     @Override

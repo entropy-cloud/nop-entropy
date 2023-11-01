@@ -7,7 +7,6 @@
  */
 package io.nop.report.core.dataset;
 
-import io.nop.api.core.annotations.lang.EvalMethod;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.FieldComparator;
@@ -16,8 +15,8 @@ import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
+import io.nop.report.core.engine.IXptRuntime;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -60,10 +59,10 @@ public class ReportDataSet implements Iterable<Object> {
         return new ReportDataSet(dsName, items);
     }
 
-    public DynamicReportDataSet toDynamic() {
+    public DynamicReportDataSet toDynamic(IXptRuntime xptRt) {
         if (this instanceof DynamicReportDataSet)
             return ((DynamicReportDataSet) this);
-        return new DynamicReportDataSet(dsName, items);
+        return new DynamicReportDataSet(dsName, items, xptRt);
     }
 
     public String getDsName() {
@@ -87,10 +86,9 @@ public class ReportDataSet implements Iterable<Object> {
         return items.iterator();
     }
 
-    @EvalMethod
-    public List<KeyedReportDataSet> group(IEvalScope scope, String field) {
+    public List<KeyedReportDataSet> group(String field) {
         Map<Object, List<Object>> map = new LinkedHashMap<>();
-        for (Object item : current(scope)) {
+        for (Object item : current()) {
             Object value = getFieldValue(item, field);
             map.computeIfAbsent(value, k -> new ArrayList<>()).add(item);
         }
@@ -103,10 +101,9 @@ public class ReportDataSet implements Iterable<Object> {
         return ret;
     }
 
-    @EvalMethod
-    public List<KeyedReportDataSet> groupBy(IEvalScope scope, Function<Object, Object> fn) {
+    public List<KeyedReportDataSet> groupBy(Function<Object, Object> fn) {
         Map<Object, List<Object>> map = new LinkedHashMap<>();
-        for (Object item : current(scope)) {
+        for (Object item : current()) {
             Object value = fn.apply(item);
             map.computeIfAbsent(value, k -> new ArrayList<>()).add(item);
         }
@@ -119,120 +116,104 @@ public class ReportDataSet implements Iterable<Object> {
         return ret;
     }
 
-    @EvalMethod
-    public List<KeyedReportDataSet> group(IEvalScope scope, String field, Object sortFn) {
-        List<KeyedReportDataSet> ret = group(scope, field);
+    public List<KeyedReportDataSet> group(String field, Object sortFn) {
+        List<KeyedReportDataSet> ret = group(field);
         return Underscore.sortBy(ret, sortFn);
     }
 
-    @EvalMethod
-    public ReportDataSet where(IEvalScope scope, Map<String, Object> props) {
-        List<Object> ret = Underscore.where(current(scope), props);
+    public ReportDataSet where(Map<String, Object> props) {
+        List<Object> ret = Underscore.where(current(), props);
         return new ReportDataSet(dsName, ret);
     }
 
-    @EvalMethod
-    public ReportDataSet where(IEvalScope scope, String propName, Object propValue) {
-        List<Object> ret = Underscore.where(current(scope), propName, propValue);
+    public ReportDataSet where(String propName, Object propValue) {
+        List<Object> ret = Underscore.where(current(), propName, propValue);
         return new ReportDataSet(dsName, ret);
     }
 
-    @EvalMethod
-    public ReportDataSet filter(IEvalScope scope, Predicate<Object> filter) {
-        List<Object> items = current(scope);
+    public ReportDataSet filter(Predicate<Object> filter) {
+        List<Object> items = current();
         items = items.stream().filter(filter).collect(Collectors.toList());
         return new ReportDataSet(dsName, items);
     }
 
-    @EvalMethod
-    public int countIf(IEvalScope scope, Predicate<Object> filter) {
-        List<Object> items = current(scope);
+    public int countIf(Predicate<Object> filter) {
+        List<Object> items = current();
         return (int) items.stream().filter(filter).count();
     }
 
-    @EvalMethod
-    public ReportDataSet sort(IEvalScope scope, String field, boolean desc) {
-        List<Object> items = current(scope);
+    public ReportDataSet sort(String field, boolean desc) {
+        List<Object> items = current();
         items = new ArrayList<>(items);
         items.sort(new FieldComparator<>(field, desc, null, this::getFieldValue));
         return new ReportDataSet(dsName, items);
     }
 
-    @EvalMethod
-    public ReportDataSet sortBy(IEvalScope scope, Function<Object, Object> fn) {
-        List<Object> items = current(scope);
+    public ReportDataSet sortBy(Function<Object, Object> fn) {
+        List<Object> items = current();
         items = new ArrayList<>(items);
         items.sort(new MappingComparator<>(false, null, fn));
         return new ReportDataSet(dsName, items);
     }
 
-    @EvalMethod
-    public ReportDataSet forEach(IEvalScope scope, Consumer<Object> action) {
-        List<Object> items = current(scope);
+    public ReportDataSet each(Consumer<Object> action) {
+        List<Object> items = current();
         items.forEach(action);
         return this;
     }
 
-    @EvalMethod
-    public ReportDataSet sort2(IEvalScope scope, String field, boolean desc, String field2, boolean desc2) {
+    public ReportDataSet sort2(String field, boolean desc, String field2, boolean desc2) {
         List<OrderFieldBean> orderBy = new ArrayList<>(2);
         orderBy.add(OrderFieldBean.forField(field, desc));
         orderBy.add(OrderFieldBean.forField(field2, desc2));
-        return sort(scope, orderBy);
+        return sort(orderBy);
     }
 
 
     /**
      * 在EL表达式中可以使用 ds.sort(order_by `a asc, b desc`)，利用order_by宏表达式来生成orderBy
      */
-    @EvalMethod
-    public ReportDataSet sort(IEvalScope scope, List<OrderFieldBean> orderBy) {
-        List<Object> items = current(scope);
+    public ReportDataSet sort(List<OrderFieldBean> orderBy) {
+        List<Object> items = current();
         items = new ArrayList<>(items);
         items.sort(new OrderByComparator<>(orderBy, this::getFieldValue));
         return new ReportDataSet(dsName, items);
     }
 
-    @EvalMethod
-    public Object first(IEvalScope scope) {
-        List<Object> items = current(scope);
+    public Object first() {
+        List<Object> items = current();
         if (items.isEmpty())
             return null;
         Object item = items.get(0);
         return item;
     }
 
-    @EvalMethod
-    public Object last(IEvalScope scope) {
-        List<Object> items = current(scope);
+    public Object last() {
+        List<Object> items = current();
         if (items.isEmpty())
             return null;
         Object item = items.get(items.size() - 1);
         return item;
     }
 
-    @EvalMethod
-    public Object field(IEvalScope scope, String field) {
-        Object item = first(scope);
+    public Object field(String field) {
+        Object item = first();
         return item == null ? null : getFieldValue(item, field);
     }
 
-    @EvalMethod
-    public List<Object> select(IEvalScope scope, String field) {
-        List<Object> items = current(scope);
+    public List<Object> select(String field) {
+        List<Object> items = current();
         return Underscore.pluck(items, field);
     }
 
-    @EvalMethod
-    public ReportDataSet map(IEvalScope scope, Function<Object, Object> fn) {
-        List<Object> items = current(scope);
+    public ReportDataSet map(Function<Object, Object> fn) {
+        List<Object> items = current();
         items = items.stream().map(fn).collect(Collectors.toList());
         return new ReportDataSet(dsName, items);
     }
 
-    @EvalMethod
-    public Number sum(IEvalScope scope, String field) {
-        List<Object> items = current(scope);
+    public Number sum(String field) {
+        List<Object> items = current();
         Number ret = 0;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
@@ -243,9 +224,8 @@ public class ReportDataSet implements Iterable<Object> {
         return ret;
     }
 
-    @EvalMethod
-    public Number sumBy(IEvalScope scope, Function<Object, Object> fn) {
-        List<Object> items = current(scope);
+    public Number sumBy(Function<Object, Object> fn) {
+        List<Object> items = current();
         Number ret = 0;
         for (Object item : items) {
             Object value = fn.apply(item);
@@ -256,9 +236,8 @@ public class ReportDataSet implements Iterable<Object> {
         return ret;
     }
 
-    @EvalMethod
-    public Number avg(IEvalScope scope, String field) {
-        List<Object> items = current(scope);
+    public Number avg(String field) {
+        List<Object> items = current();
         Number ret = 0;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
@@ -269,9 +248,8 @@ public class ReportDataSet implements Iterable<Object> {
         return MathHelper.divide(ret, items.size());
     }
 
-    @EvalMethod
-    public Number avgBy(IEvalScope scope, Function<Object, Object> fn) {
-        List<Object> items = current(scope);
+    public Number avgBy(Function<Object, Object> fn) {
+        List<Object> items = current();
         Number ret = 0;
         for (Object item : items) {
             Object value = fn.apply(item);
@@ -283,9 +261,8 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
 
-    @EvalMethod
-    public Object max(IEvalScope scope, String field) {
-        List<Object> items = current(scope);
+    public Object max(String field) {
+        List<Object> items = current();
         Object ret = null;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
@@ -301,9 +278,8 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
 
-    @EvalMethod
-    public Object maxBy(IEvalScope scope, Function<Object, Object> fn) {
-        List<Object> items = current(scope);
+    public Object maxBy(Function<Object, Object> fn) {
+        List<Object> items = current();
         Object ret = null;
         for (Object item : items) {
             Object value = fn.apply(item);
@@ -318,9 +294,8 @@ public class ReportDataSet implements Iterable<Object> {
         return ret;
     }
 
-    @EvalMethod
-    public Object min(IEvalScope scope, String field) {
-        List<Object> items = current(scope);
+    public Object min(String field) {
+        List<Object> items = current();
         Object ret = null;
         for (Object item : items) {
             Object value = getFieldValue(item, field);
@@ -335,9 +310,8 @@ public class ReportDataSet implements Iterable<Object> {
         return ret;
     }
 
-    @EvalMethod
-    public Object minBy(IEvalScope scope, Function<Object, Object> fn) {
-        List<Object> items = current(scope);
+    public Object minBy(Function<Object, Object> fn) {
+        List<Object> items = current();
         Object ret = null;
         for (Object item : items) {
             Object value = fn.apply(item);
@@ -356,8 +330,7 @@ public class ReportDataSet implements Iterable<Object> {
         return Underscore.getFieldValue(bean, field);
     }
 
-    @EvalMethod
-    public List<Object> current(IEvalScope scope) {
+    public List<Object> current() {
         return items;
     }
 }

@@ -68,8 +68,8 @@ public abstract class AbstractCellExpander implements ICellExpander {
                 return valueToIterator(xptRt.field(field));
             }
 
-            DynamicReportDataSet ds = DynamicReportDataSet.makeDataSet(xptRt.getEvalScope(), dsName);
-            return ds.group(xptRt.getEvalScope(), field).iterator();
+            DynamicReportDataSet ds = DynamicReportDataSet.makeDataSet(xptRt, dsName);
+            return ds.group(field).iterator();
         }
 
         Object value = model.getExpandExpr().invoke(xptRt);

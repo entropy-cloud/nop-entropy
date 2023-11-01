@@ -131,14 +131,13 @@ public class ExpandedSheetEvaluator {
                 if (value instanceof KeyedReportDataSet) {
                     cell.setValue(((KeyedReportDataSet) value).getKey());
                 } else {
-                    IEvalScope scope = xptRt.getEvalScope();
                     Object expandValue = cell.getExpandValue();
                     if (expandValue instanceof ReportDataSet) {
                         ReportDataSet ds = (ReportDataSet) expandValue;
                         if (cellModel.getField() != null) {
-                            cell.setValue(ds.field(scope, cellModel.getField()));
+                            cell.setValue(ds.field(cellModel.getField()));
                         } else {
-                            cell.setValue(ds.first(scope));
+                            cell.setValue(ds.first());
                         }
                     } else {
                         if (cellModel.getField() != null) {

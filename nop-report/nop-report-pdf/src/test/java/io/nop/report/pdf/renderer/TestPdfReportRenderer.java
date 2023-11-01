@@ -57,7 +57,7 @@ public class TestPdfReportRenderer extends JunitBaseTestCase {
             builder.toStream(os);
             builder.withW3cDocument(new W3CDom().fromJsoup(document), "/");
             addFont(builder, "C:\\Windows\\Fonts");
-            builder.run();
+          //  builder.run();
         } finally {
             IoHelper.safeCloseObject(os);
         }

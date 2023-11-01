@@ -495,11 +495,10 @@ public class ExpandedCell implements ICellView {
         return getExpandIndex();
     }
 
-    @EvalMethod
-    public Object getExpandField(IEvalScope scope, String name) {
+    public Object getExpandField(String name) {
         if (expandValue != null) {
             if (expandValue instanceof ReportDataSet) {
-                return ((ReportDataSet) expandValue).field(scope, name);
+                return ((ReportDataSet) expandValue).field(name);
             }
             return Underscore.getFieldValue(expandValue, name);
         }

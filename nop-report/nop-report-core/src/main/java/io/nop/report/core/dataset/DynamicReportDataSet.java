@@ -10,8 +10,7 @@ package io.nop.report.core.dataset;
 import io.nop.api.core.annotations.lang.EvalMethod;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.lang.eval.IEvalScope;
-import io.nop.report.core.XptConstants;
+import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.model.ExpandedCell;
 
 import java.util.ArrayList;
@@ -24,41 +23,43 @@ import static io.nop.report.core.XptErrors.ERR_XPT_MISSING_VAR_DS;
  * 根据单元格当前位置动态确定数据集中的内容
  */
 public class DynamicReportDataSet extends ReportDataSet {
-    public DynamicReportDataSet(String dsName, List<Object> items) {
-        super(dsName, items);
-    }
+    private final IXptRuntime xptRt;
 
-    @EvalMethod
-    public static DynamicReportDataSet makeDataSet(IEvalScope scope, String dsName) {
-        Object value = scope.getValue(dsName);
+    public DynamicReportDataSet(String dsName, List<Object> items, IXptRuntime xptRt) {
+        super(dsName, items);
+        this.xptRt = xptRt;
+    }
+    
+    public static DynamicReportDataSet makeDataSet(IXptRuntime xptRt, String dsName) {
+        Object value = xptRt.getEvalScope().getValue(dsName);
         if (value == null) {
             throw new NopException(ERR_XPT_MISSING_VAR_DS)
                     .param(ARG_DS_NAME, dsName);
         }
 
-        return makeDataSetFromValue(scope, dsName, value);
+        return makeDataSetFromValue(dsName, value, xptRt);
     }
 
     @EvalMethod
-    public static DynamicReportDataSet makeDataSetFromValue(IEvalScope scope, String dsName, Object value) {
+    public static DynamicReportDataSet makeDataSetFromValue(String dsName, Object value,
+                                                            IXptRuntime xptRt) {
         DynamicReportDataSet ds;
         if (value instanceof DynamicReportDataSet) {
             DynamicReportDataSet rs = (DynamicReportDataSet) value;
             if (rs.getDsName().equals(dsName))
                 return rs;
-            ds = new DynamicReportDataSet(dsName, rs.getItems());
+            ds = new DynamicReportDataSet(dsName, rs.getItems(), xptRt);
         } else {
             List<Object> items = CollectionHelper.toList(value);
-            ds = new DynamicReportDataSet(dsName, items);
+            ds = new DynamicReportDataSet(dsName, items, xptRt);
         }
-        scope.setLocalValue(null, dsName, ds);
+        xptRt.getEvalScope().setLocalValue(null, dsName, ds);
         return ds;
     }
 
     @Override
-    @EvalMethod
-    public List<Object> current(IEvalScope scope) {
-        ExpandedCell cell = (ExpandedCell) scope.getValue(XptConstants.VAR_CELL);
+    public List<Object> current() {
+        ExpandedCell cell = xptRt.getCell();
         if (cell == null)
             return getItems();
 
