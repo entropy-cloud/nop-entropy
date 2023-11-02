@@ -158,7 +158,11 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
         protected void doClose() {
             if (txn != null) {
                 if (!txn.isCompleted()) {
-                    transactionManager.rollback(txn);
+                    if(txn.isRollbackOnly()) {
+                        transactionManager.rollback(txn);
+                    }else{
+                        transactionManager.commit(txn);
+                    }
                 }
                 txn = null;
             }
