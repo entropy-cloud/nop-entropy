@@ -88,9 +88,9 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
 
                 @Override
                 public void afterCompletion(int status) {
+                    TransactionRegistry.instance().remove(txn.getTxnGroup(), txn);
                     ITransactionListener.CompleteStatus completeStatus = toCompleteStatus(status);
                     txn.afterCompletion(completeStatus);
-                    TransactionRegistry.instance().remove(txn.getTxnGroup(), txn);
                     txn.close();
                 }
             });

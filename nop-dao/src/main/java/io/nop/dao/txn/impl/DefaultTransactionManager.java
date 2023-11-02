@@ -11,9 +11,14 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.DaoConstants;
+import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
-import io.nop.dao.txn.*;
+import io.nop.dao.txn.ITransaction;
+import io.nop.dao.txn.ITransactionFactory;
+import io.nop.dao.txn.ITransactionListener;
+import io.nop.dao.txn.ITransactionManager;
+import io.nop.dao.txn.ITransactionMetrics;
 import io.nop.dao.utils.DaoHelper;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
@@ -30,6 +35,8 @@ import static io.nop.dao.DaoErrors.ERR_DAO_UNKNOWN_QUERY_SPACE;
 public class DefaultTransactionManager implements ITransactionManager {
     private Map<String, ITransactionFactory> transactionFactoryMap = new ConcurrentHashMap<>();
     private Map<String, String> txnGroupMap = new ConcurrentHashMap<>();
+
+    private final Map<String, String> querySpaceToDialectMap = new ConcurrentHashMap<>();
     private ITransactionFactory defaultFactory;
 
     private ITransactionListener defaultListener;
@@ -49,6 +56,17 @@ public class DefaultTransactionManager implements ITransactionManager {
             }
         }
     };
+
+    public void setQuerySpaceToDialectMap(Map<String, String> map) {
+        if (map != null) {
+            querySpaceToDialectMap.putAll(map);
+        }
+    }
+
+    public void setQuerySpaceToDialectConfig(String config) {
+        Map<String, String> map = StringHelper.parseStringMap(config, '=', ',');
+        setQuerySpaceToDialectMap(map);
+    }
 
     public void setTransactionMetrics(ITransactionMetrics transactionMetrics) {
         this.transactionMetrics = transactionMetrics;
@@ -178,6 +196,11 @@ public class DefaultTransactionManager implements ITransactionManager {
     @Override
     public IDialect getDialectForQuerySpace(String querySpace) {
         querySpace = DaoHelper.normalizeQuerySpace(querySpace);
+
+        String dialectName = querySpaceToDialectMap.get(querySpace);
+        if (dialectName != null)
+            return DialectManager.instance().getDialect(dialectName);
+
         return getTransactionFactory(querySpace).getDialectForQuerySpace(querySpace);
     }
 }

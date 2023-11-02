@@ -20,6 +20,7 @@
         </property>
 
         <property name="txnGroupMapConfig" value="@cfg:nop.dao.config.txn-group-map|"/>
+        <property name="querySpaceToDialectConfig" value="@cfg:nop.dao.config.query-space-to-dialect|"/>
         <property name="transactionMetrics" ref="nopDaoMetrics"/>
     </bean>
 
