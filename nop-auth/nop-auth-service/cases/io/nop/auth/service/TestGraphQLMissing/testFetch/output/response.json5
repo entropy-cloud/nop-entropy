@@ -1,58 +1,9 @@
 {
   "data": {
     "NopAuthUser__findPage": {
-      "total": 2,
+      "total": 0,
       "page": 1,
-      "items": [
-        {
-          "id": "3a756228b1c94379a137a5a1e639fdf6",
-          "userId": "3a756228b1c94379a137a5a1e639fdf6",
-          "userName": "sss",
-          "nickName": "vvv",
-          "dept": null,
-          "deptId": null,
-          "gender": 1,
-          "gender_label": "1-男",
-          "phone": null,
-          "birthday": null,
-          "userType": 1,
-          "userType_label": "1-普通用户",
-          "status": 1,
-          "status_label": "1-正常",
-          "expireAt": null,
-          "changePwdAtLogin": null,
-          "realName": null,
-          "workNo": null,
-          "positionId": "a9a3707f91734fcc93d57c981db5d623",
-          "telephone": null,
-          "position": {
-            "name": "abc"
-          }
-        },
-        {
-          "id": "c5be2b19d1bf4675a189f54fa5ce1c80",
-          "userId": "c5be2b19d1bf4675a189f54fa5ce1c80",
-          "userName": "nop",
-          "nickName": "Nopper",
-          "dept": null,
-          "deptId": null,
-          "gender": 1,
-          "gender_label": "1-男",
-          "phone": null,
-          "birthday": null,
-          "userType": 1,
-          "userType_label": "1-普通用户",
-          "status": 1,
-          "status_label": "1-正常",
-          "expireAt": null,
-          "changePwdAtLogin": null,
-          "realName": null,
-          "workNo": null,
-          "positionId": "33",
-          "telephone": null,
-          "position": null
-        }
-      ]
+      "items": []
     }
   }
 }

@@ -9,6 +9,7 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.FutureHelper;
@@ -35,7 +36,7 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig
+@NopTestConfig(initDatabaseSchema = true,localDb = true, disableSnapshot = false)
 public class TestLoginApi extends JunitAutoTestCase {
 
     @Inject
@@ -64,6 +65,9 @@ public class TestLoginApi extends JunitAutoTestCase {
     @Test
     public void testLogin() {
         LoginApi loginApi = buildLoginApi();
+
+        createTestUser();
+
         ApiRequest<LoginRequest> request = input("request.json5", new TypeReference<ApiRequest<LoginRequest>>() {
         }.getType());
         ApiResponse<LoginResult> result = loginApi.login(request);
@@ -72,11 +76,18 @@ public class TestLoginApi extends JunitAutoTestCase {
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 1000));
     }
 
+    void createTestUser(){
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.mutation, "NopAuthUser__save",
+                input("request-createUser.json5",ApiRequest.class));
+        FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
+    }
+
     @EnableSnapshot
     @Test
     public void testLoginLogout() {
         LoginApi loginApi = buildLoginApi();
 
+        createTestUser();
         ApiRequest<LoginRequest> request = request("1_request.json5", LoginRequest.class);
 
         ApiResponse<LoginResult> result = loginApi.login(request);

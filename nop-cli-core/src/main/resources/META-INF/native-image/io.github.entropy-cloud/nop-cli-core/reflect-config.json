@@ -12935,6 +12935,12 @@
         ]
       },
       {
+        "name": "getExpandField",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getExpandIndex",
         "parameterTypes": []
       },

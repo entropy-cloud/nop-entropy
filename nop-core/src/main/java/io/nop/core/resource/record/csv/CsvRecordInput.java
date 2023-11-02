@@ -102,7 +102,7 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
                 return (T) map;
             return (T) BeanTool.instance().buildBean(map, beanType, null);
         } catch (Exception e) {
-            throw new NopException(ERR_RESOURCE_READ_CSV_ROW_FAIL).param(ARG_RESOURCE, resource)
+            throw new NopException(ERR_RESOURCE_READ_CSV_ROW_FAIL,e).param(ARG_RESOURCE, resource)
                     .param(ARG_RESOURCE_PATH, resource.getPath()).param(ARG_READ_COUNT, readCount);
         }
     }

@@ -9,12 +9,12 @@
     "tokenType": "bearer",
     "userInfo": {
       "locale": "zh-CN",
+      "nickName": "autoTestNick",
+      "openId": "@var:NopAuthUser@openId",
       "roles": [],
-      "tenantId": null,
-      "openId": "*",
+      "tenantId": "0",
       "timeZone": null,
-      "userName": "auto_test1",
-      "nickName": "autoTestNick"
+      "userName": "auto_test1"
     }
   },
   "status": 0

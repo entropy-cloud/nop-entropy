@@ -1,2 +1,2 @@
-_chgType,SESSION_ID,USER_ID,LOGIN_ADDR,LOGIN_DEVICE,LOGIN_APP,LOGIN_OS,LOGIN_TIME,LOGIN_TYPE,LOGOUT_TIME,LOGOUT_TYPE,LAST_ACCESS_TIME,VERSION,CREATED_BY,CREATE_TIME,REMARK
-A,@var:NopAuthSession@sessionId,067e0f1a03cf4ae28f71b606de700716,,,,,@var:NopAuthSession@loginTime,1,@var:NopAuthSession@logoutTime,1,,1,autotest-ref,*,
+_chgType,SESSION_ID,USER_ID,USER_NAME,LOGIN_ADDR,LOGIN_DEVICE,LOGIN_APP,LOGIN_OS,LOGIN_TIME,LOGIN_TYPE,LOGOUT_TIME,LOGOUT_TYPE,LOGOUT_BY,LAST_ACCESS_TIME,VERSION,CREATED_BY,CREATE_TIME,REMARK
+A,@var:NopAuthSession@sessionId,@var:NopAuthUser@userId,auto_test1,,,,,@var:NopAuthSession@loginTime,1,@var:NopAuthSession@logoutTime,1,autotest-ref,,1,autotest-ref,*,

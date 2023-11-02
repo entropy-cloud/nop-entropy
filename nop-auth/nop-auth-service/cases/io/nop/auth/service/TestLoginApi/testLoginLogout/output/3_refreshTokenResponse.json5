@@ -1,6 +1,6 @@
 {
   "data": {
-    "accessToken": "@var:accessToken_1",
+    "accessToken": "@var:accessToken",
     "attrs": null,
     "expiresIn": 1800,
     "refreshExpiresIn": 0,
@@ -9,12 +9,12 @@
     "tokenType": "bearer",
     "userInfo": {
       "locale": "zh-CN",
+      "nickName": "autoTestNick",
+      "openId": "@var:NopAuthUser@openId",
       "roles": [],
-      "tenantId": null,
+      "tenantId": "0",
       "timeZone": null,
-      "openId": "*",
-      "userName": "auto_test1",
-      "nickName": "autoTestNick"
+      "userName": "auto_test1"
     }
   },
   "status": 0

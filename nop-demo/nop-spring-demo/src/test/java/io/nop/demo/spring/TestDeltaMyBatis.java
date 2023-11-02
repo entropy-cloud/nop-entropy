@@ -7,8 +7,10 @@
  */
 package io.nop.demo.spring;
 
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.dao.api.DaoProvider;
 import io.nop.demo.spring.domain.SysUser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,6 +22,9 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,6 +55,9 @@ public class TestDeltaMyBatis {
     public void testMapper() {
         LOG.info("enter-mapper");
         assertTrue(sysUserMapper == sysUserMapperEx);
+
+        List<NopAuthUser> users = DaoProvider.instance().daoFor(NopAuthUser.class).findAll();
+        assertEquals(1, users.size());
 
         SysUser user = sysUserMapperEx.selectUserByUserName("nop");
         assertNotNull(user.getUserId());

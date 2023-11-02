@@ -1,12 +1,12 @@
 {
   "data": {
     "locale": "zh-CN",
+    "nickName": "autoTestNick",
+    "openId": "@var:NopAuthUser@openId",
     "roles": [],
-    "tenantId": null,
+    "tenantId": "0",
     "timeZone": null,
-    "openId": "*",
-    "userName": "auto_test1",
-    "nickName": "autoTestNick"
+    "userName": "auto_test1"
   },
   "status": 0
 }
