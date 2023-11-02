@@ -303,6 +303,7 @@ prop:
       status_label: 用户状态
       substitutionMappings: 代理人映射
       telephone: 座机
+      tenantId: 租户ID
       updateTime: 修改时间
       updatedBy: 修改人
       userId: 用户ID

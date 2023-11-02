@@ -25,6 +25,7 @@ nop:
 
   orm:
     init-database-schema: true
+    enable-tenant-by-default: true
 
   datasource:
     #    driver-class-name: org.h2.Driver

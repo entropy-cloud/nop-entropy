@@ -15,6 +15,7 @@ import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.core.password.IPasswordEncoder;
@@ -26,7 +27,6 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.DaoConstants;
-
 import jakarta.inject.Inject;
 
 import static io.nop.auth.core.AuthCoreErrors.ERR_AUTH_OLD_PASSWORD_NOT_MATCH;
@@ -64,6 +64,13 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 
         user.setUserId(userIdGenerator.generateUserId(user));
         user.setOpenId(userIdGenerator.generateUserOpenId(user));
+
+        if (user.getTenantId() == null) {
+            String tenantId = ContextProvider.currentTenantId();
+            if (tenantId == null)
+                tenantId = DaoConstants.DEFAULT_TENANT_ID;
+            user.setTenantId(tenantId);
+        }
 
         user.setStatus(NopAuthConstants.USER_STATUS_ACTIVE);
         user.setDelFlag(DaoConstants.NO_VALUE);

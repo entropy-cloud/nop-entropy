@@ -42,13 +42,13 @@ public class NopDaoAutoConfiguration {
         JdbcTransactionFactory txnFactory = new JdbcTransactionFactory(dataSource, null);
         return txnFactory;
     }
-
-    @Bean
-    @ConditionalOnClass(PlatformTransactionManager.class)
-    @ConditionalOnProperty("nop.spring.tx.use-spring-transaction-factory")
-    public ITransactionFactory nopSpringTransactionFactory(PlatformTransactionManager txnManager) {
-        return new NopSpringTransactionFactory(txnManager);
-    }
+//
+//    @Bean
+//    @ConditionalOnClass(PlatformTransactionManager.class)
+//    @ConditionalOnProperty("nop.spring.tx.use-spring-transaction-factory")
+//    public ITransactionFactory nopSpringTransactionFactory(PlatformTransactionManager txnManager) {
+//        return new NopSpringTransactionFactory(txnManager);
+//    }
 
     @Bean
     @ConditionalOnMissingBean(ITransactionTemplate.class)

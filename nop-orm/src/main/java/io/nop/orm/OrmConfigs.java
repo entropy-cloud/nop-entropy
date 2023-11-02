@@ -58,4 +58,5 @@ public interface OrmConfigs {
     @Description("dao资源文件检查数据库实体的间隔时间，单位为毫秒")
     IConfigReference<Long> CFG_DAO_RESOURCE_CHECK_INTERVAL =
             varRef(s_loc,"nop.orm.dao-resource-check-interval", Long.class, 5000L);
+
 }

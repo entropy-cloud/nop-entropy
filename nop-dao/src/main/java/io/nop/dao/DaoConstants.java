@@ -14,6 +14,8 @@ public interface DaoConstants {
 
     String DEFAULT_TXN_GROUP = "default";
 
+    String DEFAULT_TENANT_ID = "0";
+
     String SEQ_TXN_ID = "seq_txn_id";
 
     String SQL_TYPE_EQL = "eql";

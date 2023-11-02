@@ -306,7 +306,7 @@ public class OrmEntityModelInitializer {
                     throw new NopException(ERR_ORM_UNKNOWN_COLUMN).source(entityModel)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, prop);
             } else {
-                col = addColumn(OrmModelConstants.PROP_NAME_nopTenant, StdSqlType.VARCHAR, 32);
+                col = addColumn(OrmModelConstants.PROP_NAME_nopTenantId, StdSqlType.VARCHAR, 32);
             }
             tenantPropId = col.getColumnPropId();
         }

@@ -1129,6 +1129,101 @@
     "fields": [],
     "methods": [
       {
+        "name": "build",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "cloneInstance",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getBooleanProperty",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIntProperty",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getIntProperty",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "getProperties",
+        "parameterTypes": []
+      },
+      {
+        "name": "getProperty",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getSelection",
+        "parameterTypes": []
+      },
+      {
+        "name": "getStringProperty",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeProperty",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setData",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setProperty",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setSelection",
+        "parameterTypes": [
+          "io.nop.api.core.beans.FieldSelectionBean"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.ApiRequest",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "buildError",
         "parameterTypes": [
           "io.nop.api.core.beans.ErrorBean"
@@ -2842,6 +2937,43 @@
     "fields": [],
     "methods": [
       {
+        "name": "addLocation",
+        "parameterTypes": [
+          "io.nop.api.core.beans.graphql.GraphQLSourceLocation"
+        ]
+      },
+      {
+        "name": "getLocations",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMessage",
+        "parameterTypes": []
+      },
+      {
+        "name": "setLocations",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setMessage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLErrorBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getId",
         "parameterTypes": []
       },
@@ -3083,6 +3215,37 @@
       }
     ],
     "name": "io.nop.api.core.beans.graphql.GraphQLResponseBean",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getColumn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLine",
+        "parameterTypes": []
+      },
+      {
+        "name": "setColumn",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setLine",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.beans.graphql.GraphQLSourceLocation",
     "unsafeAllocated": false
   },
   {
@@ -3647,6 +3810,15 @@
       {
         "name": "varRef",
         "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String",
+          "java.lang.Class",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "varRef",
+        "parameterTypes": [
           "java.lang.String",
           "java.lang.Class",
           "java.lang.Object"
@@ -3655,6 +3827,14 @@
       {
         "name": "withOverride",
         "parameterTypes": [
+          "io.nop.api.core.config.IConfigReference",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "withOverride",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
           "io.nop.api.core.config.IConfigReference",
           "java.lang.String"
         ]
@@ -5563,6 +5743,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getRememberMeCookie",
+        "parameterTypes": []
+      },
+      {
         "name": "isDefaultPublic",
         "parameterTypes": []
       },
@@ -5571,6 +5755,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "isRememberMeEnabled",
+        "parameterTypes": []
       },
       {
         "name": "setAuthCookie",
@@ -5606,6 +5794,18 @@
         "name": "setPublicPaths",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setRememberMeCookie",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRememberMeEnabled",
+        "parameterTypes": [
+          "boolean"
         ]
       }
     ],
@@ -5663,6 +5863,12 @@
           "io.nop.http.api.server.IHttpServerContext",
           "java.util.function.Supplier",
           "io.nop.auth.core.login.AuthToken"
+        ]
+      },
+      {
+        "name": "hasOAuthCode",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext"
         ]
       },
       {
@@ -6366,12 +6572,29 @@
         ]
       },
       {
+        "name": "encodePassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "generateSalt",
         "parameterTypes": []
       },
       {
         "name": "passwordMatches",
         "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "passwordMatches",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
@@ -6396,6 +6619,14 @@
         ]
       },
       {
+        "name": "encodePassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "generateSalt",
         "parameterTypes": []
       },
@@ -6414,6 +6645,15 @@
       {
         "name": "passwordMatches",
         "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "passwordMatches",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
@@ -6534,12 +6774,29 @@
         ]
       },
       {
+        "name": "encodePassword",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "generateSalt",
         "parameterTypes": []
       },
       {
         "name": "passwordMatches",
         "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "passwordMatches",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
@@ -11702,6 +11959,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_tenantId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_updateTime"
       },
       {
@@ -11917,6 +12179,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_tenantId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_updateTime"
       },
       {
@@ -12121,6 +12388,10 @@
       },
       {
         "name": "getTelephone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
         "parameterTypes": []
       },
       {
@@ -12405,6 +12676,12 @@
       },
       {
         "name": "setTelephone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTenantId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -14658,7 +14935,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
     "methods": [
       {
         "name": "clearComponentCache",
@@ -16995,6 +17278,10 @@
       },
       {
         "name": "getJavaTypeName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getJsonType",
         "parameterTypes": []
       },
       {
@@ -24043,6 +24330,12 @@
         ]
       },
       {
+        "name": "isTextResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "isValidModuleId",
         "parameterTypes": [
           "java.lang.String"
@@ -24065,6 +24358,10 @@
         "parameterTypes": [
           "io.nop.core.resource.IResource"
         ]
+      },
+      {
+        "name": "newDynamicPath",
+        "parameterTypes": []
       },
       {
         "name": "normalizePath",
@@ -24367,6 +24664,13 @@
           "io.nop.core.resource.IResource",
           "io.nop.commons.io.serialize.IStateSerializable",
           "io.nop.commons.io.serialize.IStreamSerializer"
+        ]
+      },
+      {
+        "name": "writeStream",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.io.InputStream"
         ]
       },
       {
@@ -24698,6 +25002,12 @@
         "name": "registerInstance",
         "parameterTypes": [
           "io.nop.core.resource.component.IResourceComponentManager"
+        ]
+      },
+      {
+        "name": "removeCachedModel",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -28486,14 +28796,31 @@
     "fields": [],
     "methods": [
       {
+        "name": "addQuerySpace",
+        "parameterTypes": [
+          "java.lang.String",
+          "javax.sql.DataSource"
+        ]
+      },
+      {
         "name": "getDefaultListener",
         "parameterTypes": []
+      },
+      {
+        "name": "getDialectForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getMainTxnGroup",
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getNamedQuerySpaces",
+        "parameterTypes": []
       },
       {
         "name": "getRegisteredTransaction",
@@ -28523,6 +28850,12 @@
         "name": "registerTransaction",
         "parameterTypes": [
           "io.nop.dao.txn.ITransaction"
+        ]
+      },
+      {
+        "name": "removeQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -28584,6 +28917,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "getDialectForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "getMainTxnGroup",
         "parameterTypes": [
@@ -30303,6 +30642,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "clearCache",
+        "parameterTypes": []
       },
       {
         "name": "executeGraphQLAsync",
@@ -34507,6 +34850,10 @@
         "parameterTypes": [
           "io.nop.orm.IOrmSession"
         ]
+      },
+      {
+        "name": "reloadModel",
+        "parameterTypes": []
       },
       {
         "name": "requireSession",
@@ -48654,7 +49001,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "validate",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.xui.model.UiFormCellModel",
     "unsafeAllocated": false
   },
@@ -48671,6 +49027,10 @@
       },
       {
         "name": "getTables",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
         "parameterTypes": []
       },
       {
@@ -48693,7 +49053,16 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "validate",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.xui.model.UiGridColModel",
     "unsafeAllocated": false
   },
@@ -48706,6 +49075,10 @@
     "methods": [
       {
         "name": "containsBreakpoint",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
         "parameterTypes": []
       },
       {
@@ -49366,6 +49739,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getMessages",
+        "parameterTypes": []
+      },
+      {
         "name": "getObjMeta",
         "parameterTypes": []
       },
@@ -49483,6 +49860,10 @@
       },
       {
         "name": "hasInitAsyncApi",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasMessages",
         "parameterTypes": []
       },
       {
@@ -49645,6 +50026,12 @@
         "name": "setLayoutMode",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMessages",
+        "parameterTypes": [
+          "java.util.Map"
         ]
       },
       {
@@ -50380,6 +50767,13 @@
         ]
       },
       {
+        "name": "getRelationViewUrl",
+        "parameterTypes": [
+          "io.nop.xlang.xmeta.IObjPropMeta",
+          "io.nop.xlang.xmeta.IObjMeta"
+        ]
+      },
+      {
         "name": "isRelationProp",
         "parameterTypes": [
           "io.nop.xlang.xmeta.IObjPropMeta"
@@ -50848,6 +51242,14 @@
       {
         "name": "indexOf",
         "parameterTypes": [
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -50855,6 +51257,14 @@
         "name": "indexOf",
         "parameterTypes": [
           "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
+          "java.lang.String",
+          "int",
           "int"
         ]
       },
@@ -50998,6 +51408,13 @@
       },
       {
         "name": "split",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "splitWithDelimiters",
         "parameterTypes": [
           "java.lang.String",
           "int"
@@ -51608,6 +52025,18 @@
         ]
       },
       {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "clear",
         "parameterTypes": []
       },
@@ -51644,6 +52073,14 @@
         "parameterTypes": [
           "int"
         ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
       },
       {
         "name": "hashCode",
@@ -51698,10 +52135,18 @@
         ]
       },
       {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
         "name": "removeIf",
         "parameterTypes": [
           "java.util.function.Predicate"
         ]
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
       },
       {
         "name": "replaceAll",
@@ -51938,6 +52383,12 @@
         ]
       },
       {
+        "name": "newHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "put",
         "parameterTypes": [
           "java.lang.Object",
@@ -52039,6 +52490,12 @@
         "parameterTypes": []
       },
       {
+        "name": "newHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "remove",
         "parameterTypes": [
           "java.lang.Object"
@@ -52111,10 +52568,46 @@
         "parameterTypes": []
       },
       {
+        "name": "newLinkedHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "putFirst",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "putLast",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "replaceAll",
         "parameterTypes": [
           "java.util.function.BiFunction"
         ]
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedEntrySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedKeySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedValues",
+        "parameterTypes": []
       },
       {
         "name": "values",
@@ -52131,6 +52624,44 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "newLinkedHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
       {
         "name": "spliterator",
         "parameterTypes": []
@@ -52674,6 +53205,21 @@
       }
     ],
     "name": "java.util.Map",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.util.SequencedCollection",
     "unsafeAllocated": false
   },
   {

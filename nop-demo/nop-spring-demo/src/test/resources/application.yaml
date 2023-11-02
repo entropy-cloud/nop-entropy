@@ -4,6 +4,7 @@ nop:
 
   dao:
     use-parent-data-source: true
+    use-parent-transaction-factory: true
 
   auth:
     login:

@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 import static io.nop.orm.OrmErrors.ARG_DATA_TYPE;
 import static io.nop.orm.OrmErrors.ERR_ORM_UNSUPPORTED_DATA_TYPE;
 
-public abstract class AbstractOrmKeyValueTable extends OrmEntity implements IOrmKeyValueTable {
+public abstract class AbstractOrmKeyValueTable extends DynamicOrmEntity implements IOrmKeyValueTable {
 
     @Override
     public Object getValue() {

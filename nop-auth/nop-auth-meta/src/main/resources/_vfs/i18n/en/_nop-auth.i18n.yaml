@@ -288,6 +288,7 @@ prop:
       clientId: Client Id
       delFlag: Deleted
       version: Version
+      tenantId: Tenant ID
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By

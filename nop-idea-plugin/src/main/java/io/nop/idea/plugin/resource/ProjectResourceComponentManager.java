@@ -34,6 +34,11 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
+    public void removeCachedModel(String path) {
+        this.getImpl().removeCachedModel(path);
+    }
+
+    @Override
     public Runnable registerComponentModelLoader(String modelType, String fileType, IResourceObjectLoader<? extends IComponentModel> loader, boolean replace) {
         return getImpl().registerComponentModelLoader(modelType, fileType, loader, replace);
     }

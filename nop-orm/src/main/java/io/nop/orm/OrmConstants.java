@@ -123,4 +123,5 @@ public interface OrmConstants {
     String USER_NAME_SYS = "sys";
 
     String NAMESPACE_NS = "dao";
+
 }

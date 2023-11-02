@@ -105,19 +105,21 @@
                         ui:show="X"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="30"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
+                <column code="TENANT_ID" displayName="租户ID" mandatory="true" name="tenantId" precision="32" propId="31"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tenant ID" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="31" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="32" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="L"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="32" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="33" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="L"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="33" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="34" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="L"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="34" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="35" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="L"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="35"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="36"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="SL"/>
             </columns>
             <relations>

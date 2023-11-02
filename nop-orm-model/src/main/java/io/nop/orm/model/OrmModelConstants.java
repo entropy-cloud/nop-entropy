@@ -42,7 +42,7 @@ public interface OrmModelConstants {
     String PROP_NAME_nopRevEndVer = "nopRevEndVer";
     String PROP_NAME_nopRevExtChange = "nopRevExtChange";
     String PROP_NAME_nopShard = "nopShard";
-    String PROP_NAME_nopTenant = "nopTenant";
+    String PROP_NAME_nopTenantId = "nopTenantId";
     String PROP_NAME_nopFlowId = "nopFlowId";
     String PROP_NAME_nopFlowStatus = "nopFlowStatus";
 

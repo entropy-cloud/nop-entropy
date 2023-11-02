@@ -214,6 +214,7 @@ CREATE TABLE nop_auth_user(
   CLIENT_ID VARCHAR(100)  ,
   DEL_FLAG INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
+  TENANT_ID VARCHAR(32) NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR(50) NOT NULL ,
@@ -648,6 +649,8 @@ CREATE TABLE nop_auth_position(
       COMMENT ON COLUMN nop_auth_user.DEL_FLAG IS '删除标识';
                     
       COMMENT ON COLUMN nop_auth_user.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_auth_user.TENANT_ID IS '租户ID';
                     
       COMMENT ON COLUMN nop_auth_user.CREATED_BY IS '创建人';
                     

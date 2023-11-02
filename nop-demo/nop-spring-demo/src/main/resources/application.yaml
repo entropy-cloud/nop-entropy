@@ -23,16 +23,25 @@ nop:
   orm:
     init-database-schema: true
 
-  datasource:
-    driver-class-name: org.h2.Driver
-    jdbc-url: jdbc:h2:./db/test
-    username: sa
-    password:
+  # 使用Spring所管理的数据源和事务管理器
+  dao:
+    use-parent-data-source: true
+    use-parent-transaction-factory: true
+
+#  datasource:
+#    driver-class-name: org.h2.Driver
+#    jdbc-url: jdbc:h2:./db/test
+#    username: sa
+#    password:
     #driver-class-name: com.mysql.cj.jdbc.Driver
     #jdbc-url: jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
     #username: nop
     #password: nop-test
 
+spring.datasource.driver-class-name: org.h2.Driver
+spring.datasource.url : jdbc:h2:./db/test
+spring.datasource.username : sa
+spring.datasource.password :
 
 # 开发模式配置
 "%dev":
@@ -42,11 +51,11 @@ nop:
     auth:
       login:
         allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
-    datasource:
-      driver-class-name: org.h2.Driver
-      jdbc-url: jdbc:h2:./db/test
-      username: sa
-      password:
+#    datasource:
+#      driver-class-name: org.h2.Driver
+#      jdbc-url: jdbc:h2:./db/test
+#      username: sa
+#      password:
 
     web:
       validate-page-model: true
@@ -61,3 +70,7 @@ nop:
 
 server:
   port: 8080
+
+logging:
+  level:
+    ROOT: DEBUG

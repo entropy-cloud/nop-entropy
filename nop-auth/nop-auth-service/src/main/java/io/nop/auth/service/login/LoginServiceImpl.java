@@ -11,7 +11,6 @@ import io.nop.api.core.audit.AuditRequest;
 import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.config.AppConfig;
-import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -30,6 +29,7 @@ import io.nop.auth.core.password.IPasswordEncoder;
 import io.nop.auth.core.verifycode.IVerifyCodeGenerator;
 import io.nop.auth.core.verifycode.VerifyCode;
 import io.nop.auth.dao.entity.NopAuthRole;
+import io.nop.auth.dao.entity.NopAuthTenant;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
@@ -38,10 +38,10 @@ import io.nop.dao.DaoConstants;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.inject.Inject;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -68,6 +68,7 @@ import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LOGIN_CHECK_FAIL_TOO_MA
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_LOGIN_WITH_UNKNOWN_USER;
 import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_USER_NOT_ALLOW_LOGIN;
 import static io.nop.commons.util.StringHelper.isYes;
+import static io.nop.dao.DaoConfigs.CFG_ORM_ENABLE_TENANT_BY_DEFAULT;
 
 public class LoginServiceImpl extends AbstractLoginService {
     static final Logger LOG = LoggerFactory.getLogger(LoginServiceImpl.class);
@@ -121,7 +122,19 @@ public class LoginServiceImpl extends AbstractLoginService {
                 user.setCreatedBy("sys");
                 user.setUpdatedBy("sys");
                 user.setUserId(StringHelper.generateUUID());
+                user.setTenantId("0");
                 dao.saveEntity(user);
+            }
+
+            if (CFG_ORM_ENABLE_TENANT_BY_DEFAULT.get()) {
+                IEntityDao<NopAuthTenant> tenantDao = daoProvider.daoFor(NopAuthTenant.class);
+                if (tenantDao.isEmpty()) {
+                    NopAuthTenant tenant = tenantDao.newEntity();
+                    tenant.setTenantId("0");
+                    tenant.setName("DefaultTenant");
+                    tenant.setStatus(1);
+                    tenantDao.saveEntity(tenant);
+                }
             }
         }
     }
@@ -213,7 +226,7 @@ public class LoginServiceImpl extends AbstractLoginService {
         context.setLocale(request.getLocale() == null ? AppConfig.appLocale() : request.getLocale());
         context.setTimeZone(request.getTimeZone() == null ? AppConfig.appTimezone() : request.getTimeZone());
         context.setDeptId(user.getDeptId());
-        context.setTenantId(ContextProvider.currentTenantId());
+        context.setTenantId(user.getTenantId());
 
         Set<NopAuthRole> roles = user.getRoles();
         Set<String> roleIds = new TreeSet<>();
@@ -267,7 +280,7 @@ public class LoginServiceImpl extends AbstractLoginService {
     }
 
     boolean checkVerifyCode(LoginRequest request) {
-        if(verifyCodeGenerator == null)
+        if (verifyCodeGenerator == null)
             return true;
 
         String cachedCode = userContextCache.getVerifyCode(request.getVerifySecret());
@@ -391,7 +404,7 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     @Override
     public String generateVerifyCode(String verifySecret) {
-        if(verifyCodeGenerator == null)
+        if (verifyCodeGenerator == null)
             return "fake-code";
 
         VerifyCode verifyCode = verifyCodeGenerator.generateCode(verifySecret);

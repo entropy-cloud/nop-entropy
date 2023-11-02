@@ -1,5 +1,6 @@
 <lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:thisLib="thisLib" xmlns:c="c" xmlns:xpl="xpl">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:thisLib="thisLib" xmlns:c="c" xmlns:xpl="xpl"
+     xmlns:feature="feature">
 
     <tags>
         <!--
@@ -12,6 +13,7 @@
                 <thisLib:XmlComponentSupport/>
                 <thisLib:ExtFieldsSupport/>
                 <thisLib:FileComponentSupport/>
+                <thisLib:TenantSupport feature:on="nop.orm.enable-tenant-by-default" />
             </source>
         </DefaultPostExtends>
 
@@ -248,6 +250,31 @@
                 </orm>
             </source>
         </FileComponentSupport>
+
+        <TenantSupport>
+           <!--
+              _dsl_root为元编程阶段可访问的配置文件根节点
+           -->
+           <attr name="_dsl_root" implicit="true"/>
+
+           <source>
+              <c:script><![CDATA[
+                for(let entityNode of _dsl_root.childByTag('entities').children){
+                    const name = entityNode.attrText('name').$simpleClassName();
+
+                    // 租户表和用户表缺省情况下不启用tenant过滤，否则不太好维护
+                    if(name == 'NopAuthTenant' || name == 'NopAuthUser'
+                       || name == 'NopAuthSession' || name == 'NopAuthOpLog')
+                       continue;
+
+                    // 如果没有明确指定是否启用tenant，则缺省启用
+                    if(entityNode.getAttr('useTenant') == null){
+                       entityNode.setAttr('useTenant',true);
+                    }
+                }
+              ]]></c:script>
+           </source>
+        </TenantSupport>
 
         <GenFromExcel  outputMode="node">
             <attr name="path" type="string"/>

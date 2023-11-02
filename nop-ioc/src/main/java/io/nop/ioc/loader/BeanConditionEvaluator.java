@@ -466,7 +466,7 @@ public class BeanConditionEvaluator {
                 if (condition.getMissingBean() != null) {
                     for (String beanName : condition.getMissingBean()) {
                         if (enabledBeans.containsKey(beanName)) {
-                            sb.append("\n    check-missing-bean-fail:").append(beanName);
+                            sb.append("\n    check-missing-bean-fail:").append(beanName).append(",existing=").append(enabledBeans.get(beanName).getLocation());
                         }
                     }
                 }

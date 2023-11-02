@@ -140,28 +140,32 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 30;
     
+    /* 租户ID: TENANT_ID VARCHAR */
+    public static final String PROP_NAME_tenantId = "tenantId";
+    public static final int PROP_ID_tenantId = 31;
+    
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 31;
+    public static final int PROP_ID_createdBy = 32;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 32;
+    public static final int PROP_ID_createTime = 33;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 33;
+    public static final int PROP_ID_updatedBy = 34;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 34;
+    public static final int PROP_ID_updateTime = 35;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 35;
+    public static final int PROP_ID_remark = 36;
     
 
-    private static int _PROP_ID_BOUND = 36;
+    private static int _PROP_ID_BOUND = 37;
 
     
     /* relation: 部门 */
@@ -192,7 +196,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[36];
+    private static final String[] PROP_ID_TO_NAME = new String[37];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -285,6 +289,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
+      
+          PROP_ID_TO_NAME[PROP_ID_tenantId] = PROP_NAME_tenantId;
+          PROP_NAME_TO_ID.put(PROP_NAME_tenantId, PROP_ID_tenantId);
       
           PROP_ID_TO_NAME[PROP_ID_createdBy] = PROP_NAME_createdBy;
           PROP_NAME_TO_ID.put(PROP_NAME_createdBy, PROP_ID_createdBy);
@@ -393,6 +400,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
+    
+    /* 租户ID: TENANT_ID */
+    private java.lang.String _tenantId;
     
     /* 创建人: CREATED_BY */
     private java.lang.String _createdBy;
@@ -568,6 +578,9 @@ public class _NopAuthUser extends DynamicOrmEntity{
         
             case PROP_ID_version:
                return getVersion();
+        
+            case PROP_ID_tenantId:
+               return getTenantId();
         
             case PROP_ID_createdBy:
                return getCreatedBy();
@@ -895,6 +908,16 @@ public class _NopAuthUser extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_tenantId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_tenantId));
+               }
+               setTenantId(typedValue);
+               break;
+            }
+        
             case PROP_ID_createdBy:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -1160,6 +1183,13 @@ public class _NopAuthUser extends DynamicOrmEntity{
             case PROP_ID_version:{
                onInitProp(propId);
                this._version = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_tenantId:{
+               onInitProp(propId);
+               this._tenantId = (java.lang.String)value;
                
                break;
             }
@@ -1771,6 +1801,25 @@ public class _NopAuthUser extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
+            
+        }
+    }
+    
+    /**
+     * 租户ID: TENANT_ID
+     */
+    public java.lang.String getTenantId(){
+         onPropGet(PROP_ID_tenantId);
+         return _tenantId;
+    }
+
+    /**
+     * 租户ID: TENANT_ID
+     */
+    public void setTenantId(java.lang.String value){
+        if(onPropSet(PROP_ID_tenantId,value)){
+            this._tenantId = value;
+            internalClearRefs(PROP_ID_tenantId);
             
         }
     }
