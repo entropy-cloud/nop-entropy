@@ -25,6 +25,7 @@ import io.nop.auth.dao.generator.IUserIdGenerator;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.biz.crud.EntityData;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.dao.DaoConstants;
 import jakarta.inject.Inject;
@@ -65,9 +66,9 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
         user.setUserId(userIdGenerator.generateUserId(user));
         user.setOpenId(userIdGenerator.generateUserOpenId(user));
 
-        if (user.getTenantId() == null) {
+        if (StringHelper.isEmpty(user.getTenantId())) {
             String tenantId = ContextProvider.currentTenantId();
-            if (tenantId == null)
+            if (StringHelper.isEmpty(tenantId))
                 tenantId = DaoConstants.DEFAULT_TENANT_ID;
             user.setTenantId(tenantId);
         }

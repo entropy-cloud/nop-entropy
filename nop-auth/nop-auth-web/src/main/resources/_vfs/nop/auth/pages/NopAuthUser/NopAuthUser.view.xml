@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<view x:extends="_gen/_NopAuthUser.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<view x:extends="_gen/_NopAuthUser.view.xml" x:schema="/nop/schema/xui/xview.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:feature="feature">
 
     <grids>
         <grid id="list"/>
@@ -25,6 +26,7 @@
                 email[邮件] phone[电话]
                 openId[用户外部标识]
                 expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]
+                tenantId
 
                 ===========>extInfo[扩展信息]=========
                 idType[证件类型] idNbr[证件号]
@@ -46,6 +48,7 @@
                 password[密码] *__password2[重复密码]
                 email[邮件] phone[电话]
                 expireAt[用户过期时间] changePwdAtLogin[登陆后立刻修改密码]
+                tenantId[租户]
 
                 ===========^extInfo[扩展信息]=========
                 idType[证件类型] idNbr[证件号]
@@ -62,6 +65,7 @@
                         </input-password>
                     </gen-control>
                 </cell>
+                <cell id="tenantId" mandatory="false" />
             </cells>
         </form>
 

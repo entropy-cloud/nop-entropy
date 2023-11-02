@@ -7,7 +7,11 @@
         <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
 
         <prop name="password" displayName="密码" readable="false" insertable="true" updatable="false">
-            <schema type="String" domain="password" maxLength="20" />
+            <schema type="String" domain="password" maxLength="20"/>
+        </prop>
+
+        <prop name="tenantId">
+            <schema dict="obj/NopAuthTenant"/>
         </prop>
     </props>
 

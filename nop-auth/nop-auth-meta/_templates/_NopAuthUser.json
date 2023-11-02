@@ -33,6 +33,7 @@
   "delFlag": 0,
   "version": 0,
   "tenantId": "",
+  "tenantId_label": "",
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",

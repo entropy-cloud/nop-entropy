@@ -906,8 +906,8 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthTenant" createTimeProp="createTime" createrProp="createdBy"
                 deleteFlagProp="delFlag" displayName="租户" name="io.nop.auth.dao.entity.NopAuthTenant"
-                registerShortName="true" tableName="nop_auth_tenant" updateTimeProp="updateTime" updaterProp="updatedBy"
-                useLogicalDelete="true" versionProp="version" i18n-en:displayName="Tenant">
+                registerShortName="true" tableName="nop_auth_tenant" tagSet="dict" updateTimeProp="updateTime"
+                updaterProp="updatedBy" useLogicalDelete="true" versionProp="version" i18n-en:displayName="Tenant">
             <columns>
                 <column code="TENANT_ID" displayName="主键" mandatory="true" name="tenantId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
