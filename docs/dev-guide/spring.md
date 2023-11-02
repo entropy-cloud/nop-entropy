@@ -57,6 +57,13 @@ nop.orm.use-parent-data-source=true
 
 这个配置会禁用Nop平台内部的nopDataSource定义，然后将nopDataSource对应于别名dataSource。因此要求Spring容器中提供一个名称为dataSource的数据源定义。
 
+## 使用Spring事务管理统一管理事务
+需要注意的时，如果使用Spring事务，则NopORM的异步执行逻辑会不正确，只能采用同步执行。
+
+````
+nop.orm.use-parent-transaction-factory=true
+````
+
 ## 使用NopGraphQL服务
 如果需要使用NopGraphQL服务，则可以引入nop-spring-web-starter模块
 
