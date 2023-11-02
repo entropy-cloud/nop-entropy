@@ -9,6 +9,8 @@ package io.nop.dao.txn;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.dao.dialect.IDialect;
+import io.nop.dao.dialect.IDialectProvider;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -16,9 +18,11 @@ import java.util.function.Function;
 import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
 import static io.nop.dao.DaoErrors.ERR_TXN_NOT_IN_TRANSACTION;
 
-public interface ITransactionTemplate {
+public interface ITransactionTemplate extends IDialectProvider {
 
     boolean isQuerySpaceDefined(String querySpace);
+
+    IDialect getDialectForQuerySpace(String querySpace);
 
     /**
      * 返回指定分支事务组对应的主事务组

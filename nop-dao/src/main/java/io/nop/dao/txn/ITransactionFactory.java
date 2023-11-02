@@ -7,8 +7,13 @@
  */
 package io.nop.dao.txn;
 
-public interface ITransactionFactory {
+import io.nop.dao.dialect.IDialect;
+import io.nop.dao.dialect.IDialectProvider;
+
+public interface ITransactionFactory extends IDialectProvider {
     ITransaction newTransaction(String txnGroup);
+
+    IDialect getDialectForQuerySpace(String txnGroup);
 
     default ITransaction getSynchronization(String txnGroup) {
         return null;

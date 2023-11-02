@@ -5,13 +5,20 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.spring.autoconfig.dao;
+package io.nop.spring.core.txn;
 
+import io.nop.dao.dialect.DialectManager;
+import io.nop.dao.dialect.IDialect;
+import io.nop.dao.jdbc.txn.IJdbcTransaction;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionFactory;
 import io.nop.dao.txn.ITransactionListener;
 import io.nop.dao.txn.impl.AbstractTransaction;
 import io.nop.dao.txn.impl.TransactionRegistry;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -19,14 +26,31 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+
 /**
  * 与spring事务机制集成。底层事务直接使用PlatformTransactionManager提供。
  */
+@Component("nopTransactionFactory")
+@ConditionalOnClass({PlatformTransactionManager.class, ITransaction.class})
+@ConditionalOnProperty("nop.dao.use-parent-transaction-factory")
 public class NopSpringTransactionFactory implements ITransactionFactory {
     private final PlatformTransactionManager transactionManager;
+    private final DataSource dataSource;
+    private IDialect dialect;
 
-    public NopSpringTransactionFactory(PlatformTransactionManager transactionManager) {
+    public NopSpringTransactionFactory(PlatformTransactionManager transactionManager, DataSource dataSource) {
         this.transactionManager = transactionManager;
+        this.dataSource = dataSource;
+    }
+
+    @Override
+    public IDialect getDialectForQuerySpace(String querySpace) {
+        if (dialect == null) {
+            this.dialect = DialectManager.instance().getDialectForDataSource(dataSource);
+        }
+        return dialect;
     }
 
     @Override
@@ -86,12 +110,19 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
         }
     }
 
-    class SpringTransaction extends AbstractTransaction {
+    class SpringTransaction extends AbstractTransaction implements IJdbcTransaction {
         private TransactionStatus txn;
 
         public SpringTransaction(String txnGroup, TransactionStatus txn) {
             super(txnGroup);
             this.txn = txn;
+        }
+
+        @Override
+        public Connection getConnection() {
+            if (txn == null)
+                open();
+            return DataSourceUtils.getConnection(dataSource);
         }
 
         @Override

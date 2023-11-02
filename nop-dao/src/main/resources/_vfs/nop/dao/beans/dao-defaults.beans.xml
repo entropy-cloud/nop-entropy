@@ -23,7 +23,7 @@
         <property name="transactionMetrics" ref="nopDaoMetrics"/>
     </bean>
 
-    <bean id="nopTransactionFactory" ioc:default="true"
+    <bean id="nopTransactionFactory" ioc:default="true" feature:off="nop.dao.use-parent-transaction-factory"
           class="io.nop.dao.jdbc.txn.JdbcTransactionFactory">
         <constructor-arg index="0" ref="nopDataSource"/>
     </bean>
@@ -74,10 +74,12 @@
 
     <bean id="nopDaoMetrics" class="io.nop.dao.metrics.DaoMetricsImpl" ioc:default="true"/>
 
-    <bean id="nopDialectProvider" class="io.nop.dao.jdbc.impl.JdbcDialectProvider" ioc:default="true">
-        <constructor-arg index="0" ref="nopTransactionTemplate"/>
-        <property name="querySpaceToDialectConfig" value="@cfg:nop.dao.config.query-space-to-dialect|"/>
-    </bean>
+<!--    <bean id="nopDialectProvider" class="io.nop.dao.jdbc.impl.JdbcDialectProvider" ioc:default="true">-->
+<!--        <constructor-arg index="0" ref="nopTransactionTemplate"/>-->
+<!--        <property name="querySpaceToDialectConfig" value="@cfg:nop.dao.config.query-space-to-dialect|"/>-->
+<!--    </bean>-->
+
+    <alias name="nopTransactionTemplate" alias="nopDialectProvider" />
 
     <bean id="nopTransactionalMethodInterceptor" ioc:default="true"
           class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor">

@@ -11,12 +11,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.DaoConstants;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.txn.JdbcTransactionFactory;
-import io.nop.dao.txn.ITransaction;
-import io.nop.dao.txn.ITransactionFactory;
-import io.nop.dao.txn.ITransactionListener;
-import io.nop.dao.txn.ITransactionManager;
-import io.nop.dao.txn.ITransactionMetrics;
+import io.nop.dao.txn.*;
 import io.nop.dao.utils.DaoHelper;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
@@ -176,5 +173,11 @@ public class DefaultTransactionManager implements ITransactionManager {
         if (DaoHelper.isDefaultQuerySpace(querySpace))
             return true;
         return transactionFactoryMap.containsKey(querySpace);
+    }
+
+    @Override
+    public IDialect getDialectForQuerySpace(String querySpace) {
+        querySpace = DaoHelper.normalizeQuerySpace(querySpace);
+        return getTransactionFactory(querySpace).getDialectForQuerySpace(querySpace);
     }
 }

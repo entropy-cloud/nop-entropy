@@ -8,6 +8,7 @@
 package io.nop.dao.txn;
 
 import io.nop.api.core.annotations.core.Internal;
+import io.nop.dao.dialect.IDialect;
 
 /**
  * 应用程序应该通过ITransactionTemplate接口来使用事务，而不应该直接调用ITransactionManager。
@@ -31,4 +32,6 @@ public interface ITransactionManager {
     ITransaction newTransaction(String txnGroup);
 
     boolean isQuerySpaceDefined(String querySpace);
+
+    IDialect getDialectForQuerySpace(String querySpace);
 }

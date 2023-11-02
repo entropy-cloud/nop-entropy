@@ -11562,6 +11562,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_tenantId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_updateTime"
       },
       {
@@ -11777,6 +11782,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_tenantId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_updateTime"
       },
       {
@@ -11981,6 +11991,10 @@
       },
       {
         "name": "getTelephone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
         "parameterTypes": []
       },
       {
@@ -12265,6 +12279,12 @@
       },
       {
         "name": "setTelephone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTenantId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -14469,7 +14489,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "graphQLEngine"
+      }
+    ],
     "methods": [
       {
         "name": "clearComponentCache",
@@ -27113,6 +27139,12 @@
         "parameterTypes": []
       },
       {
+        "name": "getDialectForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "newTransaction",
         "parameterTypes": [
           "java.lang.String"
@@ -27264,14 +27296,31 @@
     "fields": [],
     "methods": [
       {
+        "name": "addQuerySpace",
+        "parameterTypes": [
+          "java.lang.String",
+          "javax.sql.DataSource"
+        ]
+      },
+      {
         "name": "getDefaultListener",
         "parameterTypes": []
+      },
+      {
+        "name": "getDialectForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getMainTxnGroup",
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getNamedQuerySpaces",
+        "parameterTypes": []
       },
       {
         "name": "getRegisteredTransaction",
@@ -27301,6 +27350,12 @@
         "name": "registerTransaction",
         "parameterTypes": [
           "io.nop.dao.txn.ITransaction"
+        ]
+      },
+      {
+        "name": "removeQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -27362,6 +27417,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "getDialectForQuerySpace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
       {
         "name": "getMainTxnGroup",
         "parameterTypes": [
@@ -32008,6 +32069,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "clearCache",
+        "parameterTypes": []
       },
       {
         "name": "executeGraphQLAsync",

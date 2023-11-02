@@ -10,6 +10,7 @@ package io.nop.dao.txn.impl;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.dao.dialect.IDialect;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionManager;
 import io.nop.dao.txn.ITransactionTemplate;
@@ -37,6 +38,11 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
     @Inject
     public void setTransactionManager(ITransactionManager transactionManager) {
         this.transactionManager = transactionManager;
+    }
+
+    @Override
+    public IDialect getDialectForQuerySpace(String querySpace) {
+        return transactionManager.getDialectForQuerySpace(querySpace);
     }
 
     @Override

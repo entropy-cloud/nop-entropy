@@ -19,7 +19,7 @@ public interface ITransactionListener extends IOrdered, Comparable<ITransactionL
     }
 
     default int compareTo(ITransactionListener o) {
-        return Double.compare(order(), o.order());
+        return Integer.compare(order(), o.order());
     }
 
     /**

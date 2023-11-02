@@ -18,15 +18,9 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.ICacheProvider;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dataset.binder.DataParameterBinders;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.api.AbstractSqlExecutor;
-import io.nop.dataset.IComplexDataSet;
-import io.nop.dataset.IDataSet;
-import io.nop.dataset.IRowMapper;
-import io.nop.dataset.impl.DataSetCacheData;
-import io.nop.dataset.impl.DataSetCacheHelper;
-import io.nop.dataset.rowmapper.SmartRowMapper;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.dialect.pagination.IPaginationHandler;
@@ -39,18 +33,20 @@ import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
 import io.nop.dao.utils.DbEstimatedClock;
+import io.nop.dataset.IComplexDataSet;
+import io.nop.dataset.IDataSet;
+import io.nop.dataset.IRowMapper;
+import io.nop.dataset.binder.DataParameterBinders;
+import io.nop.dataset.impl.DataSetCacheData;
+import io.nop.dataset.impl.DataSetCacheHelper;
+import io.nop.dataset.rowmapper.SmartRowMapper;
+import jakarta.annotation.Nonnull;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
-import jakarta.inject.Inject;
 import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -58,10 +54,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import static io.nop.dao.DaoConfigs.CFG_DAO_DB_TIME_CACHE_TIMEOUT;
-import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
-import static io.nop.dao.DaoErrors.ARG_TXN;
-import static io.nop.dao.DaoErrors.ERR_DAO_QUERY_SPACE_NOT_JDBC_CONNECTION;
-import static io.nop.dao.DaoErrors.ERR_DAO_UNKNOWN_QUERY_SPACE;
+import static io.nop.dao.DaoErrors.*;
 
 public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTemplate {
     static final Logger LOG = LoggerFactory.getLogger(JdbcTemplateImpl.class);
@@ -69,6 +62,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
     private ITransactionTemplate transactionTemplate;
     private ICacheProvider cacheProvider;
     private IDaoMetrics daoMetrics;
+
     private IDialectProvider dialectProvider;
 
     private final Map<String, IEstimatedClock> clockMap = new ConcurrentHashMap<>();
@@ -79,6 +73,10 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         this.cacheProvider = cacheProvider;
     }
 
+    public void setDialectProvider(IDialectProvider dialectProvider) {
+        this.dialectProvider = dialectProvider;
+    }
+
     @Override
     public ICacheProvider getCacheProvider() {
         return cacheProvider;
@@ -86,10 +84,6 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     public void setDaoMetrics(IDaoMetrics daoMetrics) {
         this.daoMetrics = daoMetrics;
-    }
-
-    public void setDialectProvider(IDialectProvider dialectProvider) {
-        this.dialectProvider = dialectProvider;
     }
 
     @Inject
@@ -117,10 +111,9 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public IDialect getDialectForQuerySpace(String querySpace) {
-        if (dialectProvider == null)
-            dialectProvider = new JdbcDialectProvider(transactionTemplate);
-
-        return dialectProvider.getDialectForQuerySpace(querySpace);
+        if(dialectProvider != null)
+            return dialectProvider.getDialectForQuerySpace(querySpace);
+        return transactionTemplate.getDialectForQuerySpace(querySpace);
     }
 
     @Override
@@ -214,7 +207,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 } else {
                     count = st.executeUpdate();
                 }
-                LOG.info("nop.jdbc.executeUpdate:count={},name={}", count,sql.getName());
+                LOG.info("nop.jdbc.executeUpdate:count={},name={}", count, sql.getName());
                 return count;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(sql, e);
@@ -412,7 +405,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 } else {
                     count = st.executeUpdate();
                 }
-                LOG.info("nop.jdbc.callFunc:count={},name={}",count,sql.getName());
+                LOG.info("nop.jdbc.callFunc:count={},name={}", count, sql.getName());
                 return count;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(sql, e);

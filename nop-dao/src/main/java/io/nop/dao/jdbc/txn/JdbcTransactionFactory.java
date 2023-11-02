@@ -45,6 +45,11 @@ public class JdbcTransactionFactory implements ITransactionFactory {
         this.daoMetrics = daoMetrics;
     }
 
+    @Override
+    public IDialect getDialectForQuerySpace(String txnGroup) {
+        return dialect;
+    }
+
     Connection getConnection() {
         try {
             return dataSource.getConnection();
