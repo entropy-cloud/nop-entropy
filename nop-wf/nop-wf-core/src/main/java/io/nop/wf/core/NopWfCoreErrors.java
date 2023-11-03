@@ -142,4 +142,7 @@ public interface NopWfCoreErrors {
 
     ErrorCode ERR_WF_DUPLICATE_STEP_ID =
             define("nop.err.wf.duplicate-step-id", "步骤实例的id重复:{stepId}", ARG_STEP_ID);
+
+    ErrorCode ERR_WF_TRANSITION_TO_UNKNOWN_STEP =
+            define("nop.err.wf.transition-to-unknown-step", "迁移的目标步骤为未知步骤：{stepName}", ARG_STEP_NAME);
 }

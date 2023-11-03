@@ -49,7 +49,15 @@ public class ReportExpressionParser extends SimpleExprParser {
         return arrowFuncExpr(sc, id);
     }
 
-    private Expression cellRangeExpr(TextScanner sc, Identifier id) {
+    public CustomExpression parseCellExpr(TextScanner sc) {
+        Identifier id = tokenExpr(sc);
+        if (sc.cur == ':') {
+            return cellRangeExpr(sc, id);
+        }
+        return cellCoordinateExpr(sc, id);
+    }
+
+    private CustomExpression cellRangeExpr(TextScanner sc, Identifier id) {
         sc.consume(':');
         Identifier end = tokenExpr(sc);
         if (!CellReferenceHelper.isABString(id.getName()))
@@ -108,11 +116,11 @@ public class ReportExpressionParser extends SimpleExprParser {
                 if (sc.tryMatch('!')) {
                     coord.setReverse(true);
                 }
-                if(sc.tryMatch('+')){
+                if (sc.tryMatch('+')) {
                     coord.setRelative(true);
                 }
                 int pos = sc.nextInt();
-                if(pos < 0){
+                if (pos < 0) {
                     coord.setRelative(true);
                 }
                 coord.setPosition(pos);

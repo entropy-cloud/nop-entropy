@@ -9,6 +9,7 @@ package io.nop.orm.ddl;
 
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.xlang.api.XLang;
 
@@ -78,5 +79,34 @@ public class DdlSqlCreator {
         args.put("dialect", dialect);
         args.put("ifExists", ifExists);
         return XLang.getTagAction(dmlLibPath, "DropTables").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addTenantIdForTables(Collection<? extends IEntityModel> tables) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("tables", tables);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "AddTenantIdForTables").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addColumn(IColumnModel col) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("col", col);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "AddColumn").generateText(XLang.newEvalScope(args));
+    }
+
+    public String dropColumn(IColumnModel col) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("col", col);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "DropColumn").generateText(XLang.newEvalScope(args));
+    }
+
+    public String modifyColumn(IColumnModel col, IColumnModel oldCol) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("col", col);
+        args.put("oldCol", oldCol);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "ModifyColumn").generateText(XLang.newEvalScope(args));
     }
 }

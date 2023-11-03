@@ -8,6 +8,7 @@
 package io.nop.sys.dao.seq;
 
 import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
@@ -18,10 +19,10 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import io.nop.sys.dao.entity.NopSysSequence;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -92,29 +93,32 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     }
 
     public void addDefaultSequence() {
-        SQL sql = SQL.begin().sql("select o.id from ").sql(NopSysSequence.class.getName())
-                .sql(" o").end();
-        boolean exists = ormTemplate.exists(sql);
-        if (!exists) {
-            // 如果sequence表为空，则初始化一条缺省记录
-            try {
-                runLocal(session -> {
-                    NopSysSequence entity = (NopSysSequence) ormTemplate.newEntity(NopSysSequence.class.getName());
-                    entity.setCacheSize(100);
-                    entity.setStepSize(1);
-                    entity.setNextValue(1L);
-                    entity.setSeqType("seq");
-                    entity.setSeqName(SEQ_DEFAULT);
-                    session.save(entity);
-                    return null;
-                });
-            } catch (NopException e) {
-                // 如果多个应用同时执行初始化操作，则可能出现键值冲突异常
-                if (!DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(e.getErrorCode())) {
-                    LOG.warn("nop.err.sys.init-default-sequence-fail", e);
+        ContextProvider.runWithTenant("0",()-> {
+            SQL sql = SQL.begin().sql("select o.id from ").sql(NopSysSequence.class.getName())
+                    .sql(" o").end();
+            boolean exists = ormTemplate.exists(sql);
+            if (!exists) {
+                // 如果sequence表为空，则初始化一条缺省记录
+                try {
+                    runLocal(session -> {
+                        NopSysSequence entity = (NopSysSequence) ormTemplate.newEntity(NopSysSequence.class.getName());
+                        entity.setCacheSize(100);
+                        entity.setStepSize(1);
+                        entity.setNextValue(1L);
+                        entity.setSeqType("seq");
+                        entity.setSeqName(SEQ_DEFAULT);
+                        session.save(entity);
+                        return null;
+                    });
+                } catch (NopException e) {
+                    // 如果多个应用同时执行初始化操作，则可能出现键值冲突异常
+                    if (!DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(e.getErrorCode())) {
+                        LOG.warn("nop.err.sys.init-default-sequence-fail", e);
+                    }
                 }
             }
-        }
+            return null;
+        });
     }
 
     @Override

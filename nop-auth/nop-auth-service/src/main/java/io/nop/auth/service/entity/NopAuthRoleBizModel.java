@@ -7,18 +7,22 @@
  */
 package io.nop.auth.service.entity;
 
+import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.graphql.GraphQLReturn;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthRoleResource;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.dao.entity.NopAuthUserRole;
 import io.nop.auth.service.NopAuthConstants;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.utils.Underscore;
@@ -29,12 +33,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static io.nop.auth.service.NopAuthErrors.ARG_ROLE_ID;
+import static io.nop.auth.service.NopAuthErrors.ARG_USER_ID;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_NOT_ALLOW_EDIT_INTERNAL_ROLE;
+import static io.nop.auth.service.NopAuthErrors.ERR_AUTH_ONLY_ADMIN_CAN_ASSIGN_INTERNAL_ROLE;
 import static java.util.Comparator.comparing;
 
 @BizModel("NopAuthRole")
 public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
     public NopAuthRoleBizModel() {
         setEntityName(NopAuthRole.class.getName());
+    }
+
+    @Override
+    protected void defaultPrepareSave(EntityData<NopAuthRole> entityData, IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+        this.checkAllowEdit(entityData.getEntity(), context);
+    }
+
+    @Override
+    protected void defaultPrepareUpdate(EntityData<NopAuthRole> entityData, IServiceContext context) {
+        super.defaultPrepareUpdate(entityData, context);
+        this.checkAllowEdit(entityData.getEntity(), context);
+    }
+
+    @BizAction
+    protected void checkAllowEdit(@Name("role") NopAuthRole role, IServiceContext context) {
+        if (role.getRoleId().startsWith(AuthCoreConstants.NOP_ROLE_PREFIX))
+            throw new NopException(ERR_AUTH_NOT_ALLOW_EDIT_INTERNAL_ROLE)
+                    .param(ARG_ROLE_ID, role.getRoleId());
     }
 
     @BizLoader
@@ -53,9 +80,24 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
     }
 
     @BizMutation
-    public void addRoleUsers(@Name("roleId") String roleId, @Name("userIds") Collection<String> userIds) {
+    public void addRoleUsers(@Name("roleId") String roleId, @Name("userIds") Collection<String> userIds,
+                             IServiceContext context) {
+        if (userIds != null && roleId != null) {
+            for (String userId : userIds) {
+                checkAllowAssignRole(roleId, userId, context);
+            }
+        }
         addRelations(NopAuthUserRole.class, "roleId", "userId",
                 roleId, userIds);
+    }
+
+    @BizAction
+    protected void checkAllowAssignRole(@Name("roleId") String roleId, @Name("userId") String userId, IServiceContext context) {
+        if (roleId.startsWith(AuthCoreConstants.NOP_ROLE_PREFIX)) {
+            if (!context.getUserContext().isUserInRole(AuthCoreConstants.ROLE_NOP_ADMIN))
+                throw new NopException(ERR_AUTH_ONLY_ADMIN_CAN_ASSIGN_INTERNAL_ROLE)
+                        .param(ARG_ROLE_ID, roleId).param(ARG_USER_ID, userId);
+        }
     }
 
     @BizLoader

@@ -1,0 +1,8 @@
+<c:unit xpl:outputMode="text">
+    <c:script>
+        import io.nop.orm.ddl.DdlSqlCreator;
+        let tables = ormModel.entityModels;
+        let sqlText = DdlSqlCreator.forDialect(dialect).addTenantIdForTables(tables);
+    </c:script>
+    ${sqlText}
+</c:unit>

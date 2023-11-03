@@ -71,6 +71,13 @@
         </ioc:condition>
     </bean>
 
+    <bean id="io.nop.orm.initialize.AddTenantColInitializer" ioc:type="@bean:id"
+          ioc:after="nopOrmSessionFactory,io.nop.orm.initialize.DataBaseSchemaInitializer">
+        <ioc:condition>
+            <if-property name="nop.orm.auto-add-tenant-col"/>
+        </ioc:condition>
+    </bean>
+
     <bean id="io.nop.orm.sql_lib.dict.SqlLibDictLoader" ioc:type="@bean:id"/>
 
     <bean id="nopDaoResourceNamespaceHandler" class="io.nop.orm.resource.DaoResourceNamespaceHandler"

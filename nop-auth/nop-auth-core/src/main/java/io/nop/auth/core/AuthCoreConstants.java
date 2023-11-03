@@ -16,6 +16,10 @@ public interface AuthCoreConstants {
     String ROLE_ADMIN = "admin";
     String ROLE_USER = "user";
 
+    String ROLE_NOP_ADMIN = "nop-admin";
+
+    String NOP_ROLE_PREFIX = "nop-";
+
     String PARAM_CODE = "code";
     String PARAM_STATE = "state";
 

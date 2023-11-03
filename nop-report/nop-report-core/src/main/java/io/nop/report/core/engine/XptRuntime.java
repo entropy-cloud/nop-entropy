@@ -10,23 +10,29 @@ package io.nop.report.core.engine;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
+import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.dataset.DynamicReportDataSet;
+import io.nop.report.core.expr.ReportExpressionParser;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
+import io.nop.xlang.api.XLang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.nop.api.core.ApiErrors.ARG_NAME;
 
@@ -41,6 +47,8 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     private ExcelWorkbook workbook;
 
     private ExcelImage image;
+
+    private final Map<String, IExecutableExpression> cellExprCache = new HashMap<>();
 
     public XptRuntime(IEvalScope scope) {
         this.scope = scope.newChildScope();
@@ -207,5 +215,13 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
         int ret = value++;
         scope.setLocalValue(name, value);
         return ret;
+    }
+
+    @Override
+    public ExpandedCellSet cells(String cellExpr) {
+        IExecutableExpression expr = cellExprCache.computeIfAbsent(cellExpr, k -> {
+            return new ReportExpressionParser().parseCellExpr(TextScanner.fromString(null, cellExpr)).getExecutable();
+        });
+        return (ExpandedCellSet) XLang.execute(expr, scope);
     }
 }

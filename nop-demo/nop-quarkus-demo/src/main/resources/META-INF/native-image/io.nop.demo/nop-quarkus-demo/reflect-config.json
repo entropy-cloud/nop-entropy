@@ -13264,6 +13264,43 @@
         ]
       },
       {
+        "name": "addRoleUsers",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "checkAllowAssignRole",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "checkAllowEdit",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRole",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "defaultPrepareSave",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "defaultPrepareUpdate",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "removeRoleUsers",
         "parameterTypes": [
           "java.lang.String",
@@ -27377,6 +27414,18 @@
         ]
       },
       {
+        "name": "setQuerySpaceToDialectConfig",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setQuerySpaceToDialectMap",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "setTransactionFactoryMap",
         "parameterTypes": [
           "java.util.Map"
@@ -27459,6 +27508,13 @@
           "java.lang.String",
           "io.nop.api.core.annotations.txn.TransactionPropagation",
           "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "runWithoutTransaction",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.Supplier"
         ]
       },
       {
@@ -37285,6 +37341,45 @@
       }
     ],
     "name": "io.nop.orm.impl.OrmTemplateImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "setJdbcTemplate",
+        "parameterTypes": [
+          "io.nop.dao.jdbc.IJdbcTemplate"
+        ]
+      },
+      {
+        "name": "setOrmSessionFactory",
+        "parameterTypes": [
+          "io.nop.orm.IOrmSessionFactory"
+        ]
+      },
+      {
+        "name": "splitByQuerySpace",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.initialize.AddTenantColInitializer",
     "unsafeAllocated": false
   },
   {

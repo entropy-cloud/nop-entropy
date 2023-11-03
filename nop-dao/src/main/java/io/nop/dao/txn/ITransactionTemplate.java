@@ -14,6 +14,7 @@ import io.nop.dao.dialect.IDialectProvider;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.nop.dao.DaoErrors.ARG_QUERY_SPACE;
 import static io.nop.dao.DaoErrors.ERR_TXN_NOT_IN_TRANSACTION;
@@ -42,6 +43,8 @@ public interface ITransactionTemplate extends IDialectProvider {
      * @return 返回ITransaction对象不意味着已经开启事务。调用open方法之后才会开启事务，此时isInTransaction返回true
      */
     ITransaction getRegisteredTransaction(String txnGroup);
+
+    <T> T runWithoutTransaction(String txnGroup, Supplier<T> task);
 
     <T> T runInTransaction(String txnGroup, TransactionPropagation propagation, Function<ITransaction, T> task);
 

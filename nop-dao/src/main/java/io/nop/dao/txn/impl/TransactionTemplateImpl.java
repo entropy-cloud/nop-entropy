@@ -14,10 +14,11 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionManager;
 import io.nop.dao.txn.ITransactionTemplate;
-
 import jakarta.inject.Inject;
+
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.nop.api.core.context.ContextProvider.completeAsyncOnContext;
 import static io.nop.dao.DaoErrors.ARG_TXN;
@@ -154,6 +155,21 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
             state.txn = txn;
         }
         return state;
+    }
+
+    @Override
+    public <T> T runWithoutTransaction(String txnGroup, Supplier<T> task) {
+        ITransaction txn = getRegisteredTransaction(txnGroup);
+        if (txn == null) {
+            return task.get();
+        } else {
+            transactionManager.unregisterTransaction(txn);
+            try {
+                return task.get();
+            } finally {
+                transactionManager.registerTransaction(txn);
+            }
+        }
     }
 
     @Override

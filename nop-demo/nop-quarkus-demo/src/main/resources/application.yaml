@@ -12,7 +12,7 @@ nop:
       support-debug: true
 
     data-auth-config-path: /nop/demo/app.data-auth.xml
-    enable-data-auth: false
+    enable-data-auth: true
 
     login:
       allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
@@ -26,6 +26,7 @@ nop:
   orm:
     init-database-schema: true
     enable-tenant-by-default: true
+    auto-add-tenant-col: true
 
   datasource:
     #    driver-class-name: org.h2.Driver

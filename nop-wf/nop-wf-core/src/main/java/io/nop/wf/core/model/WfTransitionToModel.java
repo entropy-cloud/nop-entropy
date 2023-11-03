@@ -21,6 +21,9 @@ public class WfTransitionToModel extends _WfTransitionToModel implements IWorkfl
         return false;
     }
 
+    public void setBackLink(boolean backLink){
+    }
+
     public String getStepName(){
         return null;
     }

@@ -298,7 +298,7 @@ public class OrmEntityModelInitializer {
 
     private void addInternalProps() {
         if (entityModel.isUseTenant()) {
-            IEntityPropModel col;
+            OrmColumnModel col;
             String prop = entityModel.getTenantProp();
             if (prop != null) {
                 col = entityModel.getColumn(prop);
@@ -306,7 +306,10 @@ public class OrmEntityModelInitializer {
                     throw new NopException(ERR_ORM_UNKNOWN_COLUMN).source(entityModel)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, prop);
             } else {
+                entityModel.setTenantProp(OrmModelConstants.PROP_NAME_nopTenantId);
                 col = addColumn(OrmModelConstants.PROP_NAME_nopTenantId, StdSqlType.VARCHAR, 32);
+                col.setDefaultValue("0");
+                col.setMandatory(true);
             }
             tenantPropId = col.getColumnPropId();
         }
@@ -333,6 +336,7 @@ public class OrmEntityModelInitializer {
                     throw new NopException(ERR_ORM_UNKNOWN_COLUMN).source(entityModel)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, prop);
             } else {
+                entityModel.setShardProp(OrmModelConstants.PROP_NAME_nopShard);
                 col = addColumn(OrmModelConstants.PROP_NAME_nopShard, StdSqlType.VARCHAR, 32);
             }
             shardPropId = col.getColumnPropId();
@@ -367,11 +371,12 @@ public class OrmEntityModelInitializer {
         return col.getPropId();
     }
 
-    private IEntityPropModel addColumn(String colName, StdSqlType sqlType, Integer precision) {
+    private OrmColumnModel addColumn(String colName, StdSqlType sqlType, Integer precision) {
         if (entityModel.hasColumn(colName))
             return entityModel.getColumn(colName);
 
         OrmColumnModel col = new OrmColumnModel();
+        col.setOwnerEntityModel(entityModel);
         col.setName(colName);
         col.setPropId(++maxPropId);
         col.setCode(StringHelper.camelCaseToUnderscore(colName, false));

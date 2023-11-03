@@ -122,6 +122,18 @@ public class ContextProvider {
         }
     }
 
+    public static <T> T runWithTenant(String tenantId, Supplier<T> task) {
+        IContext context = getOrCreateContext();
+
+        String oldTenantId = context.getTenantId();
+        context.setTenantId(tenantId);
+        try {
+            return task.get();
+        } finally {
+            context.setTenantId(oldTenantId);
+        }
+    }
+
     /**
      * 确保回调函数在当前context上执行
      */

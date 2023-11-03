@@ -20,7 +20,7 @@ import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
 
 public interface IXptRuntime extends IEvalContext {
-    static IXptRuntime fromScope(IEvalScope scope){
+    static IXptRuntime fromScope(IEvalScope scope) {
         return (IXptRuntime) scope.getValue(XptConstants.VAR_XPT_RT);
     }
 
@@ -57,6 +57,11 @@ public interface IXptRuntime extends IEvalContext {
     DynamicReportDataSet ds(String dsName);
 
     DynamicReportDataSet makeDs(String dsName, Object value);
+
+    /**
+     * 解析层次坐标返回对应的单元格集合。这个函数仅作为示例使用，用于演示不使用支持层次坐标的表达式引擎时如何处理
+     */
+    ExpandedCellSet cells(String cellExpr);
 
     /**
      * 递增计数器并返回递增前的值

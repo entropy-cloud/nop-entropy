@@ -8,6 +8,7 @@
 package io.nop.wf.core.model;
 
 import jakarta.annotation.Nonnull;
+
 import java.util.List;
 import java.util.Set;
 
@@ -41,10 +42,16 @@ public interface IWorkflowStepModel {
 
     IWorkflowActionModel getAction(String actionName);
 
+    List<? extends IWorkflowStepModel> getTransitionFromSteps();
+
+    List<? extends IWorkflowStepModel> getTransitionToSteps();
+
+    Set<String> getTransitionFromStepNames();
+
+    Set<String> getTransitionToStepNames();
+
     /**
      * 树形结构中本步骤的父节点。因为存在join的情况，所有有可能有多个父节点。
-     *
-     * @return
      */
     List<? extends IWorkflowStepModel> getPrevSteps();
 
@@ -59,7 +66,11 @@ public interface IWorkflowStepModel {
 
     boolean isNextToAssigned();
 
+    boolean isNextToEmpty();
+
     boolean isFinallyToEnd();
+
+    boolean isFinallyToEmpty();
 
     /**
      * 父节点如果是internal节点，则继续向前查找父节点
@@ -82,6 +93,10 @@ public interface IWorkflowStepModel {
 
     boolean hasNextStep(String stepName);
 
+    boolean hasPrevNormalStep(String stepName);
+
+    boolean hasNextNormalStep(String stepName);
+
     boolean hasAncestorStep(String stepName);
 
     boolean hasDescendantStep(String stepName);
@@ -98,7 +113,10 @@ public interface IWorkflowStepModel {
 
     Set<String> getNextNormalStepNames();
 
-    int getTopoOrder();
+    /**
+     * 从0开始的步骤下标。从起始步骤开始，按照宽度有限遍历得到的顺序。
+     */
+    int getStepIndex();
 
     Set<String> getWaitStepNames();
 

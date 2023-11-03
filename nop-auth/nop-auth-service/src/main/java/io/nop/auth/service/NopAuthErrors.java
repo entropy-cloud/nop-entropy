@@ -19,6 +19,10 @@ public interface NopAuthErrors {
     String ARG_USER_NAME = "userName";
     String ARG_SITE_ID = "siteId";
 
+    String ARG_ROLE_ID = "roleId";
+
+    String ARG_USER_ID = "userId";
+
     String ARG_PRINCIPAL_ID = "principalId";
 
     String ARG_SESSION_ID = "sessionId";
@@ -46,4 +50,10 @@ public interface NopAuthErrors {
 
     ErrorCode ERR_AUTH_SESSION_EXPIRED = define(API_STATUS_UNAUTHORIZED, "nop.err.auth.session-expired", "用户未登录或者会话已过期",
             ARG_SESSION_ID, ARG_AUTH_TOKEN);
+
+    ErrorCode ERR_AUTH_NOT_ALLOW_EDIT_INTERNAL_ROLE = define("nop.err.auth.not-allow-edit-internal-role",
+            "不允许新建或者修改系统内部角色:{roleId}", ARG_ROLE_ID);
+
+    ErrorCode ERR_AUTH_ONLY_ADMIN_CAN_ASSIGN_INTERNAL_ROLE = define("nop.err.auth.only-admin-can-assign-internal-role",
+            "只有系统管理员可以为用户指定内部角色: {roleId}", ARG_ROLE_ID, ARG_USER_ID);
 }
