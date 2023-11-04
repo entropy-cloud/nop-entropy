@@ -367,7 +367,7 @@ public class OrmEntityModelInitializer {
         OrmColumnModel col = entityModel.getColumn(propName);
         if (col == null)
             throw new NopException(ERR_ORM_UNKNOWN_COLUMN).source(entityModel)
-                    .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, propName);
+                    .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_COL_NAME, propName);
         return col.getPropId();
     }
 

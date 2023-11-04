@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:mavenArtifactId="nop-auth" ext:entityPackageName="io.nop.auth.dao.entity" ext:registerShortName="true"
+     ext:mavenGroupId="io.github.entropy-cloud" ext:basePackageName="io.nop.auth" ext:appName="nop-auth"
+     ext:platformVersion="2.0.0-SNAPSHOT" ext:dialect="mysql,oracle,postgresql" ext:mavenVersion="2.0.0-SNAPSHOT"
+     x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en"
+     xmlns:ext="ext" xmlns:ui="ui">
+
+
+    <entities>
+        <entity className="io.nop.auth.dao.entity.NopAuthUser" displayName="用户" name="io.nop.auth.dao.entity.NopAuthUser"
+                registerShortName="true" tableName="nop_auth_user" tagSet="mapper" useLogicalDelete="true"  i18n-en:displayName="User">
+            <columns>
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId"
+                        precision="50"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="User ID" ui:show="X"/>
+                <column code="USER_NAME" displayName="用户名" domain="userName" mandatory="true" name="userName"
+                        precision="50" propId="2" stdDataType="string" stdSqlType="VARCHAR" tagSet="disp"
+                        i18n-en:displayName="User Name" ui:show="C"/>
+                <column code="PASSWORD" displayName="密码" mandatory="true" name="password" precision="80" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="masked,var,not-pub"
+                        i18n-en:displayName="Password" ui:show="X"/>
+                <column code="SALT" displayName="密码加盐" name="salt" precision="32" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR" tagSet="var,not-pub" i18n-en:displayName="Salt" ui:show="X"/>
+
+            </columns>
+            <relations>
+
+
+            </relations>
+        </entity>
+        <entity className="io.nop.auth.dao.entity.NopAuthExtLogin" displayName="扩展登录方式" name="io.nop.auth.dao.entity.NopAuthExtLogin"
+                registerShortName="true" tableName="nop_auth_ext_login"  useLogicalDelete="true"  i18n-en:displayName="Ext Login">
+            <columns>
+                <column code="USER_ID" displayName="用户ID" domain="userId" mandatory="true" name="userId"
+                        precision="50"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="User ID" ui:show="X"/>
+                <column code="LOGIN_TYPE" displayName="登录类型" mandatory="true" name="loginType" primary="true"
+                        propId="2"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Login Type"
+                        ext:dict="auth/login-type" ui:show="C"/>
+                <column code="LOGIN_VALUE" comment="第三方系统中对应的用户唯一标识" displayName="登录标识"
+                        mandatory="true"
+                        name="loginValue" precision="50" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Login Value"/>
+                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag"
+                        propId="4"
+                        stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Deleted"
+                        ui:show="X"/>
+            </columns>
+
+        </entity>
+
+
+    </entities>
+
+    <domains>
+        <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdDomain="file" stdSqlType="VARCHAR"/>
+        <domain name="email" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="phone" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="roleId" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="userId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="deptId" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="boolFlag" stdSqlType="TINYINT"/>
+        <domain name="xml-4k" precision="4000" stdSqlType="VARCHAR"/>
+        <domain name="json-1000" precision="1000" stdDomain="json" stdSqlType="VARCHAR"/>
+        <domain name="remark" precision="1000" stdSqlType="VARCHAR"/>
+        <domain name="version" stdSqlType="INTEGER"/>
+        <domain name="createTime" stdSqlType="TIMESTAMP"/>
+        <domain name="createdBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="updateTime" stdSqlType="TIMESTAMP"/>
+        <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
+        <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
+    </domains>
+</orm>

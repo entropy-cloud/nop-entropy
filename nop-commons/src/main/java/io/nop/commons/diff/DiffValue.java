@@ -7,6 +7,8 @@
  */
 package io.nop.commons.diff;
 
+import io.nop.commons.text.IndentPrinter;
+
 import java.util.List;
 import java.util.Map;
 
@@ -48,6 +50,8 @@ public class DiffValue implements IDiffValue {
     public static DiffValue add(Object newValue) {
         return new DiffValue(DiffType.add, null, newValue);
     }
+
+
 
     @Override
     public DiffType getDiffType() {

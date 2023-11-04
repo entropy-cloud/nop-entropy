@@ -185,6 +185,14 @@ public class BeanDiffer implements IBeanDiffer {
                 diffs.add(diff);
             }
 
+            while (it1.hasNext()) {
+                diffs.add(DiffValue.remove(it1.next()));
+            }
+
+            while (it2.hasNext()) {
+                diffs.add(DiffValue.add(it2.next()));
+            }
+
             DiffValue ret = new DiffValue(DiffType.update, src, target);
             ret.setElementDiffs(diffs);
             return ret;
