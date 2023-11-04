@@ -57,7 +57,9 @@ public class SpringHttpServerFilterConfiguration {
             }
         }));
 
-        bean.setOrder(FilterRegistrationBean.HIGHEST_PRECEDENCE);
+//        bean.setOrder(FilterRegistrationBean.HIGHEST_PRECEDENCE + 10000);
+        // 设置优先级为正常，系统可以在前面增加过滤器？
+        bean.setOrder(0);
         bean.setEnabled(true);
         bean.addUrlPatterns("/*");
         return bean;

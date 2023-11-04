@@ -7,6 +7,7 @@
  */
 package io.nop.http.api.server;
 
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 
@@ -86,4 +87,8 @@ public interface IHttpServerContext {
     IAsyncBody getRequestBody();
 
     CompletionStage<Object> executeBlocking(Callable<?> task);
+
+    IContext getContext();
+
+    void setContext(IContext context);
 }

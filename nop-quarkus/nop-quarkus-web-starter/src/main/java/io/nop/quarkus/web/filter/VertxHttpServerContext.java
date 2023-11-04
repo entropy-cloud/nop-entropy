@@ -7,6 +7,7 @@
  */
 package io.nop.quarkus.web.filter;
 
+import io.nop.api.core.context.IContext;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
@@ -27,39 +28,42 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class VertxHttpServerContext implements IHttpServerContext {
-    private final RoutingContext context;
+    private final RoutingContext routingContext;
 
     private boolean responseSent;
 
-    public VertxHttpServerContext(RoutingContext context) {
-        this.context = context;
+    private IContext context;
+
+
+    public VertxHttpServerContext(RoutingContext routingContext) {
+        this.routingContext = routingContext;
     }
 
     @Override
     public String getHost() {
-        return context.request().host();
+        return routingContext.request().host();
     }
 
     @Override
     public String getRequestPath() {
-        return context.normalizedPath();
+        return routingContext.normalizedPath();
     }
 
     @Override
     public String getRequestUrl() {
-        String uri = context.request().absoluteURI();
+        String uri = routingContext.request().absoluteURI();
         return uri;
     }
 
     @Override
     public String getQueryParam(String name) {
-        List<String> list = context.queryParam(name);
+        List<String> list = routingContext.queryParam(name);
         return list.isEmpty() ? null : list.get(0);
     }
 
     @Override
     public Map<String, Object> getRequestHeaders() {
-        MultiMap map = context.request().headers();
+        MultiMap map = routingContext.request().headers();
         Map<String, Object> ret = new HashMap<>();
         for (Map.Entry<String, String> entry : map) {
             ret.putIfAbsent(entry.getKey().toLowerCase(), entry.getValue());
@@ -69,12 +73,12 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     @Override
     public Object getRequestHeader(String headerName) {
-        return context.request().getHeader(headerName);
+        return routingContext.request().getHeader(headerName);
     }
 
     @Override
     public String getCookie(String name) {
-        Cookie cookie = context.request().getCookie(name);
+        Cookie cookie = routingContext.request().getCookie(name);
         if (cookie == null)
             return null;
         return cookie.getValue();
@@ -82,7 +86,7 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     @Override
     public void resumeRequest() {
-        context.request().resume();
+        routingContext.request().resume();
     }
 
     @Override
@@ -99,39 +103,39 @@ public class VertxHttpServerContext implements IHttpServerContext {
         } else if (CookieSameSite.STRICT.toString().equals(sameSite)) {
             cookie.setSameSite(CookieSameSite.STRICT);
         }
-        context.response().addCookie(cookie);
+        routingContext.response().addCookie(cookie);
     }
 
     @Override
     public void removeCookie(String name) {
-        context.response().removeCookie(name);
+        routingContext.response().removeCookie(name);
     }
 
     @Override
     public void removeCookie(String name, String domain, String path) {
-        context.response().removeCookie(name, domain, path);
+        routingContext.response().removeCookie(name, domain, path);
     }
 
     @Override
     public void setResponseHeader(String headerName, Object value) {
         if (value == null) {
-            context.response().headers().remove(headerName);
+            routingContext.response().headers().remove(headerName);
         } else {
-            context.response().headers().set(headerName, String.valueOf(value));
+            routingContext.response().headers().set(headerName, String.valueOf(value));
         }
     }
 
     @Override
     public void sendRedirect(String url) {
         responseSent = true;
-        context.redirect(url);
+        routingContext.redirect(url);
     }
 
     @Override
     public void sendResponse(int httpStatus, String body) {
         responseSent = true;
-        context.response().setStatusCode(httpStatus);
-        context.response().send(body);
+        routingContext.response().setStatusCode(httpStatus);
+        routingContext.response().send(body);
     }
 
     public boolean isResponseSent() {
@@ -140,29 +144,29 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     @Override
     public String getAcceptableContentType() {
-        return context.getAcceptableContentType();
+        return routingContext.getAcceptableContentType();
     }
 
     @Override
     public String getResponseContentType() {
-        return context.response().headers().get(HttpHeaders.CONTENT_TYPE);
+        return routingContext.response().headers().get(HttpHeaders.CONTENT_TYPE);
     }
 
     @Override
     public void setResponseContentType(String contentType) {
-        context.response().headers().set(HttpHeaders.CONTENT_TYPE, contentType);
+        routingContext.response().headers().set(HttpHeaders.CONTENT_TYPE, contentType);
     }
 
     public CompletionStage<Void> proceedAsync() {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        context.addEndHandler(ret -> {
+        routingContext.addEndHandler(ret -> {
             if (ret.failed()) {
                 future.completeExceptionally(ret.cause());
             } else {
                 future.complete(null);
             }
         });
-        context.next();
+        routingContext.next();
         return future;
     }
 
@@ -172,7 +176,7 @@ public class VertxHttpServerContext implements IHttpServerContext {
             @Override
             public CompletionStage<String> getTextAsync() {
                 CompletableFuture<String> future = new CompletableFuture<>();
-                context.request().body().onSuccess(v -> {
+                routingContext.request().body().onSuccess(v -> {
                             future.complete(v.toString(StringHelper.CHARSET_UTF8));
                         })
                         .onFailure(e -> {
@@ -186,5 +190,15 @@ public class VertxHttpServerContext implements IHttpServerContext {
     @Override
     public CompletionStage<Object> executeBlocking(Callable<?> task) {
         return QuarkusExecutorHelper.executeBlocking(task);
+    }
+
+    @Override
+    public IContext getContext() {
+        return context;
+    }
+
+    @Override
+    public void setContext(IContext context) {
+        this.context = context;
     }
 }

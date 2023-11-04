@@ -20,6 +20,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.InternalLoginRequest;
 import io.nop.auth.api.messages.LoginRequest;
+import io.nop.auth.api.utils.AuthMDCHelper;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.ILoginService;
@@ -30,11 +31,10 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.http.api.server.IHttpServerFilter;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
-import jakarta.inject.Inject;
 import java.net.HttpCookie;
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -85,9 +85,8 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         try {
             return _filterAsync(routeContext, next);
         } finally {
-            MDC.remove(ApiConstants.MDC_NOP_SESSION);
-            MDC.remove(ApiConstants.MDC_NOP_USER);
-            MDC.remove(ApiConstants.MDC_NOP_TENANT);
+            // 防御性清理环境。在内部应该已经正常清理
+            AuthMDCHelper.unbindMDC();
         }
     }
 
@@ -95,11 +94,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         String path = routeContext.getRequestPath();
         // 如果是退出链接，则没有必要检查是否已登录。
         if (checkLogoutUrl(routeContext))
-            return next.get();
+            return handlePublicPath(routeContext, next);
 
         if (config.isPublicPath(path)) {
             LOG.debug("nop.route.request-public-url:path={}", path);
-            return next.get();
+            return handlePublicPath(routeContext, next);
         }
 
         // 耗时的操作不能在IO线程上执行
@@ -124,7 +123,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                     return responseNotLogin(routeContext);
                 }
 
-                return loginService.getUserContextAsync(authToken)
+                return getUserContextAsync(authToken)
                         .thenCompose(userContext -> {
                             return handleUserContext(userContext, routeContext, next, authToken);
                         }).exceptionally(ex -> {
@@ -138,6 +137,10 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                 throw NopException.adapt(ex);
             }
         }).thenApply(v -> null);
+    }
+
+    protected CompletionStage<Void> handlePublicPath(IHttpServerContext routeContext, Supplier<CompletionStage<Void>> next) {
+        return next.get();
     }
 
     private void handleError(IHttpServerContext routeContext, Throwable ex) {
@@ -163,14 +166,14 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         return false;
     }
 
-    boolean isNeedRefresh(AuthToken authToken) {
+    protected boolean isNeedRefresh(AuthToken authToken) {
         if ((authToken.getExpireAt() - CoreMetrics.currentTimeMillis()) * 2 < (authToken.getExpireSeconds() * 1000L))
             return true;
         return false;
     }
 
 
-    private CompletionStage<IUserContext> loginWithOAuthCode(IHttpServerContext routeContext) {
+    protected CompletionStage<IUserContext> loginWithOAuthCode(IHttpServerContext routeContext) {
         String code = routeContext.getQueryParam(AuthCoreConstants.PARAM_CODE);
         LoginRequest login = new InternalLoginRequest();
         login.setSsoToken(code);
@@ -192,28 +195,37 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         }
 
         IContext ctx = initUserContext(userContext, routeContext);
-        if (needRefresh) {
-            String accessToken = loginService.refreshToken(userContext, authToken);
-            routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
-            if (config.getAuthCookie() != null) {
-                addCookie(config.getAuthCookie(), accessToken, routeContext);
-            }
-        } else if (config.getAuthCookie() != null) {
-            addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
-        }
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        ctx.runOnContext(() -> {
-            CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
-                try {
-                    loginService.flushUserContextAsync(userContext);
-                } finally {
-                    ctx.close();
+        AuthMDCHelper.bindMDC(userContext);
+
+        try {
+            if (needRefresh) {
+                String accessToken = loginService.refreshToken(userContext, authToken);
+                routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
+                if (config.getAuthCookie() != null) {
+                    addCookie(config.getAuthCookie(), accessToken, routeContext);
                 }
+            } else if (config.getAuthCookie() != null) {
+                addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
+            }
+
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            // runOnContext会创建一个任务队列。如果异步调用过程中使用了同步等待，则内部实现会利用任务队列来避免出现死锁。
+            ctx.runOnContext(() -> {
+                CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
+                    try {
+                        loginService.flushUserContextAsync(userContext);
+                    } finally {
+                        ctx.close();
+                    }
+                });
+                FutureHelper.bindResult(promise, future);
             });
-            FutureHelper.bindResult(promise, future);
-        });
-        return future;
+
+            return future;
+        } finally {
+            AuthMDCHelper.unbindMDC();
+        }
     }
 
     private void addCookie(String name, String value, IHttpServerContext context) {
@@ -243,6 +255,10 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
             return null;
         }
         return authToken;
+    }
+
+    protected CompletionStage<IUserContext> getUserContextAsync(AuthToken authToken) {
+        return loginService.getUserContextAsync(authToken);
     }
 
     protected String getAuthToken(IHttpServerContext context) {
@@ -349,17 +365,13 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         }
 
         IContext ctx = ContextProvider.getOrCreateContext();
+        context.setContext(ctx);
         ctx.setUserId(userContext.getUserId());
         ctx.setUserName(userContext.getUserName());
         ctx.setTenantId(userContext.getTenantId());
         ctx.setUserRefNo(userContext.getUserName());
         ctx.setLocale(locale);
         ctx.setTimezone(userContext.getTimeZone());
-
-        MDC.put(ApiConstants.MDC_NOP_SESSION, userContext.getSessionId());
-        if (userContext.getTenantId() != null)
-            MDC.put(ApiConstants.MDC_NOP_TENANT, userContext.getTenantId());
-        MDC.put(ApiConstants.MDC_NOP_USER, userContext.getUserId());
 
         IUserContext.set(userContext);
         return ctx;

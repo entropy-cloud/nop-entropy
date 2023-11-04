@@ -7,6 +7,7 @@
  */
 package io.nop.spring.web.filter;
 
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.IoHelper;
@@ -28,6 +29,8 @@ import java.util.concurrent.CompletionStage;
 public class ServletHttpServerContext implements IHttpServerContext {
     private final HttpServletRequest request;
     private final HttpServletResponse response;
+
+    private IContext context;
 
     public ServletHttpServerContext(HttpServletRequest request, HttpServletResponse response) {
         this.request = request;
@@ -179,5 +182,15 @@ public class ServletHttpServerContext implements IHttpServerContext {
     @Override
     public CompletionStage<Object> executeBlocking(Callable<?> task) {
         return FutureHelper.futureCall(task);
+    }
+
+    @Override
+    public IContext getContext() {
+        return context;
+    }
+
+    @Override
+    public void setContext(IContext context) {
+        this.context = context;
     }
 }

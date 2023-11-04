@@ -238,6 +238,9 @@ public class BaseContext implements IContext {
     }
 
     public void close() {
+        if (this.closed)
+            return;
+
         LOG.trace("nop.close-context:seq={}", seq);
 
         IContext context = BaseContextProvider.contextHolder().get();
