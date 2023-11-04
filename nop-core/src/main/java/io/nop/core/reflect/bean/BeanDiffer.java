@@ -12,8 +12,10 @@ import io.nop.commons.diff.DiffType;
 import io.nop.commons.diff.DiffValue;
 import io.nop.commons.diff.IDiffValue;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -172,31 +174,100 @@ public class BeanDiffer implements IBeanDiffer {
             // 全部删除
             return DiffValue.replace(src, target);
         } else {
-            List<IDiffValue> diffs = new ArrayList<>();
-            Iterator<?> it1 = adapter.iterator(src);
-            Iterator<?> it2 = adapter.iterator(target);
-            while (it1.hasNext() && it2.hasNext()) {
-                Object v1 = it1.next();
-                Object v2 = it2.next();
-
-                IDiffValue diff = diffObject(v1, v2, selection, options);
-                if (diff == null)
-                    diff = DiffValue.same(v1, v2);
-                diffs.add(diff);
+            if (selection != null) {
+                String keyProp = selection.getKeyProp();
+                if (!StringHelper.isEmpty(keyProp)) {
+                    return diffListByKeyProp(src, target, keyProp, selection, options, adapter);
+                }
             }
-
-            while (it1.hasNext()) {
-                diffs.add(DiffValue.remove(it1.next()));
-            }
-
-            while (it2.hasNext()) {
-                diffs.add(DiffValue.add(it2.next()));
-            }
-
-            DiffValue ret = new DiffValue(DiffType.update, src, target);
-            ret.setElementDiffs(diffs);
-            return ret;
+            return diffListByPos(src, target, selection, options, adapter);
         }
+    }
+
+    DiffValue diffListByKeyProp(Object src, Object target, String keyProp, FieldSelectionBean selection,
+                                BeanDiffOptions options, IBeanCollectionAdapter adapter) {
+        Map<String, IDiffValue> diffs = new LinkedHashMap<>();
+
+        Map<String, Object> srcMap = buildKeyMap(src, keyProp, adapter);
+        Map<String, Object> targetMap = buildKeyMap(target, keyProp, adapter);
+        srcMap.forEach((name, value) -> {
+            if (!targetMap.containsKey(name)) {
+                diffs.put(name, DiffValue.remove(value));
+            } else {
+                Object targetValue = targetMap.get(name);
+                IDiffValue diff = diffObject(value, targetValue, selection, options);
+                if (diff != null)
+                    diffs.put(name, diff);
+            }
+        });
+
+        targetMap.forEach((name, value) -> {
+            if (!srcMap.containsKey(name)) {
+                diffs.put(name, DiffValue.add(value));
+            }
+        });
+
+        if (isAllSame(diffs.values())) {
+            if (options.isIncludeSame())
+                return DiffValue.same(src, target);
+            return null;
+        }
+
+        DiffValue ret = DiffValue.update(src, target);
+        ret.setKeyedElementDiffs(diffs);
+        return ret;
+    }
+
+    Map<String, Object> buildKeyMap(Object src, String keyProp, IBeanCollectionAdapter adapter) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        Iterator<?> it = adapter.iterator(src);
+        while (it.hasNext()) {
+            Object item = it.next();
+            String key = StringHelper.toString(BeanTool.getProperty(item, keyProp), null);
+            map.put(key, item);
+        }
+        return map;
+    }
+
+    DiffValue diffListByPos(Object src, Object target, FieldSelectionBean selection,
+                            BeanDiffOptions options, IBeanCollectionAdapter adapter) {
+        List<IDiffValue> diffs = new ArrayList<>();
+        Iterator<?> it1 = adapter.iterator(src);
+        Iterator<?> it2 = adapter.iterator(target);
+
+        while (it1.hasNext() && it2.hasNext()) {
+            Object v1 = it1.next();
+            Object v2 = it2.next();
+
+            IDiffValue diff = diffObject(v1, v2, selection, options);
+            if (diff == null)
+                diff = DiffValue.same(v1, v2);
+            diffs.add(diff);
+        }
+
+        while (it1.hasNext()) {
+            diffs.add(DiffValue.remove(it1.next()));
+        }
+
+        while (it2.hasNext()) {
+            diffs.add(DiffValue.add(it2.next()));
+        }
+
+        if (isAllSame(diffs)) {
+            if (options.isIncludeSame())
+                return DiffValue.same(src, target);
+            return null;
+        }
+
+        DiffValue ret = new DiffValue(DiffType.update, src, target);
+        ret.setElementDiffs(diffs);
+        return ret;
+    }
+
+    private boolean isAllSame(Collection<IDiffValue> diffs) {
+        if (diffs.isEmpty())
+            return true;
+        return diffs.stream().allMatch(IDiffValue::isSame);
     }
 
     @Override

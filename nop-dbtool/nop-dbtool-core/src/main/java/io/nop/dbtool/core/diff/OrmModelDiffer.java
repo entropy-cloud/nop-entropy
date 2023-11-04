@@ -13,8 +13,12 @@ public class OrmModelDiffer {
         FieldSelectionBean selection = new FieldSelectionBean();
         FieldSelectionBean entitySelection = FieldSelectionBean.fromProp(
                 "tableName", "comment");
+        entitySelection.setKeyProp("tableName");
+
         FieldSelectionBean colSelection = FieldSelectionBean.fromProp(
-                "stdSqlType", "precision", "scale", "defaultValue", "mandatory", "comment");
+                "code","stdSqlType", "precision", "scale", "defaultValue", "mandatory", "comment");
+        colSelection.setKeyProp("code");
+
         entitySelection.addField("columns", colSelection);
         selection.addField("entities", entitySelection);
         options.setSelection(selection);

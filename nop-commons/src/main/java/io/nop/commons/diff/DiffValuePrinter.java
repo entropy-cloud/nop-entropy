@@ -18,6 +18,7 @@ public class DiffValuePrinter {
         DiffType diffType = diff.getDiffType();
         Map<String, ? extends IDiffValue> propDiffs = diff.getPropDiffs();
         List<? extends IDiffValue> elementsDiff = diff.getElementDiffs();
+        Map<String, ? extends IDiffValue> keyedElementsDiff = diff.getKeyedElementDiffs();
 
         out.append('@').append(diffType.name()).append(": ");
         out.incIndent();
@@ -33,6 +34,13 @@ public class DiffValuePrinter {
             elementsDiff.forEach(elm -> {
                 out.indent().append("-").incIndent();
                 print(elm, out);
+                out.decIndent();
+            });
+        } else if (keyedElementsDiff != null && !keyedElementsDiff.isEmpty()) {
+            keyedElementsDiff.forEach((name, value) -> {
+                out.indent().append('[').append(name).append("] => ");
+                out.incIndent();
+                print(value, out);
                 out.decIndent();
             });
         } else {

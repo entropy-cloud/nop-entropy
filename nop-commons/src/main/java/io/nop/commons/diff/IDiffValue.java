@@ -33,6 +33,8 @@ public interface IDiffValue {
      */
     List<? extends IDiffValue> getElementDiffs();
 
+    Map<String, ? extends IDiffValue> getKeyedElementDiffs();
+
     @JsonIgnore
     default boolean isSame() {
         return getDiffType() == DiffType.same;
