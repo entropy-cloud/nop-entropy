@@ -7,6 +7,8 @@
  */
 package io.nop.orm.ddl;
 
+import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.orm.model.IColumnModel;
@@ -22,13 +24,26 @@ public class DdlSqlCreator {
     private final IDialect dialect;
 
     public DdlSqlCreator(String dialectName) {
-        this.dmlLibPath = "/nop/orm/xlib/ddl/ddl_" + dialectName + ".xlib";
+        this.dmlLibPath = getDmlLibPath(dialectName);
         this.dialect = DialectManager.instance().getDialect(dialectName);
     }
 
     public DdlSqlCreator(String dialectName, IDialect dialect) {
-        this.dmlLibPath = "/nop/orm/xlib/ddl/ddl_" + dialectName + ".xlib";
+        this.dmlLibPath = getDmlLibPath(dialectName);
         this.dialect = dialect;
+    }
+
+    static String getDmlLibPath(String dialectName) {
+        String path = "/nop/orm/xlib/ddl/ddl_" + dialectName + ".xlib";
+        if (VirtualFileSystem.instance().getResource(path).exists()) {
+            return path;
+        }
+        if (dialectName.indexOf('.') > 0) {
+            String basePath = "/nop/orm/xlib/ddl/ddl_" + StringHelper.firstPart(dialectName, '.') + ".xlib";
+            if(VirtualFileSystem.instance().getResource(basePath).exists())
+                return basePath;
+        }
+        return path;
     }
 
     public DdlSqlCreator(IDialect dialect) {
