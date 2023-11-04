@@ -20,60 +20,83 @@ import io.nop.auth.dao.entity.NopAuthExtLogin;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public class _NopAuthExtLogin extends DynamicOrmEntity{
     
+    /* ID: SID VARCHAR */
+    public static final String PROP_NAME_sid = "sid";
+    public static final int PROP_ID_sid = 1;
+    
     /* 用户ID: USER_ID VARCHAR */
     public static final String PROP_NAME_userId = "userId";
-    public static final int PROP_ID_userId = 1;
+    public static final int PROP_ID_userId = 2;
     
     /* 登录类型: LOGIN_TYPE INTEGER */
     public static final String PROP_NAME_loginType = "loginType";
-    public static final int PROP_ID_loginType = 2;
+    public static final int PROP_ID_loginType = 3;
     
-    /* 登录标识: LOGIN_VALUE VARCHAR */
-    public static final String PROP_NAME_loginValue = "loginValue";
-    public static final int PROP_ID_loginValue = 3;
+    /* 登录标识: EXT_ID VARCHAR */
+    public static final String PROP_NAME_extId = "extId";
+    public static final int PROP_ID_extId = 4;
+    
+    /* 登录密码: CREDENTIAL VARCHAR */
+    public static final String PROP_NAME_credential = "credential";
+    public static final int PROP_ID_credential = 5;
+    
+    /* 是否已验证: VERIFIED BOOLEAN */
+    public static final String PROP_NAME_verified = "verified";
+    public static final int PROP_ID_verified = 6;
+    
+    /* 上次登录时间: LAST_LOGIN_TIME TIMESTAMP */
+    public static final String PROP_NAME_lastLoginTime = "lastLoginTime";
+    public static final int PROP_ID_lastLoginTime = 7;
+    
+    /* 上次登录IP: LAST_LOGIN_IP VARCHAR */
+    public static final String PROP_NAME_lastLoginIp = "lastLoginIp";
+    public static final int PROP_ID_lastLoginIp = 8;
     
     /* 删除标识: DEL_FLAG TINYINT */
     public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 4;
+    public static final int PROP_ID_delFlag = 9;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 5;
+    public static final int PROP_ID_version = 10;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 6;
+    public static final int PROP_ID_createdBy = 11;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 7;
+    public static final int PROP_ID_createTime = 12;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 8;
+    public static final int PROP_ID_updatedBy = 13;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 9;
+    public static final int PROP_ID_updateTime = 14;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 10;
+    public static final int PROP_ID_remark = 15;
     
 
-    private static int _PROP_ID_BOUND = 11;
+    private static int _PROP_ID_BOUND = 16;
 
     
     /* relation: 用户 */
     public static final String PROP_NAME_user = "user";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId,PROP_NAME_loginType);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId,PROP_ID_loginType};
+    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[11];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
+      
+          PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
+          PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
           PROP_ID_TO_NAME[PROP_ID_userId] = PROP_NAME_userId;
           PROP_NAME_TO_ID.put(PROP_NAME_userId, PROP_ID_userId);
@@ -81,8 +104,20 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_loginType] = PROP_NAME_loginType;
           PROP_NAME_TO_ID.put(PROP_NAME_loginType, PROP_ID_loginType);
       
-          PROP_ID_TO_NAME[PROP_ID_loginValue] = PROP_NAME_loginValue;
-          PROP_NAME_TO_ID.put(PROP_NAME_loginValue, PROP_ID_loginValue);
+          PROP_ID_TO_NAME[PROP_ID_extId] = PROP_NAME_extId;
+          PROP_NAME_TO_ID.put(PROP_NAME_extId, PROP_ID_extId);
+      
+          PROP_ID_TO_NAME[PROP_ID_credential] = PROP_NAME_credential;
+          PROP_NAME_TO_ID.put(PROP_NAME_credential, PROP_ID_credential);
+      
+          PROP_ID_TO_NAME[PROP_ID_verified] = PROP_NAME_verified;
+          PROP_NAME_TO_ID.put(PROP_NAME_verified, PROP_ID_verified);
+      
+          PROP_ID_TO_NAME[PROP_ID_lastLoginTime] = PROP_NAME_lastLoginTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastLoginTime, PROP_ID_lastLoginTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_lastLoginIp] = PROP_NAME_lastLoginIp;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastLoginIp, PROP_ID_lastLoginIp);
       
           PROP_ID_TO_NAME[PROP_ID_delFlag] = PROP_NAME_delFlag;
           PROP_NAME_TO_ID.put(PROP_NAME_delFlag, PROP_ID_delFlag);
@@ -108,14 +143,29 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
     }
 
     
+    /* ID: SID */
+    private java.lang.String _sid;
+    
     /* 用户ID: USER_ID */
     private java.lang.String _userId;
     
     /* 登录类型: LOGIN_TYPE */
     private java.lang.Integer _loginType;
     
-    /* 登录标识: LOGIN_VALUE */
-    private java.lang.String _loginValue;
+    /* 登录标识: EXT_ID */
+    private java.lang.String _extId;
+    
+    /* 登录密码: CREDENTIAL */
+    private java.lang.String _credential;
+    
+    /* 是否已验证: VERIFIED */
+    private java.lang.Boolean _verified;
+    
+    /* 上次登录时间: LAST_LOGIN_TIME */
+    private java.sql.Timestamp _lastLoginTime;
+    
+    /* 上次登录IP: LAST_LOGIN_IP */
+    private java.lang.String _lastLoginIp;
     
     /* 删除标识: DEL_FLAG */
     private java.lang.Byte _delFlag;
@@ -175,14 +225,14 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildCompositeId(PK_PROP_NAMES,PK_PROP_IDS);
+        return buildSimpleId(PROP_ID_sid);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_userId || propId == PROP_ID_loginType;
+            return propId == PROP_ID_sid;
           
     }
 
@@ -208,14 +258,29 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
+            case PROP_ID_sid:
+               return getSid();
+        
             case PROP_ID_userId:
                return getUserId();
         
             case PROP_ID_loginType:
                return getLoginType();
         
-            case PROP_ID_loginValue:
-               return getLoginValue();
+            case PROP_ID_extId:
+               return getExtId();
+        
+            case PROP_ID_credential:
+               return getCredential();
+        
+            case PROP_ID_verified:
+               return getVerified();
+        
+            case PROP_ID_lastLoginTime:
+               return getLastLoginTime();
+        
+            case PROP_ID_lastLoginIp:
+               return getLastLoginIp();
         
             case PROP_ID_delFlag:
                return getDelFlag();
@@ -249,6 +314,16 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
+            case PROP_ID_sid:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_sid));
+               }
+               setSid(typedValue);
+               break;
+            }
+        
             case PROP_ID_userId:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -269,13 +344,53 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_loginValue:{
+            case PROP_ID_extId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_loginValue));
+                       err-> newTypeConversionError(PROP_NAME_extId));
                }
-               setLoginValue(typedValue);
+               setExtId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_credential:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_credential));
+               }
+               setCredential(typedValue);
+               break;
+            }
+        
+            case PROP_ID_verified:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_verified));
+               }
+               setVerified(typedValue);
+               break;
+            }
+        
+            case PROP_ID_lastLoginTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_lastLoginTime));
+               }
+               setLastLoginTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_lastLoginIp:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_lastLoginIp));
+               }
+               setLastLoginIp(typedValue);
                break;
             }
         
@@ -358,23 +473,58 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
+            case PROP_ID_sid:{
+               onInitProp(propId);
+               this._sid = (java.lang.String)value;
+               orm_id(); // 如果是设置主键字段，则触发watcher
+               break;
+            }
+        
             case PROP_ID_userId:{
                onInitProp(propId);
                this._userId = (java.lang.String)value;
-               orm_id(); // 如果是设置主键字段，则触发watcher
+               
                break;
             }
         
             case PROP_ID_loginType:{
                onInitProp(propId);
                this._loginType = (java.lang.Integer)value;
-               orm_id(); // 如果是设置主键字段，则触发watcher
+               
                break;
             }
         
-            case PROP_ID_loginValue:{
+            case PROP_ID_extId:{
                onInitProp(propId);
-               this._loginValue = (java.lang.String)value;
+               this._extId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_credential:{
+               onInitProp(propId);
+               this._credential = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_verified:{
+               onInitProp(propId);
+               this._verified = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_lastLoginTime:{
+               onInitProp(propId);
+               this._lastLoginTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_lastLoginIp:{
+               onInitProp(propId);
+               this._lastLoginIp = (java.lang.String)value;
                
                break;
             }
@@ -435,6 +585,25 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
 
     
     /**
+     * ID: SID
+     */
+    public java.lang.String getSid(){
+         onPropGet(PROP_ID_sid);
+         return _sid;
+    }
+
+    /**
+     * ID: SID
+     */
+    public void setSid(java.lang.String value){
+        if(onPropSet(PROP_ID_sid,value)){
+            this._sid = value;
+            internalClearRefs(PROP_ID_sid);
+            orm_id();
+        }
+    }
+    
+    /**
      * 用户ID: USER_ID
      */
     public java.lang.String getUserId(){
@@ -449,7 +618,7 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_userId,value)){
             this._userId = value;
             internalClearRefs(PROP_ID_userId);
-            orm_id();
+            
         }
     }
     
@@ -468,25 +637,101 @@ public class _NopAuthExtLogin extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_loginType,value)){
             this._loginType = value;
             internalClearRefs(PROP_ID_loginType);
-            orm_id();
+            
         }
     }
     
     /**
-     * 登录标识: LOGIN_VALUE
+     * 登录标识: EXT_ID
      */
-    public java.lang.String getLoginValue(){
-         onPropGet(PROP_ID_loginValue);
-         return _loginValue;
+    public java.lang.String getExtId(){
+         onPropGet(PROP_ID_extId);
+         return _extId;
     }
 
     /**
-     * 登录标识: LOGIN_VALUE
+     * 登录标识: EXT_ID
      */
-    public void setLoginValue(java.lang.String value){
-        if(onPropSet(PROP_ID_loginValue,value)){
-            this._loginValue = value;
-            internalClearRefs(PROP_ID_loginValue);
+    public void setExtId(java.lang.String value){
+        if(onPropSet(PROP_ID_extId,value)){
+            this._extId = value;
+            internalClearRefs(PROP_ID_extId);
+            
+        }
+    }
+    
+    /**
+     * 登录密码: CREDENTIAL
+     */
+    public java.lang.String getCredential(){
+         onPropGet(PROP_ID_credential);
+         return _credential;
+    }
+
+    /**
+     * 登录密码: CREDENTIAL
+     */
+    public void setCredential(java.lang.String value){
+        if(onPropSet(PROP_ID_credential,value)){
+            this._credential = value;
+            internalClearRefs(PROP_ID_credential);
+            
+        }
+    }
+    
+    /**
+     * 是否已验证: VERIFIED
+     */
+    public java.lang.Boolean getVerified(){
+         onPropGet(PROP_ID_verified);
+         return _verified;
+    }
+
+    /**
+     * 是否已验证: VERIFIED
+     */
+    public void setVerified(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_verified,value)){
+            this._verified = value;
+            internalClearRefs(PROP_ID_verified);
+            
+        }
+    }
+    
+    /**
+     * 上次登录时间: LAST_LOGIN_TIME
+     */
+    public java.sql.Timestamp getLastLoginTime(){
+         onPropGet(PROP_ID_lastLoginTime);
+         return _lastLoginTime;
+    }
+
+    /**
+     * 上次登录时间: LAST_LOGIN_TIME
+     */
+    public void setLastLoginTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_lastLoginTime,value)){
+            this._lastLoginTime = value;
+            internalClearRefs(PROP_ID_lastLoginTime);
+            
+        }
+    }
+    
+    /**
+     * 上次登录IP: LAST_LOGIN_IP
+     */
+    public java.lang.String getLastLoginIp(){
+         onPropGet(PROP_ID_lastLoginIp);
+         return _lastLoginIp;
+    }
+
+    /**
+     * 上次登录IP: LAST_LOGIN_IP
+     */
+    public void setLastLoginIp(java.lang.String value){
+        if(onPropSet(PROP_ID_lastLoginIp,value)){
+            this._lastLoginIp = value;
+            internalClearRefs(PROP_ID_lastLoginIp);
             
         }
     }

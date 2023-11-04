@@ -5,7 +5,7 @@
 
     <entityName>io.nop.auth.dao.entity.NopAuthExtLogin</entityName>
 
-    <primaryKey>userId,loginType</primaryKey>
+    <primaryKey>sid</primaryKey>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -18,17 +18,37 @@
     <keys/>
 
     <props>
+        <prop name="sid" displayName="ID" i18n-en:displayName="ID" tagSet="seq" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
         <prop name="userId" displayName="用户ID" i18n-en:displayName="User ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X" ext:relation="user">
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X" ext:relation="user">
             <schema domain="userId" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="loginType" displayName="登录类型" i18n-en:displayName="Login Type" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="false" ui:show="C">
             <schema type="java.lang.Integer" dict="auth/login-type"/>
         </prop>
-        <prop name="loginValue" displayName="登录标识" i18n-en:displayName="Login Value" mandatory="true" queryable="true"
+        <prop name="extId" displayName="登录标识" i18n-en:displayName="External ID" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="credential" displayName="登录密码" i18n-en:displayName="Credential" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="verified" displayName="是否已验证" i18n-en:displayName="Verified" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="lastLoginTime" displayName="上次登录时间" i18n-en:displayName="Last Login Time" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="lastLoginIp" displayName="上次登录IP" i18n-en:displayName="Last Login IP" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20"/>
         </prop>
         <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="true" internal="true" ui:show="X">

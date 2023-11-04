@@ -1,8 +1,13 @@
 
 CREATE TABLE nop_auth_ext_login(
+  SID VARCHAR(32) NOT NULL ,
   USER_ID VARCHAR(50) NOT NULL ,
   LOGIN_TYPE INT4 NOT NULL ,
-  LOGIN_VALUE VARCHAR(50) NOT NULL ,
+  EXT_ID VARCHAR(50) NOT NULL ,
+  CREDENTIAL VARCHAR(50)  ,
+  VERIFIED BOOLEAN NOT NULL ,
+  LAST_LOGIN_TIME TIMESTAMP  ,
+  LAST_LOGIN_IP VARCHAR(20)  ,
   DEL_FLAG INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -10,7 +15,7 @@ CREATE TABLE nop_auth_ext_login(
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_auth_ext_login primary key (USER_ID,LOGIN_TYPE)
+  constraint PK_nop_auth_ext_login primary key (SID)
 );
 
 CREATE TABLE nop_auth_user_role(
@@ -288,11 +293,21 @@ CREATE TABLE nop_auth_position(
 
       COMMENT ON TABLE nop_auth_ext_login IS '扩展登录方式';
                 
+      COMMENT ON COLUMN nop_auth_ext_login.SID IS 'ID';
+                    
       COMMENT ON COLUMN nop_auth_ext_login.USER_ID IS '用户ID';
                     
       COMMENT ON COLUMN nop_auth_ext_login.LOGIN_TYPE IS '登录类型';
                     
-      COMMENT ON COLUMN nop_auth_ext_login.LOGIN_VALUE IS '登录标识';
+      COMMENT ON COLUMN nop_auth_ext_login.EXT_ID IS '登录标识';
+                    
+      COMMENT ON COLUMN nop_auth_ext_login.CREDENTIAL IS '登录密码';
+                    
+      COMMENT ON COLUMN nop_auth_ext_login.VERIFIED IS '是否已验证';
+                    
+      COMMENT ON COLUMN nop_auth_ext_login.LAST_LOGIN_TIME IS '上次登录时间';
+                    
+      COMMENT ON COLUMN nop_auth_ext_login.LAST_LOGIN_IP IS '上次登录IP';
                     
       COMMENT ON COLUMN nop_auth_ext_login.DEL_FLAG IS '删除标识';
                     

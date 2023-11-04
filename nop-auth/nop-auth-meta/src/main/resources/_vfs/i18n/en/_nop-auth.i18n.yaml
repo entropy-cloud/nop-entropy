@@ -37,10 +37,15 @@ prop:
       parent.deptName: Parent
       children: Children
     NopAuthExtLogin:
+      sid: ID
       userId: User ID
       loginType: Login Type
       loginType_label: null
-      loginValue: Login Value
+      extId: External ID
+      credential: Credential
+      verified: Verified
+      lastLoginTime: Last Login Time
+      lastLoginIp: Last Login IP
       delFlag: Deleted
       version: Version
       createdBy: Created By

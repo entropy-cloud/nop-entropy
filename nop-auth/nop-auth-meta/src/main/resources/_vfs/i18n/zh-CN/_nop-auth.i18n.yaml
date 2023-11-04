@@ -39,15 +39,20 @@ prop:
     NopAuthExtLogin:
       createTime: 创建时间
       createdBy: 创建人
+      credential: 登录密码
       delFlag: 删除标识
+      extId: 登录标识
+      lastLoginIp: 上次登录IP
+      lastLoginTime: 上次登录时间
       loginType: 登录类型
       loginType_label: 登录类型
-      loginValue: 登录标识
       remark: 备注
+      sid: ID
       updateTime: 修改时间
       updatedBy: 修改人
       user: 用户
       userId: 用户ID
+      verified: 是否已验证
       version: 数据版本
     NopAuthGroup:
       children: 子分组
