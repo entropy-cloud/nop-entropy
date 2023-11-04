@@ -16,6 +16,9 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <transformers>
+                <transformer />
+              </transformers>
               <artifactSet>
                 <includes>
                   <include>io.github.entropy-cloud:*</include>
