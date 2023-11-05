@@ -51,6 +51,6 @@ public class TestCodeRule extends JunitBaseTestCase {
         entity.setName("abc");
         scope.setLocalValue("entity", entity);
         String code = codeRuleGenerator.generate("test", scope);
-        assertEquals("D2023abc002", code);
+        assertEquals("D2023abc001", code);
     }
 }

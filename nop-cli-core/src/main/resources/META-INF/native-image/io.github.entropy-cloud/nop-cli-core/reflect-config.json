@@ -9301,6 +9301,18 @@
     "fields": [],
     "methods": [
       {
+        "name": "addColumn",
+        "parameterTypes": [
+          "io.nop.orm.model.IColumnModel"
+        ]
+      },
+      {
+        "name": "addTenantIdForTables",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
         "name": "createTable",
         "parameterTypes": [
           "io.nop.orm.model.IEntityModel"
@@ -9329,6 +9341,12 @@
         ]
       },
       {
+        "name": "dropColumn",
+        "parameterTypes": [
+          "io.nop.orm.model.IColumnModel"
+        ]
+      },
+      {
         "name": "dropTable",
         "parameterTypes": [
           "io.nop.orm.model.IEntityModel",
@@ -9346,6 +9364,19 @@
         "name": "forDialect",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "getDmlLibPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "modifyColumn",
+        "parameterTypes": [
+          "io.nop.orm.model.IColumnModel",
+          "io.nop.orm.model.IColumnModel"
         ]
       }
     ],

@@ -2,7 +2,7 @@
   "data": {
     "sid": "@var:NopSysNoticeTemplate@sid",
     "name": "123",
-    "tplType": "@var:NopSysCodeRule@sid",
+    "tplType": "1",
     "content": "xyz",
     "delFlag": 0,
     "version": 0,
@@ -12,7 +12,7 @@
     "updateTime": "@var:NopSysNoticeTemplate@updateTime",
     "remark": "sss",
     "id": "@var:NopSysNoticeTemplate@sid",
-    "extCode": "D2023123002",
+    "extCode": "D2023123001",
     "extFldA": "x"
   },
   "status": 0
