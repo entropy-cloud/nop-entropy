@@ -44,9 +44,9 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
                 if (value == null) {
                     String key = OrmModelHelper.buildEntityPropKey(col);
                     if (col.getStdDataType().isNumericType()) {
-                        value = sequenceGenerator.generateLong(key, true);
+                        value = sequenceGenerator.generateLong(key, false);
                     } else {
-                        value = sequenceGenerator.generateString(key, true);
+                        value = sequenceGenerator.generateString(key, false);
                     }
                     OrmEntityHelper.setPropValue(col, entity, value);
                 }

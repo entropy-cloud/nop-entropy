@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.data.DataBean;
 
 import java.io.Serializable;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 @DataBean
@@ -58,6 +59,10 @@ public class CacheConfig implements Serializable {
         CacheConfig config = new CacheConfig();
         config.setMaximumSize(maxSize);
         return config;
+    }
+
+    public static CacheConfig newConfig(int maxSize, long expireTimeout) {
+        return newConfig(maxSize).expireAfterWrite(Duration.of(expireTimeout, ChronoUnit.MILLIS));
     }
 
     /**

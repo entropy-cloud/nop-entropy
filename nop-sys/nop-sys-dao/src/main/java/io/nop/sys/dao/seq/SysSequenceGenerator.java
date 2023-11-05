@@ -10,6 +10,9 @@ package io.nop.sys.dao.seq;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.cache.CacheConfig;
+import io.nop.commons.cache.LocalCache;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.unittest.BaseTestCase;
@@ -29,8 +32,6 @@ import java.util.function.Function;
 
 import static io.nop.sys.dao.NopSysDaoConfigs.CFG_SYS_INIT_DEFAULT_SEQUENCE;
 import static io.nop.sys.dao.NopSysDaoConstants.SEQ_DEFAULT;
-import static io.nop.sys.dao.NopSysErrors.ARG_SEQ_NAME;
-import static io.nop.sys.dao.NopSysErrors.ERR_SYS_NO_SEQ;
 
 public class SysSequenceGenerator implements ISequenceGenerator {
     static final Logger LOG = LoggerFactory.getLogger(SysSequenceGenerator.class);
@@ -39,6 +40,9 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     private ITransactionTemplate transactionTemplate;
 
     private final Map<String, SeqItem> cache = new ConcurrentHashMap<>();
+
+    private final LocalCache<String, SeqItem> defaultCache = LocalCache.newCache("default-seq-cache",
+            CacheConfig.newConfig(500, 60 * 1000));
 
     static class SeqItem {
         String name; // 对象类型, 如果没有找到匹配的对象类型，则使用default类型
@@ -57,7 +61,13 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             this.update(seq);
         }
 
+        SeqItem(String name) {
+            this.name = name;
+            this.useUuid = true;
+        }
+
         public void update(NopSysSequence seq) {
+            this.useUuid = StringHelper.isYes(seq.getIsUuid());
             this.cacheSize = 0;
             this.stepSize = seq.getStepSize() != null ? seq.getStepSize() : 1;
             if (this.stepSize <= 0) {
@@ -69,6 +79,10 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
     public void clearCache() {
         cache.clear();
+    }
+
+    public void removeCache(String cacheKey) {
+        cache.remove(cacheKey);
     }
 
     @Inject
@@ -93,7 +107,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     }
 
     public void addDefaultSequence() {
-        ContextProvider.runWithTenant("0",()-> {
+        ContextProvider.runWithTenant("0", () -> {
             SQL sql = SQL.begin().sql("select o.id from ").sql(NopSysSequence.class.getName())
                     .sql(" o").end();
             boolean exists = ormTemplate.exists(sql);
@@ -123,8 +137,11 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
     @Override
     public long generateLong(String seqName, boolean useDefault) {
-        SeqItem item = this.findSeqItem(seqName);
+        SeqItem item = this.findSeqItem(seqName, useDefault);
         synchronized (item) {
+            if (item.useUuid)
+                return MathHelper.secureRandom().nextLong();
+
             if (item.cacheSize > 0 && item.usedCount < item.cacheSize) {
                 long value = item.nextValue;
                 item.usedCount++;
@@ -143,7 +160,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         // 2. 从SeqItem中获取缓存的nextValue值
         // 3. 如果没有缓存的值，则从数据库中重新装载SeqItem, 获取nextValue,
         // 并更新数据库中的nextValue配置
-        SeqItem item = this.findSeqItem(seqName);
+        SeqItem item = this.findSeqItem(seqName, useDefault);
         synchronized (item) {
             if (item.useUuid) {
                 return StringHelper.generateUUID();
@@ -183,7 +200,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
         });
     }
 
-    SeqItem findSeqItem(String seqName) {
+    SeqItem findSeqItem(String seqName, boolean useDefault) {
         SeqItem item = cache.get(seqName);
         if (item != null)
             return item;
@@ -191,17 +208,20 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             item = cache.get(seqName);
             if (item != null)
                 return item;
+
+            item = defaultCache.get(seqName);
+            if (item != null)
+                return item;
             NopSysSequence seq = loadCacheItemFromDb(seqName);
             if (seq == null) {
-                if (!SEQ_DEFAULT.equals(seqName)) {
-                    SeqItem defaultItem = findSeqItem(SEQ_DEFAULT);
-                    cache.put(seqName, defaultItem);
+                if (useDefault && !SEQ_DEFAULT.equals(seqName)) {
+                    SeqItem defaultItem = findSeqItem(SEQ_DEFAULT, false);
                     return defaultItem;
                 }
 
-                if (seq == null)
-                    throw new NopException(ERR_SYS_NO_SEQ)
-                            .param(ARG_SEQ_NAME, seqName);
+                item = new SeqItem(seqName);
+                defaultCache.put(seqName, item);
+                return item;
             }
             item = new SeqItem(seq);
             LOG.debug("dao.load_item_from_db:next={}", item.nextValue);
