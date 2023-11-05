@@ -1,2 +1,2 @@
 _chgType,SEQ_NAME,SEQ_TYPE,IS_UUID,NEXT_VALUE,STEP_SIZE,CACHE_SIZE,MAX_VALUE,RESET_TYPE,DEL_FLAG,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
-A,default,seq,0,101,1,1,,,0,0,autotest-ref,*,autotest-ref,*,
+A,default,seq,0,1,1,1,,,0,0,autotest-ref,*,autotest-ref,*,

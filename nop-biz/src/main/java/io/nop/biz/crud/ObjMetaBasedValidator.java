@@ -215,7 +215,7 @@ public class ObjMetaBasedValidator {
 
     private void doCheckAuth(String objTypeName, IObjPropMeta propMeta, ActionAuthMeta auth) {
         IActionAuthChecker authChecker = this.context.getActionAuthChecker();
-        if (authChecker == null)
+        if (authChecker == null || auth == null)
             return;
 
         if (auth.getRoles() != null && !auth.getRoles().isEmpty()) {
