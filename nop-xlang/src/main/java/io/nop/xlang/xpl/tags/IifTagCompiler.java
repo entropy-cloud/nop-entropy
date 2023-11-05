@@ -39,6 +39,6 @@ public class IifTagCompiler implements IXplTagCompiler {
         Expression test = requireAttrExpr(node, TEST_NAME, cp, scope);
         Expression body = cp.parseTag(node.child(0), scope);
         Expression alternate = cp.parseTag(node.child(1), scope);
-        return IfStatement.valueOf(node.getLocation(), test, body, alternate);
+        return IfStatement.valueOf(node.getLocation(), test, body, alternate,false);
     }
 }

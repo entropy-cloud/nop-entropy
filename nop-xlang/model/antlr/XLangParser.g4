@@ -559,7 +559,7 @@ expression_single
     | left=expression_single operator='|' right=expression_single                                  # BinaryExpression//_bitOr
     | left=expression_single operator=('&&' | AndLiteral) right=expression_single                  # BinaryExpression//_logicalAnd
     | left=expression_single operator=('||' | OrLiteral)  right=expression_single                  # BinaryExpression//_logicalOr
-    | test=expression_single '?' consequent=expression_single ':' alternate=expression_single            # IfStatement_expr
+    | <astAssign=ternaryExpr>test=expression_single '?' consequent=expression_single ':' alternate=expression_single            # IfStatement_expr
 //    |  singleExpression '=' singleExpression                                  # AssignmentExpression
 //    | singleExpression assignmentOperator singleExpression                   # AssignmentOperatorExpression
     | id=identifier {this.notLineTerminator()}? value=templateStringLiteral           # TemplateStringExpression  // ECMAScript 6

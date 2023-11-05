@@ -20,6 +20,8 @@ public abstract class _IfStatement extends io.nop.xlang.ast.Statement {
     
     protected io.nop.xlang.ast.Expression consequent;
     
+    protected boolean ternaryExpr;
+    
     protected io.nop.xlang.ast.Expression test;
     
 
@@ -47,6 +49,16 @@ public abstract class _IfStatement extends io.nop.xlang.ast.Statement {
         if(value != null) value.setASTParent(this);
         
         this.consequent = value;
+    }
+    
+    public boolean getTernaryExpr(){
+        return ternaryExpr;
+    }
+
+    public void setTernaryExpr(boolean value){
+        checkAllowChange();
+        
+        this.ternaryExpr = value;
     }
     
     public io.nop.xlang.ast.Expression getTest(){
@@ -96,6 +108,8 @@ public abstract class _IfStatement extends io.nop.xlang.ast.Statement {
                           ret.setAlternate(alternate.deepClone());
                       
                 }
+            
+                ret.setTernaryExpr(ternaryExpr);
             
        return ret;
     }
@@ -189,6 +203,10 @@ public abstract class _IfStatement extends io.nop.xlang.ast.Statement {
                return false;
             }
         
+                if(!isValueEquivalent(this.ternaryExpr,other.getTernaryExpr())){
+                   return false;
+                }
+            
         return true;
     }
 
@@ -216,6 +234,8 @@ public abstract class _IfStatement extends io.nop.xlang.ast.Statement {
                               json.put("alternate", alternate);
                           
                     }
+                
+                   json.put("ternaryExpr", ternaryExpr);
                 
     }
 

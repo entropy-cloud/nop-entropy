@@ -90,8 +90,8 @@ public class XLangASTBuilder {
     }
 
     public static IfStatement ifStatement(SourceLocation loc, Expression test, Expression consequence,
-                                          Expression alternate) {
-        return IfStatement.valueOf(loc, test, consequence, alternate);
+                                          Expression alternate, boolean ternaryExpr) {
+        return IfStatement.valueOf(loc, test, consequence, alternate, ternaryExpr);
     }
 
     public static TryStatement tryStatement(SourceLocation loc, Expression block, CatchClause handlers,
@@ -151,7 +151,7 @@ public class XLangASTBuilder {
     }
 
     public static Expression ifStatement(SourceLocation loc, Expression test, Expression consequence) {
-        return IfStatement.valueOf(loc, test, consequence, null);
+        return IfStatement.valueOf(loc, test, consequence, null,false);
     }
 
     public static ImportAsDeclaration importLib(SourceLocation loc, Literal lib, Identifier local) {

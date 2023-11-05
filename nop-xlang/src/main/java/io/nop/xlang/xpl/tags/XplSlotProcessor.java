@@ -107,7 +107,7 @@ public class XplSlotProcessor {
          * 如果指定了slot renderer，则执行slot renderer, 否则执行当前标签
          */
         CallExpression render = CallExpression.valueOf(loc, slotVar, bindingArgs);
-        return ifStatement(node.getLocation(), slotVar.deepClone(), render, defaultExpr);
+        return ifStatement(node.getLocation(), slotVar.deepClone(), render, defaultExpr,false);
     }
 
     static List<Expression> parseSlotArgs(XNode node, IXplTagSlot slot, IXplCompiler cp, IXLangCompileScope scope) {

@@ -31,6 +31,6 @@ public class IfTagCompiler implements IXplTagCompiler {
         checkArgNames(node, ATTR_NAMES);
         Expression test = requireAttrExpr(node, TEST_NAME, cp, scope);
         Expression body = cp.parseTagBody(node, scope);
-        return simplifiedIfStatement(node.getLocation(), test, body, null);
+        return simplifiedIfStatement(node.getLocation(), test, body, null,false);
     }
 }

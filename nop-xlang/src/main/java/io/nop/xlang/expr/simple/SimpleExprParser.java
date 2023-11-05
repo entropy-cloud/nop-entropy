@@ -906,6 +906,6 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
     }
 
     protected Expression newTernaryExpr(SourceLocation loc, Expression test, Expression x, Expression y) {
-        return IfStatement.valueOf(loc, test, x, y);
+        return IfStatement.valueOf(loc, test, x, y, true);
     }
 }

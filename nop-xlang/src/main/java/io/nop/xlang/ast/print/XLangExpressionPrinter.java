@@ -205,22 +205,55 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitReturnStatement(ReturnStatement node) {
-        super.visitReturnStatement(node);
+        print("return ");
+        if (node.getArgument() != null) {
+            visit(node.getArgument());
+        }
+        print('\n');
     }
 
     @Override
     public void visitBreakStatement(BreakStatement node) {
-        super.visitBreakStatement(node);
+        print("break;");
+        println();
     }
 
     @Override
     public void visitContinueStatement(ContinueStatement node) {
-        super.visitContinueStatement(node);
+        print("continue;");
+        println();
     }
 
     @Override
     public void visitIfStatement(IfStatement node) {
-        super.visitIfStatement(node);
+        if (node.getTernaryExpr()) {
+            visit(node.getTest());
+            print('?');
+            if (node.getConsequent() == null) {
+                print("null");
+            } else {
+                visit(node.getConsequent());
+            }
+
+            if (node.getAlternate() == null) {
+                print("null");
+            } else {
+                visit(node.getAlternate());
+            }
+            print(' ');
+        } else {
+            print("if(");
+            visit(node.getTest());
+            print("){");
+            println();
+            visit(node.getConsequent());
+            print("}\n");
+            if (node.getAlternate() != null) {
+                print("else{");
+                visit(node.getAlternate());
+                print("}");
+            }
+        }
     }
 
     @Override

@@ -201,7 +201,7 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
             if (skipIf != null) {
                 // skiIf返回true时需要跳过当前节点，只编译body部分
                 Expression bodyExpr = parseTagBody(node, scope);
-                expr = simplifiedIfStatement(node.getLocation(), skipIf, bodyExpr, expr);
+                expr = simplifiedIfStatement(node.getLocation(), skipIf, bodyExpr, expr,false);
             }
 
             // 对应执行顺序为 if(xplIf) returnVar = invert(expr)
@@ -215,7 +215,7 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
             }
 
             if (xplIf != null) {
-                expr = simplifiedIfStatement(node.getLocation(), xplIf, expr, null);
+                expr = simplifiedIfStatement(node.getLocation(), xplIf, expr, null,false);
             }
             buf.add(expr);
         } finally {

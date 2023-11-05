@@ -314,6 +314,8 @@ public abstract class _XLangASTBuildVisitor extends XLangParserBaseVisitor<XLang
           io.nop.xlang.ast.IfStatement ret = new io.nop.xlang.ast.IfStatement();
           ret.setLocation(ParseTreeHelper.loc(ctx));
           
+             ret.setTernaryExpr(true);
+          
             if(ctx.test != null){
                ret.setTest((visitExpression_single(ctx.test)));
             }

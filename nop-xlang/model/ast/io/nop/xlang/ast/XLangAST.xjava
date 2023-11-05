@@ -100,6 +100,7 @@ public class XLangAST {
         Expression test;
         Expression consequent;
         Expression alternate;
+        boolean ternaryExpr;
     }
 
 //    class TernaryExpression extends Expression {

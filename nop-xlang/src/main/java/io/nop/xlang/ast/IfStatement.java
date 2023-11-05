@@ -31,13 +31,14 @@ public class IfStatement extends _IfStatement implements IConditionalExpression 
     }
 
     public static IfStatement valueOf(SourceLocation loc, Expression test, Expression consequence,
-                                      Expression alternate) {
+                                      Expression alternate, boolean ternaryExpr) {
         Guard.notNull(test, "test is null");
         IfStatement node = new IfStatement();
         node.setLocation(loc);
         node.setTest(test);
         node.setConsequent(consequence);
         node.setAlternate(alternate);
+        node.setTernaryExpr(ternaryExpr);
         return node;
     }
 }

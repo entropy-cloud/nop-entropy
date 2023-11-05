@@ -638,14 +638,14 @@ public class XplParseHelper {
     }
 
     public static Expression simplifiedIfStatement(SourceLocation loc, Expression test, Expression consequence,
-                                                   Expression alternate) {
+                                                   Expression alternate, boolean ternaryExpr) {
         OptionalValue value = staticValue(test);
         if (value.isPresent()) {
             if (value.asTruthy())
                 return consequence;
             return alternate;
         }
-        return IfStatement.valueOf(loc, test, consequence, alternate);
+        return IfStatement.valueOf(loc, test, consequence, alternate, ternaryExpr);
     }
 
     public static Runnable registerMacroVar(IXLangCompileScope scope, SourceLocation loc, String varName,
