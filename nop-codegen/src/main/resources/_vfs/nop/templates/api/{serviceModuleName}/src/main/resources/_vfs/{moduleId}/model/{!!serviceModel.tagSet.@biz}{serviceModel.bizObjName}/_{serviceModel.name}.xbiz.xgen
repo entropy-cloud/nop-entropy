@@ -1,0 +1,14 @@
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl">
+
+    <actions>
+        <c:for var="method" items="${serviceModel.methods}">
+            <c:unit xpl:is="${method.mutation?'mutation':'query'}" displayName="${method.displayName}"
+                    x:abstract="${method.tagSet?.contains('biz') ? null: true}">
+                <arg name="request" kind="RequestBean" type="${method.requestMessage}"/>
+                <source xpl:if="method['ext:source']">
+                    ${raw(method['ext:source'].xml())}
+                </source>
+            </c:unit>
+        </c:for>
+    </actions>
+</biz>

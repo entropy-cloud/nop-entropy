@@ -1,0 +1,4 @@
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="_${serviceModel.name}.xbiz">
+    <actions/>
+</biz>

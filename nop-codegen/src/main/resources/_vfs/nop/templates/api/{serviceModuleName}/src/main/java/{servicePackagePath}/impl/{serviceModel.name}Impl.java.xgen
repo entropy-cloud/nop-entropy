@@ -16,7 +16,7 @@
         import ${type};
     </c:for>
 
-    @BizModel("${serviceModel.name}")
+    @BizModel("${serviceModel.bizObjName}")
     public class ${serviceModel.name}Impl implements ${serviceModel.name}Spi{
 
     <c:for var="method" items="${serviceModel.methods}">

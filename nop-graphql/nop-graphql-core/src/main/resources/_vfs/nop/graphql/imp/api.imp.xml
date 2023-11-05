@@ -55,10 +55,18 @@
                 <c:script><![CDATA[
                     record.className = record.name.$normalizeClassName(
                                            rootRecord['ext:apiPackageName'],false)
+                    record.bizObjName = record.bizObjName || record.name
                 ]]></c:script>
             </normalizeFieldsExpr>
             <fields>
-                <field name="name" displayName="服务名">
+                <field name="name" displayName="服务名" mandatory="true">
+                    <schema stdDomain="var-name"/>
+                </field>
+
+                <!--
+                服务对象名对应于后台NopGraphQL的BizModel名称，而服务名则用于生成biz文件，java服务类名等
+                -->
+                <field name="bizObjName" displayName="服务对象名">
                     <schema stdDomain="var-name"/>
                 </field>
 
@@ -128,6 +136,10 @@
 
                         <field name="extConfig" displayName="扩展配置" virtual="true">
                             <schema stdDomain="json"/>
+                        </field>
+
+                        <field name="ext:source" displayName="实现代码">
+                            <schema stdDomain="xml" />
                         </field>
                     </fields>
                 </field>
