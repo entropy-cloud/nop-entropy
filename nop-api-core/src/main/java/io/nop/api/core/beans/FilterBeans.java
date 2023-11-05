@@ -7,10 +7,13 @@
  */
 package io.nop.api.core.beans;
 
+import io.nop.api.core.util.ApiStringHelper;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static io.nop.api.core.ApiConstants.FILTER_ATTR_EXCLUDE_MAX;
 import static io.nop.api.core.ApiConstants.FILTER_ATTR_EXCLUDE_MIN;
@@ -278,5 +281,23 @@ public class FilterBeans {
             tree.setTagName(FILTER_OP_AND);
         }
         return tree;
+    }
+
+    public static TreeBean propsEq(Map<String, Object> props) {
+        if (props == null)
+            return null;
+
+        TreeBean ret = new TreeBean();
+        ret.setTagName(FILTER_OP_AND);
+        props.forEach((name, value) -> {
+            if (ApiStringHelper.isEmptyObject(value))
+                return;
+            ret.addChild(eq(name, value));
+        });
+
+        if (!ret.hasChild())
+            return null;
+
+        return ret;
     }
 }
