@@ -279,6 +279,8 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public void freeze(boolean cascade) {
         boolean frozen = frozen();
+        if(frozen)
+            return;
 
         this.flags |= FLAG_READ_ONLY;
 

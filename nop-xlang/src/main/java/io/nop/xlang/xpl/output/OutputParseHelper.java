@@ -63,7 +63,7 @@ public class OutputParseHelper {
             buf.append(loc, "<" + tagName);
         } else {
             buf.append(loc, "<");
-            buf.add(tagNameExpr);
+            buf.add(escapeExpr(XLangEscapeMode.none, tagNameExpr));
         }
     }
 
@@ -86,9 +86,13 @@ public class OutputParseHelper {
             buf.append(loc, "</" + tagName + ">");
         } else {
             buf.append(loc, "</");
-            buf.add(tagNameExpr);
+            buf.add(escapeExpr(XLangEscapeMode.none, tagNameExpr));
             buf.append(loc, ">");
         }
+    }
+
+    public static EscapeOutputExpression escapeExpr(XLangEscapeMode escapeMode, Expression expr) {
+        return EscapeOutputExpression.valueOf(expr.getLocation(), escapeMode, expr.deepClone());
     }
 
     // public static String getTagName(XNode node, boolean xplNs, IXplCompiler cp, IXLangCompileScope scope) {
@@ -162,7 +166,7 @@ public class OutputParseHelper {
                 outputExpr(buf, escapeMode, subExpr);
             }
         } else {
-            buf.add(EscapeOutputExpression.valueOf(loc, escapeMode, valueExpr));
+            buf.add(EscapeOutputExpression.valueOf(loc, escapeMode, valueExpr.deepClone()));
         }
     }
 

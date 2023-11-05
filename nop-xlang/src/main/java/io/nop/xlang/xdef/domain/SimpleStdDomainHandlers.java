@@ -31,7 +31,6 @@ import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XJsonNode;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XPathProvider;
-import io.nop.core.lang.xml.json.StdJsonToXNodeTransformer;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.query.QueryBeanHelper;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
@@ -71,7 +70,6 @@ import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ARG_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP;
 
 public class SimpleStdDomainHandlers {
     public static class VPathType extends StringStdDomainHandler {
@@ -609,11 +607,17 @@ public class SimpleStdDomainHandlers {
         @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
-            if (!CoreConstants.XML_PROP_BODY.equals(propName)) {
-                throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP).loc(loc).param(ARG_STD_DOMAIN, getName())
-                        .param(ARG_PROP_NAME, propName);
+            if (StringHelper.isEmptyObject(text))
+                return null;
+
+
+            if (CoreConstants.XML_PROP_BODY.equals(propName)) {
+                XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+                node.content(loc, text);
+                return node;
             }
-            return text;
+            XNode ret = XNode.fromValue(text);
+            return ret;
         }
 
         @Override
@@ -627,7 +631,7 @@ public class SimpleStdDomainHandlers {
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             // 保留节点属性
             // node.clearAttrs();
-            node.freeze(true);
+            //node.freeze(true);
             return node;
         }
     }
@@ -644,11 +648,35 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+                                XLangCompileTool cp) {
+            if (StringHelper.isEmptyObject(text))
+                return null;
+
+
+            if (CoreConstants.XML_PROP_BODY.equals(propName)) {
+                XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+                node.content(loc, text);
+                return node;
+            }
+            XNode ret = XNode.fromValue(text);
+            if (ret != null) {
+                if (!ret.isDummyNode()) {
+                    ret = ret.cloneInstance();
+                    XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+                    node.appendChild(ret);
+                    return node;
+                }
+            }
+            return ret;
+        }
+
+        @Override
         public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.clearAttrs();
-            node.freeze(true);
+            //node.freeze(true);
             return node;
         }
     }
@@ -683,7 +711,7 @@ public class SimpleStdDomainHandlers {
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.clearAttrs();
             node.removeJsonPrefix();
-            node.freeze(true);
+            //node.freeze(true);
             return node;
         }
     }
@@ -720,7 +748,7 @@ public class SimpleStdDomainHandlers {
             }
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.removeJsonPrefix();
-            node.freeze(true);
+            //node.freeze(true);
             return new XJsonNode(node);
         }
 
@@ -729,7 +757,7 @@ public class SimpleStdDomainHandlers {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.removeJsonPrefix();
-            node.freeze(true);
+            //node.freeze(true);
             return new XJsonNode(node);
         }
     }

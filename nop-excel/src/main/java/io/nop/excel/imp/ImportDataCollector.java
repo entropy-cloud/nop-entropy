@@ -243,7 +243,7 @@ public class ImportDataCollector implements ITableDataEventListener {
                 if (handler != null) {
                     String source = value.toString();
                     SourceLocation loc = getLocation(sheetName, rowIndex, colIndex);
-                    value = handler.parseProp(null, getLocation(sheetName, rowIndex, colIndex), field.getName(), value,
+                    value = handler.parseProp(null, loc, field.getName(), value,
                             compileTool);
                     if (value instanceof IEvalAction) {
                         value = EvalCode.addSource(loc, (IEvalAction) value, source);

@@ -9,6 +9,7 @@ package io.nop.xlang.exec;
 
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.text.RawText;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalOutput;
 import io.nop.core.lang.eval.IEvalScope;
@@ -33,7 +34,7 @@ public class EscapeOutputExecutable extends AbstractExecutable {
 
     @Override
     public void display(StringBuilder sb) {
-        sb.append("@scape:");
+        sb.append("escape:");
         sb.append(escapeMode);
         sb.append(",");
         valueExpr.display(sb);
@@ -47,6 +48,11 @@ public class EscapeOutputExecutable extends AbstractExecutable {
 
         SourceLocation loc = getLocation();
         IEvalOutput out = scope.getOut();
+
+        if (value instanceof RawText) {
+            out.text(loc, ((RawText) value).getText());
+            return null;
+        }
 
         switch (escapeMode) {
             case xml: {

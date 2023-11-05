@@ -11,6 +11,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.CDataText;
+import io.nop.commons.text.RawText;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.CoreConstants;
@@ -272,14 +273,17 @@ public class CollectXmlHandler extends XNodeHandlerAdapter {
     public void value(SourceLocation loc, Object value) {
         if (value == null)
             return;
-        String s = value.toString();
         try {
             if (value instanceof CDataText) {
+                String s = value.toString();
                 out.append("<![CDATA[");
                 s = StringHelper.replace(s, "]]>", "]]]]><![CDATA[>");
                 out.append(s);
                 out.append("]]>");
+            }else if(value instanceof RawText){
+                out.append(((RawText) value).getText());
             } else {
+                String s = value.toString();
                 StringHelper.escapeXmlValueTo(s, out);
             }
             prevType = OutputType.VALUE;
