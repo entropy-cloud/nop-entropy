@@ -176,7 +176,10 @@ public class CodeGenTask {
 
             if ("precompile".equals(tplRoot)) {
                 maxLevel = CoreConstants.INITIALIZER_PRIORITY_PRECOMPILE;
-                AppConfig.getConfigProvider().updateConfigValue(CFG_INCLUDE_CURRENT_PROJECT_RESOURCES,false);
+                AppConfig.getConfigProvider().updateConfigValue(CFG_INCLUDE_CURRENT_PROJECT_RESOURCES, false);
+            } else if (tplRoot.startsWith("precompile")) {
+                maxLevel = CoreConstants.INITIALIZER_PRIORITY_PRECOMPILE;
+                AppConfig.getConfigProvider().updateConfigValue(CFG_INCLUDE_CURRENT_PROJECT_RESOURCES, true);
             }
             task.setMaxInitializeLevel(maxLevel);
 
