@@ -40,5 +40,18 @@
                 <c:unit>   COMMENT ${dialect.getStringLiteral(colComment)}</c:unit>
             </source>
         </ColCommentDef>
+
+
+        <AddTenantIdToPrimaryKey outputMode="text">
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop primary key</c:unit>
+                <c:unit>;&#10;</c:unit>
+                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add primary key (NOP_TENANT_ID, ${
+                table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})</c:unit>
+            </source>
+        </AddTenantIdToPrimaryKey>
     </tags>
 </lib>

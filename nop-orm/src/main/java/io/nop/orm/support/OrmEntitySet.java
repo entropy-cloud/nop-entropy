@@ -393,6 +393,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
                 e.orm_attach(enhancer);
             if (e.orm_entityModel() == null)
                 e.orm_entityModel(enhancer.getEntityModel(e.orm_entityName()));
+//            if (e.orm_state() == OrmEntityState.TRANSIENT)
+//                e.orm_enhancer().initEntityId(e);
         }
 
         // 绑定owner属性

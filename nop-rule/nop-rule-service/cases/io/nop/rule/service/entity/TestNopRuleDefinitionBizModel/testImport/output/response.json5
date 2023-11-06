@@ -2,7 +2,7 @@
   "data": {
     "ruleId": "@var:NopRuleDefinition@ruleId",
     "ruleName": "test",
-    "ruleVersion": 1,
+    "ruleVersion": "1",
     "displayName": "Test Tree",
     "ruleGroup": "default",
     "ruleType": "TREE",

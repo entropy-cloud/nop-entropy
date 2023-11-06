@@ -1,5 +1,14 @@
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xpl="xpl">
 
+    <c:print>
+        <x:config>
+            <c:import from="/nop/core/xlib/biz.xlib" />
+            <c:import from="/nop/core/xlib/filter.xlib" />
+            <c:import from="/nop/biz/xlib/bo.xlib" />
+        </x:config>
+    </c:print>
+
+
     <actions>
         <c:for var="method" items="${serviceModel.methods}">
             <c:unit xpl:is="${method.mutation?'mutation':'query'}" displayName="${method.displayName}"

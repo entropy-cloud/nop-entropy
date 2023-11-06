@@ -151,6 +151,13 @@
                         <c:unit>;&#10;&#10;</c:unit>
                     </c:if>
                 </c:for>
+
+                <c:for var="table" items="${tables}">
+                    <c:if test="${!table.tenantProp and xpl('thisLib:IsAllowTenant',table)}">
+                        <thisLib:AddTenantIdToPrimaryKey table="${table}" dialect="${dialect}"/>
+                        <c:unit>;&#10;&#10;</c:unit>
+                    </c:if>
+                </c:for>
             </source>
         </AddTenantIdForTables>
 
@@ -162,6 +169,18 @@
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add column NOP_TENANT_ID ${dialect.stdToNativeSqlType('VARCHAR', 32, 0)} DEFAULT '0' NOT NULL</c:unit>
             </source>
         </AddTenantIdForTable>
+
+        <AddTenantIdToPrimaryKey outputMode="text">
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+
+            <source>
+                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} drop constraint PK_${table.tableName}</c:unit>
+                <c:unit>;&#10;</c:unit>
+                <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add constraint PK_${table.tableName} primary key (NOP_TENANT_ID, ${
+                table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})</c:unit>
+            </source>
+        </AddTenantIdToPrimaryKey>
 
         <IsAllowTenant>
             <attr name="table" />
