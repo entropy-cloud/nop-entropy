@@ -40,7 +40,7 @@ public class DdlSqlCreator {
         }
         if (dialectName.indexOf('.') > 0) {
             String basePath = "/nop/orm/xlib/ddl/ddl_" + StringHelper.firstPart(dialectName, '.') + ".xlib";
-            if(VirtualFileSystem.instance().getResource(basePath).exists())
+            if (VirtualFileSystem.instance().getResource(basePath).exists())
                 return basePath;
         }
         return path;
@@ -101,6 +101,21 @@ public class DdlSqlCreator {
         args.put("tables", tables);
         args.put("dialect", dialect);
         return XLang.getTagAction(dmlLibPath, "AddTenantIdForTables").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addTenantIdForTable(IEntityModel table, boolean addToPk) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("dialect", dialect);
+        args.put("addToPk", addToPk);
+        return XLang.getTagAction(dmlLibPath, "AddTenantIdForTable").generateText(XLang.newEvalScope(args));
+    }
+
+    public String addTenantIdToPrimaryKey(IEntityModel table) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "AddTenantIdToPrimaryKey").generateText(XLang.newEvalScope(args));
     }
 
     public String addColumn(IColumnModel col) {

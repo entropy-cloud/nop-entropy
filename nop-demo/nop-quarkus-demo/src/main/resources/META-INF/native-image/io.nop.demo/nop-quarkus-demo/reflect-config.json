@@ -5545,6 +5545,19 @@
         ]
       },
       {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.AuthToken"
+        ]
+      },
+      {
+        "name": "handlePublicPath",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.util.function.Supplier"
+        ]
+      },
+      {
         "name": "handleUserContext",
         "parameterTypes": [
           "io.nop.api.core.auth.IUserContext",
@@ -5576,6 +5589,12 @@
         "name": "isNeedRefresh",
         "parameterTypes": [
           "io.nop.auth.core.login.AuthToken"
+        ]
+      },
+      {
+        "name": "loginWithOAuthCode",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext"
         ]
       },
       {
@@ -7100,7 +7119,27 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_credential"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_delFlag"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_extId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_lastLoginIp"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_lastLoginTime"
       },
       {
         "allowUnsafeAccess": false,
@@ -7120,6 +7159,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_sid"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_updateTime"
       },
       {
@@ -7131,6 +7175,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_userId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_verified"
       },
       {
         "allowUnsafeAccess": false,
@@ -7150,7 +7199,27 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_credential"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_delFlag"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_extId"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_lastLoginIp"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_lastLoginTime"
       },
       {
         "allowUnsafeAccess": false,
@@ -7166,6 +7235,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_remark"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_sid"
       },
       {
         "allowUnsafeAccess": false,
@@ -7190,6 +7264,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_verified"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_version"
       }
     ],
@@ -7207,7 +7286,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getCredential",
+        "parameterTypes": []
+      },
+      {
         "name": "getDelFlag",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExtId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLastLoginIp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLastLoginTime",
         "parameterTypes": []
       },
       {
@@ -7220,6 +7315,10 @@
       },
       {
         "name": "getRemark",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSid",
         "parameterTypes": []
       },
       {
@@ -7236,6 +7335,10 @@
       },
       {
         "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVerified",
         "parameterTypes": []
       },
       {
@@ -7309,9 +7412,33 @@
         ]
       },
       {
+        "name": "setCredential",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setDelFlag",
         "parameterTypes": [
           "java.lang.Byte"
+        ]
+      },
+      {
+        "name": "setExtId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLastLoginIp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLastLoginTime",
+        "parameterTypes": [
+          "java.sql.Timestamp"
         ]
       },
       {
@@ -7328,6 +7455,12 @@
       },
       {
         "name": "setRemark",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSid",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -7354,6 +7487,12 @@
         "name": "setUserId",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVerified",
+        "parameterTypes": [
+          "java.lang.Boolean"
         ]
       },
       {
@@ -16069,6 +16208,13 @@
         "name": "newConfig",
         "parameterTypes": [
           "int"
+        ]
+      },
+      {
+        "name": "newConfig",
+        "parameterTypes": [
+          "int",
+          "long"
         ]
       },
       {
@@ -50666,6 +50812,13 @@
         ]
       },
       {
+        "name": "findSeqItem",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
         "name": "generateLong",
         "parameterTypes": [
           "java.lang.String",
@@ -50685,6 +50838,12 @@
       },
       {
         "name": "loadCacheItemFromDb",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeCache",
         "parameterTypes": [
           "java.lang.String"
         ]

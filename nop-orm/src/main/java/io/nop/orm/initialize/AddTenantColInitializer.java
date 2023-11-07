@@ -9,6 +9,7 @@ import io.nop.orm.ddl.DdlSqlCreator;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
+import io.nop.orm.model.OrmModelConstants;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
@@ -56,10 +57,10 @@ public class AddTenantColInitializer {
                     continue;
 
                 IColumnModel col = entityModel.getTenantColumn();
-                if (col != null) {
-                    String addSql = sqlCreator.addColumn(col);
+                if (col != null && col.getName().equals(OrmModelConstants.PROP_NAME_nopTenantId)) {
+                    String addSql = sqlCreator.addTenantIdForTable(entityModel,true);
                     try {
-                        jdbcTemplate.executeUpdate(SQL.begin().sql(addSql).querySpace(querySpace).name("add_tenant").end());
+                        jdbcTemplate.executeMultiSql(SQL.begin().sql(addSql).querySpace(querySpace).name("add_tenant").end());
                         LOG.info("nop.orm.add-tenant-col:table={},col={}", entityModel.getTableName(), col.getCode());
                     } catch (Exception e) {
                         LOG.trace("nop.orm.add-tenant-col-fail", e);

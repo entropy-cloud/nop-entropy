@@ -102,6 +102,9 @@
         </ColCommentDef>
 
         <DefaultValue outputMode="text">
+            <attr name="col" implicit="true"/>
+            <attr name="dialect" implicit="true"/>
+            <attr name="allNullable" implicit="true" />
             <source></source>
         </DefaultValue>
 
@@ -163,10 +166,16 @@
 
         <AddTenantIdForTable outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="addToPk" type="String" optional="true" />
             <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
 
             <source>
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} add column NOP_TENANT_ID ${dialect.stdToNativeSqlType('VARCHAR', 32, 0)} DEFAULT '0' NOT NULL</c:unit>
+
+                <c:if test="${addToPk}">
+                    <c:unit>;&#10;</c:unit>
+                    <thisLib:AddTenantIdToPrimaryKey table="${table}" dialect="${dialect}"/>
+                </c:if>
             </source>
         </AddTenantIdForTable>
 
@@ -201,7 +210,7 @@
                 <c:unit>alter table ${dialect.escapeSQLName(col.ownerEntityModel.tableName)} add column ${dialect.escapeSQLName(col.code)} </c:unit>
                 <thisLib:ColSqlType/>
                 <thisLib:ColNullDef allNullable="${false}"/>
-                <thisLib:DefaultValue/>
+                <thisLib:DefaultValue allNullable="${false}"/>
                 <thisLib:ColCommentDef/>
             </source>
         </AddColumn>
@@ -224,7 +233,7 @@
                 <c:unit>alter table ${dialect.escapeSQLName(table.tableName)} modify column ${dialect.escapeSQLName(col.code)} </c:unit>
                 <thisLib:ColSqlType/>
                 <thisLib:ColNullDef allNullable="${false}"/>
-                <thisLib:DefaultValue/>
+                <thisLib:DefaultValue allNullable="${false}"/>
                 <thisLib:ColCommentDef/>
             </source>
         </ModifyColumn>

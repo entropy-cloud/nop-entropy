@@ -19,6 +19,7 @@ package io.nop.core.lang.sql;
 import io.nop.commons.text.marker.IMarkedString;
 import io.nop.commons.text.marker.Markers;
 import io.nop.commons.util.CharSequenceHelper;
+import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -119,7 +120,12 @@ public class SqlHelper {
             if (c == ';') {
                 SQL.SqlBuilder part = creator.get();
                 part.appendRange(str, startPos, i);
-                ret.add(part.end());
+                if (part.isEmpty())
+                    continue;
+                SQL sql = part.end();
+                if (StringHelper.isBlank(sql.getText()))
+                    continue;
+                ret.add(sql);
                 i++;
                 i = CharSequenceHelper.skipWhitespace(statement, i);
                 startPos = i;
@@ -127,10 +133,16 @@ public class SqlHelper {
                 i++;
             }
         }
-        if (i != n) {
+        if (startPos != n) {
             SQL.SqlBuilder part = creator.get();
-            part.appendRange(str, i, n);
-            ret.add(part.end());
+            part.appendRange(str, startPos, n);
+
+            if (!part.isEmpty()) {
+                SQL sql = part.end();
+                if (!StringHelper.isBlank(sql.getText())) {
+                    ret.add(sql);
+                }
+            }
         }
 
         return ret;
