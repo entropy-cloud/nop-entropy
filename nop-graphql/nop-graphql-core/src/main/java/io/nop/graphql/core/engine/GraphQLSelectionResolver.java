@@ -47,7 +47,7 @@ public class GraphQLSelectionResolver {
 
         for (GraphQLDefinition def : doc.getDefinitions()) {
             if (def instanceof GraphQLOperation) {
-                resolveOperation(doc, (GraphQLOperation) def, 0);
+                resolveOperation(doc, (GraphQLOperation) def);
             }
         }
     }
@@ -59,7 +59,7 @@ public class GraphQLSelectionResolver {
         resolveSelections(doc, fragment.getOnType(), fragment.getSelectionSet(), new HashMap<>(), level - 1);
     }
 
-    private void resolveOperation(GraphQLDocument doc, GraphQLOperation op, int level) {
+    private void resolveOperation(GraphQLDocument doc, GraphQLOperation op) {
         for (GraphQLSelection selection : op.getSelectionSet().getSelections()) {
             if (selection instanceof GraphQLFieldSelection) {
                 GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
@@ -73,7 +73,7 @@ public class GraphQLSelectionResolver {
                 int index = fieldSelection.getName().indexOf(OBJ_ACTION_SEPARATOR);
                 String objName = index < 0 ? BIZ_OBJ_NAME_ROOT : fieldSelection.getName().substring(0, index);
                 resolveFieldSelection(doc, objName, fieldDef,
-                        fieldSelection, op.getVars(), level + 1);
+                        fieldSelection, op.getVars(), 0);
             } else {
                 throw new NopException(ERR_GRAPHQL_UNSUPPORTED_AST).param(ARG_AST_NODE, selection);
             }
@@ -92,7 +92,7 @@ public class GraphQLSelectionResolver {
                         .param(ARG_SELECTION_SET, selectionSet.toSource());
             }
 
-            if (level >= maxDepth) {
+            if (level > maxDepth) {
                 throw new NopException(ERR_GRAPHQL_QUERY_EXCEED_MAX_DEPTH).source(selectionSet).param(ARG_TYPE, objName)
                         .param(ARG_SELECTION_SET, selectionSet.toSource()).param(ARG_MAX_DEPTH, maxDepth)
                         .param(ARG_LEVEL, level);

@@ -10,7 +10,13 @@ package io.nop.graphql.core.engine;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.graphql.core.GraphQLConstants;
-import io.nop.graphql.core.ast.*;
+import io.nop.graphql.core.ast.GraphQLDirective;
+import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLFieldSelection;
+import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLSelectionSet;
+import io.nop.graphql.core.ast.GraphQLType;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
@@ -20,7 +26,13 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import static io.nop.graphql.core.GraphQLErrors.*;
+import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE_FOR_FIELD;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_FIELD;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
 
 public class RpcSelectionSetBuilder {
     static final Logger LOG = LoggerFactory.getLogger(RpcSelectionSetBuilder.class);
@@ -73,8 +85,10 @@ public class RpcSelectionSetBuilder {
                             .param(ARG_FIELD_NAME, fieldName);
 
                 GraphQLFieldSelection field = buildField(objDef, fieldDef, subSelection, level);
-                field.setAlias(alias);
-                selectionSet.addFieldSelection(field);
+                if(field != null) {
+                    field.setAlias(alias);
+                    selectionSet.addFieldSelection(field);
+                }
             }
         } else {
             // 标记了TreeChildren则由GraphQL引擎负责展开
@@ -87,7 +101,8 @@ public class RpcSelectionSetBuilder {
                 }
 
                 GraphQLFieldSelection field = buildField(objDef, fieldDef, null, level);
-                selectionSet.addFieldSelection(field);
+                if (field != null)
+                    selectionSet.addFieldSelection(field);
             }
         }
     }
@@ -113,7 +128,9 @@ public class RpcSelectionSetBuilder {
                     if (level >= maxObjLevel) {
                         LOG.debug("nop.graphql.ignore-obj-level-exceed-limit:objType={},field={},level={}",
                                 objDef.getName(), typeName, level);
-                        return field;
+
+                        // 超过限制层次的对象不读取
+                        return null;
                     }
 
                     GraphQLSelectionSet subSelection = new GraphQLSelectionSet();
