@@ -13,11 +13,11 @@
                 <thisLib:XmlComponentSupport/>
                 <thisLib:ExtFieldsSupport/>
                 <thisLib:FileComponentSupport/>
-                <thisLib:TenantSupport feature:on="nop.orm.enable-tenant-by-default" />
+                <thisLib:TenantSupport feature:on="nop.orm.enable-tenant-by-default"/>
             </source>
         </DefaultPostExtends>
 
-        <JsonComponentSupport  outputMode="node">
+        <JsonComponentSupport outputMode="node">
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点
             -->
@@ -61,7 +61,7 @@
             </source>
         </JsonComponentSupport>
 
-        <XmlComponentSupport  outputMode="node">
+        <XmlComponentSupport outputMode="node">
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点
             -->
@@ -108,7 +108,7 @@
         <!--
         识别use-ext-field配置，自动生成扩展字段所需要的关联属性配置
         -->
-        <ExtFieldsSupport  outputMode="node">
+        <ExtFieldsSupport outputMode="node">
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点
             -->
@@ -118,6 +118,7 @@
                 <c:script><![CDATA[
                     let entityNodes = _dsl_root.childByTag('entities').children
                         .filter(child=> child.attrCsvSet('tagSet')?.contains('use-ext-field'));
+                    let useSysExtFields = false;
                 ]]></c:script>
 
                 <orm xpl:if="!entityNodes.empty">
@@ -131,12 +132,16 @@
                                                 .childWithAttr('name',entityNode.getAttr('name')+'Ext') == null}"/>
                                 </when>
                                 <otherwise>
+                                    <c:script>useSysExtFields = true;</c:script>
                                     <entity name="${entityNode.getAttr('name')}">
                                         <relations>
-                                            <to-many name="extFields" refEntityName="io.nop.sys.dao.entity.NopSysExtField" keyProp="fieldName">
+                                            <to-many name="extFields"
+                                                     refEntityName="io.nop.sys.dao.entity.NopSysExtField"
+                                                     keyProp="fieldName">
                                                 <join>
                                                     <on leftProp="id" rightProp="entityId"/>
-                                                    <on leftValue="${entityNode.getAttr('name')}" rightProp="entityName"/>
+                                                    <on leftValue="${entityNode.getAttr('name')}"
+                                                        rightProp="entityName"/>
                                                 </join>
                                             </to-many>
                                         </relations>
@@ -144,13 +149,35 @@
                                 </otherwise>
                             </c:choose>
                         </c:for>
+                        <c:if test="${useSysExtFields and !_dsl_root.childByTag('entities').childByAttr('name','io.nop.sys.dao.entity.NopSysExtField')}">
+                            <!-- 引入外部表定义 -->
+                            <entity
+                                    displayName="扩展字段" name="io.nop.sys.dao.entity.NopSysExtField"
+                                    registerShortName="true" notGenCode="true"
+                                    tableName="nop_sys_ext_field" i18n-en:displayName="Extension Field">
+                                <columns>
+                                    <column code="ENTITY_NAME" displayName="实体名" mandatory="true" name="entityName"
+                                            precision="200"
+                                            primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
+                                            i18n-en:displayName="Entity Name"/>
+                                    <column code="ENTITY_ID" displayName="实体ID" mandatory="true" name="entityId"
+                                            precision="100"
+                                            primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                                            i18n-en:displayName="Entity ID"/>
+                                    <column code="FIELD_NAME" displayName="字段名" mandatory="true" name="fieldName"
+                                            precision="100"
+                                            primary="true" propId="3" stdDataType="string" stdSqlType="VARCHAR"
+                                            i18n-en:displayName="Field Name"/>
+                                </columns>
+                            </entity>
+                        </c:if>
                     </entities>
                 </orm>
             </source>
         </ExtFieldsSupport>
 
-        <GenLocalExtFieldSupport  outputMode="node">
-            <attr name="entityNode" />
+        <GenLocalExtFieldSupport outputMode="node">
+            <attr name="entityNode"/>
             <attr name="genExtTable">
                 <description>是否自动生成扩展表定义</description>
             </attr>
@@ -168,7 +195,7 @@
 
                 <!-- 自动生成一个扩展表配置 -->
                 <entity name="${entityNode.getAttr('name')}Ext" tableName="${entityNode.getAttr('tableName')}_ext"
-                    displayName="扩展属性" i18n-en:displayName="Extension Fields" xpl:if="genExtTable"
+                        displayName="扩展属性" i18n-en:displayName="Extension Fields" xpl:if="genExtTable"
                 >
                     <columns>
                         <column code="ENTITY_ID" displayName="实体ID" mandatory="true" name="entityId" precision="100"
@@ -179,36 +206,47 @@
                                 i18n-en:displayName="Field Name"/>
                         <column code="FIELD_TYPE" displayName="字段类型" mandatory="true" name="fieldType" propId="4"
                                 stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Field Type"/>
-                        <column code="DECIMAL_SCALE" displayName="浮点精度" name="decimalScale" propId="5" stdDataType="byte"
+                        <column code="DECIMAL_SCALE" displayName="浮点精度" name="decimalScale" propId="5"
+                                stdDataType="byte"
                                 stdSqlType="TINYINT" i18n-en:displayName="Decimal Scale"/>
-                        <column code="DECIMAL_VALUE" displayName="浮点值" name="decimalValue" precision="24" propId="6" scale="8"
+                        <column code="DECIMAL_VALUE" displayName="浮点值" name="decimalValue" precision="24" propId="6"
+                                scale="8"
                                 stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Value"/>
                         <column code="DATE_VALUE" displayName="日期值" name="dateValue" propId="7" stdDataType="date"
                                 stdSqlType="DATE" i18n-en:displayName="Date Value"/>
                         <column code="TIMESTAMP_VALUE" displayName="时间点值" name="timestampValue" propId="8"
                                 stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Value"/>
-                        <column code="STRING_VALUE" displayName="字符串值" name="stringValue" precision="4000" propId="9"
+                        <column code="STRING_VALUE" displayName="字符串值" name="stringValue" precision="4000"
+                                propId="9"
                                 stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Value"/>
-                        <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
+                        <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                                propId="10"
                                 stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
-                        <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true"
+                                name="createdBy"
                                 precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                                 i18n-en:displayName="Created By"/>
-                        <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                                propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
-                        <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                                name="createTime"
+                                propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                                i18n-en:displayName="Create Time"/>
+                        <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true"
+                                name="updatedBy"
                                 precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                                 i18n-en:displayName="Updated By"/>
-                        <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                                propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                        <column code="REMARK" displayName="备注" name="remark" precision="200" propId="15" stdDataType="string"
+                        <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                                name="updateTime"
+                                propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                                i18n-en:displayName="Update Time"/>
+                        <column code="REMARK" displayName="备注" name="remark" precision="200" propId="15"
+                                stdDataType="string"
                                 stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
                     </columns>
                 </entity>
             </source>
         </GenLocalExtFieldSupport>
 
-        <FileComponentSupport  outputMode="node">
+        <FileComponentSupport outputMode="node">
             <!--
              _dsl_root为元编程阶段可访问的配置文件根节点
             -->
@@ -252,13 +290,13 @@
         </FileComponentSupport>
 
         <TenantSupport>
-           <!--
-              _dsl_root为元编程阶段可访问的配置文件根节点
-           -->
-           <attr name="_dsl_root" implicit="true"/>
+            <!--
+               _dsl_root为元编程阶段可访问的配置文件根节点
+            -->
+            <attr name="_dsl_root" implicit="true"/>
 
-           <source>
-              <c:script><![CDATA[
+            <source>
+                <c:script><![CDATA[
                 for(let entityNode of _dsl_root.childByTag('entities').children){
                     const name = entityNode.attrText('name').$simpleClassName();
 
@@ -273,10 +311,10 @@
                     }
                 }
               ]]></c:script>
-           </source>
+            </source>
         </TenantSupport>
 
-        <GenFromExcel  outputMode="node">
+        <GenFromExcel outputMode="node">
             <attr name="path" type="string"/>
             <source>
 
