@@ -41,6 +41,9 @@
 
 然后系统后台可以配置用户角色和NopAuthResource的对应关系，用于控制用户能访问哪些菜单，再由此推断出用户具有哪些permission。
 
+1. 菜单项对应的resourceType=SUBM， 页面中对应的具体的功能点（例如修改按钮）对应resourceType=FNPT
+2. 如果使用amis页面，需要配置component=AMIS，url=页面的虚拟文件路径
+
 ## 后台Action
 
 在action函数上通过`@Auth`注解来指定需要对应的permissions或者允许访问的roles。如果不指定，则按照是否是`@BizQuery`
