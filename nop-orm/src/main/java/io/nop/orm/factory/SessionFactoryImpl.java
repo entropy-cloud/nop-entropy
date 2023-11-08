@@ -8,6 +8,7 @@
 package io.nop.orm.factory;
 
 import io.nop.api.core.ioc.IBeanProvider;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.ICacheProvider;
 import io.nop.commons.lang.IClassLoader;
@@ -55,10 +56,10 @@ import io.nop.orm.persister.IEntityPersister;
 import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.session.OrmSessionImpl;
 import io.nop.orm.support.DynamicOrmEntity;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.inject.Inject;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -246,6 +247,11 @@ public class SessionFactoryImpl implements IPersistEnv {
         List<IOrmInterceptor> list = new ArrayList<>(interceptors);
         list.remove(interceptor);
         this.interceptors = list;
+    }
+
+    @Override
+    public long newDeleteVersion() {
+        return CoreMetrics.currentTimeMillis();
     }
 
     public IOrmDaoListener getDaoListener() {
@@ -477,7 +483,7 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public void reloadModel() {
-        if(this.reloadFunction != null)
+        if (this.reloadFunction != null)
             this.reloadFunction.run();
     }
 }

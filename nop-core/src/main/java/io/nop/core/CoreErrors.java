@@ -184,6 +184,8 @@ public interface CoreErrors {
 
     String ARG_NODE_ID = "nodeId";
 
+    String ARG_NODE_NAMES = "nodeNames";
+
     ErrorCode ERR_JSON_VALUE_NOT_NODE =
             define("nop.err.core.json-value-not-node", "值无法转换为XNode类型");
 
@@ -817,6 +819,10 @@ public interface CoreErrors {
             ARG_TYPE);
 
     ErrorCode ERR_GRAPH_DUPLICATE_VERTEX = define("nop.err.graph.duplicate-vertex", "图节点已经存在");
+
+    ErrorCode ERR_GRAPH_UNKNOWN_NODE = define("nop.err.graph.unknown-node", "未知的节点：{name}", ARG_NAME);
+
+    ErrorCode ERR_GRAPH_NODES_NOT_REACHABLE = define("nop.err.graph.nodes-not-reachable", "从起始节点触发无法到达以下节点:{nodeNames}", ARG_NODE_NAMES);
 
     ErrorCode ERR_UNITTEST_UNKNOWN_MARKDOWN_SECTION = define("nop.err.core.unittest.unknown-markdown-section",
             "Markdown测试文件[{fileName}]中没有找到标题为[{title}]的部分", ARG_FILE_NAME, ARG_TITLE);

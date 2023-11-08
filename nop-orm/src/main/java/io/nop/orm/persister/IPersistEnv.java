@@ -67,4 +67,6 @@ public interface IPersistEnv extends IOrmSessionFactory {
     long newSessionRevVer();
 
     IBeanProvider getBeanProvider();
+
+    long newDeleteVersion();
 }

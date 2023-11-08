@@ -301,6 +301,9 @@ public class EntityPersisterImpl implements IEntityPersister {
         // 如果是逻辑删除，则转为调用修改操作
         if (entityModel.isUseLogicalDelete() && !entity.orm_disableLogicalDelete()) {
             entity.orm_propValue(entityModel.getDeleteFlagPropId(), DaoConstants.YES_VALUE);
+            if (entityModel.getDeleteVersionProp() != null) {
+                entity.orm_propValueByName(entityModel.getDeleteFlagProp(), env.newDeleteVersion());
+            }
             syncComponentWhenDelete(entity, true);
             update(entity, session);
             return;
@@ -362,8 +365,8 @@ public class EntityPersisterImpl implements IEntityPersister {
                     // 如果指定了seq标签，且字段非空，则自动根据sequence配置生成
                     String propKey = OrmModelHelper.buildEntityPropKey(propModel);
                     Object seqValue = propModel.getStdDataType().isNumericType() ?
-                            env.getSequenceGenerator().generateLong(propKey, true)
-                            : env.getSequenceGenerator().generateString(propKey, true);
+                            env.getSequenceGenerator().generateLong(propKey, false)
+                            : env.getSequenceGenerator().generateString(propKey, false);
                     entity.orm_propValue(propModel.getPropId(), seqValue);
                 } else if (propModel.getDefaultValue() != null) {
                     entity.orm_propValue(propModel.getPropId(), propModel.getDefaultValue());

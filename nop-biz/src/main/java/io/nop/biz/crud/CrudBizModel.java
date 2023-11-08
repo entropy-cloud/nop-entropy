@@ -56,10 +56,10 @@ import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.impl.ObjKeyModel;
 import io.nop.xlang.xmeta.impl.ObjTreeModel;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -407,30 +407,39 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         T entity = null;
         boolean recover = false;
         if (dao.isUseLogicalDelete()) {
-            // 如果是逻辑删除后再次添加同样主键的对象
-            Object id = getId(data, dao);
-            if (id != null) {
-                id = dao.castId(id);
-                entity = dao.getEntityById(id);
-                if (entity != null) {
-                    int delFlag = ConvertHelper.toPrimitiveInt(entity.orm_propValueByName(dao.getDeleteFlagProp()), 0,
-                            NopException::new);
-                    if (delFlag != 1) {
-                        throw new NopException(ERR_BIZ_ENTITY_ALREADY_EXISTS).param(ARG_ENTITY_NAME, getEntityName())
-                                .param(ARG_ID, id);
-                    }
-
-                    dao.resetToDefaultValues(entity);
-                    recover = true;
-                }
+            entity = findLogicalDeleted(data, dao, objMeta);
+            if (entity != null) {
+                dao.resetToDefaultValues(entity);
+                recover = true;
             }
         }
+
         if (entity == null) {
             entity = dao.newEntity();
         }
         EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
         entityData.setRecoverDeleted(recover);
         return entityData;
+    }
+
+    protected T findLogicalDeleted(Map<String, Object> data, IEntityDao<T> dao, IObjMeta objMeta) {
+        // 如果是逻辑删除后再次添加同样主键的对象
+        Object id = getId(data, dao);
+        T entity = null;
+        if (id != null) {
+            id = dao.castId(id);
+            entity = dao.getEntityById(id);
+        }
+
+        if (entity != null) {
+            int delFlag = ConvertHelper.toPrimitiveInt(entity.orm_propValueByName(dao.getDeleteFlagProp()), 0,
+                    NopException::new);
+            if (delFlag != 1) {
+                throw new NopException(ERR_BIZ_ENTITY_ALREADY_EXISTS).param(ARG_ENTITY_NAME, getEntityName())
+                        .param(ARG_ID, id);
+            }
+        }
+        return entity;
     }
 
     Object getId(Map<String, Object> data, IEntityDao<T> dao) {
@@ -554,7 +563,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
     }
 
     @BizAction
-    protected T getEntity(@Name("id") String id, @Name("action")String action,
+    protected T getEntity(@Name("id") String id, @Name("action") String action,
                           @Name("ignoreUnknown") boolean ignoreUnknown,
                           IServiceContext context) {
         IBizObject bizObj = getThisObj();

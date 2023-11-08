@@ -16,6 +16,7 @@
  @tenantProp [租户id列] 租户id所对应的column的name。如果useTenant为true，tenantProp的缺省值为nopTenant。tenant字段一般不在主键集合中
  @useLogicalDelete [是否启用逻辑删除] 如果启用逻辑删除，则delete动作将设置deleteFlag属性为1，而不是发出delete语句。查询的时候并不会自动按照
    deleteFlag过滤，选择权交给调用者。
+ @deleteVersionProp [逻辑删除版本列] 逻辑删除时，为了保持唯一键索引的有效性，需要将deleteVersion设置为当前时间，而正常情况下则设置为0。
  @notGenCode [是否生成代码] 如果设置为true，则代码生成时将跳过本实体对象，不为它生成实体类。当我们引用其他模块的实体类时应该设置此属性，
  从而避免在本模块中生成其他模块的实体类。
  @versionProp [版本列的名称] version机制提供了内置的乐观锁实现。它的数据类型应该是long或者int。
@@ -28,11 +29,10 @@
 <entity name="!class-name" className="class-name" displayName="string" tableName="!string"
         readonly="!boolean=false" tableView="!boolean=false" kvTable="!boolean=false" querySpace="string=default"
         persistDriver="string=jdbc" tagSet="tag-set"
-        useShard="!boolean=false" shardProp="var-name"
+        useShard="!boolean=false" shardProp="var-name" useGlobalCache="!boolean=false"
         useTenant="!boolean=false" tenantProp="var-name"
         useWorkflow="!boolean=false" useRevision="!boolean=false"
-        useLogicalDelete="!boolean=false" deleteFlagProp="var-name"
-        useGlobalCache="!boolean=false"
+        useLogicalDelete="!boolean=false" deleteFlagProp="var-name" deleteVersionProp="var-name"
         versionProp="var-name"  dbCatalog="string" dbSchema="string" dbPkName="string"
         createrProp="var-name" createTimeProp="var-name" updaterProp="var-name" updateTimeProp="var-name"
         notGenCode="!boolean=false" registerShortName="!boolean=false"

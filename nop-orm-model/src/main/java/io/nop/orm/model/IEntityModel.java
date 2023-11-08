@@ -213,6 +213,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     String getDeleteFlagProp();
 
+    String getDeleteVersionProp();
+
     int getCreaterPropId();
 
     int getCreateTimePropId();

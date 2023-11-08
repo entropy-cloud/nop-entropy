@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [28:2:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from [29:2:0:0]/nop/schema/orm/entity.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -105,6 +105,13 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
      * 
      */
     private java.lang.String _deleteFlagProp ;
+    
+    /**
+     *  逻辑删除版本列
+     * xml name: deleteVersionProp
+     * 逻辑删除时，为了保持唯一键索引的有效性，需要将deleteVersion设置为当前时间，而正常情况下则设置为0。
+     */
+    private java.lang.String _deleteVersionProp ;
     
     /**
      *  
@@ -675,6 +682,25 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._deleteFlagProp = value;
+           
+    }
+
+    
+    /**
+     * 逻辑删除版本列
+     * xml name: deleteVersionProp
+     *  逻辑删除时，为了保持唯一键索引的有效性，需要将deleteVersion设置为当前时间，而正常情况下则设置为0。
+     */
+    
+    public java.lang.String getDeleteVersionProp(){
+      return _deleteVersionProp;
+    }
+
+    
+    public void setDeleteVersionProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._deleteVersionProp = value;
            
     }
 
@@ -1390,6 +1416,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
         out.put("dbPkName",this.getDbPkName());
         out.put("dbSchema",this.getDbSchema());
         out.put("deleteFlagProp",this.getDeleteFlagProp());
+        out.put("deleteVersionProp",this.getDeleteVersionProp());
         out.put("dimensionalType",this.getDimensionalType());
         out.put("displayName",this.getDisplayName());
         out.put("entityModeEnabled",this.isEntityModeEnabled());
