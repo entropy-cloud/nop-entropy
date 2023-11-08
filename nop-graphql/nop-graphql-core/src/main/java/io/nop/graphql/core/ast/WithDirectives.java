@@ -23,4 +23,9 @@ public abstract class WithDirectives extends _WithDirectives {
         }
         return null;
     }
+
+    public void addDirective(GraphQLDirective directive) {
+        List<GraphQLDirective> directives = makeDirectives();
+        directives.add(directive);
+    }
 }

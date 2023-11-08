@@ -7,11 +7,13 @@
  */
 package io.nop.graphql.core.engine;
 
+import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import org.junit.jupiter.api.AfterAll;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +43,7 @@ public class TestGraphQLEngine extends BaseTestCase {
     public void setUp() {
         engine = new GraphQLEngine();
         engine.setSchemaLoader(new MockGraphQLSchemaLoader());
+        engine.init();
     }
 
     @Test
@@ -56,5 +60,20 @@ public class TestGraphQLEngine extends BaseTestCase {
     public void testPrintSource() {
         String source = engine.getSchemaLoader().getGraphQLDocument().toSource();
         System.out.println(source);
+    }
+
+    @Test
+    public void testRpcDirective() {
+        String selection = "name,children @TreeChildren(max:5)";
+        ApiRequest<Map<String, Object>> request = new ApiRequest<>();
+        request.setSelection(new FieldSelectionBeanParser().parseFromText(null, selection));
+
+        IGraphQLExecutionContext context = engine.newRpcContext(null, "MyEntity__get", request);
+        String source = context.getFieldSelection().toString();
+        System.out.println(source);
+
+        assertEquals("MyEntity__get{name,children{name,children{name,children{name,children{name,children{name}}}}}}",source);
+
+        System.out.println(context.getRequest().getDocument().toSource());
     }
 }

@@ -16,6 +16,13 @@ import java.util.Map;
 
 public class GraphQLDirective extends _GraphQLDirective {
 
+    public void addArgument(String name, GraphQLValue value){
+        GraphQLArgument arg = new GraphQLArgument();
+        arg.setName(name);
+        arg.setValue(value);
+        makeArguments().add(arg);
+    }
+
     public GraphQLArgument getArg(String name) {
         List<GraphQLArgument> args = this.getArguments();
         if (args == null || args.isEmpty())

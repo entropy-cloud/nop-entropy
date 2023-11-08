@@ -10,30 +10,23 @@ package io.nop.graphql.core.engine;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.GraphQLErrors;
-import io.nop.graphql.core.ast.GraphQLDirective;
-import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
-import io.nop.graphql.core.ast.GraphQLFieldSelection;
-import io.nop.graphql.core.ast.GraphQLFragment;
-import io.nop.graphql.core.ast.GraphQLFragmentSelection;
-import io.nop.graphql.core.ast.GraphQLSelection;
-import io.nop.graphql.core.ast.GraphQLSelectionSet;
+import io.nop.graphql.core.ast.*;
 
 import java.util.List;
 import java.util.Map;
 
 import static io.nop.commons.util.CollectionHelper.toNotNull;
-import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_PARENT_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_FIELD_NAME_DUPLICATED;
+import static io.nop.graphql.core.GraphQLErrors.*;
 
 public class SelectionBeanBuilder {
     private final Map<String, GraphQLDirectiveDefinition> directiveTypes;
 
     public SelectionBeanBuilder(Map<String, GraphQLDirectiveDefinition> directiveTypes) {
-        this.directiveTypes = directiveTypes;
+        this.directiveTypes = Guard.notNull(directiveTypes, "directiveTypes");
     }
 
     public FieldSelectionBean buildSelectionBean(String name, GraphQLSelectionSet selectionSet,

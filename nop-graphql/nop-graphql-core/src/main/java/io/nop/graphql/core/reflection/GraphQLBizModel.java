@@ -13,6 +13,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IOrdered;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.fetcher.BeanMethodAction;
@@ -265,7 +266,11 @@ public class GraphQLBizModel {
             return getQueryAction(action);
         } else if (opType == GraphQLOperationType.mutation) {
             return getMutationAction(action);
+        }else{
+            GraphQLFieldDefinition field = getQueryAction(action);
+            if(field == null)
+                field = getMutationAction(action);
+            return field;
         }
-        return null;
     }
 }

@@ -117,7 +117,7 @@ public class GraphQLSelectionResolver {
                 for (GraphQLSelection selection : selectionSet.getSelections()) {
                     if (selection instanceof GraphQLFieldSelection) {
                         GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
-                        if (fieldSelection.getSelectionSet() == null) {
+                        if (fieldSelection.getSelectionSet() == null || !fieldSelection.hasSelection()) {
                             GraphQLDirective directive = fieldSelection
                                     .getDirective(GraphQLConstants.DIRECTIVE_TREE_CHILDREN);
                             if (directive != null) {
@@ -254,6 +254,13 @@ public class GraphQLSelectionResolver {
             if (typeName == null)
                 throw new NopException(ERR_GRAPHQL_FIELD_NOT_ALLOW_SELECTION).source(selection)
                         .param(ARG_OBJ_NAME, objName).param(ARG_FIELD_NAME, fieldDef.getName());
+
+            // 标记了TreeChildren则由GraphQL引擎负责展开
+            if (selection.getSelectionSet().isEmpty() && selection.getDirective(GraphQLConstants.DIRECTIVE_TREE_CHILDREN) != null) {
+                hasTreeChildren = true;
+                return;
+            }
+
             resolveSelections(doc, typeName, selection.getSelectionSet(), vars, level);
         } else {
             if (!fieldDef.getType().isScalarType() && !isEnumType(fieldDef.getType())) {

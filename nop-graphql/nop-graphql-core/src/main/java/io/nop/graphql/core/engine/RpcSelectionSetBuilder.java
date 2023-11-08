@@ -9,26 +9,18 @@ package io.nop.graphql.core.engine;
 
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.graphql.core.ast.GraphQLFieldDefinition;
-import io.nop.graphql.core.ast.GraphQLFieldSelection;
-import io.nop.graphql.core.ast.GraphQLObjectDefinition;
-import io.nop.graphql.core.ast.GraphQLSelectionSet;
-import io.nop.graphql.core.ast.GraphQLType;
-import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.GraphQLConstants;
+import io.nop.graphql.core.ast.*;
+import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.GraphQLSchema;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
+import io.nop.graphql.core.utils.GraphQLValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import static io.nop.graphql.core.GraphQLErrors.ARG_FIELD_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
-import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NOT_OBJ_TYPE_FOR_FIELD;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNDEFINED_FIELD;
-import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OBJ_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.*;
 
 public class RpcSelectionSetBuilder {
     static final Logger LOG = LoggerFactory.getLogger(RpcSelectionSetBuilder.class);
@@ -48,14 +40,17 @@ public class RpcSelectionSetBuilder {
         if (typeName == null)
             return null;
 
+        if (GraphQLScalarType.fromText(typeName) != null)
+            return null;
+
         GraphQLTypeDefinition typeDef = getTypeDefinition(typeName);
         if (typeDef == null)
             throw new NopException(ERR_GRAPHQL_UNKNOWN_OBJ_TYPE).param(ARG_OBJ_NAME, typeName);
 
         if (typeDef instanceof GraphQLObjectDefinition) {
             GraphQLSelectionSet selectionSet = new GraphQLSelectionSet();
+            selectionSet.makeSelections();
             addNonLazyFields(selectionSet, (GraphQLObjectDefinition) typeDef, 0, selectionBean);
-
             return selectionSet;
         } else {
             return null;
@@ -82,6 +77,10 @@ public class RpcSelectionSetBuilder {
                 selectionSet.addFieldSelection(field);
             }
         } else {
+            // 标记了TreeChildren则由GraphQL引擎负责展开
+            if (selectionBean != null && selectionBean.getDirective(GraphQLConstants.DIRECTIVE_TREE_CHILDREN) != null)
+                return;
+
             for (GraphQLFieldDefinition fieldDef : objDef.getFields()) {
                 if (isLazy(fieldDef)) {
                     continue;
@@ -99,34 +98,60 @@ public class RpcSelectionSetBuilder {
         field.setName(fieldDef.getName());
         field.setFieldDefinition(fieldDef);
 
+        buildDirectives(field, selectionBean);
+
         String typeName = fieldDef.getType().getNamedTypeName();
         if (typeName != null) {
+            if (GraphQLScalarType.fromText(typeName) == null) {
+                GraphQLTypeDefinition relDef = getTypeDefinition(typeName);
+                if (relDef == null)
+                    throw new NopException(ERR_GRAPHQL_NOT_OBJ_TYPE_FOR_FIELD).param(ARG_OBJ_TYPE, objDef.getName())
+                            .param(ARG_FIELD_NAME, fieldDef.getName()).param(ARG_TYPE, typeName);
 
-            GraphQLTypeDefinition relDef = getTypeDefinition(typeName);
-            if (relDef == null)
-                throw new NopException(ERR_GRAPHQL_NOT_OBJ_TYPE_FOR_FIELD).param(ARG_OBJ_TYPE, objDef.getName())
-                        .param(ARG_FIELD_NAME, fieldDef.getName()).param(ARG_TYPE, typeName);
+                if (relDef instanceof GraphQLObjectDefinition) {
+                    // 最多只获取maxObjLevel层的对象数据
+                    if (level >= maxObjLevel) {
+                        LOG.debug("nop.graphql.ignore-obj-level-exceed-limit:objType={},field={},level={}",
+                                objDef.getName(), typeName, level);
+                        return field;
+                    }
 
-            if (relDef instanceof GraphQLObjectDefinition) {
-                // 最多只获取maxObjLevel层的对象数据
-                if (level >= maxObjLevel) {
-                    LOG.debug("nop.graphql.ignore-obj-level-exceed-limit:objType={},field={},level={}",
-                            objDef.getName(), typeName, level);
-                    return field;
+                    GraphQLSelectionSet subSelection = new GraphQLSelectionSet();
+                    subSelection.makeSelections();
+                    addNonLazyFields(subSelection, (GraphQLObjectDefinition) relDef, level + 1, selectionBean);
+                    field.setSelectionSet(subSelection);
                 }
-
-                GraphQLSelectionSet subSelection = new GraphQLSelectionSet();
-                addNonLazyFields(subSelection, (GraphQLObjectDefinition) relDef, level + 1, selectionBean);
-                field.setSelectionSet(subSelection);
             }
         }
         return field;
     }
 
+    void buildDirectives(GraphQLFieldSelection field, FieldSelectionBean selection) {
+        if (selection == null || selection.getDirectives() == null)
+            return;
+
+        for (Map.Entry<String, Map<String, Object>> entry : selection.getDirectives().entrySet()) {
+            String name = entry.getKey();
+            Map<String, Object> values = entry.getValue();
+
+            GraphQLDirective directive = new GraphQLDirective();
+            directive.setName(name);
+
+            if (values != null) {
+                values.forEach((prop, value) -> {
+                    directive.addArgument(prop, GraphQLValueHelper.buildValue(value));
+                });
+            }
+            field.addDirective(directive);
+        }
+    }
+
     GraphQLTypeDefinition getTypeDefinition(String typeName) {
-        GraphQLTypeDefinition type = builtinSchema.getType(typeName);
-        if (type != null)
-            return type;
+        if (builtinSchema != null) {
+            GraphQLTypeDefinition type = builtinSchema.getType(typeName);
+            if (type != null)
+                return type;
+        }
         return schemaLoader.getTypeDefinition(typeName);
     }
 
