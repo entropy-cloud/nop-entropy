@@ -159,7 +159,7 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
             String cellType = null;
 
             // 优先输出格式化后的值
-            Object value = ec.getFormattedValue();
+            Object value = ec.isExportFormattedValue() ? ec.getFormattedValue() : ec.getValue();
 
             String str = null;
             if (value instanceof Boolean) {

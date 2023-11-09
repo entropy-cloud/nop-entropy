@@ -7,7 +7,6 @@
  */
 package io.nop.excel.model;
 
-import io.nop.core.model.table.CellPosition;
 import io.nop.excel.model._gen._ExcelCell;
 
 public class ExcelCell extends _ExcelCell {
@@ -89,5 +88,11 @@ public class ExcelCell extends _ExcelCell {
         cell.setModel(getModel());
         cell.setId(getId());
         return cell;
+    }
+
+    @Override
+    public boolean isExportFormattedValue() {
+        XptCellModel model = getModel();
+        return model != null ? model.isExportFormattedValue() : false;
     }
 }

@@ -81,6 +81,10 @@ public interface ICellView extends ICloneable {
      */
     Object getValue();
 
+    default boolean isExportFormattedValue(){
+        return false;
+    }
+
     default Object getFormattedValue() {
         return getValue();
     }

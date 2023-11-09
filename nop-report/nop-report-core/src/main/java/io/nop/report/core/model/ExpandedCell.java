@@ -8,9 +8,7 @@
 package io.nop.report.core.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.nop.api.core.annotations.lang.EvalMethod;
 import io.nop.api.core.util.Guard;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.model.XptCellModel;
@@ -86,6 +84,12 @@ public class ExpandedCell implements ICellView {
         return computedValues.computeIfAbsent(key, k -> fn.apply(this));
     }
 
+    @Override
+    public boolean isExportFormattedValue() {
+        if (model == null)
+            return false;
+        return model.isExportFormattedValue();
+    }
 
     /**
      * 标记colSpan和rowSpan范围内的所有单元格的realCell为当前单元格。

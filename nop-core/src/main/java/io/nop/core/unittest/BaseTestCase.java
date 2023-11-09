@@ -155,7 +155,8 @@ public class BaseTestCase {
     }
 
     public File attachmentFile(String name) {
-        return new File(attachmentDir(), name);
+        File file = new File(attachmentDir(), name);
+        return file;
     }
 
     public File attachmentDir() {

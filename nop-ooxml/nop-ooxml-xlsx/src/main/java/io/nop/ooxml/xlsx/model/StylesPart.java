@@ -158,7 +158,7 @@ public class StylesPart implements IOfficePackagePart {
     }
 
     private void addNumberFormats(XNode node, Map<String, Integer> numberFormats) {
-        if (numberFormats.size() > 0)
+        if (numberFormats.isEmpty())
             return;
 
         XNode fmts = node.addChild("numFmts");

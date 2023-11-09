@@ -6090,6 +6090,65 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.auth.core.model.DataAuthModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getFilter",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.api.core.auth.ISecurityContext"
+        ]
+      },
+      {
+        "name": "isPermitted",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object",
+          "io.nop.api.core.auth.ISecurityContext"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.model.ObjDataAuthModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "mergeChecker",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      },
+      {
+        "name": "mergeFilter",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.IXNodeGenerator"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.model.RoleDataAuthModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "addRole",
@@ -6177,6 +6236,217 @@
       }
     ],
     "name": "io.nop.auth.core.model._gen._ActionAuthModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addObj",
+        "parameterTypes": [
+          "io.nop.auth.core.model.ObjDataAuthModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getObj",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getObjs",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasObj",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasObjs",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_objs",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setObjs",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.model._gen._DataAuthModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addRoleAuth",
+        "parameterTypes": [
+          "io.nop.auth.core.model.RoleDataAuthModel"
+        ]
+      },
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleAuth",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRoleAuths",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasRoleAuth",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasRoleAuths",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_roleAuths",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setDisplayName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoleAuths",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.model._gen._ObjDataAuthModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getCheck",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDescription",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilter",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPriority",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoleId",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setCheck",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalPredicate"
+        ]
+      },
+      {
+        "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setFilter",
+        "parameterTypes": [
+          "io.nop.core.lang.xml.IXNodeGenerator"
+        ]
+      },
+      {
+        "name": "setPriority",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setRoleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.model._gen._RoleDataAuthModel",
     "unsafeAllocated": false
   },
   {
@@ -22560,6 +22830,63 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "_instance"
+      }
+    ],
+    "methods": [
+      {
+        "name": "clear",
+        "parameterTypes": []
+      },
+      {
+        "name": "discover",
+        "parameterTypes": []
+      },
+      {
+        "name": "findModuleResources",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAllModuleResources",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getEnabledModuleIds",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleResource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "instance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.module.ModuleManager",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -23643,6 +23970,37 @@
     "fields": [],
     "methods": [
       {
+        "name": "instance",
+        "parameterTypes": []
+      },
+      {
+        "name": "isInitialized",
+        "parameterTypes": []
+      },
+      {
+        "name": "registerInstance",
+        "parameterTypes": [
+          "io.nop.core.resource.IVirtualFileSystem"
+        ]
+      },
+      {
+        "name": "unregisterInstance",
+        "parameterTypes": [
+          "io.nop.core.resource.IVirtualFileSystem"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.VirtualFileSystem",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "checkAllowChange",
         "parameterTypes": []
       },
@@ -24468,6 +24826,84 @@
       }
     ],
     "name": "io.nop.core.resource.impl.UnknownResource",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
+        "name": "getChildren",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getClassPathResources",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRawResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "refresh",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "registerNamespaceHandler",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceNamespaceHandler"
+        ]
+      },
+      {
+        "name": "saveResource",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.IResource",
+          "io.nop.api.core.util.progress.IStepProgressListener",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setTenantResourceStoreSupplier",
+        "parameterTypes": [
+          "io.nop.core.resource.store.ITenantResourceStoreSupplier"
+        ]
+      },
+      {
+        "name": "supportSave",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "unregisterNamespaceHandler",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceNamespaceHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.store.DefaultVirtualFileSystem",
     "unsafeAllocated": false
   },
   {
@@ -61528,6 +61964,103 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "ceiling",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "descendingIterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "descendingSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "floor",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "higher",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "lower",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "pollFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "pollLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean",
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      }
+    ],
+    "name": "java.util.NavigableSet",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "java.util.RandomAccess",
     "unsafeAllocated": false
@@ -61755,6 +62288,185 @@
       }
     ],
     "name": "java.util.Set",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "comparator",
+        "parameterTypes": []
+      },
+      {
+        "name": "first",
+        "parameterTypes": []
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "last",
+        "parameterTypes": []
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "java.util.SortedSet",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "ceiling",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "clear",
+        "parameterTypes": []
+      },
+      {
+        "name": "comparator",
+        "parameterTypes": []
+      },
+      {
+        "name": "contains",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "descendingIterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "descendingSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "first",
+        "parameterTypes": []
+      },
+      {
+        "name": "floor",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "headSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "higher",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "last",
+        "parameterTypes": []
+      },
+      {
+        "name": "lower",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "pollFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "pollLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "remove",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      },
+      {
+        "name": "spliterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean",
+          "java.lang.Object",
+          "boolean"
+        ]
+      },
+      {
+        "name": "subSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "tailSet",
+        "parameterTypes": [
+          "java.lang.Object",
+          "boolean"
+        ]
+      }
+    ],
+    "name": "java.util.TreeMap$KeySet",
     "unsafeAllocated": false
   }
 ]
