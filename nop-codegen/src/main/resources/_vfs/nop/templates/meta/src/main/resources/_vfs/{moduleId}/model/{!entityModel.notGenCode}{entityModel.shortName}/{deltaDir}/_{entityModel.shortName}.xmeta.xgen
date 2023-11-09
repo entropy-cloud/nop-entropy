@@ -131,7 +131,7 @@
         </c:for>
 
         <c:for var="alias" items="${entityModel.aliases}">
-            <c:script>if(rel.alias?.contains('not-gen')) continue;</c:script>
+            <c:script>if(alias.tagSet?.contains('not-gen')) continue;</c:script>
             <prop name="${alias.name}" displayName="${alias.displayName}"
                   i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
                   ext:kind="alias" internal="true" ext:control="${alias['ext:control']}"
