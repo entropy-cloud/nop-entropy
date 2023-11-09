@@ -1,0 +1,30 @@
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
+    <x:gen-extends>
+        <orm>
+            <entities>
+                <entity name="a" tableName="VV">
+                    <relations>
+                        <to-many name="x">
+                            <join>
+                                <on leftProp="a" rightProp="b"/>
+                            </join>
+                        </to-many>
+                    </relations>
+                </entity>
+            </entities>
+        </orm>
+    </x:gen-extends>
+
+    <entities>
+        <entity name="a">
+            <relations>
+                <to-many name="x" refEntityName="RefEntity">
+                    <join>
+                        <on leftProp="a" rightProp="b"/>
+                        <on leftProp="c" rightProp="d"/>
+                    </join>
+                </to-many>
+            </relations>
+        </entity>
+    </entities>
+</orm>

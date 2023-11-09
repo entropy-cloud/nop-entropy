@@ -121,4 +121,14 @@ public class TestDeltaMerger extends BaseTestCase {
         node.dump();
         assertEquals(attachmentXmlText("NopAuthUser.result.xml"), node.xml());
     }
+
+    /**
+     * join节点的body-type是list，合并的时候需要特殊识别处理
+     */
+    @Test
+    public void testMergeJoin() {
+        IResource resource = attachmentResource("test-merge-join.orm.xml");
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        node.dump();
+    }
 }

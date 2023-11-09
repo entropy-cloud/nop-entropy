@@ -122,7 +122,7 @@
         -->
         <join xdef:body-type="list">
             <on leftProp="prop-name" leftValue="any" rightProp="prop-name" rightValue="any"
-                xdef:name="OrmJoinOnModel"/>
+                xdef:name="OrmJoinOnModel" xdef:allow-multiple="true"/>
         </join>
 
     </xdef:define>
