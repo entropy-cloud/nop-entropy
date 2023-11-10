@@ -179,9 +179,18 @@ public class ExcelSheetWriter extends AbstractXmlTemplate {
                 cellType = "inlineStr";
             }
 
+            String formula = ec.getFormula();
+
             out.beginNode(null, "c",
                     attrs("r", CellPosition.toABString(rowIndex, i, false, false),
                             "s", normalizeStyleId(ec), "t", cellType));
+
+            if(!StringHelper.isEmpty(formula)){
+                out.beginNode(null, "f", Collections.emptyMap());
+                out.value(null, formula);
+                out.endNode("f");
+            }
+
             if ("inlineStr".equals(cellType)) {
                 out.beginNode(null, "is", Collections.emptyMap());
                 out.beginNode(null, "t", Collections.emptyMap());

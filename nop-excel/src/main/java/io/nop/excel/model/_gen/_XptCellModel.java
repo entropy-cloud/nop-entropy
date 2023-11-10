@@ -96,6 +96,13 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: exportFormula
+     * 导出到Excel时保持公式
+     */
+    private boolean _exportFormula  = false;
+    
+    /**
+     *  
      * xml name: field
      * 
      */
@@ -379,6 +386,25 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: exportFormula
+     *  导出到Excel时保持公式
+     */
+    
+    public boolean isExportFormula(){
+      return _exportFormula;
+    }
+
+    
+    public void setExportFormula(boolean value){
+        checkAllowChange();
+        
+        this._exportFormula = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: field
      *  
      */
@@ -592,6 +618,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.put("expandOrderBy",this.getExpandOrderBy());
         out.put("expandType",this.getExpandType());
         out.put("exportFormattedValue",this.isExportFormattedValue());
+        out.put("exportFormula",this.isExportFormula());
         out.put("field",this.getField());
         out.put("formatExpr",this.getFormatExpr());
         out.put("keepExpandEmpty",this.isKeepExpandEmpty());

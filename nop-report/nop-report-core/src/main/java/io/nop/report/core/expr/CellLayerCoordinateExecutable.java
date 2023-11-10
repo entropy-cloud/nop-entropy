@@ -32,6 +32,14 @@ public class CellLayerCoordinateExecutable extends AbstractExecutable {
         this.expr = layerCoordinate.toString();
     }
 
+    public CellLayerCoordinate getLayerCoordinate() {
+        return layerCoordinate;
+    }
+
+    public String getExpr() {
+        return expr;
+    }
+
     @Override
     public void display(StringBuilder sb) {
         sb.append(layerCoordinate);

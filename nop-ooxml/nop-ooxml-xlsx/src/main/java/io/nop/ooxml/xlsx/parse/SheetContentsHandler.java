@@ -57,7 +57,7 @@ public interface SheetContentsHandler {
      * <code>poi-examples/src/main/java/org/apache/poi/xssf/eventusermodel/XLSX2CSV.java</code> for an example of how to
      * handle this scenario.
      */
-    void cell(CellPosition cellRef, Object value, int styleId);
+    void cell(CellPosition cellRef, Object value, String formulaStr, int styleId);
 
     void mergeCell(CellRange range);
 

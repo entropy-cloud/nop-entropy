@@ -314,6 +314,7 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
 
     private void outputCell() {
         Object thisStr = null;
+        String formulaStr = null;
 
         // Process the value contents as required, now we have it all
         switch (nextDataType) {
@@ -335,6 +336,7 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
                 } catch (NumberFormatException e) {
                     thisStr = fv;
                 }
+                formulaStr = formula.toString();
                 break;
             }
 
@@ -368,6 +370,6 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         CellPosition cellPos = CellPosition.fromABString(cellRef);
 
         // Output
-        output.cell(cellPos, thisStr, styleId);
+        output.cell(cellPos, thisStr, formulaStr, styleId);
     }
 }

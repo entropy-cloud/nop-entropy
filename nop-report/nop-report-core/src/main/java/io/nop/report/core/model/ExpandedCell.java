@@ -40,6 +40,8 @@ public class ExpandedCell implements ICellView {
     private Object formattedValue;
     private String linkUrl;
 
+    private String formula;
+
     // 对于合并单元格，realCell设置为左上角的单元格
     // private int rowOffset;
     //  private int colOffset;
@@ -89,6 +91,15 @@ public class ExpandedCell implements ICellView {
         if (model == null)
             return false;
         return model.isExportFormattedValue();
+    }
+
+    @Override
+    public String getFormula() {
+        return formula;
+    }
+
+    public void setFormula(String formula) {
+        this.formula = formula;
     }
 
     /**

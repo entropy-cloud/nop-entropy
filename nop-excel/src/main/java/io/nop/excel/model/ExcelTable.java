@@ -39,6 +39,8 @@ public class ExcelTable extends _ExcelTable implements INeedInit {
     }
 
 
+
+
     public ExcelTable cloneInstance() {
         ExcelTable table = new ExcelTable();
         table.setLocation(getLocation());

@@ -60,6 +60,11 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
         this.childPos = pos;
     }
 
+    @Override
+    public String getFormula() {
+        return null;
+    }
+
     public String getComment() {
         return comment;
     }

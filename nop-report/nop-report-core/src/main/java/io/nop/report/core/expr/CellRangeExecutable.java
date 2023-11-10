@@ -32,6 +32,14 @@ public class CellRangeExecutable extends AbstractExecutable {
         this.expr = cellRange.toABString();
     }
 
+    public CellRange getCellRange() {
+        return cellRange;
+    }
+
+    public String getExpr() {
+        return expr;
+    }
+
     @Override
     public void display(StringBuilder sb) {
         sb.append(cellRange);

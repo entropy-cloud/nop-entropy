@@ -154,6 +154,11 @@ public class ProxyCell implements ICell, IJsonSerializable {
     }
 
     @Override
+    public String getFormula() {
+        return null;
+    }
+
+    @Override
     public void setValue(Object value) {
         throw new UnsupportedOperationException();
     }

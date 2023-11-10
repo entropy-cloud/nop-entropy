@@ -11,7 +11,9 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.output.ExcelTemplate;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,5 +67,17 @@ public class TestExcelWorkbookParser extends BaseTestCase {
         IResource resource = new ClassPathResource("classpath:xlsx/test-symbol.xlsx");
         ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
         new ExcelTemplate(wk).generateToFile(getTargetFile("test-symbol.xlsx"), XLang.newEvalScope());
+    }
+
+    @Test
+    public void testFormula() {
+        IResource resource = new ClassPathResource("classpath:xlsx/test-formula.xlsx");
+        ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
+        File targetFile = getTargetFile("test-formula.xlsx");
+        new ExcelTemplate(wk).generateToFile(targetFile, XLang.newEvalScope());
+
+        wk = new ExcelWorkbookParser().parseFromResource(new FileResource(targetFile));
+        ExcelCell cell = (ExcelCell) wk.getSheets().get(0).getTable().getCell(0, 0);
+        assertEquals("SUM(B2:C2)", cell.getFormula());
     }
 }

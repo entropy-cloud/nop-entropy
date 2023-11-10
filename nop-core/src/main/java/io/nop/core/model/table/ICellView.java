@@ -89,6 +89,8 @@ public interface ICellView extends ICloneable {
         return getValue();
     }
 
+    String getFormula();
+
     default Object getExportValue(){
         return getValue();
     }

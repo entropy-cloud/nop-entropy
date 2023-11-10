@@ -146,8 +146,9 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
         }
 
         @Override
-        public void cell(CellPosition cellRef, Object value, int styleId) {
+        public void cell(CellPosition cellRef, Object value, String formulaStr, int styleId) {
             ExcelCell cell = table.newCell();
+            cell.setFormula(formulaStr);
             cell.setLocation(new SourceLocation(workbook.resourcePath(), 0, 0, 0, 0,
                     sheet.getName(), cellRef.toABString(), null));
             if (styleId >= 0) {

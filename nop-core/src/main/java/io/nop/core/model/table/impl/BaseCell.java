@@ -22,6 +22,11 @@ public class BaseCell extends AbstractCell {
         cell.comment = comment;
     }
 
+    @Override
+    public String getFormula() {
+        return null;
+    }
+
     public String getComment() {
         return comment;
     }
