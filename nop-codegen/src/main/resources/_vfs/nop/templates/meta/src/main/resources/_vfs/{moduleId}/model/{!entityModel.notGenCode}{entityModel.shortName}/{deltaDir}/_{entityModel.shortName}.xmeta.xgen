@@ -131,13 +131,16 @@
         </c:for>
 
         <c:for var="alias" items="${entityModel.aliases}">
-            <c:script>if(alias.tagSet?.contains('not-gen')) continue;</c:script>
+            <c:script>if(alias.tagSet?.contains('not-gen')) continue;
+                const insertable = !alias.tagSet?.contains('view');
+                const updatable = !alias.tagSet?.contains('view');
+            </c:script>
             <prop name="${alias.name}" displayName="${alias.displayName}"
                   i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
                   ext:kind="alias" internal="true" ext:control="${alias['ext:control']}"
-                  insertable="false" updatable="false"
+                  insertable="${insertable}" updatable="${updatable}"
                   mandatory="${alias.mandatory || null}" lazy="true"
-                  published="${alias.tagSet?.contains('pub') ? null :false}">
+                  published="${alias.tagSet?.contains('not-pub') ? false : null}">
                 <schema type="${alias.javaTypeName}"/>
             </prop>
         </c:for>
