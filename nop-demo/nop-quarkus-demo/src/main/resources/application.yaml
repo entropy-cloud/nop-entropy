@@ -109,9 +109,9 @@ quarkus:
     console:
       json: true
 
-#    category:
-#      "io":
-#        level: debug
+    category:
+      "io.nop":
+        level: trace
 
     file:
       enable: false

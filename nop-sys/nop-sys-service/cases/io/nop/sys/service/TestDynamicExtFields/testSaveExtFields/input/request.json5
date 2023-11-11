@@ -1,0 +1,10 @@
+{
+  data: {
+    data: {
+      name: "abc",
+      displayName: "XXX",
+      codePattern: "124",
+      extFldC: "xyz"
+    }
+  }
+}

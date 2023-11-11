@@ -4,7 +4,13 @@
             <aliases>
                 <alias name="extFldA" propPath="extFields.fldA.string" type="String"/>
                 <alias name="extFldB" propPath="extFields.fldB.int" type="Integer"/>
-                <alias name="extCode" propPath="extFields.fldC.string" type="String" />
+                <alias name="extCode" propPath="extFields.fldC.string" type="String"/>
+            </aliases>
+        </entity>
+
+        <entity name="io.nop.sys.dao.entity.NopSysCodeRule" tagSet="use-ext-field">
+            <aliases>
+                <alias name="extFldC" propPath="extFields.fldA.string" type="String"/>
             </aliases>
         </entity>
     </entities>

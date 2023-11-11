@@ -101,8 +101,25 @@ public class TagVarCollector {
 
     private void addRefVars(IEntityModel entityModel, Set<ColInfo> cols) {
         for (IEntityRelationModel rel : entityModel.getRelations()) {
-            if (rel.isToManyRelation())
+            if (rel.isToManyRelation()) {
+                if (rel.getKeyProp() != null) {
+                    for (IEntityJoinConditionModel join : rel.getJoin()) {
+                        if (join.getLeftPropModel() instanceof IColumnModel) {
+                            IColumnModel col = (IColumnModel) join.getLeftPropModel();
+                            if (join.getRightPropModel() instanceof IColumnModel) {
+                                IColumnModel refCol = (IColumnModel) join.getRightPropModel();
+                                // 当前字段的值传播到扩展表字段中
+                                if (isVarCol(col)) {
+                                    varCols.computeIfAbsent(rel.getRefEntityModel().getTableName(), k -> new HashSet<>())
+                                            .add(new ColInfo(refCol.getCode(), getVarNamePrefix(col)));
+                                }
+                            }
+                        }
+                    }
+                }
                 continue;
+            }
+
             if (rel.isOneToOne() && rel.isReverseDepends())
                 continue;
 

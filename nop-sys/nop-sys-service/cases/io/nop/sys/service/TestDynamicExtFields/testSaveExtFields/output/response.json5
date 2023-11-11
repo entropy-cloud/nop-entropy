@@ -1,0 +1,19 @@
+{
+  "data": {
+    "sid": "@var:NopSysCodeRule@sid",
+    "name": "abc",
+    "displayName": "XXX",
+    "codePattern": "124",
+    "delFlag": 0,
+    "version": 0,
+    "createdBy": "autotest-ref",
+    "createTime": "@var:NopSysCodeRule@updateTime",
+    "updatedBy": "autotest-ref",
+    "updateTime": "@var:NopSysCodeRule@updateTime",
+    "id": "@var:NopSysCodeRule@sid",
+    "seqName": null,
+    "remark": null,
+    "extFldC": "xyz"
+  },
+  "status": 0
+}
