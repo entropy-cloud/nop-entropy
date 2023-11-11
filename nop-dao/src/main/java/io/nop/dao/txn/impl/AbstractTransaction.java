@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import static io.nop.api.core.context.ContextProvider.completeAsyncOnContext;
@@ -42,6 +43,10 @@ import static io.nop.dao.DaoErrors.ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT;
 public abstract class AbstractTransaction implements ITransaction {
     static final Logger LOG = LoggerFactory.getLogger(AbstractTransaction.class);
 
+    private static final AtomicLong s_seq = new AtomicLong();
+
+    private final long seq = s_seq.incrementAndGet();
+
     private final String txnGroup;
 
     private boolean opened;
@@ -54,6 +59,10 @@ public abstract class AbstractTransaction implements ITransaction {
 
     public AbstractTransaction(String txnGroup) {
         this.txnGroup = txnGroup;
+    }
+
+    public String toString() {
+        return getClass().getSimpleName() + "[seq=" + seq + ",txnGroup=" + txnGroup + ",txnId=" + getTxnId() + "]";
     }
 
     public boolean isTransactionOpened() {
@@ -120,7 +129,7 @@ public abstract class AbstractTransaction implements ITransaction {
     public void markRollbackOnly(Throwable error) {
         this.rollbackOnly = true;
         this.error = error;
-        LOG.info("nop.dao.txn.mark-rollback-only:querySpace={}", txnGroup, error);
+        LOG.info("nop.dao.txn.mark-rollback-only:txn={}", this, error);
     }
 
     @Override
@@ -140,6 +149,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public void rollback(Throwable error) {
+        LOG.info("nop.dao.txn.rollback:txn={}", this);
+
         beforeRollback(error);
 
         Throwable ex = null;
@@ -205,6 +216,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public CompletionStage<Void> rollbackAsync(Throwable ex) {
+        LOG.info("nop.dao.txn.rollback-async:txn={}", this);
+
         if (listeners != null) {
             invokeListener(listener -> listener.onBeforeCompletion(this), true);
         }
@@ -248,6 +261,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public void commit() {
+        LOG.debug("nop.dao.txn.begin-commit:txn={}", this);
+
         beforeCommit();
         beforeCompletion();
         try {
@@ -258,6 +273,7 @@ public abstract class AbstractTransaction implements ITransaction {
 
         afterCommit();
         afterCompletion(CompleteStatus.COMMIT);
+        LOG.debug("nop.dao.txn.after-commit:txn={}", this);
     }
 
     public void beforeCommit() {
@@ -285,6 +301,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public CompletionStage<Void> commitAsync() {
+        LOG.info("nop.dao.txn.begin-commit-async:txn={}", this);
+
         if (isRollbackOnly())
             return FutureHelper.reject(newError(ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT));
 
@@ -312,7 +330,10 @@ public abstract class AbstractTransaction implements ITransaction {
         return future.thenAccept(v -> {
             afterCommit();
             afterCompletion(CompleteStatus.COMMIT);
+
+            LOG.info("nop.dao.txn.after-commit-async:txn={}", this);
         });
+
     }
 
     protected CompletionStage<Void> commitSubTransactionsAsync() {
@@ -354,6 +375,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public void open() {
+        LOG.info("nop.dao.txn.open:txn={}", this);
+
         if (opened)
             throw newError(ERR_TXN_ALREADY_STARTED);
         invokeOpenListener();
@@ -363,6 +386,8 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public void close() {
+        LOG.info("nop.dao.txn.close:txn={}", this);
+
         invokeCloseListener();
         closeSubTransactions();
         doClose();

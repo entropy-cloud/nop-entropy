@@ -12,11 +12,14 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.impl.JdbcHelper;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.impl.AbstractTransaction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.util.function.Supplier;
 
 public class JdbcTransaction extends AbstractTransaction implements IJdbcTransaction {
+    static final Logger LOG = LoggerFactory.getLogger(JdbcTransaction.class);
     private final Supplier<Connection> dataSource;
     private final IDialect dialect;
 
@@ -48,6 +51,7 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
     @Override
     public Connection getConnection() {
         if (connection == null) {
+            LOG.trace("nop.dao.txn.fetch-connection:conn={}", this);
             connection = dataSource.get();
             if (isTransactionOpened()) {
                 if (JdbcHelper.getAutoCommit(connection, dialect)) {
@@ -82,8 +86,12 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
     }
 
     public void releaseConnection() {
-        IoHelper.safeClose(connection);
-        this.connection = null;
+        if (connection != null) {
+            LOG.trace("nop.dao.txn.release-connection:conn={}", this);
+
+            IoHelper.safeClose(connection);
+            this.connection = null;
+        }
     }
 
     @Override

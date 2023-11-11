@@ -21547,6 +21547,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFormula",
+        "parameterTypes": []
+      },
+      {
         "name": "getId",
         "parameterTypes": []
       },
@@ -22482,6 +22486,10 @@
       },
       {
         "name": "getComment",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFormula",
         "parameterTypes": []
       },
       {

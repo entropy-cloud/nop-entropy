@@ -72,6 +72,7 @@ public class JdbcHelper {
     }
 
     public static void setAutoCommit(Connection conn, boolean autoCommit, IDialect dialect) {
+        LOG.trace("nop.jdbc.set-auto-commit:autoCommit={},conn={}",conn,autoCommit);
         try {
             conn.setAutoCommit(autoCommit);
         } catch (SQLException e) {
