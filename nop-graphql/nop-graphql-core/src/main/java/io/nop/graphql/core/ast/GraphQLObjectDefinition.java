@@ -121,7 +121,7 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
     }
 
     public void addField(GraphQLFieldDefinition field) {
-        fields.add(field);
+        this.makeFields().add(field);
         if (fieldsMap != null) {
             fieldsMap.put(field.getName(), field);
         }
