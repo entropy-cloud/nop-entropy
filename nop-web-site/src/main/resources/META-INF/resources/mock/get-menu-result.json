@@ -1,0 +1,48 @@
+{
+	"menu": [
+		{
+			"redirect": "/dashboard/analysis",
+			"path": "/dashboard",
+			"component": "layouts/default/index",
+			"route": "1",
+			"children": [
+				{
+					"path": "/test/my",
+					"component": "AMIS",
+					"route": "1",
+					"meta": {
+						"keepAlive": false,
+						"internalOrExternal": false,
+						"icon": "ant-design:appstore-twotone",
+						"url": "/pages/test-page.json",
+						"title": "AmisTest"
+					},
+					"name": "test-my",
+					"id": "1576732441601961985"
+				},
+				{
+					"path": "/dashboard/analysis",
+					"component": "AMIS",
+					"route": "1",
+					"meta": {
+						"keepAlive": true,
+						"internalOrExternal": false,
+						"icon": "ant-design:bank-filled",
+						"url": "/pages/analysis.json",
+						"title": "首页"
+					},
+					"name": "dashboard-analysis",
+					"id": "9502685863ab87f0ad1134142788a385"
+				}
+			],
+			"meta": {
+				"keepAlive": false,
+				"internalOrExternal": false,
+				"icon": "ion:grid-outline",
+				"title": "Dashboard"
+			},
+			"name": "dashboard",
+			"id": "1438108176273760258"
+		}
+	]
+}
