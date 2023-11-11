@@ -14,6 +14,8 @@ import java.util.Map;
 
 public interface IOrmEntityEnhancer {
 
+    Class<?> getEntityClass(IEntityModel entityModel);
+
     Object internalCompute(IOrmEntity entity, String propName, Map<String, Object> args);
 
     boolean internalLoad(IOrmEntity entity);

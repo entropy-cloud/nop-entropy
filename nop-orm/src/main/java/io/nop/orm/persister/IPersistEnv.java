@@ -10,6 +10,7 @@ package io.nop.orm.persister;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.commons.cache.ICache;
 import io.nop.core.model.graph.TopoEntry;
+import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.bean.IBeanConstructor;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.metrics.IDaoMetrics;
@@ -31,6 +32,8 @@ public interface IPersistEnv extends IOrmSessionFactory {
     IOrmMetrics getOrmMetrics();
 
     IDaoMetrics getDaoMetrics();
+
+    IClassModel getEntityClassModel(IEntityModel entityModel);
 
     EntityTableMeta resolveEntityTableMeta(String entityName);
 

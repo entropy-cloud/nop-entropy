@@ -94,9 +94,9 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         this.kvTable = refEntityClass != null && IOrmKeyValueTable.class.isAssignableFrom(refEntityClass);
     }
 
-    public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp) {
-        this(owner, propName, refPropName, keyProp, null);
-    }
+//    public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp) {
+//        this(owner, propName, refPropName, keyProp, null);
+//    }
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -144,7 +144,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     public Object prop_make(String propName) {
         Object value = prop_get(propName);
         if (value == null) {
-            IOrmEntity entity = newElement();
+            IOrmEntity entity = orm_newItem();
             entity.orm_propValueByName(keyProp, propName);
             add((T) entity);
             value = entity;

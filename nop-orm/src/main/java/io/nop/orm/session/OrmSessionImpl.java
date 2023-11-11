@@ -46,16 +46,17 @@ import io.nop.orm.persister.IPersistEnv;
 import io.nop.orm.persister.OrmAssembly;
 import io.nop.orm.support.OrmCompositePk;
 import io.nop.orm.support.OrmEntityHelper;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
@@ -90,6 +91,9 @@ import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_ENTITY_NOT_MANAGED;
 public class OrmSessionImpl implements IOrmSessionImplementor {
     static final Logger LOG = LoggerFactory.getLogger(OrmSessionImpl.class);
 
+    private static final AtomicLong s_seq = new AtomicLong();
+    private final long seq = s_seq.incrementAndGet();
+
     private final IOrmSessionEntityCache cache;
     private final IPersistEnv env;
 
@@ -119,6 +123,10 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
 
         env.getOrmMetrics().onSessionOpen();
+    }
+
+    public String toString() {
+        return "OrmSession[seq=" + seq + "]";
     }
 
     @Override
@@ -218,6 +226,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     void checkNotReadOnly() {
         if (this.readOnly)
             throw new OrmException(ERR_ORM_READONLY_NOT_ALLOW_UPDATE);
+    }
+
+    @Override
+    public Class<?> getEntityClass(IEntityModel entityModel) {
+        return env.getEntityClassModel(entityModel).getRawClass();
     }
 
     @Override

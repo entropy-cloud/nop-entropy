@@ -426,6 +426,18 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     @Override
     public IBeanConstructor getEntityConstructor(IEntityModel entityModel) {
+        IClassModel classModel = getEntityClassModel(entityModel);
+
+        IBeanModel beanModel = classModel.getBeanModel();
+        return () -> {
+            IOrmEntity entity = (IOrmEntity) beanModel.newInstance();
+            entity.orm_entityModel(entityModel);
+            return entity;
+        };
+    }
+
+    @Override
+    public IClassModel getEntityClassModel(IEntityModel entityModel) {
         IClassModel classModel;
         if (dynamicEntityNames.contains(entityModel.getName())) {
             classModel = ReflectionManager.instance().getClassModel(getDefaultDynamicEntityClass());
@@ -435,13 +447,7 @@ public class SessionFactoryImpl implements IPersistEnv {
                 className = entityModel.getName();
             classModel = ReflectionManager.instance().loadClassModel(className);
         }
-
-        IBeanModel beanModel = classModel.getBeanModel();
-        return () -> {
-            IOrmEntity entity = (IOrmEntity) beanModel.newInstance();
-            entity.orm_entityModel(entityModel);
-            return entity;
-        };
+        return classModel;
     }
 
     @Override
