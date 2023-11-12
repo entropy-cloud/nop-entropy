@@ -113,7 +113,7 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
                             return addProp(aliasPath + propName.substring(pos), hasNext);
                         } else {
                             addProp(propModel);
-                            return makeSubSelection(name).addCompositeField(name.substring(pos + 1), hasNext);
+                            return makeSubSelection(name).addCompositeField(propName.substring(pos + 1), hasNext);
                         }
                     }
                 }
