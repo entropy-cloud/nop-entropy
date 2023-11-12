@@ -106,6 +106,9 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 * RANK: 计算排名
 * ACCSUM: 累积汇总
 
+## 导出Excel公式
+如果单元格配置设置了exportFormula=true，或者在Excel单元格中配置了Excel公式，则导出Excel的时候会将valueExpr转换为Excel公式输出。例如 SUM(A3)将可以经过报表展开后成为 SUM(A3:D5)
+
 ## 与润乾集算器集成
 
 润乾软件开源了一个数据处理中间件，可以使用类似于报表表达式的机制对异构数据进行处理加工。在Nop平台中可以很方便的集成SPL处理引擎。具体参见[spl.md](spl.md)
