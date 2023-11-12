@@ -84,4 +84,19 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         FileHelper.copyFile(file, getTargetFile("test-form-printing.xlsx"));
         file.delete();
     }
+
+
+    @EnableSnapshot
+    @Test
+    public void testExportFormula() {
+        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
+        String reportName = "/base/04-交叉报表—数据双向扩展.xpt.xlsx";
+        String html = reportDemo.renderHtml(reportName);
+        outputText(reportName + ".html", html);
+
+        WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
+        File file = (File) result.getContent();
+        FileHelper.copyFile(file, getTargetFile("test-report-04.xlsx"));
+        file.delete();
+    }
 }

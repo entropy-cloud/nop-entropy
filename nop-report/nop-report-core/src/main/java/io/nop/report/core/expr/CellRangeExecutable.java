@@ -22,7 +22,7 @@ import java.util.List;
 
 import static io.nop.report.core.XptErrors.ERR_XPT_MISSING_VAR_CELL;
 
-public class CellRangeExecutable extends AbstractExecutable {
+public class CellRangeExecutable extends AbstractExecutable implements ICellLayerCoordinateExecutable {
     private final CellRange cellRange;
     private final String expr;
 

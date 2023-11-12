@@ -9,9 +9,12 @@ package io.nop.report.core.initialize;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.type.IGenericType;
+import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.expr.ReportExpressionParser;
 import io.nop.report.core.functions.ReportFunctionProvider;
+import io.nop.xlang.api.EvalCodeWithAst;
 import io.nop.xlang.api.IFunctionProvider;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.Expression;
@@ -28,17 +31,28 @@ public class ReportExprStdDomainHandler extends XplStdDomainHandlers.AbstractExp
     }
 
     @Override
+    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        return PredefinedGenericTypes.I_EVAL_ACTION_TYPE;
+    }
+
+    @Override
     public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text, XLangCompileTool cp) {
         String source = (String) text;
 
         Expression expr = new ReportExpressionParser().parseExpr(loc, source);
+        if (expr == null)
+            return null;
+        expr.freeze(true);
 
         XLangOutputMode oldMode = cp.getOutputMode();
         cp.outputMode(XLangOutputMode.none);
         IFunctionProvider provider = cp.getScope().getFunctionProvider();
         try {
             cp.getScope().setFunctionProvider(ReportFunctionProvider.INSTANCE);
-            return cp.buildEvalAction(expr);
+
+            // 语义分析过程中可能会改expr
+            EvalCodeWithAst ret = new EvalCodeWithAst(expr, source, cp.buildEvalAction(expr.deepClone()));
+            return ret;
         } catch (Exception e) {
             throw newPropError(loc, propName, source).cause(e);
         } finally {

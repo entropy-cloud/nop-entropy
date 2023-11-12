@@ -42,6 +42,18 @@ public class ExpandedTable extends SerializableExtensibleObject implements ITabl
         this.initEmptyTable(rowCount, colCount);
     }
 
+    public void assignRowIndexAndColIndex() {
+        List<ExpandedRow> rows = getRows();
+        for (int i = 0, n = rows.size(); i < n; i++) {
+            rows.get(i).setAssignedRowIndex(i);
+        }
+
+        List<ExpandedCol> cols = getCols();
+        for (int i = 0, n = cols.size(); i < n; i++) {
+            cols.get(i).setAssignedColIndex(i);
+        }
+    }
+
     private void initEmptyTable(int rowCount, int colCount) {
         for (int i = 0; i < colCount; i++) {
             ExpandedCol col = new ExpandedCol();

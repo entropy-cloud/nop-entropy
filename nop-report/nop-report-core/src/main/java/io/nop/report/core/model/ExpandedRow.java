@@ -9,8 +9,8 @@ package io.nop.report.core.model;
 
 import io.nop.core.model.table.IRowView;
 import io.nop.excel.model.XptRowModel;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -18,6 +18,11 @@ import java.util.function.Consumer;
 
 public class ExpandedRow implements IRowView {
     private XptRowModel model;
+
+    /**
+     * 展开完毕之后设置assignedRowIndex，避免频繁查找行下标
+     */
+    private int assignedRowIndex = -1;
 
     private String id;
     private String styleId;
@@ -236,7 +241,13 @@ public class ExpandedRow implements IRowView {
     }
 
     public int getRowIndex() {
+        if (assignedRowIndex >= 0)
+            return assignedRowIndex;
         return table.getRows().indexOf(this);
+    }
+
+    public void setAssignedRowIndex(int assignedRowIndex) {
+        this.assignedRowIndex = assignedRowIndex;
     }
 
     public void useNextRowStyle() {

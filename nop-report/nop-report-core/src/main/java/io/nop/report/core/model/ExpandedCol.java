@@ -10,14 +10,15 @@ package io.nop.report.core.model;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IColumnConfig;
 import io.nop.excel.model.ExcelColumnConfig;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class ExpandedCol implements IColumnConfig {
     private ExcelColumnConfig colModel;
+    private int assignedColIndex = -1;
 
     private String styleId;
     private ExpandedCell firstCell;
@@ -118,7 +119,13 @@ public class ExpandedCol implements IColumnConfig {
     }
 
     public int getColIndex() {
+        if (assignedColIndex >= 0)
+            return assignedColIndex;
         return table.getCols().indexOf(this);
+    }
+
+    public void setAssignedColIndex(int assignedColIndex) {
+        this.assignedColIndex = assignedColIndex;
     }
 
 

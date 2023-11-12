@@ -27,6 +27,13 @@ public class CustomExpression extends _CustomExpression {
         return executable;
     }
 
+    @Override
+    public CustomExpression deepClone() {
+        CustomExpression ret = super.deepClone();
+        ret.executable = executable;
+        return ret;
+    }
+
     public static CustomExpression build(SourceLocation loc, String source, IExecutableExpression executable) {
         CustomExpression ret = new CustomExpression();
         ret.setLocation(loc);

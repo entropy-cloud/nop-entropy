@@ -28,6 +28,7 @@ import io.nop.excel.model.XptRowModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.model.constants.XptExpandType;
+import io.nop.report.core.initialize.ReportExprStdDomainHandler;
 import io.nop.report.core.initialize.TemplateReportExprStdDomainHandler;
 import io.nop.xlang.api.XLangCompileTool;
 
@@ -107,6 +108,7 @@ public class XptModelInitializer {
     }
 
     private void initXptModels(ExcelSheet sheet) {
+        boolean useExportFormula = false;
         ExcelTable table = sheet.getTable();
         int colCount = table.getColCount();
         int rowCount = table.getRowCount();
@@ -139,8 +141,12 @@ public class XptModelInitializer {
                 xptModel.setName(name);
 
                 normalizeValueExpr(ec);
+                if (xptModel.isExportFormula())
+                    useExportFormula = true;
             }
         }
+
+        sheet.getModel().setUseExportFormula(useExportFormula);
     }
 
     private void normalizeValueExpr(ExcelCell cell) {
@@ -156,6 +162,14 @@ public class XptModelInitializer {
                         "valueExpr", text, cp);
                 cellModel.setValueExpr(valueExpr);
             }
+        }
+
+        if (cellModel.getValueExpr() == null && !StringHelper.isEmpty(cell.getFormula())) {
+            // 如果是通过excel的公式机制进行配置，则表示需要导出公式
+            IEvalAction valueExpr = (IEvalAction) ReportExprStdDomainHandler.INSTANCE.parseProp(null, cell.getLocation(),
+                    "formula", cell.getFormula(), cp);
+            cellModel.setValueExpr(valueExpr);
+            cellModel.setExportFormula(true);
         }
     }
 

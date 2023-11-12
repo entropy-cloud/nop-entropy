@@ -19,15 +19,20 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.model.ILoopModel;
+import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
 import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.expand.TableExpander;
+import io.nop.report.core.expr.ReportFormulaGenerator;
+import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCol;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
+import io.nop.xlang.api.EvalCodeWithAst;
+import io.nop.xlang.ast.Expression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,10 +133,15 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
 
         dropRemoved(expandedSheet);
 
+        expandedSheet.getTable().assignRowIndexAndColIndex();
+
+        initExportFormula(expandedSheet, xptRt);
+
         consumer.accept(expandedSheet);
     }
 
-    private void dropRemoved(ExpandedSheet sheet) {
+    private boolean dropRemoved(ExpandedSheet sheet) {
+        boolean removed = false;
         ExpandedTable table = sheet.getTable();
         for (int i = 0, n = table.getRowCount(); i < n; i++) {
             ExpandedRow row = table.getRow(i);
@@ -139,6 +149,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                 table.removeRow(i);
                 i--;
                 n--;
+                removed = true;
             }
         }
 
@@ -148,6 +159,37 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                 table.removeCol(i);
                 i--;
                 n--;
+                removed = true;
+            }
+        }
+        return removed;
+    }
+
+    private void initExportFormula(ExpandedSheet sheet, IXptRuntime xptRt) {
+        if (!sheet.getModel().isUseExportFormula())
+            return;
+
+        IEvalScope scope = xptRt.getEvalScope();
+        for (ExpandedRow row : sheet.getTable().getRows()) {
+            row.forEachRealCell(cell -> {
+                exportFormula(cell, scope, xptRt);
+            });
+        }
+    }
+
+    private void exportFormula(ExpandedCell cell, IEvalScope scope, IXptRuntime xptRt) {
+        XptCellModel cellModel = cell.getModel();
+        if (cellModel != null && cellModel.isExportFormula()) {
+            if (cellModel.getValueExpr() instanceof EvalCodeWithAst) {
+                Expression expr = ((EvalCodeWithAst) cellModel.getValueExpr()).getExpr();
+                // 层次坐标需要根据当前单元格进行定位
+                xptRt.setCell(cell);
+                try {
+                    String formula = new ReportFormulaGenerator(scope).toExprString(expr);
+                    cell.setFormula(formula);
+                } finally {
+                    xptRt.setCell(null);
+                }
             }
         }
     }

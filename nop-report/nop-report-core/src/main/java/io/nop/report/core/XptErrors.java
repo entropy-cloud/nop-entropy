@@ -105,4 +105,7 @@ public interface XptErrors {
             define("nop.err.xpt.invalid-image-data",
                     "图片数据不是字节数组或者IResource对象");
 
+    ErrorCode ERR_XPT_NOT_SUPPORT_EXPR_IN_FORMULA =
+            define("nop.err.xpt.not-support-expr-in-formula",
+                    "Excel公式中不支持表达式:{expr}", ARG_EXPR);
 }

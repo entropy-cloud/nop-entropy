@@ -12,6 +12,8 @@ import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.IValueWrapper;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.model.table.CellRange;
+import io.nop.core.model.table.CellRangeMerger;
 import io.nop.report.core.engine.IXptRuntime;
 
 import java.util.Collections;
@@ -62,6 +64,14 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
 
     public List<ExpandedCell> getCells() {
         return cells;
+    }
+
+    public List<CellRange> getCellRanges() {
+        CellRangeMerger merger = new CellRangeMerger();
+        for (ExpandedCell cell : cells) {
+            merger.addCell(cell.getRowIndex(), cell.getColIndex());
+        }
+        return merger.getMergedRanges();
     }
 
     public ExpandedCell get(int index) {

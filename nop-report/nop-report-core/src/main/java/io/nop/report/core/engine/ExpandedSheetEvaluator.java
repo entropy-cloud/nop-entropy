@@ -7,7 +7,6 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.resource.IResource;
