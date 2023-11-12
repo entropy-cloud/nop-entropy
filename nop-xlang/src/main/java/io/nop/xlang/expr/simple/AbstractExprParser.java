@@ -274,7 +274,7 @@ public abstract class AbstractExprParser<E> {
         return (XLangOperator) sc.peekToken;
     }
 
-    private void _peekGt(TextScanner sc) {
+    protected void _peekGt(TextScanner sc) {
         int next = sc.peek();
         if (next == '>') {
             int next2 = sc.peek(2);

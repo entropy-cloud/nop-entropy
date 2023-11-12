@@ -198,4 +198,14 @@ public class XLangASTHelper {
 
         throw new NopException(ERR_XLANG_EXPR_NOT_JSON_VALUE).param(ARG_EXPR, expr);
     }
+
+    public static Expression getDetachedExpr(Expression expr) {
+        if (expr.getASTParent() == null) {
+            if (expr.frozen())
+                return expr;
+        }
+        expr = expr.deepClone();
+        expr.freeze(true);
+        return expr;
+    }
 }

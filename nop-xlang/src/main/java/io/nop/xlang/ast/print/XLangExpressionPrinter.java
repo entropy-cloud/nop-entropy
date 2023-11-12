@@ -113,6 +113,7 @@ import io.nop.xlang.ast.VariableDeclarator;
 import io.nop.xlang.ast.WhileStatement;
 import io.nop.xlang.ast.XLangASTNode;
 import io.nop.xlang.ast.XLangASTVisitor;
+import io.nop.xlang.ast.XLangOperator;
 
 public class XLangExpressionPrinter extends XLangASTVisitor {
     protected final StringBuilder sb;
@@ -126,6 +127,11 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     public XLangExpressionPrinter() {
         this(new StringBuilder());
+    }
+
+    public String toExprString(Expression expr) {
+        visit(expr);
+        return getResult();
     }
 
     public String getResult() {
@@ -142,6 +148,11 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     protected XLangExpressionPrinter print(char c) {
         sb.append(c);
+        return this;
+    }
+
+    protected XLangExpressionPrinter print(XLangOperator operator) {
+        sb.append(operator);
         return this;
     }
 
@@ -407,13 +418,33 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitBinaryExpression(BinaryExpression node) {
-        visit(node.getLeft());
+        printLeft(node.getLeft(), node.getOperator());
 
         print(' ');
         print(node.getOperator());
         print(' ');
 
-        visit(node.getRight());
+        printRight(node.getRight(), node.getOperator());
+    }
+
+    protected void printLeft(Expression expr, XLangOperator op) {
+        if (expr instanceof BinaryExpression || expr instanceof LogicalExpression) {
+            print('(');
+            visit(expr);
+            print(')');
+        } else {
+            visit(expr);
+        }
+    }
+
+    protected void printRight(Expression expr, XLangOperator op) {
+        if (expr instanceof BinaryExpression || expr instanceof LogicalExpression) {
+            print('(');
+            visit(expr);
+            print(')');
+        } else {
+            visit(expr);
+        }
     }
 
     @Override
@@ -433,11 +464,11 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitLogicalExpression(LogicalExpression node) {
-        visit(node.getLeft());
+        printLeft(node.getLeft(), node.getOperator());
         print(' ');
         print(node.getOperator());
         print(' ');
-        print(node.getRight());
+        printRight(node.getRight(), node.getOperator());
     }
 
     @Override
