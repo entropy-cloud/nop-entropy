@@ -107,7 +107,9 @@ xptRt.makeDs函数将一个列表数据包装为ReportDataSet对象，并设置�
 * ACCSUM: 累积汇总
 
 ## 导出Excel公式
-如果单元格配置设置了exportFormula=true，或者在Excel单元格中配置了Excel公式，则导出Excel的时候会将valueExpr转换为Excel公式输出。例如 SUM(A3)将可以经过报表展开后成为 SUM(A3:D5)
+如果在Excel单元格中配置了Excel公式，则导出Excel的时候会将valueExpr转换为Excel公式输出。例如 SUM(A3)将可以经过报表展开后成为 SUM(A3:D5)
+
+对于复杂的层次坐标表达式，无法直接用Excel公式直接表达，则可以配置valueExpr,然后设置单元格的exportFormula=true。
 
 ## 与润乾集算器集成
 
