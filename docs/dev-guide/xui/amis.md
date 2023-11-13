@@ -153,7 +153,7 @@ body:
 
 具体介绍参见
 
-    [从张量积看低代码平台的设计](https://zhuanlan.zhihu.com/p/531474176)
+[从张量积看低代码平台的设计](https://zhuanlan.zhihu.com/p/531474176)
 
 ## 1.3 Action模块化
 

@@ -238,6 +238,17 @@ xpl标签既有返回值，又有输出。输出具有多种模式
 2. 也可以在定义每个自定义标签时指定outputMode
 3. 在调用标签时，可以通过xpl:outputMode来设置未识别的标签的输出模式。如果自定义标签已经有自己的输出模式，则外部调用时再设置也是无效的。
 
+## thisLib
+在自定义标签库中，可以使用thisLib来指向当前标签库。
+例如在web.xlib中，  `<thisLib:LoadPage>`对应于 `<web:LoadPage xpl:lib="/nop/web/xlib/web.xlib">`
+
+引入thisLib这个特殊的名字空间的原因在于，外部引用标签库的时候有可能通过as来修改最终使用时的名字空间。例如
+
+````
+<c:import from="/nop/web/xlib/web.xlib" as="myweb" />
+<myweb:GenPage page="xx" />
+````
+
 ## xpl专用属性
 
 XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl属性的处理顺序为
