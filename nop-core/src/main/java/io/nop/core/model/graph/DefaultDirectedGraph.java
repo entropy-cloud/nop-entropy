@@ -17,6 +17,7 @@
 package io.nop.core.model.graph;
 
 import com.google.common.collect.Ordering;
+import io.nop.api.core.beans.GraphBean;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Default implementation of {@link IDirectedGraph}.
@@ -56,17 +58,17 @@ public class DefaultDirectedGraph<V, E extends IEdge<V>> implements IDirectedGra
         return new DefaultDirectedGraph<>(edgeFactory);
     }
 
-    public static DefaultDirectedGraph<String, DefaultEdge<String>> createFromDTO(GraphDTO dto) {
+    public static DefaultDirectedGraph<String, DefaultEdge<String>> createFromDTO(GraphBean dto) {
         DefaultDirectedGraph<String, DefaultEdge<String>> graph = create();
         if (dto.getVertices() != null) {
-            for (String vertex : dto.getVertices()) {
-                graph.addVertex(vertex);
+            for (GraphBean.VertexBean vertex : dto.getVertices()) {
+                graph.addVertex(vertex.getVertexId());
             }
         }
 
         if (dto.getEdges() != null) {
-            for (GraphDTO.EdgeDTO edgeDTO : dto.getEdges()) {
-                graph.addEdge(edgeDTO.getSource(), edgeDTO.getTarget());
+            for (GraphBean.EdgeBean edgeBean : dto.getEdges()) {
+                graph.addEdge(edgeBean.getSource(), edgeBean.getTarget());
             }
         }
         return graph;
@@ -76,18 +78,18 @@ public class DefaultDirectedGraph<V, E extends IEdge<V>> implements IDirectedGra
         return "graph(" + "vertices: " + vertexMap.keySet() + ", edges: " + edges + ")";
     }
 
-    public GraphDTO toGraphDTO() {
-        GraphDTO dto = new GraphDTO();
-        List<String> vertices = new ArrayList<>(vertexMap.size());
+    public GraphBean toGraphBean(Function<V,String> vertexIdGetter) {
+        GraphBean dto = new GraphBean();
+        List<GraphBean.VertexBean> vertices = new ArrayList<>(vertexMap.size());
         for (V v : vertexMap.keySet()) {
-            vertices.add(v.toString());
+            vertices.add(new GraphBean.VertexBean(vertexIdGetter.apply(v)));
         }
-        List<GraphDTO.EdgeDTO> edges = new ArrayList<>(this.edges.size());
+        List<GraphBean.EdgeBean> edges = new ArrayList<>(this.edges.size());
         for (E edge : this.edges) {
-            GraphDTO.EdgeDTO edgeDTO = new GraphDTO.EdgeDTO();
-            edgeDTO.setSource(edge.getSource().toString());
-            edgeDTO.setTarget(edge.getTarget().toString());
-            edges.add(edgeDTO);
+            GraphBean.EdgeBean edgeBean = new GraphBean.EdgeBean();
+            edgeBean.setSource(vertexIdGetter.apply(edge.getSource()));
+            edgeBean.setTarget(vertexIdGetter.apply(edge.getTarget()));
+            edges.add(edgeBean);
         }
         dto.setVertices(vertices);
         dto.setEdges(edges);
