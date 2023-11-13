@@ -18,6 +18,10 @@
         <GenForm outputMode="node">
             <attr name="schema" mandatory="true"/>
             <attr name="formId" mandatory="true"/>
+            <description>
+                根据schema元模型定义自动生成编辑所用的表单模型
+            </description>
+
 
             <source>
                 <form id="${formId}" editMode="edit">
@@ -44,6 +48,9 @@
         <GenGrid outputMode="node">
             <attr name="schema" mandatory="true"/>
             <attr name="gridId" mandatory="true"/>
+            <description>
+                根据schema元模型定义自动生成编辑所用的表格模型
+            </description>
 
             <source>
                 <grid id="${gridId}" editMode="edit">

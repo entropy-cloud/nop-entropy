@@ -6,7 +6,7 @@
             <tabs j:list="true">
                 <c:for var="tabModel" items="${pageModel.tabs}">
                     <_ xpl:attrs="xpl('thisLib:TabDefaultAttrs',tabModel)">
-                        <body xpl:attrs="xpl('thisLib:LoadPage',tabModel.name || tabModel.page)"/>
+                        <body xpl:attrs="xpl('thisLib:LoadPage',tabModel.page || tabModel.name)"/>
                     </_>
                 </c:for>
             </tabs>
