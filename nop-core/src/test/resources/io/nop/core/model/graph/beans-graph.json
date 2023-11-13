@@ -46,22 +46,56 @@
     }
   ],
   "vertices": [
-    "a",
-    "myParentNested",
-    "b",
-    "myInitBean",
-    "c",
-    "myGrandparent",
-    "myDestroyBean",
-    "$GEN$5",
-    "$GEN$4",
-    "myLazyInitBean",
-    "myFactoryBean",
-    "myLazyInitBean2",
-    "myChild",
-    "myParent",
-    "myPrototypeBean",
-    "myInjectBean",
-    "testInitProperty"
+    {
+      "vertexId": "a"
+    },
+    {
+      "vertexId": "myParentNested"
+    },
+    {
+      "vertexId": "b"
+    },
+    {
+      "vertexId": "myInitBean"
+    },
+    {
+      "vertexId": "c"
+    },
+    {
+      "vertexId": "myGrandparent"
+    },
+    {
+      "vertexId": "myDestroyBean"
+    },
+    {
+      "vertexId": "$GEN$5"
+    },
+    {
+      "vertexId": "$GEN$4"
+    },
+    {
+      "vertexId": "myLazyInitBean"
+    },
+    {
+      "vertexId": "myFactoryBean"
+    },
+    {
+      "vertexId": "myLazyInitBean2"
+    },
+    {
+      "vertexId": "myChild"
+    },
+    {
+      "vertexId": "myParent"
+    },
+    {
+      "vertexId": "myPrototypeBean"
+    },
+    {
+      "vertexId": "myInjectBean"
+    },
+    {
+      "vertexId": "testInitProperty"
+    }
   ]
 }

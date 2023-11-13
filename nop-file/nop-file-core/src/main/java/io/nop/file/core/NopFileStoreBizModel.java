@@ -18,10 +18,10 @@ import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
-
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
+
 import java.util.Set;
 
 import static io.nop.file.core.FileErrors.ARG_ALLOWED_FILE_EXTS;
@@ -97,6 +97,7 @@ public class NopFileStoreBizModel {
         checkMaxSize(record.getLength());
         checkFileExt(record.getFileExt());
         checkBizObjName(record.getBizObjName());
+        checkUploadAuth(record, context);
 
         String fileId = fileStore.saveFile(record, maxFileSize);
 
@@ -109,11 +110,17 @@ public class NopFileStoreBizModel {
     @BizQuery
     public WebContentBean download(@Name("fileId") String fileId,
                                    @Name("contentType") String contentType, IServiceContext ctx) {
-        IFileRecord record = loadFileRecord(fileId,ctx);
+        IFileRecord record = loadFileRecord(fileId, ctx);
         if (StringHelper.isEmpty(contentType))
             contentType = MediaType.APPLICATION_OCTET_STREAM;
 
         return new WebContentBean(contentType, record.getResource(), record.getFileName());
+    }
+
+    protected void checkUploadAuth(UploadRequestBean record, IServiceContext ctx) {
+        if (!StringHelper.isEmpty(record.getBizObjId()) && bizAuthChecker != null) {
+            bizAuthChecker.checkAuth(record.getBizObjName(), record.getBizObjId(), record.getFieldName(), ctx);
+        }
     }
 
     protected IFileRecord loadFileRecord(String fileId, IServiceContext ctx) {

@@ -7,6 +7,7 @@
  */
 package io.nop.core.model.graph;
 
+import io.nop.api.core.beans.GraphBean;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ public class TestDirectedGraph extends BaseTestCase {
 
     @Test
     public void testTopologicalOrder2() {
-        GraphDTO dto = attachmentBean("beans-graph.json", GraphDTO.class);
+        GraphBean dto = attachmentBean("beans-graph.json", GraphBean.class);
         DefaultDirectedGraph<String, DefaultEdge<String>> graph = DefaultDirectedGraph.createFromDTO(dto);
         List<String> list = CollectionHelper.iteratorToList(graph.topologicalOrderIterator(true));
         assertEquals(list.size(), graph.vertexSet().size());

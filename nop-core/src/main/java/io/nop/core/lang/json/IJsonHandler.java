@@ -49,6 +49,13 @@ public interface IJsonHandler {
     }
 
     @ReturnSelf
+    default IJsonHandler putNotNull(String name, Object value) {
+        if (value == null)
+            return this;
+        return put(name, value);
+    }
+
+    @ReturnSelf
     default IJsonHandler stringValue(SourceLocation loc, String value) {
         return value(loc, value);
     }

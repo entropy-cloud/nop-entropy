@@ -20,8 +20,8 @@ import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.engine.GraphQLActionAuthChecker;
 import io.nop.orm.OrmConstants;
-
 import jakarta.inject.Inject;
+
 import java.util.HashMap;
 import java.util.Map;
 

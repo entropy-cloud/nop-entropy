@@ -569,6 +569,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
 
+        // 上传文件时可能使用临时对象占位
+        if (BizConstants.TEMP_BIZ_OBJ_ID.equals(id))
+            return null;
+
         IEntityDao<T> dao = dao();
         T entity = dao.getEntityById(id);
         if (entity == null) {

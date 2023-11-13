@@ -10,6 +10,8 @@ package io.nop.auth.core.login;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ExtensibleBean;
 import io.nop.auth.core.AuthCoreConstants;
+import io.nop.core.lang.json.IJsonHandler;
+import io.nop.core.lang.json.IJsonSerializable;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -17,7 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class UserContextImpl extends ExtensibleBean implements IUserContext {
+public class UserContextImpl extends ExtensibleBean implements IUserContext, IJsonSerializable {
     private String sessionId;
     private String tenantId;
     private String locale;
@@ -33,6 +35,25 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext {
     private boolean dirty;
     private String accessToken;
     private String refreshToken;
+
+    @Override
+    public void serializeToJson(IJsonHandler out) {
+        out.beginObject(null);
+        out.putNotNull("sessionId", sessionId);
+        out.putNotNull("tenantId", tenantId);
+        out.putNotNull("locale", locale);
+        out.putNotNull("timeZone", timeZone);
+        out.putNotNull("userId", userId);
+        out.putNotNull("openId", openId);
+        out.putNotNull("userName", userName);
+        out.putNotNull("nickName", nickName);
+        out.putNotNull("primaryRole", primaryRole);
+        out.putNotNull("deptId", deptId);
+        out.putNotNull("roles", roles);
+        out.putNotNull("accessToken", accessToken);
+        out.putNotNull("refreshToken", refreshToken);
+        out.endObject();
+    }
 
     @Override
     public String getSessionId() {

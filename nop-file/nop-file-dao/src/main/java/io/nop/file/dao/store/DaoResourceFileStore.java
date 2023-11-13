@@ -25,12 +25,12 @@ import io.nop.file.core.IFileRecord;
 import io.nop.file.core.IFileStore;
 import io.nop.file.core.UploadRequestBean;
 import io.nop.file.dao.entity.NopFileRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.InputStream;
 import java.time.LocalDate;
@@ -123,8 +123,12 @@ public class DaoResourceFileStore implements IFileStore {
         entity.setFieldName(record.getFieldName());
         entity.setFileExt(record.getFileExt());
         entity.setFileLength(record.getLength());
-        // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
-        entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
+        if (StringHelper.isEmpty(record.getBizObjId())) {
+            // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
+            entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);
+        } else {
+            entity.setBizObjId(record.getBizObjId());
+        }
         entity.setBizObjName(record.getBizObjName());
         entity.setMimeType(record.getMimeType());
         if (StringHelper.isEmpty(entity.getMimeType()))

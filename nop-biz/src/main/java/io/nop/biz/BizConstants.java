@@ -108,4 +108,8 @@ public interface BizConstants {
     String GRAPHQL_EXTENSION_MAKER_CHECKER_TRY_RESPONSE = "nop.maker-checker.try-response";
 
     String SELECTION_COPY_FOR_NEW = "copyForNew";
+
+    String PARAM_IGNORE_UNKNOWN = "ignoreUnknown";
+
+    String TEMP_BIZ_OBJ_ID = "__TEMP__";
 }
