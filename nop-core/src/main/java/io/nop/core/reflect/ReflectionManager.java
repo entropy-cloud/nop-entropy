@@ -324,7 +324,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
             return getClassModelForType(type);
         }
         try {
-            Class<?> clazz = ClassHelper.forName(typeName);
+            Class<?> clazz = ClassHelper.getSafeClassLoader().loadClass(typeName);
             return getClassModel(clazz);
         } catch (ClassNotFoundException e) {
             throw NopException.adapt(e);

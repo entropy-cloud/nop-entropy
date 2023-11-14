@@ -137,6 +137,14 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         }
     }
 
+    public void clearCache(){
+        bizObjCache.clear();
+    }
+
+    public void removeCache(String bizObjName){
+        bizObjCache.remove(bizObjName);
+    }
+
     @PreDestroy
     public void destroy() {
         if (cancellable != null)

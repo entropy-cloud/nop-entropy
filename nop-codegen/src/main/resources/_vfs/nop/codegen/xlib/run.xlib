@@ -5,6 +5,8 @@
             <attr name="targetDir" />
             <attr name="tplDir" />
             <attr name="appName" />
+            <attr name="modelPath" />
+            <attr name="tplRootPath" />
 
             <source>
                 <c:script><![CDATA[
@@ -18,7 +20,11 @@
                 assign("appName",appName);
                 let codegen = new XCodeGenerator(tplDir,targetDir);
                 codegen = codegen.withDependsCache();
-                codegen.execute("/",$scope);
+                if(modelPath){
+                    codegen.renderModel(modelPath, tplRootPath || '/',tplDir,$scope);
+                }else{
+                    codegen.execute("/",$scope);
+                }
             ]]></c:script>
             </source>
         </GenWithCache>

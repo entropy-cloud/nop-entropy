@@ -296,6 +296,10 @@ public class ClassHelper {
         return forName(name, getDefaultClassLoader());
     }
 
+    public static Class<?> safeLoadClass(String name) throws ClassNotFoundException {
+        return getSafeClassLoader().loadClass(name);
+    }
+
     /**
      * Replacement for {@code Class.forName()} that also returns Class instances for primitives (e.g. "int") and array
      * class names (e.g. "String[]"). Furthermore, it is also capable of resolving inner class names in Java source

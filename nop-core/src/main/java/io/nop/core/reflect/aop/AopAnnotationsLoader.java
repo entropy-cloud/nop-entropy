@@ -42,7 +42,7 @@ public class AopAnnotationsLoader {
             List<Class<?>> classes = new ArrayList<>(classNames.size());
             for (String className : classNames) {
                 try {
-                    Class<?> clazz = ClassHelper.forName(className);
+                    Class<?> clazz = ClassHelper.safeLoadClass(className);
                     classes.add(clazz);
                 } catch (Exception e) {
                     LOG.warn("nop.aop.ignore-unknown-annotation:{}", className);
