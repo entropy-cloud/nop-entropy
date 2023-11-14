@@ -129,11 +129,12 @@ public class SpringGraphQLWebService extends GraphQLWebService {
                 headers.put(name, list);
             });
         }
-        Object body = response.getData();
-        if (body != null && !(body instanceof String)) {
-            body = JsonTool.serialize(response, false);
-        }
-        ResponseEntity<Object> res = new ResponseEntity<>(body, headers, HttpStatus.OK);
+        String str = JSON.stringify(response.cloneInstance(false));
+        int status = response.getHttpStatus();
+        if (status == 0)
+            status = 200;
+
+        ResponseEntity<Object> res = new ResponseEntity<>(str, headers, status);
         return res;
     }
 
