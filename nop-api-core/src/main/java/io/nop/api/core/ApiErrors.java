@@ -110,7 +110,7 @@ public interface ApiErrors {
 
     ErrorCode ERR_VALIDATE_CHECK_FAIL =
             define("nop.err.api.validate.check-fail",
-                    "验证失败");
+                    "验证失败:\n{errors}", ARG_ERRORS);
 
     ErrorCode ERR_CONTEXT_PROVIDER_ALREADY_INITIALIZED =
             define("nop.err.api.context.provider-already-initialized",
