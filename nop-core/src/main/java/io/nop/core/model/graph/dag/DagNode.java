@@ -25,18 +25,6 @@ public class DagNode implements Comparable<DagNode> {
 
     private Set<String> prevNormalNodeNames;
 
-    private boolean nextToEnd;
-
-    private boolean eventuallyToEnd;
-
-    private boolean nextToEmpty;
-
-    private boolean eventuallyToEmpty;
-
-    private boolean nextToAssigned;
-
-    private boolean eventuallyToAssigned;
-
     public DagNode() {
     }
 
@@ -47,6 +35,11 @@ public class DagNode implements Comparable<DagNode> {
     @Override
     public int compareTo(DagNode o) {
         return Integer.compare(this.nodeIndex, o.nodeIndex);
+    }
+
+    public void removeNextNode(String name) {
+        if (this.nextNodeNames != null)
+            this.nextNodeNames.remove(name);
     }
 
     public void addNextNodes(Set<String> next) {
@@ -146,53 +139,5 @@ public class DagNode implements Comparable<DagNode> {
 
     public void setPrevNormalNodeNames(Set<String> prevNormalNodeNames) {
         this.prevNormalNodeNames = prevNormalNodeNames;
-    }
-
-    public boolean isNextToEnd() {
-        return nextToEnd;
-    }
-
-    public void setNextToEnd(boolean nextToEnd) {
-        this.nextToEnd = nextToEnd;
-    }
-
-    public boolean isEventuallyToEnd() {
-        return eventuallyToEnd;
-    }
-
-    public void setEventuallyToEnd(boolean eventuallyToEnd) {
-        this.eventuallyToEnd = eventuallyToEnd;
-    }
-
-    public boolean isNextToEmpty() {
-        return nextToEmpty;
-    }
-
-    public void setNextToEmpty(boolean nextToEmpty) {
-        this.nextToEmpty = nextToEmpty;
-    }
-
-    public boolean isEventuallyToEmpty() {
-        return eventuallyToEmpty;
-    }
-
-    public void setEventuallyToEmpty(boolean eventuallyToEmpty) {
-        this.eventuallyToEmpty = eventuallyToEmpty;
-    }
-
-    public boolean isNextToAssigned() {
-        return nextToAssigned;
-    }
-
-    public void setNextToAssigned(boolean nextToAssigned) {
-        this.nextToAssigned = nextToAssigned;
-    }
-
-    public boolean isEventuallyToAssigned() {
-        return eventuallyToAssigned;
-    }
-
-    public void setEventuallyToAssigned(boolean eventuallyToAssigned) {
-        this.eventuallyToAssigned = eventuallyToAssigned;
     }
 }

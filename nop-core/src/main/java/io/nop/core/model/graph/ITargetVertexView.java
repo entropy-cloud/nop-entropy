@@ -28,7 +28,7 @@ public interface ITargetVertexView<V> extends ITargetVertexVisitor<V> {
 
     default Set<V> reachableVertexes(V vertex) {
         Set<V> set = new LinkedHashSet<>();
-        BreadthFirstIterator.reachable(set, this, vertex);
+        GraphBreadthFirstIterator.reachable(set, this, vertex);
         return set;
     }
 
@@ -37,11 +37,11 @@ public interface ITargetVertexView<V> extends ITargetVertexVisitor<V> {
     }
 
     default Iterator<V> depthFirstIterator(V start) {
-        return new DepthFirstIterator<>(this, start);
+        return new GraphDepthFirstIterator<>(this, start);
     }
 
     default Iterator<V> breadthFirstIterator(V start) {
-        return new BreadthFirstIterator<>(this, start);
+        return new GraphBreadthFirstIterator<>(this, start);
     }
 
 }

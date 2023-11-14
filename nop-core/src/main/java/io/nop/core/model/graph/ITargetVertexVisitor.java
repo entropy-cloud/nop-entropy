@@ -7,19 +7,19 @@
  */
 package io.nop.core.model.graph;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.function.Consumer;
 
 public interface ITargetVertexVisitor<V> {
 
-    List<V> getTargetVertexes(V vertex);
+    Collection<V> getTargetVertexes(V vertex);
 
     default boolean hasOutwardEdge(V vertex) {
         return !getTargetVertexes(vertex).isEmpty();
     }
 
     default void forEachTarget(V source, Consumer<? super V> action) {
-        List<V> list = getTargetVertexes(source);
+        Collection<V> list = getTargetVertexes(source);
         if (list != null) {
             for (V target : list) {
                 action.accept(target);

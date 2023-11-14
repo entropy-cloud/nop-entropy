@@ -16,28 +16,33 @@
  */
 package io.nop.core.model.graph;
 
+import io.nop.commons.util.CollectionHelper;
+
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 /**
- * Iterates over the vertices in a directed graph in breadth-first order.
+ * Iterates over the vertices in a directed graph in depth-first order.
  *
  * @param <V> Vertex type
+ * @param <E> Edge type
  */
-public class BreadthFirstIterator<V> implements Iterator<V> {
+public class GraphDepthFirstIterator<V, E extends IEdge<V>> implements Iterator<V> {
+
     private final ITargetVertexVisitor<V> graph;
     private final Deque<V> deque = new ArrayDeque<>();
     private final Set<V> set = new HashSet<>();
 
-    public BreadthFirstIterator(ITargetVertexVisitor<V> graph, V root) {
+    public GraphDepthFirstIterator(ITargetVertexVisitor<V> graph, V start) {
         this.graph = graph;
-        this.deque.add(root);
+        this.deque.add(start);
     }
 
-    // tell cpd to start ignoring code - CPD-OFF
     /**
      * Populates a set with the nodes reachable from a given node.
      */
@@ -54,16 +59,17 @@ public class BreadthFirstIterator<V> implements Iterator<V> {
         return !deque.isEmpty();
     }
 
-    // resume CPD analysis - CPD-ON
-
     private static <V> V next(Deque<V> deque, ITargetVertexVisitor<V> graph, Set<V> set) {
         V v = deque.removeFirst();
-
-        graph.forEachTarget(v, target -> {
-            if (set.add(target)) {
-                deque.addLast(target);
+        Collection<V> targets = graph.getTargetVertexes(v);
+        if (targets != null) {
+            List<V> list = CollectionHelper.toList(targets);
+            for (int i = list.size() - 1; i >= 0; i--) {
+                V target = list.get(i);
+                if (set.add(target))
+                    deque.addFirst(target);
             }
-        });
+        }
         return v;
     }
 
