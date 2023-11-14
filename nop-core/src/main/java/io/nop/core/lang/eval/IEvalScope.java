@@ -74,6 +74,8 @@ public interface IEvalScope extends IVariableScope, IEvalContext {
         return newChildScope(true, true, false);
     }
 
+    IEvalScope newChildScope(Map<String,Object> childVars);
+
     Set<String> keySet();
 
     int size();

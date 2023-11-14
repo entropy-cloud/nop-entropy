@@ -8,13 +8,18 @@
 package io.nop.xlang.filter;
 
 import io.nop.api.core.beans.ITreeBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.query.BeanVariableScope;
 import io.nop.core.model.query.FilterBeanEvaluator;
-import io.nop.xlang.api.AbstractEvalAction;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xpl.IXplTag;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class BizFilterEvaluator extends FilterBeanEvaluator {
     private final String libPath;
@@ -46,8 +51,14 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
         if (!StringHelper.startsWithNamespace(tagName, BizFilterConstants.XLIB_NS_BIZ))
             return super.visitUnknown(op, filter, scope);
 
+        String libTag = tagName.substring(BizFilterConstants.XLIB_NS_BIZ.length() + 1);
+        // prepareArgs的过程中可能会修改attrs集合，所以需要复制一份
+        Map<String, Object> args = filter.getAttrs() == null ? new HashMap<>() : new HashMap<>(filter.getAttrs());
         // biz标签库中的标签
-        AbstractEvalAction tag = XLang.getTagAction(libPath, tagName.substring(BizFilterConstants.XLIB_NS_BIZ.length()));
-        return tag.passConditions(context);
+        IEvalScope evalScope = context.getEvalScope();
+        IXplTag tag = XLang.getTag(libPath, libTag);
+        args = tag.prepareArgs(evalScope, args);
+        Object ret = tag.invokeWithNamedArgs(evalScope, args);
+        return ConvertHelper.toTruthy(ret);
     }
 }

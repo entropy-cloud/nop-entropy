@@ -218,6 +218,14 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.labelMap = null;
     }
 
+    public boolean containsValue(Object value) {
+        return getOptionByValue(value) != null;
+    }
+
+    public boolean containsLabel(String label) {
+        return getOptionByLabel(label) != null;
+    }
+
     public DictOptionBean getOptionByValue(Object value) {
         if (valueMap == null)
             this.valueMap = makeValueMap();

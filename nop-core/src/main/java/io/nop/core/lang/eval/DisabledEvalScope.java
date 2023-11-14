@@ -79,6 +79,11 @@ public final class DisabledEvalScope implements IEvalScope {
     }
 
     @Override
+    public IEvalScope newChildScope(Map<String, Object> childVars) {
+        throw new NopEvalException(ERR_EVAL_DISABLED_EVAL_SCOPE);
+    }
+
+    @Override
     public Set<String> keySet() {
         return Collections.emptySet();
     }

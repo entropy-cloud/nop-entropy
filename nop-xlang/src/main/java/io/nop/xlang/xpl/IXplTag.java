@@ -15,9 +15,11 @@ import io.nop.core.reflect.IFunctionModel;
 import io.nop.core.reflect.hook.IExtensibleObject;
 import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.utils.ExprEvalHelper;
+import io.nop.xlang.xpl.utils.XplTagHelper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public interface IXplTag extends IExtensibleObject, ISourceLocationGetter, IKeyedElement {
     default String key() {
@@ -42,6 +44,10 @@ public interface IXplTag extends IExtensibleObject, ISourceLocationGetter, IKeye
 
     List<? extends IXplTagAttribute> getAttrs();
 
+    default List<String> getAttrNames() {
+        return getAttrs().stream().map(IXplTagAttribute::getName).collect(Collectors.toList());
+    }
+
     IXplTagAttribute getAttr(String attrName);
 
     List<? extends IXplTagSlot> getSlots();
@@ -65,6 +71,11 @@ public interface IXplTag extends IExtensibleObject, ISourceLocationGetter, IKeye
     String getTagFuncName();
 
     IFunctionModel getFunctionModel();
+
+    @EvalMethod
+    default Map<String, Object> prepareArgs(IEvalScope scope, Map<String, Object> args) {
+        return XplTagHelper.prepareTagArgs(this, args, scope);
+    }
 
     @EvalMethod
     default Object invokeWithNamedArgs(IEvalScope scope, Map<String, Object> args) {

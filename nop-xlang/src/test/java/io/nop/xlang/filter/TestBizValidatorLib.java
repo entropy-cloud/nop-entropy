@@ -8,6 +8,7 @@
 package io.nop.xlang.filter;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.exceptions.NopValidateException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBizValidatorLib extends BaseTestCase {
     @BeforeAll
@@ -31,6 +33,33 @@ public class TestBizValidatorLib extends BaseTestCase {
     @AfterAll
     public static void destroy() {
         CoreInitialization.destroy();
+    }
+
+    @Test
+    public void testInDict() {
+
+        IResource xplFile = attachmentResource("test-dict.xpl");
+        IEvalAction xpl = XLang.parseXpl(xplFile, XLangOutputMode.none);
+        IServiceContext ctx = new ServiceContextImpl();
+
+        ProcessCard entity = new ProcessCard();
+        ProductionOrder order = new ProductionOrder();
+        order.setOrderId("1");
+        entity.setProductionOrder(order);
+        entity.setStatus(3);
+
+        ctx.getEvalScope().setLocalValue("entity", entity);
+
+        try {
+            xpl.invoke(ctx);
+            assertTrue(false);
+        } catch (NopValidateException e) {
+            assertEquals("test.invalid-status", e.getErrors().get(0).getErrorCode());
+        }
+
+        entity.setStatus(1);
+
+        xpl.invoke(ctx);
     }
 
     @Test
@@ -54,6 +83,7 @@ public class TestBizValidatorLib extends BaseTestCase {
 
         try {
             xpl.invoke(ctx);
+            assertTrue(false);
         } catch (NopException e) {
             assertEquals("test.inconsistent-material", e.getErrorCode());
         }
@@ -66,6 +96,16 @@ public class TestBizValidatorLib extends BaseTestCase {
         private ProductionOrder productionOrder;
 
         private String materialId;
+
+        private int status;
+
+        public int getStatus() {
+            return status;
+        }
+
+        public void setStatus(int status) {
+            this.status = status;
+        }
 
         public int getFlowMode() {
             return flowMode;

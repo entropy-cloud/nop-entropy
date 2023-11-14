@@ -196,6 +196,12 @@ public class GlobalFunctions {
         return scope.getValue(name);
     }
 
+    @Description("返回当前scope环境中的变量")
+    @EvalMethod
+    public static Object getByPropPath(IEvalScope scope, @Name("propPath") String propPath) {
+        return scope.getValueByPropPath(propPath);
+    }
+
     @Description("按照outputMode=node来执行xpl函数，并返回XNode对象")
     @EvalMethod
     public static XNode eval_node(IEvalScope scope, @Name("func") IEvalFunction func) {

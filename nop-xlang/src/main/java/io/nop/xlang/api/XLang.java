@@ -82,6 +82,14 @@ public class XLang {
         return new FunctionEvalAction(func);
     }
 
+    public static IXplTag getTag(String libPath, String tagName) {
+        IXplTagLib lib = (IXplTagLib) ResourceComponentManager.instance().loadComponentModel(libPath);
+        IXplTag tag = lib.getTag(tagName);
+        if (tag == null)
+            throw new NopException(ERR_XLIB_UNKNOWN_TAG).param(ARG_LIB_PATH, libPath).param(ARG_TAG_NAME, tagName);
+        return tag;
+    }
+
     public static Object genJsonExtends(SourceLocation loc, String source, Map<String, Object> json) {
         XLangCompileTool tool = newCompileTool();
         tool.getScope().registerScopeVarDefinition(

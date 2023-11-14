@@ -95,6 +95,17 @@ Demo.xbiz文件中的testValidator2函数演示了另外一种执行Validator验
     </check>
 ````
 
+## 扩展验证规则
+
+在/nop/core/xlib/biz!check.xlib标签库中可以定义扩展标签。然后在check段中就可以使用。
+
+````xml
+    <check id="checkStatus" errorCode="test.invalid-status" errorDescription="错误的状态码">
+        <biz:InDict name="entity.status" dictName="core/active-status" />
+    </check>
+
+````
+
 ## 模型注册
 
 通过[register-model.xml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/resources/_vfs/nop/core/registry/validator.register-model.xml)

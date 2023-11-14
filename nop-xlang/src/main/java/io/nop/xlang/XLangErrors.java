@@ -301,7 +301,7 @@ public interface XLangErrors {
             ARG_OUTPUT_MODE);
 
     ErrorCode ERR_XPL_UNKNOWN_TAG_ATTR = define("nop.err.xlang.xpl.unknown-tag-attr",
-            "未知的标签属性:{attrName},允许的属性为{allowedNames}", ARG_ATTR_NAME, ARG_ALLOWED_NAMES);
+            "标签[{tagName}]不支持属性:{attrName},允许的属性为{allowedNames}", ARG_ATTR_NAME, ARG_ALLOWED_NAMES);
 
     ErrorCode ERR_XPL_UNKNOWN_TAG_SLOT = define("nop.err.xlang.xpl.unknown-tag-slot",
             "未知的子节点:{slotName},允许的节点名为{allowedNames}", ARG_SLOT_NAME, ARG_ALLOWED_NAMES);
@@ -311,6 +311,9 @@ public interface XLangErrors {
 
     ErrorCode ERR_XPL_UNKNOWN_LIB_TAG = define("nop.err.xlang.xpl.unknown-lib-tag", "标签库[{libPath}]中没有定义标签[{tagName}]",
             ARG_LIB_PATH, ARG_TAG_NAME);
+
+    ErrorCode ERR_XPL_TAG_NO_IMPLICIT_ATTR = define("nop.err.xlang.xpl.tag-no-implicit-attr",
+            "标签[{tagName}]的隐式属性[{attrName}]为空，上下文中没有设置同名的变量", ARG_ATTR_NAME, ARG_TAG_NAME);
 
     ErrorCode ERR_XPL_MULTIPLE_SLOT_WITH_SAME_NAME = define("nop.err.xlang.xpl.multiple-slot-with-same-name",
             "多个子节点名称重复:{tagName}", ARG_TAG_NAME, ARG_NODE);

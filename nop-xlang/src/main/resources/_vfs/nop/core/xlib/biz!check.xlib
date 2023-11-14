@@ -1,9 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <lib x:schema="/nop/schema/xlib.xdef"
-     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:thisLib="thisLib" xmlns:graphql="graphql">
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
 
     <tags>
+        <InDict>
+            <attr name="name" type="String" mandatory="true"/>
+            <attr name="dictName" type="String" mandatory="true"/>
+            <attr name="svcCtx" implicit="true"/>
+            <example>
+                <biz:InDict name="status" dictName="core/active-status"/>
+            </example>
 
+            <source>
+                <c:script>
+                    import io.nop.core.dict.DictProvider;
+
+                    const dict = DictProvider.instance().getDict($context.locale, dictName,svcCtx.cache, svcCtx);
+                    // getByPropPath(name) 表示从当前scope读取名称为name的变量，等价于调用IEvalScope.getValueByPropPath
+                    return dict.containsValue(getByPropPath(name));
+                </c:script>
+            </source>
+        </InDict>
     </tags>
 </lib>

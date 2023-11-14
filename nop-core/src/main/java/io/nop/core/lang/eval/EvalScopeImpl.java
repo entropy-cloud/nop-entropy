@@ -118,6 +118,13 @@ public class EvalScopeImpl implements IEvalScope {
     }
 
     @Override
+    public IEvalScope newChildScope(Map<String, Object> childVars) {
+        EvalScopeImpl scope = new EvalScopeImpl(this, childVars,
+                true, true);
+        return scope;
+    }
+
+    @Override
     public IEvalScope duplicate() {
         EvalScopeImpl scope = new EvalScopeImpl(parentScope, variables, inheritParentVars, false);
         scope.setOut(output);
