@@ -367,6 +367,10 @@
                             </valueExpr>
                         </field>
 
+                        <field name="ignoreDepends" displayName="忽略依赖">
+                            <schema stdDomain="boolFlag"/>
+                        </field>
+
                         <field name="ext:control" displayName="控件">
                             <schema stdDomain="string"/>
                         </field>
