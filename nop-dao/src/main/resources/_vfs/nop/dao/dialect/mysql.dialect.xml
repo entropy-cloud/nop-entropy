@@ -163,6 +163,7 @@
         <sqlDataType name="REAL" stdSqlType="REAL" alias="FLOAT"/>
         <sqlDataType name="DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="DECIMAL" stdSqlType="DECIMAL"/>
+        <sqlDataType name="DECIMAL UNSIGNED" stdSqlType="DECIMAL" deprecated="true"/>
         <sqlDataType name="BLOB" precision="255" allowPrecision="false" stdSqlType="VARBINARY"/>
         <sqlDataType name="VARBINARY" precision="16383" stdSqlType="VARBINARY" allowExceedPrecision="true"/>
         <sqlDataType name="MEDIUMBLOB" precision="16777215" stdSqlType="VARBINARY" allowPrecision="false"/>
