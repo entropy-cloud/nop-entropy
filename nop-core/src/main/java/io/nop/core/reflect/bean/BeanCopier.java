@@ -12,11 +12,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.CloneHelper;
-import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.IDeepCloneable;
-import io.nop.api.core.util.IFreezable;
-import io.nop.api.core.util.SourceLocation;
+import io.nop.api.core.util.*;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
@@ -25,29 +21,14 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
 import java.lang.reflect.Array;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
-import static io.nop.core.CoreErrors.ARG_PROP_NAME;
-import static io.nop.core.CoreErrors.ARG_SRC_LENGTH;
-import static io.nop.core.CoreErrors.ARG_SRC_TYPE;
-import static io.nop.core.CoreErrors.ARG_TARGET_LENGTH;
-import static io.nop.core.CoreErrors.ARG_TARGET_TYPE;
-import static io.nop.core.CoreErrors.ARG_TYPE_VALUE;
-import static io.nop.core.CoreErrors.ERR_REFLECT_BEAN_NO_CLASS_FOR_TYPE;
-import static io.nop.core.CoreErrors.ERR_REFLECT_CAST_VALUE_TO_TARGET_TYPE_FAIL;
-import static io.nop.core.CoreErrors.ERR_REFLECT_COPY_BEAN_ARRAY_LENGTH_NOT_MATCH;
-import static io.nop.core.CoreErrors.ERR_REFLECT_NOT_COLLECTION_TYPE;
-import static io.nop.core.CoreErrors.ERR_REFLECT_UNKNOWN_BEAN_PROP;
+import static io.nop.core.CoreErrors.*;
 
 public class BeanCopier implements IBeanCopier {
     private static final Logger LOG = LoggerFactory.getLogger(BeanCopier.class);
@@ -507,6 +488,11 @@ public class BeanCopier implements IBeanCopier {
                 beanModel.buildProperty(bean, propName, value);
             } else {
                 if (beanModel.isAllowSetExtProperty()) {
+                    if (options.isIgnoreUnknownProp()) {
+                        // 判断是否允许扩展属性
+                        if (!beanModel.isAllowExtProperty(bean, propName))
+                            return;
+                    }
                     beanModel.setExtProperty(bean, propName, value, options.getEvalScope());
                 } else {
                     if (!options.isIgnoreUnknownProp()) {

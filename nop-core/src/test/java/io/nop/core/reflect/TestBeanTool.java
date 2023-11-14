@@ -12,12 +12,17 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
 import io.nop.core.lang.json.JObject;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
+import io.nop.core.reflect.bean.BeanCopier;
+import io.nop.core.reflect.bean.BeanCopyOptions;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.reflect.hook.IPropGetMissingHook;
+import io.nop.core.reflect.hook.IPropSetMissingHook;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
 
@@ -112,5 +117,97 @@ public class TestBeanTool extends BaseTestCase {
         DictBean bean = BeanTool.buildBean(obj, DictBean.class);
         assertEquals(1, bean.getOptions().size());
         assertTrue(bean.getOptions().get(0) instanceof DictOptionBean);
+    }
+
+    public static class MyObjectA{
+        String fieldA;
+
+        public void setFieldA(String fieldA) {
+            this.fieldA = fieldA;
+        }
+
+        public String getFieldA(){
+            return fieldA;
+        }
+    }
+
+    public static class MyObjectExt implements IPropGetMissingHook, IPropSetMissingHook {
+        String fieldA;
+
+        public void setFieldA(String fieldA) {
+            this.fieldA = fieldA;
+        }
+
+        public String getFieldA(){
+            return fieldA;
+        }
+
+        @Override
+        public boolean prop_allow(String propName) {
+            return false;
+        }
+
+        @Override
+        public Object prop_get(String propName) {
+            throw new IllegalArgumentException("invalid");
+        }
+
+        @Override
+        public boolean prop_has(String propName) {
+            return false;
+        }
+
+        @Override
+        public void prop_set(String propName, Object value) {
+            throw new IllegalArgumentException("invalid");
+        }
+    }
+
+    public static class MyObjectB {
+        String fieldA;
+        int fieldB;
+
+        public String getFieldA() {
+            return fieldA;
+        }
+
+        public void setFieldA(String fieldA) {
+            this.fieldA = fieldA;
+        }
+
+        public int getFieldB() {
+            return fieldB;
+        }
+
+        public void setFieldB(int fieldB) {
+            this.fieldB = fieldB;
+        }
+    }
+    @Test
+    public void testCopyIgnoreUnknown(){
+        MyObjectB b = new MyObjectB();
+        b.setFieldA("s");
+        b.setFieldB(3);
+
+        MyObjectA a = new MyObjectA();
+        BeanCopyOptions options = new BeanCopyOptions();
+        options.setIgnoreUnknownProp(true);
+        BeanTool.instance().copyBean(b,a,BeanTool.getGenericType(MyObjectA.class),false,options);
+
+        assertEquals("s", a.getFieldA());
+    }
+
+    @Test
+    public void testCopyIgnoreUnknownForExtField(){
+        MyObjectB b = new MyObjectB();
+        b.setFieldA("s");
+        b.setFieldB(3);
+
+        MyObjectExt a = new MyObjectExt();
+        BeanCopyOptions options = new BeanCopyOptions();
+        options.setIgnoreUnknownProp(true);
+        BeanTool.instance().copyBean(b,a,BeanTool.getGenericType(MyObjectExt.class),false,options);
+
+        assertEquals("s", a.getFieldA());
     }
 }
