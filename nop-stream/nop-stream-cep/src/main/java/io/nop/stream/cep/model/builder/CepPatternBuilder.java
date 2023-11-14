@@ -12,12 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
-import io.nop.stream.cep.model.CepPatternGroupModel;
-import io.nop.stream.cep.model.CepPatternModel;
-import io.nop.stream.cep.model.CepPatternPartModel;
-import io.nop.stream.cep.model.CepPatternSingleModel;
-import io.nop.stream.cep.model.FollowKind;
-import io.nop.stream.cep.model.ICepPatternGroupModel;
+import io.nop.stream.cep.model.*;
 import io.nop.stream.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import io.nop.stream.cep.pattern.Pattern;
 import io.nop.stream.cep.pattern.WithinType;
@@ -26,11 +21,7 @@ import io.nop.stream.cep.pattern.conditions.IterativeCondition;
 import java.util.HashSet;
 import java.util.Set;
 
-import static io.nop.stream.cep.NopCepErrors.ARG_FOLLOW_KIND;
-import static io.nop.stream.cep.NopCepErrors.ARG_NEXT;
-import static io.nop.stream.cep.NopCepErrors.ARG_PART_NAME;
-import static io.nop.stream.cep.NopCepErrors.ERR_CEP_NOT_CONDITION_DOES_NOT_SUPPORT_GROUP;
-import static io.nop.stream.cep.NopCepErrors.ERR_CEP_PATTERN_PART_NOT_ALLOW_LOOP;
+import static io.nop.stream.cep.NopCepErrors.*;
 
 public class CepPatternBuilder {
 
@@ -152,7 +143,7 @@ public class CepPatternBuilder {
     private Pattern addQualifier(Pattern pattern, CepPatternPartModel partModel) {
         if (partModel.getSubType() != null) {
             try {
-                pattern.subtype(ClassHelper.forName(partModel.getSubType()));
+                pattern.subtype(ClassHelper.safeLoadClass(partModel.getSubType()));
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }

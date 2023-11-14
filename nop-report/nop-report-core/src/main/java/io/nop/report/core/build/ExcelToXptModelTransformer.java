@@ -10,6 +10,7 @@ package io.nop.report.core.build;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -17,12 +18,7 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.excel.imp.ImportModelHelper;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
-import io.nop.excel.model.ExcelCell;
-import io.nop.excel.model.ExcelImage;
-import io.nop.excel.model.ExcelSheet;
-import io.nop.excel.model.ExcelWorkbook;
-import io.nop.excel.model.XptCellModel;
-import io.nop.excel.model.XptSheetModel;
+import io.nop.excel.model.*;
 import io.nop.excel.util.MultiLineConfigParser;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.util.ExcelReportHelper;
@@ -37,9 +33,7 @@ import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.Map;
 
-import static io.nop.report.core.XptErrors.ARG_PROP_NAME;
-import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_CELL_MODEL_PROP;
-import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP;
+import static io.nop.report.core.XptErrors.*;
 
 /**
  * 将Excel模型转换为Xpt报表模型
@@ -109,6 +103,11 @@ public class ExcelToXptModelTransformer {
 
         Map<String, ValueWithLocation> config =
                 MultiLineConfigParser.INSTANCE.parseConfig(cell.getLocation(), cell.getComment());
+
+        // 如果设置了formatExpr，而不是利用Excel内置的格式化机制来实现格式化，则一般导出时应该保持格式化后的值，而不是导出原始值
+        if (!StringHelper.isEmptyObject(config.get(XptConstants.PROP_FORMULA_EXPR))) {
+            cellModel.setExportFormattedValue(true);
+        }
 
         for (Map.Entry<String, ValueWithLocation> entry : config.entrySet()) {
             String varName = entry.getKey();

@@ -61,7 +61,7 @@
                        displayName="string" stripText="boolean" mandatory="!boolean=false"
                        list="!boolean=false" computed="!boolean=false" virtual="!boolean=false"
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
-                       xpt:formatExpr="string" xpt:exportFormula="boolean"
+                       xpt:formatExpr="string" xpt:exportFormula="boolean"  xpt:exportFormattedValue="boolean"
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                 >
                     <when xdef:value="xpl-predicate"/>

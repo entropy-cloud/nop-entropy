@@ -8,6 +8,7 @@
 package io.nop.report.core.imp;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.api.core.util.SourceLocation;
@@ -25,12 +26,7 @@ import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
-import io.nop.excel.model.ExcelCell;
-import io.nop.excel.model.ExcelSheet;
-import io.nop.excel.model.ExcelTable;
-import io.nop.excel.model.ExcelWorkbook;
-import io.nop.excel.model.XptCellModel;
-import io.nop.excel.model.XptSheetModel;
+import io.nop.excel.model.*;
 import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.build.XptConfigParseHelper;
@@ -340,7 +336,13 @@ public class ExcelTemplateToXptModelTransformer {
 
             String formatExpr = (String) fieldModel.prop_get(XptConstants.EXT_PROP_XPT_FORMAT_EXPR);
             if (!StringHelper.isEmpty(formatExpr)) {
+                cellModel.setExportFormattedValue(true);
                 cellModel.setFormatExpr(buildFormatExpr(fieldModel.getLocation(), formatExpr));
+            }
+
+            Boolean exportFormattedValue = ConvertHelper.toBoolean(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_EXPORT_FORMATTED_VALUE));
+            if (exportFormattedValue != null) {
+                cellModel.setExportFormattedValue(exportFormattedValue);
             }
 
             // 只考虑第一行
