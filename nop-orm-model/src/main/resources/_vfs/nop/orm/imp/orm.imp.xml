@@ -360,6 +360,14 @@
                             <schema stdDomain="string"/>
                         </field>
 
+                        <field name="reverseDepends" displayName="反向依赖">
+                            <schema stdDomain="boolean"/>
+                            <description>
+                                一般情况下to-one应该是子表指向父表。而在一对一关联时，reverseDepends=true表示是从父表指向子表。
+                            </description>
+                        </field>
+
+
                         <field name="type" displayName="关联类型">
                             <schema dict="core/entity-relation-type"/>
                             <valueExpr>
