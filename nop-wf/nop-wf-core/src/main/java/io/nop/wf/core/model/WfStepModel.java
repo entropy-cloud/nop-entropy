@@ -7,13 +7,11 @@
  */
 package io.nop.wf.core.model;
 
-import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.KeyedList;
 import io.nop.wf.core.model._gen._WfStepModel;
 import jakarta.annotation.Nonnull;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -22,37 +20,17 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
     private KeyedList<WfActionModel> actions = KeyedList.emptyList();
 
     private int stepIndex;
-    private boolean finallyToEnd;
     private boolean nextToEnd;
-    private boolean nextToAssigned;
-
+    private boolean eventuallyToEnd;
     private boolean nextToEmpty;
+    private boolean eventuallyToEmpty;
 
-    private boolean finallyToEmpty;
-
+    private boolean nextToAssigned;
+    private boolean eventuallyToAssigned;
     private List<WfStepModel> transitionToSteps;
     private List<WfStepModel> transitionFromSteps;
     private Set<String> transitionToStepNames;
     private Set<String> transitionFromStepNames;
-
-    private Set<String> nextStepNames;
-
-    private Set<String> prevStepNames;
-
-    private Set<String> nextNormalStepNames;
-    private Set<String> prevNormalStepNames;
-    private List<WfStepModel> nextSteps;
-    private List<WfStepModel> prevSteps;
-
-    private List<WfStepModel> prevNormalSteps;
-
-    private List<WfStepModel> nextNormalSteps;
-
-    private Set<String> ancestorStepNames = Collections.emptySet();
-
-    private Set<String> descendantStepNames = Collections.emptySet();
-
-    private WfStepModel controlStep;
 
     public WfStepModel() {
 
@@ -61,6 +39,14 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
     @Override
     public int compareTo(WfStepModel o) {
         return Integer.compare(stepIndex, o.getStepIndex());
+    }
+
+    public int getStepIndex() {
+        return stepIndex;
+    }
+
+    public void setStepIndex(int stepIndex) {
+        this.stepIndex = stepIndex;
     }
 
     /**
@@ -75,6 +61,14 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
     @Override
     public WfStepType getType() {
         return WfStepType.step;
+    }
+
+    public boolean isEventuallyToAssigned() {
+        return eventuallyToAssigned;
+    }
+
+    public void setEventuallyToAssigned(boolean eventuallyToAssigned) {
+        this.eventuallyToAssigned = eventuallyToAssigned;
     }
 
     @Nonnull
@@ -129,34 +123,6 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
         return transitionFromStepNames;
     }
 
-    @Override
-    public List<WfStepModel> getPrevSteps() {
-        return prevSteps;
-    }
-
-    public void setPrevSteps(List<WfStepModel> prevSteps) {
-        this.prevSteps = prevSteps;
-        if (this.prevSteps == this.transitionFromSteps) {
-            this.prevStepNames = this.transitionFromStepNames;
-        } else {
-            this.prevStepNames = getStepNames(prevSteps);
-        }
-    }
-
-    @Override
-    public List<WfStepModel> getNextSteps() {
-        return nextSteps;
-    }
-
-    public void setNextSteps(List<WfStepModel> nextSteps) {
-        this.nextSteps = nextSteps;
-        if (this.nextSteps == this.transitionToSteps) {
-            this.nextStepNames = this.transitionToStepNames;
-        } else {
-            this.nextStepNames = getStepNames(nextSteps);
-        }
-    }
-
     static Set<String> getStepNames(Collection<WfStepModel> list) {
         return list.stream().map(WfStepModel::getName).collect(Collectors.toUnmodifiableSet());
     }
@@ -170,21 +136,21 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
     }
 
     @Override
-    public boolean isFinallyToEmpty() {
-        return finallyToEmpty;
+    public boolean isEventuallyToEmpty() {
+        return eventuallyToEmpty;
     }
 
-    public void setFinallyToEmpty(boolean finallyToEmpty) {
-        this.finallyToEmpty = finallyToEmpty;
+    public void setEventuallyToEmpty(boolean eventuallyToEmpty) {
+        this.eventuallyToEmpty = eventuallyToEmpty;
     }
 
     @Override
-    public boolean isFinallyToEnd() {
-        return finallyToEnd;
+    public boolean isEventuallyToEnd() {
+        return eventuallyToEnd;
     }
 
-    public void setFinallyToEnd(boolean finallyToEnd) {
-        this.finallyToEnd = finallyToEnd;
+    public void setEventuallyToEnd(boolean eventuallyToEnd) {
+        this.eventuallyToEnd = eventuallyToEnd;
     }
 
     /**
@@ -206,120 +172,6 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
 
     public void setNextToAssigned(boolean nextToAssigned) {
         this.nextToAssigned = nextToAssigned;
-    }
-
-    @Override
-    public List<WfStepModel> getPrevNormalSteps() {
-        return prevNormalSteps;
-    }
-
-    public void setPrevNormalSteps(List<WfStepModel> prevNormalSteps) {
-        this.prevNormalSteps = prevNormalSteps;
-        if (this.prevNormalSteps == this.prevSteps) {
-            this.prevNormalStepNames = this.prevStepNames;
-        } else {
-            this.prevNormalStepNames = getStepNames(prevNormalSteps);
-        }
-    }
-
-    @Override
-    public List<WfStepModel> getNextNormalSteps() {
-        return nextNormalSteps;
-    }
-
-    public void setNextNormalSteps(List<WfStepModel> nextNormalSteps) {
-        this.nextNormalSteps = nextNormalSteps;
-        if (this.nextNormalSteps == this.nextSteps) {
-            this.nextNormalStepNames = this.nextStepNames;
-        } else {
-            this.nextNormalStepNames = getStepNames(nextNormalSteps);
-        }
-    }
-
-    @Override
-    public WfStepModel getControlStep() {
-        return controlStep;
-    }
-
-    public void setControlStep(WfStepModel controlStep) {
-        this.controlStep = controlStep;
-    }
-
-    @Override
-    public boolean hasPrevStep(String stepName) {
-        return getPrevStepNames().contains(stepName);
-    }
-
-    @Override
-    public boolean hasNextStep(String stepName) {
-        return getNextStepNames().contains(stepName);
-    }
-
-    @Override
-    public boolean hasPrevNormalStep(String stepName) {
-        return getPrevNormalStepNames().contains(stepName);
-    }
-
-    @Override
-    public boolean hasNextNormalStep(String stepName) {
-        return getNextNormalStepNames().contains(stepName);
-    }
-
-    @Override
-    public boolean hasAncestorStep(String stepName) {
-        return getAncestorStepNames().contains(stepName);
-    }
-
-    @Override
-    public boolean hasDescendantStep(String stepName) {
-        return getDescendantStepNames().contains(stepName);
-    }
-
-    @Override
-    public Set<String> getAncestorStepNames() {
-        return ancestorStepNames;
-    }
-
-    public void setAncestorStepNames(Set<String> ancestorStepNames) {
-        this.ancestorStepNames = Guard.notEmpty(ancestorStepNames, "ancestorStepNames");
-    }
-
-    @Override
-    public Set<String> getDescendantStepNames() {
-        return descendantStepNames;
-    }
-
-    public void setDescendantStepNames(Set<String> descendantStepNames) {
-        this.descendantStepNames = Guard.notEmpty(descendantStepNames, "descendantStepNames");
-    }
-
-    @Override
-    public Set<String> getPrevStepNames() {
-        return prevStepNames;
-    }
-
-    @Override
-    public Set<String> getNextStepNames() {
-        return nextStepNames;
-    }
-
-    @Override
-    public Set<String> getPrevNormalStepNames() {
-        return prevNormalStepNames;
-    }
-
-    @Override
-    public Set<String> getNextNormalStepNames() {
-        return nextNormalStepNames;
-    }
-
-    @Override
-    public int getStepIndex() {
-        return stepIndex;
-    }
-
-    public void setStepIndex(int stepIndex) {
-        this.stepIndex = stepIndex;
     }
 
     /**

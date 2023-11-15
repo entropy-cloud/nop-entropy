@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public interface IDirectedGraphView<V, E extends IEdge<V>> extends IForwardGraphView<V, E>, IBackwardGraphView<V, E> {
+public interface IDirectedGraphView<V, E extends IEdge<V>> extends IForwardGraphView<V, E>,
+        IBackwardGraphView<V, E>, IGraphViewBase<V, E> {
 
     IDirectedGraphView<V, E> cloneInstance();
 

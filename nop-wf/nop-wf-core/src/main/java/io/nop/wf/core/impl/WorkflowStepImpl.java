@@ -9,6 +9,7 @@ package io.nop.wf.core.impl;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.model.graph.dag.DagNode;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
@@ -179,15 +180,19 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     @Override
     public List<? extends IWorkflowStepImplementor> getPrevNormalStepsInTree() {
         Collection<? extends IWorkflowStepRecord> records = wf.getStore().getPrevStepRecordsByName(record,
-                model.getPrevNormalStepNames());
+                getDagNode().getPrevNormalNodeNames());
         return wf.getStepsByRecords(records);
+    }
+
+    private DagNode getDagNode() {
+        return wf.getModel().getDag().getNode(model.getName());
     }
 
     @Nonnull
     @Override
     public List<? extends IWorkflowStep> getNextNormalStepsInTree() {
         Collection<? extends IWorkflowStepRecord> records = wf.getStore().getNextStepRecordsByName(record,
-                model.getNextNormalStepNames());
+                getDagNode().getNextNormalNodeNames());
         return wf.getStepsByRecords(records);
     }
 
@@ -195,7 +200,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     @Override
     public List<? extends IWorkflowStep> getPrevStepsInTree() {
         Collection<? extends IWorkflowStepRecord> records = wf.getStore().getPrevStepRecordsByName(record,
-                model.getPrevStepNames());
+                getDagNode().getPrevNodeNames());
         return wf.getStepsByRecords(records);
     }
 
@@ -203,7 +208,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     @Override
     public List<? extends IWorkflowStep> getNextStepsInTree() {
         Collection<? extends IWorkflowStepRecord> records = wf.getStore().getNextStepRecordsByName(record,
-                model.getNextStepNames());
+                getDagNode().getNextNodeNames());
         return wf.getStepsByRecords(records);
     }
 

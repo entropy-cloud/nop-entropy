@@ -3,15 +3,14 @@ package io.nop.core.model.graph.dag;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.commons.util.objects.Pair;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -27,7 +26,7 @@ public class DagAnalyzer {
     private final AnalyzeData[] data;
 
     // 删除哪些next连接才能得到一个无循环的DAG结构。
-    private List<Pair<String, String>> removedEdges = new ArrayList<>();
+    private List<List<String>> removedEdges = new ArrayList<>();
 
     static class AnalyzeData {
         DagNode node;
@@ -45,7 +44,7 @@ public class DagAnalyzer {
         this.data = new AnalyzeData[dag.size()];
     }
 
-    public List<Pair<String, String>> getRemovedEdges() {
+    public List<List<String>> getRemovedEdges() {
         return removedEdges;
     }
 
@@ -53,8 +52,9 @@ public class DagAnalyzer {
         checkStartReachable();
         checkLoop();
         initDagNodes();
+        initNodeDepth();
         initControlNode();
-        dag.setRemovedEdges(removedEdges);
+        dag.setLoopEdges(removedEdges);
     }
 
     private void checkStartReachable() {
@@ -86,14 +86,16 @@ public class DagAnalyzer {
                 String to = aData.node.getName();
                 aData.prevIndexes.forEach(prevIndex -> {
                     String from = data[prevIndex].node.getName();
-                    removedEdges.add(Pair.of(from, to));
+                    removedEdges.add(Arrays.asList(from, to));
                 });
             }
 
             clearNext(aData);
 
             for (int j = i + 1; j < n; j++) {
-                clearNext(data[j]);
+                if (data[j].prevIndexes.isEmpty()) {
+                    clearNext(data[j]);
+                }
             }
         }
     }
@@ -112,7 +114,7 @@ public class DagAnalyzer {
     public List<String> getUnreachableNodes() {
         List<String> ret = new ArrayList<>();
         dag.forEachNode(node -> {
-            if (node.getNodeIndex() <= 0)
+            if (node.getNodeIndex() < 0)
                 ret.add(node.getName());
         });
         return ret;
@@ -120,9 +122,9 @@ public class DagAnalyzer {
 
     private void initDagNodes() {
         // 从next集合中删除导致循环的边
-        for (Pair<String, String> edge : removedEdges) {
-            String from = edge.getFirst();
-            String to = edge.getSecond();
+        for (List<String> edge : removedEdges) {
+            String from = edge.get(0);
+            String to = edge.get(1);
 
             dag.getNode(from).removeNextNode(to);
         }
@@ -147,6 +149,26 @@ public class DagAnalyzer {
                 node.setPrevNormalNodeNames(collectNormal(node, DagNode::getPrevNodeNames));
             }
         });
+    }
+
+    private void initNodeDepth() {
+        DagNode rootNode = dag.getRootNode();
+        _initNodeDepth(rootNode, 0);
+    }
+
+    private void _initNodeDepth(DagNode node, int depth) {
+        // 如果depth有值，则表示经过其他途径已经遍历过了，不再需要继续遍历
+        if (node.getDepth() >= 0)
+            return;
+        node.setDepth(depth);
+
+        List<DagNode> nextList = dag.getNextNodes(node);
+        if (nextList != null) {
+            depth++;
+            for (DagNode next : nextList) {
+                _initNodeDepth(next, depth);
+            }
+        }
     }
 
     private Set<String> collectNormal(DagNode node, Function<DagNode, Set<String>> nextFetcher) {
@@ -181,45 +203,41 @@ public class DagAnalyzer {
     }
 
     private void initControlNode() {
-        Map<String, Set<String>> controlMap = new HashMap<>();
         dag.forEachNode(node -> {
             if (node.getPrevNodeNames() != null) {
                 if (node.getPrevNodeNames().size() == 1) {
+                    // 如果只存在唯一的父节点，则控制节点就是父节点
                     node.setControlNodeName(CollectionHelper.first(node.getPrevNodeNames()));
                 } else {
-                    controlMap.put(node.getName(), new HashSet<>(node.getPrevNodeNames()));
+                    // 具有多个父节点时查找控制节点
+                    node.setControlNodeName(findControlNode(node));
                 }
             }
         });
-
-        while (!controlMap.isEmpty()) {
-            Iterator<Map.Entry<String, Set<String>>> it = controlMap.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, Set<String>> entry = it.next();
-                String name = entry.getKey();
-                Set<String> prev = entry.getValue();
-                if (prev.size() == 1) {
-                    dag.getNode(name).setControlNodeName(CollectionHelper.first(prev));
-                    it.remove();
-                } else {
-                    Set<String> joints = new HashSet<>();
-                    advance(joints, prev);
-                    if (joints.isEmpty()) {
-                        it.remove();
-                    } else {
-                        entry.setValue(joints);
-                    }
-                }
-            }
-        }
     }
 
-    private void advance(Set<String> joints, Set<String> prevNames) {
-        for (String prevName : prevNames) {
-            DagNode joint = dag.getPrevJoint(dag.getNode(prevName));
-            if (joint != null) {
-                joints.add(joint.getName());
-            }
+    private String findControlNode(DagNode node) {
+        // 将前驱节点按照深度进行排序
+        Queue<DagNode> queue = new PriorityQueue<>((o1, o2) -> {
+            return -Integer.compare(o1.getDepth(), o2.getDepth());
+        });
+        dag.forEachPrevNode(node, prev -> {
+            queue.add(prev);
+        });
+
+        // 更深的节点替换为它的父节点
+        while (queue.size() > 1) {
+            DagNode prev = queue.poll();
+            dag.forEachPrevNode(prev, pprev -> {
+                queue.add(pprev);
+            });
         }
+
+        // 当不同分支不断查找父节点，到达某一深度时合并为同一个节点，这就是控制节点。
+        // 一个节点可以具有多个父节点，但是只会有一个控制节点。起始节点没有控制节点
+        if (queue.size() == 1) {
+            return queue.poll().getName();
+        }
+        return null;
     }
 }

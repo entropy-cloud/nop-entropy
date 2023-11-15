@@ -1,0 +1,18 @@
+digraph  dag {
+  node [color=lightblue2, style=filled];
+  a[label="a"];
+  b[label="b"];
+  c[label="c"];
+  d[label="d"];
+  e[label="e"];
+  f[label="f"];
+  g[label="g"];
+  a -> b;
+  a -> c;
+  b -> d;
+  b -> e;
+  c -> e;
+  c -> g;
+  d -> f;
+  e -> f;
+}

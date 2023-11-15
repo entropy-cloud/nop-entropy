@@ -316,18 +316,21 @@ public class MockWorkflowStore implements IWorkflowStore {
     public IWorkflowStepRecord getNextWaitingStepRecord(IWorkflowStepRecord stepRecord, String joinKey, String stepName, IWfActor actor) {
         String curJoinValue = stepRecord.getJoinValue(joinKey);
 
-        for (WorkflowStepLinkBean link : ((WorkflowStepRecordBean) stepRecord).getNextStepLinks()) {
-            IWorkflowStepRecord next = stepBeans.get(link.getNextStepId());
-            if (next == null)
-                continue;
+        WorkflowStepRecordBean wfStep = (WorkflowStepRecordBean) stepRecord;
+        if (wfStep.getNextStepLinks() != null) {
+            for (WorkflowStepLinkBean link : wfStep.getNextStepLinks()) {
+                IWorkflowStepRecord next = stepBeans.get(link.getNextStepId());
+                if (next == null)
+                    continue;
 
-            if (next.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
-                continue;
+                if (next.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
+                    continue;
 
-            if (next.getStepName().equals(stepName)) {
-                String joinValue = next.getJoinValue(joinKey);
-                if (Objects.equals(curJoinValue, joinValue)) {
-                    return next;
+                if (next.getStepName().equals(stepName)) {
+                    String joinValue = next.getJoinValue(joinKey);
+                    if (Objects.equals(curJoinValue, joinValue)) {
+                        return next;
+                    }
                 }
             }
         }

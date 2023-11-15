@@ -37,6 +37,12 @@ public class ResourceVersionHelper {
         return isNumberVersionString(last);
     }
 
+    public static String getModelName(String str) {
+        int pos = str.lastIndexOf('/');
+        int pos2 = str.lastIndexOf('/', pos - 1);
+        return str.substring(pos2 + 1, pos);
+    }
+
     public static long getNumberVersion(String str) {
         int pos = str.lastIndexOf('/');
         if (pos < 0) {

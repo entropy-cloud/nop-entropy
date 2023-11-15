@@ -190,7 +190,7 @@ public class BeanModelBuilder {
             Object bean = beanModel.newInstance();
             for (IBeanPropertyModel propModel : beanModel.getPropertyModels().values()) {
                 // 如果具有ConfigField注解，则以注解的缺省值为准
-                if (propModel.getGetter() != null && propModel.getDefaultValue() == null) {
+                if (propModel.getSetter() != null && propModel.getGetter() != null && propModel.getDefaultValue() == null) {
                     Object defaultValue = propModel.getGetter()
                             .getProperty(bean, propModel.getName(), DisabledEvalScope.INSTANCE);
                     ((BeanPropertyModel) propModel).setDefaultValue(defaultValue);

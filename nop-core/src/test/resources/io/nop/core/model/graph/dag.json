@@ -1,0 +1,141 @@
+{
+  "nodes": {
+    "a": {
+      "controlNodeName": null,
+      "depth": 0,
+      "internal": false,
+      "name": "a",
+      "nextNodeNames": [
+        "b",
+        "c"
+      ],
+      "nextNormalNodeNames": [
+        "d",
+        "e",
+        "c"
+      ],
+      "nodeIndex": 0
+    },
+    "b": {
+      "controlNodeName": "a",
+      "depth": 1,
+      "internal": true,
+      "name": "b",
+      "nextNodeNames": [
+        "d",
+        "e"
+      ],
+      "nextNormalNodeNames": [
+        "d",
+        "e"
+      ],
+      "nodeIndex": 1,
+      "prevNodeNames": [
+        "a"
+      ],
+      "prevNormalNodeNames": [
+        "a"
+      ]
+    },
+    "c": {
+      "controlNodeName": "a",
+      "depth": 1,
+      "internal": false,
+      "name": "c",
+      "nextNodeNames": [
+        "g",
+        "e"
+      ],
+      "nextNormalNodeNames": [
+        "g",
+        "e"
+      ],
+      "nodeIndex": 2,
+      "prevNodeNames": [
+        "a"
+      ],
+      "prevNormalNodeNames": [
+        "a"
+      ]
+    },
+    "d": {
+      "controlNodeName": "b",
+      "depth": 2,
+      "internal": false,
+      "name": "d",
+      "nextNodeNames": [
+        "f"
+      ],
+      "nextNormalNodeNames": [
+        "f"
+      ],
+      "nodeIndex": 3,
+      "prevNodeNames": [
+        "b"
+      ],
+      "prevNormalNodeNames": [
+        "a"
+      ]
+    },
+    "e": {
+      "controlNodeName": "a",
+      "depth": 2,
+      "internal": false,
+      "name": "e",
+      "nextNodeNames": [
+        "f"
+      ],
+      "nextNormalNodeNames": [
+        "f"
+      ],
+      "nodeIndex": 4,
+      "prevNodeNames": [
+        "b",
+        "c"
+      ],
+      "prevNormalNodeNames": [
+        "a",
+        "c"
+      ]
+    },
+    "f": {
+      "controlNodeName": "a",
+      "depth": 3,
+      "internal": false,
+      "name": "f",
+      "nodeIndex": 6,
+      "prevNodeNames": [
+        "d",
+        "e"
+      ],
+      "prevNormalNodeNames": [
+        "d",
+        "e"
+      ]
+    },
+    "g": {
+      "controlNodeName": "c",
+      "depth": 2,
+      "internal": false,
+      "name": "g",
+      "nodeIndex": 5,
+      "prevNodeNames": [
+        "c"
+      ],
+      "prevNormalNodeNames": [
+        "c"
+      ]
+    }
+  },
+  "removedEdges": [
+    [
+      "f",
+      "b"
+    ],
+    [
+      "g",
+      "c"
+    ]
+  ],
+  "rootNodeName": "a"
+}

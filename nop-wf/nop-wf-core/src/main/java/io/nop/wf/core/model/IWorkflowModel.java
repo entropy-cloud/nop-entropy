@@ -8,9 +8,10 @@
 package io.nop.wf.core.model;
 
 import io.nop.api.core.exceptions.NopException;
-
 import io.nop.api.core.util.IComponentModel;
+import io.nop.core.model.graph.dag.Dag;
 import jakarta.annotation.Nonnull;
+
 import java.util.List;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
@@ -61,6 +62,8 @@ public interface IWorkflowModel extends IComponentModel {
     IWorkflowStartModel getStart();
 
     IWorkflowEndModel getEnd();
+
+    Dag getDag();
 
     String getDiagram();
 

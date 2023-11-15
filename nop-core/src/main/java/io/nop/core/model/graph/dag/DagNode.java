@@ -1,5 +1,6 @@
 package io.nop.core.model.graph.dag;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.LinkedHashSet;
@@ -10,9 +11,14 @@ public class DagNode implements Comparable<DagNode> {
     private String name;
 
     /**
-     * 如果是从根节点可达的节点，则它的nodeIndex会被设置为宽度遍历的序号
+     * 如果是从根节点可达的节点，则它的nodeIndex会被设置为宽度遍历的序号，从0开始
      */
     private int nodeIndex = -1;
+
+    /**
+     * 从根节点向下的深度层次，从0开始。
+     */
+    private int depth = -1;
 
     private boolean internal;
 
@@ -93,6 +99,14 @@ public class DagNode implements Comparable<DagNode> {
         this.nodeIndex = nodeIndex;
     }
 
+    public int getDepth() {
+        return depth;
+    }
+
+    public void setDepth(int depth) {
+        this.depth = depth;
+    }
+
     public boolean isInternal() {
         return internal;
     }
@@ -109,6 +123,7 @@ public class DagNode implements Comparable<DagNode> {
         this.controlNodeName = controlNodeName;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getNextNodeNames() {
         return nextNodeNames;
     }
@@ -117,6 +132,7 @@ public class DagNode implements Comparable<DagNode> {
         this.nextNodeNames = nextNodeNames;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getPrevNodeNames() {
         return prevNodeNames;
     }
@@ -125,6 +141,7 @@ public class DagNode implements Comparable<DagNode> {
         this.prevNodeNames = prevNodeNames;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getNextNormalNodeNames() {
         return nextNormalNodeNames;
     }
@@ -133,6 +150,7 @@ public class DagNode implements Comparable<DagNode> {
         this.nextNormalNodeNames = nextNormalNodeNames;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getPrevNormalNodeNames() {
         return prevNormalNodeNames;
     }

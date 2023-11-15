@@ -1,12 +1,18 @@
 package io.nop.core.model.graph.dag;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.commons.util.objects.Pair;
+import io.nop.core.model.graph.DefaultEdge;
 import io.nop.core.model.graph.GraphBreadthFirstIterator;
 import io.nop.core.model.graph.GraphDepthFirstIterator;
+import io.nop.core.model.graph.GraphvizHelper;
+import io.nop.core.model.graph.IGraphViewBase;
+import io.nop.core.resource.component.AbstractFreezable;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -21,14 +27,14 @@ import static io.nop.core.CoreErrors.ARG_NAME;
 import static io.nop.core.CoreErrors.ERR_GRAPH_UNKNOWN_NODE;
 
 @DataBean
-public class Dag {
+public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, DefaultEdge<DagNode>> {
     private String rootNodeName;
     private Map<String, DagNode> nodes = new HashMap<>();
 
     /**
      * 为了从一般性的图结构抽取得到DAG，需要删除哪些链接
      */
-    private List<Pair<String, String>> removedEdges;
+    private List<List<String>> loopEdges;
 
     public Dag() {
     }
@@ -36,6 +42,10 @@ public class Dag {
     public Dag(String rootName) {
         setRootNodeName(rootName);
         nodes.put(rootName, new DagNode(rootName));
+    }
+
+    public boolean containsLoop() {
+        return !loopEdges.isEmpty();
     }
 
     public Iterator<DagNode> breathFirstIterator(DagNode node) {
@@ -46,12 +56,37 @@ public class Dag {
         return new GraphDepthFirstIterator<>(this::getNextNodes, node);
     }
 
-    public List<Pair<String, String>> getRemovedEdges() {
-        return removedEdges;
+    public List<List<String>> getLoopEdges() {
+        return loopEdges;
     }
 
-    public void setRemovedEdges(List<Pair<String, String>> removedEdges) {
-        this.removedEdges = removedEdges;
+    public void setLoopEdges(List<List<String>> loopEdges) {
+        this.loopEdges = loopEdges;
+    }
+
+    public String toDot() {
+        return GraphvizHelper.toDot(DagNode::getName, this, true, "dag");
+    }
+
+    @Override
+    public Collection<DagNode> vertexSet() {
+        return nodes.values();
+    }
+
+    @Override
+    public List<DefaultEdge<DagNode>> edgeSet() {
+        List<DefaultEdge<DagNode>> list = new ArrayList<>();
+        forEachNode(node -> {
+            forEachNextNode(node, next -> {
+                list.add(new DefaultEdge<>(node, next));
+            });
+        });
+        return list;
+    }
+
+    @Override
+    public List<DagNode> getTargetVertexes(DagNode node) {
+        return getNextNodes(node);
     }
 
     public List<DagNode> getNextNodes(DagNode node) {
@@ -82,10 +117,12 @@ public class Dag {
         });
     }
 
+    @JsonIgnore
     public DagNode getRootNode() {
         return requireNode(rootNodeName);
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return nodes.isEmpty();
     }
@@ -115,6 +152,7 @@ public class Dag {
     }
 
     public DagNode addNextNodes(String nodeName, Set<String> next) {
+        checkAllowChange();
         DagNode node = nodes.computeIfAbsent(nodeName, DagNode::new);
         if (next != null) {
             node.addNextNodes(next);
@@ -123,9 +161,15 @@ public class Dag {
     }
 
     public DagNode addNextNode(String nodeName, String next) {
+        checkAllowChange();
         DagNode node = nodes.computeIfAbsent(nodeName, DagNode::new);
         node.addNextNode(next);
         return node;
+    }
+
+    public DagNode addNode(String nodeName) {
+        checkAllowChange();
+        return nodes.computeIfAbsent(nodeName, DagNode::new);
     }
 
     public Set<String> getDescendantNodeNames(String nodeName) {
@@ -190,6 +234,7 @@ public class Dag {
     }
 
     public void setRootNodeName(String rootNodeName) {
+        checkAllowChange();
         this.rootNodeName = rootNodeName;
     }
 
@@ -198,6 +243,7 @@ public class Dag {
     }
 
     public void setNodes(Map<String, DagNode> nodes) {
+        checkAllowChange();
         this.nodes = nodes;
     }
 }

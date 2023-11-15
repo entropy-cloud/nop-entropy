@@ -43,12 +43,12 @@ public class TestWorkflowEngine extends BaseTestCase {
     MockWorkflowStore store;
 
     @BeforeAll
-    public static void init(){
+    public static void init() {
         CoreInitialization.initialize();
     }
 
     @AfterAll
-    public static void destroy(){
+    public static void destroy() {
         CoreInitialization.destroy();
     }
 
@@ -65,6 +65,9 @@ public class TestWorkflowEngine extends BaseTestCase {
         workflowManager.setWorkflowModelStore(new ResourceWorkflowModelStore());
     }
 
+    /**
+     * 创建工作流时不指定wfVersion，此时会使用最新的版本
+     */
     @Test
     public void testEmptyVersion() {
         IWorkflow workflow = workflowManager.newWorkflow("testParser", null);

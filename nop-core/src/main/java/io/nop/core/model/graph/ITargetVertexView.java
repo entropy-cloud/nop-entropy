@@ -7,12 +7,13 @@
  */
 package io.nop.core.model.graph;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 public interface ITargetVertexView<V> extends ITargetVertexVisitor<V> {
-    Set<V> vertexSet();
+    Collection<V> vertexSet();
 
     default boolean isEmpty() {
         return vertexSet().isEmpty();

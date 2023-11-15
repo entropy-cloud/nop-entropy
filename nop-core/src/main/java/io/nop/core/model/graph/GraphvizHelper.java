@@ -21,7 +21,7 @@ package io.nop.core.model.graph;
 import io.nop.commons.util.StringHelper;
 
 import java.util.Arrays;
-import java.util.Set;
+import java.util.Collection;
 
 public class GraphvizHelper {
     private static final String INDENT = "  ";
@@ -34,7 +34,7 @@ public class GraphvizHelper {
      * @param graph Input graph.
      * @return A string in Dot format that presents the graph.
      */
-    public static <V, E extends IEdge<V>> String toDot(IGraphvizAdapter<V> adapter, IDirectedGraphView<V, E> graph,
+    public static <V, E extends IEdge<V>> String toDot(IGraphvizAdapter<V> adapter, IGraphViewBase<V, E> graph,
                                                        boolean directed, String name) {
         StringBuilder builder = new StringBuilder();
         builder.append(directed ? "digraph" : "graph");
@@ -46,7 +46,7 @@ public class GraphvizHelper {
 
         final String edgeSymbol = directed ? ARROW : LINE;
 
-        Set<V> nodes = graph.vertexSet();
+        Collection<V> nodes = graph.vertexSet();
 
         String[] nodeNames = new String[nodes.size()];
 
@@ -65,7 +65,7 @@ public class GraphvizHelper {
             builder.append(";\n");
         }
 
-        Set<E> edges = graph.edgeSet();
+        Collection<E> edges = graph.edgeSet();
 
         String[] edgeNames = new String[edges.size()];
 

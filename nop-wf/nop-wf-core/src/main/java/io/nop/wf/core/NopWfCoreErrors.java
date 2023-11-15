@@ -38,6 +38,8 @@ public interface NopWfCoreErrors {
     String ARG_TARGET_STEPS = "targetSteps";
     String ARG_TARGET_CASES = "targetCases";
 
+    String ARG_LOOP_EDGES = "removedEdges";
+
     ErrorCode ERR_WF_STEP_INSTANCE_NOT_EXISTS =
             define("nop.err.wf.step-instance-not-exists",
                     "工作流[{wfName}]的步骤实例[{stepId}]不存在", ARG_WF_NAME, ARG_STEP_ID);
@@ -145,4 +147,11 @@ public interface NopWfCoreErrors {
 
     ErrorCode ERR_WF_TRANSITION_TO_UNKNOWN_STEP =
             define("nop.err.wf.transition-to-unknown-step", "迁移的目标步骤为未知步骤：{stepName}", ARG_STEP_NAME);
+
+    ErrorCode ERR_WF_GRAPH_CONTAINS_LOOP =
+            define("nop.err.wf.graph-contains-loop",
+                    "流程图包含循环结构，不满足要求，需要删除以下连接:{loopEdges}", ARG_LOOP_EDGES);
+
+    ErrorCode ERR_WF_STEP_NOT_ENDABLE =
+            define("nop.err.wf.step-not-endable", "步骤{stepName}无法结束，会导致流程被挂起", ARG_STEP_NAME);
 }

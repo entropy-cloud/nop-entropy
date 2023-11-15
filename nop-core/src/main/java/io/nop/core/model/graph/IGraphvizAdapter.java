@@ -10,7 +10,11 @@ package io.nop.core.model.graph;
 public interface IGraphvizAdapter<V> {
     String getNodeId(V node);
 
-    String getNodeLabel(V node);
+    default String getNodeLabel(V node) {
+        return null;
+    }
 
-    String getNodeColor(V node);
+    default String getNodeColor(V node) {
+        return null;
+    }
 }

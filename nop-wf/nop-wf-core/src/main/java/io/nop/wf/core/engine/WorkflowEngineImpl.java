@@ -17,6 +17,7 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.model.graph.dag.Dag;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.reflect.bean.IBeanPropertyModel;
@@ -76,6 +77,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_CASES;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_STEPS;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_CONDITIONS_NOT_PASSED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_NOT_ALLOWED_WHEN_SIGNAL_NOT_READY;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_TRANSITION_NO_NEXT_STEP;
@@ -384,11 +386,16 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             String name = entry.getKey();
             WfArgVarModel argModel = argsModel.getArg(name);
             if (argModel == null) {
-                // 为简化配置，假设总是允许selectedActors这个参数
-                if (name.equals(NopWfCoreConstants.VAR_SELECTED_ACTORS) || name.equals(NopWfCoreConstants.VAR_SELECTED_STEP_ACTORS))
+                // 为简化配置，假设总是允许几个内置的selectedActors参数
+                if (name.equals(NopWfCoreConstants.VAR_SELECTED_ACTORS)
+                        || name.equals(NopWfCoreConstants.VAR_SELECTED_STEP_ACTORS)
+                        || name.equals(NopWfCoreConstants.VAR_REJECT_STEPS)
+                        || name.equals(NopWfCoreConstants.VAR_TARGET_STEPS)
+                )
                     continue;
 
                 throw wfRt.newError(ERR_WF_UNKNOWN_ACTION_ARG)
+                        .param(ARG_WF_NAME, wfRt.getWfModel().getWfName())
                         .param(ARG_ACTION_NAME, actionName).param(ARG_ARG_NAME, name);
             }
 
@@ -687,6 +694,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfStepModel stepModel = (WfStepModel) step.getModel();
         Set<String> rejectSteps = wfRt.getRejectSteps();
 
+        Dag dag = wfRt.getWfModel().getDag();
+
         IWorkflowImplementor wf = step.getWorkflow();
         if (rejectSteps != null && !rejectSteps.isEmpty()) {
             for (String rejectStepName : rejectSteps) {
@@ -694,7 +703,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 if (rejectStep == null)
                     throw wfRt.newError(ERR_WF_UNKNOWN_STEP).param(ARG_STEP_NAME, rejectStepName);
 
-                if (!stepModel.hasAncestorStep(step.getStepName()))
+                if (!dag.hasAncestor(stepModel.getName(), rejectStepName))
                     throw wfRt.newError(ERR_WF_REJECT_STEP_IS_NOT_ANCESTOR_OF_CURRENT_STEP)
                             .param(ARG_REJECT_STEP, rejectStepName);
                 doRejectStep(step, rejectStep, actionName, wfRt);
@@ -974,7 +983,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     void killSteps(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
         IWorkflowStore wfStore = wf.getStore();
-        for (IWorkflowStepRecord record : wfStore.getStepRecords(wf.getRecord(), false,null)) {
+        for (IWorkflowStepRecord record : wfStore.getStepRecords(wf.getRecord(), false, null)) {
             IWorkflowStepImplementor step = wf.getStepByRecord(record);
             WfRuntime stepRt = newWfRuntime(step.getWorkflow(), wfRt.getServiceContext());
             _killStep(step, stepRt);

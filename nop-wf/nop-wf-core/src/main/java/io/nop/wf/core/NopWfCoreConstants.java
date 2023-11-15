@@ -10,6 +10,8 @@ package io.nop.wf.core;
 public interface NopWfCoreConstants extends _NopWfCoreConstants{
     String XDEF_PATH_WF = "/nop/schema/wf/wf.xdef";
 
+    String POSTFIX_XWF = ".xwf";
+
     int WF_STEP_STATUS_HISTORY_BOUND = WF_STEP_STATUS_COMPLETED;
 
     int WF_STATUS_HISTORY_BOUND = WF_STATUS_COMPLETED;
