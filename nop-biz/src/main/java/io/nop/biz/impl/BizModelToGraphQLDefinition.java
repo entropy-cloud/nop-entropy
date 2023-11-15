@@ -33,6 +33,7 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.ArgBuilders;
+import io.nop.graphql.core.reflection.EvalGraphQLArgsNormalizer;
 import io.nop.graphql.core.reflection.IServiceActionArgBuilder;
 import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.TypeRegistry;
@@ -94,6 +95,10 @@ public class BizModelToGraphQLDefinition {
             String cancelMethod = actionModel.getMakerChecker().getCancelMethod();
             BizMakerCheckerMeta meta = new BizMakerCheckerMeta(tryMethod, cancelMethod);
             field.setMakerCheckerMeta(meta);
+        }
+
+        if (actionModel.getArgsNormalizer() != null) {
+            field.setArgsNormalizer(new EvalGraphQLArgsNormalizer(actionModel.getArgsNormalizer()));
         }
         return field;
     }
