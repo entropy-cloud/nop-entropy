@@ -23,8 +23,22 @@ import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
-import io.nop.graphql.core.*;
-import io.nop.graphql.core.ast.*;
+import io.nop.graphql.core.GraphQLConfigs;
+import io.nop.graphql.core.GraphQLErrors;
+import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.graphql.core.IGraphQLHook;
+import io.nop.graphql.core.ParsedGraphQLRequest;
+import io.nop.graphql.core.ast.GraphQLDirectiveDefinition;
+import io.nop.graphql.core.ast.GraphQLDocument;
+import io.nop.graphql.core.ast.GraphQLFieldDefinition;
+import io.nop.graphql.core.ast.GraphQLFieldSelection;
+import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.ast.GraphQLOperation;
+import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.ast.GraphQLSelection;
+import io.nop.graphql.core.ast.GraphQLSelectionSet;
+import io.nop.graphql.core.ast.GraphQLTypeDefinition;
+import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 import io.nop.graphql.core.parse.GraphQLDocumentParser;
 import io.nop.graphql.core.rpc.RpcServiceOnGraphQL;
 import io.nop.graphql.core.schema.BuiltinSchemaLoader;
@@ -43,8 +57,18 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
-import static io.nop.graphql.core.GraphQLConfigs.*;
-import static io.nop.graphql.core.GraphQLErrors.*;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
+import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
+import static io.nop.graphql.core.GraphQLErrors.ARG_EXPECTED_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DOC_OPERATION_SIZE_NOT_ONE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INTROSPECTION_NOT_ENABLED;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION;
 
 public class GraphQLEngine implements IGraphQLEngine {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLEngine.class);
@@ -335,37 +359,54 @@ public class GraphQLEngine implements IGraphQLEngine {
     public CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext context) {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(context);
-        if (executionInvoker != null)
-            return executionInvoker.invokeAsync(executor::executeOneAsync, context);
 
-        return executor.executeOneAsync(context);
+        CompletionStage<ApiResponse<?>> future;
+        if (executionInvoker != null) {
+            future = executionInvoker.invokeAsync(executor::executeOneAsync, context);
+        } else {
+            future = executor.executeOneAsync(context);
+        }
+        return future;
     }
 
     @Override
     public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext context) {
         IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(context);
-        if (executionInvoker != null)
-            return executionInvoker.invokeAsync(executor::executeAsync, context);
-        return executor.executeAsync(context);
+        CompletionStage<GraphQLResponseBean> future;
+        if (executionInvoker != null) {
+            future = executionInvoker.invokeAsync(executor::executeAsync, context);
+        } else {
+            future = executor.executeAsync(context);
+        }
+
+        return future;
     }
 
     @Override
     public GraphQLResponseBean buildGraphQLResponse(Object result, Throwable err, IGraphQLExecutionContext context) {
+        GraphQLResponseBean ret;
         if (err != null) {
             LOG.error("nop.graphql.execute-fail", err);
             String locale = ContextProvider.currentLocale();
             ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(locale, err, false, true);
-            GraphQLResponseBean ret = new GraphQLResponseBean();
+            ret = new GraphQLResponseBean();
             ret.addError(errorBean);
-            return ret;
+        } else {
+            if (result instanceof GraphQLResponseBean) {
+                ret = (GraphQLResponseBean) result;
+            } else {
+                ret = new GraphQLResponseBean();
+                ret.setData(result);
+                return ret;
+            }
         }
 
-        if (result instanceof GraphQLResponseBean)
-            return (GraphQLResponseBean) result;
-
-        GraphQLResponseBean ret = new GraphQLResponseBean();
-        ret.setData(result);
+        if (err != null) {
+            context.completeExceptionally(err);
+        } else {
+            context.complete();
+        }
         return ret;
     }
 
@@ -384,6 +425,12 @@ public class GraphQLEngine implements IGraphQLEngine {
 
         if (context != null && context.getResponseHeaders() != null) {
             context.getResponseHeaders().forEach(res::setHeader);
+        }
+
+        if (err != null) {
+            context.completeExceptionally(err);
+        } else {
+            context.complete();
         }
         return res;
     }

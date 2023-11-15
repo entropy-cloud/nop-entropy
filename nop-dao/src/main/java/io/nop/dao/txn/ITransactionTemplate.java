@@ -13,6 +13,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -65,5 +66,23 @@ public interface ITransactionTemplate extends IDialectProvider {
         if (txn != null) {
             txn.removeListener(listener);
         }
+    }
+
+    default void afterCommit(String txnGroup, Runnable action) {
+        addTransactionListener(txnGroup, new ITransactionListener() {
+            @Override
+            public void onAfterCommit(ITransaction txn) {
+                action.run();
+            }
+        });
+    }
+
+    default void afterCompletion(String txnGroup, BiConsumer<ITransactionListener.CompleteStatus, Throwable> action) {
+        addTransactionListener(txnGroup, new ITransactionListener() {
+            @Override
+            public void onAfterCompletion(ITransaction txn, CompleteStatus status, Throwable exception) {
+                action.accept(status, exception);
+            }
+        });
     }
 }

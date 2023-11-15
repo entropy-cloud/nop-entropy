@@ -40,6 +40,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryTransformer;
 import io.nop.dao.exceptions.UnknownEntityException;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.GraphQLConstants;
@@ -120,6 +121,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     private List<CascadePropMeta> cascadeProps;
 
+    private ITransactionTemplate transactionTemplate;
+
+    @Inject
+    public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
+        this.transactionTemplate = transactionTemplate;
+    }
+
     public void setQueryTransformer(IQueryTransformer queryTransformer) {
         this.queryTransformer = queryTransformer;
     }
@@ -159,6 +167,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     public String getEntityName() {
         return entityName;
+    }
+
+    public ITransactionTemplate txn() {
+        return transactionTemplate;
     }
 
     public IEntityDao<T> dao() {

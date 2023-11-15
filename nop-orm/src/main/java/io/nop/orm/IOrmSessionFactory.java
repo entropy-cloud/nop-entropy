@@ -13,6 +13,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.shard.IShardSelector;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.eql.ICompiledSql;
 import io.nop.orm.model.IOrmModel;
 
@@ -24,6 +25,8 @@ public interface IOrmSessionFactory extends AutoCloseable, IDialectProvider {
      * 清空所有查询数据缓存
      */
     void clearQueryCache();
+
+    ITransactionTemplate txn();
 
     /**
      * 清空指定查询缓存

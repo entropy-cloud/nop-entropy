@@ -26,3 +26,9 @@ class MyEntityBizModel extends CrudBizModel {
     }
 }  
 ````
+
+## 2. 在事务提交成功之后再执行某个操作
+使用ITransactionTemplate.afterCommit(null, action)函数。
+
+CrudBizModel已经注入了transactionTemplate，可以通过this.txn()来使用。
+

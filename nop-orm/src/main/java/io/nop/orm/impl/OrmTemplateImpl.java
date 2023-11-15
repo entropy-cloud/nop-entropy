@@ -33,11 +33,11 @@ import io.nop.orm.mdx.MdxQueryExecutor;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.support.OrmEntityHelper;
+import jakarta.annotation.Nonnull;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
-import jakarta.inject.Inject;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
@@ -512,7 +512,7 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     }
 
     @Override
-    public void reloadModel(){
+    public void reloadModel() {
         sessionFactory.reloadModel();
     }
 }
