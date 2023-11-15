@@ -23,6 +23,13 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: args-normalizer
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _argsNormalizer ;
+    
+    /**
+     *  
      * xml name: async
      * 是否异步调用。如果是异步调用，则返回CompletionStage。return部分描述的是异步返回的数据的类型
      */
@@ -177,6 +184,25 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     public boolean hasArgs(){
         return !this._args.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: args-normalizer
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getArgsNormalizer(){
+      return _argsNormalizer;
+    }
+
+    
+    public void setArgsNormalizer(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._argsNormalizer = value;
+           
+    }
+
     
     /**
      * 
@@ -512,6 +538,7 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.put("args",this.getArgs());
+        out.put("argsNormalizer",this.getArgsNormalizer());
         out.put("async",this.isAsync());
         out.put("auth",this.getAuth());
         out.put("bizSequential",this.isBizSequential());

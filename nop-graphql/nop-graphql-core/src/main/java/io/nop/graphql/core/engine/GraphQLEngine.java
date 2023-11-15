@@ -61,6 +61,8 @@ import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_PARSE_CACHE_CHECK_CHANGED;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_QUERY_MAX_DEPTH;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ALLOWED_NAMES;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_EXPECTED_OPERATION_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OPERATION_TYPE;
@@ -70,6 +72,7 @@ import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INTROSPECTION_NOT_EN
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNKNOWN_OPERATION_ARG;
 
 public class GraphQLEngine implements IGraphQLEngine {
     static final Logger LOG = LoggerFactory.getLogger(GraphQLEngine.class);
@@ -308,6 +311,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         return context;
     }
 
+    @Override
     public void initGraphQLContext(IGraphQLExecutionContext context, ParsedGraphQLRequest request) {
         GraphQLDocument doc = request.getDocument();
         if (!doc.isResolved()) {
@@ -318,7 +322,8 @@ public class GraphQLEngine implements IGraphQLEngine {
         GraphQLOperation op = (GraphQLOperation) doc.getDefinitions().get(0);
         context.setOperation(op);
         context.setExecutionId(request.getOperationId());
-        context.setFieldSelection(buildSelectionBean(op.getName(), op.getSelectionSet(), vars));
+        FieldSelectionBean selectionBean = buildSelectionBean(op.getName(), op.getSelectionSet(), vars);
+        context.setFieldSelection(selectionBean);
     }
 
     public void initRpcContext(IGraphQLExecutionContext context, GraphQLOperationType expectedOpType,
@@ -336,12 +341,17 @@ public class GraphQLEngine implements IGraphQLEngine {
 
         context.setRequestHeaders(request.getHeaders());
 
-        if (action.getArgsNormalizer() != null) {
-            if (request.getData() instanceof Map) {
+        if (request.getData() instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) request.getData();
+            if (action.getArgsNormalizer() != null) {
+
                 IGraphQLArgsNormalizer argsNormalizer = action.getArgsNormalizer();
-                Map<String, Object> data = argsNormalizer.normalize((Map<String, Object>) request.getData(), context);
-                ((ApiRequest<Map<String,Object>>) request).setData(data);
+                Map<String, Object> data = argsNormalizer.normalize(map, context);
+                ((ApiRequest<Map<String, Object>>) request).setData(data);
+                map = data;
             }
+
+            checkOperationArgs(action, map);
         }
 
         GraphQLDocument doc = new GraphQLDocument();
@@ -363,6 +373,16 @@ public class GraphQLEngine implements IGraphQLEngine {
         FieldSelectionBean fieldSelection = buildSelectionBean(operationName, op.getSelectionSet(), Collections.emptyMap());
 
         context.setFieldSelection(fieldSelection);
+    }
+
+    void checkOperationArgs(GraphQLFieldDefinition field, Map<String, Object> data) {
+        for (String name : data.keySet()) {
+            if (field.getArg(name) == null)
+                throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION_ARG)
+                        .param(ARG_OPERATION_NAME, field.getOperationName())
+                        .param(ARG_ARG_NAME, name)
+                        .param(ARG_ALLOWED_NAMES, field.getArgNames());
+        }
     }
 
     @Override

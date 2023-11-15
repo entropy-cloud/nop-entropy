@@ -283,4 +283,9 @@ public interface GraphQLErrors {
             define("nop.err.graphql.multi-meta-file-for-biz-obj",
                     "存在多个meta文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}",
                     ARG_BIZ_OBJ_NAME, ARG_PATH_A, ARG_PATH_B);
+
+    ErrorCode ERR_GRAPHQL_UNKNOWN_OPERATION_ARG =
+            define("nop.err.graphql.unknown-operation-arg",
+                    "操作[{operationName}]没有定义参数[{argName}],允许的参数为:{allowedNames}",
+                    ARG_OPERATION_NAME, ARG_ARG_NAME, ARG_ALLOWED_NAMES);
 }

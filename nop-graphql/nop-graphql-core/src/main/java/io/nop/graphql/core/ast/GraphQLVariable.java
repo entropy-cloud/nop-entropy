@@ -24,7 +24,9 @@ public class GraphQLVariable extends _GraphQLVariable {
 
     @Override
     public Object buildValue(Map<String, Object> vars) {
-        return vars.get(getName());
+        String name = getName();
+        Object value = vars.get(name);
+        return value;
     }
 
     @Override

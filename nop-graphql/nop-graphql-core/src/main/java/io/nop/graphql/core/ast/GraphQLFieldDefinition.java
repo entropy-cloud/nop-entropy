@@ -18,6 +18,7 @@ import io.nop.graphql.core.reflection.IGraphQLArgsNormalizer;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
     private IDataFetcher fetcher;
@@ -168,5 +169,12 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
                 return arg;
         }
         return null;
+    }
+
+    public List<String> getArgNames() {
+        List<GraphQLArgumentDefinition> args = getArguments();
+        if (args == null)
+            return null;
+        return args.stream().map(GraphQLArgumentDefinition::getName).collect(Collectors.toList());
     }
 }
