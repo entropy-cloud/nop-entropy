@@ -2,6 +2,7 @@
 
 Nop平台与其他开发平台相比，一个显著的特异之处在于它支持在完全不修改平台源码的情况下，通过Delta定制机制实现对平台功能的深度定制。
 
+整体架构说明，参见[delta-customization.md](delta/delta-customization.md)
 
 ## 定制bean
 
@@ -30,7 +31,7 @@ Nop平台中所有的bean都由NopIoC容器统一管理，它是一个语法类�
 1. 名为nopActionAuthChecker的bean在auth-service.beans.xml文件中定义。
 2. siteMapProvider属性使用@Inject注解自动注入，实际注入的bean为 nopSiteMapProvider
 3. nopSiteMapProvider的源码位置为 auth-service.beans.xml文件的第13行。
-4. id="$DEFAULT$nopActionAuthChecker" 表示它定义的是一个default实现，如果存在一个具有相同名称的bean，则会自动替换这个实现。
+4. `id="$DEFAULT$nopActionAuthChecker"` 表示它定义的是一个default实现，如果存在一个具有相同名称的bean，则会自动替换这个实现。
 
 nopActionAuthChecker的原始定义如下，节点上标记了ioc:default='true'。如果存在另外一个bean的name也是nopActionAuthChecker，则会自动
 覆盖这个缺省定义。ioc:default的作用类似于SpringBoot中的ConditionOnMissingBean
@@ -59,3 +60,7 @@ nopActionAuthChecker的原始定义如下，节点上标记了ioc:default='true'
     <bean id="nopActionAuthChecker" claass="xxx.MyActionAuthChecker" />
 </beans>
 ````
+
+## 扩展Excel模型
+
+参见[custom-model.md](model/custom-model.md)
