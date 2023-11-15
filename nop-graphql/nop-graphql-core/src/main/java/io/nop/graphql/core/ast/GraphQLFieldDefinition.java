@@ -14,6 +14,7 @@ import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.ast._gen._GraphQLFieldDefinition;
+import io.nop.graphql.core.reflection.IGraphQLArgsNormalizer;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
 import java.util.List;
@@ -47,6 +48,16 @@ public class GraphQLFieldDefinition extends _GraphQLFieldDefinition {
     private IServiceAction tryAction;
 
     private BizMakerCheckerMeta makerCheckerMeta;
+
+    private IGraphQLArgsNormalizer argsNormalizer;
+
+    public IGraphQLArgsNormalizer getArgsNormalizer() {
+        return argsNormalizer;
+    }
+
+    public void setArgsNormalizer(IGraphQLArgsNormalizer argsNormalizer) {
+        this.argsNormalizer = argsNormalizer;
+    }
 
     public Boolean getLazy() {
         return lazy;

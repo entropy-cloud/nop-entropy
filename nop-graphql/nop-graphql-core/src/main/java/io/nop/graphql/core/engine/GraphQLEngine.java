@@ -40,6 +40,7 @@ import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import io.nop.graphql.core.ast.GraphQLTypeDefinition;
 import io.nop.graphql.core.ast.GraphQLVariableDefinition;
 import io.nop.graphql.core.parse.GraphQLDocumentParser;
+import io.nop.graphql.core.reflection.IGraphQLArgsNormalizer;
 import io.nop.graphql.core.rpc.RpcServiceOnGraphQL;
 import io.nop.graphql.core.schema.BuiltinSchemaLoader;
 import io.nop.graphql.core.schema.GraphQLSchema;
@@ -334,6 +335,15 @@ public class GraphQLEngine implements IGraphQLEngine {
         }
 
         context.setRequestHeaders(request.getHeaders());
+
+        if (action.getArgsNormalizer() != null) {
+            if (request.getData() instanceof Map) {
+                IGraphQLArgsNormalizer argsNormalizer = action.getArgsNormalizer();
+                Map<String, Object> data = argsNormalizer.normalize((Map<String, Object>) request.getData(), context);
+                ((ApiRequest<Map<String,Object>>) request).setData(data);
+            }
+        }
+
         GraphQLDocument doc = new GraphQLDocument();
         GraphQLFieldSelection selection = doc.addOperation(action.getOperationType(), operationName, request.getData());
 

@@ -8,6 +8,7 @@
 package io.nop.biz.crud;
 
 import io.nop.api.core.annotations.biz.BizAction;
+import io.nop.api.core.annotations.biz.BizArgsNormalizer;
 import io.nop.api.core.annotations.biz.BizMakerChecker;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
@@ -188,6 +189,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     @Description("@i18n:biz.findPage|分页查询")
     @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public PageBean<T> findPage(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                 FieldSelectionBean selection, IServiceContext context) {
@@ -303,6 +305,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     @Description("@i18n:biz.findFirst|返回符合条件的第一条数据")
     @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T findFirst(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                        @Name("selection") FieldSelectionBean selection, IServiceContext context) {
@@ -885,6 +888,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     @Description("@i18n:biz.deleted_findPage|分页查询已删除记录")
     @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public PageBean<T> deleted_findPage(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                         FieldSelectionBean selection, IServiceContext context) {
@@ -951,6 +955,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
 
     @Description("@i18n:biz.findList|根据查询条件返回列表数据。与findPage的不同在于,findPage返回PageBean类型，支持分页，而这个函数返回List类型，而且缺省不分页")
     @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public List<T> findList(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
         if (query != null)

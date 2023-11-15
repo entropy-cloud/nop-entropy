@@ -8,6 +8,7 @@
 package io.nop.graphql.core.reflection;
 
 import io.nop.api.core.annotations.biz.BizAction;
+import io.nop.api.core.annotations.biz.BizArgsNormalizer;
 import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizMakerChecker;
 import io.nop.api.core.annotations.biz.BizMakerCheckerMeta;
@@ -152,11 +153,11 @@ public class ReflectionBizModelBuilder {
                     returnType = returnType.getTypeParameters().get(0);
                 }
                 field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(returnType, bizObjName,
-                        getReturnBizObjName(func), registry,false));
+                        getReturnBizObjName(func), registry, false));
 
                 GraphQLObjectDefinition loaderType = getLoaderForType(bizLoader, registry);
                 if (loaderType != null) {
-                    loaderType.mergeField(field,false);
+                    loaderType.mergeField(field, false);
                 } else {
                     ret.addLoader(name, field);
                 }
@@ -283,13 +284,18 @@ public class ReflectionBizModelBuilder {
             field.setMakerCheckerMeta(new BizMakerCheckerMeta(makerChecker.tryMethod(), makerChecker.cancelMethod()));
         }
 
+        BizArgsNormalizer argsNormalizer = func.getAnnotation(BizArgsNormalizer.class);
+        if (argsNormalizer != null) {
+            field.setArgsNormalizer(new LazyGraphQLArgsNormalizer(argsNormalizer.value()));
+        }
+
         field.setLocation(loc);
-        field.setName(GraphQLNameHelper.getOperationName(bizObjName,name));
+        field.setName(GraphQLNameHelper.getOperationName(bizObjName, name));
         field.setServiceAction(action);
         field.setFetcher(fetcher);
 
         field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
-                getReturnBizObjName(func), registry,false));
+                getReturnBizObjName(func), registry, false));
         return field;
     }
 

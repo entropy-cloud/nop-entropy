@@ -78,4 +78,5 @@
         </ioc:condition>
     </bean>
 
+    <bean id="nopQueryBeanArgsNormalizer" class="io.nop.biz.crud.QueryBeanArgsNormalizer"/>
 </beans>

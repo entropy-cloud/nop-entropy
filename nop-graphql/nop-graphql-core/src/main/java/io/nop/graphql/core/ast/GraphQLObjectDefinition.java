@@ -103,7 +103,7 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
     }
 
     public void merge(GraphQLObjectDefinition def, boolean force) {
-        if(def.getFields() == null)
+        if (def.getFields() == null)
             return;
         for (GraphQLFieldDefinition field : def.getFields()) {
             mergeField(field, force);
@@ -173,6 +173,10 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
                 if (field.getType() != null) {
                     old.setType(field.getType());
                 }
+
+                if (field.getArgsNormalizer() != null) {
+                    old.setArgsNormalizer(field.getArgsNormalizer());
+                }
             } else {
 
                 if (old.getFetcher() == null || old.getFetcher() == BeanPropertyFetcher.INSTANCE) {
@@ -200,6 +204,10 @@ public class GraphQLObjectDefinition extends _GraphQLObjectDefinition implements
 
                 if (old.getType() == null) {
                     old.setType(field.getType());
+                }
+
+                if (old.getArgsNormalizer() == null) {
+                    old.setArgsNormalizer(field.getArgsNormalizer());
                 }
             }
         }

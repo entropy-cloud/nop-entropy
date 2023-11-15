@@ -48,6 +48,8 @@
                 <cache-evict cacheName="string" cacheKeyExpr="expr" xdef:name="BizCacheEvictModel"/>
             </cache-evicts>
 
+            <args-normalizer xdef:value="xpl-fn:(args:Map,svcCtx:io.nop.core.context.IServiceContext)=>Map" />
+
             <arg xdef:name="BizActionArgModel" name="!var-name" mandatory="!boolean=false"
                  displayName="string" xdef:unique-attr="name" type="generic-type" graphql:type="string"
                  kind="enum:io.nop.api.core.annotations.biz.BizActionArgKind">
