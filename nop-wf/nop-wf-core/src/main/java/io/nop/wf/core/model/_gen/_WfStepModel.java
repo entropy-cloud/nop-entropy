@@ -100,13 +100,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: joinTargetStep
-     * 
-     */
-    private java.lang.String _joinTargetStep ;
-    
-    /**
-     *  
      * xml name: name
      * 
      */
@@ -426,25 +419,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: joinTargetStep
-     *  
-     */
-    
-    public java.lang.String getJoinTargetStep(){
-      return _joinTargetStep;
-    }
-
-    
-    public void setJoinTargetStep(java.lang.String value){
-        checkAllowChange();
-        
-        this._joinTargetStep = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: name
      *  
      */
@@ -747,7 +721,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("dueTimeExpr",this.getDueTimeExpr());
         out.put("independent",this.isIndependent());
         out.put("internal",this.isInternal());
-        out.put("joinTargetStep",this.getJoinTargetStep());
         out.put("name",this.getName());
         out.put("onEnter",this.getOnEnter());
         out.put("onError",this.getOnError());

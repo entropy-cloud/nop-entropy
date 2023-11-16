@@ -168,6 +168,7 @@ CREATE TABLE nop_wf_instance(
   PARENT_WF_VERSION INT8  ,
   PARENT_WF_ID VARCHAR(32)  ,
   PARENT_STEP_ID VARCHAR(200)  ,
+  SIGNAL_SET VARCHAR(2000)  ,
   STARTER_ID VARCHAR(50)  ,
   STARTER_NAME VARCHAR(50)  ,
   STARTER_DEPT_ID VARCHAR(50)  ,
@@ -478,6 +479,8 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_instance.PARENT_WF_ID IS '父流程ID';
                     
       COMMENT ON COLUMN nop_wf_instance.PARENT_STEP_ID IS '父流程步骤ID';
+                    
+      COMMENT ON COLUMN nop_wf_instance.SIGNAL_SET IS '信号集合';
                     
       COMMENT ON COLUMN nop_wf_instance.STARTER_ID IS '启动人ID';
                     

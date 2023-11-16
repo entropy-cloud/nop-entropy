@@ -64,7 +64,5 @@ public interface IWorkflowStepModel {
 
     Set<String> getWaitStepNames();
 
-    String getJoinTargetStep();
-
     Set<String> getWaitSignals();
 }

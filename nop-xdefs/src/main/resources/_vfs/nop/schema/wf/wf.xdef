@@ -168,7 +168,7 @@
         <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
               internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
               optional="!boolean=false" priority="!int=100" appState="#string"
-              tags="csv-set" joinTargetStep="string" allowWithdraw="!boolean=false"
+              tags="csv-set" allowWithdraw="!boolean=false"
               allowReject="!boolean=false" dueAction="string"
               specialType="string" independent="!boolean=false">
 

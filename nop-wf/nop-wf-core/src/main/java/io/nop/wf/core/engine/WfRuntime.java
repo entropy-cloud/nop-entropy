@@ -25,9 +25,15 @@ import io.nop.wf.core.model.WfListenerModel;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static io.nop.wf.core.NopWfCoreErrors.*;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
 
 /**
  * 每次调用工作流对象上的action时所创建的运行时对象。在EL表达式中可以通过wfRt变量来访问该运行时对象
@@ -61,6 +67,8 @@ public class WfRuntime implements IWfRuntime {
     private IWorkflowStepImplementor currentStep;
     private IWorkflowActionRecord actionRecord;
 
+    private IWorkflowStepImplementor actionStep;
+
     private Throwable exception;
 
 //    class WfContinuation extends ContinuationExecutor.Continuation {
@@ -74,6 +82,10 @@ public class WfRuntime implements IWfRuntime {
         this.serviceContext = serviceContext;
         this.wf = wf;
         this.scope = newEvalScope();
+    }
+
+    public static WfRuntime fromContext(IServiceContext ctx) {
+        return (WfRuntime) ctx.getEvalScope().getValue(NopWfCoreConstants.VAR_WF_RT);
     }
 
     private IEvalScope newEvalScope() {
@@ -274,7 +286,7 @@ public class WfRuntime implements IWfRuntime {
         }
     }
 
-    private void doExecute(Runnable task){
+    private void doExecute(Runnable task) {
 
     }
 
@@ -294,6 +306,15 @@ public class WfRuntime implements IWfRuntime {
 
     public void setActionRecord(IWorkflowActionRecord actionRecord) {
         this.actionRecord = actionRecord;
+    }
+
+    @Override
+    public IWorkflowStepImplementor getActionStep() {
+        return actionStep;
+    }
+
+    public void setActionStep(IWorkflowStepImplementor actionStep) {
+        this.actionStep = actionStep;
     }
 
     @Override

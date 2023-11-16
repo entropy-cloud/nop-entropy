@@ -22,9 +22,21 @@ import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
-import static io.nop.wf.core.NopWfCoreErrors.*;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_INSTANCE_NOT_EXISTS;
 
 public class WorkflowImpl implements IWorkflowImplementor {
     private final IWorkflowEngine wfEngine;
@@ -61,7 +73,40 @@ public class WorkflowImpl implements IWorkflowImplementor {
 
     @Override
     public void delayExecute(Runnable task) {
-        doExecute(task);
+        commandQueue.add(task);
+        if (!executing) {
+            this.executing = true;
+            try {
+                runCommandQueue();
+            } finally {
+                this.executing = false;
+            }
+        }
+    }
+
+    private void runCommandQueue() {
+        do {
+            Runnable command = this.commandQueue.poll();
+            if (command == null)
+                break;
+
+            command.run();
+        } while (true);
+    }
+
+    @Override
+    public <T> T executeNow(Supplier<T> task) {
+        if (this.executing)
+            return task.get();
+
+        this.executing = true;
+        try {
+            T result = task.get();
+            runCommandQueue();
+            return result;
+        } finally {
+            this.executing = false;
+        }
     }
 
     @Override
@@ -235,28 +280,11 @@ public class WorkflowImpl implements IWorkflowImplementor {
         return outputVars;
     }
 
-    private void doExecute(Runnable task) {
-        commandQueue.add(task);
-        if (!executing) {
-            this.executing = true;
-            try {
-                do {
-                    Runnable command = this.commandQueue.poll();
-                    if (command == null)
-                        break;
-
-                    command.run();
-                } while (true);
-            } finally {
-                this.executing = false;
-            }
-        }
-    }
-
     @Override
     public void save(IServiceContext ctx) {
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.save(this, ctx);
+            return null;
         });
     }
 
@@ -267,36 +295,41 @@ public class WorkflowImpl implements IWorkflowImplementor {
 
     @Override
     public void start(Map<String, Object> args, IServiceContext ctx) {
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.start(this, args, ctx);
+            return null;
         });
     }
 
     @Override
     public void suspend(Map<String, Object> args, IServiceContext ctx) {
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.suspend(this, args, ctx);
+            return null;
         });
     }
 
     @Override
     public void resume(Map<String, Object> args, IServiceContext ctx) {
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.resume(this, args, ctx);
+            return null;
         });
     }
 
     @Override
     public void remove(Map<String, Object> args, IServiceContext ctx) {
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.remove(this, args, ctx);
+            return null;
         });
     }
 
     @Override
     public void kill(Map<String, Object> args, IServiceContext ctx) {
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.kill(this, args, ctx);
+            return null;
         });
     }
 
@@ -305,15 +338,17 @@ public class WorkflowImpl implements IWorkflowImplementor {
         if (CollectionHelper.isEmpty(signals))
             return;
 
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.turnSignalOn(this, signals, ctx);
+            return null;
         });
     }
 
     @Override
     public void turnSignalOff(Set<String> signals, IServiceContext ctx) {
-        doExecute(() -> {
+        executeNow(() -> {
             wfEngine.turnSignalOff(this, signals, ctx);
+            return null;
         });
     }
 

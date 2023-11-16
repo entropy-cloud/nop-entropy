@@ -16,8 +16,8 @@ import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
 import io.nop.wf.core.model.IWorkflowActionModel;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +47,6 @@ public interface IWorkflowEngine {
 
     void turnSignalOff(IWorkflowImplementor wf, Set<String> signals, IServiceContext ctx);
 
-
     void changeActor(IWorkflowStepImplementor step, IWfActor actor, IServiceContext ctx);
 
     void changeOwner(IWorkflowStepImplementor step, String ownerId, IServiceContext ctx);
@@ -68,7 +67,7 @@ public interface IWorkflowEngine {
 
     void transitTo(IWorkflowStepImplementor step, String stepName, Map<String, Object> args, IServiceContext ctx);
 
-    List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWorkflowStepImplementor step);
+    List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWorkflowStepImplementor step, IWfRuntime wfRt);
 
     void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
                           Map<String, Object> results, @Nonnull IEvalScope scope);

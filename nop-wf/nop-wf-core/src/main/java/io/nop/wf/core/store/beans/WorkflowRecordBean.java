@@ -15,6 +15,7 @@ import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
@@ -64,6 +65,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private String createrId;
 
     private boolean willEnd;
+
+    private Set<String> signals;
 
     private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
 
@@ -425,5 +428,14 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     public void setCreaterId(String createrId) {
         this.createrId = createrId;
+    }
+
+
+    public Set<String> getSignals() {
+        return signals;
+    }
+
+    public void setSignals(Set<String> signals) {
+        this.signals = signals;
     }
 }

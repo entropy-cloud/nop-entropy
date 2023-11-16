@@ -14,6 +14,7 @@ import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.WorkflowTransitionTarget;
+import io.nop.wf.core.engine.IWfRuntime;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.store.IWorkflowStepRecord;
@@ -94,12 +95,18 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public void changeActor(IWfActor actor, IServiceContext ctx) {
-        wf.getEngine().changeActor(this, actor, ctx);
+        wf.executeNow(() -> {
+            wf.getEngine().changeActor(this, actor, ctx);
+            return null;
+        });
     }
 
     @Override
     public void changeOwnerId(String ownerId, IServiceContext ctx) {
-        wf.getEngine().changeOwner(this, ownerId, ctx);
+        wf.executeNow(() -> {
+            wf.getEngine().changeOwner(this, ownerId, ctx);
+            return null;
+        });
     }
 
     @Nonnull
@@ -126,7 +133,10 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public void kill(Map<String, Object> args, IServiceContext ctx) {
-        wf.getEngine().killStep(this, args, ctx);
+        wf.executeNow(() -> {
+            wf.getEngine().killStep(this, args, ctx);
+            return null;
+        });
     }
 
     @Override
@@ -142,7 +152,9 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public Object invokeAction(String actionName, Map<String, Object> args, IServiceContext ctx) {
-        return wf.getEngine().invokeAction(this, actionName, args, ctx);
+        return wf.executeNow(() -> {
+            return wf.getEngine().invokeAction(this, actionName, args, ctx);
+        });
     }
 
     @Nonnull
@@ -153,13 +165,16 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx) {
-        wf.getEngine().transitTo(this, stepName, args, ctx);
+        wf.executeNow(() -> {
+            wf.getEngine().transitTo(this, stepName, args, ctx);
+            return null;
+        });
     }
 
     @Nonnull
     @Override
-    public List<? extends IWorkflowStepImplementor> getJoinWaitSteps() {
-        return wf.getEngine().getJoinWaitSteps(this);
+    public List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWfRuntime wfRt) {
+        return wf.getEngine().getJoinWaitSteps(this, wfRt);
     }
 
     @Override

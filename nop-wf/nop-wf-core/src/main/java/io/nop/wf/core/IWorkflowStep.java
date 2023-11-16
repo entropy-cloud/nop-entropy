@@ -14,8 +14,8 @@ import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.model.WfStepType;
 import io.nop.wf.core.store.IWorkflowStepRecord;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.List;
 import java.util.Map;
 
@@ -153,15 +153,6 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
      * 转移到指定步骤。转移到指定步骤。如果本步骤尚未结束，则先结束本步骤。如果本步骤已结束，则直接增加目标步骤实例
      */
     void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx);
-
-
-    /**
-     * 对于join步骤，这里返回join正在等待的处于运行状态的步骤集合
-     *
-     * @return
-     */
-    @Nonnull
-    List<? extends IWorkflowStep> getJoinWaitSteps();
 
     /**
      * 找到具有指定类型的，最近时刻的前导步骤实例

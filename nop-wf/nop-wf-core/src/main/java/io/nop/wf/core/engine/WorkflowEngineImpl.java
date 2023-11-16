@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -118,6 +119,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     protected WfRuntime newWfRuntime(IWorkflowStepImplementor step, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(step.getWorkflow(), ctx);
         wfRt.setCurrentStep(step);
+        wfRt.setActionStep(step);
         return wfRt;
     }
 
@@ -252,9 +254,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         IWorkflowImplementor wf = wfRt.getWf();
         if (stepModel.getJoinType() != null) {
+            String joinGroup = getJoinGroup(stepModel, currentStep, wfRt);
+
             // join步骤会自动查找已经存在的步骤实例
-            IWorkflowStepRecord stepRecord = wf.getStore().getNextWaitingStepRecord(currentStep.getRecord(),
-                    stepModel.getJoinTargetStep(), stepModel.getName(), actor);
+            IWorkflowStepRecord stepRecord = wf.getStore().getNextJoinStepRecord(currentStep.getRecord(),
+                    joinGroup, stepModel.getName(), actor);
             if (stepRecord != null) {
                 IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
 
@@ -313,6 +317,19 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
     }
 
+    private String getJoinGroup(WfStepModel stepModel, IWorkflowStepImplementor step, WfRuntime wfRt) {
+        if (stepModel.getJoinGroupExpr() != null) {
+            IWorkflowStepImplementor oldStep = wfRt.getCurrentStep();
+            try {
+                wfRt.setCurrentStep(step);
+                return ConvertHelper.toString(stepModel.getJoinGroupExpr().invoke(wfRt));
+            } finally {
+                wfRt.setCurrentStep(oldStep);
+            }
+        }
+        return null;
+    }
+
     private void startSubflow(WfSubFlowStartModel startFlowModel, IWorkflowStepImplementor parentStep, WfRuntime wfRt) {
 
         Map<String, Object> vars = getStartArgs(startFlowModel.getArgs(), wfRt);
@@ -355,7 +372,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         // 如果是and-join, 则当它所等待的所有步骤都结束时它才进入activated状态。
         boolean allWaitFinished = true;
-        for (IWorkflowStepImplementor waitStep : step.getJoinWaitSteps()) {
+        for (IWorkflowStepImplementor waitStep : step.getJoinWaitSteps(wfRt)) {
             if (!waitStep.isHistory()) {
                 allWaitFinished = false;
                 break;
@@ -517,6 +534,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         IWorkflowStore wfStore = wf.getStore();
         Set<String> onSignals = wfStore.getOnSignals(wf.getRecord());
+        if (onSignals == null)
+            onSignals = new LinkedHashSet<>();
         onSignals.addAll(signals);
         wfStore.saveOnSignals(wf.getRecord(), onSignals);
 
@@ -531,7 +550,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         IWorkflowStore wfStore = wf.getStore();
         Set<String> onSignals = wfStore.getOnSignals(wf.getRecord());
-        onSignals.removeAll(signals);
+        if (onSignals != null)
+            onSignals.removeAll(signals);
         wfStore.saveOnSignals(wf.getRecord(), onSignals);
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_SIGNAL_OFF);
@@ -619,6 +639,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public Object invokeAction(IWorkflowStepImplementor step, String actionName, Map<String, Object> args, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(step, ctx);
         WfModel wfModel = wfRt.getWfModel();
+
         WfActionModel actionModel = requireActionModel(wfRt, actionName);
 
         checkActionAuth(wfModel, wfRt);
@@ -1189,13 +1210,15 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     @Override
-    public List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWorkflowStepImplementor step) {
+    public List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWorkflowStepImplementor step, IWfRuntime wfRt) {
         if (step.getModel().getJoinType() == WfJoinType.and) {
             WfStepModel stepModel = (WfStepModel) step.getModel();
-            String joinKey = stepModel.getName();
             Set<String> waitSteps = stepModel.getWaitStepNames();
-            Collection<? extends IWorkflowStepRecord> stepRecords = step.getStore().getJoinWaitStepRecords(step.getRecord(),
-                    joinKey, waitSteps);
+            Collection<? extends IWorkflowStepRecord> stepRecords = step.getStore().getJoinWaitStepRecords(
+                    step.getRecord(), stepRecord -> {
+                        IWorkflowStepImplementor waitStep = step.getWorkflow().getStepByRecord(stepRecord);
+                        return getJoinGroup((WfStepModel) waitStep.getModel(), waitStep, (WfRuntime) wfRt);
+                    }, waitSteps);
             return step.getWorkflow().getStepsByRecords(stepRecords);
         } else {
             return Collections.emptyList();

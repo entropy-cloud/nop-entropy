@@ -57,17 +57,15 @@ public interface IWfRuntime extends IEvalContext {
 
     IWorkflowStepImplementor getCurrentStep();
 
-    void setCurrentStep(IWorkflowStepImplementor currentStep);
-
     NopException newError(ErrorCode errorCode);
 
     void triggerEvent(String event);
 
     void saveWfRecord(int status);
 
-    IWorkflowActionRecord getActionRecord();
+    IWorkflowStepImplementor getActionStep();
 
-    void setActionRecord(IWorkflowActionRecord actionRecord);
+    IWorkflowActionRecord getActionRecord();
 
     Throwable getException();
 

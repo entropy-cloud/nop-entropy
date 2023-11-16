@@ -175,12 +175,14 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
     public Set<String> getDescendantNodeNames(String nodeName) {
         Set<String> set = new LinkedHashSet<>();
         GraphBreadthFirstIterator.reachable(set, name -> getNode(name).getNextNodeNames(), nodeName);
+        set.remove(nodeName);
         return set;
     }
 
     public Set<String> getAncestorNodeNames(String nodeName) {
         Set<String> set = new LinkedHashSet<>();
         GraphBreadthFirstIterator.reachable(set, name -> getNode(name).getPrevNodeNames(), nodeName);
+        set.remove(nodeName);
         return set;
     }
 

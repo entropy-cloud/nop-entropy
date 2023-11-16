@@ -8,6 +8,7 @@
 package io.nop.wf.core.model;
 
 import io.nop.commons.collections.KeyedList;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.wf.core.model._gen._WfStepModel;
 import jakarta.annotation.Nonnull;
 
@@ -179,6 +180,15 @@ public class WfStepModel extends _WfStepModel implements IWorkflowStepModel, Com
      */
     @Override
     public Set<String> getWaitStepNames() {
+        return null;
+    }
+
+    /**
+     * 仅join步骤具有joinGroupExpr
+     *
+     * @return
+     */
+    public IEvalAction getJoinGroupExpr() {
         return null;
     }
 }

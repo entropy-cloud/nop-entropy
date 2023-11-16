@@ -7,8 +7,8 @@
  */
 package io.nop.wf.core.store;
 
-import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
@@ -16,6 +16,7 @@ import io.nop.wf.core.model.IWorkflowStepModel;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public interface IWorkflowStore {
@@ -78,7 +79,9 @@ public interface IWorkflowStore {
 
     IWorkflowStepRecord getNextStepRecordByName(IWorkflowStepRecord stepRecord, String stepName, IWfActor actor);
 
-    Collection<? extends IWorkflowStepRecord> getJoinWaitStepRecords(IWorkflowStepRecord stepRecord, String joinKey, Set<String> stepNames);
+    Collection<? extends IWorkflowStepRecord> getJoinWaitStepRecords(IWorkflowStepRecord stepRecord,
+                                                                     Function<IWorkflowStepRecord, String> joinGroupGetter,
+                                                                     Set<String> stepNames);
 
     Collection<? extends IWorkflowStepRecord> getPrevStepRecordsByName(IWorkflowStepRecord stepRecord, Collection<String> stepNames);
 
@@ -86,7 +89,7 @@ public interface IWorkflowStore {
 
     boolean isAllStepsHistory(IWorkflowRecord wfRecord);
 
-    IWorkflowStepRecord getNextWaitingStepRecord(IWorkflowStepRecord stepRecord, String joinKey, String stepName, IWfActor actor);
+    IWorkflowStepRecord getNextJoinStepRecord(IWorkflowStepRecord stepRecord, String joinGroup, String stepName, IWfActor actor);
 
 
     Set<String> getOnSignals(IWorkflowRecord wfRecord);

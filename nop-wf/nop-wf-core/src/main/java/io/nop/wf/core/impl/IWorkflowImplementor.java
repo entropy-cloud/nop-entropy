@@ -14,6 +14,7 @@ import io.nop.wf.core.store.IWorkflowStore;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 public interface IWorkflowImplementor extends IWorkflow {
     IWorkflowStore getStore();
@@ -27,4 +28,6 @@ public interface IWorkflowImplementor extends IWorkflow {
     List<? extends IWorkflowStepImplementor> getStepsByRecords(Collection<? extends IWorkflowStepRecord> stepRecords);
 
     void delayExecute(Runnable command);
+
+    <T> T executeNow(Supplier<T> task);
 }

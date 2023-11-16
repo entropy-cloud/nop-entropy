@@ -24,7 +24,6 @@ import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 import io.nop.wf.core.store.beans.WorkflowActionRecordBean;
 import io.nop.wf.core.store.beans.WorkflowRecordBean;
-import io.nop.wf.core.store.beans.WorkflowStepLinkBean;
 import io.nop.wf.core.store.beans.WorkflowStepRecordBean;
 
 import java.util.ArrayList;
@@ -37,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -246,20 +246,27 @@ public class MockWorkflowStore implements IWorkflowStore {
     }
 
     @Override
-    public Collection<? extends IWorkflowStepRecord> getJoinWaitStepRecords(IWorkflowStepRecord stepRecord, String joinKey, Set<String> stepNames) {
+    public Collection<? extends IWorkflowStepRecord> getJoinWaitStepRecords(
+            IWorkflowStepRecord stepRecord, Function<IWorkflowStepRecord, String> joinGroupGetter,
+            Set<String> stepNames) {
+
         List<IWorkflowStepRecord> ret = new ArrayList<>();
 
         WorkflowRecordBean wfBean = workflowBeans.get(stepRecord.getWfId());
         String joinGroup = stepRecord.getJoinGroup();
+
         for (WorkflowStepRecordBean step : wfBean.getSteps()) {
+            if(step == stepRecord)
+                continue;
+
             if (step.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
                 continue;
 
             if (!stepNames.contains(step.getStepName()))
                 continue;
 
-            String waitJoinGroup = step.getJoinGroup();
-            if (Objects.equals(joinGroup, waitJoinGroup)) {
+            String stepJoinGroup = joinGroupGetter.apply(step);
+            if (Objects.equals(joinGroup, stepJoinGroup)) {
                 ret.add(step);
             }
         }
@@ -313,38 +320,30 @@ public class MockWorkflowStore implements IWorkflowStore {
     }
 
     @Override
-    public IWorkflowStepRecord getNextWaitingStepRecord(IWorkflowStepRecord stepRecord, String joinKey, String stepName, IWfActor actor) {
-        String joinGroup = stepRecord.getJoinGroup();
-
+    public IWorkflowStepRecord getNextJoinStepRecord(IWorkflowStepRecord stepRecord, String joinGroup,
+                                                     String stepName, IWfActor actor) {
         WorkflowStepRecordBean wfStep = (WorkflowStepRecordBean) stepRecord;
-        if (wfStep.getNextStepLinks() != null) {
-            for (WorkflowStepLinkBean link : wfStep.getNextStepLinks()) {
-                IWorkflowStepRecord next = stepBeans.get(link.getNextStepId());
-                if (next == null)
-                    continue;
+        WorkflowRecordBean wfRecord = this.workflowBeans.get(wfStep.getWfId());
 
-                if (next.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
-                    continue;
+        for (IWorkflowStepRecord prev : wfRecord.getSteps()) {
+            if (prev.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
+                continue;
 
-                if (next.getStepName().equals(stepName)) {
-//                    String joinValue = next.getJoinValue(joinKey);
-//                    if (Objects.equals(curJoinValue, joinValue)) {
-//                        return next;
-//                    }
-                }
+            if (prev.getStepName().equals(stepName)) {
+                if (Objects.equals(joinGroup, prev.getJoinGroup()))
+                    return prev;
             }
         }
-
         return null;
     }
 
     @Override
     public Set<String> getOnSignals(IWorkflowRecord wfRecord) {
-        return null;
+        return ((WorkflowRecordBean) wfRecord).getSignals();
     }
 
     @Override
     public void saveOnSignals(IWorkflowRecord wfRecord, Set<String> signals) {
-
+        ((WorkflowRecordBean) wfRecord).setSignals(signals);
     }
 }
