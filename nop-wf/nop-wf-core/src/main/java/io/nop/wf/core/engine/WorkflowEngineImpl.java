@@ -264,7 +264,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
                 // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
                 if (step.isWaiting()) {
-                    wfRt.continueExecute(() -> checkJoinStep(step, wfRt));
+                    wfRt.delayExecute(() -> checkJoinStep(step, wfRt));
                 }
                 return;
             }
@@ -502,7 +502,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         killSteps(wfRt);
 
         wfRt.markEnd();
-        wfRt.continueExecute(() -> {
+        wfRt.delayExecute(() -> {
             doEndWorkflow(NopWfCoreConstants.WF_STATUS_KILLED, wfRt);
         });
 
@@ -584,7 +584,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     void runContinuation(WfRuntime wfRt) {
-        wfRt.continueExecute(() -> {
+        wfRt.delayExecute(() -> {
             checkEnd(wfRt);
         });
     }

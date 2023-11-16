@@ -37,7 +37,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     private IWorkflowVarSet globalVars;
     private IWorkflowVarSet outputVars;
 
-    private Deque<Runnable> continuations = new ArrayDeque<>();
+    private Deque<Runnable> commandQueue = new ArrayDeque<>();
 
     /**
      * 是否正在执行过程中。如果是，则待做的工作放到continuations中等待后续执行
@@ -60,7 +60,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
-    public void continueExecute(Runnable task) {
+    public void delayExecute(Runnable task) {
         doExecute(task);
     }
 
@@ -236,12 +236,12 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     private void doExecute(Runnable task) {
-        continuations.add(task);
+        commandQueue.add(task);
         if (!executing) {
             this.executing = true;
             try {
                 do {
-                    Runnable command = this.continuations.poll();
+                    Runnable command = this.commandQueue.poll();
                     if (command == null)
                         break;
 

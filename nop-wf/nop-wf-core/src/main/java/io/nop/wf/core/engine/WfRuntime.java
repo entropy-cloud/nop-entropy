@@ -89,8 +89,8 @@ public class WfRuntime implements IWfRuntime {
      * @param command the runnable task
      */
     @Override
-    public void continueExecute(Runnable command) {
-        wf.continueExecute(command);
+    public void delayExecute(Runnable command) {
+        wf.delayExecute(command);
     }
 
     @Override

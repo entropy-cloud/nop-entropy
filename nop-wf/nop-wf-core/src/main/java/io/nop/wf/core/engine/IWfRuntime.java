@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 public interface IWfRuntime extends IEvalContext {
-    void continueExecute(Runnable command);
+    void delayExecute(Runnable command);
 
     Object getValue(String name);
 
