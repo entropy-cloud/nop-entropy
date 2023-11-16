@@ -314,6 +314,23 @@
                         </execution>
 
                         <execution>
+                            <id>precompile2</id>
+                            <phase>generate-sources</phase>
+                            <goals>
+                                <goal>java</goal>
+                            </goals>
+                            <configuration>
+                                <arguments>
+                                    <argument>${project.basedir}</argument>
+                                    <argument>precompile2</argument>
+                                </arguments>
+
+                                <addResourcesToClasspath>true</addResourcesToClasspath>
+                                <addOutputToClasspath>true</addOutputToClasspath>
+                            </configuration>
+                        </execution>
+
+                        <execution>
                             <id>aop</id>
                             <phase>compile</phase>
                             <goals>
