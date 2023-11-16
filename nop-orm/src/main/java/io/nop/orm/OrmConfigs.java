@@ -58,5 +58,8 @@ public interface OrmConfigs {
     @Description("dao资源文件检查数据库实体的间隔时间，单位为毫秒")
     IConfigReference<Long> CFG_DAO_RESOURCE_CHECK_INTERVAL =
             varRef(s_loc,"nop.orm.dao-resource-check-interval", Long.class, 5000L);
+    @Description("OrmInterceptor模型缓存是否需要支持动态加载")
+    IConfigReference<Boolean> CFG_ORM_INTERCEPTOR_CACHE_CHECK_CHANGE =
+            varRef(s_loc,"nop.orm.interceptor-cache-check-change", Boolean.class, true);
 
 }

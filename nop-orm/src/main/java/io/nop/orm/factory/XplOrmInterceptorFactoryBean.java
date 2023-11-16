@@ -12,15 +12,17 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.cache.ResourceCacheEntry;
 import io.nop.orm.IOrmInterceptor;
+import io.nop.orm.OrmConfigs;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.interceptor.XplOrmInterceptor;
 import io.nop.orm.model.interceptor.OrmInterceptorActionModel;
 import io.nop.orm.model.interceptor.OrmInterceptorEntityModel;
 import io.nop.orm.model.interceptor.OrmInterceptorModel;
 import io.nop.xlang.xdsl.DslModelParser;
-
 import jakarta.annotation.PostConstruct;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,11 +31,9 @@ import java.util.stream.Collectors;
 
 public class XplOrmInterceptorFactoryBean {
 
-    private XplOrmInterceptor interceptor;
+    private final ResourceCacheEntry<XplOrmInterceptor> ormInterceptorCache = new ResourceCacheEntry<>("orm-interceptor-cache");
 
-    @PostConstruct
-    public void init() {
-
+    private XplOrmInterceptor loadInterceptor(String cacheName) {
         // event -> entityName -> actions
         Map<String, Map<String, List<OrmInterceptorActionModel>>> allActions = new HashMap<>();
 
@@ -56,7 +56,7 @@ public class XplOrmInterceptorFactoryBean {
             }
         });
 
-        interceptor = new XplOrmInterceptor();
+        XplOrmInterceptor interceptor = new XplOrmInterceptor();
 
         for (Map.Entry<String, Map<String, List<OrmInterceptorActionModel>>> mapEntry : allActions.entrySet()) {
             Map<String, List<OrmInterceptorActionModel>> map = mapEntry.getValue();
@@ -66,13 +66,20 @@ public class XplOrmInterceptorFactoryBean {
                 List<OrmInterceptorActionModel> list = entry.getValue();
                 list.sort(OrderedComparator.instance());
 
-                actions.put(entry.getKey(), list.stream().map(m -> m.getSource()).collect(Collectors.toList()));
+                actions.put(entry.getKey(), list.stream().map(OrmInterceptorActionModel::getSource).collect(Collectors.toList()));
             }
             interceptor.setActions(mapEntry.getKey(), actions);
         }
+
+        return interceptor;
+    }
+
+    @PostConstruct
+    public void init() {
+        getObject();
     }
 
     public IOrmInterceptor getObject() {
-        return interceptor;
+        return ormInterceptorCache.getObject(OrmConfigs.CFG_ORM_INTERCEPTOR_CACHE_CHECK_CHANGE.get(), this::loadInterceptor);
     }
 }
