@@ -8,10 +8,12 @@
 package io.nop.codegen.task;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopBreakException;
 import io.nop.api.core.util.LogLevel;
 import io.nop.codegen.CodeGenConstants;
 import io.nop.codegen.XCodeGenerator;
 import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConfigs;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
@@ -148,6 +150,9 @@ public class CodeGenTask {
 
         CodeGenTask task = new CodeGenTask();
         task.setLogLevel(logLevel);
+
+        if(StringHelper.isEmpty(args[0]))
+            throw new IllegalArgumentException("current project path is not provided");
 
         File projectPath = new File(args[0]);
 

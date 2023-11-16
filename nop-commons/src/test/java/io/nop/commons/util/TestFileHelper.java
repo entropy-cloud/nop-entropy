@@ -17,6 +17,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFileHelper {
+
+    @Test
+    public void testCurrentPath(){
+        File file = new File("","precompile");
+        System.out.println(file.getAbsolutePath());
+
+        File file2 = new File(".","precompile");
+        System.out.println(file2.getAbsolutePath());
+    }
+
     @Test
     public void testPath() throws Exception {
         if (PlatformEnv.isWindows()) {
