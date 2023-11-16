@@ -9,17 +9,11 @@ package io.nop.auth.service;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
-import io.nop.api.core.annotations.autotest.NopTestProperty;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.LoginApi;
-import io.nop.auth.api.messages.AccessTokenRequest;
-import io.nop.auth.api.messages.LoginRequest;
-import io.nop.auth.api.messages.LoginResult;
-import io.nop.auth.api.messages.LoginUserInfo;
-import io.nop.auth.api.messages.LogoutRequest;
-import io.nop.auth.api.messages.RefreshTokenRequest;
+import io.nop.auth.api.messages.*;
 import io.nop.auth.service.audit.AuditServiceImpl;
 import io.nop.autotest.junit.EnableVariants;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -28,15 +22,15 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.graphql.core.rpc.RpcServiceOnGraphQL;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 
-import jakarta.inject.Inject;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@NopTestConfig(initDatabaseSchema = true,localDb = true, disableSnapshot = false)
+@NopTestConfig(initDatabaseSchema = true, localDb = true, disableSnapshot = false)
 public class TestLoginApi extends JunitAutoTestCase {
 
     @Inject
@@ -76,9 +70,9 @@ public class TestLoginApi extends JunitAutoTestCase {
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 1000));
     }
 
-    void createTestUser(){
+    void createTestUser() {
         IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.mutation, "NopAuthUser__save",
-                input("request-createUser.json5",ApiRequest.class));
+                input("request-createUser.json5", ApiRequest.class));
         FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
     }
 

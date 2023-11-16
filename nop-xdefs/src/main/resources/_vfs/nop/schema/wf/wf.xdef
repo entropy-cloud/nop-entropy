@@ -164,10 +164,6 @@
           @appState 进入步骤时将record的appState设置为特定值
           @specialType 可视化设计器识别的分类标记。每一种specialType对应设计器中的一种图标。
           @independent 正常情况下整个流程结束时所有正在运行的步骤都会被强制kill，而如果标记为independent，则可以继续保持运行状态。
-          @joinTargetStep 对应于某个join步骤的name, 而joinValueExpr则指定join时的分组条件。
-            join步骤缺省会等待所有前置步骤结束。如果指定了joinValueExpr, 则joinValueExpr相同的步骤会被认为是一组。
-            例如上游步骤A, 下游join步骤为B。A上标记joinTargetStep="B",
-           joinValueExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
         -->
         <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
               internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
@@ -178,8 +174,6 @@
 
             <!-- 如果不自动迁移，则必须有assignment -->
             <assignment xdef:ref="assignment.xdef"/>
-
-            <joinValueExpr xdef:value="xpl"/>
 
             <ref-actions xdef:body-type="list" xdef:key-attr="name">
                 <ref-action name="!string" xdef:name="WfRefActionModel"/>
@@ -223,6 +217,14 @@
         -->
         <join name="!string" xdef:ref="WfStepModel" joinType="enum:io.nop.wf.core.model.WfJoinType"
               waitStepNames="csv-set" xdef:name="WfJoinStepModel">
+            <!--
+            joinGroupExpr指定join时的分组条件。
+            join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。
+            例如上游步骤A, 下游join步骤为B, 在步骤B中设置了joinGroupExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，
+            会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
+            -->
+            <joinGroupExpr xdef:value="xpl"/>
+
             <!-- 是否当前可以激活 -->
             <may-activated xdef:value="xpl-predicate"/>
         </join>

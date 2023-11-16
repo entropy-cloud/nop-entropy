@@ -21,21 +21,14 @@ import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.ResourceWorkflowModelStore;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Disabled
 public class TestWorkflowEngine extends BaseTestCase {
@@ -265,12 +258,11 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         invokeAction(ysh1, "sp", "ysp", "user", "1", context);
         IWorkflowStep ysp = workflow.getLatestStepByName("ysp");
-        assertEquals(10, ysp.getRecord().getStatus());
+        assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, ysp.getRecord().getStatus());
         invokeAction(ysh2, "sp", "ysp", "user", "2", context);
-        // IWorkflowStep ysp =  workflow.getLatestStepByDefId("ysp");
-        //ysp.invokeAction(ysp.newAction("sp1"),XLang.newEvalScope());
-        //assertTrue(workflow.isEnded());
 
+        assertTrue(workflow.getLatestStepByName("ysp").isActivated());
+        assertTrue(!workflow.isEnded());
     }
 
     @Test

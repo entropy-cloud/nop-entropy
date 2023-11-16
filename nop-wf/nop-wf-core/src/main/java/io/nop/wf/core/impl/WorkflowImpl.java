@@ -22,18 +22,9 @@ import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
-import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_INSTANCE_NOT_EXISTS;
+import static io.nop.wf.core.NopWfCoreErrors.*;
 
 public class WorkflowImpl implements IWorkflowImplementor {
     private final IWorkflowEngine wfEngine;
@@ -46,6 +37,13 @@ public class WorkflowImpl implements IWorkflowImplementor {
     private IWorkflowVarSet globalVars;
     private IWorkflowVarSet outputVars;
 
+    private Deque<Runnable> continuations = new ArrayDeque<>();
+
+    /**
+     * 是否正在执行过程中。如果是，则待做的工作放到continuations中等待后续执行
+     */
+    private boolean executing = false;
+
     public WorkflowImpl(IWorkflowEngine wfEngine,
                         IWorkflowStore wfStore,
                         IWorkflowModel wfModel,
@@ -54,6 +52,16 @@ public class WorkflowImpl implements IWorkflowImplementor {
         this.wfStore = wfStore;
         this.wfModel = wfModel;
         this.wfRecord = wfRecord;
+    }
+
+    public String toString() {
+        return "Workflow[wfId=" + getWfId() + ",wfName=" + getWfName()
+                + ",wfVersion=" + getWfVersion() + ",wfStatus=" + getWfStatus() + "]";
+    }
+
+    @Override
+    public void continueExecute(Runnable task) {
+        doExecute(task);
     }
 
     @Override
@@ -192,7 +200,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
-    public WorkflowTransitionTarget getJumpToTarget(String stepDefId, IServiceContext ctx) {
+    public WorkflowTransitionTarget getJumpToTarget(String stepName, IServiceContext ctx) {
         return null;
     }
 
@@ -227,9 +235,29 @@ public class WorkflowImpl implements IWorkflowImplementor {
         return outputVars;
     }
 
+    private void doExecute(Runnable task) {
+        continuations.add(task);
+        if (!executing) {
+            this.executing = true;
+            try {
+                do {
+                    Runnable command = this.continuations.poll();
+                    if (command == null)
+                        break;
+
+                    command.run();
+                } while (true);
+            } finally {
+                this.executing = false;
+            }
+        }
+    }
+
     @Override
     public void save(IServiceContext ctx) {
-        wfEngine.save(this, ctx);
+        doExecute(() -> {
+            wfEngine.save(this, ctx);
+        });
     }
 
     @Override
@@ -239,27 +267,37 @@ public class WorkflowImpl implements IWorkflowImplementor {
 
     @Override
     public void start(Map<String, Object> args, IServiceContext ctx) {
-        wfEngine.start(this, args, ctx);
+        doExecute(() -> {
+            wfEngine.start(this, args, ctx);
+        });
     }
 
     @Override
     public void suspend(Map<String, Object> args, IServiceContext ctx) {
-        wfEngine.suspend(this, args, ctx);
+        doExecute(() -> {
+            wfEngine.suspend(this, args, ctx);
+        });
     }
 
     @Override
     public void resume(Map<String, Object> args, IServiceContext ctx) {
-        wfEngine.resume(this, args, ctx);
+        doExecute(() -> {
+            wfEngine.resume(this, args, ctx);
+        });
     }
 
     @Override
     public void remove(Map<String, Object> args, IServiceContext ctx) {
-        wfEngine.remove(this, args, ctx);
+        doExecute(() -> {
+            wfEngine.remove(this, args, ctx);
+        });
     }
 
     @Override
     public void kill(Map<String, Object> args, IServiceContext ctx) {
-        wfEngine.kill(this, args, ctx);
+        doExecute(() -> {
+            wfEngine.kill(this, args, ctx);
+        });
     }
 
     @Override
@@ -267,12 +305,16 @@ public class WorkflowImpl implements IWorkflowImplementor {
         if (CollectionHelper.isEmpty(signals))
             return;
 
-        wfEngine.turnSignalOn(this, signals, ctx);
+        doExecute(() -> {
+            wfEngine.turnSignalOn(this, signals, ctx);
+        });
     }
 
     @Override
     public void turnSignalOff(Set<String> signals, IServiceContext ctx) {
-        wfEngine.turnSignalOff(this, signals, ctx);
+        doExecute(() -> {
+            wfEngine.turnSignalOff(this, signals, ctx);
+        });
     }
 
     @Override

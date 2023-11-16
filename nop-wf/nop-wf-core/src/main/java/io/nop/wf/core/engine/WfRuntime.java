@@ -10,9 +10,7 @@ package io.nop.wf.core.engine;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.concurrent.executor.ContinuationExecutor;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -27,25 +25,17 @@ import io.nop.wf.core.model.WfListenerModel;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executor;
+import java.util.*;
 
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
+import static io.nop.wf.core.NopWfCoreErrors.*;
 
 /**
  * 每次调用工作流对象上的action时所创建的运行时对象。在EL表达式中可以通过wfRt变量来访问该运行时对象
  */
-public class WfRuntime implements IEvalContext, Executor {
+public class WfRuntime implements IWfRuntime {
 
-    static final ThreadLocal<Map<IWorkflowImplementor, ContinuationExecutor.Continuation>> s_continuation
-            = ThreadLocal.withInitial(HashMap::new);
+//    static final ThreadLocal<Map<IWorkflowImplementor, ContinuationExecutor.Continuation>> s_continuation
+//            = ThreadLocal.withInitial(HashMap::new);
 
     private final IEvalScope scope;
     private final IServiceContext serviceContext;
@@ -73,12 +63,12 @@ public class WfRuntime implements IEvalContext, Executor {
 
     private Throwable exception;
 
-    class WfContinuation extends ContinuationExecutor.Continuation {
-        @Override
-        protected void onLoopFinished() {
-            s_continuation.get().remove(wf);
-        }
-    }
+//    class WfContinuation extends ContinuationExecutor.Continuation {
+//        @Override
+//        protected void onLoopFinished() {
+//            s_continuation.get().remove(wf);
+//        }
+//    }
 
     public WfRuntime(IWorkflowImplementor wf, IServiceContext serviceContext) {
         this.serviceContext = serviceContext;
@@ -99,20 +89,16 @@ public class WfRuntime implements IEvalContext, Executor {
      * @param command the runnable task
      */
     @Override
-    public void execute(Runnable command) {
-        Map<IWorkflowImplementor, ContinuationExecutor.Continuation> conts = s_continuation.get();
-        ContinuationExecutor.Continuation cont = conts.get(wf);
-        if (cont == null) {
-            cont = new WfContinuation();
-            conts.put(wf, cont);
-        }
-        cont.submit(command);
+    public void continueExecute(Runnable command) {
+        wf.continueExecute(command);
     }
 
+    @Override
     public Object getValue(String name) {
         return scope.getLocalValue(name);
     }
 
+    @Override
     public void setValue(String name, Object value) {
         scope.setLocalValue(name, value);
     }
@@ -126,6 +112,7 @@ public class WfRuntime implements IEvalContext, Executor {
         }
     }
 
+    @Override
     public List<IWfActor> getSelectedActors() {
         if (selectedActors == null) {
             selectedActors = resolveActors(getValue(NopWfCoreConstants.VAR_SELECTED_ACTORS));
@@ -145,6 +132,7 @@ public class WfRuntime implements IEvalContext, Executor {
         return ret;
     }
 
+    @Override
     public void setSelectedActors(List<IWfActor> selectedActors) {
         this.selectedActors = selectedActors;
     }
@@ -169,30 +157,37 @@ public class WfRuntime implements IEvalContext, Executor {
         return ret;
     }
 
+    @Override
     public void setSelectedStepActors(Map<String, List<IWfActor>> selectedStepActors) {
         this.selectedStepActors = selectedStepActors;
     }
 
+    @Override
     public Set<String> getRejectSteps() {
         return rejectSteps;
     }
 
+    @Override
     public void setRejectSteps(Set<String> rejectSteps) {
         this.rejectSteps = rejectSteps;
     }
 
+    @Override
     public Set<String> getTargetSteps() {
         return targetSteps;
     }
 
+    @Override
     public void setTargetSteps(Set<String> targetSteps) {
         this.targetSteps = targetSteps;
     }
 
+    @Override
     public Set<String> getTargetCases() {
         return targetCases;
     }
 
+    @Override
     public void setTargetCases(Set<String> targetCases) {
         this.targetCases = targetCases;
     }
@@ -202,24 +197,29 @@ public class WfRuntime implements IEvalContext, Executor {
         return scope;
     }
 
+    @Override
     public IServiceContext getServiceContext() {
         return serviceContext;
     }
 
+    @Override
     public IWorkflowImplementor getWf() {
         return wf;
     }
 
+    @Override
     public WfModel getWfModel() {
         return (WfModel) wf.getModel();
     }
 
+    @Override
     public NopException newError(ErrorCode errorCode) {
         NopException e = new NopException(errorCode).param(ARG_WF_NAME, wf.getWfName())
                 .param(ARG_WF_VERSION, wf.getWfVersion()).param(ARG_WF_ID, wf.getWfId());
         return e;
     }
 
+    @Override
     public IWfActor getCaller() {
         String userId = serviceContext.getContext().getUserId();
         if (userId == null)
@@ -227,6 +227,7 @@ public class WfRuntime implements IEvalContext, Executor {
         return wf.resolveUser(userId);
     }
 
+    @Override
     public List<IWfActor> getSelectedActors(String targetStep) {
         if (targetStep == null)
             return getSelectedActors();
@@ -238,14 +239,17 @@ public class WfRuntime implements IEvalContext, Executor {
         return actors;
     }
 
+    @Override
     public List<IWfActor> getCurrentActors() {
         return currentActors;
     }
 
+    @Override
     public void setCurrentActors(List<IWfActor> currentActors) {
         this.currentActors = currentActors;
     }
 
+    @Override
     public IWorkflowStepImplementor getCurrentStep() {
         return currentStep;
     }
@@ -254,6 +258,7 @@ public class WfRuntime implements IEvalContext, Executor {
         this.currentStep = currentStep;
     }
 
+    @Override
     public void triggerEvent(String event) {
         WfModel wfModel = (WfModel) wf.getModel();
         List<WfListenerModel> listeners = wfModel.getListeners();
@@ -269,6 +274,11 @@ public class WfRuntime implements IEvalContext, Executor {
         }
     }
 
+    private void doExecute(Runnable task){
+
+    }
+
+    @Override
     public void saveWfRecord(int status) {
         wf.getRecord().transitToStatus(status);
 
@@ -277,6 +287,7 @@ public class WfRuntime implements IEvalContext, Executor {
         triggerEvent(NopWfCoreConstants.EVENT_AFTER_SAVE);
     }
 
+    @Override
     public IWorkflowActionRecord getActionRecord() {
         return actionRecord;
     }
@@ -285,6 +296,7 @@ public class WfRuntime implements IEvalContext, Executor {
         this.actionRecord = actionRecord;
     }
 
+    @Override
     public Throwable getException() {
         return exception;
     }
@@ -293,6 +305,7 @@ public class WfRuntime implements IEvalContext, Executor {
         this.exception = exception;
     }
 
+    @Override
     public void markEnd() {
         wf.getRecord().markEnd();
     }

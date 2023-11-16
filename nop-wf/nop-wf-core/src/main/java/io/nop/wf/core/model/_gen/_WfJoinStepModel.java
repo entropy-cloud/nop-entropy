@@ -7,12 +7,22 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [224:10:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [218:10:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
 public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel {
+    
+    /**
+     *  
+     * xml name: joinGroupExpr
+     * joinGroupExpr指定join时的分组条件。
+     * join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。
+     * 例如上游步骤A, 下游join步骤为B, 在步骤B中设置了joinGroupExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，
+     * 会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
+     */
+    private io.nop.core.lang.eval.IEvalAction _joinGroupExpr ;
     
     /**
      *  
@@ -35,6 +45,28 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
      * 
      */
     private java.util.Set<java.lang.String> _waitStepNames ;
+    
+    /**
+     * 
+     * xml name: joinGroupExpr
+     *  joinGroupExpr指定join时的分组条件。
+     * join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。
+     * 例如上游步骤A, 下游join步骤为B, 在步骤B中设置了joinGroupExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，
+     * 会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getJoinGroupExpr(){
+      return _joinGroupExpr;
+    }
+
+    
+    public void setJoinGroupExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._joinGroupExpr = value;
+           
+    }
+
     
     /**
      * 
@@ -107,6 +139,7 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.put("joinGroupExpr",this.getJoinGroupExpr());
         out.put("joinType",this.getJoinType());
         out.put("mayActivated",this.getMayActivated());
         out.put("waitStepNames",this.getWaitStepNames());

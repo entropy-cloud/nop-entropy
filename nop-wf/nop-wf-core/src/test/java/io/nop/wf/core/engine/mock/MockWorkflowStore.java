@@ -250,7 +250,7 @@ public class MockWorkflowStore implements IWorkflowStore {
         List<IWorkflowStepRecord> ret = new ArrayList<>();
 
         WorkflowRecordBean wfBean = workflowBeans.get(stepRecord.getWfId());
-        String joinValue = stepRecord.getJoinValue(joinKey);
+        String joinGroup = stepRecord.getJoinGroup();
         for (WorkflowStepRecordBean step : wfBean.getSteps()) {
             if (step.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
                 continue;
@@ -258,8 +258,8 @@ public class MockWorkflowStore implements IWorkflowStore {
             if (!stepNames.contains(step.getStepName()))
                 continue;
 
-            String waitJoinValue = step.getJoinValue(joinKey);
-            if (Objects.equals(joinValue, waitJoinValue)) {
+            String waitJoinGroup = step.getJoinGroup();
+            if (Objects.equals(joinGroup, waitJoinGroup)) {
                 ret.add(step);
             }
         }
@@ -314,7 +314,7 @@ public class MockWorkflowStore implements IWorkflowStore {
 
     @Override
     public IWorkflowStepRecord getNextWaitingStepRecord(IWorkflowStepRecord stepRecord, String joinKey, String stepName, IWfActor actor) {
-        String curJoinValue = stepRecord.getJoinValue(joinKey);
+        String joinGroup = stepRecord.getJoinGroup();
 
         WorkflowStepRecordBean wfStep = (WorkflowStepRecordBean) stepRecord;
         if (wfStep.getNextStepLinks() != null) {
@@ -327,10 +327,10 @@ public class MockWorkflowStore implements IWorkflowStore {
                     continue;
 
                 if (next.getStepName().equals(stepName)) {
-                    String joinValue = next.getJoinValue(joinKey);
-                    if (Objects.equals(curJoinValue, joinValue)) {
-                        return next;
-                    }
+//                    String joinValue = next.getJoinValue(joinKey);
+//                    if (Objects.equals(curJoinValue, joinValue)) {
+//                        return next;
+//                    }
                 }
             }
         }

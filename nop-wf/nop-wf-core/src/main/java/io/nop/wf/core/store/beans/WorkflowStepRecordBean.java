@@ -50,6 +50,8 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private String lastAction;
     private Timestamp finishTime;
+
+    private String joinGroup;
     private String appState;
 
     private String subWfName;
@@ -98,15 +100,14 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
         setStatus(status);
     }
 
-
     @Override
-    public void setJoinValue(String targetStep, String joinValue) {
-
+    public String getJoinGroup() {
+        return joinGroup;
     }
 
     @Override
-    public String getJoinValue(String targetStep) {
-        return null;
+    public void setJoinGroup(String joinGroup) {
+        this.joinGroup = joinGroup;
     }
 
     public void setWfRecord(IWorkflowRecord wfRecord) {

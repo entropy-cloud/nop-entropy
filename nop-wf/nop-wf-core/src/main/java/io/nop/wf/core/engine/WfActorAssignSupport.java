@@ -214,5 +214,4 @@ public class WfActorAssignSupport {
 
         return (IWfActor) value;
     }
-
 }

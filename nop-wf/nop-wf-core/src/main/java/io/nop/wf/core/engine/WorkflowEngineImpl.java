@@ -263,8 +263,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 }
 
                 // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
-                if (step.isWaiting() && stepModel.getJoinType() == WfJoinType.and) {
-                    wfRt.execute(() -> checkJoinStep(step, wfRt));
+                if (step.isWaiting()) {
+                    wfRt.continueExecute(() -> checkJoinStep(step, wfRt));
                 }
                 return;
             }
@@ -274,10 +274,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             owner = getOwner(stepModel.getAssignment(), actor, wfRt);
 
         IWorkflowStepRecord stepRecord = wf.getStore().newStepRecord(wf.getRecord(), stepModel);
-        if (stepModel.getJoinTargetStep() != null && stepModel.getJoinValueExpr() != null) {
-            Object value = runXpl(stepModel.getJoinValueExpr(), wfRt);
-            stepRecord.setJoinValue(stepModel.getJoinTargetStep(), StringHelper.toString(value, ""));
-        }
+
 
         IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
         stepRecord.setActor(actor);
@@ -505,7 +502,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         killSteps(wfRt);
 
         wfRt.markEnd();
-        wfRt.execute(() -> {
+        wfRt.continueExecute(() -> {
             doEndWorkflow(NopWfCoreConstants.WF_STATUS_KILLED, wfRt);
         });
 
@@ -575,7 +572,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     void _killStep(IWorkflowStepImplementor step, WfRuntime wfRt) {
-        LOG.info("wf.kill_step:step={}", step);
+        LOG.info("nop.wf.kill-step:step={}", step);
 
         IWfActor caller = wfRt.getCaller();
         if (caller != null) {
@@ -587,7 +584,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     void runContinuation(WfRuntime wfRt) {
-        wfRt.execute(() -> {
+        wfRt.continueExecute(() -> {
             checkEnd(wfRt);
         });
     }
@@ -852,14 +849,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         switch (toM.getType()) {
             case TO_EMPTY: {
-                LOG.debug("wf.transition_to_empty:step={},action={}", currentStep, actionName);
+                LOG.debug("nop.wf.transition-to-empty:step={},action={}", currentStep, actionName);
                 runXpl(toM.getBeforeTransition(), wfRt);
                 wfStore.addNextSpecialStep(currentStep.getRecord(), actionName, NopWfCoreConstants.STEP_ID_EMPTY);
                 runXpl(toM.getAfterTransition(), wfRt);
                 return;
             }
             case TO_END: {
-                LOG.debug("wf.transition_to_end:step={},action={}", currentStep, actionName);
+                LOG.debug("nop.wf.transition-to-end:step={},action={}", currentStep, actionName);
                 runXpl(toM.getBeforeTransition(), wfRt);
                 wfStore.addNextSpecialStep(currentStep.getRecord(), actionName, NopWfCoreConstants.STEP_ID_END);
                 wfRt.markEnd();// 延迟结束工作流实例
@@ -867,7 +864,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 return;
             }
             case TO_ASSIGNED: {
-                LOG.debug("wf.transition_to_assigned:step={},actionName={},targetSteps={}", currentStep, actionName,
+                LOG.debug("nop.wf.transition-to-assigned:step={},actionName={},targetSteps={}", currentStep, actionName,
                         targetSteps);
                 if (targetSteps != null) {
                     for (String targetStep : targetSteps) {
@@ -878,7 +875,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             }
             case TO_STEP:
                 String stepName = toM.getStepName();
-                LOG.debug("wf.transition_to_step:step={},actionName={},stepName={}", currentStep, actionName, stepName);
+                LOG.debug("nop.wf.transition-to-step:step={},actionName={},stepName={}", currentStep, actionName, stepName);
                 transitionToStep(currentStep, actionName, toM, wfRt);
                 break;
             default:

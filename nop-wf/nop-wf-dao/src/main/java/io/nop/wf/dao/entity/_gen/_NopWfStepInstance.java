@@ -136,9 +136,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_priority = "priority";
     public static final int PROP_ID_priority = 29;
     
-    /* 汇聚路径: JOIN_TRACE VARCHAR */
-    public static final String PROP_NAME_joinTrace = "joinTrace";
-    public static final int PROP_ID_joinTrace = 30;
+    /* 汇聚分组: JOIN_GROUP VARCHAR */
+    public static final String PROP_NAME_joinGroup = "joinGroup";
+    public static final int PROP_ID_joinGroup = 30;
     
     /* 标签: TAG_SET VARCHAR */
     public static final String PROP_NAME_tagSet = "tagSet";
@@ -273,8 +273,8 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
           PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
       
-          PROP_ID_TO_NAME[PROP_ID_joinTrace] = PROP_NAME_joinTrace;
-          PROP_NAME_TO_ID.put(PROP_NAME_joinTrace, PROP_ID_joinTrace);
+          PROP_ID_TO_NAME[PROP_ID_joinGroup] = PROP_NAME_joinGroup;
+          PROP_NAME_TO_ID.put(PROP_NAME_joinGroup, PROP_ID_joinGroup);
       
           PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
           PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
@@ -387,8 +387,8 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /* 优先级: PRIORITY */
     private java.lang.Integer _priority;
     
-    /* 汇聚路径: JOIN_TRACE */
-    private java.lang.String _joinTrace;
+    /* 汇聚分组: JOIN_GROUP */
+    private java.lang.String _joinGroup;
     
     /* 标签: TAG_SET */
     private java.lang.String _tagSet;
@@ -568,8 +568,8 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_priority:
                return getPriority();
         
-            case PROP_ID_joinTrace:
-               return getJoinTrace();
+            case PROP_ID_joinGroup:
+               return getJoinGroup();
         
             case PROP_ID_tagSet:
                return getTagSet();
@@ -893,13 +893,13 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_joinTrace:{
+            case PROP_ID_joinGroup:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_joinTrace));
+                       err-> newTypeConversionError(PROP_NAME_joinGroup));
                }
-               setJoinTrace(typedValue);
+               setJoinGroup(typedValue);
                break;
             }
         
@@ -1185,9 +1185,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_joinTrace:{
+            case PROP_ID_joinGroup:{
                onInitProp(propId);
-               this._joinTrace = (java.lang.String)value;
+               this._joinGroup = (java.lang.String)value;
                
                break;
             }
@@ -1799,20 +1799,20 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 汇聚路径: JOIN_TRACE
+     * 汇聚分组: JOIN_GROUP
      */
-    public java.lang.String getJoinTrace(){
-         onPropGet(PROP_ID_joinTrace);
-         return _joinTrace;
+    public java.lang.String getJoinGroup(){
+         onPropGet(PROP_ID_joinGroup);
+         return _joinGroup;
     }
 
     /**
-     * 汇聚路径: JOIN_TRACE
+     * 汇聚分组: JOIN_GROUP
      */
-    public void setJoinTrace(java.lang.String value){
-        if(onPropSet(PROP_ID_joinTrace,value)){
-            this._joinTrace = value;
-            internalClearRefs(PROP_ID_joinTrace);
+    public void setJoinGroup(java.lang.String value){
+        if(onPropSet(PROP_ID_joinGroup,value)){
+            this._joinGroup = value;
+            internalClearRefs(PROP_ID_joinGroup);
             
         }
     }

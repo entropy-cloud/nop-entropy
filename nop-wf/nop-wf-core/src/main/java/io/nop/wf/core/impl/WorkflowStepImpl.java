@@ -34,6 +34,10 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
         this.record = record;
     }
 
+    public String toString() {
+        return "WorkflowStep[stepId=" + getStepId() + ",stepName=" + getStepName() + ",stepStatus=" + getStepStatus() + "]";
+    }
+
     @Override
     public IWorkflowImplementor getWorkflow() {
         return wf;

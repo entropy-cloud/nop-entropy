@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [172:10:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [168:10:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -101,19 +101,9 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: joinTargetStep
-     * 对应于某个join步骤的name, 而joinValueExpr则指定join时的分组条件。
-     * join步骤缺省会等待所有前置步骤结束。如果指定了joinValueExpr, 则joinValueExpr相同的步骤会被认为是一组。
-     * 例如上游步骤A, 下游join步骤为B。A上标记joinTargetStep="B",
-     * joinValueExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
-     */
-    private java.lang.String _joinTargetStep ;
-    
-    /**
-     *  
-     * xml name: joinValueExpr
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _joinValueExpr ;
+    private java.lang.String _joinTargetStep ;
     
     /**
      *  
@@ -437,10 +427,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: joinTargetStep
-     *  对应于某个join步骤的name, 而joinValueExpr则指定join时的分组条件。
-     * join步骤缺省会等待所有前置步骤结束。如果指定了joinValueExpr, 则joinValueExpr相同的步骤会被认为是一组。
-     * 例如上游步骤A, 下游join步骤为B。A上标记joinTargetStep="B",
-     * joinValueExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
+     *  
      */
     
     public java.lang.String getJoinTargetStep(){
@@ -452,25 +439,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._joinTargetStep = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: joinValueExpr
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalAction getJoinValueExpr(){
-      return _joinValueExpr;
-    }
-
-    
-    public void setJoinValueExpr(io.nop.core.lang.eval.IEvalAction value){
-        checkAllowChange();
-        
-        this._joinValueExpr = value;
            
     }
 
@@ -780,7 +748,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("independent",this.isIndependent());
         out.put("internal",this.isInternal());
         out.put("joinTargetStep",this.getJoinTargetStep());
-        out.put("joinValueExpr",this.getJoinValueExpr());
         out.put("name",this.getName());
         out.put("onEnter",this.getOnEnter());
         out.put("onError",this.getOnError());

@@ -25,4 +25,6 @@ public interface IWorkflowImplementor extends IWorkflow {
     IWorkflowStepImplementor getStepByRecord(IWorkflowStepRecord stepRecord);
 
     List<? extends IWorkflowStepImplementor> getStepsByRecords(Collection<? extends IWorkflowStepRecord> stepRecords);
+
+    void continueExecute(Runnable command);
 }

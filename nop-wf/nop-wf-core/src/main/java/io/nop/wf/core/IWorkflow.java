@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 工作流对外暴露的核心接口。客户程序与工作流引擎的交互全部通过此接口进行
+ */
 public interface IWorkflow {
 
     /**
@@ -100,11 +103,11 @@ public interface IWorkflow {
     /**
      * 获取跳转到指定步骤时的actor设置
      *
-     * @param stepDefId 准备跳转到此步骤
-     * @param ctx       服务上下文
+     * @param stepName 准备跳转到此步骤
+     * @param ctx      服务上下文
      * @return 目标步骤的actor设置
      */
-    WorkflowTransitionTarget getJumpToTarget(String stepDefId, IServiceContext ctx);
+    WorkflowTransitionTarget getJumpToTarget(String stepName, IServiceContext ctx);
 
     String getBizObjName();
 

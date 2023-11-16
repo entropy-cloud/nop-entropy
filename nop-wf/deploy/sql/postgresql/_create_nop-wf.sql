@@ -138,7 +138,7 @@ CREATE TABLE nop_wf_step_instance(
   DUE_TIME TIMESTAMP  ,
   READ_TIME TIMESTAMP  ,
   PRIORITY INT4 NOT NULL ,
-  JOIN_TRACE VARCHAR(500)  ,
+  JOIN_GROUP VARCHAR(100)  ,
   TAG_SET VARCHAR(200)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -425,7 +425,7 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_step_instance.PRIORITY IS '优先级';
                     
-      COMMENT ON COLUMN nop_wf_step_instance.JOIN_TRACE IS '汇聚路径';
+      COMMENT ON COLUMN nop_wf_step_instance.JOIN_GROUP IS '汇聚分组';
                     
       COMMENT ON COLUMN nop_wf_step_instance.TAG_SET IS '标签';
                     

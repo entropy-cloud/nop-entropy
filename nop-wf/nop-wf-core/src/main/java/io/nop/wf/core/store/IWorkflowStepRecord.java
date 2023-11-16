@@ -57,9 +57,9 @@ public interface IWorkflowStepRecord {
 
     void setReadTime(Timestamp dateTime);
 
-    void setJoinValue(String targetStep, String joinValue);
+    String getJoinGroup();
 
-    String getJoinValue(String targetStep);
+    void setJoinGroup(String joinGroup);
 
     void setActor(IWfActor actor);
 

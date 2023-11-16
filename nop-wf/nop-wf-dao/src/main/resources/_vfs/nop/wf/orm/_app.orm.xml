@@ -262,8 +262,8 @@
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Read Time"/>
                 <column code="PRIORITY" displayName="优先级" mandatory="true" name="priority" propId="29" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Priority"/>
-                <column code="JOIN_TRACE" displayName="汇聚路径" name="joinTrace" precision="500" propId="30"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Join Trace" ui:show="X"/>
+                <column code="JOIN_GROUP" displayName="汇聚分组" name="joinGroup" precision="100" propId="30"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Join Group" ui:show="X"/>
                 <column code="TAG_SET" displayName="标签" name="tagSet" precision="200" propId="31" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Tags" ui:show="X"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="32"
