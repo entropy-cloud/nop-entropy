@@ -9,10 +9,10 @@ package io.nop.commons.util;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nonnull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -65,6 +65,14 @@ public class FileHelper {
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
+    }
+
+    public static boolean isEmptyDir(File dir) {
+        if (!dir.exists())
+            return true;
+
+        String[] names = dir.list();
+        return names == null || names.length == 0;
     }
 
     public static void writeBytes(File file, byte[] bytes) {

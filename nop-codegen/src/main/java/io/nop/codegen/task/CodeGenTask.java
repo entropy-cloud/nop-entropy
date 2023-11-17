@@ -8,7 +8,6 @@
 package io.nop.codegen.task;
 
 import io.nop.api.core.config.AppConfig;
-import io.nop.api.core.exceptions.NopBreakException;
 import io.nop.api.core.util.LogLevel;
 import io.nop.codegen.CodeGenConstants;
 import io.nop.codegen.XCodeGenerator;
@@ -151,7 +150,7 @@ public class CodeGenTask {
         CodeGenTask task = new CodeGenTask();
         task.setLogLevel(logLevel);
 
-        if(StringHelper.isEmpty(args[0]))
+        if (StringHelper.isEmpty(args[0]))
             throw new IllegalArgumentException("current project path is not provided");
 
         File projectPath = new File(args[0]);
@@ -168,7 +167,14 @@ public class CodeGenTask {
             if (args.length > 1) {
                 tplRoot = args[1];
             }
-            task.setTplRootPath(new File(projectPath, tplRoot));
+            File tplRootPath = new File(projectPath, tplRoot);
+            if (FileHelper.isEmptyDir(tplRootPath)) {
+                // 模板目录位空时自动跳过，没有必要执行
+                System.out.println("nop.skip-codegen=when-tpl-dir-is-empty;" + tplRootPath.getAbsolutePath());
+                return;
+            }
+
+            task.setTplRootPath(tplRootPath);
             boolean dryRun = isPropOn("dryRun");
             System.out.println(
                     "projectDir=" + projectPath.getAbsolutePath() + ",dryRun=" + dryRun + ",tplRoot=" + tplRoot);
