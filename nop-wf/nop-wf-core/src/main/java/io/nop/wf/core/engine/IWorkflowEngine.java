@@ -8,15 +8,11 @@
 package io.nop.wf.core.engine;
 
 import io.nop.core.context.IServiceContext;
-import io.nop.core.lang.eval.IEvalScope;
-import io.nop.wf.api.WfReference;
-import io.nop.wf.api.WfStepReference;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
 import io.nop.wf.core.model.IWorkflowActionModel;
-import jakarta.annotation.Nonnull;
 
 import java.util.List;
 import java.util.Map;
@@ -57,7 +53,7 @@ public interface IWorkflowEngine {
 
     void killStep(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 
-    boolean triggerTransition(IWorkflowStepImplementor step, IServiceContext ctx);
+    boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 
     List<? extends IWorkflowActionModel> getAllowedActions(IWorkflowStepImplementor step, IServiceContext ctx);
 
@@ -70,7 +66,4 @@ public interface IWorkflowEngine {
     void transitTo(IWorkflowStepImplementor step, String stepName, Map<String, Object> args, IServiceContext ctx);
 
     List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWorkflowStepImplementor step, IWfRuntime wfRt);
-
-    void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
-                          Map<String, Object> results, @Nonnull IEvalScope scope);
 }

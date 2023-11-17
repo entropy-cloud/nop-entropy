@@ -118,6 +118,7 @@ CREATE TABLE nop_wf_step_instance(
   SUB_WF_ID VARCHAR(32)  ,
   SUB_WF_NAME VARCHAR(200)  ,
   SUB_WF_VERSION INT8  ,
+  SUB_WF_RESULT_STATUS INT4  ,
   IS_READ BOOLEAN  ,
   ACTOR_TYPE VARCHAR(10)  ,
   ACTOR_ID VARCHAR(100)  ,
@@ -168,7 +169,6 @@ CREATE TABLE nop_wf_instance(
   PARENT_WF_VERSION INT8  ,
   PARENT_WF_ID VARCHAR(32)  ,
   PARENT_STEP_ID VARCHAR(200)  ,
-  SIGNAL_SET VARCHAR(2000)  ,
   STARTER_ID VARCHAR(50)  ,
   STARTER_NAME VARCHAR(50)  ,
   STARTER_DEPT_ID VARCHAR(50)  ,
@@ -386,6 +386,8 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_step_instance.SUB_WF_VERSION IS '子流程版本';
                     
+      COMMENT ON COLUMN nop_wf_step_instance.SUB_WF_RESULT_STATUS IS '子流程结果状态';
+                    
       COMMENT ON COLUMN nop_wf_step_instance.IS_READ IS '是否已读';
                     
       COMMENT ON COLUMN nop_wf_step_instance.ACTOR_TYPE IS '参与者类型';
@@ -479,8 +481,6 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_instance.PARENT_WF_ID IS '父流程ID';
                     
       COMMENT ON COLUMN nop_wf_instance.PARENT_STEP_ID IS '父流程步骤ID';
-                    
-      COMMENT ON COLUMN nop_wf_instance.SIGNAL_SET IS '信号集合';
                     
       COMMENT ON COLUMN nop_wf_instance.STARTER_ID IS '启动人ID';
                     

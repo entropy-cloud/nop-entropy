@@ -8,12 +8,13 @@
 package io.nop.wf.core.impl;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
 import io.nop.wf.core.IWorkflow;
+import io.nop.wf.core.IWorkflowCoordinator;
 import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.engine.IWorkflowEngine;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -21,8 +22,8 @@ import io.nop.wf.core.store.IWorkflowModelStore;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 import io.nop.wf.core.store.WfModelParser;
-
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 
 import java.util.Map;
@@ -34,6 +35,12 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     private IWorkflowStore workflowStore;
     private IWorkflowEngine workflowEngine;
     private IWorkflowModelStore workflowModelStore;
+
+    private IWorkflowCoordinator workflowCoordinator;
+
+    public void setWorkflowCoordinator(IWorkflowCoordinator workflowCoordinator) {
+        this.workflowCoordinator = workflowCoordinator;
+    }
 
     @Inject
     public void setWorkflowEngine(IWorkflowEngine workflowEngine) {
@@ -48,6 +55,12 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     @Inject
     public void setWorkflowModelStore(IWorkflowModelStore versionStore) {
         this.workflowModelStore = versionStore;
+    }
+
+    @PostConstruct
+    public void init() {
+        if (workflowCoordinator == null)
+            workflowCoordinator = new WorkflowCoordinatorImpl(this);
     }
 
     @Override
@@ -70,7 +83,7 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     public IWorkflow newWorkflow(String wfName, Long wfVersion) {
         IWorkflowModel wfModel = getWorkflowModel(wfName, wfVersion);
         IWorkflowRecord wfRecord = workflowStore.newWfRecord(wfModel);
-        return new WorkflowImpl(workflowEngine, workflowStore, wfModel, wfRecord);
+        return new WorkflowImpl(workflowEngine, workflowStore, workflowCoordinator, wfModel, wfRecord);
     }
 
     @Nonnull
@@ -81,7 +94,7 @@ public class WorkflowManagerImpl implements IWorkflowManager {
             throw new NopException(ERR_WF_MISSING_WF_INSTANCE).param(ARG_WF_ID, wfId);
 
         IWorkflowModel wfModel = getWorkflowModel(wfRecord.getWfName(), wfRecord.getWfVersion());
-        return new WorkflowImpl(workflowEngine, workflowStore, wfModel, wfRecord);
+        return new WorkflowImpl(workflowEngine, workflowStore, workflowCoordinator, wfModel, wfRecord);
     }
 
     @Nonnull
@@ -96,7 +109,8 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     }
 
     @Override
-    public void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep, Map<String, Object> results, @Nonnull IEvalScope scope) {
-        workflowEngine.notifySubFlowEnd(wfRef, status, parentStep, results, scope);
+    public void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
+                                 Map<String, Object> results, @Nonnull IServiceContext context) {
+        workflowCoordinator.endSubflow(wfRef, status, parentStep, results, context);
     }
 }

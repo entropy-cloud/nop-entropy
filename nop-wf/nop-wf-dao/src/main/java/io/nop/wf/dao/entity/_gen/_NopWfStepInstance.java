@@ -56,120 +56,124 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_subWfVersion = "subWfVersion";
     public static final int PROP_ID_subWfVersion = 9;
     
+    /* 子流程结果状态: SUB_WF_RESULT_STATUS INTEGER */
+    public static final String PROP_NAME_subWfResultStatus = "subWfResultStatus";
+    public static final int PROP_ID_subWfResultStatus = 10;
+    
     /* 是否已读: IS_READ BOOLEAN */
     public static final String PROP_NAME_isRead = "isRead";
-    public static final int PROP_ID_isRead = 10;
+    public static final int PROP_ID_isRead = 11;
     
     /* 参与者类型: ACTOR_TYPE VARCHAR */
     public static final String PROP_NAME_actorType = "actorType";
-    public static final int PROP_ID_actorType = 11;
+    public static final int PROP_ID_actorType = 12;
     
     /* 参与者ID: ACTOR_ID VARCHAR */
     public static final String PROP_NAME_actorId = "actorId";
-    public static final int PROP_ID_actorId = 12;
+    public static final int PROP_ID_actorId = 13;
     
     /* 参与者部门ID: ACTOR_DEPT_ID VARCHAR */
     public static final String PROP_NAME_actorDeptId = "actorDeptId";
-    public static final int PROP_ID_actorDeptId = 13;
+    public static final int PROP_ID_actorDeptId = 14;
     
     /* 参与者姓名: ACTOR_NAME VARCHAR */
     public static final String PROP_NAME_actorName = "actorName";
-    public static final int PROP_ID_actorName = 14;
+    public static final int PROP_ID_actorName = 15;
     
     /* 拥有者ID: OWNER_ID VARCHAR */
     public static final String PROP_NAME_ownerId = "ownerId";
-    public static final int PROP_ID_ownerId = 15;
+    public static final int PROP_ID_ownerId = 16;
     
     /* 拥有者姓名: OWNER_NAME VARCHAR */
     public static final String PROP_NAME_ownerName = "ownerName";
-    public static final int PROP_ID_ownerName = 16;
+    public static final int PROP_ID_ownerName = 17;
     
     /* 分配者ID: ASSIGNER_ID VARCHAR */
     public static final String PROP_NAME_assignerId = "assignerId";
-    public static final int PROP_ID_assignerId = 17;
+    public static final int PROP_ID_assignerId = 18;
     
     /* 分配者姓名: ASSIGNER_NAME VARCHAR */
     public static final String PROP_NAME_assignerName = "assignerName";
-    public static final int PROP_ID_assignerName = 18;
+    public static final int PROP_ID_assignerName = 19;
     
     /* 调用者ID: CALLER_ID VARCHAR */
     public static final String PROP_NAME_callerId = "callerId";
-    public static final int PROP_ID_callerId = 19;
+    public static final int PROP_ID_callerId = 20;
     
     /* 调用者姓名: CALLER_NAME VARCHAR */
     public static final String PROP_NAME_callerName = "callerName";
-    public static final int PROP_ID_callerName = 20;
+    public static final int PROP_ID_callerName = 21;
     
     /* 取消人ID: CANCELLER_ID VARCHAR */
     public static final String PROP_NAME_cancellerId = "cancellerId";
-    public static final int PROP_ID_cancellerId = 21;
+    public static final int PROP_ID_cancellerId = 22;
     
     /* 取消人姓名: CANCELLER_NAME VARCHAR */
     public static final String PROP_NAME_cancellerName = "cancellerName";
-    public static final int PROP_ID_cancellerName = 22;
+    public static final int PROP_ID_cancellerName = 23;
     
     /* 来源操作: FROM_ACTION VARCHAR */
     public static final String PROP_NAME_fromAction = "fromAction";
-    public static final int PROP_ID_fromAction = 23;
+    public static final int PROP_ID_fromAction = 24;
     
     /* 最后一次操作: LAST_ACTION VARCHAR */
     public static final String PROP_NAME_lastAction = "lastAction";
-    public static final int PROP_ID_lastAction = 24;
+    public static final int PROP_ID_lastAction = 25;
     
     /* 开始时间: START_TIME TIMESTAMP */
     public static final String PROP_NAME_startTime = "startTime";
-    public static final int PROP_ID_startTime = 25;
+    public static final int PROP_ID_startTime = 26;
     
     /* 结束时间: FINISH_TIME TIMESTAMP */
     public static final String PROP_NAME_finishTime = "finishTime";
-    public static final int PROP_ID_finishTime = 26;
+    public static final int PROP_ID_finishTime = 27;
     
     /* 到期时间: DUE_TIME TIMESTAMP */
     public static final String PROP_NAME_dueTime = "dueTime";
-    public static final int PROP_ID_dueTime = 27;
+    public static final int PROP_ID_dueTime = 28;
     
     /* 读取时间: READ_TIME TIMESTAMP */
     public static final String PROP_NAME_readTime = "readTime";
-    public static final int PROP_ID_readTime = 28;
+    public static final int PROP_ID_readTime = 29;
     
     /* 优先级: PRIORITY INTEGER */
     public static final String PROP_NAME_priority = "priority";
-    public static final int PROP_ID_priority = 29;
+    public static final int PROP_ID_priority = 30;
     
     /* 汇聚分组: JOIN_GROUP VARCHAR */
     public static final String PROP_NAME_joinGroup = "joinGroup";
-    public static final int PROP_ID_joinGroup = 30;
+    public static final int PROP_ID_joinGroup = 31;
     
     /* 标签: TAG_SET VARCHAR */
     public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 31;
+    public static final int PROP_ID_tagSet = 32;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 32;
+    public static final int PROP_ID_version = 33;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 33;
+    public static final int PROP_ID_createdBy = 34;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 34;
+    public static final int PROP_ID_createTime = 35;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 35;
+    public static final int PROP_ID_updatedBy = 36;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 36;
+    public static final int PROP_ID_updateTime = 37;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 37;
+    public static final int PROP_ID_remark = 38;
     
 
-    private static int _PROP_ID_BOUND = 38;
+    private static int _PROP_ID_BOUND = 39;
 
     
     /* relation: 工作流实例 */
@@ -182,7 +186,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[38];
+    private static final String[] PROP_ID_TO_NAME = new String[39];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -212,6 +216,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_subWfVersion] = PROP_NAME_subWfVersion;
           PROP_NAME_TO_ID.put(PROP_NAME_subWfVersion, PROP_ID_subWfVersion);
+      
+          PROP_ID_TO_NAME[PROP_ID_subWfResultStatus] = PROP_NAME_subWfResultStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_subWfResultStatus, PROP_ID_subWfResultStatus);
       
           PROP_ID_TO_NAME[PROP_ID_isRead] = PROP_NAME_isRead;
           PROP_NAME_TO_ID.put(PROP_NAME_isRead, PROP_ID_isRead);
@@ -326,6 +333,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     
     /* 子流程版本: SUB_WF_VERSION */
     private java.lang.Long _subWfVersion;
+    
+    /* 子流程结果状态: SUB_WF_RESULT_STATUS */
+    private java.lang.Integer _subWfResultStatus;
     
     /* 是否已读: IS_READ */
     private java.lang.Boolean _isRead;
@@ -507,6 +517,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_subWfVersion:
                return getSubWfVersion();
+        
+            case PROP_ID_subWfResultStatus:
+               return getSubWfResultStatus();
         
             case PROP_ID_isRead:
                return getIsRead();
@@ -690,6 +703,16 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_subWfVersion));
                }
                setSubWfVersion(typedValue);
+               break;
+            }
+        
+            case PROP_ID_subWfResultStatus:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_subWfResultStatus));
+               }
+               setSubWfResultStatus(typedValue);
                break;
             }
         
@@ -1041,6 +1064,13 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_subWfVersion:{
                onInitProp(propId);
                this._subWfVersion = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_subWfResultStatus:{
+               onInitProp(propId);
+               this._subWfResultStatus = (java.lang.Integer)value;
                
                break;
             }
@@ -1414,6 +1444,25 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_subWfVersion,value)){
             this._subWfVersion = value;
             internalClearRefs(PROP_ID_subWfVersion);
+            
+        }
+    }
+    
+    /**
+     * 子流程结果状态: SUB_WF_RESULT_STATUS
+     */
+    public java.lang.Integer getSubWfResultStatus(){
+         onPropGet(PROP_ID_subWfResultStatus);
+         return _subWfResultStatus;
+    }
+
+    /**
+     * 子流程结果状态: SUB_WF_RESULT_STATUS
+     */
+    public void setSubWfResultStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_subWfResultStatus,value)){
+            this._subWfResultStatus = value;
+            internalClearRefs(PROP_ID_subWfResultStatus);
             
         }
     }

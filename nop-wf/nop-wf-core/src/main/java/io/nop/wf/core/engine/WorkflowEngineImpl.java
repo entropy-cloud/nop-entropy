@@ -17,7 +17,6 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.graph.dag.Dag;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
@@ -31,7 +30,6 @@ import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.WfActorBean;
 import io.nop.wf.api.actor.WfActorCandidatesBean;
 import io.nop.wf.core.IWorkflow;
-import io.nop.wf.core.IWorkflowCoordinator;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.WorkflowTransitionTarget;
@@ -61,8 +59,6 @@ import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SimpleSchemaValidator;
-import jakarta.annotation.Nonnull;
-import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,12 +105,6 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_WITHDRAW_ACTION_IS_NOT_ALLOW
 public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflowEngine {
     static final Logger LOG = LoggerFactory.getLogger(WorkflowEngineImpl.class);
 
-    private IWorkflowCoordinator workflowCoordinator;
-
-    @Inject
-    public void setWorkflowCoordinator(IWorkflowCoordinator workflowCoordinator) {
-        this.workflowCoordinator = workflowCoordinator;
-    }
 
     protected WfRuntime newWfRuntime(IWorkflowImplementor wf, IServiceContext ctx) {
         return new WfRuntime(wf, ctx);
@@ -338,9 +328,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         Map<String, Object> vars = getStartArgs(startFlowModel.getArgs(), wfRt);
 
-        WfReference wfRef = this.workflowCoordinator.startSubflow(startFlowModel.getWfName(), startFlowModel.getWfVersion(),
+        WfReference wfRef = wfRt.getWf().getCoordinator().startSubflow(startFlowModel.getWfName(), startFlowModel.getWfVersion(),
                 parentStep.getStepReference(),
-                vars, wfRt.getEvalScope());
+                vars, wfRt.getServiceContext());
 
         parentStep.getRecord().setSubWfRef(wfRef);
     }
@@ -638,6 +628,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     private boolean runStepAutoTransition(IWorkflowStepImplementor step, WfRuntime wfRt) {
+        if (!step.isActivated())
+            return false;
+
         WfStepModel stepModel = (WfStepModel) step.getModel();
         if (stepModel.getTransition() != null) {
             boolean hasTrans = this.doTransition(step, step.getRecord().getFromAction(),
@@ -702,8 +695,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     @Override
-    public boolean triggerTransition(IWorkflowStepImplementor step, IServiceContext ctx) {
+    public boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(step, ctx);
+        initArgs(wfRt, args);
         checkWaitingStep(step, wfRt);
         return runStepAutoTransition(step, wfRt);
     }
@@ -1070,7 +1064,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfStepReference parentStepRef = getParentStepRef(wf);
         if (parentStepRef != null) {
             // 子流程结束，通知父流程
-            workflowCoordinator.endSubflow(wf.getWfReference(), status, parentStepRef, results, wfRt.getEvalScope());
+            wf.getCoordinator().endSubflow(wf.getWfReference(), status, parentStepRef, results, wfRt.getServiceContext());
         }
     }
 
@@ -1322,10 +1316,5 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         } else {
             return Collections.emptyList();
         }
-    }
-
-    @Override
-    public void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep, Map<String, Object> results, @Nonnull IEvalScope scope) {
-        workflowCoordinator.endSubflow(wfRef, status, parentStep, results, scope);
     }
 }

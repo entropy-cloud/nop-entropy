@@ -127,7 +127,7 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     void kill(Map<String, Object> args, IServiceContext ctx);
 
-    void triggerChange(IServiceContext ctx);
+    void triggerChange(Map<String, Object> args, IServiceContext ctx);
 
     /**
      * 目前在本步骤允许执行的action

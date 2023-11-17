@@ -7,11 +7,11 @@
  */
 package io.nop.wf.core;
 
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.Map;
 
 /**
@@ -28,18 +28,17 @@ public interface IWorkflowCoordinator {
      * @param args       传递到子工作流的变量
      * @return 工作流版本以及工作流实例id
      */
-    WfReference startSubflow(@Nonnull String wfName, String wfVersion, @Nonnull WfStepReference parentStep,
-                             Map<String, Object> args, @Nonnull IEvalScope scope);
+    WfReference startSubflow(@Nonnull String wfName, Long wfVersion, @Nonnull WfStepReference parentStep,
+                             Map<String, Object> args, @Nonnull IServiceContext context);
 
     /**
      * 子工作流结束时调用此接口通知父流程结果数据
      *
-     * @param wfRef
+     * @param context
      * @param status     IWorkflow上定义的WF_STATUS常量
      * @param parentStep 父流程的步骤引用。startSubflow时传入的信息
      * @param results
-     * @param scope
      */
-    void endSubflow(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
-                    Map<String, Object> results, @Nonnull IEvalScope scope);
+    void endSubflow(WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
+                    Map<String, Object> results, @Nonnull IServiceContext context);
 }

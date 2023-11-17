@@ -63,6 +63,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         store = new MockWorkflowStore();
         workflowManager.setWorkflowStore(store);
         workflowManager.setWorkflowModelStore(new ResourceWorkflowModelStore());
+
+        workflowManager.init();
     }
 
     /**
@@ -282,6 +284,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         IServiceContext context = new ServiceContextImpl();
         IWorkflow workflow = workflowManager.newWorkflow("flow", 1L);
         workflow.start(null, context);
+        assertTrue(workflow.runAutoTransitions(context));
+
         IWorkflowStep step = workflow.getWaitingSteps().get(0);
         assertTrue(step.isFlowType());
         assertNotNull(step.getRecord().getSubWfName());
@@ -294,6 +298,8 @@ public class TestWorkflowEngine extends BaseTestCase {
 //        subFlow.start(XLang.newEvalScope());
         subStartStep.invokeAction("action0", null, context);
 
+        subFlow.runAutoTransitions(context);
+        
         assertTrue(subFlow.isEnded());
 
         assertTrue(workflow.isEnded());

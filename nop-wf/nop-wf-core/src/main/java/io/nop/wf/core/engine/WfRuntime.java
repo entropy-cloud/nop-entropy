@@ -208,6 +208,9 @@ public class WfRuntime implements IWfRuntime {
             return getSelectedActors();
 
         Map<String, List<IWfActor>> stepActors = getSelectedStepActors();
+        if (stepActors == null)
+            return getSelectedActors();
+
         List<IWfActor> actors = stepActors.get(targetStep);
         if (actors == null)
             actors = getSelectedActors();

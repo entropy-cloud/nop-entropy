@@ -60,6 +60,14 @@ public interface IWorkflowRecord {
 
     String getParentWfName();
 
+    void setParentWfName(String parentWfName);
+
+    void setParentWfVersion(Long parentWfVersion);
+
+    void setParentWfId(String wfId);
+
+    void setParentStepId(String stepId);
+
     Long getParentWfVersion();
 
     String getParentWfId();

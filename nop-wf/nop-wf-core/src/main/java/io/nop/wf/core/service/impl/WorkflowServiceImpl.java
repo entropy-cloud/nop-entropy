@@ -25,8 +25,8 @@ import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.service.WorkflowServiceSpi;
-
 import jakarta.inject.Inject;
+
 import java.util.concurrent.CompletionStage;
 
 
@@ -69,7 +69,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         WfStepReference parentStep = new WfStepReference(request.getParentWfName(), request.getParentWfVersion(),
                 request.getParentWfId(), request.getParentWfStepId());
 
-        workflowManager.notifySubFlowEnd(wfRef, request.getStatus(), parentStep, request.getResults(), ctx.getEvalScope());
+        workflowManager.notifySubFlowEnd(wfRef, request.getStatus(), parentStep, request.getResults(), ctx);
     }
 
     @BizMutation

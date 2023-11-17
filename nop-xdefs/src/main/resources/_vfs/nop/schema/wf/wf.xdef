@@ -233,7 +233,7 @@
         子流程
         -->
         <flow name="!string" xdef:ref="WfStepModel" xdef:name="WfSubFlowModel">
-            <start wfName="!string" wfVersion="string"
+            <start wfName="!string" wfVersion="long"
                    xdef:mandatory="true" xdef:name="WfSubFlowStartModel">
                 <arg name="!string" xdef:unique-attr="name" displayName="string" xdef:name="WfSubFlowArgModel">
                     <source xdef:value="xpl"/>

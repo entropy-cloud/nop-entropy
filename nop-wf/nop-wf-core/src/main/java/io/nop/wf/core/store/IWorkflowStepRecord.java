@@ -88,4 +88,8 @@ public interface IWorkflowStepRecord {
     Long getSubWfVersion();
 
     String getSubWfId();
+
+    void setSubWfResultStatus(Integer status);
+
+    Integer getSubWfResultStatus();
 }

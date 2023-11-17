@@ -8,6 +8,7 @@
 package io.nop.wf.core.impl;
 
 import io.nop.wf.core.IWorkflow;
+import io.nop.wf.core.IWorkflowCoordinator;
 import io.nop.wf.core.engine.IWorkflowEngine;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
@@ -20,6 +21,8 @@ public interface IWorkflowImplementor extends IWorkflow {
     IWorkflowStore getStore();
 
     IWorkflowEngine getEngine();
+
+    IWorkflowCoordinator getCoordinator();
 
     IWorkflowStepImplementor getStepById(String stepId);
 

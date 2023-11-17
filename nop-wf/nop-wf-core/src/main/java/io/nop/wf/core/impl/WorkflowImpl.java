@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.IWorkflowCoordinator;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.WorkflowTransitionTarget;
@@ -44,6 +45,8 @@ public class WorkflowImpl implements IWorkflowImplementor {
     private final IWorkflowModel wfModel;
     private final IWorkflowRecord wfRecord;
 
+    private final IWorkflowCoordinator wfCoordinator;
+
     private final Map<String, WorkflowStepImpl> steps = new HashMap<>();
 
     private IWorkflowVarSet globalVars;
@@ -58,12 +61,14 @@ public class WorkflowImpl implements IWorkflowImplementor {
 
     public WorkflowImpl(IWorkflowEngine wfEngine,
                         IWorkflowStore wfStore,
+                        IWorkflowCoordinator wfCoordinator,
                         IWorkflowModel wfModel,
                         IWorkflowRecord wfRecord) {
-        this.wfEngine = wfEngine;
-        this.wfStore = wfStore;
-        this.wfModel = wfModel;
-        this.wfRecord = wfRecord;
+        this.wfEngine = Guard.notNull(wfEngine, "wfEngine");
+        this.wfStore = Guard.notNull(wfStore, "wfStore");
+        this.wfCoordinator = Guard.notNull(wfCoordinator, "wfCoordinator");
+        this.wfModel = Guard.notNull(wfModel, "wfModel");
+        this.wfRecord = Guard.notNull(wfRecord, "wfRecord");
     }
 
     public String toString() {
@@ -122,6 +127,11 @@ public class WorkflowImpl implements IWorkflowImplementor {
     @Override
     public IWorkflowEngine getEngine() {
         return wfEngine;
+    }
+
+    @Override
+    public IWorkflowCoordinator getCoordinator() {
+        return wfCoordinator;
     }
 
     @Override

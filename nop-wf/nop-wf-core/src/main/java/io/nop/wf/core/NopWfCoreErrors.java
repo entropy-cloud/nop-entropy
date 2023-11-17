@@ -21,6 +21,8 @@ public interface NopWfCoreErrors {
     String ARG_WF_ID = "wfId";
     String ARG_STEP_ID = "stepId";
 
+    String ARG_PARENT_STEP_ID = "parentStepId";
+
     String ARG_STEP_STATUS = "stepStatus";
 
     String ARG_WF_STATUS = "wfStatus";
@@ -154,4 +156,12 @@ public interface NopWfCoreErrors {
 
     ErrorCode ERR_WF_STEP_NOT_ENDABLE =
             define("nop.err.wf.step-not-endable", "步骤{stepName}无法结束，会导致流程被挂起", ARG_STEP_NAME);
+
+    ErrorCode ERR_WF_MISSING_PARENT_WF =
+            define("nop.err.wf.missing-parent-wf", "父工作流不存在：wfId={wfId},wfName={wfName},wfVersion={wfVersion}",
+                    ARG_WF_ID, ARG_WF_NAME, ARG_WF_VERSION);
+
+    ErrorCode ERR_WF_MISSING_STEP_INSTANCE =
+            define("nop.err.wf.missing-step-instance", "工作流[{wfName}]的实例[{wfId}]中没有步骤实例[{stepId}]",
+                    ARG_WF_NAME, ARG_WF_ID, ARG_STEP_ID);
 }

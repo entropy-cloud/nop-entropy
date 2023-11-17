@@ -149,43 +149,41 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Flow ID"/>
                 <column code="PARENT_STEP_ID" displayName="父流程步骤ID" name="parentStepId" precision="200" propId="18"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Step ID"/>
-                <column code="SIGNAL_SET" displayName="信号集合" name="signalSet" precision="2000" propId="19"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Signal Set"/>
-                <column code="STARTER_ID" displayName="启动人ID" name="starterId" precision="50" propId="20"
+                <column code="STARTER_ID" displayName="启动人ID" name="starterId" precision="50" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Starter ID"/>
-                <column code="STARTER_NAME" displayName="启动人" name="starterName" precision="50" propId="21"
+                <column code="STARTER_NAME" displayName="启动人" name="starterName" precision="50" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Starter Name"/>
-                <column code="STARTER_DEPT_ID" displayName="启动人单位ID" name="starterDeptId" precision="50" propId="22"
+                <column code="STARTER_DEPT_ID" displayName="启动人单位ID" name="starterDeptId" precision="50" propId="21"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Starter Dept ID"/>
-                <column code="CANCELLER_ID" displayName="取消人ID" name="cancellerId" precision="50" propId="23"
+                <column code="CANCELLER_ID" displayName="取消人ID" name="cancellerId" precision="50" propId="22"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Canceller ID"/>
-                <column code="CANCELLER_NAME" displayName="取消人" name="cancellerName" precision="50" propId="24"
+                <column code="CANCELLER_NAME" displayName="取消人" name="cancellerName" precision="50" propId="23"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Canceller Name"/>
-                <column code="SUSPENDER_ID" displayName="暂停人ID" name="suspenderId" precision="50" propId="25"
+                <column code="SUSPENDER_ID" displayName="暂停人ID" name="suspenderId" precision="50" propId="24"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Suspender ID"/>
-                <column code="SUSPENDER_NAME" displayName="暂停人" name="suspenderName" precision="50" propId="26"
+                <column code="SUSPENDER_NAME" displayName="暂停人" name="suspenderName" precision="50" propId="25"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Suspender Name"/>
-                <column code="MANAGER_TYPE" displayName="管理者类型" name="managerType" precision="50" propId="27"
+                <column code="MANAGER_TYPE" displayName="管理者类型" name="managerType" precision="50" propId="26"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager Type"/>
-                <column code="MANAGER_DEPT_ID" displayName="管理者单位ID" name="managerDeptId" precision="50" propId="28"
+                <column code="MANAGER_DEPT_ID" displayName="管理者单位ID" name="managerDeptId" precision="50" propId="27"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager Dept ID"/>
-                <column code="MANAGER_NAME" displayName="管理者" name="managerName" precision="50" propId="29"
+                <column code="MANAGER_NAME" displayName="管理者" name="managerName" precision="50" propId="28"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager Name"/>
-                <column code="MANAGER_ID" displayName="管理者ID" name="managerId" precision="50" propId="30"
+                <column code="MANAGER_ID" displayName="管理者ID" name="managerId" precision="50" propId="29"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager ID"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="31"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="30"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="32" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="31" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="33" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="32" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="34" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="33" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="35" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="36"
+                        propId="34" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="35"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
@@ -222,67 +220,70 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Sub Flow Name"/>
                 <column code="SUB_WF_VERSION" displayName="子流程版本" name="subWfVersion" propId="9" stdDataType="long"
                         stdSqlType="BIGINT" i18n-en:displayName="Sub Flow Version"/>
-                <column code="IS_READ" displayName="是否已读" name="isRead" propId="10" stdDataType="boolean"
+                <column code="SUB_WF_RESULT_STATUS" displayName="子流程结果状态" name="subWfResultStatus" propId="10"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Sub Flow Result Status"
+                        ext:dict="wf/wf-step-status"/>
+                <column code="IS_READ" displayName="是否已读" name="isRead" propId="11" stdDataType="boolean"
                         stdSqlType="BOOLEAN" i18n-en:displayName="Is Read"/>
-                <column code="ACTOR_TYPE" displayName="参与者类型" name="actorType" precision="10" propId="11"
+                <column code="ACTOR_TYPE" displayName="参与者类型" name="actorType" precision="10" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor Type"/>
-                <column code="ACTOR_ID" displayName="参与者ID" name="actorId" precision="100" propId="12"
+                <column code="ACTOR_ID" displayName="参与者ID" name="actorId" precision="100" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor ID" ui:show="X"/>
-                <column code="ACTOR_DEPT_ID" displayName="参与者部门ID" name="actorDeptId" precision="50" propId="13"
+                <column code="ACTOR_DEPT_ID" displayName="参与者部门ID" name="actorDeptId" precision="50" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor Dept ID"/>
-                <column code="ACTOR_NAME" displayName="参与者姓名" name="actorName" precision="100" propId="14"
+                <column code="ACTOR_NAME" displayName="参与者姓名" name="actorName" precision="100" propId="15"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor Name"/>
                 <column code="OWNER_ID" comment="具体负责处理此项工作的人员" displayName="拥有者ID" name="ownerId" precision="50"
-                        propId="15" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID" ui:show="X"/>
-                <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="16"
+                        propId="16" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID" ui:show="X"/>
+                <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name"/>
                 <column code="ASSIGNER_ID" comment="负责分配此项工作的人员，例如组长" displayName="分配者ID" name="assignerId"
-                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Assigner ID"/>
-                <column code="ASSIGNER_NAME" displayName="分配者姓名" name="assignerName" precision="50" propId="18"
+                <column code="ASSIGNER_NAME" displayName="分配者姓名" name="assignerName" precision="50" propId="19"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Assigner Name"/>
                 <column code="CALLER_ID" comment="真正执行此项工作的人员，一般与Owner相同" displayName="调用者ID" name="callerId"
-                        precision="50" propId="19" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="20" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Caller ID" ui:show="X"/>
-                <column code="CALLER_NAME" displayName="调用者姓名" name="callerName" precision="50" propId="20"
+                <column code="CALLER_NAME" displayName="调用者姓名" name="callerName" precision="50" propId="21"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Caller Name"/>
-                <column code="CANCELLER_ID" displayName="取消人ID" name="cancellerId" precision="50" propId="21"
+                <column code="CANCELLER_ID" displayName="取消人ID" name="cancellerId" precision="50" propId="22"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Canceller ID" ui:show="X"/>
-                <column code="CANCELLER_NAME" displayName="取消人姓名" name="cancellerName" precision="50" propId="22"
+                <column code="CANCELLER_NAME" displayName="取消人姓名" name="cancellerName" precision="50" propId="23"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Canceller Name"/>
-                <column code="FROM_ACTION" displayName="来源操作" name="fromAction" precision="200" propId="23"
+                <column code="FROM_ACTION" displayName="来源操作" name="fromAction" precision="200" propId="24"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="From Action"/>
-                <column code="LAST_ACTION" displayName="最后一次操作" name="lastAction" precision="200" propId="24"
+                <column code="LAST_ACTION" displayName="最后一次操作" name="lastAction" precision="200" propId="25"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Last Action"/>
-                <column code="START_TIME" displayName="开始时间" name="startTime" propId="25" stdDataType="timestamp"
+                <column code="START_TIME" displayName="开始时间" name="startTime" propId="26" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Start Time"/>
-                <column code="FINISH_TIME" displayName="结束时间" name="finishTime" propId="26" stdDataType="timestamp"
+                <column code="FINISH_TIME" displayName="结束时间" name="finishTime" propId="27" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Finish Time"/>
-                <column code="DUE_TIME" displayName="到期时间" name="dueTime" propId="27" stdDataType="timestamp"
+                <column code="DUE_TIME" displayName="到期时间" name="dueTime" propId="28" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Due Time"/>
-                <column code="READ_TIME" displayName="读取时间" name="readTime" propId="28" stdDataType="timestamp"
+                <column code="READ_TIME" displayName="读取时间" name="readTime" propId="29" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" i18n-en:displayName="Read Time"/>
-                <column code="PRIORITY" displayName="优先级" mandatory="true" name="priority" propId="29" stdDataType="int"
+                <column code="PRIORITY" displayName="优先级" mandatory="true" name="priority" propId="30" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Priority"/>
-                <column code="JOIN_GROUP" displayName="汇聚分组" name="joinGroup" precision="100" propId="30"
+                <column code="JOIN_GROUP" displayName="汇聚分组" name="joinGroup" precision="100" propId="31"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Join Group" ui:show="X"/>
-                <column code="TAG_SET" displayName="标签" name="tagSet" precision="200" propId="31" stdDataType="string"
+                <column code="TAG_SET" displayName="标签" name="tagSet" precision="200" propId="32" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Tags" ui:show="X"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="32"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="33"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="33" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="34" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="L"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="34" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="35" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="L"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="35" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="36" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="L"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="36" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="37" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="L"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="37"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="38"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="SL"/>
             </columns>
             <relations>

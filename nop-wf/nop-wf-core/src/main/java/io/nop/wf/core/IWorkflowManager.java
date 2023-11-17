@@ -7,6 +7,7 @@
  */
 package io.nop.wf.core;
 
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -40,7 +41,7 @@ public interface IWorkflowManager {
     void removeModelCache(String wfName, Long wfVersion);
 
     void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
-                          Map<String, Object> results, @Nonnull IEvalScope scope);
+                          Map<String, Object> results, @Nonnull IServiceContext context);
 
 
 }

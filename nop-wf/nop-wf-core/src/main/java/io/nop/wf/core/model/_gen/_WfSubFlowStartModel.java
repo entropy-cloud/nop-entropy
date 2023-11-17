@@ -40,7 +40,7 @@ public abstract class _WfSubFlowStartModel extends io.nop.core.resource.componen
      * xml name: wfVersion
      * 
      */
-    private java.lang.String _wfVersion ;
+    private java.lang.Long _wfVersion ;
     
     /**
      * 
@@ -157,12 +157,12 @@ public abstract class _WfSubFlowStartModel extends io.nop.core.resource.componen
      *  
      */
     
-    public java.lang.String getWfVersion(){
+    public java.lang.Long getWfVersion(){
       return _wfVersion;
     }
 
     
-    public void setWfVersion(java.lang.String value){
+    public void setWfVersion(java.lang.Long value){
         checkAllowChange();
         
         this._wfVersion = value;

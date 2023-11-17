@@ -61,6 +61,8 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private String subWfId;
 
+    private Integer subWfResultStatus;
+
     private KeyedList<WorkflowActionRecordBean> actions = new KeyedList<>(WorkflowActionRecordBean::getSid);
 
     private List<WorkflowStepLinkBean> nextStepLinks;
@@ -389,6 +391,16 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     public void setWfId(String wfId) {
         this.wfId = wfId;
+    }
+
+    @Override
+    public Integer getSubWfResultStatus() {
+        return subWfResultStatus;
+    }
+
+    @Override
+    public void setSubWfResultStatus(Integer subWfResultStatus) {
+        this.subWfResultStatus = subWfResultStatus;
     }
 
     public List<WorkflowStepLinkBean> getNextStepLinks() {

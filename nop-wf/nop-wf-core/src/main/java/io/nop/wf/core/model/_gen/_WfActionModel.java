@@ -164,7 +164,7 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
     /**
      *  
      * xml name: waitSignals
-     * 对应一组globalVars中必须存在的变量名，只有这些变量不为null, action才允许被触发
+     * 对应一组globalVars中必须存在的变量名，只有这些变量为truthy, action才允许被触发
      */
     private java.util.Set<java.lang.String> _waitSignals ;
     
@@ -603,7 +603,7 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
     /**
      * 
      * xml name: waitSignals
-     *  对应一组globalVars中必须存在的变量名，只有这些变量不为null, action才允许被触发
+     *  对应一组globalVars中必须存在的变量名，只有这些变量为truthy, action才允许被触发
      */
     
     public java.util.Set<java.lang.String> getWaitSignals(){

@@ -24,7 +24,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     /**
      *  
      * xml name: actorType
-     * actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
+     * actor类型，如果包含名字空间，则对应于标签库中定义的动态Actor
      */
     private java.lang.String _actorType ;
     
@@ -71,7 +71,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     /**
      * 
      * xml name: actorType
-     *  actor类型，如果为dynamic, 则表示这是一个动态构造标签，它的具体参数由body段的xml来指定。
+     *  actor类型，如果包含名字空间，则对应于标签库中定义的动态Actor
      */
     
     public java.lang.String getActorType(){

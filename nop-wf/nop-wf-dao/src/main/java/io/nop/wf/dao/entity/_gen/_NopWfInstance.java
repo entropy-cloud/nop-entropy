@@ -92,80 +92,76 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_parentStepId = "parentStepId";
     public static final int PROP_ID_parentStepId = 18;
     
-    /* 信号集合: SIGNAL_SET VARCHAR */
-    public static final String PROP_NAME_signalSet = "signalSet";
-    public static final int PROP_ID_signalSet = 19;
-    
     /* 启动人ID: STARTER_ID VARCHAR */
     public static final String PROP_NAME_starterId = "starterId";
-    public static final int PROP_ID_starterId = 20;
+    public static final int PROP_ID_starterId = 19;
     
     /* 启动人: STARTER_NAME VARCHAR */
     public static final String PROP_NAME_starterName = "starterName";
-    public static final int PROP_ID_starterName = 21;
+    public static final int PROP_ID_starterName = 20;
     
     /* 启动人单位ID: STARTER_DEPT_ID VARCHAR */
     public static final String PROP_NAME_starterDeptId = "starterDeptId";
-    public static final int PROP_ID_starterDeptId = 22;
+    public static final int PROP_ID_starterDeptId = 21;
     
     /* 取消人ID: CANCELLER_ID VARCHAR */
     public static final String PROP_NAME_cancellerId = "cancellerId";
-    public static final int PROP_ID_cancellerId = 23;
+    public static final int PROP_ID_cancellerId = 22;
     
     /* 取消人: CANCELLER_NAME VARCHAR */
     public static final String PROP_NAME_cancellerName = "cancellerName";
-    public static final int PROP_ID_cancellerName = 24;
+    public static final int PROP_ID_cancellerName = 23;
     
     /* 暂停人ID: SUSPENDER_ID VARCHAR */
     public static final String PROP_NAME_suspenderId = "suspenderId";
-    public static final int PROP_ID_suspenderId = 25;
+    public static final int PROP_ID_suspenderId = 24;
     
     /* 暂停人: SUSPENDER_NAME VARCHAR */
     public static final String PROP_NAME_suspenderName = "suspenderName";
-    public static final int PROP_ID_suspenderName = 26;
+    public static final int PROP_ID_suspenderName = 25;
     
     /* 管理者类型: MANAGER_TYPE VARCHAR */
     public static final String PROP_NAME_managerType = "managerType";
-    public static final int PROP_ID_managerType = 27;
+    public static final int PROP_ID_managerType = 26;
     
     /* 管理者单位ID: MANAGER_DEPT_ID VARCHAR */
     public static final String PROP_NAME_managerDeptId = "managerDeptId";
-    public static final int PROP_ID_managerDeptId = 28;
+    public static final int PROP_ID_managerDeptId = 27;
     
     /* 管理者: MANAGER_NAME VARCHAR */
     public static final String PROP_NAME_managerName = "managerName";
-    public static final int PROP_ID_managerName = 29;
+    public static final int PROP_ID_managerName = 28;
     
     /* 管理者ID: MANAGER_ID VARCHAR */
     public static final String PROP_NAME_managerId = "managerId";
-    public static final int PROP_ID_managerId = 30;
+    public static final int PROP_ID_managerId = 29;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 31;
+    public static final int PROP_ID_version = 30;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 32;
+    public static final int PROP_ID_createdBy = 31;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 33;
+    public static final int PROP_ID_createTime = 32;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 34;
+    public static final int PROP_ID_updatedBy = 33;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 35;
+    public static final int PROP_ID_updateTime = 34;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 36;
+    public static final int PROP_ID_remark = 35;
     
 
-    private static int _PROP_ID_BOUND = 37;
+    private static int _PROP_ID_BOUND = 36;
 
     
     /* relation: 父流程 */
@@ -175,7 +171,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[37];
+    private static final String[] PROP_ID_TO_NAME = new String[36];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -232,9 +228,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_parentStepId] = PROP_NAME_parentStepId;
           PROP_NAME_TO_ID.put(PROP_NAME_parentStepId, PROP_ID_parentStepId);
-      
-          PROP_ID_TO_NAME[PROP_ID_signalSet] = PROP_NAME_signalSet;
-          PROP_NAME_TO_ID.put(PROP_NAME_signalSet, PROP_ID_signalSet);
       
           PROP_ID_TO_NAME[PROP_ID_starterId] = PROP_NAME_starterId;
           PROP_NAME_TO_ID.put(PROP_NAME_starterId, PROP_ID_starterId);
@@ -343,9 +336,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
     
     /* 父流程步骤ID: PARENT_STEP_ID */
     private java.lang.String _parentStepId;
-    
-    /* 信号集合: SIGNAL_SET */
-    private java.lang.String _signalSet;
     
     /* 启动人ID: STARTER_ID */
     private java.lang.String _starterId;
@@ -521,9 +511,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
         
             case PROP_ID_parentStepId:
                return getParentStepId();
-        
-            case PROP_ID_signalSet:
-               return getSignalSet();
         
             case PROP_ID_starterId:
                return getStarterId();
@@ -764,16 +751,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_parentStepId));
                }
                setParentStepId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_signalSet:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_signalSet));
-               }
-               setSignalSet(typedValue);
                break;
             }
         
@@ -1078,13 +1055,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
             case PROP_ID_parentStepId:{
                onInitProp(propId);
                this._parentStepId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_signalSet:{
-               onInitProp(propId);
-               this._signalSet = (java.lang.String)value;
                
                break;
             }
@@ -1552,25 +1522,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_parentStepId,value)){
             this._parentStepId = value;
             internalClearRefs(PROP_ID_parentStepId);
-            
-        }
-    }
-    
-    /**
-     * 信号集合: SIGNAL_SET
-     */
-    public java.lang.String getSignalSet(){
-         onPropGet(PROP_ID_signalSet);
-         return _signalSet;
-    }
-
-    /**
-     * 信号集合: SIGNAL_SET
-     */
-    public void setSignalSet(java.lang.String value){
-        if(onPropSet(PROP_ID_signalSet,value)){
-            this._signalSet = value;
-            internalClearRefs(PROP_ID_signalSet);
             
         }
     }
