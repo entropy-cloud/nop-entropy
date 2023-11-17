@@ -40,7 +40,7 @@ public interface NopWfCoreErrors {
     String ARG_TARGET_STEPS = "targetSteps";
     String ARG_TARGET_CASES = "targetCases";
 
-    String ARG_LOOP_EDGES = "removedEdges";
+    String ARG_LOOP_EDGES = "loopEdges";
 
     ErrorCode ERR_WF_STEP_INSTANCE_NOT_EXISTS =
             define("nop.err.wf.step-instance-not-exists",

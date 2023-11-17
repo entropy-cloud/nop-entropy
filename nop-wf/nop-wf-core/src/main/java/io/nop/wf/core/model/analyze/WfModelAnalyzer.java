@@ -59,7 +59,7 @@ public class WfModelAnalyzer {
             step.setStepIndex(dag.requireNode(step.getName()).getNodeIndex());
         });
 
-        if (wfModel.isAllowStepLoop()) {
+        if (!wfModel.isAllowStepLoop()) {
             if (dag.containsLoop())
                 throw new NopException(ERR_WF_GRAPH_CONTAINS_LOOP)
                         .source(wfModel)

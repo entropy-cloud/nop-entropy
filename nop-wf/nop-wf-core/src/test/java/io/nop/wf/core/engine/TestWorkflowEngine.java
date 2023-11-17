@@ -299,7 +299,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         subStartStep.invokeAction("action0", null, context);
 
         subFlow.runAutoTransitions(context);
-        
+
         assertTrue(subFlow.isEnded());
 
         assertTrue(workflow.isEnded());
@@ -500,10 +500,12 @@ public class TestWorkflowEngine extends BaseTestCase {
      * -> cyStart(step) -> cysh -> kcy(step) -> cy -> kcy(step)...
      */
     @Test
-    public void testRecycleStep() {
+    public void testLoop() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("recycle", null);
+        IWorkflow workflow = workflowManager.newWorkflow("loop", null);
         workflow.start(null, context);
+        workflow.runAutoTransitions(context);
+
         IWorkflowStep mainStart = null, cyStart = null;
         for (IWorkflowStep step : workflow.getActivatedSteps()) {
             if (step.getStepName().equals("mainStart")) {
@@ -513,8 +515,10 @@ public class TestWorkflowEngine extends BaseTestCase {
             }
         }
         invokeAction(mainStart, "sh", null, "user", "1", context);
+        workflow.runAutoTransitions(context);
+
         assertTrue(workflow.isEnded());
-        assertTrue(cyStart.isActivated());
+        assertTrue(!cyStart.isActivated());
     }
 
     @Test
