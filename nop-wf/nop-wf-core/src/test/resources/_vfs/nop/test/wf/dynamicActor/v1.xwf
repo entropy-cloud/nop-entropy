@@ -25,7 +25,7 @@
         <step displayName="结束步骤" name="wf-end">
             <assignment ignoreNoAssign="false" selection="auto">
                 <actors>
-                    <actor actorType="test_actor:KeepActor"/>
+                    <actor actorType="wf-actor:KeepActor"/>
                 </actors>
             </assignment>
             <transition>

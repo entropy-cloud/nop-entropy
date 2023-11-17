@@ -1012,6 +1012,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (stepModel == null)
             throw wfRt.newError(ERR_WF_UNKNOWN_STEP).param(ARG_STEP_NAME, targetStep);
 
+        wfRt.setPrevStep(currentStep);
         List<IWfActor> actors = getActors(stepModel.getAssignment(), targetStep, wfRt);
         this.newSteps(currentStep, stepModel, actionName, actors, wfRt);
 
@@ -1020,7 +1021,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     void checkEnd(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
-// 如果工作流实例上的状态位没有结束，但是所有流程步骤都已经结束，则自动将整个工作流结束
+        // 如果工作流实例上的状态位没有结束，但是所有流程步骤都已经结束，则自动将整个工作流结束
         if (!wf.isEnded() && wf.isStarted()) {
             IWorkflowRecord wfRecord = wf.getRecord();
             boolean bEnd = wfRt.willEnd();

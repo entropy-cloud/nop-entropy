@@ -2,10 +2,33 @@
      xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
         <CurrentUser>
+            <attr name="actorModel" implicit="true" />
+            <attr name="wfRt" implicit="true" />
+
+            <description>
+                当前执行用户
+            </description>
 
             <source>
-
+                <c:script>
+                    return wfRt.caller
+                </c:script>
             </source>
         </CurrentUser>
+
+        <KeepActor>
+            <attr name="actorModel" implicit="true" />
+            <attr name="wfRt" implicit="true" />
+
+            <description>
+                保持前一步骤的actor
+            </description>
+
+            <source>
+                <c:script>
+                    return wfRt.prevStep.actor
+                </c:script>
+            </source>
+        </KeepActor>
     </tags>
 </lib>

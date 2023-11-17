@@ -7,6 +7,7 @@
  */
 package io.nop.wf.core.engine.mock;
 
+import io.nop.api.core.util.Guard;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.IWfActorResolver;
 import io.nop.wf.api.actor.WfActorBean;
@@ -26,6 +27,8 @@ public class MockWfActorResolver implements IWfActorResolver {
         if (actorType.equals(IWfActor.ACTOR_TYPE_USER)) {
             return resolveUser(actorId);
         }
+
+        Guard.checkArgument(actorType.indexOf(':') < 0);
 
         WfActorBean actor = new WfActorBean();
         actor.setActorType(actorType);

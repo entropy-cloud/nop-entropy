@@ -82,7 +82,7 @@ public class WfActorAssignSupport {
 
     private List<IWfActor> getDynamicActors(WfAssignmentActorModel actorModel, WfRuntime wfRt) {
         String tagName = StringHelper.removeHead(actorModel.getActorType(), NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
-        wfRt.setValue(NopWfCoreConstants.VAR_WF_ACTOR_MODEL, actorModel);
+        wfRt.setValue(NopWfCoreConstants.VAR_ACTOR_MODEL, actorModel);
         Object value = XLang.getTagAction(NopWfCoreConstants.WF_ACTOR_LIB_PATH, tagName).invoke(wfRt);
         if (value == null)
             return Collections.emptyList();

@@ -21,7 +21,7 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String VAR_WF = "wf";
     String VAR_WF_RT = "wfRt";
     String VAR_WF_STEP = "wfStep";
-    String VAR_WF_ACTOR_MODEL = "wfActorModel";
+    String VAR_ACTOR_MODEL = "actorModel";
     String VAR_SELECTED_ACTORS = "selectedActors";
 
     String VAR_SELECTED_STEP_ACTORS = "selectedStepActors";

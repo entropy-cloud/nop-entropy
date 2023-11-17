@@ -58,6 +58,8 @@ public class WfRuntime implements IWfRuntime {
 
     private List<IWfActor> currentActors;
     private IWorkflowStepImplementor currentStep;
+
+    private IWorkflowStepImplementor prevStep;
     private IWorkflowActionRecord actionRecord;
 
     private IWorkflowStepImplementor actionStep;
@@ -106,6 +108,14 @@ public class WfRuntime implements IWfRuntime {
     @Override
     public void setValue(String name, Object value) {
         scope.setLocalValue(name, value);
+    }
+
+    public IWorkflowStepImplementor getPrevStep() {
+        return prevStep;
+    }
+
+    public void setPrevStep(IWorkflowStepImplementor prevStep) {
+        this.prevStep = prevStep;
     }
 
     @Override

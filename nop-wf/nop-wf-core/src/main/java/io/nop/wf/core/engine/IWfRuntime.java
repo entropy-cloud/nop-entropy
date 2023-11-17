@@ -55,6 +55,8 @@ public interface IWfRuntime extends IEvalContext {
 
     void setCurrentActors(List<IWfActor> currentActors);
 
+    IWorkflowStepImplementor getPrevStep();
+
     IWorkflowStepImplementor getCurrentStep();
 
     NopException newError(ErrorCode errorCode);
