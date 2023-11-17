@@ -88,7 +88,7 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
                 headersWritten = true;
             }
 
-            String[] row = new String[headers.size()];
+            Object[] row = new String[headers.size()];
             int index = 0;
             for (String header : headers) {
                 Object value = BeanTool.getComplexProperty(record, header);
