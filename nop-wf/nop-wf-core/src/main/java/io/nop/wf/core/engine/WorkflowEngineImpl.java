@@ -1202,7 +1202,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         } else if (status == NopWfCoreConstants.WF_STEP_STATUS_WAITING) {
             return actionModel.isForWaiting();
         } else if (step.isHistory()) {
-            return actionModel.isForHistory();
+            return actionModel.isForHistory() || actionModel.isForWithdraw();
         }
         // 所有其他状况都不允许
         return false;

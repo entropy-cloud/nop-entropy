@@ -18,6 +18,7 @@ import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 @DataBean
@@ -69,6 +70,10 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
         link.setWfId(getWfId());
         link.setStepId(getStepId());
         link.setNextStepId(nextStepId);
+
+        if (nextStepLinks == null)
+            this.nextStepLinks = new ArrayList<>();
+        this.nextStepLinks.add(link);
         return link;
     }
 

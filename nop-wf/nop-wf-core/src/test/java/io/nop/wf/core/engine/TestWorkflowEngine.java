@@ -422,7 +422,6 @@ public class TestWorkflowEngine extends BaseTestCase {
         assertNotNull(rejectAction);
 
         ysh.invokeAction("_rejectAction", null, context);
-        workflow.runAutoTransitions(context);
 
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
         assertEquals(1, activeSteps.size());
