@@ -120,6 +120,8 @@ nop-auth模块是Nop平台缺省提供的一个权限管理模块，Nop平台基
 
 ![delta-config](delta-config.png)
 
+**注意appName需要与自己定制的模块名保持一致，否则无法实现定制功能，运行时会出现重复定义实体的错误**
+
 在数据模型配置中，我们指定deltaDir=default，这样模型文件生成的路径为 `/_vfs/_delta/{deltaDir}/{originalPath}`。模型装载的时候会优先装载delta目录下的模型文件，从而覆盖基础产品中的模型定义。
 
 实际生成ORM模型文件结构为
