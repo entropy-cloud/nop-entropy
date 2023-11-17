@@ -9,8 +9,13 @@ package io.nop.wf.core.model;
 
 import io.nop.wf.core.model._gen._WfActionModel;
 
-public class WfActionModel extends _WfActionModel implements IWorkflowActionModel {
+public class WfActionModel extends _WfActionModel implements IWorkflowActionModel, Comparable<WfActionModel> {
     public WfActionModel() {
 
+    }
+
+    @Override
+    public int compareTo(WfActionModel o) {
+        return Integer.compare(getSortOrder(), o.getSortOrder());
     }
 }

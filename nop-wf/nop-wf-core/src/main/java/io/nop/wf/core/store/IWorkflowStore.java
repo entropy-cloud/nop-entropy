@@ -91,8 +91,13 @@ public interface IWorkflowStore {
 
     IWorkflowStepRecord getNextJoinStepRecord(IWorkflowStepRecord stepRecord, String joinGroup, String stepName, IWfActor actor);
 
-
     Set<String> getOnSignals(IWorkflowRecord wfRecord);
 
-    void saveOnSignals(IWorkflowRecord wfRecord, Set<String> signals);
+    boolean isAllSignalOn(IWorkflowRecord wfRecord, Set<String> signals);
+
+    boolean isSignalOn(IWorkflowRecord wfRecord, String signal);
+
+    void addSignals(IWorkflowRecord wfRecord, Set<String> signals);
+
+    boolean removeSignals(IWorkflowRecord wfRecord, Set<String> signals);
 }

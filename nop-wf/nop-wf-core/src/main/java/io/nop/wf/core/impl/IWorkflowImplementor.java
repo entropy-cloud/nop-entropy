@@ -25,6 +25,10 @@ public interface IWorkflowImplementor extends IWorkflow {
 
     IWorkflowStepImplementor getStepByRecord(IWorkflowStepRecord stepRecord);
 
+    List<? extends IWorkflowStepImplementor> getActivatedSteps();
+
+    List<? extends IWorkflowStepImplementor> getWaitingSteps();
+
     List<? extends IWorkflowStepImplementor> getStepsByRecords(Collection<? extends IWorkflowStepRecord> stepRecords);
 
     void delayExecute(Runnable command);

@@ -196,11 +196,13 @@ public class MockWorkflowStore implements IWorkflowStore {
         List<WorkflowStepRecordBean> ret = new ArrayList<>();
         WorkflowRecordBean wfBean = workflowBeans.get(stepRecord.getWfId());
         wfBean.getSteps().forEach(step -> {
-            step.getNextStepLinks().forEach(link -> {
-                if (link.getNextStepId().equals(stepRecord.getStepId())) {
-                    ret.add(step);
-                }
-            });
+            if (step.getNextStepLinks() != null) {
+                step.getNextStepLinks().forEach(link -> {
+                    if (link.getNextStepId().equals(stepRecord.getStepId())) {
+                        ret.add(step);
+                    }
+                });
+            }
         });
         return ret;
     }
@@ -208,12 +210,15 @@ public class MockWorkflowStore implements IWorkflowStore {
     @Override
     public Collection<? extends IWorkflowStepRecord> getNextStepRecords(IWorkflowStepRecord stepRecord) {
         List<WorkflowStepRecordBean> ret = new ArrayList<>();
-        ((WorkflowStepRecordBean) stepRecord).getNextStepLinks()
-                .forEach(link -> {
-                    WorkflowStepRecordBean step = stepBeans.get(link.getNextStepId());
-                    if (step != null)
-                        ret.add(step);
-                });
+        WorkflowStepRecordBean recordBean = (WorkflowStepRecordBean) stepRecord;
+        if (recordBean.getNextStepLinks() != null) {
+            recordBean.getNextStepLinks()
+                    .forEach(link -> {
+                        WorkflowStepRecordBean step = stepBeans.get(link.getNextStepId());
+                        if (step != null)
+                            ret.add(step);
+                    });
+        }
         return ret;
     }
 
@@ -256,7 +261,7 @@ public class MockWorkflowStore implements IWorkflowStore {
         String joinGroup = stepRecord.getJoinGroup();
 
         for (WorkflowStepRecordBean step : wfBean.getSteps()) {
-            if(step == stepRecord)
+            if (step == stepRecord)
                 continue;
 
             if (step.getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND)
@@ -338,12 +343,27 @@ public class MockWorkflowStore implements IWorkflowStore {
     }
 
     @Override
-    public Set<String> getOnSignals(IWorkflowRecord wfRecord) {
-        return ((WorkflowRecordBean) wfRecord).getSignals();
+    public boolean isAllSignalOn(IWorkflowRecord wfRecord, Set<String> signals) {
+        return ((WorkflowRecordBean) wfRecord).isAllSignalOn(signals);
     }
 
     @Override
-    public void saveOnSignals(IWorkflowRecord wfRecord, Set<String> signals) {
-        ((WorkflowRecordBean) wfRecord).setSignals(signals);
+    public void addSignals(IWorkflowRecord wfRecord, Set<String> signals) {
+        ((WorkflowRecordBean) wfRecord).addSignals(signals);
+    }
+
+    @Override
+    public boolean removeSignals(IWorkflowRecord wfRecord, Set<String> signals) {
+        return ((WorkflowRecordBean) wfRecord).removeSignals(signals);
+    }
+
+    @Override
+    public Set<String> getOnSignals(IWorkflowRecord wfRecord) {
+        return ((WorkflowRecordBean) wfRecord).getOnSignals();
+    }
+
+    @Override
+    public boolean isSignalOn(IWorkflowRecord wfRecord, String signal) {
+        return ((WorkflowRecordBean) wfRecord).isSignalOn(signal);
     }
 }

@@ -68,6 +68,7 @@ prop:
       parentWfVersion: Parent Flow Version
       parentWfId: Parent Flow ID
       parentStepId: Parent Step ID
+      signalSet: Signal Set
       starterId: Starter ID
       starterName: Starter Name
       starterDeptId: Starter Dept ID
@@ -141,7 +142,7 @@ prop:
       dueTime: Due Time
       readTime: Read Time
       priority: Priority
-      joinTrace: Join Trace
+      joinGroup: Join Group
       tagSet: Tags
       version: Version
       createdBy: Created By

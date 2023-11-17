@@ -209,21 +209,21 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
-    public List<? extends IWorkflowStep> getActivatedSteps() {
+    public List<? extends IWorkflowStepImplementor> getActivatedSteps() {
         Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecords(wfRecord,
                 false, IWorkflowStepRecord::isActivated);
         return getStepsByRecords(stepRecords);
     }
 
     @Override
-    public List<? extends IWorkflowStep> getWaitingSteps() {
+    public List<? extends IWorkflowStepImplementor> getWaitingSteps() {
         Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecords(wfRecord,
                 false, IWorkflowStepRecord::isWaiting);
         return getStepsByRecords(stepRecords);
     }
 
     @Override
-    public List<? extends IWorkflowStep> getSteps(boolean includeHistory) {
+    public List<? extends IWorkflowStepImplementor> getSteps(boolean includeHistory) {
         Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecords(wfRecord, includeHistory, null);
         return getStepsByRecords(stepRecords);
     }
@@ -353,17 +353,20 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
+    public boolean runAutoTransitions(IServiceContext ctx) {
+        return executeNow(() -> {
+            return wfEngine.runAutoTransitions(this, ctx);
+        });
+    }
+
+    @Override
     public boolean isSignalOn(String signal) {
-        return getOnSignals().contains(signal);
+        return wfStore.isSignalOn(getRecord(), signal);
     }
 
     @Override
     public boolean isAllSignalOn(Set<String> signals) {
-        if (signals == null || signals.isEmpty())
-            return true;
-
-        Set<String> on = getOnSignals();
-        return on.containsAll(signals);
+        return getStore().isAllSignalOn(getRecord(), signals);
     }
 
     @Override

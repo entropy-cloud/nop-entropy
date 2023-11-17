@@ -67,6 +67,8 @@ public interface IWorkflowStepRecord {
 
     void setFromAction(String fromAction);
 
+    String getFromAction();
+
     Timestamp getDueTime();
 
     void setDueTime(Timestamp dueTime);

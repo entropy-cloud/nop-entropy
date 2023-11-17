@@ -68,6 +68,7 @@ prop:
       parentWfName: 父工作流名称
       parentWfVersion: 父流程版本
       remark: 备注
+      signalSet: 信号集合
       startTime: 启动时间
       starterDeptId: 启动人单位ID
       starterId: 启动人ID
@@ -127,7 +128,7 @@ prop:
       finishTime: 结束时间
       fromAction: 来源操作
       isRead: 是否已读
-      joinTrace: 汇聚路径
+      joinGroup: 汇聚分组
       lastAction: 最后一次操作
       ownerId: 拥有者ID
       ownerName: 拥有者姓名

@@ -47,6 +47,8 @@ public interface IWorkflowEngine {
 
     void turnSignalOff(IWorkflowImplementor wf, Set<String> signals, IServiceContext ctx);
 
+    boolean runAutoTransitions(IWorkflowImplementor wf, IServiceContext ctx);
+
     void changeActor(IWorkflowStepImplementor step, IWfActor actor, IServiceContext ctx);
 
     void changeOwner(IWorkflowStepImplementor step, String ownerId, IServiceContext ctx);
@@ -55,7 +57,7 @@ public interface IWorkflowEngine {
 
     void killStep(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 
-    void triggerChange(IWorkflowStepImplementor step, IServiceContext ctx);
+    boolean triggerTransition(IWorkflowStepImplementor step, IServiceContext ctx);
 
     List<? extends IWorkflowActionModel> getAllowedActions(IWorkflowStepImplementor step, IServiceContext ctx);
 

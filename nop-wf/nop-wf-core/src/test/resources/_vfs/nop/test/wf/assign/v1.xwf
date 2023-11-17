@@ -69,7 +69,7 @@
     </steps>
 
     <actions>
-        <action displayName="动作0" local="false" name="action0">
+        <action displayName="动作0" name="action0">
             <transition>
                 <to-step stepName="step1"/>
                 <to-assigned/>

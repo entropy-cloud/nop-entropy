@@ -7,17 +7,12 @@
  */
 package io.nop.wf.core.engine;
 
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.reflect.bean.BeanTool;
-import io.nop.core.type.utils.JavaGenericTypeBuilder;
 import io.nop.wf.api.actor.IWfActor;
-import io.nop.wf.api.actor.WfActorBean;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
@@ -25,8 +20,6 @@ import io.nop.wf.core.model.WfListenerModel;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -115,33 +108,9 @@ public class WfRuntime implements IWfRuntime {
         scope.setLocalValue(name, value);
     }
 
-    public void initArgs(Map<String, Object> args) {
-        if (args != null) {
-            scope.setLocalValues(args);
-
-            this.targetSteps = ConvertHelper.toCsvSet(getValue(NopWfCoreConstants.VAR_TARGET_STEPS));
-            this.rejectSteps = ConvertHelper.toCsvSet(getValue(NopWfCoreConstants.VAR_REJECT_STEPS));
-        }
-    }
-
     @Override
     public List<IWfActor> getSelectedActors() {
-        if (selectedActors == null) {
-            selectedActors = resolveActors(getValue(NopWfCoreConstants.VAR_SELECTED_ACTORS));
-        }
         return selectedActors;
-    }
-
-    private List<IWfActor> resolveActors(Object value) {
-        if (value == null)
-            return Collections.emptyList();
-
-        List<WfActorBean> actors = BeanTool.castBeanToType(value, JavaGenericTypeBuilder.buildListType(WfActorBean.class));
-        List<IWfActor> ret = new ArrayList<>(actors.size());
-        for (WfActorBean actorInfo : actors) {
-            ret.add(wf.resolveActor(actorInfo.getActorType(), actorInfo.getActorId(), actorInfo.getDeptId()));
-        }
-        return ret;
     }
 
     @Override
@@ -150,23 +119,7 @@ public class WfRuntime implements IWfRuntime {
     }
 
     public Map<String, List<IWfActor>> getSelectedStepActors() {
-        if (selectedStepActors == null)
-            selectedStepActors = resolveStepActors(getValue(NopWfCoreConstants.VAR_SELECTED_STEP_ACTORS));
         return selectedStepActors;
-    }
-
-    private Map<String, List<IWfActor>> resolveStepActors(Object value) {
-        if (value == null)
-            return Collections.emptyMap();
-
-        Map<String, Object> map = (Map<String, Object>) value;
-        Map<String, List<IWfActor>> ret = CollectionHelper.newHashMap(map.size());
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            Object v = entry.getValue();
-            List<IWfActor> actors = resolveActors(v);
-            ret.put(entry.getKey(), actors);
-        }
-        return ret;
     }
 
     @Override

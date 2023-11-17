@@ -84,6 +84,15 @@ public class WfModelAnalyzer {
                     WfActionModel action = (WfActionModel) wfModel.requireAction(refAction.getName());
                     actions.add(action);
                 });
+
+                // 增加common-action
+                wfModel.getActions().forEach(action -> {
+                    if (action.isCommon()) {
+                        actions.add(action);
+                    }
+                });
+
+                actions.sort(WfActionModel::compareTo);
                 step.setActions(actions);
             }
         });

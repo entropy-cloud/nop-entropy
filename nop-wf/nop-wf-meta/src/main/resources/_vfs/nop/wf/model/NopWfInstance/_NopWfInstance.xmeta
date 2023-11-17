@@ -92,6 +92,10 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="signalSet" displayName="信号集合" i18n-en:displayName="Signal Set" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
         <prop name="starterId" displayName="启动人ID" i18n-en:displayName="Starter ID" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>

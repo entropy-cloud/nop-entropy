@@ -7,7 +7,7 @@
  */
 package io.nop.wf.core;
 
-public interface NopWfCoreConstants extends _NopWfCoreConstants{
+public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String XDEF_PATH_WF = "/nop/schema/wf/wf.xdef";
 
     String POSTFIX_XWF = ".xwf";
@@ -15,6 +15,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants{
     int WF_STEP_STATUS_HISTORY_BOUND = WF_STEP_STATUS_COMPLETED;
 
     int WF_STATUS_HISTORY_BOUND = WF_STATUS_COMPLETED;
+
+    String SIGNAL_PREFIX = "signal_";
 
     String VAR_WF = "wf";
     String VAR_WF_RT = "wfRt";

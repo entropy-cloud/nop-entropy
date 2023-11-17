@@ -93,7 +93,7 @@
           @common 是否每个步骤都具有的公共操作
           @persist 是否将action执行记录保存到数据库中
           @specialType 可视化设计器识别的分类标记。每一种specialType对应设计器中的一种图标。
-          @waitSignals 对应一组globalVars中必须存在的变量名，只有这些变量不为null, action才允许被触发
+          @waitSignals 对应一组globalVars中必须存在的变量名，只有这些变量为truthy, action才允许被触发
           @forActivated 是否在步骤处于活动状态时可调用
           @forHistory 是否在步骤处于历史状态时可调用
           @forWaiting 是否在工作流步骤处于等待状态时可调用

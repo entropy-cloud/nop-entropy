@@ -24,15 +24,6 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
         setStatus(status);
     }
 
-    @Override
-    public void setJoinValue(String targetStep, String joinValue) {
-
-    }
-
-    @Override
-    public String getJoinValue(String targetStep) {
-        return null;
-    }
 
     @Override
     public void setActor(IWfActor actor) {

@@ -134,9 +134,9 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="joinTrace" displayName="汇聚路径" i18n-en:displayName="Join Trace" queryable="true" sortable="true"
+        <prop name="joinGroup" displayName="汇聚分组" i18n-en:displayName="Join Group" queryable="true" sortable="true"
               insertable="true" updatable="true" internal="true" ui:show="X">
-            <schema type="java.lang.String" precision="500"/>
+            <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="tagSet" displayName="标签" i18n-en:displayName="Tags" queryable="true" sortable="true"
               insertable="true" updatable="true" internal="true" ui:show="X">

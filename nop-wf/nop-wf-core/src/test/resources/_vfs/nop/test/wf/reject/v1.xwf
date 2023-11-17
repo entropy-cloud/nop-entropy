@@ -4,7 +4,7 @@
     <diagram/>
 
     <actions>
-        <action displayName="退回上一步" common="true" isRejectAction="true" name="_rejectAction"/>
+        <action displayName="退回上一步" common="true" forReject="true" name="_rejectAction"/>
         <action displayName="审核" name="sh">
             <transition bizEntityState="20">
                 <to-step stepName="ysh"/>

@@ -7,14 +7,19 @@
  */
 package io.nop.wf.core.store.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.sql.Timestamp;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
@@ -66,7 +71,7 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     private boolean willEnd;
 
-    private Set<String> signals;
+    private Map<String, Object> globalVars;
 
     private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
 
@@ -430,12 +435,72 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.createrId = createrId;
     }
 
+    public Map<String, Object> getGlobalVars() {
+        return globalVars;
+    }
 
-    public Set<String> getSignals() {
+    public void setGlobalVars(Map<String, Object> globalVars) {
+        this.globalVars = globalVars;
+    }
+
+    @JsonIgnore
+    public Set<String> getOnSignals() {
+        if (globalVars == null)
+            return null;
+
+        Set<String> signals = new LinkedHashSet<>();
+        globalVars.forEach((name, value) -> {
+            if (name.startsWith(NopWfCoreConstants.SIGNAL_PREFIX)) {
+                if (ConvertHelper.toTruthy(value)) {
+                    signals.add(name.substring(NopWfCoreConstants.SIGNAL_PREFIX.length()));
+                }
+            }
+        });
         return signals;
     }
 
-    public void setSignals(Set<String> signals) {
-        this.signals = signals;
+    public boolean removeSignals(Set<String> signals) {
+        if (globalVars == null)
+            return false;
+
+        boolean ret = false;
+        if (signals != null) {
+            for (String signal : signals) {
+                if (globalVars.remove(NopWfCoreConstants.SIGNAL_PREFIX + signal) != null)
+                    ret = true;
+            }
+        }
+
+        return ret;
+    }
+
+    public boolean isAllSignalOn(Set<String> signals) {
+        if (signals == null || signals.isEmpty())
+            return true;
+
+        if (globalVars == null)
+            return false;
+
+        for (String signal : signals) {
+            boolean b = ConvertHelper.toTruthy(globalVars.get(NopWfCoreConstants.SIGNAL_PREFIX + signal));
+            if (!b)
+                return false;
+        }
+        return true;
+    }
+
+    public boolean isSignalOn(String signal) {
+        if (globalVars == null)
+            return false;
+
+        return ConvertHelper.toTruthy(globalVars.get(NopWfCoreConstants.SIGNAL_PREFIX + signal));
+    }
+
+    public void addSignals(Set<String> signals) {
+        if (signals != null) {
+            for (String signal : signals) {
+                globalVars.put(NopWfCoreConstants.SIGNAL_PREFIX + signal, Boolean.TRUE);
+            }
+        }
     }
 }

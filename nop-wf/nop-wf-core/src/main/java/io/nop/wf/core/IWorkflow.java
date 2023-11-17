@@ -157,6 +157,13 @@ public interface IWorkflow {
 
     void turnSignalOff(Set<String> signals, IServiceContext ctx);
 
+    /**
+     * 执行active步骤的transition转换
+     *
+     * @return 如果有步骤执行了转换，则返回true。如果返回了true，一般需要继续调用runAutoTransitions，直到返回false为止
+     */
+    boolean runAutoTransitions(IServiceContext ctx);
+
     boolean isSignalOn(String signal);
 
     boolean isAllSignalOn(Set<String> signals);

@@ -141,7 +141,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public void triggerChange(IServiceContext ctx) {
-        wf.getEngine().triggerChange(this, ctx);
+        wf.getEngine().triggerTransition(this, ctx);
     }
 
     @Nonnull

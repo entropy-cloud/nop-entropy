@@ -21,14 +21,21 @@ import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.ResourceWorkflowModelStore;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Disabled
 public class TestWorkflowEngine extends BaseTestCase {
@@ -89,6 +96,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         assertNotNull(targets.get(0).getStepDisplayName());
         step.invokeAction("action0", null, context);
 
+        workflow.runAutoTransitions(context);
+
         assertTrue(workflow.isEnded());
         assertTrue(workflow.isStarted());
         assertFalse(workflow.isSuspended());
@@ -109,6 +118,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         workflow.start(vars, context);
         IWorkflowStep step = workflow.getStepsByName("wf-start").get(0);
         invokeAction(step, "action0", null, null, null, context);
+        assertTrue(workflow.runAutoTransitions(context));
 
         assertTrue(workflow.isEnded());
         assertEquals(NopWfCoreConstants.WF_STEP_STATUS_COMPLETED, workflow.getWfStatus());
@@ -136,6 +146,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         ysh1.invokeAction("sp1", null, context);
         assertFalse(workflow.isEnded());
         ysh1.invokeAction("sp2", null, context);
+        assertTrue(workflow.runAutoTransitions(context));
+
         assertTrue(workflow.isEnded());
 
     }
@@ -297,6 +309,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
         IWorkflowStep startStep = activeSteps.get(0);
         invokeAction(startStep, "action0", null, null, null, context);
+        assertTrue (workflow.runAutoTransitions(context)); ;
         assertTrue(workflow.isEnded());
     }
 
@@ -315,9 +328,10 @@ public class TestWorkflowEngine extends BaseTestCase {
         IServiceContext context = new ServiceContextImpl();
         IWorkflow workflow = workflowManager.newWorkflow("multiTransition", 1L);
         workflow.start(null, context);
+        while (workflow.runAutoTransitions(context)) ;
+
         assertTrue(workflow.isEnded());
     }
-
 
     @Test
     public void testTransitionTarget() {
@@ -350,6 +364,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         IServiceContext context = new ServiceContextImpl();
         IWorkflow workflow = workflowManager.newWorkflow("noaction", 1L);
         workflow.start(null, context);
+        assertTrue(workflow.runAutoTransitions(context));
+        assertTrue(workflow.runAutoTransitions(context));
         assertTrue(workflow.isEnded());
 
     }
@@ -364,6 +380,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         List<WorkflowTransitionTarget> targets = startStep.getTransitionTargetsForAction("action0", context);
 
         invokeAction(startStep, "action0", null, null, null, context);
+        assertTrue(workflow.runAutoTransitions(context));
+
         assertTrue(workflow.isEnded());
     }
 
@@ -378,6 +396,7 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         invokeAction(step, "action0", "end0", "user", "actor2", context);
 
+        workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());
     }
 
@@ -403,6 +422,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         assertNotNull(rejectAction);
 
         ysh.invokeAction("_rejectAction", null, context);
+        workflow.runAutoTransitions(context);
+
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
         assertEquals(1, activeSteps.size());
         assertEquals("wf-start", activeSteps.get(0).getStepName());
@@ -433,6 +454,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getLatestStepByName("wf-start");
         invokeAction(startStep, "sh", null, null, null, context);
+        workflow.runAutoTransitions(context);
+
         IWorkflowStep endStep = workflow.getLatestStepByName("wf-end");
         assertEquals("1", endStep.getActor().getActorId());
         assertEquals("user", endStep.getActor().getActorType());
@@ -447,6 +470,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         IServiceContext context = new ServiceContextImpl();
         IWorkflow workflow = workflowManager.newWorkflow("emptyStep", null);
         workflow.start(null, context);
+        assertTrue(workflow.runAutoTransitions(context));
+
         List<? extends IWorkflowStep> steps = workflow.getActivatedSteps();
         assertEquals(2, steps.size());
         IWorkflowStep cyStep = null, startStep = null;
@@ -460,6 +485,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         invokeAction(cyStep, "cy", null, "user", "1", context);
         assertTrue(!workflow.isEnded());
         invokeAction(startStep, "sh", null, "user", "1", context);
+        assertTrue(workflow.runAutoTransitions(context));
         assertTrue(workflow.isEnded());
     }
 
@@ -493,9 +519,9 @@ public class TestWorkflowEngine extends BaseTestCase {
         workflow.start(null, context);
         List<? extends IWorkflowStep> steps = workflow.getActivatedSteps();
         assertEquals(1, steps.size());
-        workflow.getModel().getSteps();
         IWorkflowStep step0 = steps.get(0);
         invokeAction(step0, "action0", "step5", "user", "1", context);
+        assertTrue(workflow.runAutoTransitions(context));
         assertTrue(workflow.isEnded());
     }
 
@@ -509,6 +535,9 @@ public class TestWorkflowEngine extends BaseTestCase {
         invokeAction(startStep, "sh", "ysp", "user", "1", context);
     }
 
+    /**
+     * 通过to-assign转换动态跳转步骤
+     */
     @Test
     public void testToAssign1() {
         IServiceContext context = new ServiceContextImpl();
@@ -517,6 +546,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         List<? extends IWorkflowStep> steps = workflow.getActivatedSteps();
         assertEquals(1, steps.size());
         IWorkflowStep step0 = steps.get(0);
+        assertEquals("1", step0.getActor().getActorId());
         invokeAction(step0, "action0", "step0", "user", "1", context);
         steps = workflow.getActivatedSteps();
         assertEquals(1, steps.size());
@@ -527,6 +557,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         steps = workflow.getActivatedSteps();
         assertEquals(1, steps.size());
         invokeAction(steps.get(0), "action0", "step5", "user", "1", context);
+        workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());
     }
 
