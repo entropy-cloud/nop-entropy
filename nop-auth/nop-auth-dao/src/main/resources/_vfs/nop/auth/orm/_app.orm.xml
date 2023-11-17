@@ -419,7 +419,7 @@
             <comment>整个应用系统可以拆分为多个子站点</comment>
             <relations>
                 <to-many displayName="资源列表" name="resources" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                         refPropName="site" tagSet="pub,connection" i18n-en:displayName="Resources">
+                         refPropName="site" tagSet="pub,cascade-delete,connection" i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="siteId" rightProp="siteId"/>
                     </join>
@@ -508,7 +508,7 @@
             <comment>菜单和操作按钮以及后台的功能点统一抽象为资源对象。</comment>
             <relations>
                 <to-one displayName="父资源" name="parent" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                        refPropName="children" tagSet="pub,ref-pub,cascade-delete" i18n-en:displayName="Parent"
+                        refPropName="children" tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Parent"
                         ref-i18n-en:displayName="Children">
                     <join>
                         <on leftProp="parentId" rightProp="resourceId"/>
@@ -516,7 +516,8 @@
                     <ref-set/>
                 </to-one>
                 <to-one displayName="子系统" name="site" refEntityName="io.nop.auth.dao.entity.NopAuthSite"
-                        refPropName="resources" tagSet="pub,ref-pub,cascade-delete,ref-connection,queryable,sortable"
+                        refPropName="resources"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-connection,queryable,sortable"
                         i18n-en:displayName="Site" ref-i18n-en:displayName="Resources">
                     <join>
                         <on leftProp="siteId" rightProp="siteId"/>
@@ -524,7 +525,7 @@
                     <ref-set/>
                 </to-one>
                 <to-many displayName="子资源" name="children" refEntityName="io.nop.auth.dao.entity.NopAuthResource"
-                         refPropName="parent" tagSet="pub" i18n-en:displayName="Children">
+                         refPropName="parent" tagSet="pub,cascade-delete" i18n-en:displayName="Children">
                     <join>
                         <on leftProp="resourceId" rightProp="parentId"/>
                     </join>

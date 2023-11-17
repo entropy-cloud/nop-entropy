@@ -72,7 +72,7 @@
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="resources" displayName="资源列表" i18n-en:displayName="Resources" tagSet="pub,connection"
+        <prop name="resources" displayName="资源列表" i18n-en:displayName="Resources" tagSet="pub,cascade-delete,connection"
               ext:kind="to-many" internal="true" ext:joinLeftProp="siteId" ext:joinRightProp="siteId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>

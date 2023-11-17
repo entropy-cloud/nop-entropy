@@ -11,7 +11,7 @@
 
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
-        <domain name="image" precision="100" stdSqlType="VARCHAR"/>
+        <domain name="image" precision="100" stdDomain="file" stdSqlType="VARCHAR"/>
         <domain name="email" precision="100" stdSqlType="VARCHAR"/>
         <domain name="phone" precision="100" stdSqlType="VARCHAR"/>
         <domain name="roleId" precision="100" stdSqlType="VARCHAR"/>

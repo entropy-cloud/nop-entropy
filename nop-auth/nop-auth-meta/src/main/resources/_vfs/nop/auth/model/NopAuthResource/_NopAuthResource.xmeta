@@ -136,7 +136,7 @@
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="parent" displayName="父资源" i18n-en:displayName="Parent" tagSet="pub,ref-pub,cascade-delete"
+        <prop name="parent" displayName="父资源" i18n-en:displayName="Parent" tagSet="pub,ref-pub,ref-cascade-delete"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentId"
               ext:joinRightProp="resourceId" ext:joinRightDisplayProp="displayName" insertable="false" updatable="false"
               lazy="true">
@@ -147,8 +147,8 @@
             <schema type="String"/>
         </prop>
         <prop name="site" displayName="子系统" i18n-en:displayName="Site"
-              tagSet="pub,ref-pub,cascade-delete,ref-connection,queryable,sortable" ext:kind="to-one" internal="true"
-              queryable="true" ext:joinLeftProp="siteId" ext:joinRightProp="siteId"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-connection,queryable,sortable" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="siteId" ext:joinRightProp="siteId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopAuthSite"/>
         </prop>
@@ -156,8 +156,8 @@
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="children" displayName="子资源" i18n-en:displayName="Children" tagSet="pub" ext:kind="to-many"
-              internal="true" ext:joinLeftProp="resourceId" ext:joinRightProp="parentId"
+        <prop name="children" displayName="子资源" i18n-en:displayName="Children" tagSet="pub,cascade-delete"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="resourceId" ext:joinRightProp="parentId"
               ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopAuthResource"/>
