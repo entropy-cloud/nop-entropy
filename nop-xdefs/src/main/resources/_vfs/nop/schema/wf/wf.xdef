@@ -97,7 +97,7 @@
           @forActivated 是否在步骤处于活动状态时可调用
           @forHistory 是否在步骤处于历史状态时可调用
           @forWaiting 是否在工作流步骤处于等待状态时可调用
-          @forEnded 是否在工作流结束之后可调用
+          @forFlowEnded 是否在工作流结束之后可调用
           @forReject 是否退回操作，退回操作可以没有配置步骤迁移
           @forWithdraw 是否是撤回操作, 撤回操作可以没有配置步骤迁移
         -->
@@ -106,11 +106,14 @@
                 persist="!boolean=true" waitSignals="csv-set" specialType="string" sortOrder="!int=0"
                 forActivated="!boolean=true" forHistory="!boolean=false" saveActionRecord="!boolean=true"
                 forWaiting="!boolean=false" forReject="!boolean=false" forWithdraw="!boolean=false"
-                forEnded="!boolean=false" xdef:name="WfActionModel">
+                forFlowEnded="!boolean=false" xdef:name="WfActionModel">
 
             <description xdef:value="string"/>
 
             <when xdef:value="xpl-predicate"/>
+
+            <!-- 仅当common=true的时候使用，用于限制仅应用某些步骤  -->
+            <when-steps xdef:value="csv-set" />
 
             <arg name="!var-name" xdef:ref="WfArgVarModel" xdef:unique-attr="name"/>
 

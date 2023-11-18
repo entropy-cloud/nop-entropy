@@ -58,10 +58,10 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
-     * xml name: forEnded
+     * xml name: forFlowEnded
      * 是否在工作流结束之后可调用
      */
-    private boolean _forEnded  = false;
+    private boolean _forFlowEnded  = false;
     
     /**
      *  
@@ -174,6 +174,13 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
      * 
      */
     private io.nop.core.lang.eval.IEvalPredicate _when ;
+    
+    /**
+     *  
+     * xml name: when-steps
+     * 仅当common=true的时候使用，用于限制仅应用某些步骤
+     */
+    private java.util.Set<java.lang.String> _whenSteps ;
     
     /**
      * 
@@ -317,19 +324,19 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
-     * xml name: forEnded
+     * xml name: forFlowEnded
      *  是否在工作流结束之后可调用
      */
     
-    public boolean isForEnded(){
-      return _forEnded;
+    public boolean isForFlowEnded(){
+      return _forFlowEnded;
     }
 
     
-    public void setForEnded(boolean value){
+    public void setForFlowEnded(boolean value){
         checkAllowChange();
         
-        this._forEnded = value;
+        this._forFlowEnded = value;
            
     }
 
@@ -638,6 +645,25 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
     }
 
     
+    /**
+     * 
+     * xml name: when-steps
+     *  仅当common=true的时候使用，用于限制仅应用某些步骤
+     */
+    
+    public java.util.Set<java.lang.String> getWhenSteps(){
+      return _whenSteps;
+    }
+
+    
+    public void setWhenSteps(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._whenSteps = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -661,7 +687,7 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
         out.put("description",this.getDescription());
         out.put("displayName",this.getDisplayName());
         out.put("forActivated",this.isForActivated());
-        out.put("forEnded",this.isForEnded());
+        out.put("forFlowEnded",this.isForFlowEnded());
         out.put("forHistory",this.isForHistory());
         out.put("forReject",this.isForReject());
         out.put("forWaiting",this.isForWaiting());
@@ -678,6 +704,7 @@ public abstract class _WfActionModel extends io.nop.core.resource.component.Abst
         out.put("transition",this.getTransition());
         out.put("waitSignals",this.getWaitSignals());
         out.put("when",this.getWhen());
+        out.put("whenSteps",this.getWhenSteps());
     }
 }
  // resume CPD analysis - CPD-ON

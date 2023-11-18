@@ -84,6 +84,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_NOT_ALLOWED_WHEN_SIGN
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_TRANSITION_NO_NEXT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ALREADY_STARTED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_EMPTY_ACTION_ARG;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_REMOVE;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_START;
@@ -1155,6 +1156,12 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (!isForStatus(step, actionModel)) {
             return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
         }
+
+        if (actionModel.isCommon() && actionModel.getWhenSteps() != null && !actionModel.getWhenSteps().isEmpty()) {
+            if (!actionModel.getWhenSteps().contains(step.getStepName()))
+                return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
+        }
+
         if (actionModel.isForWithdraw()) {
             if (!canWithdraw(step)) {
                 return ERR_WF_WITHDRAW_ACTION_IS_NOT_ALLOWED;
@@ -1185,7 +1192,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         // 如果流程已结束, 一般情况下是不允许执行action的
         if (step.getWorkflow().isEnded()) {
-            if (!actionModel.isForEnded())
+            if (!actionModel.isForFlowEnded())
                 return false;
         }
 
