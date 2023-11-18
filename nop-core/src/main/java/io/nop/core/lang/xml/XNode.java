@@ -1584,11 +1584,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         appendChild(child);
     }
 
-    public void append(String xml) {
-        append(null, xml, false);
+    public void appendBodyXml(String xml) {
+        appendBodyXml(null, xml, false);
     }
 
-    public void append(SourceLocation loc, String xml, boolean forHtml) {
+    public void appendBodyXml(SourceLocation loc, String xml, boolean forHtml) {
 
         checkNotReadOnly();
 
@@ -1600,11 +1600,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.appendChildren(node.detachChildren());
     }
 
-    public void prepend(String xml) {
-        prepend(null, xml, false);
+    public void prependBodyXml(String xml) {
+        prependBodyXml(null, xml, false);
     }
 
-    public void prepend(SourceLocation loc, String xml, boolean forHtml) {
+    public void prependBodyXml(SourceLocation loc, String xml, boolean forHtml) {
         checkNotReadOnly();
 
         if (StringHelper.isEmpty(xml))
@@ -1636,11 +1636,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         }
     }
 
-    public void before(String xml) {
-        before(null, xml, false);
+    public void insertBeforeXml(String xml) {
+        insertBeforeXml(null, xml, false);
     }
 
-    public void before(SourceLocation loc, String xml, boolean forHtml) {
+    public void insertBeforeXml(SourceLocation loc, String xml, boolean forHtml) {
 
         checkNotReadOnly();
 
@@ -1652,11 +1652,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.getParent().insertChildren(childIndex(), node.detachChildren());
     }
 
-    public void after(String xml) {
-        after(null, xml, false);
+    public void insertAfterXml(String xml) {
+        insertAfterXml(null, xml, false);
     }
 
-    public void after(SourceLocation loc, String xml, boolean forHtml) {
+    public void insertAfterXml(SourceLocation loc, String xml, boolean forHtml) {
         checkNotReadOnly();
 
         if (StringHelper.isEmpty(xml))
@@ -1877,7 +1877,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public void setInnerXml(SourceLocation loc, String xml, boolean forHtml) {
         this.clearBody();
-        append(loc, xml, forHtml);
+        appendBodyXml(loc, xml, forHtml);
     }
 
     /**

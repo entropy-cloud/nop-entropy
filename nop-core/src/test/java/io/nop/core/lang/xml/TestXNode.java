@@ -149,12 +149,12 @@ public class TestXNode {
         XNode node = XNodeParser.instance().parseFromText(null, s);
         assertEquals(3, node.getChildCount());
 
-        node.append("<div/>");
+        node.appendBodyXml("<div/>");
         node.dump();
         assertEquals(4, node.getChildCount());
         assertEquals("div", node.child(3).getTagName());
 
-        node.prepend("<v1/>");
+        node.prependBodyXml("<v1/>");
         node.dump();
         assertEquals(5, node.getChildCount());
         assertEquals("v1", node.child(0).getTagName());
@@ -162,12 +162,12 @@ public class TestXNode {
         XNode child = node.child(1);
         assertEquals("A", child.content().asString());
 
-        child.before("<s2/>");
+        child.insertBeforeXml("<s2/>");
         child.getParent().dump();
         assertEquals(6, node.getChildCount());
         assertEquals("s2", child.prevSibling().getTagName());
 
-        child.after("<s3/>");
+        child.insertAfterXml("<s3/>");
         child.getParent().dump();
         assertEquals(7, node.getChildCount());
         assertEquals("s3", child.nextSibling().getTagName());
