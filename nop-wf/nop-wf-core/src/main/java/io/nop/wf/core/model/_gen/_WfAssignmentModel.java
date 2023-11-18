@@ -37,6 +37,13 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: mustInAssignment
+     * 是否要求actor必须在assignment范围内选择。如果选择false, 则引擎执行时以前台传入的selectedActors为准，不检查是否它们是否在assignment范围内。
+     */
+    private boolean _mustInAssignment  = true;
+    
+    /**
+     *  
      * xml name: selectExpr
      * 从actors集合中过滤得到实际使用的actor列表。仅当selection=auto时才会被使用。
      */
@@ -44,15 +51,8 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: selectInAssignment
-     * 是否要求actor必须在assignment范围内选择。如果选择false, 则引擎执行时以前台传入的selectedActors为准，不检查是否它们是否在assignment范围内。
-     */
-    private boolean _selectInAssignment  = true;
-    
-    /**
-     *  
      * xml name: selection
-     * 是否允许在actors范围内选择，是单选还是多选
+     * 是否允许用户在actors范围内选择，是单选还是多选。缺省情况下所有配置的actor都会被自动选择
      */
     private io.nop.wf.api.actor.WfAssignmentSelection _selection ;
     
@@ -122,6 +122,25 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: mustInAssignment
+     *  是否要求actor必须在assignment范围内选择。如果选择false, 则引擎执行时以前台传入的selectedActors为准，不检查是否它们是否在assignment范围内。
+     */
+    
+    public boolean isMustInAssignment(){
+      return _mustInAssignment;
+    }
+
+    
+    public void setMustInAssignment(boolean value){
+        checkAllowChange();
+        
+        this._mustInAssignment = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: selectExpr
      *  从actors集合中过滤得到实际使用的actor列表。仅当selection=auto时才会被使用。
      */
@@ -141,27 +160,8 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: selectInAssignment
-     *  是否要求actor必须在assignment范围内选择。如果选择false, 则引擎执行时以前台传入的selectedActors为准，不检查是否它们是否在assignment范围内。
-     */
-    
-    public boolean isSelectInAssignment(){
-      return _selectInAssignment;
-    }
-
-    
-    public void setSelectInAssignment(boolean value){
-        checkAllowChange();
-        
-        this._selectInAssignment = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: selection
-     *  是否允许在actors范围内选择，是单选还是多选
+     *  是否允许用户在actors范围内选择，是单选还是多选。缺省情况下所有配置的actor都会被自动选择
      */
     
     public io.nop.wf.api.actor.WfAssignmentSelection getSelection(){
@@ -214,8 +214,8 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
         out.put("actors",this.getActors());
         out.put("defaultOwnerExpr",this.getDefaultOwnerExpr());
         out.put("ignoreNoAssign",this.isIgnoreNoAssign());
+        out.put("mustInAssignment",this.isMustInAssignment());
         out.put("selectExpr",this.getSelectExpr());
-        out.put("selectInAssignment",this.isSelectInAssignment());
         out.put("selection",this.getSelection());
         out.put("useManagerWhenNoAssign",this.isUseManagerWhenNoAssign());
     }

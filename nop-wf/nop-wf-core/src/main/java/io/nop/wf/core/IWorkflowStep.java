@@ -127,7 +127,7 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     void kill(Map<String, Object> args, IServiceContext ctx);
 
-    void triggerChange(Map<String, Object> args, IServiceContext ctx);
+    void triggerTransition(Map<String, Object> args, IServiceContext ctx);
 
     /**
      * 目前在本步骤允许执行的action
@@ -150,7 +150,7 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
 
     /**
-     * 转移到指定步骤。转移到指定步骤。如果本步骤尚未结束，则先结束本步骤。如果本步骤已结束，则直接增加目标步骤实例
+     * 强制转移到指定步骤。转移到指定步骤。如果本步骤尚未结束，则先结束本步骤。如果本步骤已结束，则直接增加目标步骤实例
      */
     void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx);
 
@@ -198,5 +198,5 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
      * @return
      */
     @Nonnull
-    List<? extends IWorkflowStep> getOtherStepsWithSameName();
+    List<? extends IWorkflowStep> getOtherStepsWithSameName(boolean includeHistory);
 }

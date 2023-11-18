@@ -70,6 +70,6 @@ public class WorkflowCoordinatorImpl implements IWorkflowCoordinator {
         args.put(NopWfCoreConstants.VAR_SUB_WF_RESULTS, results);
 
         // 触发工作流引擎检查step的状态检查，再根据状态触发auto action实现变迁
-        step.triggerChange(args, ctx);
+        step.triggerTransition(args, ctx);
     }
 }

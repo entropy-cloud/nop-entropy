@@ -40,26 +40,28 @@ public class RefactorWf extends BaseTestCase {
             XNode transition = step.childByTag("transition");
             if (transition != null) {
                 for (XNode to : transition.getChildren()) {
-                    to.renameAttr("stepId","stepName");
+                    to.renameAttr("stepId", "stepName");
                 }
             }
 
             XNode assignment = step.childByTag("assignment");
-            if(assignment != null){
+            if (assignment != null) {
                 String selection = assignment.attrText("selection");
-                if("multipleSelect".equals(selection)){
-                    assignment.setAttr("selection","multiple");
-                }else if("noSelect".equals(selection)){
-                    assignment.setAttr("selection","auto");
-                } else if("singleSelect".equals(selection)){
-                    assignment.setAttr("selection","single");
+                if ("multipleSelect".equals(selection)) {
+                    assignment.setAttr("selection", "multiple");
+                } else if ("noSelect".equals(selection)) {
+                    assignment.setAttr("selection", "auto");
+                } else if ("singleSelect".equals(selection)) {
+                    assignment.setAttr("selection", "single");
+                } else if ("all".equals(selection)) {
+                    assignment.setAttr("selection", "auto");
                 }
-                assignment.forEachChild(actor->{
-                    actor.renameAttr("id","actorId");
-                    actor.renameAttr("type","actorType");
+                assignment.forEachChild(actor -> {
+                    actor.renameAttr("id", "actorId");
+                    actor.renameAttr("type", "actorType");
                 });
                 XNode actors = assignment.childByTag("actors");
-                if(actors == null){
+                if (actors == null) {
                     actors = XNode.make("actors");
                     actors.appendChildren(assignment.detachChildren());
                     assignment.appendChild(actors);
@@ -67,9 +69,9 @@ public class RefactorWf extends BaseTestCase {
             }
 
             XNode refActions = step.childByTag("ref-actions");
-            if(refActions != null){
-                refActions.forEachChild(refAction->{
-                    refAction.renameAttr("actionId","name");
+            if (refActions != null) {
+                refActions.forEachChild(refAction -> {
+                    refAction.renameAttr("actionId", "name");
                 });
             }
         });
@@ -82,7 +84,7 @@ public class RefactorWf extends BaseTestCase {
                 XNode transition = action.childByTag("transition");
                 if (transition != null) {
                     for (XNode to : transition.getChildren()) {
-                        to.renameAttr("stepId","stepName");
+                        to.renameAttr("stepId", "stepName");
                     }
                 }
             });

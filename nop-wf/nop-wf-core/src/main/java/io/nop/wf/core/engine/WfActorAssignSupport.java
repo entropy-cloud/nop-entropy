@@ -135,7 +135,7 @@ public class WfActorAssignSupport {
         List<IWfActor> selectedActors = wfRt.getSelectedActors(targetStep);
 
         // 如果没有要求必须在assignment范围内选择，则直接使用selectedActors
-        if (!assignment.isSelectInAssignment()) {
+        if (!assignment.isMustInAssignment()) {
             return selectedActors;
         }
 

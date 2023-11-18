@@ -73,6 +73,12 @@ public class Guard {
             throw new IllegalArgumentException("NotEquals:expected=" + v1 + ",actual=" + v2);
     }
 
+    public static void checkEquals(Object v1, Object v2, String message) {
+        if (!Objects.equals(v1, v2))
+            throw new IllegalArgumentException("NotEquals:expected=" + v1 + ",actual=" + v2 + ",message=" + message);
+    }
+
+
     public static <T> T notNull(T value, String message) {
         if (value == null)
             throw new IllegalArgumentException("IsNull:" + message);

@@ -1,12 +1,35 @@
 <lib x:schema="/nop/schema/xlib.xdef"
      xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <AutoJoinSupport>
-            <attr name="_dsl_root"/>
+        <CosignSupport>
+            <attr name="_dsl_root" implicit="true"/>
 
             <source>
+                <c:script><![CDATA[
+                   const cosignSteps = _dsl_root.childByTag("steps").children.filter(step=>{
+                        return step.specialType == 'cosign'
+                    });
 
+                   const actions = _dsl_root.childByTag('actions');
+
+                   cosignSteps.forEach(step=>{
+                       step.setTagName('step');
+                       step.childByTag('ref-actions')?.children.forEach(ref=>{
+                          // 跳过不导致步骤迁移的操作
+                          if(ref.attrBoolean('local'))
+                             return;
+
+                          const actionName = ref.attrText('name');
+                          const action = actions.childByAttr('name',actionName);
+                          if(action == null)
+                             return;
+
+                          const transition = action.childByTag('transition').detach()
+
+                       })
+                   });
+                ]]></c:script>
             </source>
-        </AutoJoinSupport>
+        </CosignSupport>
     </tags>
 </lib>

@@ -67,7 +67,8 @@ public interface IWorkflowStore {
     Collection<? extends IWorkflowStepRecord> getStepRecords(IWorkflowRecord wfRecord, boolean includeHistory,
                                                              Predicate<? super IWorkflowStepRecord> filter);
 
-    Collection<? extends IWorkflowStepRecord> getStepRecordsByName(IWorkflowRecord wfRecord, String stepName);
+    Collection<? extends IWorkflowStepRecord> getStepRecordsByName(IWorkflowRecord wfRecord, String stepName,
+                                                                   boolean includeHistory);
 
     Collection<? extends IWorkflowStepRecord> getPrevStepRecords(IWorkflowStepRecord stepRecord);
 

@@ -140,7 +140,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     }
 
     @Override
-    public void triggerChange(Map<String, Object> args, IServiceContext ctx) {
+    public void triggerTransition(Map<String, Object> args, IServiceContext ctx) {
         wf.getEngine().triggerTransition(this, args, ctx);
     }
 
@@ -233,8 +233,8 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Nonnull
     @Override
-    public List<? extends IWorkflowStep> getOtherStepsWithSameName() {
-        List<? extends IWorkflowStep> ret = wf.getStepsByName(model.getName());
+    public List<? extends IWorkflowStep> getOtherStepsWithSameName(boolean includeHistory) {
+        List<? extends IWorkflowStep> ret = wf.getStepsByName(model.getName(), includeHistory);
         ret.remove(this);
         return ret;
     }

@@ -212,9 +212,9 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
-    public List<? extends IWorkflowStep> getStepsByName(String stepName) {
+    public List<? extends IWorkflowStep> getStepsByName(String stepName, boolean includeHistory) {
         Collection<? extends IWorkflowStepRecord> stepRecords = wfStore.getStepRecordsByName(wfRecord,
-                stepName);
+                stepName, includeHistory);
         return this.getStepsByRecords(stepRecords);
     }
 

@@ -186,9 +186,9 @@ public class MockWorkflowStore implements IWorkflowStore {
     }
 
     @Override
-    public Collection<? extends IWorkflowStepRecord> getStepRecordsByName(IWorkflowRecord wfRecord, String stepName) {
-        return ((WorkflowRecordBean) wfRecord).getSteps().stream()
-                .filter(step -> step.getStepName().equals(stepName)).collect(Collectors.toList());
+    public Collection<? extends IWorkflowStepRecord> getStepRecordsByName(IWorkflowRecord wfRecord, String stepName,
+                                                                          boolean includeHistory) {
+        return getStepRecords(wfRecord, includeHistory, step -> step.getStepName().equals(stepName));
     }
 
     @Override

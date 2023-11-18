@@ -92,7 +92,11 @@ public interface IWorkflow {
      * @param stepName 指定工作流步骤定义id
      * @return 按照事件顺序从前到后排列的步骤列表
      */
-    List<? extends IWorkflowStep> getStepsByName(String stepName);
+    List<? extends IWorkflowStep> getStepsByName(String stepName, boolean includeHistory);
+
+    default List<? extends IWorkflowStep> getStepsByName(String stepName){
+        return getStepsByName(stepName, true);
+    }
 
     List<? extends IWorkflowStep> getActivatedSteps();
 

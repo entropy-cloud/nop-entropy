@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-@selection 是否允许在actors范围内选择，是单选还是多选
-@selectInAssignment 是否要求actor必须在assignment范围内选择。如果选择false, 则引擎执行时以前台传入的selectedActors为准，不检查是否它们是否在assignment范围内。
+@selection 是否允许用户在actors范围内选择，是单选还是多选。缺省情况下所有配置的actor都会被自动选择
+@mustInAssignment 是否要求actor必须在assignment范围内选择。如果选择false, 则引擎执行时以前台传入的selectedActors为准，不检查是否它们是否在assignment范围内。
 @ignoreNoAssign 是否允许不选择actor。如果不允许，则当selectedActors为空时会抛出异常
  -->
-<assignment selection="enum:io.nop.wf.api.actor.WfAssignmentSelection" selectInAssignment="!boolean=true"
+<assignment selection="enum:io.nop.wf.api.actor.WfAssignmentSelection" mustInAssignment="!boolean=true"
             ignoreNoAssign="!boolean=false" useManagerWhenNoAssign="!boolean=true"
             xdef:name="WfAssignmentModel" xdef:bean-package="io.nop.wf.core.model"
             x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"

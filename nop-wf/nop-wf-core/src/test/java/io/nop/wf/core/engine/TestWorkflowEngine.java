@@ -185,9 +185,9 @@ public class TestWorkflowEngine extends BaseTestCase {
      * user,1        user,1,2    user,2   user,1
      */
     @Test
-    public void testAutoJoin() {
+    public void testCosign() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("autoJoin", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("cosign", 1L);
         workflow.start(null, context);
         assertEquals("userId", workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
@@ -222,9 +222,9 @@ public class TestWorkflowEngine extends BaseTestCase {
      * user,1        user,1,2    user,2   user,1
      */
     @Test
-    public void testAutoJoin1() {
+    public void testCosign1() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("autoJoin1", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("cosign1", 1L);
         workflow.start(null, context);
         assertEquals("userId", workflow.getRecord().getCreaterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
