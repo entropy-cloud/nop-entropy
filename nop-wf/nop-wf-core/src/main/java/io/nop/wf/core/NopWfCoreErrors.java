@@ -16,6 +16,8 @@ public interface NopWfCoreErrors {
     String ARG_STEP_NAME = "stepName";
     String ARG_ACTION_NAME = "actionName";
 
+    String ARG_OTHER_STEP_NAME = "otherStepName";
+
     String ARG_WF_VERSION = "wfVersion";
 
     String ARG_WF_ID = "wfId";
@@ -95,6 +97,10 @@ public interface NopWfCoreErrors {
                     "当前工作流[{wfName}]的步骤[{stepName}]的状态为[{stepStatus}]，不允许执行操作[{actionName}]",
                     ARG_WF_NAME, ARG_STEP_NAME, ARG_ACTION_NAME, ARG_STEP_STATUS);
 
+    ErrorCode ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP =
+            define("nop.err.wf.not-allow-action-in-current-step",
+                    "当前工作流[{wfName}]的步骤[{stepName}]不允许执行操作[{actionName}]",
+                    ARG_WF_NAME, ARG_STEP_NAME, ARG_ACTION_NAME);
     ErrorCode ERR_WF_REJECT_ACTION_IS_NOT_ALLOWED =
             define("nop.err.wf.reject-action-is-not-allowed",
                     "工作流[{wfName}]的步骤[{stepName}]不允许执行退回操作[{actionName}]",
@@ -164,4 +170,13 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_MISSING_STEP_INSTANCE =
             define("nop.err.wf.missing-step-instance", "工作流[{wfName}]的实例[{wfId}]中没有步骤实例[{stepId}]",
                     ARG_WF_NAME, ARG_WF_ID, ARG_STEP_ID);
+
+    ErrorCode ERR_WF_STEP_REF_ACTION_IS_COMMON =
+            define("nop.err.wf.step-ref-action-is-common",
+                    "流程步骤[{stepName}]中引用的动作[{actionName}]不允许是公共动作", ARG_STEP_NAME, ARG_ACTION_NAME);
+
+    ErrorCode ERR_WF_MULTIPLE_STEP_REF_SAME_ACTION =
+            define("nop.err.wf.multiple-step-ref-same-action",
+                    "同一个动作[{actionName}]不允许被多个步骤所引用：[{stepName}]与[{otherStepName}]",
+                    ARG_ACTION_NAME, ARG_STEP_NAME, ARG_OTHER_STEP_NAME);
 }

@@ -32,10 +32,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_LOOP_EDGES;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_OTHER_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_GRAPH_CONTAINS_LOOP;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MULTIPLE_STEP_REF_SAME_ACTION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_NOT_ENDABLE;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_REF_ACTION_IS_COMMON;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_TRANSITION_TO_UNKNOWN_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_STEP;
 
@@ -76,13 +80,29 @@ public class WfModelAnalyzer {
     }
 
     private void initStepActions(WfModel wfModel) {
+        Map<String, WfStepModel> actionToSteps = new HashMap<>();
+
         wfModel.getSteps().forEach(step -> {
             List<WfRefActionModel> refActions = step.getRefActions();
             if (refActions != null) {
                 List<WfActionModel> actions = new KeyedList<>(refActions.size(), WfActionModel::getName);
                 refActions.forEach(refAction -> {
                     WfActionModel action = (WfActionModel) wfModel.requireAction(refAction.getName());
+                    if (action.isCommon())
+                        throw new NopException(ERR_WF_STEP_REF_ACTION_IS_COMMON)
+                                .source(refAction)
+                                .param(ARG_STEP_NAME, step.getName())
+                                .param(ARG_ACTION_NAME, refAction.getName());
                     actions.add(action);
+
+                    WfStepModel oldStep = actionToSteps.putIfAbsent(action.getName(), step);
+
+                    if (oldStep != null)
+                        throw new NopException(ERR_WF_MULTIPLE_STEP_REF_SAME_ACTION)
+                                .source(refAction)
+                                .param(ARG_STEP_NAME, step.getName())
+                                .param(ARG_ACTION_NAME, refAction.getName())
+                                .param(ARG_OTHER_STEP_NAME, oldStep.getName());
                 });
 
                 // 增加common-action
