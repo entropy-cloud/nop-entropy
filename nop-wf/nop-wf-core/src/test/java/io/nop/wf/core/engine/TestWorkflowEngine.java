@@ -7,7 +7,6 @@
  */
 package io.nop.wf.core.engine;
 
-import io.nop.api.core.context.ContextProvider;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
@@ -210,10 +209,11 @@ public class TestWorkflowEngine extends BaseTestCase {
         assertEquals(1, activeSteps.size());
         IWorkflowStep genHqStep = activeSteps.get(0);
 
-        assertEquals(10, genHqStep.getRecord().getStatus());
+        assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, genHqStep.getRecord().getStatus());
         invokeAction(step2, "sp", null, null, null, context);
         List<? extends IWorkflowStep> steps = workflow.getStepsByName("join_join_");
         assertEquals(1, steps.size());
+        workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());
     }
 
@@ -227,9 +227,10 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testCosign1() {
         IServiceContext context = new ServiceContextImpl();
+        context.getContext().setUserId("userId");
         IWorkflow workflow = workflowManager.newWorkflow("cosign1", 1L);
         workflow.start(null, context);
-        assertEquals("userId", workflow.getRecord().getCreaterId());
+        assertEquals("userId", workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
         invokeAction(startStep, "sh", null, null, null, context);
         List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
@@ -247,10 +248,12 @@ public class TestWorkflowEngine extends BaseTestCase {
         assertEquals(1, activeSteps.size());
         IWorkflowStep genHqStep = activeSteps.get(0);
 
-        assertEquals(10, genHqStep.getRecord().getStatus());
+        assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, genHqStep.getRecord().getStatus());
         invokeAction(step2, "sp", null, "user", "1", context);
-        List<? extends IWorkflowStep> steps = workflow.getStepsByName("_autoJoin_join");
+        List<? extends IWorkflowStep> steps = workflow.getStepsByName("join_join_");
         assertEquals(1, steps.size());
+        workflow.runAutoTransitions(context);
+        workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());
     }
 
@@ -318,7 +321,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
         IWorkflowStep startStep = activeSteps.get(0);
         invokeAction(startStep, "action0", null, null, null, context);
-        assertTrue (workflow.runAutoTransitions(context)); ;
+        assertTrue(workflow.runAutoTransitions(context));
+        ;
         assertTrue(workflow.isEnded());
     }
 

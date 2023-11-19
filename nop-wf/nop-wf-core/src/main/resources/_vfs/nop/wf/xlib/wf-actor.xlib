@@ -1,7 +1,7 @@
 <lib x:schema="/nop/schema/xlib.xdef"
      xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <CurrentUser>
+        <CurrentCaller>
             <attr name="actorModel" implicit="true" />
             <attr name="wfRt" implicit="true" />
 
@@ -14,9 +14,9 @@
                     return wfRt.caller
                 </c:script>
             </source>
-        </CurrentUser>
+        </CurrentCaller>
 
-        <KeepActor>
+        <PrevStepActor>
             <attr name="actorModel" implicit="true" />
             <attr name="wfRt" implicit="true" />
 
@@ -29,6 +29,51 @@
                     return wfRt.prevStep.actor
                 </c:script>
             </source>
-        </KeepActor>
+        </PrevStepActor>
+
+        <ManagerActorOrSysUser>
+            <attr name="actorModel" implicit="true" />
+            <attr name="wfRt" implicit="true" />
+
+            <description>
+                流程的管理员或者系统用户
+            </description>
+
+            <source>
+                <c:script>
+                    return wfRt.managerActor || wfRt.sysUser
+                </c:script>
+            </source>
+        </ManagerActorOrSysUser>
+
+        <SysUser>
+            <attr name="actorModel" implicit="true" />
+            <attr name="wfRt" implicit="true" />
+
+            <description>
+                系统用户
+            </description>
+
+            <source>
+                <c:script>
+                    return wfRt.sysUser
+                </c:script>
+            </source>
+        </SysUser>
+
+        <ManagerActor>
+            <attr name="actorModel" implicit="true" />
+            <attr name="wfRt" implicit="true" />
+
+            <description>
+                系统用户
+            </description>
+
+            <source>
+                <c:script>
+                    return wfRt.managerActor
+                </c:script>
+            </source>
+        </ManagerActor>
     </tags>
 </lib>

@@ -213,10 +213,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfAssignmentModel assignment = stepModel.getAssignment();
 
         if (actors.isEmpty()) {
-            if (assignment == null || !assignment.isIgnoreNoAssign()) {
+            if (assignment == null || (assignment.getActors().isEmpty() && !assignment.isIgnoreNoAssign())) {
                 IWfActor manager = wfRt.getWf().getManagerActor();
                 if (manager == null) {
-                    manager = wfRt.getCaller();
+                    manager = wfRt.getSysUser();
                 }
                 actors = Collections.singletonList(manager);
             }
@@ -237,8 +237,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     private void handleNoAssign(WfStepModel stepModel, WfRuntime wfRt) {
         WfAssignmentModel assignment = stepModel.getAssignment();
-        if (assignment != null && assignment.isIgnoreNoAssign())
+        if (assignment != null && assignment.isIgnoreNoAssign()) {
+            LOG.info("nop.wf.ignore-new-step-since-no-actor:wfName={},wfId={},stepName={}",
+                    wfRt.getWf().getWfName(), wfRt.getWf().getWfId(), stepModel.getName());
             return;
+        }
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_ON_NO_ASSIGN);
         throw wfRt.newError(ERR_WF_STEP_NO_ASSIGNMENT).param(ARG_STEP_NAME, stepModel.getName());
     }

@@ -38,8 +38,7 @@
                            steps.addChild("join")
                                 .setAttr("internal",true)
                                 .setAttr("joinType",'and').setAttr("waitStepNames", step.attrText('name'))
-                                .setAttr("name",joinStepName)
-                                .appendBodyXml('<assignment ignoreNoAssign="true"></assignment>').appendChild(transition);
+                                .setAttr("name",joinStepName).appendChild(transition);
                        });
                    });
                 ]]></c:script>

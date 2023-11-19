@@ -204,6 +204,17 @@ public class WfRuntime implements IWfRuntime {
     }
 
     @Override
+    public IWfActor getSysUser() {
+        String userId = IWfActor.SYS_USER_ID;
+        return wf.resolveUser(userId);
+    }
+
+    @Override
+    public IWfActor getManagerActor() {
+        return wf.getManagerActor();
+    }
+
+    @Override
     public List<IWfActor> getSelectedActors(String targetStep) {
         if (targetStep == null)
             return getSelectedActors();

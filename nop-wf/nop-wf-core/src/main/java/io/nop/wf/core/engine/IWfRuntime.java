@@ -46,6 +46,10 @@ public interface IWfRuntime extends IEvalContext {
 
     IWfActor getCaller();
 
+    IWfActor getSysUser();
+
+    IWfActor getManagerActor();
+
     List<IWfActor> getSelectedActors(String targetStep);
 
     void setSelectedActors(List<IWfActor> actors);
