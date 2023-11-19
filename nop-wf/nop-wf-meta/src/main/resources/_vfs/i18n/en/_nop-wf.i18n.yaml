@@ -68,7 +68,6 @@ prop:
       parentWfVersion: Parent Flow Version
       parentWfId: Parent Flow ID
       parentStepId: Parent Step ID
-      signalSet: Signal Set
       starterId: Starter ID
       starterName: Starter Name
       starterDeptId: Starter Dept ID
@@ -122,6 +121,8 @@ prop:
       subWfId: Sub Flow ID
       subWfName: Sub Flow Name
       subWfVersion: Sub Flow Version
+      subWfResultStatus: Sub Flow Result Status
+      subWfResultStatus_label: null
       isRead: Is Read
       actorType: Actor Type
       actorId: Actor ID

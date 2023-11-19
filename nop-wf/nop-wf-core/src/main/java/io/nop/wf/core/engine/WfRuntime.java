@@ -16,6 +16,7 @@ import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
+import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.WfListenerModel;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.store.IWorkflowActionRecord;
@@ -173,7 +174,7 @@ public class WfRuntime implements IWfRuntime {
     }
 
     @Override
-    public IServiceContext getServiceContext() {
+    public IServiceContext getSvcCtx() {
         return serviceContext;
     }
 
@@ -263,6 +264,15 @@ public class WfRuntime implements IWfRuntime {
         wf.getStore().saveWfRecord(wf.getRecord());
 
         triggerEvent(NopWfCoreConstants.EVENT_AFTER_SAVE);
+    }
+
+    @Override
+    public IWorkflowActionModel getActionModel() {
+        if (actionRecord == null)
+            return null;
+
+        String actionName = actionRecord.getActionName();
+        return wf.getModel().getAction(actionName);
     }
 
     @Override

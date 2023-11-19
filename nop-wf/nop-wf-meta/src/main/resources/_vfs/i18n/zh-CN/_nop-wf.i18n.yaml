@@ -68,7 +68,6 @@ prop:
       parentWfName: 父工作流名称
       parentWfVersion: 父流程版本
       remark: 备注
-      signalSet: 信号集合
       startTime: 启动时间
       starterDeptId: 启动人单位ID
       starterId: 启动人ID
@@ -146,6 +145,8 @@ prop:
       subWfInstance: 子流程实例
       subWfInstance.title: 子流程实例
       subWfName: 子工作流名
+      subWfResultStatus: 子流程结果状态
+      subWfResultStatus_label: 子流程结果状态
       subWfVersion: 子流程版本
       tagSet: 标签
       updateTime: 修改时间

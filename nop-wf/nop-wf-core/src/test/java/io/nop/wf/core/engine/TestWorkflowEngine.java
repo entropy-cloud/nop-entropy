@@ -7,6 +7,7 @@
  */
 package io.nop.wf.core.engine;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
@@ -187,6 +188,8 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testCosign() {
         IServiceContext context = new ServiceContextImpl();
+        context.getContext().setUserId("userId");
+
         IWorkflow workflow = workflowManager.newWorkflow("cosign", 1L);
         workflow.start(null, context);
         assertEquals("userId", workflow.getRecord().getStarterId());
@@ -209,7 +212,7 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         assertEquals(10, genHqStep.getRecord().getStatus());
         invokeAction(step2, "sp", null, null, null, context);
-        List<? extends IWorkflowStep> steps = workflow.getStepsByName("_autoJoin_join");
+        List<? extends IWorkflowStep> steps = workflow.getStepsByName("join_join_");
         assertEquals(1, steps.size());
         assertTrue(workflow.isEnded());
     }

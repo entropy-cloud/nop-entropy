@@ -7,6 +7,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
+import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 
@@ -37,7 +38,7 @@ public interface IWfRuntime extends IEvalContext {
 
     void setTargetCases(Set<String> targetCases);
 
-    IServiceContext getServiceContext();
+    IServiceContext getSvcCtx();
 
     IWorkflowImplementor getWf();
 
@@ -68,6 +69,9 @@ public interface IWfRuntime extends IEvalContext {
     IWorkflowStepImplementor getActionStep();
 
     IWorkflowActionRecord getActionRecord();
+
+
+    IWorkflowActionModel getActionModel();
 
     Throwable getException();
 

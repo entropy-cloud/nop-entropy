@@ -1,0 +1,26 @@
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <ExitCosignStep>
+            <attr name="wfRt" implicit="true"/>
+
+            <description>
+                离开会签步骤时如果是退回操作，则会自动关闭同名的步骤以及join步骤
+            </description>
+
+            <source>
+                <c:script>
+                    const actionModel = wfRt.actionModel;
+                    if(actionModel.forReject){
+                        const currentStep = wfRt.currentStep;
+                        const otherSteps = currentStep.getOtherStepsWithSameName(currentStep.name, false);
+                        otherSteps.forEach(otherStep=> otherStep.kill(null, wfRt.svcCtx));
+                        wfRt.wf.getLatestStepByName(currentStep.name + '_join_')?.kill(null, wfRt.svcCtx);
+                    }
+                </c:script>
+            </source>
+        </ExitCosignStep>
+    </tags>
+
+</lib>

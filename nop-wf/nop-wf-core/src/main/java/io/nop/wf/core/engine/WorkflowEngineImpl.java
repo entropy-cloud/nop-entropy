@@ -331,7 +331,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         WfReference wfRef = wfRt.getWf().getCoordinator().startSubflow(startFlowModel.getWfName(), startFlowModel.getWfVersion(),
                 parentStep.getStepReference(),
-                vars, wfRt.getServiceContext());
+                vars, wfRt.getSvcCtx());
 
         parentStep.getRecord().setSubWfRef(wfRef);
     }
@@ -1065,7 +1065,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfStepReference parentStepRef = getParentStepRef(wf);
         if (parentStepRef != null) {
             // 子流程结束，通知父流程
-            wf.getCoordinator().endSubflow(wf.getWfReference(), status, parentStepRef, results, wfRt.getServiceContext());
+            wf.getCoordinator().endSubflow(wf.getWfReference(), status, parentStepRef, results, wfRt.getSvcCtx());
         }
     }
 
@@ -1097,7 +1097,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWorkflowStore wfStore = wf.getStore();
         for (IWorkflowStepRecord record : wfStore.getStepRecords(wf.getRecord(), false, null)) {
             IWorkflowStepImplementor step = wf.getStepByRecord(record);
-            WfRuntime stepRt = newWfRuntime(step.getWorkflow(), wfRt.getServiceContext());
+            WfRuntime stepRt = newWfRuntime(step.getWorkflow(), wfRt.getSvcCtx());
             _killStep(step, stepRt);
         }
     }

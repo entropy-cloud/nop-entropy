@@ -10,6 +10,8 @@
   "subWfId": "",
   "subWfName": "",
   "subWfVersion": 0,
+  "subWfResultStatus": 0,
+  "subWfResultStatus_label": "",
   "isRead": false,
   "actorType": "",
   "actorId": "",

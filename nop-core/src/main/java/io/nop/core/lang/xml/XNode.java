@@ -279,7 +279,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public void freeze(boolean cascade) {
         boolean frozen = frozen();
-        if(frozen)
+        if (frozen)
             return;
 
         this.flags |= FLAG_READ_ONLY;
@@ -574,20 +574,21 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         attributes.put(name, vl);
     }
 
-    public void setAttr(String name, Object value) {
-        this.setAttr(null, name, value);
+    public XNode setAttr(String name, Object value) {
+        return this.setAttr(null, name, value);
     }
 
-    public void setAttr(SourceLocation loc, String name, Object value) {
+    public XNode setAttr(SourceLocation loc, String name, Object value) {
         checkNotReadOnly();
         if (value == null || value == NULL_VALUE) {
             attributes.remove(name);
-            return;
+            return this;
         }
 
         if (attributes == EMPTY_ATTRS)
             attributes = new LinkedHashMap<>();
         attributes.put(name, ValueWithLocation.of(loc, value));
+        return this;
     }
 
     public void attrValueLocs(Map<String, ValueWithLocation> attrs) {
@@ -685,12 +686,13 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return obj;
     }
 
-    public void setAttrs(Map<String, Object> attrs) {
+    public XNode setAttrs(Map<String, Object> attrs) {
         if (attrs != null && !attrs.isEmpty()) {
             for (Map.Entry<String, Object> entry : attrs.entrySet()) {
                 setAttr(entry.getKey(), entry.getValue());
             }
         }
+        return this;
     }
 
     public boolean hasAttr() {
@@ -1584,20 +1586,21 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         appendChild(child);
     }
 
-    public void appendBodyXml(String xml) {
-        appendBodyXml(null, xml, false);
+    public XNode appendBodyXml(String xml) {
+        return appendBodyXml(null, xml, false);
     }
 
-    public void appendBodyXml(SourceLocation loc, String xml, boolean forHtml) {
+    public XNode appendBodyXml(SourceLocation loc, String xml, boolean forHtml) {
 
         checkNotReadOnly();
 
         if (StringHelper.isEmpty(xml))
-            return;
+            return this;
 
         XNode node = XNodeParser.instance().forFragments(true).forHtml(forHtml).parseFromText(loc, xml);
         _normalizeContent(this);
         this.appendChildren(node.detachChildren());
+        return this;
     }
 
     public void prependBodyXml(String xml) {

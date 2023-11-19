@@ -54,6 +54,10 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Long"/>
         </prop>
+        <prop name="subWfResultStatus" displayName="子流程结果状态" i18n-en:displayName="Sub Flow Result Status"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="wf/wf-step-status"/>
+        </prop>
         <prop name="isRead" displayName="是否已读" i18n-en:displayName="Is Read" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.Boolean"/>
