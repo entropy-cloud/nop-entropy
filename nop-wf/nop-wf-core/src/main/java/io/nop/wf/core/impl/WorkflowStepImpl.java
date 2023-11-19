@@ -124,10 +124,13 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     @Override
     public void markRead(IServiceContext ctx) {
         if (!Boolean.TRUE.equals(record.getIsRead())) {
-            record.setIsRead(true);
-            record.setReadTime(CoreMetrics.currentTimestamp());
-            wf.getStore().saveStepRecord(record);
-            wf.getEngine().triggerStepEvent(this, NopWfCoreConstants.EVENT_MARK_READ, ctx);
+            wf.executeNow(() -> {
+                record.setIsRead(true);
+                record.setReadTime(CoreMetrics.currentTimestamp());
+                wf.getStore().saveStepRecord(record);
+                wf.getEngine().triggerStepEvent(this, NopWfCoreConstants.EVENT_MARK_READ, ctx);
+                return null;
+            });
         }
     }
 
@@ -141,7 +144,18 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public void triggerTransition(Map<String, Object> args, IServiceContext ctx) {
-        wf.getEngine().triggerTransition(this, args, ctx);
+        wf.executeNow(() -> {
+            wf.getEngine().triggerTransition(this, args, ctx);
+            return null;
+        });
+    }
+
+    @Override
+    public void notifySubFlowEnd(int status, Map<String, Object> results, IServiceContext ctx) {
+        wf.executeNow(() -> {
+            wf.getEngine().notifySubFlowEnd(this, status, results, ctx);
+            return null;
+        });
     }
 
     @Nonnull

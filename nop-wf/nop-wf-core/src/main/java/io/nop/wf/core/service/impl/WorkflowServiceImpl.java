@@ -12,18 +12,17 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.WfReference;
-import io.nop.wf.api.WfStepReference;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.beans.WfActionRequestBean;
 import io.nop.wf.api.beans.WfCommandRequestBean;
 import io.nop.wf.api.beans.WfStartRequestBean;
 import io.nop.wf.api.beans.WfStartResponseBean;
 import io.nop.wf.api.beans.WfSubFlowEndRequestBean;
-import io.nop.wf.core.IWorkflow;
-import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.IWorkflowStep;
+import io.nop.wf.core.engine.IWorkflowExecutor;
 import io.nop.wf.core.service.WorkflowServiceSpi;
 import jakarta.inject.Inject;
 
@@ -32,78 +31,110 @@ import java.util.concurrent.CompletionStage;
 
 @BizModel("WorkflowService")
 public class WorkflowServiceImpl implements WorkflowServiceSpi {
-    private IWorkflowManager workflowManager;
+
+    private IWorkflowExecutor workflowExecutor;
 
     @Inject
-    public void setWorkflowManager(IWorkflowManager workflowManager) {
-        this.workflowManager = workflowManager;
+    public void setWorkflowExecutor(IWorkflowExecutor workflowExecutor) {
+        this.workflowExecutor = workflowExecutor;
     }
 
     @BizMutation
     @Override
-    public WfStartResponseBean startWorkflow(@RequestBean WfStartRequestBean request,
-                                             FieldSelectionBean selection, IServiceContext ctx) {
-        IWorkflow wf = workflowManager.newWorkflow(request.getWfName(), request.getWfVersion());
-        wf.start(request.getArgs(), ctx);
+    public CompletionStage<WfStartResponseBean> startWorkflowAsync(@RequestBean WfStartRequestBean request,
+                                                                   FieldSelectionBean selection, IServiceContext ctx) {
+        WfReference wfRef = new WfReference(request.getWfName(), request.getWfVersion(), null);
+        checkMandatory(wfRef, false);
 
-        WfStartResponseBean res = new WfStartResponseBean();
-        res.setWfName(wf.getWfName());
-        res.setWfVersion(wf.getWfVersion());
-        res.setWfId(wf.getWfId());
+        return workflowExecutor.execute(wfRef, ctx, wf -> {
+            wf.start(request.getArgs(), ctx);
 
-        IWfActor manager = wf.getManagerActor();
-        if (manager != null) {
-            res.setManagerType(manager.getActorType());
-            res.setManagerId(manager.getActorId());
-            res.setManagerDeptId(manager.getDeptId());
-            res.setManagerName(manager.getActorName());
-        }
-        return res;
+            WfStartResponseBean res = new WfStartResponseBean();
+            res.setWfName(wf.getWfName());
+            res.setWfVersion(wf.getWfVersion());
+            res.setWfId(wf.getWfId());
+
+            IWfActor manager = wf.getManagerActor();
+            if (manager != null) {
+                res.setManagerType(manager.getActorType());
+                res.setManagerId(manager.getActorId());
+                res.setManagerDeptId(manager.getDeptId());
+                res.setManagerName(manager.getActorName());
+            }
+            return FutureHelper.toCompletionStage(res);
+        });
     }
 
     @BizMutation
     @Override
-    public void notifySubFlowEnd(@RequestBean WfSubFlowEndRequestBean request,
-                                 FieldSelectionBean selection, IServiceContext ctx) {
-        WfReference wfRef = new WfReference(request.getWfName(), request.getWfVersion(), request.getWfId());
-        WfStepReference parentStep = new WfStepReference(request.getParentWfName(), request.getParentWfVersion(),
-                request.getParentWfId(), request.getParentWfStepId());
+    public CompletionStage<Void> notifySubFlowEndAsync(@RequestBean WfSubFlowEndRequestBean request,
+                                                       FieldSelectionBean selection, IServiceContext ctx) {
+        WfReference parentWfRef = new WfReference(request.getParentWfName(), request.getParentWfVersion(),
+                request.getParentWfId());
 
-        workflowManager.notifySubFlowEnd(wfRef, request.getStatus(), parentStep, request.getResults(), ctx);
+        checkMandatory(parentWfRef, true);
+
+        return workflowExecutor.execute(parentWfRef, ctx, parentWf -> {
+            IWorkflowStep parentStep = parentWf.getStepById(request.getParentWfStepId());
+            parentStep.notifySubFlowEnd(request.getStatus(), request.getResults(), ctx);
+            return FutureHelper.success(null);
+        });
+
     }
 
     @BizMutation
     @Override
     public CompletionStage<Object> invokeActionAsync(
             @RequestBean WfActionRequestBean request, FieldSelectionBean selection, IServiceContext ctx) {
-        IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
-        IWorkflowStep step = wf.getStepById(request.getStepId());
-        Object result = step.invokeAction(request.getActionName(), request.getArgs(), ctx);
-        return FutureHelper.toCompletionStage(result);
+        WfReference wfRef = new WfReference(request.getWfName(), request.getWfVersion(), request.getWfId());
+        checkMandatory(wfRef, true);
+
+        return workflowExecutor.execute(wfRef, ctx, wf -> {
+            IWorkflowStep step = wf.getStepById(request.getStepId());
+            Object result = step.invokeAction(request.getActionName(), request.getArgs(), ctx);
+            return FutureHelper.toCompletionStage(result);
+        });
     }
 
     @BizMutation
     @Override
-    public void killWorkflow(@RequestBean WfCommandRequestBean request,
-                             FieldSelectionBean selection, IServiceContext ctx) {
-        IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
-        wf.kill(request.getArgs(), ctx);
+    public CompletionStage<Void> killWorkflowAsync(@RequestBean WfCommandRequestBean request,
+                                                   FieldSelectionBean selection, IServiceContext ctx) {
+        WfReference wfRef = new WfReference(request.getWfName(), request.getWfVersion(), request.getWfId());
+        checkMandatory(wfRef, false);
+        return workflowExecutor.execute(wfRef, ctx, wf -> {
+            wf.kill(request.getArgs(), ctx);
+            return FutureHelper.success(null);
+        });
     }
 
     @BizMutation
     @Override
-    public void suspendWorkflow(@RequestBean WfCommandRequestBean request,
-                                FieldSelectionBean selection, IServiceContext ctx) {
-        IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
-        wf.suspend(request.getArgs(), ctx);
+    public CompletionStage<Void> suspendWorkflowAsync(@RequestBean WfCommandRequestBean request,
+                                                      FieldSelectionBean selection, IServiceContext ctx) {
+        WfReference wfRef = new WfReference(request.getWfName(), request.getWfVersion(), request.getWfId());
+        checkMandatory(wfRef, true);
+        return workflowExecutor.execute(wfRef, ctx, wf -> {
+            wf.suspend(request.getArgs(), ctx);
+            return FutureHelper.success(null);
+        });
     }
 
     @BizMutation
     @Override
-    public void resumeWorkflow(@RequestBean WfCommandRequestBean request,
-                               FieldSelectionBean selection, IServiceContext ctx) {
-        IWorkflow wf = workflowManager.getWorkflow(request.getWfId());
-        wf.resume(request.getArgs(), ctx);
+    public CompletionStage<Void> resumeWorkflowAsync(@RequestBean WfCommandRequestBean request,
+                                                     FieldSelectionBean selection, IServiceContext ctx) {
+        WfReference wfRef = new WfReference(request.getWfName(), request.getWfVersion(), request.getWfId());
+        checkMandatory(wfRef, true);
+        return workflowExecutor.execute(wfRef, ctx, wf -> {
+            wf.resume(request.getArgs(), ctx);
+            return FutureHelper.success(null);
+        });
     }
 
+    private void checkMandatory(WfReference wfRef, boolean requireId) {
+        Guard.notEmpty(wfRef.getWfName(), "wfName");
+        if (requireId)
+            Guard.notEmpty(wfRef.getWfId(), "wfId");
+    }
 }

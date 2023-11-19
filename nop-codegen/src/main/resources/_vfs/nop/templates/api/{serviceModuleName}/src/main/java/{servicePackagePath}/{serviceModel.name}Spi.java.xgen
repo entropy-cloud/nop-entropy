@@ -11,6 +11,15 @@
         import ${type};
     </c:for>
 
+    <c:script>
+        function normalizeReturnType(type){
+        return type == 'void' ? 'Void' : type;
+        }
+    </c:script>
+
+    /**
+     * ${serviceModel.displayName} ${serviceModel.description}
+     */
     @SuppressWarnings({"PMD"})
     public interface ${serviceModel.name}Spi{
 
@@ -27,7 +36,7 @@
      /**
       * ${method.displayName} ${method.description}
       */
-     CompletionStage<${method.simpleResponseMessage}> ${method.name}Async(${method.simpleRequestMessage} request,
+     CompletionStage<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}Async(${method.simpleRequestMessage} request,
             FieldSelectionBean selection, IServiceContext ctx);
             ]]></otherwise>
         </c:choose>

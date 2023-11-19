@@ -5,4 +5,7 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <import resource="_service.beans.xml"/>
+
+    <bean id="nopWorkflowExecutor" ioc:default="true"
+          class="io.nop.wf.core.engine.DefaultWorkflowExecutor"/>
 </beans>

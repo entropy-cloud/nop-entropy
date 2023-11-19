@@ -19,6 +19,9 @@
         import io.nop.wf.api.beans.WfCommandRequestBean;
     
 
+    /**
+     * 工作流服务 
+     */
     @SuppressWarnings({"PMD"})
     public interface WorkflowServiceSpi{
 
@@ -26,13 +29,13 @@
      /**
       * 启动工作流 
       */
-     WfStartResponseBean startWorkflow(WfStartRequestBean request,
+     CompletionStage<WfStartResponseBean> startWorkflowAsync(WfStartRequestBean request,
             FieldSelectionBean selection, IServiceContext ctx);
             
      /**
       * 通知子工作流结束 
       */
-     void notifySubFlowEnd(WfSubFlowEndRequestBean request,
+     CompletionStage<Void> notifySubFlowEndAsync(WfSubFlowEndRequestBean request,
             FieldSelectionBean selection, IServiceContext ctx);
             
      /**
@@ -44,19 +47,19 @@
      /**
       * 中止工作流 
       */
-     void killWorkflow(WfCommandRequestBean request,
+     CompletionStage<Void> killWorkflowAsync(WfCommandRequestBean request,
             FieldSelectionBean selection, IServiceContext ctx);
             
      /**
       * 暂停工作流 
       */
-     void suspendWorkflow(WfCommandRequestBean request,
+     CompletionStage<Void> suspendWorkflowAsync(WfCommandRequestBean request,
             FieldSelectionBean selection, IServiceContext ctx);
             
      /**
       * 继续工作流 
       */
-     void resumeWorkflow(WfCommandRequestBean request,
+     CompletionStage<Void> resumeWorkflowAsync(WfCommandRequestBean request,
             FieldSelectionBean selection, IServiceContext ctx);
             
     }

@@ -28,7 +28,7 @@ public interface IWorkflowCoordinator {
      * @param args       传递到子工作流的变量
      * @return 工作流版本以及工作流实例id
      */
-    WfReference startSubflow(@Nonnull String wfName, Long wfVersion, @Nonnull WfStepReference parentStep,
+    WfReference startSubFlow(@Nonnull String wfName, Long wfVersion, @Nonnull WfStepReference parentStep,
                              Map<String, Object> args, @Nonnull IServiceContext context);
 
     /**
@@ -39,6 +39,6 @@ public interface IWorkflowCoordinator {
      * @param parentStep 父流程的步骤引用。startSubflow时传入的信息
      * @param results
      */
-    void endSubflow(WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
+    void endSubFlow(WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
                     Map<String, Object> results, @Nonnull IServiceContext context);
 }

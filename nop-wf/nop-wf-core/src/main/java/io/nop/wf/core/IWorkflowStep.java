@@ -129,6 +129,8 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     void triggerTransition(Map<String, Object> args, IServiceContext ctx);
 
+    void notifySubFlowEnd(int status, Map<String, Object> results, IServiceContext ctx);
+
     /**
      * 目前在本步骤允许执行的action
      *

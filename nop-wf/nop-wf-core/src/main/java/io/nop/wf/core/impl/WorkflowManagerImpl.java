@@ -111,6 +111,6 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     @Override
     public void notifySubFlowEnd(@Nonnull WfReference wfRef, int status, @Nonnull WfStepReference parentStep,
                                  Map<String, Object> results, @Nonnull IServiceContext context) {
-        workflowCoordinator.endSubflow(wfRef, status, parentStep, results, context);
+        workflowCoordinator.endSubFlow(wfRef, status, parentStep, results, context);
     }
 }

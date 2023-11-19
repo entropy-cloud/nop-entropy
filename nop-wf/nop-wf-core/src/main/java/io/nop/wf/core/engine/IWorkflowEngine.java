@@ -55,6 +55,8 @@ public interface IWorkflowEngine {
 
     boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 
+    void notifySubFlowEnd(IWorkflowStepImplementor step, int status, Map<String, Object> args, IServiceContext ctx);
+
     List<? extends IWorkflowActionModel> getAllowedActions(IWorkflowStepImplementor step, IServiceContext ctx);
 
     Object invokeAction(IWorkflowStepImplementor step,

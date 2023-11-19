@@ -7,6 +7,7 @@
  */
 package io.nop.wf.api;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 
@@ -21,6 +22,7 @@ public class WfReference implements Serializable {
     private final Long wfVersion;
     private final String wfId;
 
+    @JsonCreator
     public WfReference(@JsonProperty("wfName") String wfName,
                        @JsonProperty("wfVersion") Long wfVersion,
                        @JsonProperty("wfId") String wfId) {

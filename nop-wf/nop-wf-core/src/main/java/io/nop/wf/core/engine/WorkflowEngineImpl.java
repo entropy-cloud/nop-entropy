@@ -78,12 +78,15 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_CASES;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_TARGET_STEPS;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_CONDITIONS_NOT_PASSED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_NOT_ALLOWED_WHEN_SIGNAL_NOT_READY;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_TRANSITION_NO_NEXT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ALREADY_STARTED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_EMPTY_ACTION_ARG;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MISSING_STEP_INSTANCE;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_REMOVE;
@@ -332,7 +335,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         Map<String, Object> vars = getStartArgs(startFlowModel.getArgs(), wfRt);
 
-        WfReference wfRef = wfRt.getWf().getCoordinator().startSubflow(startFlowModel.getWfName(), startFlowModel.getWfVersion(),
+        WfReference wfRef = wfRt.getWf().getCoordinator().startSubFlow(startFlowModel.getWfName(), startFlowModel.getWfVersion(),
                 parentStep.getStepReference(),
                 vars, wfRt.getSvcCtx());
 
@@ -596,8 +599,17 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (step.getModel().getJoinType() != null) {
             return checkWaitingJoinStep(step, wfRt);
         } else {
+            if (!step.isWaiting())
+                return false;
+
             if (!wf.isAllSignalOn(step.getModel().getWaitSignals()))
                 return false;
+
+            if (step.isFlowType()) {
+                // 子流程尚未结束
+                if (step.getRecord().getSubWfResultStatus() == null)
+                    return false;
+            }
 
             step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
             wfRt.triggerEvent(NopWfCoreConstants.EVENT_ACTIVATE_STEP);
@@ -704,6 +716,29 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         initArgs(wfRt, args);
         checkWaitingStep(step, wfRt);
         return runStepAutoTransition(step, wfRt);
+    }
+
+    @Override
+    public void notifySubFlowEnd(IWorkflowStepImplementor step, int status, Map<String, Object> results,
+                                 IServiceContext ctx) {
+        IWorkflowImplementor wf = step.getWorkflow();
+
+        if (!step.isFlowType())
+            throw new NopException(ERR_WF_MISSING_STEP_INSTANCE).param(ARG_WF_NAME, wf.getWfName())
+                    .param(ARG_WF_VERSION, wf.getWfVersion()).param(ARG_WF_ID, wf.getWfId())
+                    .param(ARG_STEP_NAME, step.getStepName())
+                    .param(ARG_STEP_ID, step.getStepId());
+
+        if (step.isHistory())
+            return;
+
+        step.getRecord().setSubWfResultStatus(status);
+
+        Map<String, Object> args = new HashMap<>();
+        args.put(NopWfCoreConstants.VAR_SUB_WF_RESULTS, results);
+
+        // 触发工作流引擎检查step的状态检查，再根据状态触发auto action实现变迁
+        step.triggerTransition(args, ctx);
     }
 
     @Override
@@ -1068,7 +1103,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfStepReference parentStepRef = getParentStepRef(wf);
         if (parentStepRef != null) {
             // 子流程结束，通知父流程
-            wf.getCoordinator().endSubflow(wf.getWfReference(), status, parentStepRef, results, wfRt.getSvcCtx());
+            wf.getCoordinator().endSubFlow(wf.getWfReference(), status, parentStepRef, results, wfRt.getSvcCtx());
         }
     }
 

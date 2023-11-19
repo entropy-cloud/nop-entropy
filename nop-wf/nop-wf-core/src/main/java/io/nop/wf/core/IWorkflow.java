@@ -94,7 +94,7 @@ public interface IWorkflow {
      */
     List<? extends IWorkflowStep> getStepsByName(String stepName, boolean includeHistory);
 
-    default List<? extends IWorkflowStep> getStepsByName(String stepName){
+    default List<? extends IWorkflowStep> getStepsByName(String stepName) {
         return getStepsByName(stepName, true);
     }
 
