@@ -22,14 +22,18 @@ import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
+import io.nop.wf.core.store.beans.MapVarSet;
 import io.nop.wf.core.store.beans.WorkflowActionRecordBean;
 import io.nop.wf.core.store.beans.WorkflowRecordBean;
 import io.nop.wf.core.store.beans.WorkflowStepRecordBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +45,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class MockWorkflowStore implements IWorkflowStore {
+    static final Logger LOG = LoggerFactory.getLogger(MockWorkflowStore.class);
     private Map<Pair<String, String>, Object> boMap = new ConcurrentHashMap<>();
     private Map<String, WorkflowRecordBean> workflowBeans = new ConcurrentHashMap<>();
 
@@ -140,17 +145,23 @@ public class MockWorkflowStore implements IWorkflowStore {
 
     @Override
     public IWorkflowVarSet getGlobalVars(IWorkflowRecord wfRecord) {
-        return null;
+        WorkflowRecordBean record = (WorkflowRecordBean) wfRecord;
+        if (record.getGlobalVars() == null)
+            record.setGlobalVars(new LinkedHashMap<>());
+        return new MapVarSet(record.getGlobalVars());
     }
 
     @Override
     public IWorkflowVarSet getOutputVars(IWorkflowRecord wfRecord) {
-        return null;
+        WorkflowRecordBean record = (WorkflowRecordBean) wfRecord;
+        if (record.getOutputVars() == null)
+            record.setOutputVars(new LinkedHashMap<>());
+        return new MapVarSet(record.getOutputVars());
     }
 
     @Override
     public void logError(IWorkflowRecord wfRecord, String errorCode, Map<String, Object> params) {
-
+        LOG.error("nop.error:errorCode={},params={}", errorCode, params);
     }
 
     @Override

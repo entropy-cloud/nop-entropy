@@ -73,6 +73,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     private Map<String, Object> globalVars;
 
+    private Map<String, Object> outputVars;
+
     private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
 
     public List<WorkflowStepRecordBean> getSteps() {
@@ -502,5 +504,13 @@ public class WorkflowRecordBean implements IWorkflowRecord {
                 globalVars.put(NopWfCoreConstants.SIGNAL_PREFIX + signal, Boolean.TRUE);
             }
         }
+    }
+
+    public Map<String, Object> getOutputVars() {
+        return outputVars;
+    }
+
+    public void setOutputVars(Map<String, Object> outputVars) {
+        this.outputVars = outputVars;
     }
 }
