@@ -4,26 +4,58 @@
 
 **Nop is nOt Programming(非编程)**
 
-Nop Platform 2. 0 is a new generation of low-code platform based on the theory of reversible computation. 
-It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, 
-transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
+Nop Platform 2. 0 is a new generation of low-code platform based on the theory of reversible computation.
+It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method,
+transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained
+software reuse.
 
 Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
 
 - nop-entropy是Nop平台的后端部分。它采用Java语言实现，不依赖第三方框架，可以和Quarkus或者Spring框架集成在一起使用。
 
-- nop-entropy支持GraalVM技术，可以借助于[Quarkus](https://quarkus.io/) 或者[SpringNative](https://docs.spring.io/spring-native/docs/current/reference/htmlsingle/)框架编译为原生可执行程序，运行时不需要安装JDK，且启动速度提升数十倍。
+- nop-entropy支持GraalVM技术，可以借助于[Quarkus](https://quarkus.io/)
+  或者[SpringNative](https://docs.spring.io/spring-native/docs/current/reference/htmlsingle/)
+  框架编译为原生可执行程序，运行时不需要安装JDK，且启动速度提升数十倍。
 
-- **nop-entropy的设计目标是成为简单易用的领域语言工作台（Domain Language Workbench）**。通过增加简单的元数据定义，就可以自动得到对应的解析器、验证器、IDE插件、调试工具等，并自动为DSL领域语言增加模块分解、差量定制、元编程等通用语言特性。在这一点上，它类似于Jetbrains公司的[MPS产品](https://www.jetbrains.com/mps/)，只是它的设计原理和技术实现路径与MPS有着本质性差别。
+- **nop-entropy的设计目标是成为简单易用的领域语言工作台（Domain Language Workbench）**
+  。通过增加简单的元数据定义，就可以自动得到对应的解析器、验证器、IDE插件、调试工具等，并自动为DSL领域语言增加模块分解、差量定制、元编程等通用语言特性。在这一点上，它类似于Jetbrains公司的[MPS产品](https://www.jetbrains.com/mps/)
+  ，只是它的设计原理和技术实现路径与MPS有着本质性差别。
 
-- nop-entropy采用云原生设计，内置分布式事务和多租户支持，可以单机运行，也可以作为分布式集群运行，可以提供在线的API服务，也可以将针对单个业务对象的在线服务自动包装为针对批处理文件的批处理任务。对于大多数业务应用场景均提供相应的模型支持，只需少量配置即可完成主要功能，大大降低对手工编码的需求。
+-
 
-- nop-entropy在开发期可以作为**支持增量式开发的低代码平台**，自动生成各类代码以及相关文档，在运行期可以作为**面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。
+nop-entropy采用云原生设计，内置分布式事务和多租户支持，可以单机运行，也可以作为分布式集群运行，可以提供在线的API服务，也可以将针对单个业务对象的在线服务自动包装为针对批处理文件的批处理任务。对于大多数业务应用场景均提供相应的模型支持，只需少量配置即可完成主要功能，大大降低对手工编码的需求。
 
-目前开源的部分主要包含XLang语言的实现，以及ORM、依赖注入容器(IoC)、分布式配置（Config）、GraphQLEngine、报表引擎（Report Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessing Engine）、规则引擎（Rule Engine）等基础框架，
+- nop-entropy在开发期可以作为**支持增量式开发的低代码平台**，自动生成各类代码以及相关文档，在运行期可以作为*
+  *面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。
+
+目前开源的部分主要包含XLang语言的实现，以及ORM、依赖注入容器(IoC)、分布式配置（Config）、GraphQLEngine、报表引擎（Report
+Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessing Engine）、规则引擎（Rule Engine）等基础框架，
 后续规划包括工作流引擎（Workflow Engine）、商业智能（BI）、流处理引擎等业务开发常用部分。
 
 **WARNING: Nop Platform 2.0的代码是由Entropy Platform 1.0重构而来，目前重构工作没有完全做完，且尚未在实际项目中使用过。**
+
+开发进度：
+
+| 模块              | 说明               | 进度   |
+|-----------------|------------------|------|
+| nop-ioc         | 声明式IoC容器         | 已完成  |
+| nop-config      | 动态配置中心           | 已完成  |
+| nop-xlang       | XLang脚本语言和模板语言   | 已完成  |
+| nop-orm         | 下一代ORM引擎         | 已完成  |
+| nop-graphql     | GraphQL引擎        | 已完成  |
+| nop-rpc         | 分布式RPC调用         | 已完成  |
+| nop-report      | 中国式报表引擎和Word报表模板 | 已完成  |
+| nop-rule        | 规则引擎             | 已完成  |
+| nop-autotest    | 模型驱动的自动化测试框架     | 已完成  |
+| nop-idea-plugin | IDEA开发插件         | 基本可用 |
+| nop-tcc         | 分布式事务            | 50%  |
+| nop-workflow    | 工作流引擎            | 60%  |
+| nop-task        | 逻辑流编排            | 30%  |
+| nop-job         | 分布式任务调度          | 40%  |
+| nop-batch       | 批处理引擎            | 70%  |
+| nop-nosql       | Redis封装          | 0%   |
+| nop-stream      | 简化的流处理，可以集成Flink | 0%   |
+| nop-datav       | BI数据分析           | 0%   |
 
 #### 源码地址
 
@@ -58,7 +90,9 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
 
 nop-entropy没有使用Spring框架，所有模块均从零开始采用模型驱动的方式研发（框架本身的很多代码也是根据模型生成并可以通过声明式方式进行定制调整的）。原则上说，nop-entropy可以运行在任何支持REST服务标准的微服务框架之上。目前，我们主要是支持Quarkus框架以及Spring框架的集成。
 
-[Quarkus](https://quarkus.io/)是Redhat公司所开源的新一代云原生微服务框架，它的开发体验以及针对GraalVM Native编译的成熟程度都明显优于Spring框架。借助于Quarkus框架，我们既可以将应用程序编译为单一的uber jar(通过java -jar指令来运行)，也可以将程序编译为exe可执行程序，在运行时不需要安装JDK，而且启动速度提升数十倍。目前，nop-entropy的开发调试主要是基于Quarkus框架进行，所以对Spring框架的支持可能会存在一些小问题。
+[Quarkus](https://quarkus.io/)是Redhat公司所开源的新一代云原生微服务框架，它的开发体验以及针对GraalVM
+Native编译的成熟程度都明显优于Spring框架。借助于Quarkus框架，我们既可以将应用程序编译为单一的uber jar(通过java
+-jar指令来运行)，也可以将程序编译为exe可执行程序，在运行时不需要安装JDK，而且启动速度提升数十倍。目前，nop-entropy的开发调试主要是基于Quarkus框架进行，所以对Spring框架的支持可能会存在一些小问题。
 
 nop-entropy项目目前主要包含如下模块:
 
@@ -81,10 +115,10 @@ nop-entropy项目目前主要包含如下模块:
 16. nop-report: 采用Excel作为可视化设计器的中国式报表引擎
 17. nop-wf: 工作流引擎
 18. nop-rule: 采用Excel作为可视化设计器的规则引擎
-19. nop-batch: 批处理引擎 
+19. nop-batch: 批处理引擎
 20. nop-job: 分布式任务调度引擎
 21. nop-tcc: 分布式事务引擎
-22. nop-cluster: 分布式集群支持 
+22. nop-cluster: 分布式集群支持
 23. nop-auth: 用户权限管理
 24. nop-sys: 系统配置管理
 25. nop-cli: 将代码生成器封装为命令行工具
@@ -114,9 +148,11 @@ mvn clean install -DskipTests -Dquarkus.package.type=uber-jar
 mvn clean install "-DskipTests" "-Dquarkus.package.type=uber-jar"
 ```
 
-quarkus.package.type参数是quarkus框架所识别的一个参数，指定它为uber-jar将会把nop-quarkus-demo等项目打包成一个包含所有依赖类的单一jar包。可以通过java -jar XXX-runner.jar的方式直接运行。
+quarkus.package.type参数是quarkus框架所识别的一个参数，指定它为uber-jar将会把nop-quarkus-demo等项目打包成一个包含所有依赖类的单一jar包。可以通过java
+-jar XXX-runner.jar的方式直接运行。
 
-目前已经升级到quarkus3.0版本，用低版本maven运行nop-auth-app等模块可能会失败。建议升级到maven 3.9.3版本，或者使用nop-entropy跟目录下的mvnw指令，它会自动下载并使用maven 3.9.3。
+目前已经升级到quarkus3.0版本，用低版本maven运行nop-auth-app等模块可能会失败。建议升级到maven
+3.9.3版本，或者使用nop-entropy跟目录下的mvnw指令，它会自动下载并使用maven 3.9.3。
 
 * nop-idea-plugin
   nop-idea-plugin是IDEA的插件项目，必须采用Gradle编译。
@@ -146,8 +182,8 @@ java -Dquarkus.profile=dev -jar nop-quarkus-demo-2.0.0-SNAPSHOT-runner.jar
 * 在IDEA中可以调试运行nop-quarks-demo项目中的QuarksDemoMain类。
   quarkus框架在开发期提供了如下调试工具，
 
->  http://localhost:8080/q/dev
->  http://localhost:8080/q/graphql-ui
+> http://localhost:8080/q/dev
+> http://localhost:8080/q/graphql-ui
 
 在graphql-ui工具中可以查看所有后端服务函数的定义和参数。
 
@@ -159,58 +195,74 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
 
 > 核心引擎的功能并不依赖于数据库，可以以纯内存的方式运行。所有存储相关的代码都已经剥离到独立的dao模块中，例如nop-auth-dao，nop-sys-dao等。
 
-1. 作为增量式代码生成工具使用：maven打包时可以读取Excel模型文件，应用指定的模板目录，以增量化的方式生成代码。参见[codegen.md](docs/dev-guide/codegen.md)
+1.
 
-2. 为已有的XML/JSON/YAML格式的配置文件、领域模型文件提供可逆计算支持：为模型文件增加动态分解、合并、产品化定制机制，对应用层完全透明，对于引擎层只需要编写一个自定义的模型文件加载器。参见[delta-loader.md](docs/dev-guide/delta-loader.md)
+作为增量式代码生成工具使用：maven打包时可以读取Excel模型文件，应用指定的模板目录，以增量化的方式生成代码。参见[codegen.md](docs/dev-guide/codegen.md)
 
-3. 为开发领域特定语言(DSL)提供支持：只需要定义xdef元模型文件即可获得语法提示、链接跳转、断点调试等IDE支持。后续会提供可视化设计器定制支持。参见[idea-plugin.md](docs/user-guide/idea/idea-plugin.md)
+2.
 
-4. 作为模型驱动的GraphQL引擎使用：根据Excel模型自动生成GraphQL服务，支持复杂主子表的增删改查。参见[graphql.md](docs/dev-guide/graphql/graphql-java.md)
+为已有的XML/JSON/YAML格式的配置文件、领域模型文件提供可逆计算支持：为模型文件增加动态分解、合并、产品化定制机制，对应用层完全透明，对于引擎层只需要编写一个自定义的模型文件加载器。参见[delta-loader.md](docs/dev-guide/delta-loader.md)
 
-5. 作为报表引擎使用：只需要在Word或者Excel文件中增加少量标注即可作为报表模板运行，动态生成复杂的中国式报表。参见[report.md](docs/user-guide/report.md)
+3. 为开发领域特定语言(DSL)
+   提供支持：只需要定义xdef元模型文件即可获得语法提示、链接跳转、断点调试等IDE支持。后续会提供可视化设计器定制支持。参见[idea-plugin.md](docs/user-guide/idea/idea-plugin.md)
 
-6. 作为工作流引擎使用：与定时调度引擎相结合，支持人工操作的审批工作流，也支持类似airflow的分布式DAG任务流。参见[workflow.md](docs/user-guide/workflow.md)
+4.
 
-7. 作为批处理引擎使用：类似SpringBatch+XXLJob框架，提供分布式批处理任务支持。可以通过配置文件指定如何解析、生成文本或者二进制数据文件，无需编写解析和生成代码。参见[batch.md](docs/user-guide/batch.md)
+作为模型驱动的GraphQL引擎使用：根据Excel模型自动生成GraphQL服务，支持复杂主子表的增删改查。参见[graphql.md](docs/dev-guide/graphql/graphql-java.md)
+
+5.
+
+作为报表引擎使用：只需要在Word或者Excel文件中增加少量标注即可作为报表模板运行，动态生成复杂的中国式报表。参见[report.md](docs/user-guide/report.md)
+
+6.
+
+作为工作流引擎使用：与定时调度引擎相结合，支持人工操作的审批工作流，也支持类似airflow的分布式DAG任务流。参见[workflow.md](docs/user-guide/workflow.md)
+
+7.
+
+作为批处理引擎使用：类似SpringBatch+XXLJob框架，提供分布式批处理任务支持。可以通过配置文件指定如何解析、生成文本或者二进制数据文件，无需编写解析和生成代码。参见[batch.md](docs/user-guide/batch.md)
 
 8. 作为规则引擎使用：通过配置实现复杂的业务规则判断。参见[rule.md](docs/user-guide/rule.md)
 
-9. 作为数据驱动的自动化测试框架使用：通过录制、回放的机制实现自动化测试。第一遍运行的时候自动录制输出数据，此后运行时自动和录制的数据快照进行比较，减少手工需要编写的代码量。参见[autotest.md](docs/dev-guide/autotest.md)
+9.
 
+作为数据驱动的自动化测试框架使用：通过录制、回放的机制实现自动化测试。第一遍运行的时候自动录制输出数据，此后运行时自动和录制的数据快照进行比较，减少手工需要编写的代码量。参见[autotest.md](docs/dev-guide/autotest.md)
 
 #### 示例页面
-1. 界面框架
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/demo/framework.jpg)
 
-2. 使用Excel来定义数据模型 
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
+1. 界面框架
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/demo/framework.jpg)
+
+2. 使用Excel来定义数据模型
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/excel-model.png)
 
 3. 使用Excel来定义对外发布的API模型
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/microservice/api-model.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/microservice/api-model.png)
 
 4. 集成百度的前端低代码框架AMIS
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/amis-editor-view.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/amis-editor-view.png)
 
 5. 集成GraphQL调试工具
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/graphql-ui.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/graphql-ui.png)
 
 6. 提供IDEA插件，支持自定义DSL的断点调试
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/xlang-debugger.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/xlang-debugger.png)
 
 7. 使用Excel作为报表设计器，支持复杂的中国式报表
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report-result.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/block-report-result.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/user-guide/report/cross-table-report-result.png)
 
 8. 使用Word模板来导出Word报表
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/word-template/word-report.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/word-template/word-report.png)
 
 9. 使用Excel来设计决策表和决策矩阵
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
-![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-tree.png)
+   ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/rule/decision-matrix.png)
 
 #### 开源协议
 
-Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但是中小企业可以在类似Apache2.0协议的条件下使用本项目的代码（可以免费商用，修改代码无需开源，但是要保留源码中的原始版权信息）。为了方便第三方集成，nop-api-support/nop-commons/nop-core这三个包采用Apache 2.0协议。
+Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但是中小企业可以在类似Apache2.0协议的条件下使用本项目的代码（可以免费商用，修改代码无需开源，但是要保留源码中的原始版权信息）。为了方便第三方集成，nop-api-support/nop-commons/nop-core这三个包采用Apache
+2.0协议。
 
 * 判断是否中小企业的算法如下:
 

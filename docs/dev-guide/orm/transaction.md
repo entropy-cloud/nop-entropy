@@ -20,6 +20,8 @@ public void myMethod(){
 在应用代码中可以通过 @Transactional注解来标记Java方法需要在事务环境中执行。限制条件是AOP增强由NopIoC引擎负责执行，因此只有在beans.xml文件中注册的bean才具有事务支持。
 而且AOP会提前生成代码，
 
+**注意这里的Transactional是Nop平台的注解，而不是Spring框架的注解。Nop平台内部功能不依赖于Spring框架**
+
 # @BizMutation
 NopGraphQL引擎对应mutation操作会自动开启事务。所以只要方法上增加了@BizMutation注解就不用再额外增肌@Transactional注解。
 
