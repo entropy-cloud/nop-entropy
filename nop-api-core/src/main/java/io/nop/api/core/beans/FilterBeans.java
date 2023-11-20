@@ -61,6 +61,7 @@ public class FilterBeans {
         return new TreeBean(op).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_VALUE, value);
     }
 
+
     public static TreeBean assertOp(String op, String name) {
         return new TreeBean(op).attr(FILTER_ATTR_NAME, name);
     }
@@ -89,7 +90,7 @@ public class FilterBeans {
     }
 
     public static TreeBean dateBetween(String name, LocalDate min, LocalDate max) {
-        return new TreeBean(FILTER_OP_DATE_BETWEEN).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
+        return new TreeBean(FILTER_OP_DATE_BETWEEN).attr(FILTER_ATTR_NAME,name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
     }
 
     public static TreeBean dateBetween(String name, LocalDate min, LocalDate max, boolean excludeMin,
@@ -99,7 +100,7 @@ public class FilterBeans {
     }
 
     public static TreeBean dateTimeBetween(String name, LocalDateTime min, LocalDateTime max) {
-        return new TreeBean(FILTER_OP_DATETIME_BETWEEN).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
+        return new TreeBean(FILTER_OP_DATETIME_BETWEEN).attr(FILTER_ATTR_NAME,name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
     }
 
     public static TreeBean dateTimeBetween(String name, LocalDateTime min, LocalDateTime max, boolean excludeMin,

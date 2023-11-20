@@ -163,7 +163,7 @@ public class DefaultTransactionManager implements ITransactionManager {
         return TransactionRegistry.instance().remove(txn.getTxnGroup(), txn);
     }
 
-    ITransactionFactory getTransactionFactory(String querySpace) {
+    protected ITransactionFactory getTransactionFactory(String querySpace) {
         if (DaoHelper.isDefaultQuerySpace(querySpace))
             return defaultFactory;
         ITransactionFactory factory = transactionFactoryMap.get(querySpace);

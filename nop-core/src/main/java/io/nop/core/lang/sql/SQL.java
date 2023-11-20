@@ -8,6 +8,8 @@
 package io.nop.core.lang.sql;
 
 import io.nop.api.core.annotations.data.ImmutableBean;
+import io.nop.api.core.beans.FilterBeanConstants;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -21,6 +23,7 @@ import io.nop.commons.text.marker.Marker;
 import io.nop.commons.text.marker.Markers.ValueMarker;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.sql.SyntaxMarker.SyntaxMarkerType;
 import io.nop.dataset.binder.IDataParameterBinder;
 import org.slf4j.Logger;
@@ -120,6 +123,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
 
     public List<Object> getParams() {
         return this.getMarkerValues();
+    }
+
+    public TreeBean asFilter() {
+        return new TreeBean(CoreConstants.FILTER_OP_SQL).attr(FilterBeanConstants.FILTER_ATTR_VALUE, this);
     }
 
     public String toString() {

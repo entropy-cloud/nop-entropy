@@ -93,6 +93,16 @@ public class QueryBean implements Serializable {
         this.limit = limit;
     }
 
+    public QueryBean offset(long offset){
+        setOffset(offset);
+        return this;
+    }
+
+    public QueryBean limit(int limit){
+        setLimit(limit);
+        return this;
+    }
+
     public TreeBean getFilter() {
         return filter;
     }
@@ -101,9 +111,9 @@ public class QueryBean implements Serializable {
         this.filter = filter;
     }
 
-    public void addFilter(ITreeBean filter) {
+    public QueryBean addFilter(ITreeBean filter) {
         if (filter == null)
-            return;
+            return this;
 
         TreeBean tree = FilterBeans.normalizeFilterBean(filter);
 
@@ -112,6 +122,19 @@ public class QueryBean implements Serializable {
         } else {
             this.filter = FilterBeans.and(this.filter, tree);
         }
+        return this;
+    }
+
+    public QueryBean addFilters(List<TreeBean> filters) {
+        if (filters == null || filters.isEmpty())
+            return this;
+
+        if (this.filter == null) {
+            this.filter = FilterBeans.and(filters);
+        } else {
+            this.filter = FilterBeans.and(this.filter, FilterBeans.and(filters));
+        }
+        return this;
     }
 
     public TreeBean getPropFilter(String propName) {
@@ -146,6 +169,11 @@ public class QueryBean implements Serializable {
 
     public void setTimeout(Integer timeout) {
         this.timeout = timeout;
+    }
+
+    public QueryBean timeout(Integer timeout){
+        setTimeout(timeout);
+        return this;
     }
 
     public List<OrderFieldBean> getOrderBy() {
@@ -220,12 +248,13 @@ public class QueryBean implements Serializable {
         return getGroupField(name) != null;
     }
 
-    public void addGroupField(String name) {
+    public QueryBean addGroupField(String name) {
         if (!hasGroupField(name)) {
             if (groupBy == null)
                 groupBy = new ArrayList<>();
             groupBy.add(GroupFieldBean.forField(name));
         }
+        return this;
     }
 
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
@@ -251,25 +280,27 @@ public class QueryBean implements Serializable {
         return getOrderField(name) != null;
     }
 
-    public void addOrderField(String name, boolean desc) {
+    public QueryBean addOrderField(String name, boolean desc) {
         if (!hasOrderField(name)) {
             if (orderBy == null)
                 orderBy = new ArrayList<>();
             orderBy.add(OrderFieldBean.forField(name, desc));
         }
+        return this;
     }
 
-    public void addOrderField(OrderFieldBean field) {
+    public QueryBean addOrderField(OrderFieldBean field) {
         if (!hasOrderField(field.getName())) {
             if (orderBy == null)
                 orderBy = new ArrayList<>();
             orderBy.add(field);
         }
+        return this;
     }
 
-    public void addOrderBy(List<OrderFieldBean> orderBy) {
+    public QueryBean addOrderBy(List<OrderFieldBean> orderBy) {
         if (orderBy == null)
-            return;
+            return this;
         for (OrderFieldBean orderField : orderBy) {
             if (!hasOrderField(orderField.getName())) {
                 if (this.orderBy == null)
@@ -277,9 +308,10 @@ public class QueryBean implements Serializable {
                 this.orderBy.add(orderField);
             }
         }
+        return this;
     }
 
-    public void addOrderByNode(ITreeBean orderBy) {
+    public QueryBean addOrderByNode(ITreeBean orderBy) {
         if (orderBy != null) {
             if (orderBy.getChildCount() > 0 || orderBy.getTagName().equals(ApiConstants.DUMMY_TAG_NAME)) {
                 List<? extends ITreeBean> children = orderBy.getChildren();
@@ -292,5 +324,6 @@ public class QueryBean implements Serializable {
                 addOrderField(OrderFieldBean.fromTreeBean(orderBy));
             }
         }
+        return this;
     }
 }
