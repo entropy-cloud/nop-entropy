@@ -30,6 +30,7 @@ import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.IObjectChangeDetectable;
 import io.nop.core.resource.cache.ResourceLoadingCache;
+import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.core.resource.deps.DefaultResourceChangeChecker;
 import io.nop.core.resource.deps.IResourceChangeChecker;
 import io.nop.core.resource.deps.IResourceDependsPersister;
@@ -70,7 +71,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRA
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
-import static io.nop.core.resource.component.ResourceVersionHelper.isVersionFile;
+import static io.nop.core.resource.component.version.ResourceVersionHelper.isVersionFile;
 
 @GlobalInstance
 public class ResourceComponentManager implements IResourceComponentManager, IConfigRefreshable {

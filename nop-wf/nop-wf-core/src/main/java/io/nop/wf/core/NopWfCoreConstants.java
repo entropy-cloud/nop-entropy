@@ -12,6 +12,10 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String POSTFIX_XWF = ".xwf";
 
+    String FILE_TYPE_XWF = "xwf";
+
+    String RESOLVE_WF_NS_PREFIX = "resolve-wf:";
+
     int WF_STEP_STATUS_HISTORY_BOUND = WF_STEP_STATUS_COMPLETED;
 
     int WF_STATUS_HISTORY_BOUND = WF_STATUS_COMPLETED;

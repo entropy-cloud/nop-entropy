@@ -5,11 +5,17 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.core.resource.component;
+package io.nop.core.resource.component.version;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
+
+import static io.nop.core.CoreErrors.ARG_BASE_PATH;
+import static io.nop.core.CoreErrors.ARG_PATH;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_VERSIONED_PATH;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_VERSIONED_PATH_NO_VERSION;
 
 public class ResourceVersionHelper {
     /**
@@ -84,6 +90,47 @@ public class ResourceVersionHelper {
     }
 
     public static String buildPath(String basePath, String name, Long version, String fileType) {
+        if (version == null)
+            version = 1L;
         return StringHelper.appendPath(basePath, name) + "/v" + version + "." + fileType;
+    }
+
+    public static VersionedName parseVersionedName(String path, String basePath) {
+        if (!path.startsWith(basePath) || path.length() < basePath.length() + 2)
+            throw new NopException(ERR_RESOURCE_INVALID_VERSIONED_PATH)
+                    .param(ARG_PATH, path)
+                    .param(ARG_BASE_PATH, path);
+
+        path = path.substring(basePath.length());
+        int pos = path.lastIndexOf('/');
+        if (pos < 0) {
+            String name = path;
+            return new VersionedName(name, -1L);
+        }
+
+        String name = path.substring(0, pos);
+
+        String versionStr = path.substring(pos + 1);
+        int pos2 = versionStr.indexOf('.');
+        if (pos2 > 0)
+            versionStr = versionStr.substring(0, pos);
+
+        if (!isNumberVersionString(versionStr))
+            throw new NopException(ERR_RESOURCE_INVALID_VERSIONED_PATH)
+                    .param(ARG_PATH, path)
+                    .param(ARG_BASE_PATH, path);
+
+        return new VersionedName(name, getNumberVersion(versionStr));
+    }
+
+    public static VersionedName parseVersionedName(String path, String basePath, boolean requireVersion) {
+        if (!requireVersion)
+            return parseVersionedName(path, basePath);
+
+        VersionedName versionedName = parseVersionedName(path, basePath);
+        if (versionedName.getVersion() <= 0)
+            throw new NopException(ERR_RESOURCE_VERSIONED_PATH_NO_VERSION)
+                    .param(ARG_PATH, path);
+        return versionedName;
     }
 }

@@ -24,8 +24,6 @@ public interface IWorkflowManager {
 
     IWorkflowModel parseWorkflowNode(XNode node);
 
-    IResource getModelResource(String wfName, Long wfVersion);
-
     @Nonnull
     IWorkflow newWorkflow(String wfName, Long wfVersion);
 

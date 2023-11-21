@@ -1,7 +1,6 @@
-package io.nop.core.resource.component;
+package io.nop.core.resource.component.version;
 
 import io.nop.api.core.util.IComponentModel;
-import io.nop.core.resource.IResource;
 
 import java.util.List;
 
@@ -13,7 +12,7 @@ public interface IVersionedModelStore<T extends IComponentModel> {
      */
     List<Long> getAllVersions(String modelName);
 
-    IResource getModelResource(String modelName, Long modelVersion);
+//    IResource getModelResource(String modelName, Long modelVersion);
 
     T getModel(String modelName, Long modelVersion);
 

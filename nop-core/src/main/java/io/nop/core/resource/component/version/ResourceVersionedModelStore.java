@@ -5,12 +5,13 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.core.resource.component;
+package io.nop.core.resource.component.version;
 
 import io.nop.api.core.util.IComponentModel;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ResourceComponentManager;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -50,7 +51,6 @@ public class ResourceVersionedModelStore<T extends IComponentModel> implements I
         return resources.stream().map(resource -> ResourceVersionHelper.getNumberVersion(resource.getName())).collect(Collectors.toList());
     }
 
-    @Override
     public IResource getModelResource(String modelName, Long modelVersion) {
         modelVersion = normalizeVersion(modelName, modelVersion);
         String path = ResourceVersionHelper.buildPath("module:" + basePath, modelName, modelVersion, "xwf");

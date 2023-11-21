@@ -7,10 +7,11 @@
  */
 package io.nop.wf.core.store;
 
-import io.nop.core.resource.component.ResourceVersionedModelStore;
+import io.nop.core.resource.component.version.IVersionedModelStore;
+import io.nop.core.resource.component.version.ResourceVersionedModelStore;
 import io.nop.wf.core.model.IWorkflowModel;
 
-public class ResourceWorkflowModelStore extends ResourceVersionedModelStore<IWorkflowModel> implements IWorkflowModelStore {
+public class ResourceWorkflowModelStore extends ResourceVersionedModelStore<IWorkflowModel> implements IVersionedModelStore<IWorkflowModel> {
     public ResourceWorkflowModelStore() {
         setFileType("xwf");
         setBasePath("/wf/");

@@ -20,7 +20,8 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.tree.TreeIndex;
 import io.nop.core.resource.IResourceObjectLoader;
-import io.nop.core.resource.component.ResourceVersionHelper;
+import io.nop.core.resource.component.version.ResourceVersionHelper;
+import io.nop.core.resource.component.version.VersionedName;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.resource.DaoEntityResource;
@@ -36,8 +37,8 @@ import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.SchemaLoader;
-
 import jakarta.inject.Inject;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -45,9 +46,7 @@ import java.util.Map;
 
 import static io.nop.api.core.beans.FilterBeans.eq;
 import static io.nop.rule.dao.NopRuleDaoConstants.RULE_STATUS_ACTIVE;
-import static io.nop.rule.dao.NopRuleErrors.ARG_PATH;
 import static io.nop.rule.dao.NopRuleErrors.ARG_RULE_NAME;
-import static io.nop.rule.dao.NopRuleErrors.ERR_RULE_INVALID_DAO_RESOURCE_PATH;
 import static io.nop.rule.dao.NopRuleErrors.ERR_RULE_UNKNOWN_RULE_DEFINITION;
 import static io.nop.rule.dao.entity._gen._NopRuleDefinition.PROP_NAME_ruleName;
 import static io.nop.rule.dao.entity._gen._NopRuleDefinition.PROP_NAME_ruleVersion;
@@ -67,19 +66,12 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
     @Override
     public RuleModel loadObjectFromPath(String path) {
-        Guard.checkArgument(path.startsWith(RuleConstants.RESOLVE_RULE_NS_PREFIX), "path not startsWith resolve-rule:");
-        String subPath = path.substring(RuleConstants.RESOLVE_RULE_NS_PREFIX.length());
-        List<String> list = StringHelper.split(subPath, '/');
-        if (list.size() != 1 && list.size() != 2)
-            throw new NopException(ERR_RULE_INVALID_DAO_RESOURCE_PATH)
-                    .param(ARG_PATH, path);
+        VersionedName versionedName = ResourceVersionHelper.parseVersionedName(path,
+                RuleConstants.RESOLVE_RULE_NS_PREFIX);
 
-        String ruleName = list.get(0);
-        Long ruleVersion = null;
-        if (list.size() > 1) {
-            ruleVersion = ResourceVersionHelper.getNumberVersion(list.get(1));
-        }
-        RuleModel ruleModel = loadRule(ruleName, ruleVersion);
+        Long ruleVersion = versionedName.getVersion() > 0 ? versionedName.getVersion() : null;
+
+        RuleModel ruleModel = loadRule(versionedName.getName(), ruleVersion);
 
         new RuleModelCompiler().compileRule(ruleModel);
         return ruleModel;
@@ -101,7 +93,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         List<TreeBean> filters = new ArrayList<>();
         filters.add(eq(PROP_NAME_ruleName, ruleName));
         filters.add(eq(PROP_NAME_status, RULE_STATUS_ACTIVE));
-        if (ruleVersion != null) {
+        if (ruleVersion != null && ruleVersion > 0) {
             filters.add(eq(PROP_NAME_ruleVersion, ruleVersion));
         }
 

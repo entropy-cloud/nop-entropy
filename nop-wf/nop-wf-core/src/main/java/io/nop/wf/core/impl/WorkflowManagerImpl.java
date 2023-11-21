@@ -11,14 +11,16 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowCoordinator;
 import io.nop.wf.core.IWorkflowManager;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.engine.IWorkflowEngine;
 import io.nop.wf.core.model.IWorkflowModel;
-import io.nop.wf.core.store.IWorkflowModelStore;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 import io.nop.wf.core.store.WfModelParser;
@@ -34,8 +36,6 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MISSING_WF_INSTANCE;
 public class WorkflowManagerImpl implements IWorkflowManager {
     private IWorkflowStore workflowStore;
     private IWorkflowEngine workflowEngine;
-    private IWorkflowModelStore workflowModelStore;
-
     private IWorkflowCoordinator workflowCoordinator;
 
     public void setWorkflowCoordinator(IWorkflowCoordinator workflowCoordinator) {
@@ -52,11 +52,6 @@ public class WorkflowManagerImpl implements IWorkflowManager {
         this.workflowStore = workflowStore;
     }
 
-    @Inject
-    public void setWorkflowModelStore(IWorkflowModelStore versionStore) {
-        this.workflowModelStore = versionStore;
-    }
-
     @PostConstruct
     public void init() {
         if (workflowCoordinator == null)
@@ -71,11 +66,6 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     @Override
     public IWorkflowModel parseWorkflowNode(XNode node) {
         return WfModelParser.parseWorkflowNode(node);
-    }
-
-    @Override
-    public IResource getModelResource(String wfName, Long wfVersion) {
-        return workflowModelStore.getModelResource(wfName, wfVersion);
     }
 
     @Nonnull
@@ -100,12 +90,25 @@ public class WorkflowManagerImpl implements IWorkflowManager {
     @Nonnull
     @Override
     public IWorkflowModel getWorkflowModel(String wfName, Long wfVersion) {
-        return workflowModelStore.getModel(wfName, wfVersion);
+        String path = NopWfCoreConstants.RESOLVE_WF_NS_PREFIX + wfName;
+        if (wfVersion != null)
+            path += "/v" + wfVersion;
+
+        return (IWorkflowModel) ResourceComponentManager.instance().loadComponentModel(path);
     }
 
     @Override
     public void removeModelCache(String wfName, Long wfVersion) {
-        workflowModelStore.removeModelCache(wfName, wfVersion);
+        String path = NopWfCoreConstants.RESOLVE_WF_NS_PREFIX + wfName;
+        ResourceComponentManager.instance().removeCachedModel(path);
+        if (wfVersion != null) {
+            path += "/v" + wfVersion;
+        }
+        ResourceComponentManager.instance().removeCachedModel(path);
+    }
+
+    private String buildModelPath(String wfName, Long wfVersion) {
+        return ResourceVersionHelper.buildPath(NopWfCoreConstants.RESOLVE_WF_NS_PREFIX, wfName, wfVersion, NopWfCoreConstants.FILE_TYPE_XWF);
     }
 
     @Override

@@ -179,4 +179,8 @@ public interface NopWfCoreErrors {
             define("nop.err.wf.multiple-step-ref-same-action",
                     "同一个动作[{actionName}]不允许被多个步骤所引用：[{stepName}]与[{otherStepName}]",
                     ARG_ACTION_NAME, ARG_STEP_NAME, ARG_OTHER_STEP_NAME);
+
+    ErrorCode ERR_WF_UNKNOWN_WF_DEFINITION =
+            define("nop.err.wf.unknown-wf-definition", "未知的工作流定义：{wfName},version={wfVersion}",
+                    ARG_WF_NAME, ARG_WF_VERSION);
 }

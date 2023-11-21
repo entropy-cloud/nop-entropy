@@ -6,6 +6,7 @@
 
     <import resource="_service.beans.xml"/>
 
-    <bean id="nopWorkflowExecutor" ioc:default="true"
-          class="io.nop.wf.core.engine.DefaultWorkflowExecutor"/>
+    <import resource="_api-impl.beans.xml" />
+
+    <import resource="wf-core.beans.xml" />
 </beans>
