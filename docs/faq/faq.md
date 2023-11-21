@@ -85,9 +85,30 @@ variables设置为:
 
 ```
 
+## 3. 单元测试如何不使用本地数据库
+自动化测试介绍参见[autotest.md](../dev-guide/autotest.md)
+
+1. 需要利用内存数据库，基于NopOrm底层的数据层录制回放机制，
+2. 不需要内存数据库支持可以从JunitBaseTestCase继承，实现纯逻辑的测试，它只启动IoC容器。如果IoC也不需要，可以从BaseTestCase继承，它只提供一些帮助函数
+
+## 4. 应用运行的时候，虚拟文件系统里面的模型文件更新了，会自动刷新吗？还是需要重启应用
+Nop平台内部统一使用ResourceComponentManager来加载模型文件，加载的模型会缓存到内存中。ResourceLoadingCache内置了依赖追踪能力，即它会自动记录
+解析模型的过程中所使用的所有依赖的模型文件，只要任何一个文件发生修改（时间戳发生变化），模型缓存都会自动失效。再次获取时会重新解析。
+
+如果是新生成的文件，虚拟文件系统不会自动扫描得知新的文件，需要调用一下VirtualFileSystem.instance().refresh(true)。
+虚拟文件系统不仅仅包括classpath下的_vfs目录，还会自动包括系统启动时当前目录下的_vfs目录。而且当前目录下的_vfs目录优先级更高，其中的文件会覆盖classpath下的文件，
+
+在前台页面中，有一个【刷新缓存按钮】会清空后台全局模型缓存，并自动刷新虚拟文件系统。
+
+## 4. 从IServiceContext中能否获取request, response等Web环境对象
+NopGraphQL的设计是与Web环境无关，它可以用在消息队列、批处理等场景，作为一个通用的服务派发、结果汇总框架来使用，因此不提供任何与Web环境相关的方法。
+
+在IServiceContext中可以通过setAttribute/getAttribute等方法保存自定义对象。IServiceContext.getCache()还提供了一个单次请求范围内有效的缓存对象，
+可以用于缓存字典数据等。一般业务参数应该显式传递，IServiceContext基本等价于一个Map结构，主要用于在框架内部保存一些单次请求范围内的共享信息。
+
 # 部署问题
 
-
+h
 # 设计问题
 
 ## 1. Nop平台的文档中提到的函数抽象和函数模板化是什么意思？
