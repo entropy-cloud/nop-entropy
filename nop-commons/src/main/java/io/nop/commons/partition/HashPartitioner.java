@@ -17,7 +17,7 @@ public class HashPartitioner<T> implements IPartitioner<T> {
     public int partition(T key, int numPartitions) {
         if (key == null)
             return 0;
-        int value = Hashing.murmur3_32().hashString(key.toString(), Charsets.UTF_8).asInt();
+        int value = Hashing.murmur3_32_fixed().hashString(key.toString(), Charsets.UTF_8).asInt();
         return Math.abs(value % numPartitions);
     }
 }
