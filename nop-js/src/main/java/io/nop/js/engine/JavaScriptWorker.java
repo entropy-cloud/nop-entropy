@@ -13,6 +13,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.io.stream.LogOutputStream;
 import io.nop.commons.util.IoHelper;
 import io.nop.js.JsConstants;
+import io.nop.js.exceptions.ScriptError;
 import io.nop.js.fs.ResourceFileSystem;
 import io.nop.js.fs.ScriptLoader;
 import org.graalvm.polyglot.Context;
@@ -30,17 +31,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.nop.js.JsErrors.ERR_JS_CONTEXT_ALREADY_CLOSED;
+import static io.nop.js.JsErrors.ERR_JS_ERROR;
 
 /**
  * 单线程执行任务队列中的任务
@@ -343,7 +340,15 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
         Function<Object, Object> toJsMap = m -> ProxyHashMap.from((Map<Object, Object>) m);
         bindings.putMember(JsConstants.VAR_TO_JS_MAP, toJsMap);
 
-        bindings.putMember(JsConstants.VAR_JS_LIB_LOADER, jsLibLoader);
+        bindings.putMember(JsConstants.VAR_JS_LIB_LOADER, (Function<String, Object>) path -> {
+            try {
+                return jsLibLoader.apply(path);
+            } catch (NopException ex) {
+                throw new ScriptError(ex);
+            } catch (Exception e) {
+                throw new ScriptError(ERR_JS_ERROR, e);
+            }
+        });
 
         Function<Object, Object> toJsArray = o -> {
             if (o instanceof Object[]) {

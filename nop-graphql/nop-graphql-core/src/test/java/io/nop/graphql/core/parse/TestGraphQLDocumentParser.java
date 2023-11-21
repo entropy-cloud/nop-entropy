@@ -74,7 +74,7 @@ public class TestGraphQLDocumentParser extends BaseTestCase {
         GraphQLOperation op = doc.getOperation();
         assertFalse(op.isExceedDepth(10));
 
-        FieldSelectionBean selectionBean = new SelectionBeanBuilder(null).buildSelectionBean(op.getName(),
+        FieldSelectionBean selectionBean = new SelectionBeanBuilder(new HashMap<>()).buildSelectionBean(op.getName(),
                 op.getSelectionSet(), new HashMap<>());
         System.out.println(JsonTool.serialize(selectionBean, true));
         assertEquals(attachmentJsonText("test-fragment-selection.json"), JsonTool.serialize(selectionBean, true));

@@ -1,4 +1,14 @@
 {
+  "loopEdges": [
+    [
+      "f",
+      "b"
+    ],
+    [
+      "g",
+      "c"
+    ]
+  ],
   "nodes": {
     "a": {
       "controlNodeName": null,
@@ -127,15 +137,5 @@
       ]
     }
   },
-  "removedEdges": [
-    [
-      "f",
-      "b"
-    ],
-    [
-      "g",
-      "c"
-    ]
-  ],
   "rootNodeName": "a"
 }

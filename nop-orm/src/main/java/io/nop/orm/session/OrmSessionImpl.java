@@ -297,7 +297,8 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public IOrmEntity newEntity(String entityName) {
-        this.checkValid();
+        // session关闭之后也可以新建实体
+        //this.checkValid();
         LOG.trace("orm.newEntity:entityName={}", entityName);
         return this.requireEntityPersister(entityName).newEntity(this);
     }
