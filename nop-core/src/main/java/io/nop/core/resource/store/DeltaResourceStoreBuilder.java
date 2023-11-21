@@ -86,7 +86,7 @@ public class DeltaResourceStoreBuilder {
             return store;
 
         File dir;
-        if (path.startsWith(".")) {
+        if (path.startsWith("./")) {
             dir = new File(FileHelper.currentDir(), path).getAbsoluteFile();
         } else {
             dir = new File(path).getAbsoluteFile();
