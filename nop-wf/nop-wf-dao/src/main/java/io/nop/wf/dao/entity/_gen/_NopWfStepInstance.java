@@ -76,7 +76,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_actorDeptId = "actorDeptId";
     public static final int PROP_ID_actorDeptId = 14;
     
-    /* 参与者姓名: ACTOR_NAME VARCHAR */
+    /* 参与者名称: ACTOR_NAME VARCHAR */
     public static final String PROP_NAME_actorName = "actorName";
     public static final int PROP_ID_actorName = 15;
     
@@ -136,44 +136,52 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_readTime = "readTime";
     public static final int PROP_ID_readTime = 29;
     
+    /* 提醒时间: REMIND_TIME TIMESTAMP */
+    public static final String PROP_NAME_remindTime = "remindTime";
+    public static final int PROP_ID_remindTime = 30;
+    
+    /* 提醒次数: REMIND_COUNT INTEGER */
+    public static final String PROP_NAME_remindCount = "remindCount";
+    public static final int PROP_ID_remindCount = 31;
+    
     /* 优先级: PRIORITY INTEGER */
     public static final String PROP_NAME_priority = "priority";
-    public static final int PROP_ID_priority = 30;
+    public static final int PROP_ID_priority = 32;
     
     /* 汇聚分组: JOIN_GROUP VARCHAR */
     public static final String PROP_NAME_joinGroup = "joinGroup";
-    public static final int PROP_ID_joinGroup = 31;
+    public static final int PROP_ID_joinGroup = 33;
     
     /* 标签: TAG_SET VARCHAR */
     public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 32;
+    public static final int PROP_ID_tagSet = 34;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 33;
+    public static final int PROP_ID_version = 35;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 34;
+    public static final int PROP_ID_createdBy = 36;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 35;
+    public static final int PROP_ID_createTime = 37;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 36;
+    public static final int PROP_ID_updatedBy = 38;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 37;
+    public static final int PROP_ID_updateTime = 39;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 38;
+    public static final int PROP_ID_remark = 40;
     
 
-    private static int _PROP_ID_BOUND = 39;
+    private static int _PROP_ID_BOUND = 41;
 
     
     /* relation: 工作流实例 */
@@ -182,11 +190,23 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /* relation: 子流程实例 */
     public static final String PROP_NAME_subWfInstance = "subWfInstance";
     
+    /* relation:  */
+    public static final String PROP_NAME_nextLinks = "nextLinks";
+    
+    /* relation:  */
+    public static final String PROP_NAME_prevLinks = "prevLinks";
+    
+    /* relation:  */
+    public static final String PROP_NAME_stepActors = "stepActors";
+    
+    /* relation:  */
+    public static final String PROP_NAME_stepActions = "stepActions";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[39];
+    private static final String[] PROP_ID_TO_NAME = new String[41];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -277,6 +297,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_readTime] = PROP_NAME_readTime;
           PROP_NAME_TO_ID.put(PROP_NAME_readTime, PROP_ID_readTime);
       
+          PROP_ID_TO_NAME[PROP_ID_remindTime] = PROP_NAME_remindTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_remindTime, PROP_ID_remindTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_remindCount] = PROP_NAME_remindCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_remindCount, PROP_ID_remindCount);
+      
           PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
           PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
       
@@ -349,7 +375,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /* 参与者部门ID: ACTOR_DEPT_ID */
     private java.lang.String _actorDeptId;
     
-    /* 参与者姓名: ACTOR_NAME */
+    /* 参与者名称: ACTOR_NAME */
     private java.lang.String _actorName;
     
     /* 拥有者ID: OWNER_ID */
@@ -393,6 +419,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     
     /* 读取时间: READ_TIME */
     private java.sql.Timestamp _readTime;
+    
+    /* 提醒时间: REMIND_TIME */
+    private java.sql.Timestamp _remindTime;
+    
+    /* 提醒次数: REMIND_COUNT */
+    private java.lang.Integer _remindCount;
     
     /* 优先级: PRIORITY */
     private java.lang.Integer _priority;
@@ -577,6 +609,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_readTime:
                return getReadTime();
+        
+            case PROP_ID_remindTime:
+               return getRemindTime();
+        
+            case PROP_ID_remindCount:
+               return getRemindCount();
         
             case PROP_ID_priority:
                return getPriority();
@@ -906,6 +944,26 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_remindTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_remindTime));
+               }
+               setRemindTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_remindCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_remindCount));
+               }
+               setRemindCount(typedValue);
+               break;
+            }
+        
             case PROP_ID_priority:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -1204,6 +1262,20 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_readTime:{
                onInitProp(propId);
                this._readTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_remindTime:{
+               onInitProp(propId);
+               this._remindTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_remindCount:{
+               onInitProp(propId);
+               this._remindCount = (java.lang.Integer)value;
                
                break;
             }
@@ -1544,7 +1616,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 参与者姓名: ACTOR_NAME
+     * 参与者名称: ACTOR_NAME
      */
     public java.lang.String getActorName(){
          onPropGet(PROP_ID_actorName);
@@ -1552,7 +1624,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
 
     /**
-     * 参与者姓名: ACTOR_NAME
+     * 参与者名称: ACTOR_NAME
      */
     public void setActorName(java.lang.String value){
         if(onPropSet(PROP_ID_actorName,value)){
@@ -1829,6 +1901,44 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 提醒时间: REMIND_TIME
+     */
+    public java.sql.Timestamp getRemindTime(){
+         onPropGet(PROP_ID_remindTime);
+         return _remindTime;
+    }
+
+    /**
+     * 提醒时间: REMIND_TIME
+     */
+    public void setRemindTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_remindTime,value)){
+            this._remindTime = value;
+            internalClearRefs(PROP_ID_remindTime);
+            
+        }
+    }
+    
+    /**
+     * 提醒次数: REMIND_COUNT
+     */
+    public java.lang.Integer getRemindCount(){
+         onPropGet(PROP_ID_remindCount);
+         return _remindCount;
+    }
+
+    /**
+     * 提醒次数: REMIND_COUNT
+     */
+    public void setRemindCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_remindCount,value)){
+            this._remindCount = value;
+            internalClearRefs(PROP_ID_remindCount);
+            
+        }
+    }
+    
+    /**
      * 优先级: PRIORITY
      */
     public java.lang.Integer getPriority(){
@@ -2039,6 +2149,46 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                  
           });
        }
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> _nextLinks = new OrmEntitySet<>(this, PROP_NAME_nextLinks,
+        io.nop.wf.dao.entity.NopWfStepInstanceLink.PROP_NAME_wfStep, null,io.nop.wf.dao.entity.NopWfStepInstanceLink.class);
+
+    /**
+     * 。 refPropName: wfStep, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> getNextLinks(){
+       return _nextLinks;
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> _prevLinks = new OrmEntitySet<>(this, PROP_NAME_prevLinks,
+        io.nop.wf.dao.entity.NopWfStepInstanceLink.PROP_NAME_nextWfStep, null,io.nop.wf.dao.entity.NopWfStepInstanceLink.class);
+
+    /**
+     * 。 refPropName: nextWfStep, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> getPrevLinks(){
+       return _prevLinks;
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStepActor> _stepActors = new OrmEntitySet<>(this, PROP_NAME_stepActors,
+        io.nop.wf.dao.entity.NopWfStepActor.PROP_NAME_wfStepInstance, null,io.nop.wf.dao.entity.NopWfStepActor.class);
+
+    /**
+     * 。 refPropName: wfStepInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepActor> getStepActors(){
+       return _stepActors;
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfAction> _stepActions = new OrmEntitySet<>(this, PROP_NAME_stepActions,
+        io.nop.wf.dao.entity.NopWfAction.PROP_NAME_wfStepInstance, null,io.nop.wf.dao.entity.NopWfAction.class);
+
+    /**
+     * 。 refPropName: wfStepInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfAction> getStepActions(){
+       return _stepActions;
     }
        
 }

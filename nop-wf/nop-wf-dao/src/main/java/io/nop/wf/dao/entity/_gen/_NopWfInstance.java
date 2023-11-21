@@ -36,142 +36,162 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_wfParams = "wfParams";
     public static final int PROP_ID_wfParams = 4;
     
+    /* 工作流分组: WF_GROUP VARCHAR */
+    public static final String PROP_NAME_wfGroup = "wfGroup";
+    public static final int PROP_ID_wfGroup = 5;
+    
     /* 实例标题: TITLE VARCHAR */
     public static final String PROP_NAME_title = "title";
-    public static final int PROP_ID_title = 5;
+    public static final int PROP_ID_title = 6;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 6;
+    public static final int PROP_ID_status = 7;
     
     /* 应用状态: APP_STATE VARCHAR */
     public static final String PROP_NAME_appState = "appState";
-    public static final int PROP_ID_appState = 7;
+    public static final int PROP_ID_appState = 8;
     
     /* 启动时间: START_TIME TIMESTAMP */
     public static final String PROP_NAME_startTime = "startTime";
-    public static final int PROP_ID_startTime = 8;
+    public static final int PROP_ID_startTime = 9;
     
     /* 结束时间: END_TIME TIMESTAMP */
     public static final String PROP_NAME_endTime = "endTime";
-    public static final int PROP_ID_endTime = 9;
+    public static final int PROP_ID_endTime = 10;
     
     /* 暂停时间: SUSPEND_TIME TIMESTAMP */
     public static final String PROP_NAME_suspendTime = "suspendTime";
-    public static final int PROP_ID_suspendTime = 10;
+    public static final int PROP_ID_suspendTime = 11;
     
     /* 完成时限: DUE_TIME TIMESTAMP */
     public static final String PROP_NAME_dueTime = "dueTime";
-    public static final int PROP_ID_dueTime = 11;
+    public static final int PROP_ID_dueTime = 12;
     
     /* 业务唯一键: BIZ_KEY VARCHAR */
     public static final String PROP_NAME_bizKey = "bizKey";
-    public static final int PROP_ID_bizKey = 12;
+    public static final int PROP_ID_bizKey = 13;
     
     /* 业务对象名: BIZ_OBJ_NAME VARCHAR */
     public static final String PROP_NAME_bizObjName = "bizObjName";
-    public static final int PROP_ID_bizObjName = 13;
+    public static final int PROP_ID_bizObjName = 14;
     
     /* 业务对象ID: BIZ_OBJ_ID VARCHAR */
     public static final String PROP_NAME_bizObjId = "bizObjId";
-    public static final int PROP_ID_bizObjId = 14;
+    public static final int PROP_ID_bizObjId = 15;
     
     /* 父工作流名称: PARENT_WF_NAME VARCHAR */
     public static final String PROP_NAME_parentWfName = "parentWfName";
-    public static final int PROP_ID_parentWfName = 15;
+    public static final int PROP_ID_parentWfName = 16;
     
     /* 父流程版本: PARENT_WF_VERSION BIGINT */
     public static final String PROP_NAME_parentWfVersion = "parentWfVersion";
-    public static final int PROP_ID_parentWfVersion = 16;
+    public static final int PROP_ID_parentWfVersion = 17;
     
     /* 父流程ID: PARENT_WF_ID VARCHAR */
     public static final String PROP_NAME_parentWfId = "parentWfId";
-    public static final int PROP_ID_parentWfId = 17;
+    public static final int PROP_ID_parentWfId = 18;
     
     /* 父流程步骤ID: PARENT_STEP_ID VARCHAR */
     public static final String PROP_NAME_parentStepId = "parentStepId";
-    public static final int PROP_ID_parentStepId = 18;
+    public static final int PROP_ID_parentStepId = 19;
     
     /* 启动人ID: STARTER_ID VARCHAR */
     public static final String PROP_NAME_starterId = "starterId";
-    public static final int PROP_ID_starterId = 19;
+    public static final int PROP_ID_starterId = 20;
     
     /* 启动人: STARTER_NAME VARCHAR */
     public static final String PROP_NAME_starterName = "starterName";
-    public static final int PROP_ID_starterName = 20;
+    public static final int PROP_ID_starterName = 21;
     
     /* 启动人单位ID: STARTER_DEPT_ID VARCHAR */
     public static final String PROP_NAME_starterDeptId = "starterDeptId";
-    public static final int PROP_ID_starterDeptId = 21;
+    public static final int PROP_ID_starterDeptId = 22;
     
     /* 取消人ID: CANCELLER_ID VARCHAR */
     public static final String PROP_NAME_cancellerId = "cancellerId";
-    public static final int PROP_ID_cancellerId = 22;
+    public static final int PROP_ID_cancellerId = 23;
     
     /* 取消人: CANCELLER_NAME VARCHAR */
     public static final String PROP_NAME_cancellerName = "cancellerName";
-    public static final int PROP_ID_cancellerName = 23;
+    public static final int PROP_ID_cancellerName = 24;
     
     /* 暂停人ID: SUSPENDER_ID VARCHAR */
     public static final String PROP_NAME_suspenderId = "suspenderId";
-    public static final int PROP_ID_suspenderId = 24;
+    public static final int PROP_ID_suspenderId = 25;
     
     /* 暂停人: SUSPENDER_NAME VARCHAR */
     public static final String PROP_NAME_suspenderName = "suspenderName";
-    public static final int PROP_ID_suspenderName = 25;
+    public static final int PROP_ID_suspenderName = 26;
     
     /* 管理者类型: MANAGER_TYPE VARCHAR */
     public static final String PROP_NAME_managerType = "managerType";
-    public static final int PROP_ID_managerType = 26;
+    public static final int PROP_ID_managerType = 27;
     
     /* 管理者单位ID: MANAGER_DEPT_ID VARCHAR */
     public static final String PROP_NAME_managerDeptId = "managerDeptId";
-    public static final int PROP_ID_managerDeptId = 27;
+    public static final int PROP_ID_managerDeptId = 28;
     
     /* 管理者: MANAGER_NAME VARCHAR */
     public static final String PROP_NAME_managerName = "managerName";
-    public static final int PROP_ID_managerName = 28;
+    public static final int PROP_ID_managerName = 29;
     
     /* 管理者ID: MANAGER_ID VARCHAR */
     public static final String PROP_NAME_managerId = "managerId";
-    public static final int PROP_ID_managerId = 29;
+    public static final int PROP_ID_managerId = 30;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 30;
+    public static final int PROP_ID_version = 31;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 31;
+    public static final int PROP_ID_createdBy = 32;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 32;
+    public static final int PROP_ID_createTime = 33;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 33;
+    public static final int PROP_ID_updatedBy = 34;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 34;
+    public static final int PROP_ID_updateTime = 35;
+    
+    /* 优先级: PRIORITY INTEGER */
+    public static final String PROP_NAME_priority = "priority";
+    public static final int PROP_ID_priority = 36;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 35;
+    public static final int PROP_ID_remark = 37;
     
 
-    private static int _PROP_ID_BOUND = 36;
+    private static int _PROP_ID_BOUND = 38;
 
     
     /* relation: 父流程 */
     public static final String PROP_NAME_wfInstance = "wfInstance";
     
+    /* relation:  */
+    public static final String PROP_NAME_steps = "steps";
+    
+    /* relation:  */
+    public static final String PROP_NAME_outputs = "outputs";
+    
+    /* relation:  */
+    public static final String PROP_NAME_globalVars = "globalVars";
+    
+    /* relation:  */
+    public static final String PROP_NAME_works = "works";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[36];
+    private static final String[] PROP_ID_TO_NAME = new String[38];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -186,6 +206,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_wfParams] = PROP_NAME_wfParams;
           PROP_NAME_TO_ID.put(PROP_NAME_wfParams, PROP_ID_wfParams);
+      
+          PROP_ID_TO_NAME[PROP_ID_wfGroup] = PROP_NAME_wfGroup;
+          PROP_NAME_TO_ID.put(PROP_NAME_wfGroup, PROP_ID_wfGroup);
       
           PROP_ID_TO_NAME[PROP_ID_title] = PROP_NAME_title;
           PROP_NAME_TO_ID.put(PROP_NAME_title, PROP_ID_title);
@@ -277,6 +300,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
       
+          PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
+          PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
+      
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
@@ -294,6 +320,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
     
     /* 工作流参数: WF_PARAMS */
     private java.lang.String _wfParams;
+    
+    /* 工作流分组: WF_GROUP */
+    private java.lang.String _wfGroup;
     
     /* 实例标题: TITLE */
     private java.lang.String _title;
@@ -385,6 +414,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /* 修改时间: UPDATE_TIME */
     private java.sql.Timestamp _updateTime;
     
+    /* 优先级: PRIORITY */
+    private java.lang.Integer _priority;
+    
     /* 备注: REMARK */
     private java.lang.String _remark;
     
@@ -469,6 +501,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
         
             case PROP_ID_wfParams:
                return getWfParams();
+        
+            case PROP_ID_wfGroup:
+               return getWfGroup();
         
             case PROP_ID_title:
                return getTitle();
@@ -560,6 +595,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
             case PROP_ID_updateTime:
                return getUpdateTime();
         
+            case PROP_ID_priority:
+               return getPriority();
+        
             case PROP_ID_remark:
                return getRemark();
         
@@ -611,6 +649,16 @@ public class _NopWfInstance extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_wfParams));
                }
                setWfParams(typedValue);
+               break;
+            }
+        
+            case PROP_ID_wfGroup:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_wfGroup));
+               }
+               setWfGroup(typedValue);
                break;
             }
         
@@ -914,6 +962,16 @@ public class _NopWfInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_priority:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_priority));
+               }
+               setPriority(typedValue);
+               break;
+            }
+        
             case PROP_ID_remark:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -957,6 +1015,13 @@ public class _NopWfInstance extends DynamicOrmEntity{
             case PROP_ID_wfParams:{
                onInitProp(propId);
                this._wfParams = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_wfGroup:{
+               onInitProp(propId);
+               this._wfGroup = (java.lang.String)value;
                
                break;
             }
@@ -1171,6 +1236,13 @@ public class _NopWfInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_priority:{
+               onInitProp(propId);
+               this._priority = (java.lang.Integer)value;
+               
+               break;
+            }
+        
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
@@ -1256,6 +1328,25 @@ public class _NopWfInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_wfParams,value)){
             this._wfParams = value;
             internalClearRefs(PROP_ID_wfParams);
+            
+        }
+    }
+    
+    /**
+     * 工作流分组: WF_GROUP
+     */
+    public java.lang.String getWfGroup(){
+         onPropGet(PROP_ID_wfGroup);
+         return _wfGroup;
+    }
+
+    /**
+     * 工作流分组: WF_GROUP
+     */
+    public void setWfGroup(java.lang.String value){
+        if(onPropSet(PROP_ID_wfGroup,value)){
+            this._wfGroup = value;
+            internalClearRefs(PROP_ID_wfGroup);
             
         }
     }
@@ -1831,6 +1922,25 @@ public class _NopWfInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 优先级: PRIORITY
+     */
+    public java.lang.Integer getPriority(){
+         onPropGet(PROP_ID_priority);
+         return _priority;
+    }
+
+    /**
+     * 优先级: PRIORITY
+     */
+    public void setPriority(java.lang.Integer value){
+        if(onPropSet(PROP_ID_priority,value)){
+            this._priority = value;
+            internalClearRefs(PROP_ID_priority);
+            
+        }
+    }
+    
+    /**
      * 备注: REMARK
      */
     public java.lang.String getRemark(){
@@ -1868,6 +1978,46 @@ public class _NopWfInstance extends DynamicOrmEntity{
                  
           });
        }
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstance> _steps = new OrmEntitySet<>(this, PROP_NAME_steps,
+        io.nop.wf.dao.entity.NopWfStepInstance.PROP_NAME_wfInstance, null,io.nop.wf.dao.entity.NopWfStepInstance.class);
+
+    /**
+     * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstance> getSteps(){
+       return _steps;
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfOutput> _outputs = new OrmEntitySet<>(this, PROP_NAME_outputs,
+        io.nop.wf.dao.entity.NopWfOutput.PROP_NAME_wfInstance, null,io.nop.wf.dao.entity.NopWfOutput.class);
+
+    /**
+     * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfOutput> getOutputs(){
+       return _outputs;
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfVar> _globalVars = new OrmEntitySet<>(this, PROP_NAME_globalVars,
+        io.nop.wf.dao.entity.NopWfVar.PROP_NAME_wfInstance, null,io.nop.wf.dao.entity.NopWfVar.class);
+
+    /**
+     * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfVar> getGlobalVars(){
+       return _globalVars;
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfWork> _works = new OrmEntitySet<>(this, PROP_NAME_works,
+        io.nop.wf.dao.entity.NopWfWork.PROP_NAME_wfInstance, null,io.nop.wf.dao.entity.NopWfWork.class);
+
+    /**
+     * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfWork> getWorks(){
+       return _works;
     }
        
 }

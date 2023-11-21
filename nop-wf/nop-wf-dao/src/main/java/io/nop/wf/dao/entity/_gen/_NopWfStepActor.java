@@ -10,19 +10,19 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.wf.dao.entity.NopWfWork;
+import io.nop.wf.dao.entity.NopWfStepActor;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  代办工作: nop_wf_work
+ *  工作流步骤参与者: nop_wf_step_actor
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public class _NopWfWork extends DynamicOrmEntity{
+public class _NopWfStepActor extends DynamicOrmEntity{
     
-    /* 工作ID: WORK_ID VARCHAR */
-    public static final String PROP_NAME_workId = "workId";
-    public static final int PROP_ID_workId = 1;
+    /* 主键: SID VARCHAR */
+    public static final String PROP_NAME_sid = "sid";
+    public static final int PROP_ID_sid = 1;
     
     /* 工作流实例ID: WF_ID VARCHAR */
     public static final String PROP_NAME_wfId = "wfId";
@@ -32,72 +32,48 @@ public class _NopWfWork extends DynamicOrmEntity{
     public static final String PROP_NAME_stepId = "stepId";
     public static final int PROP_ID_stepId = 3;
     
-    /* 工作类型: WORK_TYPE VARCHAR */
-    public static final String PROP_NAME_workType = "workType";
-    public static final int PROP_ID_workType = 4;
+    /* 参与者类型: ACTOR_TYPE VARCHAR */
+    public static final String PROP_NAME_actorType = "actorType";
+    public static final int PROP_ID_actorType = 4;
     
-    /* 工作标题: TITLE VARCHAR */
-    public static final String PROP_NAME_title = "title";
-    public static final int PROP_ID_title = 5;
+    /* 参与者ID: ACTOR_ID VARCHAR */
+    public static final String PROP_NAME_actorId = "actorId";
+    public static final int PROP_ID_actorId = 5;
     
-    /* 工作链接: LINK_URL VARCHAR */
-    public static final String PROP_NAME_linkUrl = "linkUrl";
-    public static final int PROP_ID_linkUrl = 6;
+    /* 参与者部门ID: ACTOR_DEPT_ID VARCHAR */
+    public static final String PROP_NAME_actorDeptId = "actorDeptId";
+    public static final int PROP_ID_actorDeptId = 6;
     
-    /* 状态: STATUS INTEGER */
-    public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 7;
+    /* 参与者名称: ACTOR_NAME VARCHAR */
+    public static final String PROP_NAME_actorName = "actorName";
+    public static final int PROP_ID_actorName = 7;
     
-    /* 拥有者ID: OWNER_ID VARCHAR */
-    public static final String PROP_NAME_ownerId = "ownerId";
-    public static final int PROP_ID_ownerId = 8;
-    
-    /* 拥有者姓名: OWNER_NAME VARCHAR */
-    public static final String PROP_NAME_ownerName = "ownerName";
-    public static final int PROP_ID_ownerName = 9;
-    
-    /* 调用者ID: CALLER_ID VARCHAR */
-    public static final String PROP_NAME_callerId = "callerId";
-    public static final int PROP_ID_callerId = 10;
-    
-    /* 调用者姓名: CALLER_NAME VARCHAR */
-    public static final String PROP_NAME_callerName = "callerName";
-    public static final int PROP_ID_callerName = 11;
-    
-    /* 读取时间: READ_TIME TIMESTAMP */
-    public static final String PROP_NAME_readTime = "readTime";
-    public static final int PROP_ID_readTime = 12;
-    
-    /* 完成时间: FINISH_TIME TIMESTAMP */
-    public static final String PROP_NAME_finishTime = "finishTime";
-    public static final int PROP_ID_finishTime = 13;
+    /* 是否分配到用户: ASSIGN_FOR_USER BOOLEAN */
+    public static final String PROP_NAME_assignForUser = "assignForUser";
+    public static final int PROP_ID_assignForUser = 8;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 14;
+    public static final int PROP_ID_version = 9;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 15;
+    public static final int PROP_ID_createdBy = 10;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 16;
+    public static final int PROP_ID_createTime = 11;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 17;
+    public static final int PROP_ID_updatedBy = 12;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 18;
-    
-    /* 备注: REMARK VARCHAR */
-    public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 19;
+    public static final int PROP_ID_updateTime = 13;
     
 
-    private static int _PROP_ID_BOUND = 20;
+    private static int _PROP_ID_BOUND = 14;
 
     
     /* relation: 工作流实例 */
@@ -107,15 +83,15 @@ public class _NopWfWork extends DynamicOrmEntity{
     public static final String PROP_NAME_wfStepInstance = "wfStepInstance";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_workId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_workId};
+    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[20];
+    private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_workId] = PROP_NAME_workId;
-          PROP_NAME_TO_ID.put(PROP_NAME_workId, PROP_ID_workId);
+          PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
+          PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
           PROP_ID_TO_NAME[PROP_ID_wfId] = PROP_NAME_wfId;
           PROP_NAME_TO_ID.put(PROP_NAME_wfId, PROP_ID_wfId);
@@ -123,35 +99,20 @@ public class _NopWfWork extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_stepId] = PROP_NAME_stepId;
           PROP_NAME_TO_ID.put(PROP_NAME_stepId, PROP_ID_stepId);
       
-          PROP_ID_TO_NAME[PROP_ID_workType] = PROP_NAME_workType;
-          PROP_NAME_TO_ID.put(PROP_NAME_workType, PROP_ID_workType);
+          PROP_ID_TO_NAME[PROP_ID_actorType] = PROP_NAME_actorType;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorType, PROP_ID_actorType);
       
-          PROP_ID_TO_NAME[PROP_ID_title] = PROP_NAME_title;
-          PROP_NAME_TO_ID.put(PROP_NAME_title, PROP_ID_title);
+          PROP_ID_TO_NAME[PROP_ID_actorId] = PROP_NAME_actorId;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorId, PROP_ID_actorId);
       
-          PROP_ID_TO_NAME[PROP_ID_linkUrl] = PROP_NAME_linkUrl;
-          PROP_NAME_TO_ID.put(PROP_NAME_linkUrl, PROP_ID_linkUrl);
+          PROP_ID_TO_NAME[PROP_ID_actorDeptId] = PROP_NAME_actorDeptId;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorDeptId, PROP_ID_actorDeptId);
       
-          PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
-          PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
+          PROP_ID_TO_NAME[PROP_ID_actorName] = PROP_NAME_actorName;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorName, PROP_ID_actorName);
       
-          PROP_ID_TO_NAME[PROP_ID_ownerId] = PROP_NAME_ownerId;
-          PROP_NAME_TO_ID.put(PROP_NAME_ownerId, PROP_ID_ownerId);
-      
-          PROP_ID_TO_NAME[PROP_ID_ownerName] = PROP_NAME_ownerName;
-          PROP_NAME_TO_ID.put(PROP_NAME_ownerName, PROP_ID_ownerName);
-      
-          PROP_ID_TO_NAME[PROP_ID_callerId] = PROP_NAME_callerId;
-          PROP_NAME_TO_ID.put(PROP_NAME_callerId, PROP_ID_callerId);
-      
-          PROP_ID_TO_NAME[PROP_ID_callerName] = PROP_NAME_callerName;
-          PROP_NAME_TO_ID.put(PROP_NAME_callerName, PROP_ID_callerName);
-      
-          PROP_ID_TO_NAME[PROP_ID_readTime] = PROP_NAME_readTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_readTime, PROP_ID_readTime);
-      
-          PROP_ID_TO_NAME[PROP_ID_finishTime] = PROP_NAME_finishTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_finishTime, PROP_ID_finishTime);
+          PROP_ID_TO_NAME[PROP_ID_assignForUser] = PROP_NAME_assignForUser;
+          PROP_NAME_TO_ID.put(PROP_NAME_assignForUser, PROP_ID_assignForUser);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -168,14 +129,11 @@ public class _NopWfWork extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
       
-          PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
-          PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
-      
     }
 
     
-    /* 工作ID: WORK_ID */
-    private java.lang.String _workId;
+    /* 主键: SID */
+    private java.lang.String _sid;
     
     /* 工作流实例ID: WF_ID */
     private java.lang.String _wfId;
@@ -183,35 +141,20 @@ public class _NopWfWork extends DynamicOrmEntity{
     /* 工作流步骤ID: STEP_ID */
     private java.lang.String _stepId;
     
-    /* 工作类型: WORK_TYPE */
-    private java.lang.String _workType;
+    /* 参与者类型: ACTOR_TYPE */
+    private java.lang.String _actorType;
     
-    /* 工作标题: TITLE */
-    private java.lang.String _title;
+    /* 参与者ID: ACTOR_ID */
+    private java.lang.String _actorId;
     
-    /* 工作链接: LINK_URL */
-    private java.lang.String _linkUrl;
+    /* 参与者部门ID: ACTOR_DEPT_ID */
+    private java.lang.String _actorDeptId;
     
-    /* 状态: STATUS */
-    private java.lang.Integer _status;
+    /* 参与者名称: ACTOR_NAME */
+    private java.lang.String _actorName;
     
-    /* 拥有者ID: OWNER_ID */
-    private java.lang.String _ownerId;
-    
-    /* 拥有者姓名: OWNER_NAME */
-    private java.lang.String _ownerName;
-    
-    /* 调用者ID: CALLER_ID */
-    private java.lang.String _callerId;
-    
-    /* 调用者姓名: CALLER_NAME */
-    private java.lang.String _callerName;
-    
-    /* 读取时间: READ_TIME */
-    private java.sql.Timestamp _readTime;
-    
-    /* 完成时间: FINISH_TIME */
-    private java.sql.Timestamp _finishTime;
+    /* 是否分配到用户: ASSIGN_FOR_USER */
+    private java.lang.Boolean _assignForUser;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -228,20 +171,17 @@ public class _NopWfWork extends DynamicOrmEntity{
     /* 修改时间: UPDATE_TIME */
     private java.sql.Timestamp _updateTime;
     
-    /* 备注: REMARK */
-    private java.lang.String _remark;
-    
 
-    public _NopWfWork(){
+    public _NopWfStepActor(){
     }
 
-    protected NopWfWork newInstance(){
-       return new NopWfWork();
+    protected NopWfStepActor newInstance(){
+       return new NopWfStepActor();
     }
 
     @Override
-    public NopWfWork cloneInstance() {
-        NopWfWork entity = newInstance();
+    public NopWfStepActor cloneInstance() {
+        NopWfStepActor entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
@@ -254,7 +194,7 @@ public class _NopWfWork extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.wf.dao.entity.NopWfWork";
+      return "io.nop.wf.dao.entity.NopWfStepActor";
     }
 
     @Override
@@ -268,14 +208,14 @@ public class _NopWfWork extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_workId);
+        return buildSimpleId(PROP_ID_sid);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_workId;
+            return propId == PROP_ID_sid;
           
     }
 
@@ -301,8 +241,8 @@ public class _NopWfWork extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_workId:
-               return getWorkId();
+            case PROP_ID_sid:
+               return getSid();
         
             case PROP_ID_wfId:
                return getWfId();
@@ -310,35 +250,20 @@ public class _NopWfWork extends DynamicOrmEntity{
             case PROP_ID_stepId:
                return getStepId();
         
-            case PROP_ID_workType:
-               return getWorkType();
+            case PROP_ID_actorType:
+               return getActorType();
         
-            case PROP_ID_title:
-               return getTitle();
+            case PROP_ID_actorId:
+               return getActorId();
         
-            case PROP_ID_linkUrl:
-               return getLinkUrl();
+            case PROP_ID_actorDeptId:
+               return getActorDeptId();
         
-            case PROP_ID_status:
-               return getStatus();
+            case PROP_ID_actorName:
+               return getActorName();
         
-            case PROP_ID_ownerId:
-               return getOwnerId();
-        
-            case PROP_ID_ownerName:
-               return getOwnerName();
-        
-            case PROP_ID_callerId:
-               return getCallerId();
-        
-            case PROP_ID_callerName:
-               return getCallerName();
-        
-            case PROP_ID_readTime:
-               return getReadTime();
-        
-            case PROP_ID_finishTime:
-               return getFinishTime();
+            case PROP_ID_assignForUser:
+               return getAssignForUser();
         
             case PROP_ID_version:
                return getVersion();
@@ -355,9 +280,6 @@ public class _NopWfWork extends DynamicOrmEntity{
             case PROP_ID_updateTime:
                return getUpdateTime();
         
-            case PROP_ID_remark:
-               return getRemark();
-        
            default:
               return super.orm_propValue(propId);
         }
@@ -369,13 +291,13 @@ public class _NopWfWork extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_workId:{
+            case PROP_ID_sid:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_workId));
+                       err-> newTypeConversionError(PROP_NAME_sid));
                }
-               setWorkId(typedValue);
+               setSid(typedValue);
                break;
             }
         
@@ -399,103 +321,53 @@ public class _NopWfWork extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_workType:{
+            case PROP_ID_actorType:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_workType));
+                       err-> newTypeConversionError(PROP_NAME_actorType));
                }
-               setWorkType(typedValue);
+               setActorType(typedValue);
                break;
             }
         
-            case PROP_ID_title:{
+            case PROP_ID_actorId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_title));
+                       err-> newTypeConversionError(PROP_NAME_actorId));
                }
-               setTitle(typedValue);
+               setActorId(typedValue);
                break;
             }
         
-            case PROP_ID_linkUrl:{
+            case PROP_ID_actorDeptId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_linkUrl));
+                       err-> newTypeConversionError(PROP_NAME_actorDeptId));
                }
-               setLinkUrl(typedValue);
+               setActorDeptId(typedValue);
                break;
             }
         
-            case PROP_ID_status:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_status));
-               }
-               setStatus(typedValue);
-               break;
-            }
-        
-            case PROP_ID_ownerId:{
+            case PROP_ID_actorName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_ownerId));
+                       err-> newTypeConversionError(PROP_NAME_actorName));
                }
-               setOwnerId(typedValue);
+               setActorName(typedValue);
                break;
             }
         
-            case PROP_ID_ownerName:{
-               java.lang.String typedValue = null;
+            case PROP_ID_assignForUser:{
+               java.lang.Boolean typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_ownerName));
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_assignForUser));
                }
-               setOwnerName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_callerId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_callerId));
-               }
-               setCallerId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_callerName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_callerName));
-               }
-               setCallerName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_readTime:{
-               java.sql.Timestamp typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_readTime));
-               }
-               setReadTime(typedValue);
-               break;
-            }
-        
-            case PROP_ID_finishTime:{
-               java.sql.Timestamp typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_finishTime));
-               }
-               setFinishTime(typedValue);
+               setAssignForUser(typedValue);
                break;
             }
         
@@ -549,16 +421,6 @@ public class _NopWfWork extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_remark:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_remark));
-               }
-               setRemark(typedValue);
-               break;
-            }
-        
            default:
               super.orm_propValue(propId,value);
         }
@@ -568,9 +430,9 @@ public class _NopWfWork extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_workId:{
+            case PROP_ID_sid:{
                onInitProp(propId);
-               this._workId = (java.lang.String)value;
+               this._sid = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -589,72 +451,37 @@ public class _NopWfWork extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_workType:{
+            case PROP_ID_actorType:{
                onInitProp(propId);
-               this._workType = (java.lang.String)value;
+               this._actorType = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_title:{
+            case PROP_ID_actorId:{
                onInitProp(propId);
-               this._title = (java.lang.String)value;
+               this._actorId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_linkUrl:{
+            case PROP_ID_actorDeptId:{
                onInitProp(propId);
-               this._linkUrl = (java.lang.String)value;
+               this._actorDeptId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_status:{
+            case PROP_ID_actorName:{
                onInitProp(propId);
-               this._status = (java.lang.Integer)value;
+               this._actorName = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_ownerId:{
+            case PROP_ID_assignForUser:{
                onInitProp(propId);
-               this._ownerId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_ownerName:{
-               onInitProp(propId);
-               this._ownerName = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_callerId:{
-               onInitProp(propId);
-               this._callerId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_callerName:{
-               onInitProp(propId);
-               this._callerName = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_readTime:{
-               onInitProp(propId);
-               this._readTime = (java.sql.Timestamp)value;
-               
-               break;
-            }
-        
-            case PROP_ID_finishTime:{
-               onInitProp(propId);
-               this._finishTime = (java.sql.Timestamp)value;
+               this._assignForUser = (java.lang.Boolean)value;
                
                break;
             }
@@ -694,13 +521,6 @@ public class _NopWfWork extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_remark:{
-               onInitProp(propId);
-               this._remark = (java.lang.String)value;
-               
-               break;
-            }
-        
            default:
               super.orm_internalSet(propId,value);
         }
@@ -708,20 +528,20 @@ public class _NopWfWork extends DynamicOrmEntity{
 
     
     /**
-     * 工作ID: WORK_ID
+     * 主键: SID
      */
-    public java.lang.String getWorkId(){
-         onPropGet(PROP_ID_workId);
-         return _workId;
+    public java.lang.String getSid(){
+         onPropGet(PROP_ID_sid);
+         return _sid;
     }
 
     /**
-     * 工作ID: WORK_ID
+     * 主键: SID
      */
-    public void setWorkId(java.lang.String value){
-        if(onPropSet(PROP_ID_workId,value)){
-            this._workId = value;
-            internalClearRefs(PROP_ID_workId);
+    public void setSid(java.lang.String value){
+        if(onPropSet(PROP_ID_sid,value)){
+            this._sid = value;
+            internalClearRefs(PROP_ID_sid);
             orm_id();
         }
     }
@@ -765,191 +585,96 @@ public class _NopWfWork extends DynamicOrmEntity{
     }
     
     /**
-     * 工作类型: WORK_TYPE
+     * 参与者类型: ACTOR_TYPE
      */
-    public java.lang.String getWorkType(){
-         onPropGet(PROP_ID_workType);
-         return _workType;
+    public java.lang.String getActorType(){
+         onPropGet(PROP_ID_actorType);
+         return _actorType;
     }
 
     /**
-     * 工作类型: WORK_TYPE
+     * 参与者类型: ACTOR_TYPE
      */
-    public void setWorkType(java.lang.String value){
-        if(onPropSet(PROP_ID_workType,value)){
-            this._workType = value;
-            internalClearRefs(PROP_ID_workType);
+    public void setActorType(java.lang.String value){
+        if(onPropSet(PROP_ID_actorType,value)){
+            this._actorType = value;
+            internalClearRefs(PROP_ID_actorType);
             
         }
     }
     
     /**
-     * 工作标题: TITLE
+     * 参与者ID: ACTOR_ID
      */
-    public java.lang.String getTitle(){
-         onPropGet(PROP_ID_title);
-         return _title;
+    public java.lang.String getActorId(){
+         onPropGet(PROP_ID_actorId);
+         return _actorId;
     }
 
     /**
-     * 工作标题: TITLE
+     * 参与者ID: ACTOR_ID
      */
-    public void setTitle(java.lang.String value){
-        if(onPropSet(PROP_ID_title,value)){
-            this._title = value;
-            internalClearRefs(PROP_ID_title);
+    public void setActorId(java.lang.String value){
+        if(onPropSet(PROP_ID_actorId,value)){
+            this._actorId = value;
+            internalClearRefs(PROP_ID_actorId);
             
         }
     }
     
     /**
-     * 工作链接: LINK_URL
+     * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public java.lang.String getLinkUrl(){
-         onPropGet(PROP_ID_linkUrl);
-         return _linkUrl;
+    public java.lang.String getActorDeptId(){
+         onPropGet(PROP_ID_actorDeptId);
+         return _actorDeptId;
     }
 
     /**
-     * 工作链接: LINK_URL
+     * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public void setLinkUrl(java.lang.String value){
-        if(onPropSet(PROP_ID_linkUrl,value)){
-            this._linkUrl = value;
-            internalClearRefs(PROP_ID_linkUrl);
+    public void setActorDeptId(java.lang.String value){
+        if(onPropSet(PROP_ID_actorDeptId,value)){
+            this._actorDeptId = value;
+            internalClearRefs(PROP_ID_actorDeptId);
             
         }
     }
     
     /**
-     * 状态: STATUS
+     * 参与者名称: ACTOR_NAME
      */
-    public java.lang.Integer getStatus(){
-         onPropGet(PROP_ID_status);
-         return _status;
+    public java.lang.String getActorName(){
+         onPropGet(PROP_ID_actorName);
+         return _actorName;
     }
 
     /**
-     * 状态: STATUS
+     * 参与者名称: ACTOR_NAME
      */
-    public void setStatus(java.lang.Integer value){
-        if(onPropSet(PROP_ID_status,value)){
-            this._status = value;
-            internalClearRefs(PROP_ID_status);
+    public void setActorName(java.lang.String value){
+        if(onPropSet(PROP_ID_actorName,value)){
+            this._actorName = value;
+            internalClearRefs(PROP_ID_actorName);
             
         }
     }
     
     /**
-     * 拥有者ID: OWNER_ID
+     * 是否分配到用户: ASSIGN_FOR_USER
      */
-    public java.lang.String getOwnerId(){
-         onPropGet(PROP_ID_ownerId);
-         return _ownerId;
+    public java.lang.Boolean getAssignForUser(){
+         onPropGet(PROP_ID_assignForUser);
+         return _assignForUser;
     }
 
     /**
-     * 拥有者ID: OWNER_ID
+     * 是否分配到用户: ASSIGN_FOR_USER
      */
-    public void setOwnerId(java.lang.String value){
-        if(onPropSet(PROP_ID_ownerId,value)){
-            this._ownerId = value;
-            internalClearRefs(PROP_ID_ownerId);
-            
-        }
-    }
-    
-    /**
-     * 拥有者姓名: OWNER_NAME
-     */
-    public java.lang.String getOwnerName(){
-         onPropGet(PROP_ID_ownerName);
-         return _ownerName;
-    }
-
-    /**
-     * 拥有者姓名: OWNER_NAME
-     */
-    public void setOwnerName(java.lang.String value){
-        if(onPropSet(PROP_ID_ownerName,value)){
-            this._ownerName = value;
-            internalClearRefs(PROP_ID_ownerName);
-            
-        }
-    }
-    
-    /**
-     * 调用者ID: CALLER_ID
-     */
-    public java.lang.String getCallerId(){
-         onPropGet(PROP_ID_callerId);
-         return _callerId;
-    }
-
-    /**
-     * 调用者ID: CALLER_ID
-     */
-    public void setCallerId(java.lang.String value){
-        if(onPropSet(PROP_ID_callerId,value)){
-            this._callerId = value;
-            internalClearRefs(PROP_ID_callerId);
-            
-        }
-    }
-    
-    /**
-     * 调用者姓名: CALLER_NAME
-     */
-    public java.lang.String getCallerName(){
-         onPropGet(PROP_ID_callerName);
-         return _callerName;
-    }
-
-    /**
-     * 调用者姓名: CALLER_NAME
-     */
-    public void setCallerName(java.lang.String value){
-        if(onPropSet(PROP_ID_callerName,value)){
-            this._callerName = value;
-            internalClearRefs(PROP_ID_callerName);
-            
-        }
-    }
-    
-    /**
-     * 读取时间: READ_TIME
-     */
-    public java.sql.Timestamp getReadTime(){
-         onPropGet(PROP_ID_readTime);
-         return _readTime;
-    }
-
-    /**
-     * 读取时间: READ_TIME
-     */
-    public void setReadTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_readTime,value)){
-            this._readTime = value;
-            internalClearRefs(PROP_ID_readTime);
-            
-        }
-    }
-    
-    /**
-     * 完成时间: FINISH_TIME
-     */
-    public java.sql.Timestamp getFinishTime(){
-         onPropGet(PROP_ID_finishTime);
-         return _finishTime;
-    }
-
-    /**
-     * 完成时间: FINISH_TIME
-     */
-    public void setFinishTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_finishTime,value)){
-            this._finishTime = value;
-            internalClearRefs(PROP_ID_finishTime);
+    public void setAssignForUser(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_assignForUser,value)){
+            this._assignForUser = value;
+            internalClearRefs(PROP_ID_assignForUser);
             
         }
     }
@@ -1045,25 +770,6 @@ public class _NopWfWork extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
-            
-        }
-    }
-    
-    /**
-     * 备注: REMARK
-     */
-    public java.lang.String getRemark(){
-         onPropGet(PROP_ID_remark);
-         return _remark;
-    }
-
-    /**
-     * 备注: REMARK
-     */
-    public void setRemark(java.lang.String value){
-        if(onPropSet(PROP_ID_remark,value)){
-            this._remark = value;
-            internalClearRefs(PROP_ID_remark);
             
         }
     }

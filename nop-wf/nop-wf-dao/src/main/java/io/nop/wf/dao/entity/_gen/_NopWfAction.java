@@ -32,7 +32,7 @@ public class _NopWfAction extends DynamicOrmEntity{
     public static final String PROP_NAME_stepId = "stepId";
     public static final int PROP_ID_stepId = 3;
     
-    /* 动作ID: ACTION_NAME VARCHAR */
+    /* 动作名称: ACTION_NAME VARCHAR */
     public static final String PROP_NAME_actionName = "actionName";
     public static final int PROP_ID_actionName = 4;
     
@@ -141,7 +141,7 @@ public class _NopWfAction extends DynamicOrmEntity{
     /* 工作流步骤ID: STEP_ID */
     private java.lang.String _stepId;
     
-    /* 动作ID: ACTION_NAME */
+    /* 动作名称: ACTION_NAME */
     private java.lang.String _actionName;
     
     /* 执行时刻: EXEC_TIME */
@@ -585,7 +585,7 @@ public class _NopWfAction extends DynamicOrmEntity{
     }
     
     /**
-     * 动作ID: ACTION_NAME
+     * 动作名称: ACTION_NAME
      */
     public java.lang.String getActionName(){
          onPropGet(PROP_ID_actionName);
@@ -593,7 +593,7 @@ public class _NopWfAction extends DynamicOrmEntity{
     }
 
     /**
-     * 动作ID: ACTION_NAME
+     * 动作名称: ACTION_NAME
      */
     public void setActionName(java.lang.String value){
         if(onPropSet(PROP_ID_actionName,value)){

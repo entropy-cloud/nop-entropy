@@ -76,6 +76,9 @@ public class _NopWfOutput extends AbstractOrmKeyValueTable{
     private static int _PROP_ID_BOUND = 14;
 
     
+    /* relation: 工作流实例 */
+    public static final String PROP_NAME_wfInstance = "wfInstance";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId,PROP_NAME_fieldName);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId,PROP_ID_fieldName};
@@ -768,5 +771,26 @@ public class _NopWfOutput extends AbstractOrmKeyValueTable{
         }
     }
     
+    /**
+     * 工作流实例
+     */
+    public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
+       return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_wfInstance);
+    }
+
+    public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
+       if(refEntity == null){
+         
+         this.setWfId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
+             
+                    this.setWfId(refEntity.getWfId());
+                 
+          });
+       }
+    }
+       
 }
 // resume CPD analysis - CPD-ON

@@ -20,7 +20,6 @@ import io.nop.wf.core.engine.mock.MockWorkflowStore;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
-import io.nop.wf.core.store.ResourceWorkflowModelStore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +61,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         workflowManager.setWorkflowEngine(engine);
         store = new MockWorkflowStore();
         workflowManager.setWorkflowStore(store);
-        workflowManager.setWorkflowModelStore(new ResourceWorkflowModelStore());
+        // workflowManager.setWorkflowModelStore(new ResourceWorkflowModelStore());
 
         workflowManager.init();
     }

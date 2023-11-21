@@ -1,6 +1,7 @@
 
 drop table  if exists  nop_wf_definition;
 drop table  if exists  nop_wf_step_instance_link;
+drop table  if exists  nop_wf_step_actor;
 drop table  if exists  nop_wf_action;
 drop table  if exists  nop_wf_output;
 drop table  if exists  nop_wf_var;

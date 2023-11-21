@@ -28,31 +28,41 @@ public class _NopWfLog extends DynamicOrmEntity{
     public static final String PROP_NAME_wfId = "wfId";
     public static final int PROP_ID_wfId = 2;
     
+    /* 工作流步骤ID: STEP_ID VARCHAR */
+    public static final String PROP_NAME_stepId = "stepId";
+    public static final int PROP_ID_stepId = 3;
+    
     /* 日志级别: LOG_LEVEL INTEGER */
     public static final String PROP_NAME_logLevel = "logLevel";
-    public static final int PROP_ID_logLevel = 3;
+    public static final int PROP_ID_logLevel = 4;
     
     /* 日志消息: LOG_MSG VARCHAR */
     public static final String PROP_NAME_logMsg = "logMsg";
-    public static final int PROP_ID_logMsg = 4;
+    public static final int PROP_ID_logMsg = 5;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 5;
+    public static final int PROP_ID_createdBy = 6;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 6;
+    public static final int PROP_ID_createTime = 7;
     
 
-    private static int _PROP_ID_BOUND = 7;
+    private static int _PROP_ID_BOUND = 8;
 
+    
+    /* relation: 工作流实例 */
+    public static final String PROP_NAME_wfInstance = "wfInstance";
+    
+    /* relation: 工作流步骤实例 */
+    public static final String PROP_NAME_wfStepInstance = "wfStepInstance";
     
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[7];
+    private static final String[] PROP_ID_TO_NAME = new String[8];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -61,6 +71,9 @@ public class _NopWfLog extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_wfId] = PROP_NAME_wfId;
           PROP_NAME_TO_ID.put(PROP_NAME_wfId, PROP_ID_wfId);
+      
+          PROP_ID_TO_NAME[PROP_ID_stepId] = PROP_NAME_stepId;
+          PROP_NAME_TO_ID.put(PROP_NAME_stepId, PROP_ID_stepId);
       
           PROP_ID_TO_NAME[PROP_ID_logLevel] = PROP_NAME_logLevel;
           PROP_NAME_TO_ID.put(PROP_NAME_logLevel, PROP_ID_logLevel);
@@ -82,6 +95,9 @@ public class _NopWfLog extends DynamicOrmEntity{
     
     /* 工作流实例ID: WF_ID */
     private java.lang.String _wfId;
+    
+    /* 工作流步骤ID: STEP_ID */
+    private java.lang.String _stepId;
     
     /* 日志级别: LOG_LEVEL */
     private java.lang.Integer _logLevel;
@@ -171,6 +187,9 @@ public class _NopWfLog extends DynamicOrmEntity{
             case PROP_ID_wfId:
                return getWfId();
         
+            case PROP_ID_stepId:
+               return getStepId();
+        
             case PROP_ID_logLevel:
                return getLogLevel();
         
@@ -211,6 +230,16 @@ public class _NopWfLog extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_wfId));
                }
                setWfId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_stepId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_stepId));
+               }
+               setStepId(typedValue);
                break;
             }
         
@@ -273,6 +302,13 @@ public class _NopWfLog extends DynamicOrmEntity{
             case PROP_ID_wfId:{
                onInitProp(propId);
                this._wfId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_stepId:{
+               onInitProp(propId);
+               this._stepId = (java.lang.String)value;
                
                break;
             }
@@ -345,6 +381,25 @@ public class _NopWfLog extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_wfId,value)){
             this._wfId = value;
             internalClearRefs(PROP_ID_wfId);
+            
+        }
+    }
+    
+    /**
+     * 工作流步骤ID: STEP_ID
+     */
+    public java.lang.String getStepId(){
+         onPropGet(PROP_ID_stepId);
+         return _stepId;
+    }
+
+    /**
+     * 工作流步骤ID: STEP_ID
+     */
+    public void setStepId(java.lang.String value){
+        if(onPropSet(PROP_ID_stepId,value)){
+            this._stepId = value;
+            internalClearRefs(PROP_ID_stepId);
             
         }
     }
@@ -425,5 +480,47 @@ public class _NopWfLog extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 工作流实例
+     */
+    public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
+       return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_wfInstance);
+    }
+
+    public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
+       if(refEntity == null){
+         
+         this.setWfId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
+             
+                    this.setWfId(refEntity.getWfId());
+                 
+          });
+       }
+    }
+       
+    /**
+     * 工作流步骤实例
+     */
+    public io.nop.wf.dao.entity.NopWfStepInstance getWfStepInstance(){
+       return (io.nop.wf.dao.entity.NopWfStepInstance)internalGetRefEntity(PROP_NAME_wfStepInstance);
+    }
+
+    public void setWfStepInstance(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
+       if(refEntity == null){
+         
+         this.setStepId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_wfStepInstance, refEntity,()->{
+             
+                    this.setStepId(refEntity.getStepId());
+                 
+          });
+       }
+    }
+       
 }
 // resume CPD analysis - CPD-ON

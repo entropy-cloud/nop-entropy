@@ -8,13 +8,24 @@
 package io.nop.wf.dao.entity;
 
 import io.nop.api.core.annotations.biz.BizObjName;
+import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.dao.entity._gen._NopWfAction;
 
 
 @BizObjName("NopWfAction")
-public class NopWfAction extends _NopWfAction{
+public class NopWfAction extends _NopWfAction implements IWorkflowActionRecord {
     public NopWfAction(){
     }
 
-
+    @Override
+    public void setCaller(IWfActor caller) {
+        if(caller == null){
+            setCallerId(null);
+            setCallerName(null);
+        }else{
+            setCallerId(caller.getActorId());
+            setCallerName(caller.getActorName());
+        }
+    }
 }
