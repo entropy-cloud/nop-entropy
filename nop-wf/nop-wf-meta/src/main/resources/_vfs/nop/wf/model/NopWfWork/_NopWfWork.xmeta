@@ -24,6 +24,14 @@
               queryable="true" sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.String" precision="32"/>
         </prop>
+        <prop name="wfId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="wfInstance">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="stepId" displayName="工作流步骤ID" i18n-en:displayName="Step ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="wfStepInstance">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
         <prop name="workType" displayName="工作类型" i18n-en:displayName="Work Type" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10"/>
@@ -87,6 +95,20 @@
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="wfId" ext:joinRightProp="wfId"
+              ext:joinRightDisplayProp="title" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopWfInstance"/>
+        </prop>
+        <prop name="wfInstance.title" displayName="工作流实例" i18n-en:displayName="Workflow Instance" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="wfStepInstance" displayName="工作流步骤实例" i18n-en:displayName="Workflow Step Instance"
+              tagSet="pub,ref-pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="stepId"
+              ext:joinRightProp="stepId" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopWfStepInstance"/>
         </prop>
     </props>
 </meta>

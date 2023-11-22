@@ -3,6 +3,7 @@
   "wfName": "",
   "wfVersion": 0,
   "wfParams": "",
+  "wfGroup": "",
   "title": "",
   "status": 0,
   "status_label": "",
@@ -34,7 +35,12 @@
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
+  "priority": 0,
   "remark": "",
   "wfInstance": null,
-  "wfInstance.title": ""
+  "wfInstance.title": "",
+  "steps": null,
+  "outputs": null,
+  "globalVars": null,
+  "works": null
 }

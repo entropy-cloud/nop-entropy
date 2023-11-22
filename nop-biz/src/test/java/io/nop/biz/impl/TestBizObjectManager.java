@@ -22,7 +22,7 @@ import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@NopTestConfig(enableAutoConfig = false)
+@NopTestConfig(enableAutoConfig = false, enableAppBeansFile = false)
 public class TestBizObjectManager extends JunitBaseTestCase {
 
     BizObjectManager bizObjManager;

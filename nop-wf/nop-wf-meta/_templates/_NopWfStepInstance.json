@@ -31,6 +31,8 @@
   "finishTime": "2000-01-01 14:00:00",
   "dueTime": "2000-01-01 14:00:00",
   "readTime": "2000-01-01 14:00:00",
+  "remindTime": "2000-01-01 14:00:00",
+  "remindCount": 0,
   "priority": 0,
   "joinGroup": "",
   "tagSet": "",
@@ -43,5 +45,9 @@
   "wfInstance": null,
   "wfInstance.title": "",
   "subWfInstance": null,
-  "subWfInstance.title": ""
+  "subWfInstance.title": "",
+  "nextLinks": null,
+  "prevLinks": null,
+  "stepActors": null,
+  "stepActions": null
 }

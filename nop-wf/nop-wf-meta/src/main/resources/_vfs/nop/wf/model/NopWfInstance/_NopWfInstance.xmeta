@@ -36,6 +36,10 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
+        <prop name="wfGroup" displayName="工作流分组" i18n-en:displayName="Workflow Group" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
         <prop name="title" displayName="实例标题" i18n-en:displayName="Title" tagSet="disp" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
@@ -156,6 +160,10 @@
               sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
+        <prop name="priority" displayName="优先级" i18n-en:displayName="Priority" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" ui:show="S">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
@@ -168,6 +176,30 @@
         <prop name="wfInstance.title" displayName="父流程" i18n-en:displayName="Parent Workflow" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="steps" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="wfId"
+              ext:joinRightProp="wfId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfStepInstance"/>
+            </schema>
+        </prop>
+        <prop name="outputs" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="wfId"
+              ext:joinRightProp="wfId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfOutput"/>
+            </schema>
+        </prop>
+        <prop name="globalVars" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="wfId"
+              ext:joinRightProp="wfId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfVar"/>
+            </schema>
+        </prop>
+        <prop name="works" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="wfId"
+              ext:joinRightProp="wfId" ext:joinRightDisplayProp="title" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfWork"/>
+            </schema>
         </prop>
     </props>
 </meta>

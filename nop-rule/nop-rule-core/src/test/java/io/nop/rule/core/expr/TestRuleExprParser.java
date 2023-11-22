@@ -21,7 +21,7 @@ public class TestRuleExprParser {
     public void testCompare() {
         String expr = " >= 3 and < 5";
 
-        checkExpr("obj?.myVar >= 3 && obj?.myVar < 5", expr);
+        checkExpr("(obj?.myVar >= 3) && (obj?.myVar < 5)", expr);
     }
 
     void checkExpr(String expected, String expr) {

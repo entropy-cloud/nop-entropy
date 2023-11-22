@@ -15,6 +15,9 @@
         import io.nop.rule.api.beans.RuleMetaBean;
     
 
+    /**
+     * 规则引擎服务 
+     */
     @SuppressWarnings({"PMD"})
     public interface RuleServiceSpi{
 

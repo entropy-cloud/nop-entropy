@@ -1,9 +1,13 @@
 {
   "sid": "",
   "wfId": "",
+  "stepId": "",
   "logLevel": 0,
   "logLevel_label": "",
   "logMsg": "",
   "createdBy": "",
-  "createTime": "2000-01-01 14:00:00"
+  "createTime": "2000-01-01 14:00:00",
+  "wfInstance": null,
+  "wfInstance.title": "",
+  "wfStepInstance": null
 }

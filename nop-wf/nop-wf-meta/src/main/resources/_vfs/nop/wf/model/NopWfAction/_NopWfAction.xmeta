@@ -30,7 +30,7 @@
               sortable="true" insertable="true" updatable="true" ext:relation="wfStepInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="actionName" displayName="动作ID" i18n-en:displayName="Action ID" mandatory="true" queryable="true"
+        <prop name="actionName" displayName="动作名称" i18n-en:displayName="Action Name" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema domain="wfAction" type="java.lang.String" precision="200"/>
         </prop>
@@ -80,8 +80,9 @@
             <schema type="String"/>
         </prop>
         <prop name="wfStepInstance" displayName="工作流步骤实例" i18n-en:displayName="Workflow Step Instance"
-              tagSet="pub,ref-pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="stepId"
-              ext:joinRightProp="stepId" insertable="false" updatable="false" mandatory="true" lazy="true">
+              tagSet="pub,ref-pub,ref-cascade-delete" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="stepId" ext:joinRightProp="stepId" insertable="false" updatable="false" mandatory="true"
+              lazy="true">
             <schema bizObjName="NopWfStepInstance"/>
         </prop>
     </props>

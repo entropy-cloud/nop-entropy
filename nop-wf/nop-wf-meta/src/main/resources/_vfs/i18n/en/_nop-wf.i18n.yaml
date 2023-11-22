@@ -5,6 +5,7 @@ entity:
     NopWfInstance: Worflow Instance
     NopWfLog: Workflow Log
     NopWfOutput: Workflow Outputs
+    NopWfStepActor: Workflow Step Actor
     NopWfStepInstance: Workflow Step Instance
     NopWfStepInstanceLink: Workflow Step Instance Link
     NopWfVar: Workflow Variables
@@ -20,7 +21,7 @@ prop:
       sid: SID
       wfId: Workflow ID
       stepId: Step ID
-      actionName: Action ID
+      actionName: Action Name
       execTime: Exec Time
       callerId: Caller ID
       callerName: Caller Name
@@ -53,6 +54,7 @@ prop:
       wfName: Workflow Name
       wfVersion: Workflow Version
       wfParams: Workflow Params
+      wfGroup: Workflow Group
       title: Title
       status: Status
       status_label: null
@@ -84,17 +86,26 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
+      priority: Priority
       remark: Remark
       wfInstance: Parent Workflow
       wfInstance.title: Parent Workflow
+      steps: null
+      outputs: null
+      globalVars: null
+      works: null
     NopWfLog:
       sid: SID
       wfId: Workflow ID
+      stepId: Step ID
       logLevel: Log Level
       logLevel_label: null
       logMsg: Log Message
       createdBy: Created By
       createTime: Create Time
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+      wfStepInstance: Workflow Step Instance
     NopWfOutput:
       wfId: Workflow ID
       fieldName: Field Name
@@ -109,6 +120,25 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+    NopWfStepActor:
+      sid: SID
+      wfId: Workflow ID
+      stepId: Step ID
+      actorType: Actor Type
+      actorId: Actor ID
+      actorDeptId: Actor Dept ID
+      actorName: Actor Name
+      assignForUser: Assign For User
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+      wfStepInstance: Workflow Step Instance
     NopWfStepInstance:
       stepId: Step ID
       wfId: Workflow ID
@@ -142,6 +172,8 @@ prop:
       finishTime: Finish Time
       dueTime: Due Time
       readTime: Read Time
+      remindTime: Remind Time
+      remindCount: Remind Count
       priority: Priority
       joinGroup: Join Group
       tagSet: Tags
@@ -155,6 +187,10 @@ prop:
       wfInstance.title: Workflow Instance
       subWfInstance: Sub Workflow Instance
       subWfInstance.title: Sub Workflow Instance
+      nextLinks: null
+      prevLinks: null
+      stepActors: null
+      stepActions: null
     NopWfStepInstanceLink:
       wfId: Workflow ID
       stepId: Step ID
@@ -180,8 +216,12 @@ prop:
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
     NopWfWork:
       workId: Work ID
+      wfId: Workflow ID
+      stepId: Step ID
       workType: Work Type
       title: Title
       linkUrl: LINK_URL
@@ -199,6 +239,9 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+      wfStepInstance: Workflow Step Instance
     WfActionRequestBean:
       wfName: Workflow Name
       wfVersion: Workflow Version

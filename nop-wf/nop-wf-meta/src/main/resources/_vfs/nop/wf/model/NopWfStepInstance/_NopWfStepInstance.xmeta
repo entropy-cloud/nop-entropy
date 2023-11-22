@@ -74,7 +74,7 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="actorName" displayName="参与者姓名" i18n-en:displayName="Actor Name" queryable="true" sortable="true"
+        <prop name="actorName" displayName="参与者名称" i18n-en:displayName="Actor Name" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
@@ -134,6 +134,14 @@
               insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
+        <prop name="remindTime" displayName="提醒时间" i18n-en:displayName="Remind Time" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="remindCount" displayName="提醒次数" i18n-en:displayName="Remind Count" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
         <prop name="priority" displayName="优先级" i18n-en:displayName="Priority" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
@@ -170,9 +178,10 @@
               insertable="true" updatable="true" ui:show="SL">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="wfId" ext:joinRightProp="wfId"
-              ext:joinRightDisplayProp="title" insertable="false" updatable="false" mandatory="true" lazy="true">
+        <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance"
+              tagSet="pub,ref-pub,ref-cascade-delete" ext:kind="to-one" internal="true" queryable="true"
+              ext:joinLeftProp="wfId" ext:joinRightProp="wfId" ext:joinRightDisplayProp="title" insertable="false"
+              updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopWfInstance"/>
         </prop>
         <prop name="wfInstance.title" displayName="工作流实例" i18n-en:displayName="Workflow Instance" internal="true"
@@ -187,6 +196,30 @@
         <prop name="subWfInstance.title" displayName="子流程实例" i18n-en:displayName="Sub Workflow Instance" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="nextLinks" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="stepId"
+              ext:joinRightProp="stepId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfStepInstanceLink"/>
+            </schema>
+        </prop>
+        <prop name="prevLinks" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="stepId"
+              ext:joinRightProp="nextStepId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfStepInstanceLink"/>
+            </schema>
+        </prop>
+        <prop name="stepActors" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="stepId"
+              ext:joinRightProp="stepId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfStepActor"/>
+            </schema>
+        </prop>
+        <prop name="stepActions" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="stepId" ext:joinRightProp="stepId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfAction"/>
+            </schema>
         </prop>
     </props>
 </meta>

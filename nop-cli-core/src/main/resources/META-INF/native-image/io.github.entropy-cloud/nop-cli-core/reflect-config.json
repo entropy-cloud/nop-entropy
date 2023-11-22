@@ -17,6 +17,18 @@
     "fields": [],
     "methods": [
       {
+        "name": "containsLabel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "containsValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "deepClone",
         "parameterTypes": []
       },
@@ -2475,6 +2487,20 @@
         ]
       },
       {
+        "name": "appendBodyXml",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "appendBodyXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "appendChild",
         "parameterTypes": [
           "io.nop.core.lang.xml.XNode"
@@ -3125,6 +3151,34 @@
         ]
       },
       {
+        "name": "insertAfterXml",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "insertAfterXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "insertBeforeXml",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "insertBeforeXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "insertChild",
         "parameterTypes": [
           "int",
@@ -3325,6 +3379,20 @@
       },
       {
         "name": "prepend",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "prependBodyXml",
+        "parameterTypes": [
+          "io.nop.api.core.util.SourceLocation",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "prependBodyXml",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -9307,9 +9375,22 @@
         ]
       },
       {
+        "name": "addTenantIdForTable",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel",
+          "boolean"
+        ]
+      },
+      {
         "name": "addTenantIdForTables",
         "parameterTypes": [
           "java.util.Collection"
+        ]
+      },
+      {
+        "name": "addTenantIdToPrimaryKey",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityModel"
         ]
       },
       {
@@ -9568,6 +9649,10 @@
       },
       {
         "name": "getDeleteFlagPropId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeleteVersionProp",
         "parameterTypes": []
       },
       {
@@ -11066,6 +11151,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeleteVersionProp",
+        "parameterTypes": []
+      },
+      {
         "name": "getDimensionalType",
         "parameterTypes": []
       },
@@ -11389,6 +11478,12 @@
       },
       {
         "name": "setDeleteFlagProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDeleteVersionProp",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -12996,6 +13091,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFormula",
+        "parameterTypes": []
+      },
+      {
         "name": "getId",
         "parameterTypes": []
       },
@@ -13116,6 +13215,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isExportFormattedValue",
+        "parameterTypes": []
+      },
+      {
         "name": "isProxyCell",
         "parameterTypes": []
       },
@@ -13223,6 +13326,12 @@
         "name": "setFormattedValue",
         "parameterTypes": [
           "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setFormula",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -13485,6 +13594,13 @@
       },
       {
         "name": "get",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getByPropPath",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
           "java.lang.String"

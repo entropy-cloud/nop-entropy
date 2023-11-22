@@ -177,6 +177,8 @@
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Processor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Visitor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{astNode.name}.java.xgen
+/nop/templates/backend/@init.xrun
+/nop/templates/backend/a-imp.xrun
 /nop/templates/i18n/@init.xrun
 /nop/templates/i18n/_templates/_{metaInfo.objName}.json.xgen
 /nop/templates/i18n/src/main/resources/_vfs/i18n/{defaultLocale}/_{moduleName}.i18n.yaml.xgen

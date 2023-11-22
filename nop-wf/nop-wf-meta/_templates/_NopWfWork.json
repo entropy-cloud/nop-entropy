@@ -1,5 +1,7 @@
 {
   "workId": "",
+  "wfId": "",
+  "stepId": "",
   "workType": "",
   "title": "",
   "linkUrl": "",
@@ -16,5 +18,8 @@
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
-  "remark": ""
+  "remark": "",
+  "wfInstance": null,
+  "wfInstance.title": "",
+  "wfStepInstance": null
 }

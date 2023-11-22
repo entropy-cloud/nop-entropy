@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="工作流日志" i18n-en:displayName="Workflow Log" xmlns:ui="ui">
+      displayName="工作流日志" i18n-en:displayName="Workflow Log" tagSet="log" xmlns:ui="ui">
 
     <entityName>io.nop.wf.dao.entity.NopWfLog</entityName>
 
@@ -23,15 +23,19 @@
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="wfId" displayName="工作流实例ID" i18n-en:displayName="Workflow ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="true" updatable="false" ext:relation="wfInstance">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="stepId" displayName="工作流步骤ID" i18n-en:displayName="Step ID" queryable="true" sortable="true"
+              insertable="true" updatable="false" ext:relation="wfStepInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="logLevel" displayName="日志级别" i18n-en:displayName="Log Level" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+              sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.Integer" dict="core/log-level"/>
         </prop>
         <prop name="logMsg" displayName="日志消息" i18n-en:displayName="Log Message" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+              insertable="true" updatable="false">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
@@ -41,6 +45,20 @@
         <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="wfId" ext:joinRightProp="wfId"
+              ext:joinRightDisplayProp="title" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopWfInstance"/>
+        </prop>
+        <prop name="wfInstance.title" displayName="工作流实例" i18n-en:displayName="Workflow Instance" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="wfStepInstance" displayName="工作流步骤实例" i18n-en:displayName="Workflow Step Instance"
+              tagSet="pub,ref-pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="stepId"
+              ext:joinRightProp="stepId" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopWfStepInstance"/>
         </prop>
     </props>
 </meta>
