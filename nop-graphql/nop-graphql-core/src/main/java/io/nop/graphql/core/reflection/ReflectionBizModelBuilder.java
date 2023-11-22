@@ -44,6 +44,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.aop.IAopProxy;
 import io.nop.core.type.IGenericType;
 import io.nop.graphql.core.GraphQLConstants;
+import io.nop.graphql.core.IBizModelImpl;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLArgumentDefinition;
@@ -88,6 +89,14 @@ public class ReflectionBizModelBuilder {
         String[] inheritActions = bizModel.inheritActions();
 
         String bizObjName = getBizObjName(bizModel, classModel);
+        if (bean instanceof IBizModelImpl) {
+            String name = ((IBizModelImpl) bean).getBizObjName();
+            if (!StringHelper.isEmpty(name))
+                bizObjName = name;
+        }
+
+        if (StringHelper.isEmpty(bizObjName))
+            throw new IllegalArgumentException("nop.err.graphql.empty-bizObjName:" + bean);
 
         GraphQLBizModel ret = new GraphQLBizModel(bizObjName);
 
