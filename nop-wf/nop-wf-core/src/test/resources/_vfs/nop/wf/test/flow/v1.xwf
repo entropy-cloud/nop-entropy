@@ -15,7 +15,7 @@
             </transition>
         </step>
         <flow name="subFlow">
-            <start wfName="subflow"/>
+            <start wfName="test/subflow"/>
             <transition>
                 <to-end/>
             </transition>

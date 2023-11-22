@@ -43,11 +43,19 @@ public class ResourceVersionHelper {
         return isNumberVersionString(last);
     }
 
-    public static String getModelName(String str) {
-        int pos = str.lastIndexOf('/');
-        int pos2 = str.lastIndexOf('/', pos - 1);
-        return str.substring(pos2 + 1, pos);
-    }
+//    public static String getModelName(String str) {
+//        String basePath;
+//        if (str.startsWith("/nop/wf/")) {
+//            basePath = "/nop/wf/";
+//        } else if (str.startsWith("wf:")) {
+//            basePath = "wf:";
+//        } else if (str.startsWith("resolve-wf:")) {
+//            basePath = "resolve-wf:";
+//        }
+//        int pos = str.lastIndexOf('/');
+//        int pos2 = str.lastIndexOf('/', pos - 1);
+//        return str.substring(pos2 + 1, pos);
+//    }
 
     public static long getNumberVersion(String str) {
         int pos = str.lastIndexOf('/');
@@ -84,7 +92,7 @@ public class ResourceVersionHelper {
             return false;
         if (!name.endsWith(fileType))
             return false;
-        if (name.charAt(name.length() - fileType.length()) != '.')
+        if (name.charAt(name.length() - fileType.length() - 1) != '.')
             return false;
         return true;
     }

@@ -13,6 +13,7 @@ import io.nop.core.model.graph.dag.Dag;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.wf.core.model._gen._WfModel;
 import io.nop.wf.core.model.analyze.WfModelAnalyzer;
+import io.nop.wf.core.model.utils.WfModelHelper;
 
 public class WfModel extends _WfModel implements IWorkflowModel, INeedInit {
     private Dag dag;
@@ -51,7 +52,7 @@ public class WfModel extends _WfModel implements IWorkflowModel, INeedInit {
             long version = ResourceVersionHelper.getNumberVersion(fileName);
             setWfVersion(version);
 
-            String wfName = ResourceVersionHelper.getModelName(path);
+            String wfName = WfModelHelper.guessWfNameFromFilePath(path);
             setWfName(wfName);
         }
     }

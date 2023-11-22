@@ -71,7 +71,7 @@ public class TestWorkflowEngine extends BaseTestCase {
      */
     @Test
     public void testEmptyVersion() {
-        IWorkflow workflow = workflowManager.newWorkflow("testParser", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/testParser", null);
         assertNotNull(workflow);
     }
 
@@ -79,7 +79,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     public void testWorkflowInvoke() {
         IServiceContext context = new ServiceContextImpl();
 
-        IWorkflow workflow = workflowManager.newWorkflow("testBasic", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/testBasic", 1L);
         workflow.start(null, context);
 
         assertTrue(workflow.isStarted());
@@ -108,7 +108,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testWorkflowState() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("testBasic", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/testBasic", 1L);
 
         IWorkflowRecord wfRecord = workflow.getRecord();
         String bizEntityId = "1";
@@ -128,7 +128,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testJoin() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("join", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/join", 1L);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getLatestStartStep();
         startStep.invokeAction("sh", null, context);
@@ -188,7 +188,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         IServiceContext context = new ServiceContextImpl();
         context.getContext().setUserId("userId");
 
-        IWorkflow workflow = workflowManager.newWorkflow("cosign", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/cosign", 1L);
         workflow.start(null, context);
         assertEquals("userId", workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
@@ -227,7 +227,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     public void testCosign1() {
         IServiceContext context = new ServiceContextImpl();
         context.getContext().setUserId("userId");
-        IWorkflow workflow = workflowManager.newWorkflow("cosign1", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/cosign1", 1L);
         workflow.start(null, context);
         assertEquals("userId", workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
@@ -260,7 +260,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testSimpleJoin() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("simpleJoin", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/simpleJoin", 1L);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getLatestStartStep();
         invokeAction(startStep, "sh", null, null, null, context);
@@ -287,7 +287,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testFlow() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("flow", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/flow", 1L);
         workflow.start(null, context);
         assertTrue(workflow.runAutoTransitions(context));
 
@@ -313,7 +313,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testCurrentStep() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("testBasic", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/testBasic", 1L);
         workflow.start(null, context);
         IWorkflowStep step = workflow.getLatestStartStep();
         //OrmWorkflowRecordStore recordStore = null;
@@ -328,7 +328,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testInvokableActions() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("join", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/join", 1L);
         workflow.start(null, context);
         IWorkflowStep step = workflow.getStepsByName("wf-start").get(0);
 
@@ -338,7 +338,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testMultiTransition() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("multiTransition", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/multiTransition", 1L);
         workflow.start(null, context);
         while (workflow.runAutoTransitions(context)) ;
 
@@ -348,7 +348,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testTransitionTarget() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("testActor", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/testActor", 1L);
         workflow.start(null, context);
         IWorkflowStep step = workflow.getLatestStartStep();
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
@@ -362,7 +362,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testActor() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("testActor", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/testActor", 1L);
         workflow.start(null, context);
         IWorkflowStep step = workflow.getLatestStartStep();
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);
@@ -374,7 +374,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testNoAction() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("noaction", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/noaction", 1L);
         workflow.start(null, context);
         assertTrue(workflow.runAutoTransitions(context));
         assertTrue(workflow.runAutoTransitions(context));
@@ -385,7 +385,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testSplitTypeAnd() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("split_and", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/split_and", 1L);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getLatestStepByName("wf-start");
 
@@ -400,7 +400,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testSplitTypeOr() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("split_or", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/split_or", 1L);
         workflow.start(null, context);
         IWorkflowStep step = workflow.getLatestStepByName("wf-start");
 
@@ -415,7 +415,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testReject() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("reject", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/reject", 1L);
         workflow.start(null, context);
         IWorkflowStep step = workflow.getLatestStepByName("wf-start");
 
@@ -443,7 +443,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testWithdraw() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("withdraw", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/withdraw", 1L);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getLatestStartStep();
         assertTrue(startStep.getModel().isAllowWithdraw());
@@ -461,7 +461,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testDynamicActor() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("dynamicActor", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/dynamicActor", null);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getLatestStepByName("wf-start");
         invokeAction(startStep, "sh", null, null, null, context);
@@ -479,7 +479,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testEmptyStep() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("emptyStep", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/emptyStep", null);
         workflow.start(null, context);
         assertTrue(workflow.runAutoTransitions(context));
 
@@ -493,7 +493,7 @@ public class TestWorkflowEngine extends BaseTestCase {
                 startStep = step;
             }
         }
-        invokeAction(cyStep, "cy", null, "user", "1", context);
+        invokeAction(cyStep, "cy", null, "test/user", "1", context);
         assertTrue(!workflow.isEnded());
         invokeAction(startStep, "sh", null, "user", "1", context);
         assertTrue(workflow.runAutoTransitions(context));
@@ -508,7 +508,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testLoop() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("loop", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/loop", null);
         workflow.start(null, context);
         workflow.runAutoTransitions(context);
 
@@ -530,7 +530,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testToAssign() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("assign", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/assign", null);
         workflow.start(null, context);
         List<? extends IWorkflowStep> steps = workflow.getActivatedSteps();
         assertEquals(1, steps.size());
@@ -543,7 +543,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testToAssignAnd() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("assignAnd", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/assignAnd", null);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getActivatedSteps().get(0);
         invokeAction(startStep, "sh", "ysh", "user", "1", context);
@@ -556,7 +556,7 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testToAssign1() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("assign", 1L);
+        IWorkflow workflow = workflowManager.newWorkflow("test/assign", 1L);
         workflow.start(null, context);
         List<? extends IWorkflowStep> steps = workflow.getActivatedSteps();
         assertEquals(1, steps.size());
@@ -580,14 +580,14 @@ public class TestWorkflowEngine extends BaseTestCase {
     public void testStartStepNoAssignment() {
         IServiceContext context = new ServiceContextImpl();
 
-        IWorkflow workflow = workflowManager.newWorkflow("startNoAssign", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/startNoAssign", null);
         workflow.start(null, context);
     }
 
     @Test
     public void testCommonAction() {
         IServiceContext context = new ServiceContextImpl();
-        IWorkflow workflow = workflowManager.newWorkflow("commonAction", null);
+        IWorkflow workflow = workflowManager.newWorkflow("test/commonAction", null);
         workflow.start(null, context);
         IWorkflowStep step = workflow.getActivatedSteps().get(0);
         assertEquals(2, step.getAllowedActions(context).size());

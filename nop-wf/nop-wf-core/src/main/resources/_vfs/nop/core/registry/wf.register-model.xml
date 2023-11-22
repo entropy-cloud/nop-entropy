@@ -1,7 +1,7 @@
 <model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       name="wf">
+       name="wf" >
 
-    <resolve-handler resolveInDir="module:/wf"/>
+    <resolve-handler resolveInDir="/nop/wf"/>
 
     <loaders>
 
