@@ -46,7 +46,7 @@
             <source>
                 <biz>
                     <actions>
-                        <query name="findPage" xdsl:abstract="true">
+                        <query name="findPageBase" xdsl:abstract="true">
                             <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
 
                             <arg name="selection" type="io.nop.api.core.beans.FieldSelectionBean"
@@ -57,11 +57,14 @@
                             <return type="PageBean&lt;${entityName}>"/>
                         </query>
 
-                        <query name="findList" xdsl:prototype="findPage" xdsl:abstract="true">
+                        <query name="findPage" xdsl:prototype="findPageBase" xdsl:abstract="true">
+                        </query>
+
+                        <query name="findList" xdsl:prototype="findPageBase" xdsl:abstract="true">
                             <return type="List&lt;${entityName}>"/>
                         </query>
 
-                        <query name="findFirst" xdsl:prototype="findPage" xdsl:abstract="true">
+                        <query name="findFirst" xdsl:prototype="findPageBase" xdsl:abstract="true">
                             <return type="${entityName}"/>
                         </query>
 
