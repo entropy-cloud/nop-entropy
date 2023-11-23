@@ -7,13 +7,10 @@
  */
 package io.nop.wf.core.store.beans;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
 import io.nop.wf.api.actor.IWfActor;
-import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.sql.Timestamp;
@@ -55,21 +52,16 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private String parentWfId;
     private Long parentWfVersion;
     private String parentStepId;
-    private Timestamp suspendTime;
-    private Timestamp resumeTime;
+    private Timestamp lastOperateTime;
+    private String lastOperatorId;
 
-    private String callerId;
-    private String callerName;
-
-    private String cancellerId;
-    private String cancellerName;
-
-    private String suspenderId;
-    private String suspenderName;
+    private String lastOperatorName;
 
     private String createrId;
 
     private boolean willEnd;
+
+    private Set<String> onSignals;
 
     private Map<String, Object> globalVars;
 
@@ -140,31 +132,16 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     }
 
     @Override
-    public void setSuspendCaller(IWfActor caller) {
+    public void setLastOperator(IWfActor caller) {
         if (caller != null) {
-            setSuspenderId(caller.getActorId());
-            setSuspenderName(caller.getActorName());
+            setLastOperatorId(caller.getActorId());
+            setLastOperatorName(caller.getActorName());
         } else {
-            setSuspenderId(null);
-            setSuspenderName(null);
+            setLastOperatorId(null);
+            setLastOperatorName(null);
         }
     }
 
-    @Override
-    public void setResumeCaller(IWfActor caller) {
-
-    }
-
-    @Override
-    public void setCanceller(IWfActor caller) {
-        if (caller != null) {
-            setCancellerId(caller.getActorId());
-            setCancellerName(caller.getActorName());
-        } else {
-            setCancellerId(null);
-            setCancellerName(null);
-        }
-    }
 
     @Override
     public String getParentWfName() {
@@ -346,39 +323,6 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.parentStepId = parentStepId;
     }
 
-    public Timestamp getSuspendTime() {
-        return suspendTime;
-    }
-
-    @Override
-    public void setSuspendTime(Timestamp suspendTime) {
-        this.suspendTime = suspendTime;
-    }
-
-    public Timestamp getResumeTime() {
-        return resumeTime;
-    }
-
-    @Override
-    public void setResumeTime(Timestamp resumeTime) {
-        this.resumeTime = resumeTime;
-    }
-
-    public String getCallerId() {
-        return callerId;
-    }
-
-    public void setCallerId(String callerId) {
-        this.callerId = callerId;
-    }
-
-    public String getCallerName() {
-        return callerName;
-    }
-
-    public void setCallerName(String callerName) {
-        this.callerName = callerName;
-    }
 
     public String getManagerName() {
         return managerName;
@@ -396,36 +340,29 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.starterDeptId = starterDeptId;
     }
 
-    public String getCancellerId() {
-        return cancellerId;
+    public Timestamp getLastOperateTime() {
+        return lastOperateTime;
     }
 
-    public void setCancellerId(String cancellerId) {
-        this.cancellerId = cancellerId;
+    @Override
+    public void setLastOperateTime(Timestamp lastOperateTime) {
+        this.lastOperateTime = lastOperateTime;
     }
 
-    public String getCancellerName() {
-        return cancellerName;
+    public String getLastOperatorId() {
+        return lastOperatorId;
     }
 
-    public void setCancellerName(String cancellerName) {
-        this.cancellerName = cancellerName;
+    public void setLastOperatorId(String lastOperatorId) {
+        this.lastOperatorId = lastOperatorId;
     }
 
-    public String getSuspenderId() {
-        return suspenderId;
+    public String getLastOperatorName() {
+        return lastOperatorName;
     }
 
-    public void setSuspenderId(String suspenderId) {
-        this.suspenderId = suspenderId;
-    }
-
-    public String getSuspenderName() {
-        return suspenderName;
-    }
-
-    public void setSuspenderName(String suspenderName) {
-        this.suspenderName = suspenderName;
+    public void setLastOperatorName(String lastOperatorName) {
+        this.lastOperatorName = lastOperatorName;
     }
 
     @Override
@@ -445,64 +382,43 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.globalVars = globalVars;
     }
 
-    @JsonIgnore
     public Set<String> getOnSignals() {
-        if (globalVars == null)
-            return null;
+        return onSignals;
+    }
 
-        Set<String> signals = new LinkedHashSet<>();
-        globalVars.forEach((name, value) -> {
-            if (name.startsWith(NopWfCoreConstants.SIGNAL_PREFIX)) {
-                if (ConvertHelper.toTruthy(value)) {
-                    signals.add(name.substring(NopWfCoreConstants.SIGNAL_PREFIX.length()));
-                }
-            }
-        });
-        return signals;
+    public void setOnSignals(Set<String> onSignals) {
+        this.onSignals = onSignals;
     }
 
     public boolean removeSignals(Set<String> signals) {
-        if (globalVars == null)
+        if (onSignals == null)
             return false;
 
-        boolean ret = false;
-        if (signals != null) {
-            for (String signal : signals) {
-                if (globalVars.remove(NopWfCoreConstants.SIGNAL_PREFIX + signal) != null)
-                    ret = true;
-            }
-        }
-
-        return ret;
+        return onSignals.removeAll(signals);
     }
 
     public boolean isAllSignalOn(Set<String> signals) {
         if (signals == null || signals.isEmpty())
             return true;
 
-        if (globalVars == null)
+        if (onSignals == null)
             return false;
 
-        for (String signal : signals) {
-            boolean b = ConvertHelper.toTruthy(globalVars.get(NopWfCoreConstants.SIGNAL_PREFIX + signal));
-            if (!b)
-                return false;
-        }
-        return true;
+        return onSignals.retainAll(signals);
     }
 
     public boolean isSignalOn(String signal) {
-        if (globalVars == null)
+        if (onSignals == null)
             return false;
 
-        return ConvertHelper.toTruthy(globalVars.get(NopWfCoreConstants.SIGNAL_PREFIX + signal));
+        return onSignals.contains(signal);
     }
 
     public void addSignals(Set<String> signals) {
         if (signals != null) {
-            for (String signal : signals) {
-                globalVars.put(NopWfCoreConstants.SIGNAL_PREFIX + signal, Boolean.TRUE);
-            }
+            if (onSignals == null)
+                onSignals = new LinkedHashSet<>();
+            onSignals.addAll(signals);
         }
     }
 

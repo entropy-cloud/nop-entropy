@@ -219,7 +219,7 @@
           @waitSteps joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
         -->
         <join name="!string" xdef:ref="WfStepModel" joinType="enum:io.nop.wf.core.model.WfJoinType"
-              waitStepNames="csv-set" xdef:name="WfJoinStepModel">
+              waitStepNames="csv-set" passWeight="int" xdef:name="WfJoinStepModel">
             <!--
             joinGroupExpr指定join时的分组条件。
             join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。

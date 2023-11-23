@@ -10,116 +10,75 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.wf.dao.entity.NopWfAction;
+import io.nop.wf.dao.entity.NopWfUserDelegate;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  工作流动作: nop_wf_action
+ *  用户代理配置: nop_wf_user_delegate
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public class _NopWfAction extends DynamicOrmEntity{
+public class _NopWfUserDelegate extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */
     public static final String PROP_NAME_sid = "sid";
     public static final int PROP_ID_sid = 1;
     
-    /* 工作流实例ID: WF_ID VARCHAR */
-    public static final String PROP_NAME_wfId = "wfId";
-    public static final int PROP_ID_wfId = 2;
+    /* 用户ID: USER_ID VARCHAR */
+    public static final String PROP_NAME_userId = "userId";
+    public static final int PROP_ID_userId = 2;
     
-    /* 工作流步骤ID: STEP_ID VARCHAR */
-    public static final String PROP_NAME_stepId = "stepId";
-    public static final int PROP_ID_stepId = 3;
+    /* 代理人ID: DELEGATE_ID VARCHAR */
+    public static final String PROP_NAME_delegateId = "delegateId";
+    public static final int PROP_ID_delegateId = 3;
     
-    /* 动作名称: ACTION_NAME VARCHAR */
-    public static final String PROP_NAME_actionName = "actionName";
-    public static final int PROP_ID_actionName = 4;
-    
-    /* 动作显示名称: DISPLAY_NAME VARCHAR */
-    public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 5;
-    
-    /* 执行时刻: EXEC_TIME TIMESTAMP */
-    public static final String PROP_NAME_execTime = "execTime";
-    public static final int PROP_ID_execTime = 6;
-    
-    /* 调用者ID: CALLER_ID VARCHAR */
-    public static final String PROP_NAME_callerId = "callerId";
-    public static final int PROP_ID_callerId = 7;
-    
-    /* 调用者姓名: CALLER_NAME VARCHAR */
-    public static final String PROP_NAME_callerName = "callerName";
-    public static final int PROP_ID_callerName = 8;
-    
-    /* 意见: OPINION VARCHAR */
-    public static final String PROP_NAME_opinion = "opinion";
-    public static final int PROP_ID_opinion = 9;
+    /* 代理范围: DELEGATE_SCOPE VARCHAR */
+    public static final String PROP_NAME_delegateScope = "delegateScope";
+    public static final int PROP_ID_delegateScope = 4;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 10;
+    public static final int PROP_ID_version = 5;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 11;
+    public static final int PROP_ID_createdBy = 6;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 12;
+    public static final int PROP_ID_createTime = 7;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 13;
+    public static final int PROP_ID_updatedBy = 8;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 14;
+    public static final int PROP_ID_updateTime = 9;
     
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 10;
 
-    
-    /* relation: 工作流实例 */
-    public static final String PROP_NAME_wfInstance = "wfInstance";
-    
-    /* relation: 工作流步骤实例 */
-    public static final String PROP_NAME_wfStepInstance = "wfStepInstance";
     
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[10];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
           PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
           PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
-          PROP_ID_TO_NAME[PROP_ID_wfId] = PROP_NAME_wfId;
-          PROP_NAME_TO_ID.put(PROP_NAME_wfId, PROP_ID_wfId);
+          PROP_ID_TO_NAME[PROP_ID_userId] = PROP_NAME_userId;
+          PROP_NAME_TO_ID.put(PROP_NAME_userId, PROP_ID_userId);
       
-          PROP_ID_TO_NAME[PROP_ID_stepId] = PROP_NAME_stepId;
-          PROP_NAME_TO_ID.put(PROP_NAME_stepId, PROP_ID_stepId);
+          PROP_ID_TO_NAME[PROP_ID_delegateId] = PROP_NAME_delegateId;
+          PROP_NAME_TO_ID.put(PROP_NAME_delegateId, PROP_ID_delegateId);
       
-          PROP_ID_TO_NAME[PROP_ID_actionName] = PROP_NAME_actionName;
-          PROP_NAME_TO_ID.put(PROP_NAME_actionName, PROP_ID_actionName);
-      
-          PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
-          PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
-      
-          PROP_ID_TO_NAME[PROP_ID_execTime] = PROP_NAME_execTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_execTime, PROP_ID_execTime);
-      
-          PROP_ID_TO_NAME[PROP_ID_callerId] = PROP_NAME_callerId;
-          PROP_NAME_TO_ID.put(PROP_NAME_callerId, PROP_ID_callerId);
-      
-          PROP_ID_TO_NAME[PROP_ID_callerName] = PROP_NAME_callerName;
-          PROP_NAME_TO_ID.put(PROP_NAME_callerName, PROP_ID_callerName);
-      
-          PROP_ID_TO_NAME[PROP_ID_opinion] = PROP_NAME_opinion;
-          PROP_NAME_TO_ID.put(PROP_NAME_opinion, PROP_ID_opinion);
+          PROP_ID_TO_NAME[PROP_ID_delegateScope] = PROP_NAME_delegateScope;
+          PROP_NAME_TO_ID.put(PROP_NAME_delegateScope, PROP_ID_delegateScope);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -142,29 +101,14 @@ public class _NopWfAction extends DynamicOrmEntity{
     /* 主键: SID */
     private java.lang.String _sid;
     
-    /* 工作流实例ID: WF_ID */
-    private java.lang.String _wfId;
+    /* 用户ID: USER_ID */
+    private java.lang.String _userId;
     
-    /* 工作流步骤ID: STEP_ID */
-    private java.lang.String _stepId;
+    /* 代理人ID: DELEGATE_ID */
+    private java.lang.String _delegateId;
     
-    /* 动作名称: ACTION_NAME */
-    private java.lang.String _actionName;
-    
-    /* 动作显示名称: DISPLAY_NAME */
-    private java.lang.String _displayName;
-    
-    /* 执行时刻: EXEC_TIME */
-    private java.sql.Timestamp _execTime;
-    
-    /* 调用者ID: CALLER_ID */
-    private java.lang.String _callerId;
-    
-    /* 调用者姓名: CALLER_NAME */
-    private java.lang.String _callerName;
-    
-    /* 意见: OPINION */
-    private java.lang.String _opinion;
+    /* 代理范围: DELEGATE_SCOPE */
+    private java.lang.String _delegateScope;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -182,16 +126,16 @@ public class _NopWfAction extends DynamicOrmEntity{
     private java.sql.Timestamp _updateTime;
     
 
-    public _NopWfAction(){
+    public _NopWfUserDelegate(){
     }
 
-    protected NopWfAction newInstance(){
-       return new NopWfAction();
+    protected NopWfUserDelegate newInstance(){
+       return new NopWfUserDelegate();
     }
 
     @Override
-    public NopWfAction cloneInstance() {
-        NopWfAction entity = newInstance();
+    public NopWfUserDelegate cloneInstance() {
+        NopWfUserDelegate entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
@@ -204,7 +148,7 @@ public class _NopWfAction extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.wf.dao.entity.NopWfAction";
+      return "io.nop.wf.dao.entity.NopWfUserDelegate";
     }
 
     @Override
@@ -254,29 +198,14 @@ public class _NopWfAction extends DynamicOrmEntity{
             case PROP_ID_sid:
                return getSid();
         
-            case PROP_ID_wfId:
-               return getWfId();
+            case PROP_ID_userId:
+               return getUserId();
         
-            case PROP_ID_stepId:
-               return getStepId();
+            case PROP_ID_delegateId:
+               return getDelegateId();
         
-            case PROP_ID_actionName:
-               return getActionName();
-        
-            case PROP_ID_displayName:
-               return getDisplayName();
-        
-            case PROP_ID_execTime:
-               return getExecTime();
-        
-            case PROP_ID_callerId:
-               return getCallerId();
-        
-            case PROP_ID_callerName:
-               return getCallerName();
-        
-            case PROP_ID_opinion:
-               return getOpinion();
+            case PROP_ID_delegateScope:
+               return getDelegateScope();
         
             case PROP_ID_version:
                return getVersion();
@@ -314,83 +243,33 @@ public class _NopWfAction extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_wfId:{
+            case PROP_ID_userId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_wfId));
+                       err-> newTypeConversionError(PROP_NAME_userId));
                }
-               setWfId(typedValue);
+               setUserId(typedValue);
                break;
             }
         
-            case PROP_ID_stepId:{
+            case PROP_ID_delegateId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_stepId));
+                       err-> newTypeConversionError(PROP_NAME_delegateId));
                }
-               setStepId(typedValue);
+               setDelegateId(typedValue);
                break;
             }
         
-            case PROP_ID_actionName:{
+            case PROP_ID_delegateScope:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_actionName));
+                       err-> newTypeConversionError(PROP_NAME_delegateScope));
                }
-               setActionName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_displayName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_displayName));
-               }
-               setDisplayName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_execTime:{
-               java.sql.Timestamp typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_execTime));
-               }
-               setExecTime(typedValue);
-               break;
-            }
-        
-            case PROP_ID_callerId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_callerId));
-               }
-               setCallerId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_callerName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_callerName));
-               }
-               setCallerName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_opinion:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_opinion));
-               }
-               setOpinion(typedValue);
+               setDelegateScope(typedValue);
                break;
             }
         
@@ -460,58 +339,23 @@ public class _NopWfAction extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_wfId:{
+            case PROP_ID_userId:{
                onInitProp(propId);
-               this._wfId = (java.lang.String)value;
+               this._userId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_stepId:{
+            case PROP_ID_delegateId:{
                onInitProp(propId);
-               this._stepId = (java.lang.String)value;
+               this._delegateId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_actionName:{
+            case PROP_ID_delegateScope:{
                onInitProp(propId);
-               this._actionName = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_displayName:{
-               onInitProp(propId);
-               this._displayName = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_execTime:{
-               onInitProp(propId);
-               this._execTime = (java.sql.Timestamp)value;
-               
-               break;
-            }
-        
-            case PROP_ID_callerId:{
-               onInitProp(propId);
-               this._callerId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_callerName:{
-               onInitProp(propId);
-               this._callerName = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_opinion:{
-               onInitProp(propId);
-               this._opinion = (java.lang.String)value;
+               this._delegateScope = (java.lang.String)value;
                
                break;
             }
@@ -577,153 +421,58 @@ public class _NopWfAction extends DynamicOrmEntity{
     }
     
     /**
-     * 工作流实例ID: WF_ID
+     * 用户ID: USER_ID
      */
-    public java.lang.String getWfId(){
-         onPropGet(PROP_ID_wfId);
-         return _wfId;
+    public java.lang.String getUserId(){
+         onPropGet(PROP_ID_userId);
+         return _userId;
     }
 
     /**
-     * 工作流实例ID: WF_ID
+     * 用户ID: USER_ID
      */
-    public void setWfId(java.lang.String value){
-        if(onPropSet(PROP_ID_wfId,value)){
-            this._wfId = value;
-            internalClearRefs(PROP_ID_wfId);
+    public void setUserId(java.lang.String value){
+        if(onPropSet(PROP_ID_userId,value)){
+            this._userId = value;
+            internalClearRefs(PROP_ID_userId);
             
         }
     }
     
     /**
-     * 工作流步骤ID: STEP_ID
+     * 代理人ID: DELEGATE_ID
      */
-    public java.lang.String getStepId(){
-         onPropGet(PROP_ID_stepId);
-         return _stepId;
+    public java.lang.String getDelegateId(){
+         onPropGet(PROP_ID_delegateId);
+         return _delegateId;
     }
 
     /**
-     * 工作流步骤ID: STEP_ID
+     * 代理人ID: DELEGATE_ID
      */
-    public void setStepId(java.lang.String value){
-        if(onPropSet(PROP_ID_stepId,value)){
-            this._stepId = value;
-            internalClearRefs(PROP_ID_stepId);
+    public void setDelegateId(java.lang.String value){
+        if(onPropSet(PROP_ID_delegateId,value)){
+            this._delegateId = value;
+            internalClearRefs(PROP_ID_delegateId);
             
         }
     }
     
     /**
-     * 动作名称: ACTION_NAME
+     * 代理范围: DELEGATE_SCOPE
      */
-    public java.lang.String getActionName(){
-         onPropGet(PROP_ID_actionName);
-         return _actionName;
+    public java.lang.String getDelegateScope(){
+         onPropGet(PROP_ID_delegateScope);
+         return _delegateScope;
     }
 
     /**
-     * 动作名称: ACTION_NAME
+     * 代理范围: DELEGATE_SCOPE
      */
-    public void setActionName(java.lang.String value){
-        if(onPropSet(PROP_ID_actionName,value)){
-            this._actionName = value;
-            internalClearRefs(PROP_ID_actionName);
-            
-        }
-    }
-    
-    /**
-     * 动作显示名称: DISPLAY_NAME
-     */
-    public java.lang.String getDisplayName(){
-         onPropGet(PROP_ID_displayName);
-         return _displayName;
-    }
-
-    /**
-     * 动作显示名称: DISPLAY_NAME
-     */
-    public void setDisplayName(java.lang.String value){
-        if(onPropSet(PROP_ID_displayName,value)){
-            this._displayName = value;
-            internalClearRefs(PROP_ID_displayName);
-            
-        }
-    }
-    
-    /**
-     * 执行时刻: EXEC_TIME
-     */
-    public java.sql.Timestamp getExecTime(){
-         onPropGet(PROP_ID_execTime);
-         return _execTime;
-    }
-
-    /**
-     * 执行时刻: EXEC_TIME
-     */
-    public void setExecTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_execTime,value)){
-            this._execTime = value;
-            internalClearRefs(PROP_ID_execTime);
-            
-        }
-    }
-    
-    /**
-     * 调用者ID: CALLER_ID
-     */
-    public java.lang.String getCallerId(){
-         onPropGet(PROP_ID_callerId);
-         return _callerId;
-    }
-
-    /**
-     * 调用者ID: CALLER_ID
-     */
-    public void setCallerId(java.lang.String value){
-        if(onPropSet(PROP_ID_callerId,value)){
-            this._callerId = value;
-            internalClearRefs(PROP_ID_callerId);
-            
-        }
-    }
-    
-    /**
-     * 调用者姓名: CALLER_NAME
-     */
-    public java.lang.String getCallerName(){
-         onPropGet(PROP_ID_callerName);
-         return _callerName;
-    }
-
-    /**
-     * 调用者姓名: CALLER_NAME
-     */
-    public void setCallerName(java.lang.String value){
-        if(onPropSet(PROP_ID_callerName,value)){
-            this._callerName = value;
-            internalClearRefs(PROP_ID_callerName);
-            
-        }
-    }
-    
-    /**
-     * 意见: OPINION
-     */
-    public java.lang.String getOpinion(){
-         onPropGet(PROP_ID_opinion);
-         return _opinion;
-    }
-
-    /**
-     * 意见: OPINION
-     */
-    public void setOpinion(java.lang.String value){
-        if(onPropSet(PROP_ID_opinion,value)){
-            this._opinion = value;
-            internalClearRefs(PROP_ID_opinion);
+    public void setDelegateScope(java.lang.String value){
+        if(onPropSet(PROP_ID_delegateScope,value)){
+            this._delegateScope = value;
+            internalClearRefs(PROP_ID_delegateScope);
             
         }
     }
@@ -823,47 +572,5 @@ public class _NopWfAction extends DynamicOrmEntity{
         }
     }
     
-    /**
-     * 工作流实例
-     */
-    public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
-       return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_wfInstance);
-    }
-
-    public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
-       if(refEntity == null){
-         
-         this.setWfId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
-             
-                    this.setWfId(refEntity.getWfId());
-                 
-          });
-       }
-    }
-       
-    /**
-     * 工作流步骤实例
-     */
-    public io.nop.wf.dao.entity.NopWfStepInstance getWfStepInstance(){
-       return (io.nop.wf.dao.entity.NopWfStepInstance)internalGetRefEntity(PROP_NAME_wfStepInstance);
-    }
-
-    public void setWfStepInstance(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
-       if(refEntity == null){
-         
-         this.setStepId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfStepInstance, refEntity,()->{
-             
-                    this.setStepId(refEntity.getStepId());
-                 
-          });
-       }
-    }
-       
 }
 // resume CPD analysis - CPD-ON
