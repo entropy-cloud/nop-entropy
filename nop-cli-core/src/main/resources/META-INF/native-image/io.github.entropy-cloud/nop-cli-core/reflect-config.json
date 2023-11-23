@@ -16590,6 +16590,14 @@
       {
         "name": "indexOf",
         "parameterTypes": [
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
           "java.lang.String"
         ]
       },
@@ -16597,6 +16605,14 @@
         "name": "indexOf",
         "parameterTypes": [
           "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "indexOf",
+        "parameterTypes": [
+          "java.lang.String",
+          "int",
           "int"
         ]
       },
@@ -16740,6 +16756,13 @@
       },
       {
         "name": "split",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "splitWithDelimiters",
         "parameterTypes": [
           "java.lang.String",
           "int"
@@ -17238,6 +17261,18 @@
         ]
       },
       {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "clear",
         "parameterTypes": []
       },
@@ -17274,6 +17309,14 @@
         "parameterTypes": [
           "int"
         ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
       },
       {
         "name": "hashCode",
@@ -17328,10 +17371,18 @@
         ]
       },
       {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
         "name": "removeIf",
         "parameterTypes": [
           "java.util.function.Predicate"
         ]
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
       },
       {
         "name": "replaceAll",
@@ -17568,6 +17619,12 @@
         ]
       },
       {
+        "name": "newHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "put",
         "parameterTypes": [
           "java.lang.Object",
@@ -17669,6 +17726,12 @@
         "parameterTypes": []
       },
       {
+        "name": "newHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
         "name": "remove",
         "parameterTypes": [
           "java.lang.Object"
@@ -17741,10 +17804,46 @@
         "parameterTypes": []
       },
       {
+        "name": "newLinkedHashMap",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "putFirst",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "putLast",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "replaceAll",
         "parameterTypes": [
           "java.util.function.BiFunction"
         ]
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedEntrySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedKeySet",
+        "parameterTypes": []
+      },
+      {
+        "name": "sequencedValues",
+        "parameterTypes": []
       },
       {
         "name": "values",
@@ -17760,7 +17859,78 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "clear",
+        "parameterTypes": []
+      },
+      {
+        "name": "contains",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "forEach",
+        "parameterTypes": [
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "iterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
+      {
+        "name": "size",
+        "parameterTypes": []
+      },
+      {
+        "name": "spliterator",
+        "parameterTypes": []
+      },
+      {
+        "name": "toArray",
+        "parameterTypes": []
+      },
+      {
+        "name": "toArray",
+        "parameterTypes": [
+          "[Ljava.lang.Object;"
+        ]
+      }
+    ],
     "name": "java.util.LinkedHashMap$LinkedValues",
     "unsafeAllocated": false
   },
@@ -17771,6 +17941,44 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "addFirst",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "addLast",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "getFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "newLinkedHashSet",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "removeFirst",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeLast",
+        "parameterTypes": []
+      },
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      },
       {
         "name": "spliterator",
         "parameterTypes": []
@@ -18314,6 +18522,21 @@
       }
     ],
     "name": "java.util.Map",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.util.SequencedCollection",
     "unsafeAllocated": false
   },
   {

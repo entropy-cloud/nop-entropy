@@ -55,11 +55,14 @@ public class AutoTestCaseResultChecker {
     private final MatchPatternCompileConfig matchConfig;
     private final String variant;
 
+    private final String testMethod;
+
     private IEvalScope scope;
 
-    public AutoTestCaseResultChecker(String variant, AutoTestCaseData caseData, IDaoProvider daoProvider,
+    public AutoTestCaseResultChecker(String testMethod, String variant, AutoTestCaseData caseData, IDaoProvider daoProvider,
                                      IJdbcTemplate jdbcTemplate, MatchPatternCompileConfig matchConfig) {
         this.variant = variant;
+        this.testMethod = testMethod;
         this.caseData = caseData;
         this.daoProvider = daoProvider;
         this.jdbcTemplate = jdbcTemplate;
@@ -153,7 +156,7 @@ public class AutoTestCaseResultChecker {
         }
 
         try {
-            AutoTestMatchChecker.checkMatch(matchConfig, row, entityData, scope);
+            AutoTestMatchChecker.checkMatch(testMethod, matchConfig, row, entityData, scope);
         } catch (NopException e) {
             e.param(ARG_TABLE_NAME, entityModel.getTableName()).param(ARG_ID, entity.orm_idString());
             throw e;
@@ -173,7 +176,7 @@ public class AutoTestCaseResultChecker {
 
             Object result = jdbcTemplate.findFirst(sb.end());
             try {
-                AutoTestMatchChecker.checkMatch(matchConfig, check.getResult(), result, scope);
+                AutoTestMatchChecker.checkMatch(testMethod,matchConfig, check.getResult(), result, scope);
             } catch (Exception e) {
                 throw new NopException(ERR_AUTOTEST_CHECK_SQL_RESULT_FAIL, e).param(ARG_SQL, sql).param(ARG_SQL_RESULT,
                         result);

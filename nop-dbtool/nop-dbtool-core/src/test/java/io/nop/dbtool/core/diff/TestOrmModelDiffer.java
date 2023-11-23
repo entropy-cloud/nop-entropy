@@ -1,5 +1,7 @@
 package io.nop.dbtool.core.diff;
 
+import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.diff.DiffValuePrinter;
 import io.nop.commons.diff.IDiffValue;
 import io.nop.core.initialize.CoreInitialization;
@@ -10,7 +12,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class TestOrmModelDiffer extends BaseTestCase {
+@NopTestConfig(localDb = true)
+public class TestOrmModelDiffer extends JunitBaseTestCase {
     @BeforeAll
     public static void init() {
         CoreInitialization.initialize();

@@ -22,6 +22,7 @@ public class JunitBaseTestCase extends BaseTestCase {
 
     @BeforeEach
     public void init(TestInfo testInfo) {
+
         clearLazyActions();
         initBeans();
         runLazyActions();
