@@ -136,13 +136,9 @@ public class BizObjectBuilder {
         if (objDef.getFields() == null)
             objDef.setFields(new ArrayList<>(0));
 
-        String entityName = null;
-        if (bizObj.getObjMeta() != null)
-            entityName = bizObj.getObjMeta().getEntityName();
-
         if (bizInitializers != null) {
             for (IGraphQLBizInitializer initializer : bizInitializers) {
-                initializer.initialize(objDef, entityName, this::resolveBizExpr);
+                initializer.initialize(bizObj, this::resolveBizExpr, typeRegistry);
             }
         }
 
@@ -285,26 +281,13 @@ public class BizObjectBuilder {
             }
         }
 
-        if (gqlBizModel != null) {
-            gqlBizModel.getMutationActions().forEach((name, action) -> {
-                buildFetcher(action);
-                // 如果xbiz文件中已经定义，则忽略java类上的定义
-                operations.putIfAbsent(name, action);
-            });
-
-            gqlBizModel.getQueryActions().forEach((name, action) -> {
-                buildFetcher(action);
-                operations.putIfAbsent(name, action);
-            });
-
-            gqlBizModel.getBizActions().forEach((name, action) -> {
-                // 如果xbiz文件中已经定义，则忽略java类上的定义
-                actions.putIfAbsent(name, action);
-            });
-        }
 
         bizObj.setActions(actions);
         bizObj.setOperations(operations);
+
+        if (gqlBizModel != null) {
+            BizObjectBuildHelper.addDefaultAction(bizObj, gqlBizModel, collectors);
+        }
     }
 
     private void buildFetcher(GraphQLFieldDefinition field) {

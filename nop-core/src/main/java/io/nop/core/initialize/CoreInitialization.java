@@ -41,6 +41,8 @@ public class CoreInitialization {
     private static List<ICoreInitializer> initializers;
     private static int initializationLevel = -1;
     private static boolean initialized;
+
+    private static volatile boolean initializerRunning = false;
     private static Map<String, Object> bootstrapConfig = null;
 
     private static final Object lock = new Object();
@@ -54,6 +56,10 @@ public class CoreInitialization {
         return CFG_CORE_MAX_INITIALIZE_LEVEL.get() == CoreConstants.INITIALIZER_PRIORITY_ANALYZE;
     }
 
+    public static boolean isInitializerRunning() {
+        return initializerRunning;
+    }
+
     public static synchronized void initialize() {
         initializeTo(Integer.MAX_VALUE);
     }
@@ -63,6 +69,7 @@ public class CoreInitialization {
             return;
 
         try {
+            initializerRunning = true;
             long beginTime = CoreMetrics.currentTimeMillis();
             LOG.info("nop.core.begin-initialize:workDir={},initializationLevel={}",
                     FileHelper.currentDir(), initializationLevel);
@@ -99,6 +106,8 @@ public class CoreInitialization {
             LOG.error("nop.core.initialize-fail", e);
             destroy();
             throw NopException.adapt(e);
+        } finally {
+            initializerRunning = false;
         }
     }
 
@@ -138,41 +147,46 @@ public class CoreInitialization {
         if (list == null)
             return;
 
-        for (ICoreInitializer initializer : CollectionHelper.reverseList(list)) {
-            if (initializationLevel < initializer.order())
-                continue;
+        initializerRunning = true;
+        try {
+            for (ICoreInitializer initializer : CollectionHelper.reverseList(list)) {
+                if (initializationLevel < initializer.order())
+                    continue;
 
-            initializationLevel = initializer.order();
-            LOG.info("nop.core.destroy-initializer:class={}", initializer.getClass().getName());
-            try {
-                initializer.destroy();
-            } catch (Throwable e) {
-                // e.printStackTrace();
-                LOG.error("nop.core.destroy-initializer-fail", e);
-            }
-        }
-        List<Runnable> tasks;
-        synchronized (lock) {
-            tasks = cleanups;
-            cleanups = null;
-        }
-
-        if (tasks != null) {
-            for (Runnable task : tasks) {
+                initializationLevel = initializer.order();
+                LOG.info("nop.core.destroy-initializer:class={}", initializer.getClass().getName());
                 try {
-                    task.run();
+                    initializer.destroy();
                 } catch (Throwable e) {
-                    LOG.error("nop.core.run-cleanup-fail", e);
+                    // e.printStackTrace();
+                    LOG.error("nop.core.destroy-initializer-fail", e);
                 }
             }
-        }
+            List<Runnable> tasks;
+            synchronized (lock) {
+                tasks = cleanups;
+                cleanups = null;
+            }
 
-        LOG.info("nop.core.destroy");
-        initializers = null;
-        initializationLevel = -1;
-        initialized = false;
-        ReflectionManager.instance().clearCache();
-        GlobalCacheRegistry.instance().clearAllCache();
+            if (tasks != null) {
+                for (Runnable task : tasks) {
+                    try {
+                        task.run();
+                    } catch (Throwable e) {
+                        LOG.error("nop.core.run-cleanup-fail", e);
+                    }
+                }
+            }
+
+            LOG.info("nop.core.destroy");
+            initializers = null;
+            initializationLevel = -1;
+            initialized = false;
+            ReflectionManager.instance().clearCache();
+            GlobalCacheRegistry.instance().clearAllCache();
+        } finally {
+            initializerRunning = false;
+        }
     }
 
     public static synchronized void reinitialize() {
@@ -180,48 +194,54 @@ public class CoreInitialization {
     }
 
     public static synchronized void reinitialize(int fromLevel) {
-        List<ICoreInitializer> list = initializers;
-        if (list == null) {
-            list = loadInitializers();
-        }
+        try {
+            initializerRunning = true;
 
-        LOG.info("nop.core.reinitialize:level={}", fromLevel);
-
-        int n = list.size();
-        int i;
-        for (i = n - 1; i >= 0; i--) {
-            ICoreInitializer initializer = list.get(i);
-            if (initializer.order() > initializationLevel)
-                continue;
-
-            if (initializer.order() < fromLevel)
-                break;
-
-            initializationLevel = initializer.order();
-            LOG.info("nop.core.destroy-initializer:class={}", initializer.getClass().getName());
-            try {
-                initializer.destroy();
-            } catch (Throwable e) {
-                // e.printStackTrace();
-                LOG.error("nop.core.destroy-initializer-fail", e);
+            List<ICoreInitializer> list = initializers;
+            if (list == null) {
+                list = loadInitializers();
             }
-        }
 
-        ReflectionManager.instance().clearCache();
-        GlobalCacheRegistry.instance().clearAllCache();
+            LOG.info("nop.core.reinitialize:level={}", fromLevel);
 
-        int maxLevel = CFG_CORE_MAX_INITIALIZE_LEVEL.get();
-        i++;
-        for (; i < n; i++) {
-            ICoreInitializer initializer = list.get(i);
+            int n = list.size();
+            int i;
+            for (i = n - 1; i >= 0; i--) {
+                ICoreInitializer initializer = list.get(i);
+                if (initializer.order() > initializationLevel)
+                    continue;
 
-            if (initializer.order() <= maxLevel) {
-                LOG.info("nop.core.run-initializer:class={}", initializer.getClass().getName());
-                initializer.initialize();
+                if (initializer.order() < fromLevel)
+                    break;
+
                 initializationLevel = initializer.order();
+                LOG.info("nop.core.destroy-initializer:class={}", initializer.getClass().getName());
+                try {
+                    initializer.destroy();
+                } catch (Throwable e) {
+                    // e.printStackTrace();
+                    LOG.error("nop.core.destroy-initializer-fail", e);
+                }
             }
+
+            ReflectionManager.instance().clearCache();
+            GlobalCacheRegistry.instance().clearAllCache();
+
+            int maxLevel = CFG_CORE_MAX_INITIALIZE_LEVEL.get();
+            i++;
+            for (; i < n; i++) {
+                ICoreInitializer initializer = list.get(i);
+
+                if (initializer.order() <= maxLevel) {
+                    LOG.info("nop.core.run-initializer:class={}", initializer.getClass().getName());
+                    initializer.initialize();
+                    initializationLevel = initializer.order();
+                }
+            }
+            initialized = true;
+        } finally {
+            initializerRunning = false;
         }
-        initialized = true;
     }
 
     private static Set<String> getDisabled() {

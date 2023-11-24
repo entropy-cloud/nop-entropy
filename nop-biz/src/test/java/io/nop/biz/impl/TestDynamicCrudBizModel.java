@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class TestDynamicBizModel extends JunitBaseTestCase {
+public class TestDynamicCrudBizModel extends JunitBaseTestCase {
 
     @Inject
     IBizObjectManager bizObjectManager;

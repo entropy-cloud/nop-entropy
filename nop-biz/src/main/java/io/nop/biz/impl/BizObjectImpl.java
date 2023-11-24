@@ -57,6 +57,47 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
     }
 
     @Override
+    public Object getExtAttribute(String name) {
+        if (bizModel == null)
+            return null;
+        return bizModel.prop_get(name);
+    }
+
+    @Override
+    public boolean isAllowInheritAction(String action) {
+        if (bizModel == null)
+            return true;
+
+        if (bizModel.getDisabledActions() != null) {
+            if (bizModel.getDisabledActions().contains(action))
+                return false;
+        }
+
+        if (bizModel.getInheritActions() != null && !bizModel.getInheritActions().isEmpty()) {
+            return bizModel.getInheritActions().contains(action);
+        }
+        return true;
+    }
+
+    @Override
+    public String getEntityName() {
+        String entityName = null;
+        if (getObjMeta() != null)
+            entityName = getObjMeta().getEntityName();
+        return entityName;
+    }
+
+    @Override
+    public Map<String, GraphQLFieldDefinition> getOperations() {
+        return operations;
+    }
+
+    @Override
+    public Map<String, IServiceAction> getActions() {
+        return actions;
+    }
+
+    @Override
     public IStateMachine getStateMachine() {
         return stateMachine;
     }

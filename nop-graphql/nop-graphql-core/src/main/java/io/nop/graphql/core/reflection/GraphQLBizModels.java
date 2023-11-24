@@ -41,7 +41,7 @@ public class GraphQLBizModels {
     public void build(TypeRegistry typeRegistry, Collection<?> beans) {
         if (beans != null) {
             for (Object bean : beans) {
-                GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(bean, bizModels, typeRegistry);
+                GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(bean, typeRegistry);
                 GraphQLBizModel oldModel = bizModels.putIfAbsent(bizModel.getBizObjName(), bizModel);
                 if (oldModel != null)
                     oldModel.merge(bizModel);

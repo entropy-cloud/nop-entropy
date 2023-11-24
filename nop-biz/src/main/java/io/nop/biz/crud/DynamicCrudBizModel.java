@@ -5,7 +5,7 @@ import io.nop.graphql.core.IBizModelImpl;
 import io.nop.orm.support.DynamicOrmEntity;
 
 @BizModel("")
-public class DynamicBizModel extends CrudBizModel<DynamicOrmEntity> implements IBizModelImpl {
+public class DynamicCrudBizModel extends CrudBizModel<DynamicOrmEntity> implements IBizModelImpl {
     private String bizObjName;
 
     @Override

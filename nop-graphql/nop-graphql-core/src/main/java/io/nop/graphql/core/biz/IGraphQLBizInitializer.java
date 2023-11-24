@@ -8,12 +8,14 @@
 package io.nop.graphql.core.biz;
 
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.util.IOrdered;
 import io.nop.graphql.core.IDataFetchingEnvironment;
-import io.nop.graphql.core.ast.GraphQLObjectDefinition;
+import io.nop.graphql.core.schema.TypeRegistry;
 
 import java.util.function.BiConsumer;
 
-public interface IGraphQLBizInitializer {
-    void initialize(GraphQLObjectDefinition objDef, String entityName,
-                    BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor);
+public interface IGraphQLBizInitializer extends IOrdered {
+    void initialize(IGraphQLBizObject bizObj,
+                    BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor,
+                    TypeRegistry typeRegistry);
 }

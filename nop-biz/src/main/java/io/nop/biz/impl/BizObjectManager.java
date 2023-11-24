@@ -16,6 +16,7 @@ import io.nop.biz.api.IBizObjectManager;
 import io.nop.biz.decorator.IActionDecoratorCollector;
 import io.nop.biz.makerchecker.IMakerCheckerProvider;
 import io.nop.commons.cache.GlobalCacheRegistry;
+import io.nop.commons.collections.SafeOrderedComparator;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
@@ -36,11 +37,11 @@ import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.IGraphQLSchemaLoader;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
-
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -86,6 +87,9 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
+        if (bizInitializers != null) {
+            bizInitializers.sort(SafeOrderedComparator.DEFAULT);
+        }
         this.bizInitializers = bizInitializers;
     }
 
@@ -137,11 +141,11 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         }
     }
 
-    public void clearCache(){
+    public void clearCache() {
         bizObjCache.clear();
     }
 
-    public void removeCache(String bizObjName){
+    public void removeCache(String bizObjName) {
         bizObjCache.remove(bizObjName);
     }
 

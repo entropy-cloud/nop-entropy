@@ -89,6 +89,9 @@ public interface BizConstants {
 
     String EXT_KIND_VALUE_COMPONENT = "component";
 
+    String GRAPHQL_BASE_NAME = "graphql:base";
+    String BASE_CRUD = "crud";
+
     /**
      * 标记需要被递归删除的关联表
      */

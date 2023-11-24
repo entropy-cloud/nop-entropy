@@ -1,0 +1,4 @@
+<meta x:extends="NopAuthUser.xmeta" x:schema="/nop/schema/xmeta.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef" >
+
+</meta>

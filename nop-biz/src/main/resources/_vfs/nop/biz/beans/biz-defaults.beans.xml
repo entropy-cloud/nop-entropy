@@ -43,6 +43,8 @@
         </property>
     </bean>
 
+    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer" />
+
     <bean id="nopBizAuthChecker" class="io.nop.biz.impl.DefaultBizAuthChecker" ioc:default="true"/>
 
     <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer">
