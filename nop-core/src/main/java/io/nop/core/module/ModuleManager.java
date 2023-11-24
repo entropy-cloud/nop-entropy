@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,11 +29,15 @@ import static io.nop.core.CoreConfigs.CFG_MODULE_ENABLED_MODULE_IDS;
 
 @GlobalInstance
 public class ModuleManager {
-    static final Logger LOG = LoggerFactory.getLogger(ModuleManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ModuleManager.class);
 
-    static final ModuleManager _instance = new ModuleManager();
+    private static ModuleManager _instance = new ModuleManager();
 
-    private Map<String, ModuleModel> modules = new TreeMap<>();
+    public static void registerInstance(ModuleManager instance) {
+        _instance = instance;
+    }
+
+    private Map<String, ModuleModel> modules = Collections.emptyMap();
 
     public static ModuleManager instance() {
         return _instance;
@@ -47,28 +52,31 @@ public class ModuleManager {
 
         List<IResource> moduleFiles = VirtualFileSystem.instance().findAll("*/*/_module");
 
+        Map<String, ModuleModel> modules = new TreeMap<>();
+
         for (IResource resource : moduleFiles) {
             String moduleId = ResourceHelper.getModuleId(resource.getStdPath());
             if (disabledModuleIds != null && disabledModuleIds.contains(moduleId)) {
                 LOG.info("nop.core.ignore-disabled-module:moduleId={}", moduleId);
                 continue;
             }
-            if (enabledModuleIds != null && enabledModuleIds.size() > 0 && !enabledModuleIds.contains(moduleId)) {
+            if (enabledModuleIds != null && !enabledModuleIds.isEmpty() && !enabledModuleIds.contains(moduleId)) {
                 LOG.info("nop.core.ignore-disabled-module:moduleId={}", moduleId);
                 continue;
             }
 
             LOG.info("nop.core.add-module:moduleId={}", moduleId);
-            loadModule(moduleId, resource);
+            loadModule(modules, moduleId);
         }
+        this.modules = modules;
     }
 
     public void clear() {
         modules.clear();
     }
 
-    private void loadModule(String moduleId, IResource moduleFile) {
-        IResource configFile = ResourceHelper.resolveSibling(moduleFile, "app.module.yaml");
+    private void loadModule(Map<String, ModuleModel> modules, String moduleId) {
+        IResource configFile = VirtualFileSystem.instance().getResource("/" + moduleId + "/app.module.yaml");
         if (configFile.exists()) {
             ModuleModel model = JsonTool.parseBeanFromResource(configFile, ModuleModel.class);
             modules.put(moduleId, model);
