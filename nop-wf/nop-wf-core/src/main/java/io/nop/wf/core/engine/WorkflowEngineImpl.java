@@ -192,6 +192,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         saveStarted(wfRt);
     }
+
     private Map<String, Object> removeStdStartParam(Map<String, Object> args, IWorkflowRecord wfRecord) {
         if (args == null || args.isEmpty())
             return args;

@@ -8,9 +8,13 @@
 package io.nop.wf.dao.entity;
 
 import io.nop.api.core.annotations.biz.BizObjName;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.dao.entity._gen._NopWfInstance;
+
+import java.util.Set;
 
 
 @BizObjName("NopWfInstance")
@@ -75,6 +79,18 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
         } else {
             setLastOperatorId(null);
             setLastOperateTime(null);
+        }
+    }
+
+    public Set<String> getOnSignals() {
+        return ConvertHelper.toCsvSet(getSignalSet());
+    }
+
+    public void setOnSignals(Set<String> signals) {
+        if (signals == null || signals.isEmpty()) {
+            setSignalSet(null);
+        } else {
+            setSignalSet(StringHelper.join(signals, ","));
         }
     }
 }

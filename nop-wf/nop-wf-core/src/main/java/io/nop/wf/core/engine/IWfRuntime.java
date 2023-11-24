@@ -84,4 +84,10 @@ public interface IWfRuntime extends IEvalContext {
     void markEnd();
 
     boolean willEnd();
+
+    void logMsg(String msg);
+
+    void logError(String errorCode, Map<String, Object> params);
+
+    void logError(Throwable exp);
 }

@@ -74,4 +74,22 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
             setCallerName(null);
         }
     }
+
+    public NopWfStepInstanceLink addNextStepLink(String nextStepId) {
+        NopWfStepInstanceLink nextLink = new NopWfStepInstanceLink();
+        nextLink.setWfId(getWfId());
+        nextLink.setStepId(getStepId());
+        nextLink.setNextStepId(nextStepId);
+        getNextLinks().add(nextLink);
+        return nextLink;
+    }
+
+    public NopWfStepInstanceLink addPrevStepLink(String prevStepId) {
+        NopWfStepInstanceLink prevLink = new NopWfStepInstanceLink();
+        prevLink.setWfId(getWfId());
+        prevLink.setStepId(prevStepId);
+        prevLink.setNextStepId(getStepId());
+        getPrevLinks().add(prevLink);
+        return prevLink;
+    }
 }

@@ -81,6 +81,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String STEP_ID_EMPTY = "@empty";
     String STEP_ID_ASSIGNED = "@assigned";
 
+    String SPECIAL_STEP_ID_PREFIX = "@";
+
     String TIMER_DUE_TIME = "due_time";
 
     String WF_ACTOR_LIB_PATH = "/nop/wf/xlib/wf-actor.xlib";

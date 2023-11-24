@@ -73,24 +73,6 @@ CREATE TABLE nop_wf_user_delegate(
   constraint PK_nop_wf_user_delegate primary key (SID)
 );
 
-CREATE TABLE nop_wf_action(
-  SID VARCHAR(32) NOT NULL    COMMENT '主键',
-  WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
-  STEP_ID VARCHAR(32) NOT NULL    COMMENT '工作流步骤ID',
-  ACTION_NAME VARCHAR(200) NOT NULL    COMMENT '动作名称',
-  DISPLAY_NAME VARCHAR(200) NOT NULL    COMMENT '动作显示名称',
-  EXEC_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '执行时刻',
-  CALLER_ID VARCHAR(50) NULL    COMMENT '调用者ID',
-  CALLER_NAME VARCHAR(50) NULL    COMMENT '调用者姓名',
-  OPINION VARCHAR(4000) NULL    COMMENT '意见',
-  VERSION INTEGER NOT NULL    COMMENT '数据版本',
-  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
-  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
-  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
-  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
-  constraint PK_nop_wf_action primary key (SID)
-);
-
 CREATE TABLE nop_wf_output(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
   FIELD_NAME VARCHAR(100) NOT NULL    COMMENT '变量名',
@@ -129,8 +111,10 @@ CREATE TABLE nop_wf_log(
   SID VARCHAR(32) NOT NULL    COMMENT '日志ID',
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
   STEP_ID VARCHAR(32) NULL    COMMENT '工作流步骤ID',
+  ACTION_ID VARCHAR(32) NULL    COMMENT '动作ID',
   LOG_LEVEL INTEGER NOT NULL    COMMENT '日志级别',
   LOG_MSG VARCHAR(4000) NULL    COMMENT '日志消息',
+  ERR_CODE VARCHAR(200) NULL    COMMENT '错误码',
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
   constraint PK_nop_wf_log primary key (SID)
@@ -157,6 +141,24 @@ CREATE TABLE nop_wf_work(
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_wf_work primary key (WORK_ID)
+);
+
+CREATE TABLE nop_wf_action(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
+  STEP_ID VARCHAR(32) NOT NULL    COMMENT '工作流步骤ID',
+  ACTION_NAME VARCHAR(200) NOT NULL    COMMENT '动作名称',
+  DISPLAY_NAME VARCHAR(200) NOT NULL    COMMENT '动作显示名称',
+  EXEC_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '执行时刻',
+  CALLER_ID VARCHAR(50) NULL    COMMENT '调用者ID',
+  CALLER_NAME VARCHAR(50) NULL    COMMENT '调用者姓名',
+  OPINION VARCHAR(4000) NULL    COMMENT '意见',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  constraint PK_nop_wf_action primary key (SID)
 );
 
 CREATE TABLE nop_wf_step_instance(
@@ -259,8 +261,6 @@ CREATE TABLE nop_wf_instance(
                 
    ALTER TABLE nop_wf_user_delegate COMMENT '用户代理配置';
                 
-   ALTER TABLE nop_wf_action COMMENT '工作流动作';
-                
    ALTER TABLE nop_wf_output COMMENT '工作流输出变量';
                 
    ALTER TABLE nop_wf_var COMMENT '工作流状态变量';
@@ -268,6 +268,8 @@ CREATE TABLE nop_wf_instance(
    ALTER TABLE nop_wf_log COMMENT '工作流日志';
                 
    ALTER TABLE nop_wf_work COMMENT '代办工作';
+                
+   ALTER TABLE nop_wf_action COMMENT '工作流动作';
                 
    ALTER TABLE nop_wf_step_instance COMMENT '工作流步骤实例';
                 

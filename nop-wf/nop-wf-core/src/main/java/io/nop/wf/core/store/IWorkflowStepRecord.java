@@ -33,6 +33,11 @@ public interface IWorkflowStepRecord {
 
     String getWfId();
 
+    @JsonIgnore
+    default boolean isHistory() {
+        return getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND;
+    }
+
     void transitToStatus(int status);
 
     Integer getVoteWeight();

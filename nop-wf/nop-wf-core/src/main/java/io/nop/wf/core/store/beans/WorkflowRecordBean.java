@@ -418,37 +418,6 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.onSignals = onSignals;
     }
 
-    public boolean removeSignals(Set<String> signals) {
-        if (onSignals == null)
-            return false;
-
-        return onSignals.removeAll(signals);
-    }
-
-    public boolean isAllSignalOn(Set<String> signals) {
-        if (signals == null || signals.isEmpty())
-            return true;
-
-        if (onSignals == null)
-            return false;
-
-        return onSignals.retainAll(signals);
-    }
-
-    public boolean isSignalOn(String signal) {
-        if (onSignals == null)
-            return false;
-
-        return onSignals.contains(signal);
-    }
-
-    public void addSignals(Set<String> signals) {
-        if (signals != null) {
-            if (onSignals == null)
-                onSignals = new LinkedHashSet<>();
-            onSignals.addAll(signals);
-        }
-    }
 
     public Map<String, Object> getOutputVars() {
         return outputVars;

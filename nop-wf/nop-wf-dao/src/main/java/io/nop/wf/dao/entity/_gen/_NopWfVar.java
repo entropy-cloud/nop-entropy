@@ -1,7 +1,7 @@
 package io.nop.wf.dao.entity._gen;
 
 import io.nop.orm.model.IEntityModel;
-import io.nop.orm.support.DynamicOrmEntity;
+import io.nop.orm.support.AbstractOrmKeyValueTable;
 import io.nop.orm.support.OrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import io.nop.orm.IOrmEntitySet; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import io.nop.api.core.convert.ConvertHelper;
@@ -18,7 +18,7 @@ import io.nop.wf.dao.entity.NopWfVar;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public class _NopWfVar extends DynamicOrmEntity{
+public class _NopWfVar extends AbstractOrmKeyValueTable{
     
     /* 工作流实例ID: WF_ID VARCHAR */
     public static final String PROP_NAME_wfId = "wfId";

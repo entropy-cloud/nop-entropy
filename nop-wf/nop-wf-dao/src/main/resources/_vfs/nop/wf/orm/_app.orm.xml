@@ -646,8 +646,8 @@
             </relations>
         </entity>
         <entity className="io.nop.wf.dao.entity.NopWfVar" createTimeProp="createTime" createrProp="createdBy"
-                displayName="工作流状态变量" name="io.nop.wf.dao.entity.NopWfVar" registerShortName="true"
-                tableName="nop_wf_var" tagSet="kvTable" updateTimeProp="updateTime" updaterProp="updatedBy"
+                displayName="工作流状态变量" kvTable="true" name="io.nop.wf.dao.entity.NopWfVar" registerShortName="true"
+                tableName="nop_wf_var" tagSet="kv-table" updateTimeProp="updateTime" updaterProp="updatedBy"
                 versionProp="version" i18n-en:displayName="Workflow Variables">
             <columns>
                 <column code="WF_ID" displayName="工作流实例ID" mandatory="true" name="wfId" precision="32" primary="true"
@@ -701,15 +701,19 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
                 <column code="STEP_ID" displayName="工作流步骤ID" name="stepId" precision="32" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Step ID"/>
-                <column code="LOG_LEVEL" displayName="日志级别" mandatory="true" name="logLevel" propId="4"
+                <column code="ACTION_ID" displayName="动作ID" name="actionId" precision="32" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Action ID"/>
+                <column code="LOG_LEVEL" displayName="日志级别" mandatory="true" name="logLevel" propId="5"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Log Level" ext:dict="core/log-level"/>
-                <column code="LOG_MSG" displayName="日志消息" name="logMsg" precision="4000" propId="5" stdDataType="string"
+                <column code="LOG_MSG" displayName="日志消息" name="logMsg" precision="4000" propId="6" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Log Message"/>
+                <column code="ERR_CODE" displayName="错误码" name="errCode" precision="200" propId="7" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Error Code"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
             </columns>
             <relations>
                 <to-one displayName="工作流实例" name="wfInstance" refEntityName="io.nop.wf.dao.entity.NopWfInstance"
@@ -724,6 +728,13 @@
                         i18n-en:displayName="Workflow Step Instance">
                     <join>
                         <on leftProp="stepId" rightProp="stepId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="工作流动作" name="wfAction" refEntityName="io.nop.wf.dao.entity.NopWfAction"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Workflow Action">
+                    <join>
+                        <on leftProp="actionId" rightProp="sid"/>
                     </join>
                     <ref-set/>
                 </to-one>

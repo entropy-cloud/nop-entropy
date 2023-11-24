@@ -103,11 +103,6 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
         this.actions.add(action);
     }
 
-    @JsonIgnore
-    public boolean isHistory() {
-        return getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND;
-    }
-
     @Override
     public void transitToStatus(int status) {
         setStatus(status);
