@@ -389,7 +389,7 @@ public class ConfigStarter extends LifeCycleSupport {
     protected IResource getAppProfileFile(String profile) {
         String path = "classpath:application-" + profile + ".yaml";
         IResource resource = new ClassPathResource(path);
-        if (resource.exists()) {
+        if (!resource.exists()) {
             path = "classpath:application-" + profile + ".yml";
             resource = new ClassPathResource(path);
         }
