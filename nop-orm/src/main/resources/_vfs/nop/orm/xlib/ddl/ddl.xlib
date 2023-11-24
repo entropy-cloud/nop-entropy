@@ -33,6 +33,7 @@
             <attr name="ifExists" type="Boolean" optional="true"/>
             <source>
                 <c:for var="table" items="${tables}">
+                    <c:script>if(table.tableView) continue;</c:script>
                     <thisLib:DropTable table="${table}" dialect="${dialect}" ifExists="${ifExists}"/>
                     <c:unit>;&#10;</c:unit>
                 </c:for>
