@@ -86,6 +86,7 @@ public class ImportExcelParser {
         IEvalScope scope = XLang.newEvalScope();
 
         scope.setLocalValue(null, ExcelConstants.VAR_ROOT_RECORD, obj);
+        scope.setLocalValue(null, ExcelConstants.VAR_WORKBOOK, workbook);
 
         if (importModel.getBeforeParse() != null)
             importModel.getBeforeParse().invoke(scope);
