@@ -98,7 +98,7 @@ public class LogFunctions {
         List<XLangASTNode> elements = new ArrayList<>(argExprs.size());
         elements.add(Literal.valueOf(null, loc));
 
-        for (int i = 1, n = argExprs.size(); i < n; i++) {
+        for (int i = 0, n = argExprs.size(); i < n; i++) {
             Expression arg = argExprs.get(i);
             elements.add(arg.deepClone());
         }

@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [29:10:0:0]/nop/schema/wf/assignment.xdef <p>
+ * generate from [30:10:0:0]/nop/schema/wf/assignment.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -48,6 +48,13 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
      * 选择actor本身还是actor对应的user
      */
     private boolean _selectUser  = true;
+    
+    /**
+     *  投票权重
+     * xml name: voteWeight
+     * 
+     */
+    private java.lang.Integer _voteWeight ;
     
     /**
      * 
@@ -144,6 +151,25 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     }
 
     
+    /**
+     * 投票权重
+     * xml name: voteWeight
+     *  
+     */
+    
+    public java.lang.Integer getVoteWeight(){
+      return _voteWeight;
+    }
+
+    
+    public void setVoteWeight(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._voteWeight = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -162,6 +188,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
         out.put("assignForUser",this.isAssignForUser());
         out.put("deptId",this.getDeptId());
         out.put("selectUser",this.isSelectUser());
+        out.put("voteWeight",this.getVoteWeight());
     }
 }
  // resume CPD analysis - CPD-ON

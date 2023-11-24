@@ -12,8 +12,6 @@ import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.dao.entity._gen._NopWfInstance;
 
-import java.sql.Timestamp;
-
 
 @BizObjName("NopWfInstance")
 public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
@@ -22,7 +20,7 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     public NopWfInstance() {
     }
 
-    public String getCreaterId(){
+    public String getCreaterId() {
         return getCreatedBy();
     }
 
@@ -70,34 +68,13 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     }
 
     @Override
-    public void setResumeTime(Timestamp time) {
-
-    }
-
-    @Override
-    public void setSuspendCaller(IWfActor caller) {
+    public void setLastOperator(IWfActor caller) {
         if (caller != null) {
-            setSuspenderId(caller.getActorId());
-            setSuspenderName(caller.getActorName());
+            setLastOperatorId(caller.getActorId());
+            setLastOperatorName(caller.getActorName());
         } else {
-            setSuspenderId(null);
-            setSuspenderName(null);
-        }
-    }
-
-    @Override
-    public void setResumeCaller(IWfActor caller) {
-
-    }
-
-    @Override
-    public void setCanceller(IWfActor caller) {
-        if (caller != null) {
-            setCancellerId(caller.getActorId());
-            setCancellerName(caller.getActorName());
-        } else {
-            setCancellerId(null);
-            setCancellerName(null);
+            setLastOperatorId(null);
+            setLastOperateTime(null);
         }
     }
 }

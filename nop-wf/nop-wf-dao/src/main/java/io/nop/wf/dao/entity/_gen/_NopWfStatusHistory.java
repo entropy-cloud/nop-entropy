@@ -10,51 +10,51 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.wf.dao.entity.NopWfStepActor;
+import io.nop.wf.dao.entity.NopWfStatusHistory;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  工作流步骤参与者: nop_wf_step_actor
+ *  工作流状态变迁历史: nop_wf_status_history
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public class _NopWfStepActor extends DynamicOrmEntity{
+public class _NopWfStatusHistory extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */
     public static final String PROP_NAME_sid = "sid";
     public static final int PROP_ID_sid = 1;
     
-    /* 工作流实例ID: WF_ID VARCHAR */
+    /* 主键: WF_ID VARCHAR */
     public static final String PROP_NAME_wfId = "wfId";
     public static final int PROP_ID_wfId = 2;
     
-    /* 工作流步骤ID: STEP_ID VARCHAR */
-    public static final String PROP_NAME_stepId = "stepId";
-    public static final int PROP_ID_stepId = 3;
+    /* 源状态: FROM_STATUS INTEGER */
+    public static final String PROP_NAME_fromStatus = "fromStatus";
+    public static final int PROP_ID_fromStatus = 3;
     
-    /* 参与者类型: ACTOR_TYPE VARCHAR */
-    public static final String PROP_NAME_actorType = "actorType";
-    public static final int PROP_ID_actorType = 4;
+    /* 目标状态: TO_STATUS INTEGER */
+    public static final String PROP_NAME_toStatus = "toStatus";
+    public static final int PROP_ID_toStatus = 4;
     
-    /* 参与者ID: ACTOR_ID VARCHAR */
-    public static final String PROP_NAME_actorId = "actorId";
-    public static final int PROP_ID_actorId = 5;
+    /* 源应用状态: FROM_APP_STATE VARCHAR */
+    public static final String PROP_NAME_fromAppState = "fromAppState";
+    public static final int PROP_ID_fromAppState = 5;
     
-    /* 参与者部门ID: ACTOR_DEPT_ID VARCHAR */
-    public static final String PROP_NAME_actorDeptId = "actorDeptId";
-    public static final int PROP_ID_actorDeptId = 6;
+    /* 目标应用状态: TO_APP_STATE VARCHAR */
+    public static final String PROP_NAME_toAppState = "toAppState";
+    public static final int PROP_ID_toAppState = 6;
     
-    /* 参与者名称: ACTOR_NAME VARCHAR */
-    public static final String PROP_NAME_actorName = "actorName";
-    public static final int PROP_ID_actorName = 7;
+    /* 状态变动时间: CHANGE_TIME TIMESTAMP */
+    public static final String PROP_NAME_changeTime = "changeTime";
+    public static final int PROP_ID_changeTime = 7;
     
-    /* 投票权重: VOTE_WEIGHT INTEGER */
-    public static final String PROP_NAME_voteWeight = "voteWeight";
-    public static final int PROP_ID_voteWeight = 8;
+    /* 操作者ID: OPERATOR_ID VARCHAR */
+    public static final String PROP_NAME_operatorId = "operatorId";
+    public static final int PROP_ID_operatorId = 8;
     
-    /* 是否分配到用户: ASSIGN_FOR_USER BOOLEAN */
-    public static final String PROP_NAME_assignForUser = "assignForUser";
-    public static final int PROP_ID_assignForUser = 9;
+    /* 操作者: OPERATOR_NAME VARCHAR */
+    public static final String PROP_NAME_operatorName = "operatorName";
+    public static final int PROP_ID_operatorName = 9;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
@@ -68,29 +68,18 @@ public class _NopWfStepActor extends DynamicOrmEntity{
     public static final String PROP_NAME_createTime = "createTime";
     public static final int PROP_ID_createTime = 12;
     
-    /* 修改人: UPDATED_BY VARCHAR */
-    public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 13;
-    
-    /* 修改时间: UPDATE_TIME TIMESTAMP */
-    public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 14;
-    
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 13;
 
     
     /* relation: 工作流实例 */
     public static final String PROP_NAME_wfInstance = "wfInstance";
     
-    /* relation: 工作流步骤实例 */
-    public static final String PROP_NAME_wfStepInstance = "wfStepInstance";
-    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[13];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -100,26 +89,26 @@ public class _NopWfStepActor extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_wfId] = PROP_NAME_wfId;
           PROP_NAME_TO_ID.put(PROP_NAME_wfId, PROP_ID_wfId);
       
-          PROP_ID_TO_NAME[PROP_ID_stepId] = PROP_NAME_stepId;
-          PROP_NAME_TO_ID.put(PROP_NAME_stepId, PROP_ID_stepId);
+          PROP_ID_TO_NAME[PROP_ID_fromStatus] = PROP_NAME_fromStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_fromStatus, PROP_ID_fromStatus);
       
-          PROP_ID_TO_NAME[PROP_ID_actorType] = PROP_NAME_actorType;
-          PROP_NAME_TO_ID.put(PROP_NAME_actorType, PROP_ID_actorType);
+          PROP_ID_TO_NAME[PROP_ID_toStatus] = PROP_NAME_toStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_toStatus, PROP_ID_toStatus);
       
-          PROP_ID_TO_NAME[PROP_ID_actorId] = PROP_NAME_actorId;
-          PROP_NAME_TO_ID.put(PROP_NAME_actorId, PROP_ID_actorId);
+          PROP_ID_TO_NAME[PROP_ID_fromAppState] = PROP_NAME_fromAppState;
+          PROP_NAME_TO_ID.put(PROP_NAME_fromAppState, PROP_ID_fromAppState);
       
-          PROP_ID_TO_NAME[PROP_ID_actorDeptId] = PROP_NAME_actorDeptId;
-          PROP_NAME_TO_ID.put(PROP_NAME_actorDeptId, PROP_ID_actorDeptId);
+          PROP_ID_TO_NAME[PROP_ID_toAppState] = PROP_NAME_toAppState;
+          PROP_NAME_TO_ID.put(PROP_NAME_toAppState, PROP_ID_toAppState);
       
-          PROP_ID_TO_NAME[PROP_ID_actorName] = PROP_NAME_actorName;
-          PROP_NAME_TO_ID.put(PROP_NAME_actorName, PROP_ID_actorName);
+          PROP_ID_TO_NAME[PROP_ID_changeTime] = PROP_NAME_changeTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_changeTime, PROP_ID_changeTime);
       
-          PROP_ID_TO_NAME[PROP_ID_voteWeight] = PROP_NAME_voteWeight;
-          PROP_NAME_TO_ID.put(PROP_NAME_voteWeight, PROP_ID_voteWeight);
+          PROP_ID_TO_NAME[PROP_ID_operatorId] = PROP_NAME_operatorId;
+          PROP_NAME_TO_ID.put(PROP_NAME_operatorId, PROP_ID_operatorId);
       
-          PROP_ID_TO_NAME[PROP_ID_assignForUser] = PROP_NAME_assignForUser;
-          PROP_NAME_TO_ID.put(PROP_NAME_assignForUser, PROP_ID_assignForUser);
+          PROP_ID_TO_NAME[PROP_ID_operatorName] = PROP_NAME_operatorName;
+          PROP_NAME_TO_ID.put(PROP_NAME_operatorName, PROP_ID_operatorName);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -130,41 +119,35 @@ public class _NopWfStepActor extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_createTime] = PROP_NAME_createTime;
           PROP_NAME_TO_ID.put(PROP_NAME_createTime, PROP_ID_createTime);
       
-          PROP_ID_TO_NAME[PROP_ID_updatedBy] = PROP_NAME_updatedBy;
-          PROP_NAME_TO_ID.put(PROP_NAME_updatedBy, PROP_ID_updatedBy);
-      
-          PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
-      
     }
 
     
     /* 主键: SID */
     private java.lang.String _sid;
     
-    /* 工作流实例ID: WF_ID */
+    /* 主键: WF_ID */
     private java.lang.String _wfId;
     
-    /* 工作流步骤ID: STEP_ID */
-    private java.lang.String _stepId;
+    /* 源状态: FROM_STATUS */
+    private java.lang.Integer _fromStatus;
     
-    /* 参与者类型: ACTOR_TYPE */
-    private java.lang.String _actorType;
+    /* 目标状态: TO_STATUS */
+    private java.lang.Integer _toStatus;
     
-    /* 参与者ID: ACTOR_ID */
-    private java.lang.String _actorId;
+    /* 源应用状态: FROM_APP_STATE */
+    private java.lang.String _fromAppState;
     
-    /* 参与者部门ID: ACTOR_DEPT_ID */
-    private java.lang.String _actorDeptId;
+    /* 目标应用状态: TO_APP_STATE */
+    private java.lang.String _toAppState;
     
-    /* 参与者名称: ACTOR_NAME */
-    private java.lang.String _actorName;
+    /* 状态变动时间: CHANGE_TIME */
+    private java.sql.Timestamp _changeTime;
     
-    /* 投票权重: VOTE_WEIGHT */
-    private java.lang.Integer _voteWeight;
+    /* 操作者ID: OPERATOR_ID */
+    private java.lang.String _operatorId;
     
-    /* 是否分配到用户: ASSIGN_FOR_USER */
-    private java.lang.Boolean _assignForUser;
+    /* 操作者: OPERATOR_NAME */
+    private java.lang.String _operatorName;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -175,23 +158,17 @@ public class _NopWfStepActor extends DynamicOrmEntity{
     /* 创建时间: CREATE_TIME */
     private java.sql.Timestamp _createTime;
     
-    /* 修改人: UPDATED_BY */
-    private java.lang.String _updatedBy;
-    
-    /* 修改时间: UPDATE_TIME */
-    private java.sql.Timestamp _updateTime;
-    
 
-    public _NopWfStepActor(){
+    public _NopWfStatusHistory(){
     }
 
-    protected NopWfStepActor newInstance(){
-       return new NopWfStepActor();
+    protected NopWfStatusHistory newInstance(){
+       return new NopWfStatusHistory();
     }
 
     @Override
-    public NopWfStepActor cloneInstance() {
-        NopWfStepActor entity = newInstance();
+    public NopWfStatusHistory cloneInstance() {
+        NopWfStatusHistory entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
@@ -204,7 +181,7 @@ public class _NopWfStepActor extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.wf.dao.entity.NopWfStepActor";
+      return "io.nop.wf.dao.entity.NopWfStatusHistory";
     }
 
     @Override
@@ -257,26 +234,26 @@ public class _NopWfStepActor extends DynamicOrmEntity{
             case PROP_ID_wfId:
                return getWfId();
         
-            case PROP_ID_stepId:
-               return getStepId();
+            case PROP_ID_fromStatus:
+               return getFromStatus();
         
-            case PROP_ID_actorType:
-               return getActorType();
+            case PROP_ID_toStatus:
+               return getToStatus();
         
-            case PROP_ID_actorId:
-               return getActorId();
+            case PROP_ID_fromAppState:
+               return getFromAppState();
         
-            case PROP_ID_actorDeptId:
-               return getActorDeptId();
+            case PROP_ID_toAppState:
+               return getToAppState();
         
-            case PROP_ID_actorName:
-               return getActorName();
+            case PROP_ID_changeTime:
+               return getChangeTime();
         
-            case PROP_ID_voteWeight:
-               return getVoteWeight();
+            case PROP_ID_operatorId:
+               return getOperatorId();
         
-            case PROP_ID_assignForUser:
-               return getAssignForUser();
+            case PROP_ID_operatorName:
+               return getOperatorName();
         
             case PROP_ID_version:
                return getVersion();
@@ -286,12 +263,6 @@ public class _NopWfStepActor extends DynamicOrmEntity{
         
             case PROP_ID_createTime:
                return getCreateTime();
-        
-            case PROP_ID_updatedBy:
-               return getUpdatedBy();
-        
-            case PROP_ID_updateTime:
-               return getUpdateTime();
         
            default:
               return super.orm_propValue(propId);
@@ -324,73 +295,73 @@ public class _NopWfStepActor extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_stepId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_stepId));
-               }
-               setStepId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_actorType:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_actorType));
-               }
-               setActorType(typedValue);
-               break;
-            }
-        
-            case PROP_ID_actorId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_actorId));
-               }
-               setActorId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_actorDeptId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_actorDeptId));
-               }
-               setActorDeptId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_actorName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_actorName));
-               }
-               setActorName(typedValue);
-               break;
-            }
-        
-            case PROP_ID_voteWeight:{
+            case PROP_ID_fromStatus:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_voteWeight));
+                       err-> newTypeConversionError(PROP_NAME_fromStatus));
                }
-               setVoteWeight(typedValue);
+               setFromStatus(typedValue);
                break;
             }
         
-            case PROP_ID_assignForUser:{
-               java.lang.Boolean typedValue = null;
+            case PROP_ID_toStatus:{
+               java.lang.Integer typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toBoolean(value,
-                       err-> newTypeConversionError(PROP_NAME_assignForUser));
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_toStatus));
                }
-               setAssignForUser(typedValue);
+               setToStatus(typedValue);
+               break;
+            }
+        
+            case PROP_ID_fromAppState:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_fromAppState));
+               }
+               setFromAppState(typedValue);
+               break;
+            }
+        
+            case PROP_ID_toAppState:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_toAppState));
+               }
+               setToAppState(typedValue);
+               break;
+            }
+        
+            case PROP_ID_changeTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_changeTime));
+               }
+               setChangeTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_operatorId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_operatorId));
+               }
+               setOperatorId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_operatorName:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_operatorName));
+               }
+               setOperatorName(typedValue);
                break;
             }
         
@@ -424,26 +395,6 @@ public class _NopWfStepActor extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_updatedBy:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_updatedBy));
-               }
-               setUpdatedBy(typedValue);
-               break;
-            }
-        
-            case PROP_ID_updateTime:{
-               java.sql.Timestamp typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_updateTime));
-               }
-               setUpdateTime(typedValue);
-               break;
-            }
-        
            default:
               super.orm_propValue(propId,value);
         }
@@ -467,51 +418,51 @@ public class _NopWfStepActor extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_stepId:{
+            case PROP_ID_fromStatus:{
                onInitProp(propId);
-               this._stepId = (java.lang.String)value;
+               this._fromStatus = (java.lang.Integer)value;
                
                break;
             }
         
-            case PROP_ID_actorType:{
+            case PROP_ID_toStatus:{
                onInitProp(propId);
-               this._actorType = (java.lang.String)value;
+               this._toStatus = (java.lang.Integer)value;
                
                break;
             }
         
-            case PROP_ID_actorId:{
+            case PROP_ID_fromAppState:{
                onInitProp(propId);
-               this._actorId = (java.lang.String)value;
+               this._fromAppState = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_actorDeptId:{
+            case PROP_ID_toAppState:{
                onInitProp(propId);
-               this._actorDeptId = (java.lang.String)value;
+               this._toAppState = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_actorName:{
+            case PROP_ID_changeTime:{
                onInitProp(propId);
-               this._actorName = (java.lang.String)value;
+               this._changeTime = (java.sql.Timestamp)value;
                
                break;
             }
         
-            case PROP_ID_voteWeight:{
+            case PROP_ID_operatorId:{
                onInitProp(propId);
-               this._voteWeight = (java.lang.Integer)value;
+               this._operatorId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_assignForUser:{
+            case PROP_ID_operatorName:{
                onInitProp(propId);
-               this._assignForUser = (java.lang.Boolean)value;
+               this._operatorName = (java.lang.String)value;
                
                break;
             }
@@ -533,20 +484,6 @@ public class _NopWfStepActor extends DynamicOrmEntity{
             case PROP_ID_createTime:{
                onInitProp(propId);
                this._createTime = (java.sql.Timestamp)value;
-               
-               break;
-            }
-        
-            case PROP_ID_updatedBy:{
-               onInitProp(propId);
-               this._updatedBy = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_updateTime:{
-               onInitProp(propId);
-               this._updateTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -577,7 +514,7 @@ public class _NopWfStepActor extends DynamicOrmEntity{
     }
     
     /**
-     * 工作流实例ID: WF_ID
+     * 主键: WF_ID
      */
     public java.lang.String getWfId(){
          onPropGet(PROP_ID_wfId);
@@ -585,7 +522,7 @@ public class _NopWfStepActor extends DynamicOrmEntity{
     }
 
     /**
-     * 工作流实例ID: WF_ID
+     * 主键: WF_ID
      */
     public void setWfId(java.lang.String value){
         if(onPropSet(PROP_ID_wfId,value)){
@@ -596,134 +533,134 @@ public class _NopWfStepActor extends DynamicOrmEntity{
     }
     
     /**
-     * 工作流步骤ID: STEP_ID
+     * 源状态: FROM_STATUS
      */
-    public java.lang.String getStepId(){
-         onPropGet(PROP_ID_stepId);
-         return _stepId;
+    public java.lang.Integer getFromStatus(){
+         onPropGet(PROP_ID_fromStatus);
+         return _fromStatus;
     }
 
     /**
-     * 工作流步骤ID: STEP_ID
+     * 源状态: FROM_STATUS
      */
-    public void setStepId(java.lang.String value){
-        if(onPropSet(PROP_ID_stepId,value)){
-            this._stepId = value;
-            internalClearRefs(PROP_ID_stepId);
+    public void setFromStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_fromStatus,value)){
+            this._fromStatus = value;
+            internalClearRefs(PROP_ID_fromStatus);
             
         }
     }
     
     /**
-     * 参与者类型: ACTOR_TYPE
+     * 目标状态: TO_STATUS
      */
-    public java.lang.String getActorType(){
-         onPropGet(PROP_ID_actorType);
-         return _actorType;
+    public java.lang.Integer getToStatus(){
+         onPropGet(PROP_ID_toStatus);
+         return _toStatus;
     }
 
     /**
-     * 参与者类型: ACTOR_TYPE
+     * 目标状态: TO_STATUS
      */
-    public void setActorType(java.lang.String value){
-        if(onPropSet(PROP_ID_actorType,value)){
-            this._actorType = value;
-            internalClearRefs(PROP_ID_actorType);
+    public void setToStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_toStatus,value)){
+            this._toStatus = value;
+            internalClearRefs(PROP_ID_toStatus);
             
         }
     }
     
     /**
-     * 参与者ID: ACTOR_ID
+     * 源应用状态: FROM_APP_STATE
      */
-    public java.lang.String getActorId(){
-         onPropGet(PROP_ID_actorId);
-         return _actorId;
+    public java.lang.String getFromAppState(){
+         onPropGet(PROP_ID_fromAppState);
+         return _fromAppState;
     }
 
     /**
-     * 参与者ID: ACTOR_ID
+     * 源应用状态: FROM_APP_STATE
      */
-    public void setActorId(java.lang.String value){
-        if(onPropSet(PROP_ID_actorId,value)){
-            this._actorId = value;
-            internalClearRefs(PROP_ID_actorId);
+    public void setFromAppState(java.lang.String value){
+        if(onPropSet(PROP_ID_fromAppState,value)){
+            this._fromAppState = value;
+            internalClearRefs(PROP_ID_fromAppState);
             
         }
     }
     
     /**
-     * 参与者部门ID: ACTOR_DEPT_ID
+     * 目标应用状态: TO_APP_STATE
      */
-    public java.lang.String getActorDeptId(){
-         onPropGet(PROP_ID_actorDeptId);
-         return _actorDeptId;
+    public java.lang.String getToAppState(){
+         onPropGet(PROP_ID_toAppState);
+         return _toAppState;
     }
 
     /**
-     * 参与者部门ID: ACTOR_DEPT_ID
+     * 目标应用状态: TO_APP_STATE
      */
-    public void setActorDeptId(java.lang.String value){
-        if(onPropSet(PROP_ID_actorDeptId,value)){
-            this._actorDeptId = value;
-            internalClearRefs(PROP_ID_actorDeptId);
+    public void setToAppState(java.lang.String value){
+        if(onPropSet(PROP_ID_toAppState,value)){
+            this._toAppState = value;
+            internalClearRefs(PROP_ID_toAppState);
             
         }
     }
     
     /**
-     * 参与者名称: ACTOR_NAME
+     * 状态变动时间: CHANGE_TIME
      */
-    public java.lang.String getActorName(){
-         onPropGet(PROP_ID_actorName);
-         return _actorName;
+    public java.sql.Timestamp getChangeTime(){
+         onPropGet(PROP_ID_changeTime);
+         return _changeTime;
     }
 
     /**
-     * 参与者名称: ACTOR_NAME
+     * 状态变动时间: CHANGE_TIME
      */
-    public void setActorName(java.lang.String value){
-        if(onPropSet(PROP_ID_actorName,value)){
-            this._actorName = value;
-            internalClearRefs(PROP_ID_actorName);
+    public void setChangeTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_changeTime,value)){
+            this._changeTime = value;
+            internalClearRefs(PROP_ID_changeTime);
             
         }
     }
     
     /**
-     * 投票权重: VOTE_WEIGHT
+     * 操作者ID: OPERATOR_ID
      */
-    public java.lang.Integer getVoteWeight(){
-         onPropGet(PROP_ID_voteWeight);
-         return _voteWeight;
+    public java.lang.String getOperatorId(){
+         onPropGet(PROP_ID_operatorId);
+         return _operatorId;
     }
 
     /**
-     * 投票权重: VOTE_WEIGHT
+     * 操作者ID: OPERATOR_ID
      */
-    public void setVoteWeight(java.lang.Integer value){
-        if(onPropSet(PROP_ID_voteWeight,value)){
-            this._voteWeight = value;
-            internalClearRefs(PROP_ID_voteWeight);
+    public void setOperatorId(java.lang.String value){
+        if(onPropSet(PROP_ID_operatorId,value)){
+            this._operatorId = value;
+            internalClearRefs(PROP_ID_operatorId);
             
         }
     }
     
     /**
-     * 是否分配到用户: ASSIGN_FOR_USER
+     * 操作者: OPERATOR_NAME
      */
-    public java.lang.Boolean getAssignForUser(){
-         onPropGet(PROP_ID_assignForUser);
-         return _assignForUser;
+    public java.lang.String getOperatorName(){
+         onPropGet(PROP_ID_operatorName);
+         return _operatorName;
     }
 
     /**
-     * 是否分配到用户: ASSIGN_FOR_USER
+     * 操作者: OPERATOR_NAME
      */
-    public void setAssignForUser(java.lang.Boolean value){
-        if(onPropSet(PROP_ID_assignForUser,value)){
-            this._assignForUser = value;
-            internalClearRefs(PROP_ID_assignForUser);
+    public void setOperatorName(java.lang.String value){
+        if(onPropSet(PROP_ID_operatorName,value)){
+            this._operatorName = value;
+            internalClearRefs(PROP_ID_operatorName);
             
         }
     }
@@ -786,44 +723,6 @@ public class _NopWfStepActor extends DynamicOrmEntity{
     }
     
     /**
-     * 修改人: UPDATED_BY
-     */
-    public java.lang.String getUpdatedBy(){
-         onPropGet(PROP_ID_updatedBy);
-         return _updatedBy;
-    }
-
-    /**
-     * 修改人: UPDATED_BY
-     */
-    public void setUpdatedBy(java.lang.String value){
-        if(onPropSet(PROP_ID_updatedBy,value)){
-            this._updatedBy = value;
-            internalClearRefs(PROP_ID_updatedBy);
-            
-        }
-    }
-    
-    /**
-     * 修改时间: UPDATE_TIME
-     */
-    public java.sql.Timestamp getUpdateTime(){
-         onPropGet(PROP_ID_updateTime);
-         return _updateTime;
-    }
-
-    /**
-     * 修改时间: UPDATE_TIME
-     */
-    public void setUpdateTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_updateTime,value)){
-            this._updateTime = value;
-            internalClearRefs(PROP_ID_updateTime);
-            
-        }
-    }
-    
-    /**
      * 工作流实例
      */
     public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
@@ -839,27 +738,6 @@ public class _NopWfStepActor extends DynamicOrmEntity{
           internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
              
                     this.setWfId(refEntity.getWfId());
-                 
-          });
-       }
-    }
-       
-    /**
-     * 工作流步骤实例
-     */
-    public io.nop.wf.dao.entity.NopWfStepInstance getWfStepInstance(){
-       return (io.nop.wf.dao.entity.NopWfStepInstance)internalGetRefEntity(PROP_NAME_wfStepInstance);
-    }
-
-    public void setWfStepInstance(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
-       if(refEntity == null){
-         
-         this.setStepId(null);
-         
-       }else{
-          internalSetRefEntity(PROP_NAME_wfStepInstance, refEntity,()->{
-             
-                    this.setStepId(refEntity.getStepId());
                  
           });
        }

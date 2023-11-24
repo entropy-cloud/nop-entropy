@@ -498,9 +498,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         initArgs(wfRt, args);
         checkManageAuth(wfRt);
 
-        wf.getRecord().setSuspendTime(CoreMetrics.currentTimestamp());
+        wf.getRecord().setLastOperateTime(CoreMetrics.currentTimestamp());
         IWfActor caller = wfRt.getCaller();
-        wf.getRecord().setSuspendCaller(caller);
+        wf.getRecord().setLastOperator(caller);
 
         wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_SUSPENDED);
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_SUSPEND);
@@ -519,9 +519,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         initArgs(wfRt, args);
         checkManageAuth(wfRt);
 
-        wf.getRecord().setResumeTime(CoreMetrics.currentTimestamp());
+        wf.getRecord().setLastOperateTime(CoreMetrics.currentTimestamp());
         IWfActor caller = wfRt.getCaller();
-        wf.getRecord().setResumeCaller(caller);
+        wf.getRecord().setLastOperator(caller);
 
         wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_RESUME);
@@ -556,7 +556,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         checkManageAuth(wfRt);
 
         IWfActor caller = wfRt.getCaller();
-        wf.getRecord().setCanceller(caller);
+        wf.getRecord().setLastOperator(caller);
+        wf.getRecord().setLastOperateTime(CoreMetrics.currentTimestamp());
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_KILL);
 

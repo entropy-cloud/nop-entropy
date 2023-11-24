@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.io.File;
+import java.lang.reflect.Method;
 
 import static io.nop.autotest.core.AutoTestConfigs.CFG_AUTOTEST_DISABLE_SNAPSHOT;
 import static io.nop.autotest.core.AutoTestConfigs.CFG_AUTOTEST_FORCE_SAVE_OUTPUT;
@@ -31,6 +32,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
     @BeforeEach
     public void init(TestInfo testInfo) {
         this.testInfo = testInfo;
+        this.beginTestCase();
         initVariant(testInfo);
         String path = getCaseDataPath(testInfo);
         File caseDataDir = new File(getCasesDir(), path);
@@ -48,6 +50,12 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
             String variant = displayName.substring(pos + 1).trim();
             setVariant(variant);
         }
+    }
+
+    @Override
+    public String getTestMethod() {
+        Method method = testInfo.getTestMethod().orElse(null);
+        return method == null ? null : method.getName();
     }
 
     @AfterEach

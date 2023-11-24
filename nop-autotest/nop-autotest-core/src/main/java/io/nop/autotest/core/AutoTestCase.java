@@ -86,6 +86,10 @@ public class AutoTestCase extends BaseTestCase {
     private boolean sqlInit;
     private boolean saveOutput;
 
+    public String getTestMethod(){
+        return null;
+    }
+
     public String getVariant() {
         return variant;
     }
@@ -110,6 +114,9 @@ public class AutoTestCase extends BaseTestCase {
         return caseData;
     }
 
+    protected void beginTestCase(){
+        LOG.info("nop.autotest.begin-test-case:method={},case={}",getTestMethod(),getClass().getName());
+    }
     public void initCaseDataDir(File caseDataDir) {
         caseData = new AutoTestCaseData(caseDataDir, valueResolverRegistry);
         caseData.getInputDir().mkdirs();
@@ -139,6 +146,7 @@ public class AutoTestCase extends BaseTestCase {
         sessionFactory = initSessionFactory();
 
         Map<String, Object> vars = caseData.getInitVars();
+        AutoTestVars.clear();
         AutoTestVars.setVars(vars);
         VarCollector.registerInstance(new AutoTestVarCollector());
 
@@ -214,13 +222,13 @@ public class AutoTestCase extends BaseTestCase {
                 } else if (checkOutput) {
                     LOG.info("\n============ autotest run snapshot check =========================");
 
-                    new AutoTestCaseResultChecker(variant, caseData, daoProvider, jdbcTemplate, matchConfig).check();
+                    new AutoTestCaseResultChecker(getTestMethod(),variant, caseData, daoProvider, jdbcTemplate, matchConfig).check();
                 }
             }
         } finally {
             AutoTestVars.clear();
         }
-        LOG.info("nop.autotest.completed:case={},success={}",this.getClass().getName(),success);
+        LOG.info("nop.autotest.completed:method={},case={},success={}",getTestMethod(), this.getClass().getName(),success);
     }
 
     public boolean isCheckOutput() {
@@ -288,7 +296,7 @@ public class AutoTestCase extends BaseTestCase {
             try {
                 Object json = caseData.readOutputJson(fileName, variant);
                 value = AutoTestDataHelper.toJsonObject(result);
-                AutoTestMatchChecker.checkMatch(matchConfig, json, value, scope);
+                AutoTestMatchChecker.checkMatch(getTestMethod(),matchConfig, json, value, scope);
             } catch (Exception e) {
                 LOG.error("nop.autotest.output-check-fail:fileName={},result={}", fileName,
                         JsonTool.serialize(value, true));

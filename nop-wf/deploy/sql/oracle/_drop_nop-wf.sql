@@ -1,7 +1,9 @@
 
 drop table nop_wf_definition;
+drop table nop_wf_status_history;
 drop table nop_wf_step_instance_link;
 drop table nop_wf_step_actor;
+drop table nop_wf_user_delegate;
 drop table nop_wf_action;
 drop table nop_wf_output;
 drop table nop_wf_var;

@@ -81,13 +81,7 @@ public interface IWorkflowRecord {
      */
     void markEnd();
 
-    void setSuspendTime(Timestamp time);
+    void setLastOperateTime(Timestamp lastOperateTime);
 
-    void setResumeTime(Timestamp time);
-
-    void setSuspendCaller(IWfActor caller);
-
-    void setResumeCaller(IWfActor caller);
-
-    void setCanceller(IWfActor caller);
+    void setLastOperator(IWfActor operator);
 }

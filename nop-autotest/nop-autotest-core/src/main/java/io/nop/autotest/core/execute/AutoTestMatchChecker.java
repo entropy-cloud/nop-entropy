@@ -28,7 +28,7 @@ import static io.nop.autotest.core.AutoTestErrors.ERR_AUTOTEST_CHECK_MATCH_FAIL;
 public class AutoTestMatchChecker {
     public static final Logger LOG = LoggerFactory.getLogger(AutoTestMatchChecker.class);
 
-    public static void checkMatch(MatchPatternCompileConfig config, Object tpl, Object value, IEvalScope scope) {
+    public static void checkMatch(String testMethod, MatchPatternCompileConfig config, Object tpl, Object value, IEvalScope scope) {
         IMatchPattern pattern = PatternMatchPatternCompiler.INSTANCE.parseFromValue(null, tpl, config);
         ListValidationErrorCollector collector = new ListValidationErrorCollector();
         MatchState state = new MatchState(value);
@@ -38,7 +38,7 @@ public class AutoTestMatchChecker {
 
         if (!collector.getErrors().isEmpty()) {
             formatErrors(collector.getErrors());
-            LOG.error("nop.autotest.check-fail:\n{}", getErrorsString(collector.getErrors()));
+            LOG.error("nop.autotest.check-fail:method={},\n{}", testMethod,getErrorsString(collector.getErrors()));
 
             throw new AutoTestException(ERR_AUTOTEST_CHECK_MATCH_FAIL).param(ARG_ERRORS, collector.getErrors());
         } else if (!matched) {

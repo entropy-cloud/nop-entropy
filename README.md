@@ -36,26 +36,41 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 
 开发进度：
 
-| 模块              | 说明               | 进度   |
-|-----------------|------------------|------|
-| nop-ioc         | 声明式IoC容器         | 已完成  |
-| nop-config      | 动态配置中心           | 已完成  |
-| nop-xlang       | XLang脚本语言和模板语言   | 已完成  |
-| nop-orm         | 下一代ORM引擎         | 已完成  |
-| nop-graphql     | GraphQL引擎        | 已完成  |
-| nop-rpc         | 分布式RPC调用         | 已完成  |
-| nop-report      | 中国式报表引擎和Word报表模板 | 已完成  |
-| nop-rule        | 规则引擎             | 已完成  |
-| nop-autotest    | 模型驱动的自动化测试框架     | 已完成  |
-| nop-idea-plugin | IDEA开发插件         | 基本可用 |
-| nop-tcc         | 分布式事务            | 50%  |
-| nop-workflow    | 工作流引擎            | 60%  |
-| nop-task        | 逻辑流编排            | 30%  |
-| nop-job         | 分布式任务调度          | 40%  |
-| nop-batch       | 批处理引擎            | 70%  |
-| nop-nosql       | Redis封装          | 0%   |
-| nop-stream      | 简化的流处理，可以集成Flink | 0%   |
-| nop-datav       | BI数据分析           | 0%   |
+| 模块              | 说明                        | 进度   |
+|-----------------|---------------------------|------|
+| nop-api-support | API接口的支持类                 | 已完成  |
+| nop-codegen     | 数据驱动的代码生成器                | 已完成  |
+| nop-antlr       | Antlr的模型驱动改造              | 已完成  |
+| nop-core        | 虚拟文件系统、反射机制、XML/JSON解析    | 已完成  |
+| nop-ioc         | 声明式IoC容器                  | 已完成  |
+| nop-config      | 动态配置中心                    | 已完成  |
+| nop-xlang       | XLang脚本语言和模板语言            | 已完成  |
+| nop-dao         | JDBC访问、事务、数据库方言           | 已完成  |
+| nop-orm         | 下一代ORM引擎                  | 已完成  |
+| nop-graphql     | GraphQL引擎                 | 已完成  |
+| nop-rpc         | 分布式RPC调用                  | 已完成  |
+| nop-ooxml       | Office文件的解析和生成，取代POI      | 已完成  |
+| nop-report      | 中国式报表引擎和Word报表模板          | 已完成  |
+| nop-rule        | 规则引擎                      | 已完成  |
+| nop-autotest    | 模型驱动的自动化测试框架              | 已完成  |
+| nop-idea-plugin | IDEA开发插件，支持语法提示、文件跳转、断点调试 | 基本可用 |
+| nop-cli         | 将代码生成器、文件监听等功能封装为命令行工具    | 基本可用 |
+| nop-cluster     | 分布式集群支持                   | 50%  |
+| nop-tcc         | 分布式事务                     | 50%  |
+| nop-workflow    | 工作流引擎                     | 60%  |
+| nop-task        | 逻辑流编排                     | 30%  |
+| nop-job         | 分布式任务调度                   | 40%  |
+| nop-batch       | 批处理引擎                     | 70%  |
+| nop-message     | Kafka/Pulsar消息队列封装        | 10%  |
+| nop-dbtool      | 数据库导入导出、数据结构比较、同步工具       | 30%  |
+| nop-nosql       | Redis封装                   | 0%   |
+| nop-stream      | 简化的流处理，可以集成Flink          | 0%   |
+| nop-netty       | TCP/IP服务处理框架              | 0%   |
+| nop-datav       | BI数据分析                    | 0%   |
+| nop-js          | GraalVM Js引擎封装，在Java中运行JS | 50%  |
+| nop-integration | 邮件、短信、文件服务等外部服务封装         | 30%  |
+| nop-auth        | 用户权限管理                    | 已完成  |
+| nop-sys         | 系统配置管理                    | 已完成  |
 
 #### 源码地址
 
@@ -94,38 +109,6 @@ nop-entropy没有使用Spring框架，所有模块均从零开始采用模型驱
 Native编译的成熟程度都明显优于Spring框架。借助于Quarkus框架，我们既可以将应用程序编译为单一的uber jar(通过java
 -jar指令来运行)，也可以将程序编译为exe可执行程序，在运行时不需要安装JDK，而且启动速度提升数十倍。目前，nop-entropy的开发调试主要是基于Quarkus框架进行，所以对Spring框架的支持可能会存在一些小问题。
 
-nop-entropy项目目前主要包含如下模块:
-
-1. nop-api-support: API接口的支持类
-2. nop-commons: 常用的帮助类和帮助函数
-3. nop-core: 虚拟文件系统，反射系统，基本的树、图、表格模型，数据驱动的代码生成器框架，XML和JSON解析器
-4. nop-xlang: XPL模板语言，类TypeScript的脚本语言，类XPath的通用Tree路径访问语言,
-   类XSLT的通用Tree变换语言，XDefinition元模型定义语言，XDelta差量合并运算。
-5. nop-config: 动态配置管理
-6. nop-ioc: 支持条件装配的依赖注入容器
-7. nop-dao: SQL管理、事务、JDBC访问、数据库方言
-8. nop-orm: 支持EQL对象查询语言的ORM引擎
-9. nop-ooxml: Excel和Word模板文件的解析和生成
-10. nop-graphql: GraphQL解析器和执行引擎
-11. nop-biz: 业务流引擎，与nop-graphql结合对外提供GraphQL和REST服务
-12. nop-ui: 视图层模型
-13. nop-js: 对graalvm-js的封装，用于在Java端执行JS打包工作，摆脱对Vite/Webpack等前端打包工具的依赖
-14. nop-web: 动态执行Js打包工作，动态生成前端所需的JSON页面文件
-15. nop-rpc: 分布式RPC框架，支持灰度发布，集成Nacos、Sentinel
-16. nop-report: 采用Excel作为可视化设计器的中国式报表引擎
-17. nop-wf: 工作流引擎
-18. nop-rule: 采用Excel作为可视化设计器的规则引擎
-19. nop-batch: 批处理引擎
-20. nop-job: 分布式任务调度引擎
-21. nop-tcc: 分布式事务引擎
-22. nop-cluster: 分布式集群支持
-23. nop-auth: 用户权限管理
-24. nop-sys: 系统配置管理
-25. nop-cli: 将代码生成器封装为命令行工具
-26. nop-autotest: 自动化测试框架
-27. nop-demo: quarkus和spring框架的集成演示程序
-28. nop-idea-plugin: IDEA插件，支持对自定义DSL的语法提示、链接跳转、断点调试等
-
 Nop平台的前端代码在[nop-chaos项目](https://gitee.com/canonical-entropy/nop-chaos)中，nop-chaos的打包结果被包装为以下Java模块。
 
 1. nop-web-site: 前端主页面框架的打包结果
@@ -134,7 +117,7 @@ Nop平台的前端代码在[nop-chaos项目](https://gitee.com/canonical-entropy
 
 #### 安装教程
 
-环境准备： JDK 17+、Maven 3.8.9+、Git
+环境准备： JDK 17+、Maven 3.9.3+、Git
 
 ```shell
 git clone https://gitee.com/canonical-entropy/nop-entropy.git

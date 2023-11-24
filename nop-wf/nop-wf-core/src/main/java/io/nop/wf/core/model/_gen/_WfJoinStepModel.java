@@ -41,6 +41,13 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      *  
+     * xml name: passWeight
+     * 
+     */
+    private java.lang.Integer _passWeight ;
+    
+    /**
+     *  
      * xml name: waitStepNames
      * 
      */
@@ -109,6 +116,25 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      * 
+     * xml name: passWeight
+     *  
+     */
+    
+    public java.lang.Integer getPassWeight(){
+      return _passWeight;
+    }
+
+    
+    public void setPassWeight(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._passWeight = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: waitStepNames
      *  
      */
@@ -142,6 +168,7 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
         out.put("joinGroupExpr",this.getJoinGroupExpr());
         out.put("joinType",this.getJoinType());
         out.put("mayActivated",this.getMayActivated());
+        out.put("passWeight",this.getPassWeight());
         out.put("waitStepNames",this.getWaitStepNames());
     }
 }

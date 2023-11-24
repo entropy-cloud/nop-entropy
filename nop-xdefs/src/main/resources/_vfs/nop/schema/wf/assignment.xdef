@@ -24,9 +24,11 @@
         <!--
           @actorType actor类型，如果包含名字空间，则对应于标签库中定义的动态Actor
           @selectUser 选择actor本身还是actor对应的user
+          @voteWeight [投票权重]
           @assignForUser 是否为actor中的每个用户生成步骤实例
         -->
-        <actor actorId="string" actorType="!string" deptId="string" selectUser="!boolean=true" assignForUser="!boolean=false"
+        <actor actorId="string" actorType="!string" deptId="string" selectUser="!boolean=true"
+               voteWeight="int" assignForUser="!boolean=false"
                xdef:allow-multiple="true" xdef:name="WfAssignmentActorModel"/>
     </actors>
 
