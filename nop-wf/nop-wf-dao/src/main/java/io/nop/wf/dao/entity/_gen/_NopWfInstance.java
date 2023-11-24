@@ -180,6 +180,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_wfInstance = "wfInstance";
     
     /* relation:  */
+    public static final String PROP_NAME_statusHistories = "statusHistories";
+    
+    /* relation:  */
     public static final String PROP_NAME_steps = "steps";
     
     /* relation:  */
@@ -2027,6 +2030,16 @@ public class _NopWfInstance extends DynamicOrmEntity{
                  
           });
        }
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStatusHistory> _statusHistories = new OrmEntitySet<>(this, PROP_NAME_statusHistories,
+        io.nop.wf.dao.entity.NopWfStatusHistory.PROP_NAME_wfInstance, null,io.nop.wf.dao.entity.NopWfStatusHistory.class);
+
+    /**
+     * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStatusHistory> getStatusHistories(){
+       return _statusHistories;
     }
        
     private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstance> _steps = new OrmEntitySet<>(this, PROP_NAME_steps,

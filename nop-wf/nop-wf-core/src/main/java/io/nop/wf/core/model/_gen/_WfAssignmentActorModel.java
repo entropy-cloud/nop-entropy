@@ -54,7 +54,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
      * xml name: voteWeight
      * 
      */
-    private java.lang.Integer _voteWeight ;
+    private int _voteWeight  = 1;
     
     /**
      * 
@@ -157,12 +157,12 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
      *  
      */
     
-    public java.lang.Integer getVoteWeight(){
+    public int getVoteWeight(){
       return _voteWeight;
     }
 
     
-    public void setVoteWeight(java.lang.Integer value){
+    public void setVoteWeight(int value){
         checkAllowChange();
         
         this._voteWeight = value;

@@ -152,40 +152,44 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_priority = "priority";
     public static final int PROP_ID_priority = 33;
     
+    /* 执行顺序: EXEC_ORDER DOUBLE */
+    public static final String PROP_NAME_execOrder = "execOrder";
+    public static final int PROP_ID_execOrder = 34;
+    
     /* 汇聚分组: JOIN_GROUP VARCHAR */
     public static final String PROP_NAME_joinGroup = "joinGroup";
-    public static final int PROP_ID_joinGroup = 34;
+    public static final int PROP_ID_joinGroup = 35;
     
     /* 标签: TAG_SET VARCHAR */
     public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 35;
+    public static final int PROP_ID_tagSet = 36;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 36;
+    public static final int PROP_ID_version = 37;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 37;
+    public static final int PROP_ID_createdBy = 38;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 38;
+    public static final int PROP_ID_createTime = 39;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 39;
+    public static final int PROP_ID_updatedBy = 40;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 40;
+    public static final int PROP_ID_updateTime = 41;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 41;
+    public static final int PROP_ID_remark = 42;
     
 
-    private static int _PROP_ID_BOUND = 42;
+    private static int _PROP_ID_BOUND = 43;
 
     
     /* relation: 工作流实例 */
@@ -210,7 +214,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[42];
+    private static final String[] PROP_ID_TO_NAME = new String[43];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -312,6 +316,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
           PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
+      
+          PROP_ID_TO_NAME[PROP_ID_execOrder] = PROP_NAME_execOrder;
+          PROP_NAME_TO_ID.put(PROP_NAME_execOrder, PROP_ID_execOrder);
       
           PROP_ID_TO_NAME[PROP_ID_joinGroup] = PROP_NAME_joinGroup;
           PROP_NAME_TO_ID.put(PROP_NAME_joinGroup, PROP_ID_joinGroup);
@@ -438,6 +445,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     
     /* 优先级: PRIORITY */
     private java.lang.Integer _priority;
+    
+    /* 执行顺序: EXEC_ORDER */
+    private java.lang.Double _execOrder;
     
     /* 汇聚分组: JOIN_GROUP */
     private java.lang.String _joinGroup;
@@ -631,6 +641,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_priority:
                return getPriority();
+        
+            case PROP_ID_execOrder:
+               return getExecOrder();
         
             case PROP_ID_joinGroup:
                return getJoinGroup();
@@ -997,6 +1010,16 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_execOrder:{
+               java.lang.Double typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toDouble(value,
+                       err-> newTypeConversionError(PROP_NAME_execOrder));
+               }
+               setExecOrder(typedValue);
+               break;
+            }
+        
             case PROP_ID_joinGroup:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -1313,6 +1336,13 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_priority:{
                onInitProp(propId);
                this._priority = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_execOrder:{
+               onInitProp(propId);
+               this._execOrder = (java.lang.Double)value;
                
                break;
             }
@@ -2002,6 +2032,25 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_priority,value)){
             this._priority = value;
             internalClearRefs(PROP_ID_priority);
+            
+        }
+    }
+    
+    /**
+     * 执行顺序: EXEC_ORDER
+     */
+    public java.lang.Double getExecOrder(){
+         onPropGet(PROP_ID_execOrder);
+         return _execOrder;
+    }
+
+    /**
+     * 执行顺序: EXEC_ORDER
+     */
+    public void setExecOrder(java.lang.Double value){
+        if(onPropSet(PROP_ID_execOrder,value)){
+            this._execOrder = value;
+            internalClearRefs(PROP_ID_execOrder);
             
         }
     }

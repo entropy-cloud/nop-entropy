@@ -35,6 +35,14 @@ public interface IWorkflowStepRecord {
 
     void transitToStatus(int status);
 
+    Integer getVoteWeight();
+
+    void setVoteWeight(Integer voteWeight);
+
+    Double getExecOrder();
+
+    void setExecOrder(Double execOrder);
+
     String getActorType();
 
     String getActorId();

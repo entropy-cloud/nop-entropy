@@ -23,6 +23,8 @@ public class WorkflowActionRecordBean implements IWorkflowActionRecord {
     private String wfId;
     private String stepId;
     private String actionName;
+
+    private String displayName;
     private Timestamp execTime;
     private String opinion;
     private String callerId;
@@ -42,6 +44,14 @@ public class WorkflowActionRecordBean implements IWorkflowActionRecord {
     public void setStepRecord(IWorkflowStepRecord stepRecord) {
         setWfId(stepRecord.getWfId());
         setStepId(stepRecord.getStepId());
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     @Override

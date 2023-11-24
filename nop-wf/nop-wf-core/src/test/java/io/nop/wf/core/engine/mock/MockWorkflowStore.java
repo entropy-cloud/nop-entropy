@@ -46,10 +46,10 @@ import java.util.stream.Collectors;
 
 public class MockWorkflowStore implements IWorkflowStore {
     static final Logger LOG = LoggerFactory.getLogger(MockWorkflowStore.class);
-    private Map<Pair<String, String>, Object> boMap = new ConcurrentHashMap<>();
-    private Map<String, WorkflowRecordBean> workflowBeans = new ConcurrentHashMap<>();
+    private final Map<Pair<String, String>, Object> boMap = new ConcurrentHashMap<>();
+    private final Map<String, WorkflowRecordBean> workflowBeans = new ConcurrentHashMap<>();
 
-    private Map<String, WorkflowStepRecordBean> stepBeans = new ConcurrentHashMap<>();
+    private final Map<String, WorkflowStepRecordBean> stepBeans = new ConcurrentHashMap<>();
 
     @Override
     public Object loadBizEntity(String bizObjType, String bizEntityId) {
@@ -75,6 +75,7 @@ public class MockWorkflowStore implements IWorkflowStore {
         WorkflowStepRecordBean stepRecord = new WorkflowStepRecordBean();
         stepRecord.setStepId(StringHelper.generateUUID());
         stepRecord.setStepName(stepModel.getName());
+        stepRecord.setDisplayName(stepModel.getDisplayName());
         stepRecord.setWfRecord(wfRecord);
         stepRecord.setCreateTime(CoreMetrics.currentTimestamp());
         ((WorkflowRecordBean) wfRecord).addStep(stepRecord);
@@ -86,6 +87,7 @@ public class MockWorkflowStore implements IWorkflowStore {
         WorkflowActionRecordBean actionRecord = new WorkflowActionRecordBean();
         actionRecord.setSid(StringHelper.generateUUID());
         actionRecord.setActionName(actionModel.getName());
+        actionRecord.setDisplayName(actionModel.getDisplayName());
         actionRecord.setStepRecord(stepRecord);
         actionRecord.setExecTime(CoreMetrics.currentTimestamp());
         ((WorkflowStepRecordBean) stepRecord).addAction(actionRecord);

@@ -20,7 +20,13 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     int WF_STATUS_HISTORY_BOUND = WF_STATUS_COMPLETED;
 
-    String SIGNAL_PREFIX = "signal_";
+    String PARAM_BIZ_OBJ_ID = "bizObjId";
+
+    String PARAM_BIZ_OBJ_NAME = "bizObjName";
+
+    String PARAM_BIZ_KEY = "bizKey";
+
+    String PARAM_TITLE = "title";
 
     String VAR_WF = "wf";
     String VAR_WF_RT = "wfRt";

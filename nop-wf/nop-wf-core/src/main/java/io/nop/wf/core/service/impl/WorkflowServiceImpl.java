@@ -47,7 +47,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         checkMandatory(wfRef, false);
 
         return workflowExecutor.execute(wfRef, ctx, wf -> {
-            wf.start(request.getArgs(), ctx);
+            wf.start(request.getWfParams(), ctx);
 
             WfStartResponseBean res = new WfStartResponseBean();
             res.setWfName(wf.getWfName());

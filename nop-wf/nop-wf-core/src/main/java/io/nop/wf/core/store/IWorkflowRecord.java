@@ -32,6 +32,14 @@ public interface IWorkflowRecord {
 
     void setBizObjId(String bizObjId);
 
+    String getBizKey();
+
+    void setBizKey(String bizKey);
+
+    String getTitle();
+
+    void setTitle(String title);
+
     Timestamp getStartTime();
 
     void setStartTime(Timestamp startTime);

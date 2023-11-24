@@ -70,11 +70,9 @@ public interface IWfActor {
             return getActorId().equals(userId);
 
         List<? extends IWfActor> users = getUsers();
-        if (users != null) {
-            for (IWfActor user : users) {
-                if (user.getActorId().equals(userId))
-                    return true;
-            }
+        for (IWfActor user : users) {
+            if (user.getActorId().equals(userId))
+                return true;
         }
         return false;
     }

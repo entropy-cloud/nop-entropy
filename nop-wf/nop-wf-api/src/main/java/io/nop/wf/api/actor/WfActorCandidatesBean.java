@@ -38,8 +38,8 @@ public class WfActorCandidatesBean {
         return candidates;
     }
 
-    public void addActorCandidate(IWfActor actor, boolean selectUser, boolean assignForUser) {
-        candidates.add(new WfActorCandidateBean(actor, selectUser, assignForUser));
+    public void addActorCandidate(IWfActor actor, boolean selectUser, int voteWeight, boolean assignForUser) {
+        candidates.add(new WfActorCandidateBean(actor, selectUser, voteWeight, assignForUser));
     }
 
     public boolean containsUser(String userId) {
@@ -64,5 +64,13 @@ public class WfActorCandidatesBean {
                 return true;
         }
         return false;
+    }
+
+    public WfActorCandidateBean findCandidate(IWfActor actor) {
+        for (WfActorCandidateBean candidate : candidates) {
+            if (candidate.containsSelectedActor(actor))
+                return candidate;
+        }
+        return null;
     }
 }

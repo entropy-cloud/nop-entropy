@@ -15,6 +15,8 @@ import java.util.Set;
 public interface IWorkflowStepModel {
     String getName();
 
+    String getDisplayName();
+
     String getSpecialType();
 
     WfStepType getType();

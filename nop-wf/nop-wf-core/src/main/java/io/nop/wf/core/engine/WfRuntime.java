@@ -57,7 +57,7 @@ public class WfRuntime implements IWfRuntime {
     private Set<String> targetCases;
 
 
-    private List<IWfActor> currentActors;
+    private List<WfActorWithWeight> currentActorAssignments;
     private IWorkflowStepImplementor currentStep;
 
     private IWorkflowStepImplementor prevStep;
@@ -230,13 +230,13 @@ public class WfRuntime implements IWfRuntime {
     }
 
     @Override
-    public List<IWfActor> getCurrentActors() {
-        return currentActors;
+    public List<WfActorWithWeight> getCurrentActorAssignments() {
+        return currentActorAssignments;
     }
 
     @Override
-    public void setCurrentActors(List<IWfActor> currentActors) {
-        this.currentActors = currentActors;
+    public void setCurrentActorAssignments(List<WfActorWithWeight> currentActorAssignments) {
+        this.currentActorAssignments = currentActorAssignments;
     }
 
     @Override

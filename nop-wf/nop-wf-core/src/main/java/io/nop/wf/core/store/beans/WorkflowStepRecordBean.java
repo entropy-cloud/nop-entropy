@@ -27,6 +27,8 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private String stepName;
 
+    private String displayName;
+
     private String wfId;
     private Integer status;
     private String actorType;
@@ -53,6 +55,10 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     private Timestamp finishTime;
 
     private String joinGroup;
+
+    private Double execOrder;
+
+    private Integer voteWeight;
     private String appState;
 
     private String subWfName;
@@ -105,6 +111,34 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     @Override
     public void transitToStatus(int status) {
         setStatus(status);
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    @Override
+    public Double getExecOrder() {
+        return execOrder;
+    }
+
+    @Override
+    public void setExecOrder(Double execOrder) {
+        this.execOrder = execOrder;
+    }
+
+    @Override
+    public Integer getVoteWeight() {
+        return voteWeight;
+    }
+
+    @Override
+    public void setVoteWeight(Integer voteWeight) {
+        this.voteWeight = voteWeight;
     }
 
     @Override

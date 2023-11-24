@@ -28,8 +28,13 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private String wfId;
     private String wfName;
     private Long wfVersion;
+
+    private Map<String,Object> wfParams;
     private Integer status;
 
+    private String title;
+
+    private String bizKey;
     private String bizObjName;
     private String bizObjId;
     private Timestamp startTime;
@@ -142,6 +147,29 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         }
     }
 
+    public Map<String, Object> getWfParams() {
+        return wfParams;
+    }
+
+    public void setWfParams(Map<String, Object> wfParams) {
+        this.wfParams = wfParams;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
+    }
 
     @Override
     public String getParentWfName() {
