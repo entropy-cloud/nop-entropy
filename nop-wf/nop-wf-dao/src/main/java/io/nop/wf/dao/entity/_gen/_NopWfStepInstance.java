@@ -152,44 +152,48 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_priority = "priority";
     public static final int PROP_ID_priority = 33;
     
+    /* 投票权重: VOTE_WEIGHT INTEGER */
+    public static final String PROP_NAME_voteWeight = "voteWeight";
+    public static final int PROP_ID_voteWeight = 34;
+    
     /* 执行顺序: EXEC_ORDER DOUBLE */
     public static final String PROP_NAME_execOrder = "execOrder";
-    public static final int PROP_ID_execOrder = 34;
+    public static final int PROP_ID_execOrder = 35;
     
     /* 汇聚分组: JOIN_GROUP VARCHAR */
     public static final String PROP_NAME_joinGroup = "joinGroup";
-    public static final int PROP_ID_joinGroup = 35;
+    public static final int PROP_ID_joinGroup = 36;
     
     /* 标签: TAG_SET VARCHAR */
     public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 36;
+    public static final int PROP_ID_tagSet = 37;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 37;
+    public static final int PROP_ID_version = 38;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 38;
+    public static final int PROP_ID_createdBy = 39;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 39;
+    public static final int PROP_ID_createTime = 40;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 40;
+    public static final int PROP_ID_updatedBy = 41;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 41;
+    public static final int PROP_ID_updateTime = 42;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 42;
+    public static final int PROP_ID_remark = 43;
     
 
-    private static int _PROP_ID_BOUND = 43;
+    private static int _PROP_ID_BOUND = 44;
 
     
     /* relation: 工作流实例 */
@@ -214,7 +218,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[43];
+    private static final String[] PROP_ID_TO_NAME = new String[44];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -316,6 +320,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
           PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
+      
+          PROP_ID_TO_NAME[PROP_ID_voteWeight] = PROP_NAME_voteWeight;
+          PROP_NAME_TO_ID.put(PROP_NAME_voteWeight, PROP_ID_voteWeight);
       
           PROP_ID_TO_NAME[PROP_ID_execOrder] = PROP_NAME_execOrder;
           PROP_NAME_TO_ID.put(PROP_NAME_execOrder, PROP_ID_execOrder);
@@ -445,6 +452,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     
     /* 优先级: PRIORITY */
     private java.lang.Integer _priority;
+    
+    /* 投票权重: VOTE_WEIGHT */
+    private java.lang.Integer _voteWeight;
     
     /* 执行顺序: EXEC_ORDER */
     private java.lang.Double _execOrder;
@@ -641,6 +651,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_priority:
                return getPriority();
+        
+            case PROP_ID_voteWeight:
+               return getVoteWeight();
         
             case PROP_ID_execOrder:
                return getExecOrder();
@@ -1010,6 +1023,16 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_voteWeight:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_voteWeight));
+               }
+               setVoteWeight(typedValue);
+               break;
+            }
+        
             case PROP_ID_execOrder:{
                java.lang.Double typedValue = null;
                if(value != null){
@@ -1336,6 +1359,13 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_priority:{
                onInitProp(propId);
                this._priority = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_voteWeight:{
+               onInitProp(propId);
+               this._voteWeight = (java.lang.Integer)value;
                
                break;
             }
@@ -2032,6 +2062,25 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_priority,value)){
             this._priority = value;
             internalClearRefs(PROP_ID_priority);
+            
+        }
+    }
+    
+    /**
+     * 投票权重: VOTE_WEIGHT
+     */
+    public java.lang.Integer getVoteWeight(){
+         onPropGet(PROP_ID_voteWeight);
+         return _voteWeight;
+    }
+
+    /**
+     * 投票权重: VOTE_WEIGHT
+     */
+    public void setVoteWeight(java.lang.Integer value){
+        if(onPropSet(PROP_ID_voteWeight,value)){
+            this._voteWeight = value;
+            internalClearRefs(PROP_ID_voteWeight);
             
         }
     }

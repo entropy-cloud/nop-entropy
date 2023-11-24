@@ -193,6 +193,7 @@ CREATE TABLE nop_wf_step_instance(
   REMIND_TIME TIMESTAMP  ,
   REMIND_COUNT INT4  ,
   PRIORITY INT4 NOT NULL ,
+  VOTE_WEIGHT INT4  ,
   EXEC_ORDER FLOAT8 NOT NULL ,
   JOIN_GROUP VARCHAR(100)  ,
   TAG_SET VARCHAR(200)  ,
@@ -575,6 +576,8 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_step_instance.REMIND_COUNT IS '提醒次数';
                     
       COMMENT ON COLUMN nop_wf_step_instance.PRIORITY IS '优先级';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.VOTE_WEIGHT IS '投票权重';
                     
       COMMENT ON COLUMN nop_wf_step_instance.EXEC_ORDER IS '执行顺序';
                     
