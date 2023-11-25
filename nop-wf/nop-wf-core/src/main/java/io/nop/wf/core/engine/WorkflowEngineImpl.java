@@ -499,7 +499,16 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (value == null)
             return Collections.emptyList();
 
-        List<WfActorBean> actors = BeanTool.castBeanToType(value, JavaGenericTypeBuilder.buildListType(WfActorBean.class));
+        List<Object> list = CollectionHelper.toList(value);
+
+        List<WfActorBean> actors = new ArrayList<>(list.size());
+        for (Object obj : list) {
+            if (obj instanceof WfActorBean) {
+                actors.add((WfActorBean) obj);
+            } else {
+                actors.add(BeanTool.castBeanToType(obj, WfActorBean.class));
+            }
+        }
         List<IWfActor> ret = new ArrayList<>(actors.size());
         for (WfActorBean actorInfo : actors) {
             ret.add(wf.resolveActor(actorInfo.getActorType(), actorInfo.getActorId(), actorInfo.getDeptId()));

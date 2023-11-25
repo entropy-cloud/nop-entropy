@@ -35,6 +35,7 @@ prop:
       remark: Remark
       parent: Parent
       parent.deptName: Parent
+      deptUsers: Users
       children: Children
     NopAuthExtLogin:
       sid: ID

@@ -26,6 +26,7 @@ prop:
       deptId: 主键
       deptName: 名称
       deptType: 类型
+      deptUsers: 部门用户
       email: 邮件
       orderNum: 排序
       parent: 父资源

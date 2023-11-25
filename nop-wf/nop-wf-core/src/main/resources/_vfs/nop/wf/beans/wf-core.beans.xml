@@ -13,6 +13,4 @@
     <bean id="nopWorkflowEngine"
           class="io.nop.wf.core.engine.WorkflowEngineImpl" />
 
-    <bean id="nopWorkflowModelStore" ioc:default="true"
-          class="io.nop.wf.core.store.ResourceWorkflowModelStore" />
 </beans>

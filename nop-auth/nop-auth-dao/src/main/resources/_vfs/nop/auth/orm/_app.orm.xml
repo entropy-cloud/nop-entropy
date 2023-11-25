@@ -124,7 +124,8 @@
             </columns>
             <relations>
                 <to-one displayName="部门" name="dept" refEntityName="io.nop.auth.dao.entity.NopAuthDept"
-                        tagSet="pub,ref-pub" i18n-en:displayName="Department">
+                        refPropName="deptUsers" tagSet="pub,ref-pub" i18n-en:displayName="Department"
+                        ref-i18n-en:displayName="Users">
                     <join>
                         <on leftProp="deptId" rightProp="deptId"/>
                     </join>
@@ -777,6 +778,12 @@
                     </join>
                     <ref-set/>
                 </to-one>
+                <to-many displayName="部门用户" name="deptUsers" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
+                         refPropName="dept" tagSet="pub" i18n-en:displayName="Users">
+                    <join>
+                        <on leftProp="deptId" rightProp="deptId"/>
+                    </join>
+                </to-many>
                 <to-many displayName="子资源" name="children" refEntityName="io.nop.auth.dao.entity.NopAuthDept"
                          refPropName="parent" tagSet="pub" i18n-en:displayName="Children">
                     <join>

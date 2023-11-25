@@ -87,6 +87,13 @@
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
+        <prop name="deptUsers" displayName="部门用户" i18n-en:displayName="Users" tagSet="pub" ext:kind="to-many"
+              internal="true" ext:joinLeftProp="deptId" ext:joinRightProp="deptId" ext:joinRightDisplayProp="userName"
+              insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopAuthUser"/>
+            </schema>
+        </prop>
         <prop name="children" displayName="子资源" i18n-en:displayName="Children" tagSet="pub" ext:kind="to-many"
               internal="true" ext:joinLeftProp="deptId" ext:joinRightProp="parentId" ext:joinRightDisplayProp="deptName"
               insertable="false" updatable="false" lazy="true">

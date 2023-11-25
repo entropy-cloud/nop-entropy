@@ -83,6 +83,9 @@ public class _NopAuthDept extends DynamicOrmEntity{
     /* relation: 父资源 */
     public static final String PROP_NAME_parent = "parent";
     
+    /* relation: 部门用户 */
+    public static final String PROP_NAME_deptUsers = "deptUsers";
+    
     /* relation: 子资源 */
     public static final String PROP_NAME_children = "children";
     
@@ -842,6 +845,16 @@ public class _NopAuthDept extends DynamicOrmEntity{
                  
           });
        }
+    }
+       
+    private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthUser> _deptUsers = new OrmEntitySet<>(this, PROP_NAME_deptUsers,
+        io.nop.auth.dao.entity.NopAuthUser.PROP_NAME_dept, null,io.nop.auth.dao.entity.NopAuthUser.class);
+
+    /**
+     * 部门用户。 refPropName: dept, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthUser> getDeptUsers(){
+       return _deptUsers;
     }
        
     private final OrmEntitySet<io.nop.auth.dao.entity.NopAuthDept> _children = new OrmEntitySet<>(this, PROP_NAME_children,
