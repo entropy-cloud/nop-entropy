@@ -92,108 +92,128 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_ownerName = "ownerName";
     public static final int PROP_ID_ownerName = 18;
     
+    /* 拥有者部门ID: OWNER_DEPT_ID VARCHAR */
+    public static final String PROP_NAME_ownerDeptId = "ownerDeptId";
+    public static final int PROP_ID_ownerDeptId = 19;
+    
     /* 分配者ID: ASSIGNER_ID VARCHAR */
     public static final String PROP_NAME_assignerId = "assignerId";
-    public static final int PROP_ID_assignerId = 19;
+    public static final int PROP_ID_assignerId = 20;
     
     /* 分配者姓名: ASSIGNER_NAME VARCHAR */
     public static final String PROP_NAME_assignerName = "assignerName";
-    public static final int PROP_ID_assignerName = 20;
+    public static final int PROP_ID_assignerName = 21;
     
     /* 调用者ID: CALLER_ID VARCHAR */
     public static final String PROP_NAME_callerId = "callerId";
-    public static final int PROP_ID_callerId = 21;
+    public static final int PROP_ID_callerId = 22;
     
     /* 调用者姓名: CALLER_NAME VARCHAR */
     public static final String PROP_NAME_callerName = "callerName";
-    public static final int PROP_ID_callerName = 22;
+    public static final int PROP_ID_callerName = 23;
     
     /* 取消人ID: CANCELLER_ID VARCHAR */
     public static final String PROP_NAME_cancellerId = "cancellerId";
-    public static final int PROP_ID_cancellerId = 23;
+    public static final int PROP_ID_cancellerId = 24;
     
     /* 取消人姓名: CANCELLER_NAME VARCHAR */
     public static final String PROP_NAME_cancellerName = "cancellerName";
-    public static final int PROP_ID_cancellerName = 24;
+    public static final int PROP_ID_cancellerName = 25;
     
     /* 来源操作: FROM_ACTION VARCHAR */
     public static final String PROP_NAME_fromAction = "fromAction";
-    public static final int PROP_ID_fromAction = 25;
+    public static final int PROP_ID_fromAction = 26;
     
     /* 最后一次操作: LAST_ACTION VARCHAR */
     public static final String PROP_NAME_lastAction = "lastAction";
-    public static final int PROP_ID_lastAction = 26;
+    public static final int PROP_ID_lastAction = 27;
     
     /* 开始时间: START_TIME TIMESTAMP */
     public static final String PROP_NAME_startTime = "startTime";
-    public static final int PROP_ID_startTime = 27;
+    public static final int PROP_ID_startTime = 28;
     
     /* 结束时间: FINISH_TIME TIMESTAMP */
     public static final String PROP_NAME_finishTime = "finishTime";
-    public static final int PROP_ID_finishTime = 28;
+    public static final int PROP_ID_finishTime = 29;
     
     /* 到期时间: DUE_TIME TIMESTAMP */
     public static final String PROP_NAME_dueTime = "dueTime";
-    public static final int PROP_ID_dueTime = 29;
+    public static final int PROP_ID_dueTime = 30;
     
     /* 读取时间: READ_TIME TIMESTAMP */
     public static final String PROP_NAME_readTime = "readTime";
-    public static final int PROP_ID_readTime = 30;
+    public static final int PROP_ID_readTime = 31;
     
     /* 提醒时间: REMIND_TIME TIMESTAMP */
     public static final String PROP_NAME_remindTime = "remindTime";
-    public static final int PROP_ID_remindTime = 31;
+    public static final int PROP_ID_remindTime = 32;
     
     /* 提醒次数: REMIND_COUNT INTEGER */
     public static final String PROP_NAME_remindCount = "remindCount";
-    public static final int PROP_ID_remindCount = 32;
+    public static final int PROP_ID_remindCount = 33;
+    
+    /* 下次重试时间: NEXT_RETRY_TIME TIMESTAMP */
+    public static final String PROP_NAME_nextRetryTime = "nextRetryTime";
+    public static final int PROP_ID_nextRetryTime = 34;
+    
+    /* 已重试次数: RETRY_COUNT INTEGER */
+    public static final String PROP_NAME_retryCount = "retryCount";
+    public static final int PROP_ID_retryCount = 35;
     
     /* 优先级: PRIORITY INTEGER */
     public static final String PROP_NAME_priority = "priority";
-    public static final int PROP_ID_priority = 33;
+    public static final int PROP_ID_priority = 36;
     
     /* 投票权重: VOTE_WEIGHT INTEGER */
     public static final String PROP_NAME_voteWeight = "voteWeight";
-    public static final int PROP_ID_voteWeight = 34;
+    public static final int PROP_ID_voteWeight = 37;
     
     /* 执行顺序: EXEC_ORDER DOUBLE */
     public static final String PROP_NAME_execOrder = "execOrder";
-    public static final int PROP_ID_execOrder = 35;
+    public static final int PROP_ID_execOrder = 38;
     
     /* 汇聚分组: JOIN_GROUP VARCHAR */
     public static final String PROP_NAME_joinGroup = "joinGroup";
-    public static final int PROP_ID_joinGroup = 36;
+    public static final int PROP_ID_joinGroup = 39;
     
-    /* 标签: TAG_SET VARCHAR */
-    public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 37;
+    /* 标签: TAG_TEXT VARCHAR */
+    public static final String PROP_NAME_tagText = "tagText";
+    public static final int PROP_ID_tagText = 40;
+    
+    /* 下一步骤ID: NEXT_STEP_ID VARCHAR */
+    public static final String PROP_NAME_nextStepId = "nextStepId";
+    public static final int PROP_ID_nextStepId = 41;
+    
+    /* 步骤分组: STEP_GROUP VARCHAR */
+    public static final String PROP_NAME_stepGroup = "stepGroup";
+    public static final int PROP_ID_stepGroup = 42;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 38;
+    public static final int PROP_ID_version = 43;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 39;
+    public static final int PROP_ID_createdBy = 44;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 40;
+    public static final int PROP_ID_createTime = 45;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 41;
+    public static final int PROP_ID_updatedBy = 46;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 42;
+    public static final int PROP_ID_updateTime = 47;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 43;
+    public static final int PROP_ID_remark = 48;
     
 
-    private static int _PROP_ID_BOUND = 44;
+    private static int _PROP_ID_BOUND = 49;
 
     
     /* relation: 工作流实例 */
@@ -218,7 +238,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[44];
+    private static final String[] PROP_ID_TO_NAME = new String[49];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -276,6 +296,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_ownerName] = PROP_NAME_ownerName;
           PROP_NAME_TO_ID.put(PROP_NAME_ownerName, PROP_ID_ownerName);
       
+          PROP_ID_TO_NAME[PROP_ID_ownerDeptId] = PROP_NAME_ownerDeptId;
+          PROP_NAME_TO_ID.put(PROP_NAME_ownerDeptId, PROP_ID_ownerDeptId);
+      
           PROP_ID_TO_NAME[PROP_ID_assignerId] = PROP_NAME_assignerId;
           PROP_NAME_TO_ID.put(PROP_NAME_assignerId, PROP_ID_assignerId);
       
@@ -318,6 +341,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remindCount] = PROP_NAME_remindCount;
           PROP_NAME_TO_ID.put(PROP_NAME_remindCount, PROP_ID_remindCount);
       
+          PROP_ID_TO_NAME[PROP_ID_nextRetryTime] = PROP_NAME_nextRetryTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_nextRetryTime, PROP_ID_nextRetryTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_retryCount] = PROP_NAME_retryCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_retryCount, PROP_ID_retryCount);
+      
           PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
           PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
       
@@ -330,8 +359,14 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_joinGroup] = PROP_NAME_joinGroup;
           PROP_NAME_TO_ID.put(PROP_NAME_joinGroup, PROP_ID_joinGroup);
       
-          PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
-          PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
+          PROP_ID_TO_NAME[PROP_ID_tagText] = PROP_NAME_tagText;
+          PROP_NAME_TO_ID.put(PROP_NAME_tagText, PROP_ID_tagText);
+      
+          PROP_ID_TO_NAME[PROP_ID_nextStepId] = PROP_NAME_nextStepId;
+          PROP_NAME_TO_ID.put(PROP_NAME_nextStepId, PROP_ID_nextStepId);
+      
+          PROP_ID_TO_NAME[PROP_ID_stepGroup] = PROP_NAME_stepGroup;
+          PROP_NAME_TO_ID.put(PROP_NAME_stepGroup, PROP_ID_stepGroup);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -408,6 +443,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /* 拥有者姓名: OWNER_NAME */
     private java.lang.String _ownerName;
     
+    /* 拥有者部门ID: OWNER_DEPT_ID */
+    private java.lang.String _ownerDeptId;
+    
     /* 分配者ID: ASSIGNER_ID */
     private java.lang.String _assignerId;
     
@@ -450,6 +488,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /* 提醒次数: REMIND_COUNT */
     private java.lang.Integer _remindCount;
     
+    /* 下次重试时间: NEXT_RETRY_TIME */
+    private java.sql.Timestamp _nextRetryTime;
+    
+    /* 已重试次数: RETRY_COUNT */
+    private java.lang.Integer _retryCount;
+    
     /* 优先级: PRIORITY */
     private java.lang.Integer _priority;
     
@@ -462,8 +506,14 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /* 汇聚分组: JOIN_GROUP */
     private java.lang.String _joinGroup;
     
-    /* 标签: TAG_SET */
-    private java.lang.String _tagSet;
+    /* 标签: TAG_TEXT */
+    private java.lang.String _tagText;
+    
+    /* 下一步骤ID: NEXT_STEP_ID */
+    private java.lang.String _nextStepId;
+    
+    /* 步骤分组: STEP_GROUP */
+    private java.lang.String _stepGroup;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -607,6 +657,9 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_ownerName:
                return getOwnerName();
         
+            case PROP_ID_ownerDeptId:
+               return getOwnerDeptId();
+        
             case PROP_ID_assignerId:
                return getAssignerId();
         
@@ -649,6 +702,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_remindCount:
                return getRemindCount();
         
+            case PROP_ID_nextRetryTime:
+               return getNextRetryTime();
+        
+            case PROP_ID_retryCount:
+               return getRetryCount();
+        
             case PROP_ID_priority:
                return getPriority();
         
@@ -661,8 +720,14 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_joinGroup:
                return getJoinGroup();
         
-            case PROP_ID_tagSet:
-               return getTagSet();
+            case PROP_ID_tagText:
+               return getTagText();
+        
+            case PROP_ID_nextStepId:
+               return getNextStepId();
+        
+            case PROP_ID_stepGroup:
+               return getStepGroup();
         
             case PROP_ID_version:
                return getVersion();
@@ -873,6 +938,16 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_ownerDeptId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_ownerDeptId));
+               }
+               setOwnerDeptId(typedValue);
+               break;
+            }
+        
             case PROP_ID_assignerId:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -1013,6 +1088,26 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_nextRetryTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_nextRetryTime));
+               }
+               setNextRetryTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_retryCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_retryCount));
+               }
+               setRetryCount(typedValue);
+               break;
+            }
+        
             case PROP_ID_priority:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -1053,13 +1148,33 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tagText:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_tagSet));
+                       err-> newTypeConversionError(PROP_NAME_tagText));
                }
-               setTagSet(typedValue);
+               setTagText(typedValue);
+               break;
+            }
+        
+            case PROP_ID_nextStepId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_nextStepId));
+               }
+               setNextStepId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_stepGroup:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_stepGroup));
+               }
+               setStepGroup(typedValue);
                break;
             }
         
@@ -1258,6 +1373,13 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_ownerDeptId:{
+               onInitProp(propId);
+               this._ownerDeptId = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_assignerId:{
                onInitProp(propId);
                this._assignerId = (java.lang.String)value;
@@ -1356,6 +1478,20 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_nextRetryTime:{
+               onInitProp(propId);
+               this._nextRetryTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_retryCount:{
+               onInitProp(propId);
+               this._retryCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
             case PROP_ID_priority:{
                onInitProp(propId);
                this._priority = (java.lang.Integer)value;
@@ -1384,9 +1520,23 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_tagSet:{
+            case PROP_ID_tagText:{
                onInitProp(propId);
-               this._tagSet = (java.lang.String)value;
+               this._tagText = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_nextStepId:{
+               onInitProp(propId);
+               this._nextStepId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_stepGroup:{
+               onInitProp(propId);
+               this._stepGroup = (java.lang.String)value;
                
                break;
             }
@@ -1782,6 +1932,25 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 拥有者部门ID: OWNER_DEPT_ID
+     */
+    public java.lang.String getOwnerDeptId(){
+         onPropGet(PROP_ID_ownerDeptId);
+         return _ownerDeptId;
+    }
+
+    /**
+     * 拥有者部门ID: OWNER_DEPT_ID
+     */
+    public void setOwnerDeptId(java.lang.String value){
+        if(onPropSet(PROP_ID_ownerDeptId,value)){
+            this._ownerDeptId = value;
+            internalClearRefs(PROP_ID_ownerDeptId);
+            
+        }
+    }
+    
+    /**
      * 分配者ID: ASSIGNER_ID
      */
     public java.lang.String getAssignerId(){
@@ -2048,6 +2217,44 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 下次重试时间: NEXT_RETRY_TIME
+     */
+    public java.sql.Timestamp getNextRetryTime(){
+         onPropGet(PROP_ID_nextRetryTime);
+         return _nextRetryTime;
+    }
+
+    /**
+     * 下次重试时间: NEXT_RETRY_TIME
+     */
+    public void setNextRetryTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_nextRetryTime,value)){
+            this._nextRetryTime = value;
+            internalClearRefs(PROP_ID_nextRetryTime);
+            
+        }
+    }
+    
+    /**
+     * 已重试次数: RETRY_COUNT
+     */
+    public java.lang.Integer getRetryCount(){
+         onPropGet(PROP_ID_retryCount);
+         return _retryCount;
+    }
+
+    /**
+     * 已重试次数: RETRY_COUNT
+     */
+    public void setRetryCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_retryCount,value)){
+            this._retryCount = value;
+            internalClearRefs(PROP_ID_retryCount);
+            
+        }
+    }
+    
+    /**
      * 优先级: PRIORITY
      */
     public java.lang.Integer getPriority(){
@@ -2124,20 +2331,58 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 标签: TAG_SET
+     * 标签: TAG_TEXT
      */
-    public java.lang.String getTagSet(){
-         onPropGet(PROP_ID_tagSet);
-         return _tagSet;
+    public java.lang.String getTagText(){
+         onPropGet(PROP_ID_tagText);
+         return _tagText;
     }
 
     /**
-     * 标签: TAG_SET
+     * 标签: TAG_TEXT
      */
-    public void setTagSet(java.lang.String value){
-        if(onPropSet(PROP_ID_tagSet,value)){
-            this._tagSet = value;
-            internalClearRefs(PROP_ID_tagSet);
+    public void setTagText(java.lang.String value){
+        if(onPropSet(PROP_ID_tagText,value)){
+            this._tagText = value;
+            internalClearRefs(PROP_ID_tagText);
+            
+        }
+    }
+    
+    /**
+     * 下一步骤ID: NEXT_STEP_ID
+     */
+    public java.lang.String getNextStepId(){
+         onPropGet(PROP_ID_nextStepId);
+         return _nextStepId;
+    }
+
+    /**
+     * 下一步骤ID: NEXT_STEP_ID
+     */
+    public void setNextStepId(java.lang.String value){
+        if(onPropSet(PROP_ID_nextStepId,value)){
+            this._nextStepId = value;
+            internalClearRefs(PROP_ID_nextStepId);
+            
+        }
+    }
+    
+    /**
+     * 步骤分组: STEP_GROUP
+     */
+    public java.lang.String getStepGroup(){
+         onPropGet(PROP_ID_stepGroup);
+         return _stepGroup;
+    }
+
+    /**
+     * 步骤分组: STEP_GROUP
+     */
+    public void setStepGroup(java.lang.String value){
+        if(onPropSet(PROP_ID_stepGroup,value)){
+            this._stepGroup = value;
+            internalClearRefs(PROP_ID_stepGroup);
             
         }
     }

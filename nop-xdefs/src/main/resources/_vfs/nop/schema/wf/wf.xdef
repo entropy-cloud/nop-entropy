@@ -6,8 +6,8 @@
 -->
 <workflow displayName="string" bizEntityStateProp="prop-name"
           xdef:default-extends="/nop/core/defaults/default.wf.xml"
-          defaultPriority="!int=100" allowStepLoop="!boolean=false"
-          wfName="string" wfVersion="!long=0"
+          priority="!int=100" allowStepLoop="!boolean=false"
+          wfName="string" wfVersion="!long=0"  tagSet="csv-set"
           x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
           xmlns:xdef="/nop/schema/xdef.xdef"
           xdef:name="WfModel" xdef:bean-package="io.nop.wf.core.model"
@@ -171,7 +171,7 @@
         <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
               internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
               optional="!boolean=false" priority="!int=100" appState="#string"
-              tags="csv-set" allowWithdraw="!boolean=false"
+              tagSet="csv-set" allowWithdraw="!boolean=false"
               allowReject="!boolean=false" dueAction="string"
               specialType="string" independent="!boolean=false">
 

@@ -163,10 +163,10 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: tags
+     * xml name: tagSet
      * 
      */
-    private java.util.Set<java.lang.String> _tags ;
+    private java.util.Set<java.lang.String> _tagSet ;
     
     /**
      *  
@@ -616,19 +616,19 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: tags
+     * xml name: tagSet
      *  
      */
     
-    public java.util.Set<java.lang.String> getTags(){
-      return _tags;
+    public java.util.Set<java.lang.String> getTagSet(){
+      return _tagSet;
     }
 
     
-    public void setTags(java.util.Set<java.lang.String> value){
+    public void setTagSet(java.util.Set<java.lang.String> value){
         checkAllowChange();
         
-        this._tags = value;
+        this._tagSet = value;
            
     }
 
@@ -730,7 +730,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("refActions",this.getRefActions());
         out.put("source",this.getSource());
         out.put("specialType",this.getSpecialType());
-        out.put("tags",this.getTags());
+        out.put("tagSet",this.getTagSet());
         out.put("transition",this.getTransition());
         out.put("waitSignals",this.getWaitSignals());
         out.put("wfAppState",this.getWfAppState());

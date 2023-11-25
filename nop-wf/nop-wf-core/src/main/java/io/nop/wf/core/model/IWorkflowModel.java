@@ -9,6 +9,7 @@ package io.nop.wf.core.model;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.commons.lang.ITagSetSupport;
 import io.nop.core.model.graph.dag.Dag;
 import jakarta.annotation.Nonnull;
 
@@ -21,7 +22,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_ACTION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_STEP;
 
-public interface IWorkflowModel extends IComponentModel {
+public interface IWorkflowModel extends IComponentModel, ITagSetSupport {
     String getWfName();
 
     long getWfVersion();
@@ -68,4 +69,6 @@ public interface IWorkflowModel extends IComponentModel {
     String getDiagram();
 
     boolean isAllowStepLoop();
+
+    int getPriority();
 }

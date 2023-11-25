@@ -236,9 +236,12 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             return false;
         }
 
+        String stepGroup = StringHelper.generateUUID();
+        int execOrder = 0;
         // 对每一个actor生成一个步骤实例
         for (WfActorWithWeight actor : actors) {
-            newStepForActor(currentStep, stepModel, fromAction, actor, null, wfRt);
+            newStepForActor(stepGroup, (double) execOrder, currentStep, stepModel, fromAction, actor, null, wfRt);
+            execOrder++;
         }
 
         return true;
@@ -255,8 +258,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         throw wfRt.newError(ERR_WF_STEP_NO_ASSIGNMENT).param(ARG_STEP_NAME, stepModel.getName());
     }
 
-
-    void newStepForActor(IWorkflowStepImplementor currentStep, WfStepModel stepModel, String fromAction,
+    void newStepForActor(String stepGroup, Double execOrder,
+                         IWorkflowStepImplementor currentStep, WfStepModel stepModel, String fromAction,
                          WfActorWithWeight actorWithWeight, IWfActor owner, WfRuntime wfRt) {
         IWfActor actor = actorWithWeight.getActor();
 
@@ -269,6 +272,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                     joinGroup, stepModel.getName(), actor);
             if (stepRecord != null) {
                 IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
+
+                stepRecord.setStepGroup(stepGroup);
+                stepRecord.setExecOrder(execOrder);
 
                 if (currentStep != null) {
                     wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
@@ -286,6 +292,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             owner = getOwner(stepModel.getAssignment(), actor, wfRt);
 
         IWorkflowStepRecord stepRecord = wf.getStore().newStepRecord(wf.getRecord(), stepModel);
+        stepRecord.setStepGroup(stepGroup);
+        stepRecord.setExecOrder((double) execOrder);
 
         IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
         stepRecord.setActor(actor);
@@ -670,6 +678,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         WfStepModel stepModel = (WfStepModel) step.getModel();
         if (stepModel.getTransition() != null) {
+
+            runXpl(stepModel.getSource(), wfRt);
+
             boolean hasTrans = this.doTransition(step, step.getRecord().getFromAction(),
                     stepModel.getTransition(), wfRt);
             if (hasTrans) {
@@ -892,7 +903,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     private void doRejectStep(IWorkflowStepImplementor currentStep, IWorkflowStepImplementor rejectStep,
                               String actionName, WfRuntime wfRt) {
         if (rejectStep.isHistory()) {
-            this.newStepForActor(currentStep, (WfStepModel) rejectStep.getModel(), actionName,
+            String stepGroup = rejectStep.getRecord().getStepGroup();
+            Double execOrder = rejectStep.getRecord().getExecOrder();
+            this.newStepForActor(stepGroup, execOrder, currentStep, (WfStepModel) rejectStep.getModel(), actionName,
                     new WfActorWithWeight(rejectStep.getActor(), rejectStep.getRecord().getVoteWeight()), rejectStep.getOwner(), wfRt);
         }
     }
@@ -906,8 +919,12 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 this.doExitStep(nextStep, NopWfCoreConstants.WF_STEP_STATUS_WITHDRAWN, wfRt);
             }
         }
+
         if (step.isHistory()) {
-            this.newStepForActor(step, stepModel, actionModel.getName(),
+            String stepGroup = step.getRecord().getStepGroup();
+            Double execOrder = step.getRecord().getExecOrder();
+
+            this.newStepForActor(stepGroup, execOrder, step, stepModel, actionModel.getName(),
                     new WfActorWithWeight(step.getActor(), step.getRecord().getVoteWeight()),
                     step.getOwner(), wfRt);
         }
@@ -1103,7 +1120,6 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_END);
         IWorkflowRecord wfRecord = wf.getRecord();
         wfRecord.setEndTime(CoreMetrics.currentTimestamp());
-        wfRt.saveWfRecord(status);
 
         WfModel wfModel = (WfModel) wf.getModel();
         WfEndModel endModel = wfModel.getEnd();
@@ -1111,6 +1127,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (endModel != null) {
             runXpl(endModel.getSource(), wfRt);
         }
+        wfRt.saveWfRecord(status);
 
         this.endSubFlow(wf, status, wfRt);
 

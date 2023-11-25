@@ -7,13 +7,15 @@
  */
 package io.nop.wf.core.store;
 
+import io.nop.commons.lang.ITagSetSupport;
 import io.nop.wf.api.actor.IWfActor;
 
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public interface IWorkflowRecord {
+public interface IWorkflowRecord extends ITagSetSupport {
     String getWfId();
 
     void setWfId(String wfId);
@@ -138,4 +140,10 @@ public interface IWorkflowRecord {
             setOnSignals(onSignals);
         }
     }
+
+    void addTag(String tag);
+
+    void addTags(Collection<String> tags);
+
+    void removeTag(String tag);
 }

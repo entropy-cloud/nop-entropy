@@ -59,13 +59,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
-     * xml name: defaultPriority
-     * 
-     */
-    private int _defaultPriority  = 100;
-    
-    /**
-     *  
      * xml name: deploy
      * 
      */
@@ -129,6 +122,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
+     * xml name: priority
+     * 
+     */
+    private int _priority  = 100;
+    
+    /**
+     *  
      * xml name: start
      * start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点
      */
@@ -147,6 +147,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * 
      */
     private KeyedList<io.nop.wf.core.model.WfSubscribeModel> _subscribes = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: tagSet
+     * 
+     */
+    private java.util.Set<java.lang.String> _tagSet ;
     
     /**
      *  
@@ -306,25 +313,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         checkAllowChange();
         
         this._checkStartAuth = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: defaultPriority
-     *  
-     */
-    
-    public int getDefaultPriority(){
-      return _defaultPriority;
-    }
-
-    
-    public void setDefaultPriority(int value){
-        checkAllowChange();
-        
-        this._defaultPriority = value;
            
     }
 
@@ -528,6 +516,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      * 
+     * xml name: priority
+     *  
+     */
+    
+    public int getPriority(){
+      return _priority;
+    }
+
+    
+    public void setPriority(int value){
+        checkAllowChange();
+        
+        this._priority = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: start
      *  start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点
      */
@@ -637,6 +644,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      * 
+     * xml name: tagSet
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getTagSet(){
+      return _tagSet;
+    }
+
+    
+    public void setTagSet(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._tagSet = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: undeploy
      *  
      */
@@ -725,7 +751,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("checkActionAuth",this.getCheckActionAuth());
         out.put("checkManageAuth",this.getCheckManageAuth());
         out.put("checkStartAuth",this.getCheckStartAuth());
-        out.put("defaultPriority",this.getDefaultPriority());
         out.put("deploy",this.getDeploy());
         out.put("description",this.getDescription());
         out.put("diagram",this.getDiagram());
@@ -735,9 +760,11 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("managerAssignment",this.getManagerAssignment());
         out.put("onError",this.getOnError());
         out.put("onSignal",this.getOnSignal());
+        out.put("priority",this.getPriority());
         out.put("start",this.getStart());
         out.put("steps",this.getSteps());
         out.put("subscribes",this.getSubscribes());
+        out.put("tagSet",this.getTagSet());
         out.put("undeploy",this.getUndeploy());
         out.put("wfName",this.getWfName());
         out.put("wfVersion",this.getWfVersion());

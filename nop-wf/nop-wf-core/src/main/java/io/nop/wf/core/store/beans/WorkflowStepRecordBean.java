@@ -7,19 +7,20 @@
  */
 package io.nop.wf.core.store.beans;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
-import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 @DataBean
 public class WorkflowStepRecordBean implements IWorkflowStepRecord {
@@ -68,6 +69,10 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     private String subWfId;
 
     private Integer subWfResultStatus;
+
+    private String stepGroup;
+
+    private Set<String> tagSet;
 
     private KeyedList<WorkflowActionRecordBean> actions = new KeyedList<>(WorkflowActionRecordBean::getSid);
 
@@ -144,6 +149,16 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     @Override
     public void setJoinGroup(String joinGroup) {
         this.joinGroup = joinGroup;
+    }
+
+    @Override
+    public String getStepGroup() {
+        return stepGroup;
+    }
+
+    @Override
+    public void setStepGroup(String stepGroup) {
+        this.stepGroup = stepGroup;
     }
 
     public void setWfRecord(IWorkflowRecord wfRecord) {
@@ -438,5 +453,30 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     public void setNextStepLinks(List<WorkflowStepLinkBean> nextStepLinks) {
         this.nextStepLinks = nextStepLinks;
+    }
+
+
+    @Override
+    public Set<String> getTagSet() {
+        return tagSet;
+    }
+
+    public void setTagSet(Set<String> tagSet) {
+        this.tagSet = tagSet;
+    }
+
+    @Override
+    public void addTag(String tag) {
+        this.tagSet = TagsHelper.add(getTagSet(), tag);
+    }
+
+    @Override
+    public void addTags(Collection<String> tags) {
+        this.tagSet = TagsHelper.merge(getTagSet(), tags);
+    }
+
+    @Override
+    public void removeTag(String tag) {
+        this.tagSet = TagsHelper.remove(getTagSet(), tag);
     }
 }

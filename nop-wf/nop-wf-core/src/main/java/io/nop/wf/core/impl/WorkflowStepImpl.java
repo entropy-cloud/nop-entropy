@@ -23,6 +23,7 @@ import jakarta.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class WorkflowStepImpl implements IWorkflowStepImplementor {
     private final IWorkflowImplementor wf;
@@ -247,9 +248,16 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Nonnull
     @Override
-    public List<? extends IWorkflowStep> getOtherStepsWithSameName(boolean includeHistory) {
+    public List<? extends IWorkflowStep> getStepsInSameStepGroup(boolean includeHistory, boolean includeSelf) {
         List<? extends IWorkflowStep> ret = wf.getStepsByName(model.getName(), includeHistory);
-        ret.remove(this);
+        String stepGroup = record.getStepGroup();
+        ret.removeIf(step -> {
+            if (!includeSelf) {
+                if (step == WorkflowStepImpl.this)
+                    return true;
+            }
+            return Objects.equals(step.getRecord().getStepGroup(), stepGroup);
+        });
         return ret;
     }
 }

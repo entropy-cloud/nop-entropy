@@ -36,10 +36,6 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     public static final String PROP_NAME_toStatus = "toStatus";
     public static final int PROP_ID_toStatus = 4;
     
-    /* 源应用状态: FROM_APP_STATE VARCHAR */
-    public static final String PROP_NAME_fromAppState = "fromAppState";
-    public static final int PROP_ID_fromAppState = 5;
-    
     /* 目标应用状态: TO_APP_STATE VARCHAR */
     public static final String PROP_NAME_toAppState = "toAppState";
     public static final int PROP_ID_toAppState = 6;
@@ -56,20 +52,24 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     public static final String PROP_NAME_operatorName = "operatorName";
     public static final int PROP_ID_operatorName = 9;
     
+    /* 操作者部门ID: OPERATOR_DEPT_ID VARCHAR */
+    public static final String PROP_NAME_operatorDeptId = "operatorDeptId";
+    public static final int PROP_ID_operatorDeptId = 10;
+    
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 10;
+    public static final int PROP_ID_version = 11;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 11;
+    public static final int PROP_ID_createdBy = 12;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 12;
+    public static final int PROP_ID_createTime = 13;
     
 
-    private static int _PROP_ID_BOUND = 13;
+    private static int _PROP_ID_BOUND = 14;
 
     
     /* relation: 工作流实例 */
@@ -79,7 +79,7 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[13];
+    private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -95,9 +95,6 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_toStatus] = PROP_NAME_toStatus;
           PROP_NAME_TO_ID.put(PROP_NAME_toStatus, PROP_ID_toStatus);
       
-          PROP_ID_TO_NAME[PROP_ID_fromAppState] = PROP_NAME_fromAppState;
-          PROP_NAME_TO_ID.put(PROP_NAME_fromAppState, PROP_ID_fromAppState);
-      
           PROP_ID_TO_NAME[PROP_ID_toAppState] = PROP_NAME_toAppState;
           PROP_NAME_TO_ID.put(PROP_NAME_toAppState, PROP_ID_toAppState);
       
@@ -109,6 +106,9 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_operatorName] = PROP_NAME_operatorName;
           PROP_NAME_TO_ID.put(PROP_NAME_operatorName, PROP_ID_operatorName);
+      
+          PROP_ID_TO_NAME[PROP_ID_operatorDeptId] = PROP_NAME_operatorDeptId;
+          PROP_NAME_TO_ID.put(PROP_NAME_operatorDeptId, PROP_ID_operatorDeptId);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -134,9 +134,6 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     /* 目标状态: TO_STATUS */
     private java.lang.Integer _toStatus;
     
-    /* 源应用状态: FROM_APP_STATE */
-    private java.lang.String _fromAppState;
-    
     /* 目标应用状态: TO_APP_STATE */
     private java.lang.String _toAppState;
     
@@ -148,6 +145,9 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     
     /* 操作者: OPERATOR_NAME */
     private java.lang.String _operatorName;
+    
+    /* 操作者部门ID: OPERATOR_DEPT_ID */
+    private java.lang.String _operatorDeptId;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -240,9 +240,6 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
             case PROP_ID_toStatus:
                return getToStatus();
         
-            case PROP_ID_fromAppState:
-               return getFromAppState();
-        
             case PROP_ID_toAppState:
                return getToAppState();
         
@@ -254,6 +251,9 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
         
             case PROP_ID_operatorName:
                return getOperatorName();
+        
+            case PROP_ID_operatorDeptId:
+               return getOperatorDeptId();
         
             case PROP_ID_version:
                return getVersion();
@@ -315,16 +315,6 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_fromAppState:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_fromAppState));
-               }
-               setFromAppState(typedValue);
-               break;
-            }
-        
             case PROP_ID_toAppState:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -362,6 +352,16 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_operatorName));
                }
                setOperatorName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_operatorDeptId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_operatorDeptId));
+               }
+               setOperatorDeptId(typedValue);
                break;
             }
         
@@ -432,13 +432,6 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_fromAppState:{
-               onInitProp(propId);
-               this._fromAppState = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_toAppState:{
                onInitProp(propId);
                this._toAppState = (java.lang.String)value;
@@ -463,6 +456,13 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
             case PROP_ID_operatorName:{
                onInitProp(propId);
                this._operatorName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_operatorDeptId:{
+               onInitProp(propId);
+               this._operatorDeptId = (java.lang.String)value;
                
                break;
             }
@@ -571,25 +571,6 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
     }
     
     /**
-     * 源应用状态: FROM_APP_STATE
-     */
-    public java.lang.String getFromAppState(){
-         onPropGet(PROP_ID_fromAppState);
-         return _fromAppState;
-    }
-
-    /**
-     * 源应用状态: FROM_APP_STATE
-     */
-    public void setFromAppState(java.lang.String value){
-        if(onPropSet(PROP_ID_fromAppState,value)){
-            this._fromAppState = value;
-            internalClearRefs(PROP_ID_fromAppState);
-            
-        }
-    }
-    
-    /**
      * 目标应用状态: TO_APP_STATE
      */
     public java.lang.String getToAppState(){
@@ -661,6 +642,25 @@ public class _NopWfStatusHistory extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_operatorName,value)){
             this._operatorName = value;
             internalClearRefs(PROP_ID_operatorName);
+            
+        }
+    }
+    
+    /**
+     * 操作者部门ID: OPERATOR_DEPT_ID
+     */
+    public java.lang.String getOperatorDeptId(){
+         onPropGet(PROP_ID_operatorDeptId);
+         return _operatorDeptId;
+    }
+
+    /**
+     * 操作者部门ID: OPERATOR_DEPT_ID
+     */
+    public void setOperatorDeptId(java.lang.String value){
+        if(onPropSet(PROP_ID_operatorDeptId,value)){
+            this._operatorDeptId = value;
+            internalClearRefs(PROP_ID_operatorDeptId);
             
         }
     }

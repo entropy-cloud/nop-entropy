@@ -8,10 +8,15 @@
 package io.nop.wf.dao.entity;
 
 import io.nop.api.core.annotations.biz.BizObjName;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.dao.entity._gen._NopWfStepInstance;
+
+import java.util.Collection;
+import java.util.Set;
 
 
 @BizObjName("NopWfStepInstance")
@@ -91,5 +96,25 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
         prevLink.setNextStepId(getStepId());
         getPrevLinks().add(prevLink);
         return prevLink;
+    }
+
+    @Override
+    public Set<String> getTagSet() {
+        return ConvertHelper.toCsvSet(getTagText());
+    }
+
+    @Override
+    public void addTag(String tag) {
+        setTagText(TagsHelper.toString(TagsHelper.add(getTagSet(), tag), ','));
+    }
+
+    @Override
+    public void addTags(Collection<String> tags) {
+        setTagText(TagsHelper.toString(TagsHelper.merge(getTagSet(), tags), ','));
+    }
+
+    @Override
+    public void removeTag(String tag) {
+        setTagText(TagsHelper.toString(TagsHelper.remove(getTagSet(), tag), ','));
     }
 }

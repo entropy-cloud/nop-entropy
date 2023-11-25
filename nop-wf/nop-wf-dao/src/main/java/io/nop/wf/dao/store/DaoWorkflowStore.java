@@ -79,6 +79,8 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         wfRecord.setWfName(wfModel.getWfName());
         wfRecord.setWfVersion(wfModel.getWfVersion());
         wfRecord.setStatus(NopWfCoreConstants.WF_STATUS_CREATED);
+        wfRecord.addTags(wfModel.getTagSet());
+        wfRecord.setPriority(wfModel.getPriority());
         return wfRecord;
     }
 
@@ -87,9 +89,12 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         NopWfStepInstance stepRecord = new NopWfStepInstance();
         stepRecord.setStepId(StringHelper.generateUUID());
         stepRecord.setStepName(stepModel.getName());
+        stepRecord.setStepType(stepModel.getType().name());
         stepRecord.setDisplayName(stepModel.getDisplayName());
         stepRecord.setWfInstance((NopWfInstance) wfRecord);
         stepRecord.setCreateTime(CoreMetrics.currentTimestamp());
+        stepRecord.addTags(stepModel.getTagSet());
+        stepRecord.setPriority(stepModel.getPriority());
         return stepRecord;
     }
 
@@ -97,6 +102,8 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
     public IWorkflowActionRecord newActionRecord(IWorkflowStepRecord stepRecord, IWorkflowActionModel actionModel) {
         NopWfAction actionRecord = new NopWfAction();
         actionRecord.setSid(StringHelper.generateUUID());
+        actionRecord.setWfId(stepRecord.getWfId());
+        actionRecord.setStepId(stepRecord.getStepId());
         actionRecord.setActionName(actionModel.getName());
         actionRecord.setDisplayName(actionModel.getDisplayName());
         actionRecord.setWfStepInstance((NopWfStepInstance) stepRecord);

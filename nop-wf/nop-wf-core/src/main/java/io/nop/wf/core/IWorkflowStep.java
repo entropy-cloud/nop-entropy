@@ -200,5 +200,5 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
      * @return
      */
     @Nonnull
-    List<? extends IWorkflowStep> getOtherStepsWithSameName(boolean includeHistory);
+    List<? extends IWorkflowStep> getStepsInSameStepGroup(boolean includeHistory, boolean includeSelf);
 }

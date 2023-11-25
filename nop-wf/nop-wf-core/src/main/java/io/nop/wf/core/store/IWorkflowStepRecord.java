@@ -8,13 +8,15 @@
 package io.nop.wf.core.store;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.commons.lang.ITagSetSupport;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.NopWfCoreConstants;
 
 import java.sql.Timestamp;
+import java.util.Collection;
 
-public interface IWorkflowStepRecord {
+public interface IWorkflowStepRecord extends ITagSetSupport {
     String getStepId();
 
     String getStepName();
@@ -105,4 +107,14 @@ public interface IWorkflowStepRecord {
     void setSubWfResultStatus(Integer status);
 
     Integer getSubWfResultStatus();
+
+    String getStepGroup();
+
+    void setStepGroup(String stepGroup);
+
+    void addTag(String tag);
+
+    void addTags(Collection<String> tags);
+
+    void removeTag(String tag);
 }

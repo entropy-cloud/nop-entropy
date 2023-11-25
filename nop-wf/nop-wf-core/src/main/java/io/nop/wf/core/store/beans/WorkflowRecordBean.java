@@ -10,11 +10,12 @@ package io.nop.wf.core.store.beans;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
+import io.nop.commons.util.TagsHelper;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.sql.Timestamp;
-import java.util.LinkedHashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +30,7 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private String wfName;
     private Long wfVersion;
 
-    private Map<String,Object> wfParams;
+    private Map<String, Object> wfParams;
     private Integer status;
 
     private String title;
@@ -62,6 +63,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     private String lastOperatorName;
 
+    private String lastOperatorDeptId;
+
     private String createrId;
 
     private boolean willEnd;
@@ -71,6 +74,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private Map<String, Object> globalVars;
 
     private Map<String, Object> outputVars;
+
+    private Set<String> tagSet;
 
     private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
 
@@ -141,9 +146,11 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         if (caller != null) {
             setLastOperatorId(caller.getActorId());
             setLastOperatorName(caller.getActorName());
+            setLastOperatorDeptId(caller.getDeptId());
         } else {
             setLastOperatorId(null);
             setLastOperatorName(null);
+            setLastOperatorDeptId(null);
         }
     }
 
@@ -393,6 +400,14 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.lastOperatorName = lastOperatorName;
     }
 
+    public String getLastOperatorDeptId() {
+        return lastOperatorDeptId;
+    }
+
+    public void setLastOperatorDeptId(String lastOperatorDeptId) {
+        this.lastOperatorDeptId = lastOperatorDeptId;
+    }
+
     @Override
     public String getCreaterId() {
         return createrId;
@@ -425,5 +440,30 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     public void setOutputVars(Map<String, Object> outputVars) {
         this.outputVars = outputVars;
+    }
+
+
+    @Override
+    public Set<String> getTagSet() {
+        return tagSet;
+    }
+
+    public void setTagSet(Set<String> tagSet) {
+        this.tagSet = tagSet;
+    }
+
+    @Override
+    public void addTag(String tag) {
+        this.tagSet = TagsHelper.add(getTagSet(), tag);
+    }
+
+    @Override
+    public void addTags(Collection<String> tags) {
+        this.tagSet = TagsHelper.merge(getTagSet(), tags);
+    }
+
+    @Override
+    public void removeTag(String tag) {
+        this.tagSet = TagsHelper.remove(getTagSet(), tag);
     }
 }
