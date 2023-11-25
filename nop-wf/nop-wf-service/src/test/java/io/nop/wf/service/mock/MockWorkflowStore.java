@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.wf.core.engine.mock;
+package io.nop.wf.service.mock;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;

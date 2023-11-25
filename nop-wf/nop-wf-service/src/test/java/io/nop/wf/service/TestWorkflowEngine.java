@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-chaos
  * Github: https://github.com/entropy-cloud/nop-chaos
  */
-package io.nop.wf.core.engine;
+package io.nop.wf.service;
 
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
@@ -15,15 +15,15 @@ import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.WorkflowTransitionTarget;
-import io.nop.wf.core.engine.mock.MockWfActorResolver;
-import io.nop.wf.core.engine.mock.MockWorkflowStore;
+import io.nop.wf.core.engine.WorkflowEngineImpl;
+import io.nop.wf.service.mock.MockWfActorResolver;
+import io.nop.wf.service.mock.MockWorkflowStore;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
