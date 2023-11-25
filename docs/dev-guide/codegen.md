@@ -228,3 +228,10 @@ class _SqlTableSource extends EqlASTNode {...}
 </tags>
 </lib>
 ```
+
+## 常见问题
+
+### 1. precompile和postcompile有什么区别
+* precompile是在编译前执行，不能访问当前工程中的类和资源文件。
+* precompile2是在编译前执行，但是可以访问当前工程中的资源文件。
+* postcompile是在编译后执行，会检查IoC容器中bean的配置，并可以访问当前工程中的类和资源文件。
