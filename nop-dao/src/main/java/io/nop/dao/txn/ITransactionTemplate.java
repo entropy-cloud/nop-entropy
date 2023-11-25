@@ -49,6 +49,10 @@ public interface ITransactionTemplate extends IDialectProvider {
 
     <T> T runInTransaction(String txnGroup, TransactionPropagation propagation, Function<ITransaction, T> task);
 
+    default <T> T runInTransaction(Function<ITransaction, T> task) {
+        return runInTransaction(null, TransactionPropagation.REQUIRED, task);
+    }
+
     <T> CompletionStage<T> runInTransactionAsync(String txnGroup, TransactionPropagation propagation,
                                                  Function<ITransaction, CompletionStage<T>> task);
 
