@@ -34,6 +34,10 @@
               sortable="true" insertable="true" updatable="true" ext:control="tree-parent" ext:relation="parent">
             <schema type="java.lang.String" precision="50"/>
         </prop>
+        <prop name="ownerId" displayName="所有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="owner">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
         <prop name="delFlag" displayName="删除标识" i18n-en:displayName="Deleted" queryable="true" sortable="true"
               insertable="true" updatable="true" internal="true" ui:show="X" defaultValue="0">
             <schema domain="boolFlag" type="java.lang.Byte"/>
@@ -68,6 +72,16 @@
             <schema bizObjName="NopAuthGroup"/>
         </prop>
         <prop name="parent.name" displayName="父分组" i18n-en:displayName="Parent" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="owner" displayName="所有者" i18n-en:displayName="Owner"
+              tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="ownerId" ext:joinRightProp="userId" ext:joinRightDisplayProp="userName"
+              insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="owner.userName" displayName="所有者" i18n-en:displayName="Owner" internal="true" queryable="true"
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

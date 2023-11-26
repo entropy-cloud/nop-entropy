@@ -814,23 +814,25 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Name"/>
                 <column code="PARENT_ID" displayName="父ID" name="parentId" precision="50" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="parent" i18n-en:displayName="Parent ID"/>
-                <column code="DEL_FLAG" defaultValue="0" displayName="删除标识" domain="boolFlag" name="delFlag" propId="4"
+                <column code="OWNER_ID" comment="每个人有可能建立自己私有的用户分组" displayName="所有者ID" name="ownerId" precision="50"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID"/>
+                <column code="DEL_FLAG" defaultValue="0" displayName="删除标识" domain="boolFlag" name="delFlag" propId="5"
                         stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Deleted" ui:show="X"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="5"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="6"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="7" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="Y"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="7" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="L"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="L"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="L"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="10"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
@@ -839,6 +841,13 @@
                         ref-i18n-en:displayName="Children">
                     <join>
                         <on leftProp="parentId" rightProp="groupId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="所有者" name="owner" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
+                        tagSet="pub,ref-pub,ref-cascade-delete,ref-insertable,ref-updatable" i18n-en:displayName="Owner">
+                    <join>
+                        <on leftProp="ownerId" rightProp="userId"/>
                     </join>
                     <ref-set/>
                 </to-one>

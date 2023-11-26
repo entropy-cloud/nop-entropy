@@ -65,6 +65,9 @@ prop:
       delFlag: 删除标识
       groupId: 主键
       name: 名称
+      owner: 所有者
+      owner.userName: 所有者
+      ownerId: 所有者ID
       parent: 父分组
       parent.name: 父分组
       parentId: 父ID

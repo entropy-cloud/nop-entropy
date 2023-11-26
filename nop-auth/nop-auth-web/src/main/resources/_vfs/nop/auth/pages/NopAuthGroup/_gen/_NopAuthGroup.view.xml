@@ -16,6 +16,9 @@
                 <!--父ID-->
                 <col id="parentId" sortable="true"/>
 
+                <!--所有者ID-->
+                <col id="ownerId" sortable="true"/>
+
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -43,6 +46,7 @@
             <layout>
  name[名称]
  parentId[父ID]
+ ownerId[所有者ID]
  createdBy[创建人]
  createTime[创建时间]
  updatedBy[修改人]
@@ -55,6 +59,7 @@
             <layout>
  name[名称]
  parentId[父ID]
+ ownerId[所有者ID]
  remark[备注]
 </layout>
         </form>
