@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [221:10:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [226:10:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -34,22 +34,22 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      *  
-     * xml name: may-activated
-     * 是否当前可以激活
+     * xml name: passPercent
+     * 
      */
-    private io.nop.core.lang.eval.IEvalPredicate _mayActivated ;
+    private java.lang.Double _passPercent ;
     
     /**
      *  
      * xml name: passWeight
-     * 
+     * 所有同意的参与者投票权重超过多少记为通过
      */
     private java.lang.Integer _passWeight ;
     
     /**
      *  
      * xml name: waitStepNames
-     * 
+     * joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
      */
     private java.util.Set<java.lang.String> _waitStepNames ;
     
@@ -97,19 +97,19 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      * 
-     * xml name: may-activated
-     *  是否当前可以激活
+     * xml name: passPercent
+     *  
      */
     
-    public io.nop.core.lang.eval.IEvalPredicate getMayActivated(){
-      return _mayActivated;
+    public java.lang.Double getPassPercent(){
+      return _passPercent;
     }
 
     
-    public void setMayActivated(io.nop.core.lang.eval.IEvalPredicate value){
+    public void setPassPercent(java.lang.Double value){
         checkAllowChange();
         
-        this._mayActivated = value;
+        this._passPercent = value;
            
     }
 
@@ -117,7 +117,7 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     /**
      * 
      * xml name: passWeight
-     *  
+     *  所有同意的参与者投票权重超过多少记为通过
      */
     
     public java.lang.Integer getPassWeight(){
@@ -136,7 +136,7 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     /**
      * 
      * xml name: waitStepNames
-     *  
+     *  joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
      */
     
     public java.util.Set<java.lang.String> getWaitStepNames(){
@@ -167,7 +167,7 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
         
         out.put("joinGroupExpr",this.getJoinGroupExpr());
         out.put("joinType",this.getJoinType());
-        out.put("mayActivated",this.getMayActivated());
+        out.put("passPercent",this.getPassPercent());
         out.put("passWeight",this.getPassWeight());
         out.put("waitStepNames",this.getWaitStepNames());
     }

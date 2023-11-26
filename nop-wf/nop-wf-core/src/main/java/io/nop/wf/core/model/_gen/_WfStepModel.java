@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [171:10:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [172:10:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -92,11 +92,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     private boolean _independent  = false;
     
     /**
+     *  初始化为等待状态
+     * xml name: initAsWaiting
+     * 新建步骤时是否自动初始化为等待状态
+     */
+    private boolean _initAsWaiting  = false;
+    
+    /**
      *  
      * xml name: internal
      * 标记为internal的步骤不会在界面中显示
      */
     private boolean _internal  = false;
+    
+    /**
+     *  
+     * xml name: may-activated
+     * 是否当前可以激活
+     */
+    private io.nop.core.lang.eval.IEvalPredicate _mayActivated ;
     
     /**
      *  
@@ -399,6 +413,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
     /**
+     * 初始化为等待状态
+     * xml name: initAsWaiting
+     *  新建步骤时是否自动初始化为等待状态
+     */
+    
+    public boolean isInitAsWaiting(){
+      return _initAsWaiting;
+    }
+
+    
+    public void setInitAsWaiting(boolean value){
+        checkAllowChange();
+        
+        this._initAsWaiting = value;
+           
+    }
+
+    
+    /**
      * 
      * xml name: internal
      *  标记为internal的步骤不会在界面中显示
@@ -413,6 +446,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._internal = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: may-activated
+     *  是否当前可以激活
+     */
+    
+    public io.nop.core.lang.eval.IEvalPredicate getMayActivated(){
+      return _mayActivated;
+    }
+
+    
+    public void setMayActivated(io.nop.core.lang.eval.IEvalPredicate value){
+        checkAllowChange();
+        
+        this._mayActivated = value;
            
     }
 
@@ -720,7 +772,9 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("dueAction",this.getDueAction());
         out.put("dueTimeExpr",this.getDueTimeExpr());
         out.put("independent",this.isIndependent());
+        out.put("initAsWaiting",this.isInitAsWaiting());
         out.put("internal",this.isInternal());
+        out.put("mayActivated",this.getMayActivated());
         out.put("name",this.getName());
         out.put("onEnter",this.getOnEnter());
         out.put("onError",this.getOnError());

@@ -322,6 +322,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
         } else if (!wf.isAllSignalOn(stepModel.getWaitSignals())) {
             stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
+        } else if (stepModel.isInitAsWaiting()) {
+            stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
         } else {
             stepRecord.transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
         }
