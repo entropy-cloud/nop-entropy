@@ -138,6 +138,14 @@ public class DaoWfActorResolver implements IWfActorResolver {
         if (IWfActor.ACTOR_TYPE_ROLE.equals(actorType))
             return resolveRole(actorId, deptId);
 
+        if(IWfActor.ACTOR_TYPE_ALL.equals(actorType)){
+            WfActorBean actor = new WfActorBean();
+            actor.setActorId(IWfActor.ACTOR_TYPE_ALL);
+            actor.setActorName(IWfActor.ACTOR_TYPE_ALL);
+            actor.setActorType(IWfActor.ACTOR_TYPE_ALL);
+            return actor;
+        }
+
         return null;
     }
 

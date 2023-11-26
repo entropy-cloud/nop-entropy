@@ -121,7 +121,7 @@
 
             <source>
                 <c:script>
-                    return { type: 'all', actorId: 'all' }
+                    return wfRt.wf.resolveActor('all','all',null);
                 </c:script>
             </source>
         </AllUser>
