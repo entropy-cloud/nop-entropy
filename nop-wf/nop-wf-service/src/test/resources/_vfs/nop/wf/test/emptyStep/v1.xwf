@@ -9,7 +9,7 @@
         <step displayName="开始" name="start">
             <assignment selection="auto">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>
@@ -20,7 +20,7 @@
         <step displayName="开始传阅" name="cyStart">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -30,7 +30,7 @@
         <step displayName="主流程开始" name="mainStart">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -40,7 +40,7 @@
         <step displayName="已审核" name="ysh">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

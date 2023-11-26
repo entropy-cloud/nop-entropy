@@ -12,6 +12,7 @@ import io.nop.wf.api.WfStepReference;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
+import io.nop.wf.core.model.WfAssignmentActorModel;
 import io.nop.wf.core.model.WfStepType;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import jakarta.annotation.Nonnull;
@@ -116,6 +117,8 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     void changeActor(IWfActor actor, IServiceContext ctx);
 
     void changeOwnerId(String ownerId, IServiceContext ctx);
+
+    WfAssignmentActorModel getActorModel(String actorModelId);
 
     @Nonnull
     List<? extends IWorkflowStep> getPrevSteps();

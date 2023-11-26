@@ -12,7 +12,7 @@ import java.io.File;
 public class RefactorWf extends BaseTestCase {
     @Test
     public void refactorName() {
-        File file = new File(getTestResourcesDir(), "_vfs/nop/test/wf");
+        File file = new File(getTestResourcesDir(), "_vfs/nop/wf/test");
         File[] files = file.listFiles();
         for (File subFile : files) {
             File dir = new File(subFile.getParentFile(), StringHelper.fileNameNoExt(subFile.getName()));
@@ -65,6 +65,13 @@ public class RefactorWf extends BaseTestCase {
                     actors = XNode.make("actors");
                     actors.appendChildren(assignment.detachChildren());
                     assignment.appendChild(actors);
+                }
+
+                for (int i = 0, n = actors.getChildCount(); i < n; i++) {
+                    XNode actor = actors.child(i);
+                    if (actor.attrText("actorModelId") == null) {
+                        actor.setAttr("actorModelId", "actor" + (i + 1));
+                    }
                 }
             }
 

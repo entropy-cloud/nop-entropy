@@ -746,27 +746,29 @@
                         stdSqlType="INTEGER" i18n-en:displayName="Order Number"/>
                 <column code="DEPT_TYPE" displayName="类型" name="deptType" precision="10" propId="5" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="Type"/>
-                <column code="EMAIL" displayName="邮件" domain="email" name="email" precision="100" propId="6"
+                <column code="MANAGER_ID" displayName="部分负责人" name="managerId" precision="50" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Manager"/>
+                <column code="EMAIL" displayName="邮件" domain="email" name="email" precision="100" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Email"/>
-                <column code="PHONE" displayName="电话" domain="phone" name="phone" precision="50" propId="7"
+                <column code="PHONE" displayName="电话" domain="phone" name="phone" precision="50" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Phone"/>
-                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" name="delFlag" propId="8" stdDataType="byte"
+                <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" name="delFlag" propId="9" stdDataType="byte"
                         stdDomain="boolFlag" stdSqlType="TINYINT" i18n-en:displayName="Deleted" ui:show="X"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By" ui:show="Y"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
                         ui:show="L"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="13" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By" ui:show="L"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
                         ui:show="L"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="15"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <relations>
@@ -775,6 +777,14 @@
                         ref-i18n-en:displayName="Children">
                     <join>
                         <on leftProp="parentId" rightProp="deptId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="部门负责人" ignoreDepends="true" name="manager"
+                        refEntityName="io.nop.auth.dao.entity.NopAuthUser" tagSet="pub,ref-pub"
+                        i18n-en:displayName="Manager">
+                    <join>
+                        <on leftProp="managerId" rightProp="userId"/>
                     </join>
                     <ref-set/>
                 </to-one>

@@ -24,6 +24,7 @@ prop:
       parentId: Parent ID
       orderNum: Order Number
       deptType: Type
+      managerId: Manager
       email: Email
       phone: Phone
       delFlag: Deleted
@@ -35,6 +36,8 @@ prop:
       remark: Remark
       parent: Parent
       parent.deptName: Parent
+      manager: Manager
+      manager.userName: Manager
       deptUsers: Users
       children: Children
     NopAuthExtLogin:

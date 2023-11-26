@@ -9,7 +9,7 @@
         <step displayName="启动" name="start">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -19,7 +19,7 @@
         <step displayName="已审核" name="ysh">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -29,7 +29,7 @@
         <step displayName="已审核" name="ysp">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>

@@ -20,7 +20,7 @@
         <step displayName="开始步骤" name="wf-start">
             <assignment>
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -30,8 +30,8 @@
         <join displayName="会签步骤" specialType="cosign" name="join">
             <assignment ignoreNoAssign="false" selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
-                    <actor actorId="2" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                    <actor actorId="2" actorType="user" actorModelId="actor2"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -41,7 +41,7 @@
         <step displayName="已审批" name="ysp">
             <assignment selection="auto">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

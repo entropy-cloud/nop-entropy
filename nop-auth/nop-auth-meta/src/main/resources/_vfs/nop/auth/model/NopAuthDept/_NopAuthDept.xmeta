@@ -42,6 +42,10 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10"/>
         </prop>
+        <prop name="managerId" displayName="部分负责人" i18n-en:displayName="Manager" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="manager">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
         <prop name="email" displayName="邮件" i18n-en:displayName="Email" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema domain="email" type="java.lang.String" precision="100"/>
@@ -84,6 +88,15 @@
             <schema bizObjName="NopAuthDept"/>
         </prop>
         <prop name="parent.deptName" displayName="父资源" i18n-en:displayName="Parent" internal="true" queryable="true"
+              sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="manager" displayName="部门负责人" i18n-en:displayName="Manager" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="managerId" ext:joinRightProp="userId"
+              ext:joinRightDisplayProp="userName" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopAuthUser"/>
+        </prop>
+        <prop name="manager.userName" displayName="部门负责人" i18n-en:displayName="Manager" internal="true" queryable="true"
               sortable="true" lazy="true">
             <schema type="String"/>
         </prop>

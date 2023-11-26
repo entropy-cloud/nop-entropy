@@ -1,9 +1,11 @@
 package io.nop.wf.service.actor;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.dao.entity.NopAuthDept;
 import io.nop.auth.dao.entity.NopAuthGroup;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthUser;
+import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.wf.api.actor.IWfActor;
@@ -15,6 +17,13 @@ import jakarta.inject.Inject;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static io.nop.wf.service.NopWfErrors.ARG_ACTOR_ID;
+import static io.nop.wf.service.NopWfErrors.ARG_ACTOR_NAME;
+import static io.nop.wf.service.NopWfErrors.ARG_ACTOR_TYPE;
+import static io.nop.wf.service.NopWfErrors.ERR_WF_ACTOR_NOT_USER;
+import static io.nop.wf.service.NopWfErrors.ERR_WF_ACTOR_NO_DEPT_ID;
+import static io.nop.wf.service.NopWfErrors.ERR_WF_NULL_ACTOR;
 
 public class DaoWfActorResolver implements IWfActorResolver {
     private IDaoProvider daoProvider;
@@ -130,5 +139,68 @@ public class DaoWfActorResolver implements IWfActorResolver {
             return resolveRole(actorId, deptId);
 
         return null;
+    }
+
+    @Override
+    public IWfActor getManager(IWfActor actor, int upLevel) {
+        String userId = getUserIdFromActor(actor);
+        NopAuthUser user = userDao().requireEntityById(userId);
+        NopAuthUser manager = null;
+        for (int i = 0; i < upLevel; i++) {
+            manager = user.getManager();
+            if (manager == null)
+                break;
+            user = manager;
+        }
+        return buildUserActor(user);
+    }
+
+    @Override
+    public IWfActor getDeptManager(IWfActor actor, int upLevel) {
+        String deptId = getDeptIdFromActor(actor);
+        NopAuthDept dept = deptDao().requireEntityById(deptId);
+        for (int i = 0; i < upLevel; i++) {
+            dept = dept.getParent();
+            if (dept == null)
+                break;
+        }
+
+        if (dept == null)
+            return null;
+
+        NopAuthUser user = dept.getManager();
+        if (user == null)
+            return null;
+        return buildUserActor(user);
+    }
+
+    protected String getUserIdFromActor(IWfActor actor) {
+        if (actor == null)
+            throw new NopException(ERR_WF_NULL_ACTOR);
+
+        if (IWfActor.ACTOR_TYPE_USER.equals(actor.getActorType()))
+            return actor.getActorId();
+
+        throw new NopException(ERR_WF_ACTOR_NOT_USER)
+                .param(ARG_ACTOR_TYPE, actor.getActorType())
+                .param(ARG_ACTOR_ID, actor.getActorId())
+                .param(ARG_ACTOR_NAME, actor.getActorName());
+    }
+
+    protected String getDeptIdFromActor(IWfActor actor) {
+        if (actor == null)
+            throw new NopException(ERR_WF_NULL_ACTOR);
+
+        if (IWfActor.ACTOR_TYPE_DEPT.equals(actor.getActorType())) {
+            return actor.getActorId();
+        }
+
+        String deptId = actor.getDeptId();
+        if (StringHelper.isEmpty(deptId))
+            throw new NopException(ERR_WF_ACTOR_NO_DEPT_ID)
+                    .param(ARG_ACTOR_TYPE, actor.getActorType())
+                    .param(ARG_ACTOR_ID, actor.getActorId())
+                    .param(ARG_ACTOR_NAME, actor.getActorName());
+        return deptId;
     }
 }

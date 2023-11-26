@@ -36,4 +36,14 @@ public class MockWfActorResolver implements IWfActorResolver {
         actor.setDeptId(deptId);
         return actor;
     }
+
+    @Override
+    public IWfActor getManager(IWfActor actor, int upLevel) {
+        return null;
+    }
+
+    @Override
+    public IWfActor getDeptManager(IWfActor actor, int upLevel) {
+        return null;
+    }
 }

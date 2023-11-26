@@ -174,6 +174,7 @@ CREATE TABLE nop_wf_step_instance(
   SUB_WF_VERSION NUMBER(20)  ,
   SUB_WF_RESULT_STATUS INTEGER  ,
   IS_READ CHAR(1)  ,
+  ACTOR_MODEL_ID VARCHAR2(100)  ,
   ACTOR_TYPE VARCHAR2(10)  ,
   ACTOR_ID VARCHAR2(100)  ,
   ACTOR_DEPT_ID VARCHAR2(50)  ,
@@ -546,6 +547,8 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_step_instance.SUB_WF_RESULT_STATUS IS '子流程结果状态';
                     
       COMMENT ON COLUMN nop_wf_step_instance.IS_READ IS '是否已读';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.ACTOR_MODEL_ID IS '参与者模型ID';
                     
       COMMENT ON COLUMN nop_wf_step_instance.ACTOR_TYPE IS '参与者类型';
                     

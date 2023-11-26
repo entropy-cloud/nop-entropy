@@ -9,7 +9,7 @@
         <step displayName="启动" name="start">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>
@@ -20,7 +20,7 @@
         <step displayName="已审核" name="ysh">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>
@@ -30,7 +30,7 @@
         <step displayName="可传阅" independent="true" name="kcy">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -40,7 +40,7 @@
         <step displayName="传阅start" name="cyStart">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -50,7 +50,7 @@
         <step displayName="主启动流程" name="mainStart">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>

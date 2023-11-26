@@ -27,6 +27,7 @@ public interface IWfActor {
     String ACTOR_TYPE_ROLE = "role";
 
     String ACTOR_TYPE_GROUP = "group";
+    String ACTOR_TYPE_ALL = "all";
 
     /**
      * 自动执行任务可能将任务分配到executor

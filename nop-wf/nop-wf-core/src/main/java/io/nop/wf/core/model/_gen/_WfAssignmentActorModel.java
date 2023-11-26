@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [30:10:0:0]/nop/schema/wf/assignment.xdef <p>
+ * generate from [33:10:0:0]/nop/schema/wf/assignment.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -20,6 +20,13 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
      * 
      */
     private java.lang.String _actorId ;
+    
+    /**
+     *  
+     * xml name: actorModelId
+     * 
+     */
+    private java.lang.String _actorModelId ;
     
     /**
      *  
@@ -71,6 +78,25 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._actorId = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: actorModelId
+     *  
+     */
+    
+    public java.lang.String getActorModelId(){
+      return _actorModelId;
+    }
+
+    
+    public void setActorModelId(java.lang.String value){
+        checkAllowChange();
+        
+        this._actorModelId = value;
            
     }
 
@@ -184,6 +210,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
         super.outputJson(out);
         
         out.put("actorId",this.getActorId());
+        out.put("actorModelId",this.getActorModelId());
         out.put("actorType",this.getActorType());
         out.put("assignForUser",this.isAssignForUser());
         out.put("deptId",this.getDeptId());

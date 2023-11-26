@@ -21,7 +21,7 @@
         <step displayName="开始步骤" name="wf-start">
             <assignment>
                 <actors>
-                    <actor actorId="actor1" actorType="user"/>
+                    <actor actorId="actor1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -31,7 +31,7 @@
         <step displayName="已审核" allowReject="true" name="ysh">
             <assignment>
                 <actors>
-                    <actor actorId="actor2" actorType="user"/>
+                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -41,7 +41,7 @@
         <step displayName="已审批" allowReject="true" name="ysp">
             <assignment>
                 <actors>
-                    <actor actorId="actor2" actorType="user"/>
+                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

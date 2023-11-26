@@ -125,6 +125,16 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
+    public IWfActor getManager(IWfActor actor, int upLevel) {
+        return wfEngine.getManager(actor, upLevel);
+    }
+
+    @Override
+    public IWfActor getDeptManager(IWfActor actor, int upLevel) {
+        return wfEngine.getDeptManager(actor, upLevel);
+    }
+
+    @Override
     public IWorkflowEngine getEngine() {
         return wfEngine;
     }
@@ -204,7 +214,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
-    public IWfActor getStarterActor() {
+    public IWfActor getStarter() {
         String starerId = wfRecord.getStarterId();
         if (starerId == null)
             return null;
@@ -262,6 +272,11 @@ public class WorkflowImpl implements IWorkflowImplementor {
     @Override
     public String getBizObjName() {
         return wfRecord.getBizObjName();
+    }
+
+    @Override
+    public String getBizKey() {
+        return wfRecord.getBizKey();
     }
 
     @Override

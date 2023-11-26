@@ -9,7 +9,7 @@
         <step specialType="" displayName="步骤0" name="step0">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -19,7 +19,7 @@
         <step specialType="" displayName="步骤1" name="step1">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -29,7 +29,7 @@
         <step specialType="" displayName="步骤2" name="step2">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -39,7 +39,7 @@
         <step specialType="" displayName="步骤3" name="step3">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -49,7 +49,7 @@
         <step specialType="" displayName="步骤4" name="step4">
             <assignment selection="auto" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -59,7 +59,7 @@
         <step displayName="步骤5" name="step5">
             <assignment selection="single" ignoreNoAssign="false">
                 <actors>
-                    <actor selectUser="true" actorId="1" actorType="user"/>
+                    <actor selectUser="true" actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

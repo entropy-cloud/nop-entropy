@@ -20,7 +20,7 @@
         <step displayName="开始步骤" name="wf-start">
             <assignment selection="multiple">
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -31,7 +31,7 @@
         <join displayName="合并步骤" name="join">
             <assignment>
                 <actors>
-                    <actor actorId="actor2" actorType="user"/>
+                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

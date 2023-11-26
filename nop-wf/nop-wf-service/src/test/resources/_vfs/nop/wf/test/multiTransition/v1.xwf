@@ -7,7 +7,7 @@
         <step displayName="开始步骤" name="wf-start">
             <assignment>
                 <actors>
-                    <actor actorId="actor1" actorType="user"/>
+                    <actor actorId="actor1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>
@@ -18,7 +18,7 @@
         <step name="step1">
             <assignment>
                 <actors>
-                    <actor actorId="actor2" actorType="user"/>
+                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>
@@ -28,7 +28,7 @@
         <step name="step2">
             <assignment>
                 <actors>
-                    <actor actorId="actor2" actorType="user"/>
+                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

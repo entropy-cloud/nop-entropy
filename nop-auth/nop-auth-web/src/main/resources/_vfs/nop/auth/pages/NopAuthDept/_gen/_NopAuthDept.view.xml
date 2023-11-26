@@ -22,6 +22,9 @@
                 <!--类型-->
                 <col id="deptType" sortable="true"/>
 
+                <!--部分负责人-->
+                <col id="managerId" sortable="true"/>
+
                 <!--邮件-->
                 <col id="email" sortable="true"/>
 
@@ -55,10 +58,11 @@
             <layout>
  deptName[名称] parentId[父ID]
  orderNum[排序] deptType[类型]
- email[邮件] phone[电话]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ managerId[部分负责人] email[邮件]
+ phone[电话] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-部门" i18n-en:title="Add Department" x:prototype="edit"/>
@@ -68,6 +72,7 @@
  parentId[父ID]
  orderNum[排序]
  deptType[类型]
+ managerId[部分负责人]
  email[邮件]
  phone[电话]
  remark[备注]

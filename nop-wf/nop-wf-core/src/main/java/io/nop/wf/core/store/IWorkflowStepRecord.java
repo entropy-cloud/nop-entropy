@@ -50,6 +50,10 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     void setExecOrder(Double execOrder);
 
+    String getActorModelId();
+
+    void setActorModelId(String actorModelId);
+
     String getActorType();
 
     String getActorId();

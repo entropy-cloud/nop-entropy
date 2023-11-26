@@ -265,6 +265,7 @@ CREATE TABLE nop_auth_dept(
   PARENT_ID VARCHAR2(50)  ,
   ORDER_NUM INTEGER  ,
   DEPT_TYPE VARCHAR2(10)  ,
+  MANAGER_ID VARCHAR2(50)  ,
   EMAIL VARCHAR2(100)  ,
   PHONE VARCHAR2(50)  ,
   DEL_FLAG SMALLINT  ,
@@ -738,6 +739,8 @@ CREATE TABLE nop_auth_position(
       COMMENT ON COLUMN nop_auth_dept.ORDER_NUM IS '排序';
                     
       COMMENT ON COLUMN nop_auth_dept.DEPT_TYPE IS '类型';
+                    
+      COMMENT ON COLUMN nop_auth_dept.MANAGER_ID IS '部分负责人';
                     
       COMMENT ON COLUMN nop_auth_dept.EMAIL IS '邮件';
                     

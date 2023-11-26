@@ -9,7 +9,7 @@
         <step displayName="启动" name="wf-start">
             <assignment>
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -19,7 +19,7 @@
         <step displayName="已审核" name="ysh1">
             <assignment>
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -29,7 +29,7 @@
         <step displayName="已审核2" name="ysh2">
             <assignment>
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <ref-actions>
@@ -39,7 +39,7 @@
         <join displayName="合并步骤" name="join">
             <assignment>
                 <actors>
-                    <actor actorId="1" actorType="user"/>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
                 </actors>
             </assignment>
             <transition>

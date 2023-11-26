@@ -17,6 +17,9 @@ import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.engine.IWfRuntime;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
+import io.nop.wf.core.model.WfAssignmentActorModel;
+import io.nop.wf.core.model.WfAssignmentModel;
+import io.nop.wf.core.model.WfStepModel;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import jakarta.annotation.Nonnull;
 
@@ -108,6 +111,14 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
             wf.getEngine().changeOwner(this, ownerId, ctx);
             return null;
         });
+    }
+
+    @Override
+    public WfAssignmentActorModel getActorModel(String actorModelId) {
+        WfAssignmentModel assignment = ((WfStepModel) model).getAssignment();
+        if (assignment == null)
+            return null;
+        return assignment.getActor(actorModelId);
     }
 
     @Nonnull

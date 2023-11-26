@@ -20,7 +20,6 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.model.graph.dag.Dag;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
-import io.nop.core.type.utils.JavaGenericTypeBuilder;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.WfStepReference;
 import io.nop.wf.api.actor.IWfActor;
@@ -227,7 +226,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 if (manager == null) {
                     manager = wfRt.getSysUser();
                 }
-                actors = Collections.singletonList(new WfActorWithWeight(manager, 1));
+                actors = Collections.singletonList(new WfActorWithWeight(manager, null, 1));
             }
         }
 
@@ -275,6 +274,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
                 stepRecord.setStepGroup(stepGroup);
                 stepRecord.setExecOrder(execOrder);
+                stepRecord.setActorModelId(actorWithWeight.getActorModelId());
 
                 if (currentStep != null) {
                     wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
@@ -293,7 +293,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         IWorkflowStepRecord stepRecord = wf.getStore().newStepRecord(wf.getRecord(), stepModel);
         stepRecord.setStepGroup(stepGroup);
-        stepRecord.setExecOrder((double) execOrder);
+        stepRecord.setExecOrder(execOrder);
+        stepRecord.setActorModelId(actorWithWeight.getActorModelId());
 
         IWorkflowStepImplementor step = wf.getStepByRecord(stepRecord);
         stepRecord.setActor(actor);
@@ -915,7 +916,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             String stepGroup = rejectStep.getRecord().getStepGroup();
             Double execOrder = rejectStep.getRecord().getExecOrder();
             this.newStepForActor(stepGroup, execOrder, currentStep, (WfStepModel) rejectStep.getModel(), actionName,
-                    new WfActorWithWeight(rejectStep.getActor(), rejectStep.getRecord().getVoteWeight()), rejectStep.getOwner(), wfRt);
+                    new WfActorWithWeight(rejectStep.getActor(), rejectStep.getRecord().getActorModelId(),
+                            rejectStep.getRecord().getVoteWeight()), rejectStep.getOwner(), wfRt);
         }
     }
 
@@ -934,7 +936,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             Double execOrder = step.getRecord().getExecOrder();
 
             this.newStepForActor(stepGroup, execOrder, step, stepModel, actionModel.getName(),
-                    new WfActorWithWeight(step.getActor(), step.getRecord().getVoteWeight()),
+                    new WfActorWithWeight(step.getActor(), step.getRecord().getActorModelId(),
+                            step.getRecord().getVoteWeight()),
                     step.getOwner(), wfRt);
         }
     }

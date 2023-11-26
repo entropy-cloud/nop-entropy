@@ -38,8 +38,8 @@ public class WfActorCandidatesBean {
         return candidates;
     }
 
-    public void addActorCandidate(IWfActor actor, boolean selectUser, int voteWeight, boolean assignForUser) {
-        candidates.add(new WfActorCandidateBean(actor, selectUser, voteWeight, assignForUser));
+    public void addActorCandidate(IWfActor actor, boolean selectUser, String actorModelId, int voteWeight, boolean assignForUser) {
+        candidates.add(new WfActorCandidateBean(actor, selectUser, actorModelId, voteWeight, assignForUser));
     }
 
     public boolean containsUser(String userId) {

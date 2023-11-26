@@ -32,6 +32,8 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private String wfId;
     private Integer status;
+
+    private String actorModelId;
     private String actorType;
     private String actorId;
 
@@ -149,6 +151,14 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     @Override
     public void setJoinGroup(String joinGroup) {
         this.joinGroup = joinGroup;
+    }
+
+    public String getActorModelId() {
+        return actorModelId;
+    }
+
+    public void setActorModelId(String actorModelId) {
+        this.actorModelId = actorModelId;
     }
 
     @Override

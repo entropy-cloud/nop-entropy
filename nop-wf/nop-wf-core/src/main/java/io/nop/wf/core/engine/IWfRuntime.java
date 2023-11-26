@@ -90,4 +90,6 @@ public interface IWfRuntime extends IEvalContext {
     void logError(String errorCode, Map<String, Object> params);
 
     void logError(Throwable exp);
+
+    
 }

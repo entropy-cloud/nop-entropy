@@ -16,11 +16,11 @@ import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.engine.WorkflowEngineImpl;
-import io.nop.wf.service.mock.MockWfActorResolver;
-import io.nop.wf.service.mock.MockWorkflowStore;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
+import io.nop.wf.service.mock.MockWfActorResolver;
+import io.nop.wf.service.mock.MockWorkflowStore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestWorkflowEngine extends BaseTestCase {
     WorkflowManagerImpl workflowManager;
-    MockWorkflowStore store;
+    //MockWorkflowStore store;
 
     @BeforeAll
     public static void init() {
@@ -58,7 +58,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         engine.setWfActorResolver(new MockWfActorResolver());
         //engine.setWorkflowCoordinator();
         workflowManager.setWorkflowEngine(engine);
-        store = new MockWorkflowStore();
+        MockWorkflowStore store = new MockWorkflowStore();
         workflowManager.setWorkflowStore(store);
         // workflowManager.setWorkflowModelStore(new ResourceWorkflowModelStore());
 
