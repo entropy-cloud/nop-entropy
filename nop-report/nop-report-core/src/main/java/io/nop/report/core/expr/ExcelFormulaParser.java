@@ -1,14 +1,45 @@
 package io.nop.report.core.expr;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
+import io.nop.core.lang.eval.IEvalAction;
+import io.nop.report.core.functions.ReportFunctionProvider;
+import io.nop.xlang.api.EvalCodeWithAst;
+import io.nop.xlang.api.IFunctionProvider;
+import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.XLangOperator;
+import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.expr.ExprFeatures;
-import io.nop.xlang.expr.simple.SimpleExprParser;
 
-public class ExcelFormulaParser extends SimpleExprParser {
+import static io.nop.report.core.XptErrors.ARG_SOURCE;
+import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_EXCEL_FORMULA;
+
+public class ExcelFormulaParser extends AbstractExcelFormulaParser {
     public ExcelFormulaParser() {
         setUseEvalException(true);
         enableFeatures(ExprFeatures.FUNCTION_CALL);
+    }
+
+    public static IEvalAction parseFormula(SourceLocation loc, String formula, XLangCompileTool cp) {
+        Expression expr = new ExcelFormulaParser().parseExpr(loc, formula);
+
+        XLangOutputMode oldMode = cp.getOutputMode();
+        cp.outputMode(XLangOutputMode.none);
+        IFunctionProvider provider = cp.getScope().getFunctionProvider();
+        try {
+            cp.getScope().setFunctionProvider(ReportFunctionProvider.INSTANCE);
+
+            // 语义分析过程中可能会改expr
+            EvalCodeWithAst ret = new EvalCodeWithAst(expr, formula, cp.buildEvalAction(expr.deepClone()));
+            return ret;
+        } catch (Exception e) {
+            throw new NopException(ERR_XPT_INVALID_EXCEL_FORMULA, e).loc(loc).param(ARG_SOURCE, formula);
+        } finally {
+            cp.getScope().setFunctionProvider(provider);
+            cp.outputMode(oldMode);
+        }
     }
 
     @Override

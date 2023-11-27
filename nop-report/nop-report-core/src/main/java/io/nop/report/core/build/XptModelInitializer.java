@@ -28,7 +28,7 @@ import io.nop.excel.model.XptRowModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.model.constants.XptExpandType;
-import io.nop.report.core.initialize.ReportExprStdDomainHandler;
+import io.nop.report.core.expr.ExcelFormulaParser;
 import io.nop.report.core.initialize.TemplateReportExprStdDomainHandler;
 import io.nop.xlang.api.XLangCompileTool;
 
@@ -166,8 +166,7 @@ public class XptModelInitializer {
 
         if (cellModel.getValueExpr() == null && !StringHelper.isEmpty(cell.getFormula())) {
             // 如果是通过excel的公式机制进行配置，则表示需要导出公式
-            IEvalAction valueExpr = (IEvalAction) ReportExprStdDomainHandler.INSTANCE.parseProp(null, cell.getLocation(),
-                    "formula", cell.getFormula(), cp);
+            IEvalAction valueExpr = ExcelFormulaParser.parseFormula(cell.getLocation(), cell.getFormula(), cp);
             cellModel.setValueExpr(valueExpr);
             cellModel.setExportFormula(true);
         }
