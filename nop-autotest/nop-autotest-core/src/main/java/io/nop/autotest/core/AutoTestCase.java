@@ -218,7 +218,7 @@ public class AutoTestCase extends BaseTestCase {
             if (success) {
                 if (saveOutput) {
                     new AutoTestCaseDataSaver(variant, caseData, ormHook).saveCollectedData();
-                    throw new NopException(ERR_AUTOTEST_SNAPSHOT_FINISHED);
+                    throwSnapshotFinishedError();
                 } else if (checkOutput) {
                     LOG.info("\n============ autotest run snapshot check =========================");
 
@@ -229,6 +229,10 @@ public class AutoTestCase extends BaseTestCase {
             AutoTestVars.clear();
         }
         LOG.info("nop.autotest.completed:method={},case={},success={}",getTestMethod(), this.getClass().getName(),success);
+    }
+
+    protected void throwSnapshotFinishedError(){
+        throw new NopException(ERR_AUTOTEST_SNAPSHOT_FINISHED);
     }
 
     public boolean isCheckOutput() {

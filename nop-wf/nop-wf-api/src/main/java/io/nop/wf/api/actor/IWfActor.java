@@ -22,6 +22,8 @@ public interface IWfActor {
      */
     String SYS_USER_ID = "0";
 
+    String SYS_USER_NAME = "SYS";
+
     String ACTOR_TYPE_USER = "user";
     String ACTOR_TYPE_DEPT = "dept";
     String ACTOR_TYPE_ROLE = "role";

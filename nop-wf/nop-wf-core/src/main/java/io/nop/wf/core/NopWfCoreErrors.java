@@ -23,6 +23,11 @@ public interface NopWfCoreErrors {
     String ARG_WF_ID = "wfId";
     String ARG_STEP_ID = "stepId";
 
+    String ARG_ACTOR_TYPE = "actorType";
+    String ARG_ACTOR_ID = "actorId";
+
+    String ARG_ACTOR_MODEL_ID = "actorModelId";
+
     String ARG_PARENT_STEP_ID = "parentStepId";
 
     String ARG_STEP_STATUS = "stepStatus";
@@ -183,4 +188,8 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_UNKNOWN_WF_DEFINITION =
             define("nop.err.wf.unknown-wf-definition", "未知的工作流定义：{wfName},version={wfVersion}",
                     ARG_WF_NAME, ARG_WF_VERSION);
+
+    ErrorCode ERR_WF_ACTOR_NOT_EXISTS =
+            define("nop.err.wf.actor-not-exists", "参与者[{actorType}:{actorId}]不存在",
+                    ARG_ACTOR_TYPE, ARG_ACTOR_ID);
 }

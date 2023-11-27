@@ -28,9 +28,13 @@ import java.util.List;
 import java.util.Set;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_CANDIDATES;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_MODEL_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_TYPE;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_VALUE;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ACTOR_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ACTOR_TYPE;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTOR_NOT_EXISTS;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ASSIGNMENT_DYNAMIC_RETURN_NOT_WF_ACTOR;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ASSIGNMENT_OWNER_EXPR_RESULT_NOT_WF_ACTOR;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_SELECTED_ACTOR_COUNT_NOT_ONE;
@@ -76,6 +80,11 @@ public class WfActorAssignSupport {
                 }
             } else {
                 IWfActor actor = resolveActor(item.getActorType(), item.getActorId(), item.getDeptId());
+                if (actor == null)
+                    throw wfRt.newError(ERR_WF_ACTOR_NOT_EXISTS)
+                            .param(ARG_ACTOR_TYPE, item.getActorType())
+                            .param(ARG_ACTOR_ID, item.getActorId())
+                            .param(ARG_ACTOR_MODEL_ID, item.getActorModelId());
                 addActor(ret, item.getActorModelId(), item.getVoteWeight(), actorKeys, actor, item.isAssignForUser());
             }
         }

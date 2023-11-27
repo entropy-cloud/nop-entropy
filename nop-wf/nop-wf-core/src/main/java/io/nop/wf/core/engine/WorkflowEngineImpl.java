@@ -69,6 +69,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_TYPE;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ARG_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_REJECT_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
@@ -81,6 +83,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_CONDITIONS_NOT_PASSED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_NOT_ALLOWED_WHEN_SIGNAL_NOT_READY;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTION_TRANSITION_NO_NEXT_STEP;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTOR_NOT_EXISTS;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ALREADY_STARTED;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_EMPTY_ACTION_ARG;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_MISSING_STEP_INSTANCE;
@@ -127,6 +130,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     private void initCreateStatus(WfRuntime wfRt) {
         IWorkflowImplementor wf = wfRt.getWf();
         IWorkflowRecord wfRecord = wf.getRecord();
+
+        setDefaultTitle(wfRecord, wfRt);
+        wfRecord.setLastOperateTime(CoreMetrics.currentTimestamp());
+
         if (wfRecord.getStatus() == null || wfRecord.getStatus() <= NopWfCoreConstants.WF_STATUS_CREATED) {
             wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_CREATED);
         }
@@ -198,7 +205,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         args = new LinkedHashMap<>(args);
         String title = (String) args.remove(NopWfCoreConstants.PARAM_TITLE);
-        wfRecord.setTitle(title);
+        if (title != null)
+            wfRecord.setTitle(title);
 
         String bizObjName = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME);
         wfRecord.setBizObjName(bizObjName);
@@ -378,9 +386,20 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     private void saveStarted(WfRuntime wfRt) {
         IWorkflowRecord wfRecord = wfRt.getWf().getRecord();
         wfRecord.setStartTime(CoreMetrics.currentTimestamp());
-        wfRecord.setStarter(wfRt.getCaller());
+        IWfActor caller = wfRt.getCaller();
+        wfRecord.setStarter(caller);
+        wfRecord.setLastOperator(caller);
+        wfRecord.setLastOperateTime(wfRecord.getStartTime());
 
         // record的title不能为空
+        setDefaultTitle(wfRecord, wfRt);
+
+        wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
+
+        wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_START);
+    }
+
+    void setDefaultTitle(IWorkflowRecord wfRecord, WfRuntime wfRt) {
         String title = wfRecord.getTitle();
         if (StringHelper.isEmpty(title)) {
             title = wfRt.getWfModel().getDisplayName();
@@ -388,10 +407,6 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 title = wfRecord.getWfName();
             wfRecord.setTitle(title);
         }
-
-        wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
-
-        wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_START);
     }
 
     private boolean checkWaitingJoinStep(IWorkflowStepImplementor step, WfRuntime wfRt) {
@@ -514,7 +529,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
         List<IWfActor> ret = new ArrayList<>(actors.size());
         for (WfActorBean actorInfo : actors) {
-            ret.add(wf.resolveActor(actorInfo.getActorType(), actorInfo.getActorId(), actorInfo.getDeptId()));
+            IWfActor actor = resolveActor(actorInfo.getActorType(), actorInfo.getActorId(), actorInfo.getDeptId());
+            if (actor == null)
+                throw new NopException(ERR_WF_ACTOR_NOT_EXISTS)
+                        .param(ARG_WF_NAME, wf.getWfName())
+                        .param(ARG_WF_VERSION, wf.getWfVersion())
+                        .param(ARG_ACTOR_TYPE, actorInfo.getActorType())
+                        .param(ARG_ACTOR_ID, actorInfo.getActorId());
+            ret.add(actor);
         }
         return ret;
     }
@@ -595,9 +617,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         initArgs(wfRt, args);
         checkManageAuth(wfRt);
 
-        IWfActor caller = wfRt.getCaller();
-        wf.getRecord().setLastOperator(caller);
-        wf.getRecord().setLastOperateTime(CoreMetrics.currentTimestamp());
+//        IWfActor caller = wfRt.getCaller();
+//        wf.getRecord().setLastOperator(caller);
+//        wf.getRecord().setLastOperateTime(CoreMetrics.currentTimestamp());
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_KILL);
 
@@ -1134,6 +1156,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_END);
         IWorkflowRecord wfRecord = wf.getRecord();
         wfRecord.setEndTime(CoreMetrics.currentTimestamp());
+        wfRecord.setLastOperateTime(CoreMetrics.currentTimestamp());
+        wfRecord.setLastOperator(wfRt.getCaller());
 
         WfModel wfModel = (WfModel) wf.getModel();
         WfEndModel endModel = wfModel.getEnd();

@@ -1,0 +1,2 @@
+_chgType,WF_ID,STEP_ID,NEXT_STEP_ID,EXEC_ACTION,CREATED_BY,CREATE_TIME
+A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,@end,sp,autotest-ref,*

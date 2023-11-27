@@ -7,14 +7,18 @@
  */
 package io.nop.wf.dao.store;
 
+import io.nop.api.core.annotations.txn.TransactionPropagation;
+import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.LogLevel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmEntitySet;
 import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.IWorkflowActionModel;
@@ -28,6 +32,7 @@ import io.nop.wf.dao.entity.NopWfAction;
 import io.nop.wf.dao.entity.NopWfInstance;
 import io.nop.wf.dao.entity.NopWfLog;
 import io.nop.wf.dao.entity.NopWfStepInstance;
+import io.nop.wf.dao.entity.NopWfStepInstanceLink;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +70,8 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
 
     @Override
     public Object loadBizEntity(String bizObjType, String bizEntityId) {
+        if (StringHelper.isEmpty(bizObjType))
+            return null;
         return daoProvider.dao(bizObjType).getEntityById(bizEntityId);
     }
 
@@ -78,6 +85,10 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         NopWfInstance wfRecord = new NopWfInstance();
         wfRecord.setWfName(wfModel.getWfName());
         wfRecord.setWfVersion(wfModel.getWfVersion());
+        String wfGroup = wfModel.getWfGroup();
+        if (wfGroup == null)
+            wfGroup = NopWfCoreConstants.DEFAULT_WF_GROUP;
+        wfRecord.setWfGroup(wfGroup);
         wfRecord.setStatus(NopWfCoreConstants.WF_STATUS_CREATED);
         wfRecord.addTags(wfModel.getTagSet());
         wfRecord.setPriority(wfModel.getPriority());
@@ -91,6 +102,9 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         stepRecord.setStepName(stepModel.getName());
         stepRecord.setStepType(stepModel.getType().name());
         stepRecord.setDisplayName(stepModel.getDisplayName());
+        if (StringHelper.isEmpty(stepRecord.getDisplayName()))
+            stepRecord.setDisplayName(stepModel.getName());
+
         stepRecord.setWfInstance((NopWfInstance) wfRecord);
         stepRecord.setCreateTime(CoreMetrics.currentTimestamp());
         stepRecord.addTags(stepModel.getTagSet());
@@ -106,6 +120,9 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         actionRecord.setStepId(stepRecord.getStepId());
         actionRecord.setActionName(actionModel.getName());
         actionRecord.setDisplayName(actionModel.getDisplayName());
+        if (StringHelper.isEmpty(actionRecord.getDisplayName()))
+            actionRecord.setDisplayName(actionModel.getName());
+
         actionRecord.setWfStepInstance((NopWfStepInstance) stepRecord);
         actionRecord.setExecTime(CoreMetrics.currentTimestamp());
         return actionRecord;
@@ -113,7 +130,7 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
 
     @Override
     public void saveWfRecord(IWorkflowRecord wfRecord) {
-        wfDao().saveEntity((NopWfInstance) wfRecord);
+        wfDao().saveOrUpdateEntity((NopWfInstance) wfRecord);
     }
 
     @Override
@@ -124,7 +141,11 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
     @Override
     public void saveStepRecord(IWorkflowStepRecord stepRecord) {
         NopWfStepInstance step = (NopWfStepInstance) stepRecord;
-        step.getWfInstance().getSteps().add(step);
+        IOrmEntitySet<NopWfStepInstance> steps = step.getWfInstance().getSteps();
+        if (!steps.orm_proxy()) {
+            steps.add(step);
+        }
+        stepDao().saveOrUpdateEntity(step);
     }
 
     @Override
@@ -136,9 +157,10 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
     public void addNextStepRecord(IWorkflowStepRecord currentStep, String actionName, IWorkflowStepRecord nextStep) {
         NopWfStepInstance stepInstance = (NopWfStepInstance) currentStep;
         NopWfStepInstance nextInstance = (NopWfStepInstance) nextStep;
-        stepInstance.addNextStepLink(nextStep.getStepId()).setExecAction(actionName);
+        NopWfStepInstanceLink link = stepInstance.addNextStepLink(nextStep.getStepId());
+        link.setExecAction(actionName);
 
-        nextInstance.addPrevStepLink(stepInstance.getStepId()).setExecAction(actionName);
+        nextInstance.getPrevLinks().add(link);
     }
 
     @Override
@@ -164,6 +186,7 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         return new KvTableVarSet(record.getOutputs());
     }
 
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void logError(IWorkflowRecord wfRecord, String stepId, String actionId,
                          String errorCode, Map<String, Object> params) {
@@ -173,37 +196,42 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         log.setWfId(wfRecord.getWfId());
         log.setStepId(stepId);
         log.setActionId(actionId);
+        log.setLogLevel(LogLevel.ERROR.getLevel());
         log.setErrCode(errorCode);
         String locale = ContextProvider.currentLocale();
         log.setLogMsg(ErrorMessageManager.instance().getErrorDescription(locale, errorCode, params));
 
-        logDao().saveEntity(log);
+        logDao().saveEntityDirectly(log);
     }
 
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void logError(IWorkflowRecord wfRecord, String stepId, String actionId, Throwable e) {
         NopWfLog log = new NopWfLog();
         log.setWfId(wfRecord.getWfId());
         log.setStepId(stepId);
         log.setActionId(actionId);
+        log.setLogLevel(LogLevel.ERROR.getLevel());
         String locale = ContextProvider.currentLocale();
 
         ErrorBean error = ErrorMessageManager.instance().buildErrorMessage(locale, e, false, false);
         log.setErrCode(error.getErrorCode());
         log.setLogMsg(error.getDescription());
 
-        logDao().saveEntity(log);
+        logDao().saveEntityDirectly(log);
     }
 
+    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public void logMsg(IWorkflowRecord wfRecord, String stepId, String actionId, String msg) {
         NopWfLog log = new NopWfLog();
         log.setWfId(wfRecord.getWfId());
         log.setStepId(stepId);
         log.setActionId(actionId);
+        log.setLogLevel(LogLevel.INFO.getLevel());
         log.setLogMsg(msg);
 
-        logDao().saveEntity(log);
+        logDao().saveEntityDirectly(log);
     }
 
     protected NopWfInstance getWfRecord(IWorkflowStepRecord stepRecord) {

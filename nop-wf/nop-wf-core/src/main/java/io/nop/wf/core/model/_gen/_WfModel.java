@@ -164,6 +164,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
+     * xml name: wfGroup
+     * 
+     */
+    private java.lang.String _wfGroup ;
+    
+    /**
+     *  
      * xml name: wfName
      * 
      */
@@ -682,6 +689,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      * 
+     * xml name: wfGroup
+     *  
+     */
+    
+    public java.lang.String getWfGroup(){
+      return _wfGroup;
+    }
+
+    
+    public void setWfGroup(java.lang.String value){
+        checkAllowChange();
+        
+        this._wfGroup = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: wfName
      *  
      */
@@ -766,6 +792,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("subscribes",this.getSubscribes());
         out.put("tagSet",this.getTagSet());
         out.put("undeploy",this.getUndeploy());
+        out.put("wfGroup",this.getWfGroup());
         out.put("wfName",this.getWfName());
         out.put("wfVersion",this.getWfVersion());
     }

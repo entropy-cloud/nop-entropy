@@ -20,6 +20,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     int WF_STATUS_HISTORY_BOUND = WF_STATUS_COMPLETED;
 
+    String DEFAULT_WF_GROUP = "default";
+
     String PARAM_BIZ_OBJ_ID = "bizObjId";
 
     String PARAM_BIZ_OBJ_NAME = "bizObjName";

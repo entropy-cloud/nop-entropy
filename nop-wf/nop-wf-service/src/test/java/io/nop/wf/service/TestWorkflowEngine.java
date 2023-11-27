@@ -7,6 +7,7 @@
  */
 package io.nop.wf.service;
 
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.initialize.CoreInitialization;
@@ -19,6 +20,7 @@ import io.nop.wf.core.engine.WorkflowEngineImpl;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
+import io.nop.wf.dao.entity.NopWfInstance;
 import io.nop.wf.service.mock.MockWfActorResolver;
 import io.nop.wf.service.mock.MockWorkflowStore;
 import org.junit.jupiter.api.AfterAll;
@@ -88,7 +90,7 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         IWorkflowStep step = workflow.getStepsByName("wf-start").get(0);
         assertEquals("user", step.getActor().getActorType());
-        assertEquals("actor1", step.getActor().getActorId());
+        assertEquals("1", step.getActor().getActorId());
 
         List<WorkflowTransitionTarget> targets = step.getTransitionTargetsForAction("action0", context);
         assertEquals(1, targets.size());
@@ -112,7 +114,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflowRecord wfRecord = workflow.getRecord();
         String bizEntityId = "1";
         wfRecord.setBizObjId(bizEntityId);
-        wfRecord.setBizObjName("test.io.entropy.wf.entity.WfEntity");
+        wfRecord.setBizObjName(NopAuthUser.class.getName());
         Map<String, Object> vars = new HashMap<>();
 
         workflow.start(vars, context);
@@ -185,11 +187,11 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testCosign() {
         IServiceContext context = new ServiceContextImpl();
-        context.getContext().setUserId("userId");
+        String userId = context.getContext().getUserId();
 
         IWorkflow workflow = workflowManager.newWorkflow("test/cosign", 1L);
         workflow.start(null, context);
-        assertEquals("userId", workflow.getRecord().getStarterId());
+        assertEquals(userId, workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
         invokeAction(startStep, "sh", null, null, null, context);
         List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
@@ -225,10 +227,10 @@ public class TestWorkflowEngine extends BaseTestCase {
     @Test
     public void testCosign1() {
         IServiceContext context = new ServiceContextImpl();
-        context.getContext().setUserId("userId");
+        String userId = context.getContext().getUserId();
         IWorkflow workflow = workflowManager.newWorkflow("test/cosign1", 1L);
         workflow.start(null, context);
-        assertEquals("userId", workflow.getRecord().getStarterId());
+        assertEquals(userId, workflow.getRecord().getStarterId());
         IWorkflowStep startStep = workflow.getLatestStartStep();
         invokeAction(startStep, "sh", null, null, null, context);
         List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
@@ -405,7 +407,7 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         List<WorkflowTransitionTarget> targets = step.getTransitionTargetsForAction("action0", context);
 
-        invokeAction(step, "action0", "end0", "user", "actor2", context);
+        invokeAction(step, "action0", "end0", "user", "2", context);
 
         workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());

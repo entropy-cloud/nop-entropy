@@ -89,15 +89,6 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
         return nextLink;
     }
 
-    public NopWfStepInstanceLink addPrevStepLink(String prevStepId) {
-        NopWfStepInstanceLink prevLink = new NopWfStepInstanceLink();
-        prevLink.setWfId(getWfId());
-        prevLink.setStepId(prevStepId);
-        prevLink.setNextStepId(getStepId());
-        getPrevLinks().add(prevLink);
-        return prevLink;
-    }
-
     @Override
     public Set<String> getTagSet() {
         return ConvertHelper.toCsvSet(getTagText());

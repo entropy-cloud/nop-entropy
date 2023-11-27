@@ -150,7 +150,7 @@
                 <column code="PARENT_WF_ID" displayName="父流程ID" name="parentWfId" precision="32" propId="18"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Flow ID"/>
                 <column code="PARENT_STEP_ID" displayName="父流程步骤ID" name="parentStepId" precision="200" propId="19"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Step ID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="Parent Step ID"/>
                 <column code="STARTER_ID" displayName="启动人ID" name="starterId" precision="50" propId="20"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Starter ID"/>
                 <column code="STARTER_NAME" displayName="启动人" name="starterName" precision="50" propId="21"
@@ -344,19 +344,20 @@
                 <column code="LAST_ACTION" displayName="最后一次操作" name="lastAction" precision="200" propId="28"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Last Action" ui:show="X"/>
                 <column code="START_TIME" displayName="开始时间" name="startTime" propId="29" stdDataType="timestamp"
-                        stdSqlType="TIMESTAMP" i18n-en:displayName="Start Time"/>
+                        stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Start Time"/>
                 <column code="FINISH_TIME" displayName="结束时间" name="finishTime" propId="30" stdDataType="timestamp"
-                        stdSqlType="TIMESTAMP" i18n-en:displayName="Finish Time"/>
+                        stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Finish Time"/>
                 <column code="DUE_TIME" displayName="到期时间" name="dueTime" propId="31" stdDataType="timestamp"
-                        stdSqlType="TIMESTAMP" i18n-en:displayName="Due Time"/>
+                        stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Due Time"/>
                 <column code="READ_TIME" displayName="读取时间" name="readTime" propId="32" stdDataType="timestamp"
-                        stdSqlType="TIMESTAMP" i18n-en:displayName="Read Time"/>
+                        stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Read Time"/>
                 <column code="REMIND_TIME" displayName="提醒时间" name="remindTime" propId="33" stdDataType="timestamp"
-                        stdSqlType="TIMESTAMP" i18n-en:displayName="Remind Time" ui:show="L"/>
+                        stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Remind Time" ui:show="L"/>
                 <column code="REMIND_COUNT" displayName="提醒次数" name="remindCount" propId="34" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Remind Count" ui:show="L"/>
                 <column code="NEXT_RETRY_TIME" displayName="下次重试时间" name="nextRetryTime" propId="35"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Next Retry Time" ui:show="X"/>
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock"
+                        i18n-en:displayName="Next Retry Time" ui:show="X"/>
                 <column code="RETRY_COUNT" displayName="已重试次数" name="retryCount" propId="36" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Retry Count" ui:show="X"/>
                 <column code="PRIORITY" displayName="优先级" mandatory="true" name="priority" propId="37" stdDataType="int"
@@ -372,10 +373,10 @@
                         stdSqlType="VARCHAR" i18n-en:displayName="Tags" ui:show="X"/>
                 <column code="NEXT_STEP_ID" comment="对于临时插入的步骤，可以通过此属性来指定它的后续跳转步骤" displayName="下一步骤ID"
                         name="nextStepId" precision="32" propId="42" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Next Step ID" ui:show="X"/>
+                        tagSet="var" i18n-en:displayName="Next Step ID" ui:show="X"/>
                 <column code="STEP_GROUP" comment="会签等步骤会产生一组相关的步骤实例，通过此属性表示它们是同一个业务操作" displayName="步骤分组"
                         name="stepGroup" precision="32" propId="43" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Step Group" ui:show="X"/>
+                        tagSet="var" i18n-en:displayName="Step Group" ui:show="X"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="44"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

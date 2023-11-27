@@ -1,0 +1,2 @@
+_chgType,SID,WF_ID,STEP_ID,ACTION_NAME,DISPLAY_NAME,EXEC_TIME,CALLER_ID,CALLER_NAME,OPINION,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME
+A,@var:NopWfAction@sid,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,sp,审批,@var:NopWfAction@execTime,,,,0,autotest-ref,*,autotest-ref,*

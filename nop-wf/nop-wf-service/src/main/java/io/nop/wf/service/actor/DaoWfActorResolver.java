@@ -24,6 +24,7 @@ import static io.nop.wf.service.NopWfErrors.ARG_ACTOR_TYPE;
 import static io.nop.wf.service.NopWfErrors.ERR_WF_ACTOR_NOT_USER;
 import static io.nop.wf.service.NopWfErrors.ERR_WF_ACTOR_NO_DEPT_ID;
 import static io.nop.wf.service.NopWfErrors.ERR_WF_NULL_ACTOR;
+import static io.nop.wf.service.NopWfErrors.ERR_WF_UNKNOWN_ACTOR_TYPE;
 
 public class DaoWfActorResolver implements IWfActorResolver {
     private IDaoProvider daoProvider;
@@ -51,6 +52,12 @@ public class DaoWfActorResolver implements IWfActorResolver {
 
     @Override
     public IWfActor resolveUser(String userId) {
+        if (IWfActor.SYS_USER_ID.equals(userId)) {
+            WfUserActorBean user = new WfUserActorBean();
+            user.setActorName(IWfActor.SYS_USER_NAME);
+            user.setActorId(userId);
+            return user;
+        }
         NopAuthUser user = userDao().getEntityById(userId);
         if (user == null) {
             return null;
@@ -138,7 +145,7 @@ public class DaoWfActorResolver implements IWfActorResolver {
         if (IWfActor.ACTOR_TYPE_ROLE.equals(actorType))
             return resolveRole(actorId, deptId);
 
-        if(IWfActor.ACTOR_TYPE_ALL.equals(actorType)){
+        if (IWfActor.ACTOR_TYPE_ALL.equals(actorType)) {
             WfActorBean actor = new WfActorBean();
             actor.setActorId(IWfActor.ACTOR_TYPE_ALL);
             actor.setActorName(IWfActor.ACTOR_TYPE_ALL);
@@ -146,7 +153,9 @@ public class DaoWfActorResolver implements IWfActorResolver {
             return actor;
         }
 
-        return null;
+        throw new NopException(ERR_WF_UNKNOWN_ACTOR_TYPE)
+                .param(ARG_ACTOR_TYPE, actorType)
+                .param(ARG_ACTOR_ID, actorId);
     }
 
     @Override
