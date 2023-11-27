@@ -2958,6 +2958,55 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static String limitUtf8Len(CharSequence str, int utfLen){
+        return limitUtfLen(str, 0, utfLen);
+    }
+
+    /**
+     * 从指定位置开始截取子字符串，确保子字符串编码为UTF8之后长度小于utf8Len
+     */
+    @Deterministic
+    public static String limitUtfLen(CharSequence str, int from, int utf8Len) {
+
+        StringBuilder sb = new StringBuilder();
+        int size = 0;
+        for (int i = from, n = str.length(); i < n; i++) {
+            if (size >= utf8Len)
+                break;
+            char c = str.charAt(i);
+            // 如果 codePoint 小于 0x0080，则它使用单个字节进行编码。
+            if (c < 0x80) {
+                size++;
+            } else if (c < 0x800) {
+                // 如果 codePoint 在 0x0080 到 0x07FF 之间，则它使用两个字节进行编码。
+                size += 2;
+                if (size > utf8Len)
+                    break;
+                sb.append(c);
+            } else if (!Character.isHighSurrogate(c)) {
+                // 如果 codePoint 在 0x0800 到 0xFFFF 之间，则它使用三个字节进行编码。
+                size += 3;
+                if (size > utf8Len)
+                    break;
+                sb.append(c);
+            } else {
+                //  如果 codePoint 在 0x10000 到 0x10FFFF 之间，则它使用四个字节进行编码
+                if (i >= n - 1) {
+                    break;
+                }
+                i++;
+                char c2 = str.charAt(i);
+                size += 4;
+                if (size > utf8Len)
+                    break;
+                sb.append(c);
+                sb.append(c2);
+            }
+        }
+        return sb.toString();
+    }
+
+    @Deterministic
     public static long parseFileSizeString(String str) {
         if (str == null || str.length() <= 0)
             return -1;

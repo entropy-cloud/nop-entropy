@@ -477,7 +477,7 @@ public class TestStringHelper {
     }
 
     @Test
-    public void testNextName(){
+    public void testNextName() {
         assertEquals("1", StringHelper.nextName(""));
         assertEquals("abc1", StringHelper.nextName("abc"));
         assertEquals("a2", StringHelper.nextName("a1"));
@@ -488,5 +488,25 @@ public class TestStringHelper {
         assertEquals("99", StringHelper.nextName("98"));
         assertEquals("[1]", StringHelper.nextName("[0]"));
         assertEquals("a(2)", StringHelper.nextName("a(1)"));
+    }
+
+    @Test
+    public void testUtf8Len() {
+        StringBuilder sb = new StringBuilder();
+        sb.appendCodePoint(0x1F431);
+        sb.appendCodePoint(0x00E9);
+        sb.append('中');
+        String str = sb.toString();
+
+        assertEquals("", StringHelper.limitUtf8Len(str, 1));
+        assertEquals("", StringHelper.limitUtf8Len(str, 2));
+        assertEquals("", StringHelper.limitUtf8Len(str, 3));
+        assertEquals(0x1F431, StringHelper.limitUtf8Len(str, 4).codePointAt(0));
+        assertEquals(0x1F431, StringHelper.limitUtf8Len(str, 5).codePointAt(0));
+
+        assertEquals(0xE9, StringHelper.limitUtf8Len(str, 6).charAt(2));
+        assertEquals(3, StringHelper.limitUtf8Len(str, 7).length());
+        assertEquals(3, StringHelper.limitUtf8Len(str, 8).length());
+        assertEquals(4, StringHelper.limitUtf8Len(str, 9).length());
     }
 }
