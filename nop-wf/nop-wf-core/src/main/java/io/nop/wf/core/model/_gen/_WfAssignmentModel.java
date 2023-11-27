@@ -19,7 +19,14 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
      * xml name: actors
      * 
      */
-    private java.util.List<io.nop.wf.core.model.WfAssignmentActorModel> _actors = java.util.Collections.emptyList();
+    private KeyedList<io.nop.wf.core.model.WfAssignmentActorModel> _actors = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: defaultActorExpr
+     * 当actors集合中实际选择的人员为空时会使用defaultActor
+     */
+    private io.nop.core.lang.eval.IEvalAction _defaultActorExpr ;
     
     /**
      *  
@@ -77,7 +84,52 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
     public void setActors(java.util.List<io.nop.wf.core.model.WfAssignmentActorModel> value){
         checkAllowChange();
         
-        this._actors = value;
+        this._actors = KeyedList.fromList(value, io.nop.wf.core.model.WfAssignmentActorModel::getActorModelId);
+           
+    }
+
+    
+    public io.nop.wf.core.model.WfAssignmentActorModel getActor(String name){
+        return this._actors.getByKey(name);
+    }
+
+    public boolean hasActor(String name){
+        return this._actors.containsKey(name);
+    }
+
+    public void addActor(io.nop.wf.core.model.WfAssignmentActorModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.wf.core.model.WfAssignmentActorModel> list = this.getActors();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.wf.core.model.WfAssignmentActorModel::getActorModelId);
+            setActors(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_actors(){
+        return this._actors.keySet();
+    }
+
+    public boolean hasActors(){
+        return !this._actors.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: defaultActorExpr
+     *  当actors集合中实际选择的人员为空时会使用defaultActor
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getDefaultActorExpr(){
+      return _defaultActorExpr;
+    }
+
+    
+    public void setDefaultActorExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._defaultActorExpr = value;
            
     }
 
@@ -212,6 +264,7 @@ public abstract class _WfAssignmentModel extends io.nop.core.resource.component.
         super.outputJson(out);
         
         out.put("actors",this.getActors());
+        out.put("defaultActorExpr",this.getDefaultActorExpr());
         out.put("defaultOwnerExpr",this.getDefaultOwnerExpr());
         out.put("ignoreNoAssign",this.isIgnoreNoAssign());
         out.put("mustInAssignment",this.isMustInAssignment());

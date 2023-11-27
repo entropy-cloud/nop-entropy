@@ -10,11 +10,12 @@ package io.nop.wf.core.store.beans;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
+import io.nop.commons.util.TagsHelper;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowRecord;
 
 import java.sql.Timestamp;
-import java.util.LinkedHashSet;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,8 +29,13 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private String wfId;
     private String wfName;
     private Long wfVersion;
+
+    private Map<String, Object> wfParams;
     private Integer status;
 
+    private String title;
+
+    private String bizKey;
     private String bizObjName;
     private String bizObjId;
     private Timestamp startTime;
@@ -57,6 +63,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     private String lastOperatorName;
 
+    private String lastOperatorDeptId;
+
     private String createrId;
 
     private boolean willEnd;
@@ -66,6 +74,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private Map<String, Object> globalVars;
 
     private Map<String, Object> outputVars;
+
+    private Set<String> tagSet;
 
     private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
 
@@ -136,12 +146,37 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         if (caller != null) {
             setLastOperatorId(caller.getActorId());
             setLastOperatorName(caller.getActorName());
+            setLastOperatorDeptId(caller.getDeptId());
         } else {
             setLastOperatorId(null);
             setLastOperatorName(null);
+            setLastOperatorDeptId(null);
         }
     }
 
+    public Map<String, Object> getWfParams() {
+        return wfParams;
+    }
+
+    public void setWfParams(Map<String, Object> wfParams) {
+        this.wfParams = wfParams;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
+    }
 
     @Override
     public String getParentWfName() {
@@ -365,6 +400,14 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.lastOperatorName = lastOperatorName;
     }
 
+    public String getLastOperatorDeptId() {
+        return lastOperatorDeptId;
+    }
+
+    public void setLastOperatorDeptId(String lastOperatorDeptId) {
+        this.lastOperatorDeptId = lastOperatorDeptId;
+    }
+
     @Override
     public String getCreaterId() {
         return createrId;
@@ -390,37 +433,6 @@ public class WorkflowRecordBean implements IWorkflowRecord {
         this.onSignals = onSignals;
     }
 
-    public boolean removeSignals(Set<String> signals) {
-        if (onSignals == null)
-            return false;
-
-        return onSignals.removeAll(signals);
-    }
-
-    public boolean isAllSignalOn(Set<String> signals) {
-        if (signals == null || signals.isEmpty())
-            return true;
-
-        if (onSignals == null)
-            return false;
-
-        return onSignals.retainAll(signals);
-    }
-
-    public boolean isSignalOn(String signal) {
-        if (onSignals == null)
-            return false;
-
-        return onSignals.contains(signal);
-    }
-
-    public void addSignals(Set<String> signals) {
-        if (signals != null) {
-            if (onSignals == null)
-                onSignals = new LinkedHashSet<>();
-            onSignals.addAll(signals);
-        }
-    }
 
     public Map<String, Object> getOutputVars() {
         return outputVars;
@@ -428,5 +440,30 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     public void setOutputVars(Map<String, Object> outputVars) {
         this.outputVars = outputVars;
+    }
+
+
+    @Override
+    public Set<String> getTagSet() {
+        return tagSet;
+    }
+
+    public void setTagSet(Set<String> tagSet) {
+        this.tagSet = tagSet;
+    }
+
+    @Override
+    public void addTag(String tag) {
+        this.tagSet = TagsHelper.add(getTagSet(), tag);
+    }
+
+    @Override
+    public void addTags(Collection<String> tags) {
+        this.tagSet = TagsHelper.merge(getTagSet(), tags);
+    }
+
+    @Override
+    public void removeTag(String tag) {
+        this.tagSet = TagsHelper.remove(getTagSet(), tag);
     }
 }

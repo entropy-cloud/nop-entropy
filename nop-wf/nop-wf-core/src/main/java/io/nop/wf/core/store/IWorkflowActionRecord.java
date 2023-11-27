@@ -20,6 +20,8 @@ public interface IWorkflowActionRecord {
 
     String getActionName();
 
+    String getDisplayName();
+
     Timestamp getExecTime();
 
     String getCallerId();

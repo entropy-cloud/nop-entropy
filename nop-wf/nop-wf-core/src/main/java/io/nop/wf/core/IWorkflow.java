@@ -84,7 +84,7 @@ public interface IWorkflow {
 
     IWfActor getManagerActor();
 
-    IWfActor getStarterActor();
+    IWfActor getStarter();
 
     /**
      * 获取指定步骤的历史步骤列表
@@ -114,6 +114,8 @@ public interface IWorkflow {
     WorkflowTransitionTarget getJumpToTarget(String stepName, IServiceContext ctx);
 
     String getBizObjName();
+
+    String getBizKey();
 
     String getBizEntityId();
 
@@ -177,4 +179,8 @@ public interface IWorkflow {
     IWfActor resolveActor(String actorType, String actorId, String actorDeptId);
 
     IWfActor resolveUser(String userId);
+
+    IWfActor getManager(IWfActor actor, int upLevel);
+
+    IWfActor getDeptManager(IWfActor actor, int upLevel);
 }

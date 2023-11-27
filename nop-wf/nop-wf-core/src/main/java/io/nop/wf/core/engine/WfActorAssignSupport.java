@@ -11,6 +11,7 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.IWfActorResolver;
+import io.nop.wf.api.actor.WfActorCandidateBean;
 import io.nop.wf.api.actor.WfActorCandidatesBean;
 import io.nop.wf.api.actor.WfAssignmentSelection;
 import io.nop.wf.core.NopWfCoreConstants;
@@ -51,33 +52,42 @@ public class WfActorAssignSupport {
         return wfActorResolver.resolveUser(userId);
     }
 
-    protected List<IWfActor> getAssignmentActors(WfAssignmentModel assignment, WfRuntime wfRt) {
+    public IWfActor getManager(IWfActor actor, int upLevel) {
+        return wfActorResolver.getManager(actor, upLevel);
+    }
+
+    public IWfActor getDeptManager(IWfActor actor, int upLevel) {
+        return wfActorResolver.getDeptManager(actor, upLevel);
+    }
+
+    protected List<WfActorWithWeight> getAssignmentActors(WfAssignmentModel assignment, WfRuntime wfRt) {
         if (assignment == null || assignment.getActors() == null || assignment.getActors().isEmpty())
             return Collections.emptyList();
 
-        List<IWfActor> ret = new ArrayList<>(assignment.getActors().size());
+        List<WfActorWithWeight> ret = new ArrayList<>(assignment.getActors().size());
         Set<String> actorKeys = new HashSet<>();
         for (WfAssignmentActorModel item : assignment.getActors()) {
             if (item.isDynamic()) {
                 // 动态计算的结果可能是actor或者actor的列表
                 List<IWfActor> dynamicActors = getDynamicActors(item, wfRt);
                 for (IWfActor actor : dynamicActors) {
-                    addActor(ret, actorKeys, actor, item.isAssignForUser());
+                    addActor(ret, item.getActorModelId(),
+                            item.getVoteWeight(), actorKeys, actor, item.isAssignForUser());
                 }
             } else {
                 IWfActor actor = resolveActor(item.getActorType(), item.getActorId(), item.getDeptId());
-                addActor(ret, actorKeys, actor, item.isAssignForUser());
+                addActor(ret, item.getActorModelId(), item.getVoteWeight(), actorKeys, actor, item.isAssignForUser());
             }
         }
 
-        wfRt.setCurrentActors(ret);
+        wfRt.setCurrentActorAssignments(ret);
 
         if (!ret.isEmpty()) {
             if (assignment.getSelectExpr() != null) {
                 assignment.getSelectExpr().invoke(wfRt);
             }
         }
-        return wfRt.getCurrentActors();
+        return wfRt.getCurrentActorAssignments();
     }
 
     private List<IWfActor> getDynamicActors(WfAssignmentActorModel actorModel, WfRuntime wfRt) {
@@ -103,25 +113,25 @@ public class WfActorAssignSupport {
         }
     }
 
-    private void addActor(Collection<IWfActor> actors, Set<String> actorKeys, IWfActor actor, boolean forUser) {
+    private void addActor(Collection<WfActorWithWeight> actors, String actorModelId,
+                          int voteWeight, Set<String> actorKeys, IWfActor actor, boolean forUser) {
         if (forUser) {
             List<? extends IWfActor> users = actor.getUsers();
-            if (users != null) {
-                for (IWfActor user : users) {
-                    if (actorKeys.add(user.getActorKey())) {
-                        actors.add(actor);
-                    }
+
+            for (IWfActor user : users) {
+                if (actorKeys.add(user.getActorKey())) {
+                    actors.add(new WfActorWithWeight(user, actorModelId, voteWeight));
                 }
             }
         } else {
             if (actorKeys.add(actor.getActorKey()))
-                actors.add(actor);
+                actors.add(new WfActorWithWeight(actor, actorModelId, voteWeight));
         }
     }
 
-    protected List<IWfActor> getActors(WfAssignmentModel assignment, String targetStep, WfRuntime wfRt) {
+    protected List<WfActorWithWeight> getActors(WfAssignmentModel assignment, String targetStep, WfRuntime wfRt) {
         if (assignment == null) {
-            return wfRt.getSelectedActors(targetStep);
+            return WfActorWithWeight.toAssignment(wfRt.getSelectedActors(targetStep), null, 1);
         }
 
         // 如果不需要前台选择，则直接返回后台配置的actor
@@ -134,11 +144,6 @@ public class WfActorAssignSupport {
         // 根据selectInAssignment参数设置决定是否要检查前台传入actor的合法性
         List<IWfActor> selectedActors = wfRt.getSelectedActors(targetStep);
 
-        // 如果没有要求必须在assignment范围内选择，则直接使用selectedActors
-        if (!assignment.isMustInAssignment()) {
-            return selectedActors;
-        }
-
         if (CollectionHelper.isEmpty(selectedActors))
             return Collections.emptyList();
 
@@ -147,29 +152,35 @@ public class WfActorAssignSupport {
 
         switch (assignment.getSelection()) {
             case multiple: {
+                List<WfActorWithWeight> ret = new ArrayList<>();
                 for (IWfActor actor : selectedActors) {
-                    if (!candidates.containsSelectedActor(actor))
+                    WfActorCandidateBean found = candidates.findCandidate(actor);
+                    if (found == null && assignment.isMustInAssignment())
                         throw wfRt.newError(ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT)
                                 .source(assignment)
                                 .param(ARG_WF_ACTOR_TYPE, actor.getActorType())
                                 .param(ARG_WF_ACTOR_ID, actor.getActorId())
                                 .param(ARG_ACTOR_CANDIDATES, candidates);
+                    ret.add(new WfActorWithWeight(actor, found == null ? null : found.getActorModelId(),
+                            found == null ? 1 : found.getVoteWeight()));
                 }
-                return selectedActors;
+                return ret;
             }
             case single: {
                 if (selectedActors.size() > 1)
                     throw wfRt.newError(ERR_WF_SELECTED_ACTOR_COUNT_NOT_ONE).source(assignment);
 
                 IWfActor actor = selectedActors.get(0);
-                if (!candidates.containsSelectedActor(actor))
+                WfActorCandidateBean found = candidates.findCandidate(actor);
+                if (found == null && assignment.isMustInAssignment())
                     throw wfRt.newError(ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT)
                             .source(assignment)
                             .param(ARG_WF_ACTOR_TYPE, actor.getActorType())
                             .param(ARG_WF_ACTOR_ID, actor.getActorId())
                             .param(ARG_ACTOR_CANDIDATES, candidates);
 
-                return selectedActors;
+                return Collections.singletonList(new WfActorWithWeight(actor, found == null ? null : found.getActorModelId(),
+                        found == null ? 1 : found.getVoteWeight()));
             }
             default:
                 throw new UnsupportedOperationException("nop.err.wf.unsupported-assignment-selection");
@@ -188,11 +199,13 @@ public class WfActorAssignSupport {
                 // 动态计算的结果可能是actor或者actor的列表
                 List<IWfActor> dynamicActors = getDynamicActors(item, wfRt);
                 for (IWfActor actor : dynamicActors) {
-                    ret.addActorCandidate(actor, item.isSelectUser(), item.isAssignForUser());
+                    ret.addActorCandidate(actor, item.isSelectUser(), item.getActorModelId(),
+                            item.getVoteWeight(), item.isAssignForUser());
                 }
             } else {
                 IWfActor actor = resolveActor(item.getActorType(), item.getActorId(), item.getDeptId());
-                ret.addActorCandidate(actor, item.isSelectUser(), item.isAssignForUser());
+                ret.addActorCandidate(actor, item.isSelectUser(), item.getActorModelId(),
+                        item.getVoteWeight(), item.isAssignForUser());
             }
         }
         return ret;

@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.TypeVariable;
-import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,7 +39,7 @@ public class TestGraphQLType {
     @Test
     public void testJavaType() {
         TypeRegistry registry = new TypeRegistry();
-        ReflectionBizModelBuilder.INSTANCE.build(new LoginApiBizModel(), new HashMap<>(), registry);
+        ReflectionBizModelBuilder.INSTANCE.build(new LoginApiBizModel(), registry);
         String typeName = GraphQLNameHelper.getResultTypeName(LoginResult.class);
         GraphQLDefinition def = registry.getType(typeName);
         assertNotNull(def);
@@ -71,7 +70,7 @@ public class TestGraphQLType {
     @Test
     public void testPageBean() {
         TypeRegistry registry = new TypeRegistry();
-        GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(new NopAuthUserBizModel(), new HashMap<>(),
+        GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(new NopAuthUserBizModel(),
                 registry);
         GraphQLFieldDefinition field = bizModel.getOperationDefinition(GraphQLOperationType.query, "findPage");
         assertEquals("PageBean_NopAuthUser", field.getType().toString());

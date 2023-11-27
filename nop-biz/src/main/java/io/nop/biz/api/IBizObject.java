@@ -16,6 +16,7 @@ import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.biz.IGraphQLBizObject;
 import io.nop.xlang.xmeta.IObjMeta;
 
 import java.util.Collection;
@@ -31,7 +32,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_UNKNOWN_ACTION;
  * <p>
  * 它是静态对象，不持有非静态属性
  */
-public interface IBizObject extends IComponentModel {
+public interface IBizObject extends IComponentModel, IGraphQLBizObject {
     String getBizObjName();
 
     IBizModel getBizModel();

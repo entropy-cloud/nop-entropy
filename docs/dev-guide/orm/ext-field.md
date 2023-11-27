@@ -49,6 +49,12 @@ IOrmKeyValueTable field = (IOrmKeyValueTable)entity.getExtFields().prop_get("fld
 entity.getExtFields().prop_set("fldA",value);
 ```
 
+在XScript脚本语言中以及在EQL查询语言中 extFields.fldA.string 等价于 entity.getExtFields().prop_get("fldA").getString()
+
+fldA相当于是按照keyProp从一对多集合对象中查找得到唯一的一条记录。
+
+
+
 ### 扩展字段别名
 
 为了简化访问，我们可以为扩展字段增加别名
@@ -101,3 +107,70 @@ order by o.extFldA
 local-ext标签，则系统会自动为当前实体生成一个配对的扩展字段表，扩展表表名一般为原表名+'_ext'，例如nop_sys_notice_template_ext。
 
 扩展表的结构与nop_sys_ext_field类似， 只是缺少entityName字段，不需要按照实体名进行过滤。
+
+## 纵表转横表
+很多低代码平台为了实现动态修改数据库结构，都采用纵表来保存所有数据，而纵表转横表的做法是特殊写死的一种变换。Nop平台与此不同，
+它内置的横纵表换是一个标准数学变换，不仅仅是普通的纵表，任意的一对多关联都可以被转换为一对一关联，而一对一或者多对一关联的属性在EQL层面和使用表上原生的字段完全一致。
+
+在[TestExtFields](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-orm/src/test/java/io/nop/orm/dao/TestExtFields.java)单元测试中
+````xml
+ <entity name="io.nop.app.SimsExam">
+    
+            <aliases>
+                <alias name="extFldA" propPath="ext.fldA.string" type="String"/>
+                <alias name="extFldB" propPath="ext.fldB.boolean" type="Boolean" notGenCode="true"/>
+            </aliases>
+
+            <relations>
+                <to-many name="ext" refEntityName="io.nop.app.SimsExtField" keyProp="fieldName">
+                    <join>
+                        <on leftProp="id" rightProp="entityId"/>
+                        <on leftValue="io.nop.app.SimsExam" rightProp="entityName"/>
+                    </join>
+                </to-many>
+
+            </relations>
+        </entity>
+````
+
+* 任何to-many关联上都可以配置keyProp属性，用于在集合中区分出唯一的一条记录。
+* ext.fldA.string等价于 ((IOrmEntitySet)entity.getExt()).prop_get("fldA").getString()
+* 通过别名机制，可以我们为访问扩展字段的复杂路径起一个别名。例如上面的配置中 extFldA 等价于ext.fldA.string。
+* 标记了notGenCode，则生成代码的时候不会为该属性生成java中的get/set方法，获取值时需要通过entity.prop_get("extFldB")这种方式。
+在XScript脚本或者XPL模板语言中，扩展属性和普通属性的访问语法完全相同，可以直接使用 entity.extFldB = true这种方式。
+
+在EQL查询语言中，也会自动识别keyProp，进行结构变换。
+````sql
+select o.children.myKey.value from MyEntity o 
+// 会被转换为  
+select c.value from MyEntity o , Children u where o.id = u.parent_id and u.key = 'myKey'
+````
+
+即一个集合只要具有某种唯一标识，那么数学上它就一定能够展平成为具有唯一访问路径的关联属性。而ORM引擎的EQL查询语言负责的就是把o.a.b.c这种关联属性转换为表关联查询。
+
+````sql
+select o.name from MyEntity o 
+where o.children.myKey1.intValue = 3 and o.children.myKey2.strValue like 'a%' 
+
+会被变换为
+
+select o.name from MyEntity o, Children u1, Children u2 
+where o.sid = u1.parent_id and o.sid = u2.parent_id 
+and u1.key = 'myKey1' and u2.key = 'myKey2' and u1.intValue = 3  
+and u2.strValue like 'a%'
+````
+
+一个一对多关联表，如果增加一个key过滤条件就自然变成一对一关联表了
+
+````sql
+select o.key1,o.children.myKey1.value,o.children.myKey2.value 
+from MyEntity o
+
+会被转换为 
+select o.key1, u1.value, u2.value 
+from MyEntity o , Children u1, Children u2 
+where o.sid = u1.parent_id and u1.key = 'myKey1' 
+and o.sid = u1.parent_id and u2.key = 'myKey2'
+````
+
+按照规则，从o.children.myKey抽取出关联表，这在数学层面就是一个具有确定性的局部变换规则

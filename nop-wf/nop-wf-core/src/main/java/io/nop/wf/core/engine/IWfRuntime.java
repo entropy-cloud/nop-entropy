@@ -56,9 +56,9 @@ public interface IWfRuntime extends IEvalContext {
 
     void setSelectedStepActors(Map<String, List<IWfActor>> selectedStepActors);
 
-    List<IWfActor> getCurrentActors();
+    List<WfActorWithWeight> getCurrentActorAssignments();
 
-    void setCurrentActors(List<IWfActor> currentActors);
+    void setCurrentActorAssignments(List<WfActorWithWeight> currentActorAssignments);
 
     IWorkflowStepImplementor getPrevStep();
 
@@ -84,4 +84,12 @@ public interface IWfRuntime extends IEvalContext {
     void markEnd();
 
     boolean willEnd();
+
+    void logMsg(String msg);
+
+    void logError(String errorCode, Map<String, Object> params);
+
+    void logError(Throwable exp);
+
+    
 }

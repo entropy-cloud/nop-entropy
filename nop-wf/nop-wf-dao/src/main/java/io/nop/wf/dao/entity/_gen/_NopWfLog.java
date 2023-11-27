@@ -32,24 +32,32 @@ public class _NopWfLog extends DynamicOrmEntity{
     public static final String PROP_NAME_stepId = "stepId";
     public static final int PROP_ID_stepId = 3;
     
+    /* 动作ID: ACTION_ID VARCHAR */
+    public static final String PROP_NAME_actionId = "actionId";
+    public static final int PROP_ID_actionId = 4;
+    
     /* 日志级别: LOG_LEVEL INTEGER */
     public static final String PROP_NAME_logLevel = "logLevel";
-    public static final int PROP_ID_logLevel = 4;
+    public static final int PROP_ID_logLevel = 5;
     
     /* 日志消息: LOG_MSG VARCHAR */
     public static final String PROP_NAME_logMsg = "logMsg";
-    public static final int PROP_ID_logMsg = 5;
+    public static final int PROP_ID_logMsg = 6;
+    
+    /* 错误码: ERR_CODE VARCHAR */
+    public static final String PROP_NAME_errCode = "errCode";
+    public static final int PROP_ID_errCode = 7;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 6;
+    public static final int PROP_ID_createdBy = 8;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 7;
+    public static final int PROP_ID_createTime = 9;
     
 
-    private static int _PROP_ID_BOUND = 8;
+    private static int _PROP_ID_BOUND = 10;
 
     
     /* relation: 工作流实例 */
@@ -58,11 +66,14 @@ public class _NopWfLog extends DynamicOrmEntity{
     /* relation: 工作流步骤实例 */
     public static final String PROP_NAME_wfStepInstance = "wfStepInstance";
     
+    /* relation: 工作流动作 */
+    public static final String PROP_NAME_wfAction = "wfAction";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[8];
+    private static final String[] PROP_ID_TO_NAME = new String[10];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -75,11 +86,17 @@ public class _NopWfLog extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_stepId] = PROP_NAME_stepId;
           PROP_NAME_TO_ID.put(PROP_NAME_stepId, PROP_ID_stepId);
       
+          PROP_ID_TO_NAME[PROP_ID_actionId] = PROP_NAME_actionId;
+          PROP_NAME_TO_ID.put(PROP_NAME_actionId, PROP_ID_actionId);
+      
           PROP_ID_TO_NAME[PROP_ID_logLevel] = PROP_NAME_logLevel;
           PROP_NAME_TO_ID.put(PROP_NAME_logLevel, PROP_ID_logLevel);
       
           PROP_ID_TO_NAME[PROP_ID_logMsg] = PROP_NAME_logMsg;
           PROP_NAME_TO_ID.put(PROP_NAME_logMsg, PROP_ID_logMsg);
+      
+          PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
+          PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
       
           PROP_ID_TO_NAME[PROP_ID_createdBy] = PROP_NAME_createdBy;
           PROP_NAME_TO_ID.put(PROP_NAME_createdBy, PROP_ID_createdBy);
@@ -99,11 +116,17 @@ public class _NopWfLog extends DynamicOrmEntity{
     /* 工作流步骤ID: STEP_ID */
     private java.lang.String _stepId;
     
+    /* 动作ID: ACTION_ID */
+    private java.lang.String _actionId;
+    
     /* 日志级别: LOG_LEVEL */
     private java.lang.Integer _logLevel;
     
     /* 日志消息: LOG_MSG */
     private java.lang.String _logMsg;
+    
+    /* 错误码: ERR_CODE */
+    private java.lang.String _errCode;
     
     /* 创建人: CREATED_BY */
     private java.lang.String _createdBy;
@@ -190,11 +213,17 @@ public class _NopWfLog extends DynamicOrmEntity{
             case PROP_ID_stepId:
                return getStepId();
         
+            case PROP_ID_actionId:
+               return getActionId();
+        
             case PROP_ID_logLevel:
                return getLogLevel();
         
             case PROP_ID_logMsg:
                return getLogMsg();
+        
+            case PROP_ID_errCode:
+               return getErrCode();
         
             case PROP_ID_createdBy:
                return getCreatedBy();
@@ -243,6 +272,16 @@ public class _NopWfLog extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_actionId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_actionId));
+               }
+               setActionId(typedValue);
+               break;
+            }
+        
             case PROP_ID_logLevel:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -260,6 +299,16 @@ public class _NopWfLog extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_logMsg));
                }
                setLogMsg(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errCode:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errCode));
+               }
+               setErrCode(typedValue);
                break;
             }
         
@@ -313,6 +362,13 @@ public class _NopWfLog extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_actionId:{
+               onInitProp(propId);
+               this._actionId = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_logLevel:{
                onInitProp(propId);
                this._logLevel = (java.lang.Integer)value;
@@ -323,6 +379,13 @@ public class _NopWfLog extends DynamicOrmEntity{
             case PROP_ID_logMsg:{
                onInitProp(propId);
                this._logMsg = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errCode:{
+               onInitProp(propId);
+               this._errCode = (java.lang.String)value;
                
                break;
             }
@@ -405,6 +468,25 @@ public class _NopWfLog extends DynamicOrmEntity{
     }
     
     /**
+     * 动作ID: ACTION_ID
+     */
+    public java.lang.String getActionId(){
+         onPropGet(PROP_ID_actionId);
+         return _actionId;
+    }
+
+    /**
+     * 动作ID: ACTION_ID
+     */
+    public void setActionId(java.lang.String value){
+        if(onPropSet(PROP_ID_actionId,value)){
+            this._actionId = value;
+            internalClearRefs(PROP_ID_actionId);
+            
+        }
+    }
+    
+    /**
      * 日志级别: LOG_LEVEL
      */
     public java.lang.Integer getLogLevel(){
@@ -438,6 +520,25 @@ public class _NopWfLog extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_logMsg,value)){
             this._logMsg = value;
             internalClearRefs(PROP_ID_logMsg);
+            
+        }
+    }
+    
+    /**
+     * 错误码: ERR_CODE
+     */
+    public java.lang.String getErrCode(){
+         onPropGet(PROP_ID_errCode);
+         return _errCode;
+    }
+
+    /**
+     * 错误码: ERR_CODE
+     */
+    public void setErrCode(java.lang.String value){
+        if(onPropSet(PROP_ID_errCode,value)){
+            this._errCode = value;
+            internalClearRefs(PROP_ID_errCode);
             
         }
     }
@@ -517,6 +618,27 @@ public class _NopWfLog extends DynamicOrmEntity{
           internalSetRefEntity(PROP_NAME_wfStepInstance, refEntity,()->{
              
                     this.setStepId(refEntity.getStepId());
+                 
+          });
+       }
+    }
+       
+    /**
+     * 工作流动作
+     */
+    public io.nop.wf.dao.entity.NopWfAction getWfAction(){
+       return (io.nop.wf.dao.entity.NopWfAction)internalGetRefEntity(PROP_NAME_wfAction);
+    }
+
+    public void setWfAction(io.nop.wf.dao.entity.NopWfAction refEntity){
+       if(refEntity == null){
+         
+         this.setActionId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_wfAction, refEntity,()->{
+             
+                    this.setActionId(refEntity.getSid());
                  
           });
        }

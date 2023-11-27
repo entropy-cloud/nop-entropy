@@ -18,12 +18,18 @@ public class WfActorCandidateBean {
     private IWfActor actor;
     private boolean selectUser;
     private boolean assignForUser;
+    private int voteWeight;
+
+    private String actorModelId;
     private List<? extends IWfActor> users;
 
-    public WfActorCandidateBean(IWfActor actor, boolean selectUser, boolean assignForUser) {
+    public WfActorCandidateBean(IWfActor actor, boolean selectUser, String actorModelId,
+                                int voteWeight, boolean assignForUser) {
         this.actor = actor;
         this.selectUser = selectUser;
         this.assignForUser = assignForUser;
+        this.actorModelId = actorModelId;
+        this.voteWeight = voteWeight;
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -46,6 +52,10 @@ public class WfActorCandidateBean {
 
     public WfActorCandidateBean() {
 
+    }
+
+    public String getActorModelId() {
+        return actorModelId;
     }
 
     public IWfActor getActor() {
@@ -83,5 +93,13 @@ public class WfActorCandidateBean {
             return containsUser(actor.getActorId());
         }
         return containsActor(actor);
+    }
+
+    public int getVoteWeight() {
+        return voteWeight;
+    }
+
+    public void setVoteWeight(int voteWeight) {
+        this.voteWeight = voteWeight;
     }
 }

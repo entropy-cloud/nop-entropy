@@ -26,7 +26,11 @@ prop:
       deptId: 主键
       deptName: 名称
       deptType: 类型
+      deptUsers: 部门用户
       email: 邮件
+      manager: 部门负责人
+      manager.userName: 部门负责人
+      managerId: 部分负责人
       orderNum: 排序
       parent: 父资源
       parent.deptName: 父资源
@@ -61,6 +65,9 @@ prop:
       delFlag: 删除标识
       groupId: 主键
       name: 名称
+      owner: 所有者
+      owner.userName: 所有者
+      ownerId: 所有者ID
       parent: 父分组
       parent.name: 父分组
       parentId: 父ID

@@ -56,9 +56,11 @@ public interface IWorkflowStore {
 
     IWorkflowVarSet getOutputVars(IWorkflowRecord wfRecord);
 
-    void logError(IWorkflowRecord wfRecord, String errorCode, Map<String, Object> params);
+    void logMsg(IWorkflowRecord wfRecord, String stepId, String actionId, String msg);
 
-    void logError(IWorkflowRecord wfRecord, String stepName, String actionName, Throwable e);
+    void logError(IWorkflowRecord wfRecord, String stepId, String actionId, String errorCode, Map<String, Object> params);
+
+    void logError(IWorkflowRecord wfRecord, String stepId, String actionId, Throwable e);
 
     IWorkflowStepRecord getStepRecordById(IWorkflowRecord wfRecord, String stepId);
 

@@ -20,7 +20,13 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     int WF_STATUS_HISTORY_BOUND = WF_STATUS_COMPLETED;
 
-    String SIGNAL_PREFIX = "signal_";
+    String PARAM_BIZ_OBJ_ID = "bizObjId";
+
+    String PARAM_BIZ_OBJ_NAME = "bizObjName";
+
+    String PARAM_BIZ_KEY = "bizKey";
+
+    String PARAM_TITLE = "title";
 
     String VAR_WF = "wf";
     String VAR_WF_RT = "wfRt";
@@ -74,6 +80,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String STEP_ID_END = "@end";
     String STEP_ID_EMPTY = "@empty";
     String STEP_ID_ASSIGNED = "@assigned";
+
+    String SPECIAL_STEP_ID_PREFIX = "@";
 
     String TIMER_DUE_TIME = "due_time";
 

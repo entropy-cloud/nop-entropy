@@ -9,7 +9,7 @@
         <prop name="wfVersion" displayName="工作流版本" i18n-en:displayName="Workflow Version" mandatory="true">
             <schema type="long"/>
         </prop>
-        <prop name="args" displayName="启动参数" i18n-en:displayName="Start Args">
+        <prop name="wfParams" displayName="启动参数" i18n-en:displayName="Workflow Params">
             <schema type="java.util.Map&lt;java.lang.String,java.lang.Object&gt;" precision="4000"/>
         </prop>
         <prop name="parentWfName" displayName="父工作流名称" i18n-en:displayName="Parent Workflow Name">

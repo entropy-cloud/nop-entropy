@@ -81,6 +81,18 @@ public class TagsHelper {
         return ret;
     }
 
+    public static Set<String> add(Set<String> tags, String tag) {
+        if (tags == null) {
+            tags = new LinkedHashSet<>();
+            tags.add(tag);
+            return tags;
+        } else {
+            Set<String> ret = new LinkedHashSet<>(tags);
+            ret.add(tag);
+            return ret;
+        }
+    }
+
     public static Set<String> merge(Collection<String> tagsA, Collection<String> tagsB) {
         if (tagsA == null)
             tagsA = Collections.emptySet();

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <diagram/>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="actor1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-step stepName="step1"/>
+                <to-step stepName="step2"/>
+            </transition>
+        </step>
+        <step name="step1">
+            <assignment>
+                <actors>
+                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+        <step name="step2">
+            <assignment>
+                <actors>
+                    <actor actorId="actor2" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <transition>
+                <to-end/>
+            </transition>
+        </step>
+    </steps>
+
+    <start startStepName="wf-start"/>
+</workflow>

@@ -4,6 +4,7 @@
   "parentId": "",
   "orderNum": 0,
   "deptType": "",
+  "managerId": "",
   "email": "",
   "phone": "",
   "delFlag": 0,
@@ -15,5 +16,8 @@
   "remark": "",
   "parent": null,
   "parent.deptName": "",
+  "manager": null,
+  "manager.userName": "",
+  "deptUsers": null,
   "children": null
 }

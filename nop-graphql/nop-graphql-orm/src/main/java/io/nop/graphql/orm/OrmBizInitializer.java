@@ -8,13 +8,16 @@
 package io.nop.graphql.orm;
 
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
+import io.nop.graphql.core.biz.IGraphQLBizObject;
+import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.orm.IOrmTemplate;
-
 import jakarta.inject.Inject;
+
 import java.util.function.BiConsumer;
 
 public class OrmBizInitializer implements IGraphQLBizInitializer {
@@ -33,7 +36,14 @@ public class OrmBizInitializer implements IGraphQLBizInitializer {
     }
 
     @Override
-    public void initialize(GraphQLObjectDefinition objDef, String entityName, BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor) {
-        new OrmFetcherBuilder(ormTemplate,daoProvider,queryProcessor).initFetchers(objDef,entityName);
+    public void initialize(IGraphQLBizObject bizObj,
+                           BiConsumer<QueryBean, IDataFetchingEnvironment> queryProcessor,
+                           TypeRegistry typeRegistry) {
+        GraphQLObjectDefinition objDef = bizObj.getObjectDefinition();
+        String entityName = bizObj.getEntityName();
+        if (StringHelper.isEmpty(entityName))
+            return;
+
+        new OrmFetcherBuilder(ormTemplate, daoProvider, queryProcessor).initFetchers(objDef, entityName);
     }
 }

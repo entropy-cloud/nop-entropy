@@ -78,7 +78,7 @@ import static io.nop.graphql.core.reflection.ArgBuilders.getEnv;
 public class ReflectionBizModelBuilder {
     public static final ReflectionBizModelBuilder INSTANCE = new ReflectionBizModelBuilder();
 
-    public GraphQLBizModel build(Object bean, Map<String, GraphQLBizModel> bizModels, TypeRegistry registry) {
+    public GraphQLBizModel build(Object bean, TypeRegistry registry) {
         Class<?> clazz = bean.getClass();
         if (IAopProxy.class.isAssignableFrom(clazz))
             clazz = clazz.getSuperclass();

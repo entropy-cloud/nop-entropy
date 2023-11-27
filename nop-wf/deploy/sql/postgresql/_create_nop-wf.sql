@@ -21,11 +21,11 @@ CREATE TABLE nop_wf_status_history(
   WF_ID VARCHAR(32) NOT NULL ,
   FROM_STATUS INT4 NOT NULL ,
   TO_STATUS INT4 NOT NULL ,
-  FROM_APP_STATE VARCHAR(100)  ,
   TO_APP_STATE VARCHAR(100)  ,
   CHANGE_TIME TIMESTAMP NOT NULL ,
   OPERATOR_ID VARCHAR(50)  ,
   OPERATOR_NAME VARCHAR(50)  ,
+  OPERATOR_DEPT_ID VARCHAR(50)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -73,24 +73,6 @@ CREATE TABLE nop_wf_user_delegate(
   constraint PK_nop_wf_user_delegate primary key (SID)
 );
 
-CREATE TABLE nop_wf_action(
-  SID VARCHAR(32) NOT NULL ,
-  WF_ID VARCHAR(32) NOT NULL ,
-  STEP_ID VARCHAR(32) NOT NULL ,
-  ACTION_NAME VARCHAR(200) NOT NULL ,
-  DISPLAY_NAME VARCHAR(200) NOT NULL ,
-  EXEC_TIME TIMESTAMP NOT NULL ,
-  CALLER_ID VARCHAR(50)  ,
-  CALLER_NAME VARCHAR(50)  ,
-  OPINION VARCHAR(4000)  ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_wf_action primary key (SID)
-);
-
 CREATE TABLE nop_wf_output(
   WF_ID VARCHAR(32) NOT NULL ,
   FIELD_NAME VARCHAR(100) NOT NULL ,
@@ -129,8 +111,10 @@ CREATE TABLE nop_wf_log(
   SID VARCHAR(32) NOT NULL ,
   WF_ID VARCHAR(32) NOT NULL ,
   STEP_ID VARCHAR(32)  ,
+  ACTION_ID VARCHAR(32)  ,
   LOG_LEVEL INT4 NOT NULL ,
   LOG_MSG VARCHAR(4000)  ,
+  ERR_CODE VARCHAR(200)  ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   constraint PK_nop_wf_log primary key (SID)
@@ -159,6 +143,24 @@ CREATE TABLE nop_wf_work(
   constraint PK_nop_wf_work primary key (WORK_ID)
 );
 
+CREATE TABLE nop_wf_action(
+  SID VARCHAR(32) NOT NULL ,
+  WF_ID VARCHAR(32) NOT NULL ,
+  STEP_ID VARCHAR(32) NOT NULL ,
+  ACTION_NAME VARCHAR(200) NOT NULL ,
+  DISPLAY_NAME VARCHAR(200) NOT NULL ,
+  EXEC_TIME TIMESTAMP NOT NULL ,
+  CALLER_ID VARCHAR(50)  ,
+  CALLER_NAME VARCHAR(50)  ,
+  OPINION VARCHAR(4000)  ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_wf_action primary key (SID)
+);
+
 CREATE TABLE nop_wf_step_instance(
   STEP_ID VARCHAR(32) NOT NULL ,
   WF_ID VARCHAR(32) NOT NULL ,
@@ -172,12 +174,14 @@ CREATE TABLE nop_wf_step_instance(
   SUB_WF_VERSION INT8  ,
   SUB_WF_RESULT_STATUS INT4  ,
   IS_READ BOOLEAN  ,
+  ACTOR_MODEL_ID VARCHAR(100)  ,
   ACTOR_TYPE VARCHAR(10)  ,
   ACTOR_ID VARCHAR(100)  ,
   ACTOR_DEPT_ID VARCHAR(50)  ,
   ACTOR_NAME VARCHAR(100)  ,
   OWNER_ID VARCHAR(50)  ,
   OWNER_NAME VARCHAR(50)  ,
+  OWNER_DEPT_ID VARCHAR(50)  ,
   ASSIGNER_ID VARCHAR(50)  ,
   ASSIGNER_NAME VARCHAR(50)  ,
   CALLER_ID VARCHAR(50)  ,
@@ -192,9 +196,15 @@ CREATE TABLE nop_wf_step_instance(
   READ_TIME TIMESTAMP  ,
   REMIND_TIME TIMESTAMP  ,
   REMIND_COUNT INT4  ,
+  NEXT_RETRY_TIME TIMESTAMP  ,
+  RETRY_COUNT INT4  ,
   PRIORITY INT4 NOT NULL ,
+  VOTE_WEIGHT INT4  ,
+  EXEC_ORDER FLOAT8 NOT NULL ,
   JOIN_GROUP VARCHAR(100)  ,
-  TAG_SET VARCHAR(200)  ,
+  TAG_TEXT VARCHAR(200)  ,
+  NEXT_STEP_ID VARCHAR(32)  ,
+  STEP_GROUP VARCHAR(32)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -216,7 +226,6 @@ CREATE TABLE nop_wf_instance(
   APP_STATE VARCHAR(100)  ,
   START_TIME TIMESTAMP  ,
   END_TIME TIMESTAMP  ,
-  SUSPEND_TIME TIMESTAMP  ,
   DUE_TIME TIMESTAMP  ,
   BIZ_KEY VARCHAR(200)  ,
   BIZ_OBJ_NAME VARCHAR(200)  ,
@@ -230,18 +239,20 @@ CREATE TABLE nop_wf_instance(
   STARTER_DEPT_ID VARCHAR(50)  ,
   LAST_OPERATOR_ID VARCHAR(50)  ,
   LAST_OPERATOR_NAME VARCHAR(50)  ,
+  LAST_OPERATOR_DEPT_ID VARCHAR(50)  ,
   LAST_OPERATE_TIME TIMESTAMP  ,
   MANAGER_TYPE VARCHAR(50)  ,
   MANAGER_DEPT_ID VARCHAR(50)  ,
   MANAGER_NAME VARCHAR(50)  ,
   MANAGER_ID VARCHAR(50)  ,
-  SIGNAL_SET VARCHAR(1000)  ,
+  PRIORITY INT4 NOT NULL ,
+  SIGNAL_TEXT VARCHAR(1000)  ,
+  TAG_TEXT VARCHAR(200)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
-  PRIORITY INT4 NOT NULL ,
   REMARK VARCHAR(200)  ,
   constraint PK_nop_wf_instance primary key (WF_ID)
 );
@@ -285,8 +296,6 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_status_history.TO_STATUS IS '目标状态';
                     
-      COMMENT ON COLUMN nop_wf_status_history.FROM_APP_STATE IS '源应用状态';
-                    
       COMMENT ON COLUMN nop_wf_status_history.TO_APP_STATE IS '目标应用状态';
                     
       COMMENT ON COLUMN nop_wf_status_history.CHANGE_TIME IS '状态变动时间';
@@ -294,6 +303,8 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_status_history.OPERATOR_ID IS '操作者ID';
                     
       COMMENT ON COLUMN nop_wf_status_history.OPERATOR_NAME IS '操作者';
+                    
+      COMMENT ON COLUMN nop_wf_status_history.OPERATOR_DEPT_ID IS '操作者部门ID';
                     
       COMMENT ON COLUMN nop_wf_status_history.VERSION IS '数据版本';
                     
@@ -365,36 +376,6 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_user_delegate.UPDATE_TIME IS '修改时间';
                     
-      COMMENT ON TABLE nop_wf_action IS '工作流动作';
-                
-      COMMENT ON COLUMN nop_wf_action.SID IS '主键';
-                    
-      COMMENT ON COLUMN nop_wf_action.WF_ID IS '工作流实例ID';
-                    
-      COMMENT ON COLUMN nop_wf_action.STEP_ID IS '工作流步骤ID';
-                    
-      COMMENT ON COLUMN nop_wf_action.ACTION_NAME IS '动作名称';
-                    
-      COMMENT ON COLUMN nop_wf_action.DISPLAY_NAME IS '动作显示名称';
-                    
-      COMMENT ON COLUMN nop_wf_action.EXEC_TIME IS '执行时刻';
-                    
-      COMMENT ON COLUMN nop_wf_action.CALLER_ID IS '调用者ID';
-                    
-      COMMENT ON COLUMN nop_wf_action.CALLER_NAME IS '调用者姓名';
-                    
-      COMMENT ON COLUMN nop_wf_action.OPINION IS '意见';
-                    
-      COMMENT ON COLUMN nop_wf_action.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_wf_action.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_wf_action.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_wf_action.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_wf_action.UPDATE_TIME IS '修改时间';
-                    
       COMMENT ON TABLE nop_wf_output IS '工作流输出变量';
                 
       COMMENT ON COLUMN nop_wf_output.WF_ID IS '工作流实例ID';
@@ -459,9 +440,13 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_log.STEP_ID IS '工作流步骤ID';
                     
+      COMMENT ON COLUMN nop_wf_log.ACTION_ID IS '动作ID';
+                    
       COMMENT ON COLUMN nop_wf_log.LOG_LEVEL IS '日志级别';
                     
       COMMENT ON COLUMN nop_wf_log.LOG_MSG IS '日志消息';
+                    
+      COMMENT ON COLUMN nop_wf_log.ERR_CODE IS '错误码';
                     
       COMMENT ON COLUMN nop_wf_log.CREATED_BY IS '创建人';
                     
@@ -507,6 +492,36 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_work.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_wf_action IS '工作流动作';
+                
+      COMMENT ON COLUMN nop_wf_action.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_wf_action.WF_ID IS '工作流实例ID';
+                    
+      COMMENT ON COLUMN nop_wf_action.STEP_ID IS '工作流步骤ID';
+                    
+      COMMENT ON COLUMN nop_wf_action.ACTION_NAME IS '动作名称';
+                    
+      COMMENT ON COLUMN nop_wf_action.DISPLAY_NAME IS '动作显示名称';
+                    
+      COMMENT ON COLUMN nop_wf_action.EXEC_TIME IS '执行时刻';
+                    
+      COMMENT ON COLUMN nop_wf_action.CALLER_ID IS '调用者ID';
+                    
+      COMMENT ON COLUMN nop_wf_action.CALLER_NAME IS '调用者姓名';
+                    
+      COMMENT ON COLUMN nop_wf_action.OPINION IS '意见';
+                    
+      COMMENT ON COLUMN nop_wf_action.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_wf_action.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_wf_action.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_wf_action.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_wf_action.UPDATE_TIME IS '修改时间';
+                    
       COMMENT ON TABLE nop_wf_step_instance IS '工作流步骤实例';
                 
       COMMENT ON COLUMN nop_wf_step_instance.STEP_ID IS '步骤ID';
@@ -533,6 +548,8 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_step_instance.IS_READ IS '是否已读';
                     
+      COMMENT ON COLUMN nop_wf_step_instance.ACTOR_MODEL_ID IS '参与者模型ID';
+                    
       COMMENT ON COLUMN nop_wf_step_instance.ACTOR_TYPE IS '参与者类型';
                     
       COMMENT ON COLUMN nop_wf_step_instance.ACTOR_ID IS '参与者ID';
@@ -544,6 +561,8 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_step_instance.OWNER_ID IS '拥有者ID';
                     
       COMMENT ON COLUMN nop_wf_step_instance.OWNER_NAME IS '拥有者姓名';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.OWNER_DEPT_ID IS '拥有者部门ID';
                     
       COMMENT ON COLUMN nop_wf_step_instance.ASSIGNER_ID IS '分配者ID';
                     
@@ -573,11 +592,23 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_step_instance.REMIND_COUNT IS '提醒次数';
                     
+      COMMENT ON COLUMN nop_wf_step_instance.NEXT_RETRY_TIME IS '下次重试时间';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.RETRY_COUNT IS '已重试次数';
+                    
       COMMENT ON COLUMN nop_wf_step_instance.PRIORITY IS '优先级';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.VOTE_WEIGHT IS '投票权重';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.EXEC_ORDER IS '执行顺序';
                     
       COMMENT ON COLUMN nop_wf_step_instance.JOIN_GROUP IS '汇聚分组';
                     
-      COMMENT ON COLUMN nop_wf_step_instance.TAG_SET IS '标签';
+      COMMENT ON COLUMN nop_wf_step_instance.TAG_TEXT IS '标签';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.NEXT_STEP_ID IS '下一步骤ID';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.STEP_GROUP IS '步骤分组';
                     
       COMMENT ON COLUMN nop_wf_step_instance.VERSION IS '数据版本';
                     
@@ -615,8 +646,6 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_instance.END_TIME IS '结束时间';
                     
-      COMMENT ON COLUMN nop_wf_instance.SUSPEND_TIME IS '暂停时间';
-                    
       COMMENT ON COLUMN nop_wf_instance.DUE_TIME IS '完成时限';
                     
       COMMENT ON COLUMN nop_wf_instance.BIZ_KEY IS '业务唯一键';
@@ -643,6 +672,8 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_instance.LAST_OPERATOR_NAME IS '上次操作者';
                     
+      COMMENT ON COLUMN nop_wf_instance.LAST_OPERATOR_DEPT_ID IS '上次操作者单位ID';
+                    
       COMMENT ON COLUMN nop_wf_instance.LAST_OPERATE_TIME IS '上次操作时间';
                     
       COMMENT ON COLUMN nop_wf_instance.MANAGER_TYPE IS '管理者类型';
@@ -653,7 +684,11 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_instance.MANAGER_ID IS '管理者ID';
                     
-      COMMENT ON COLUMN nop_wf_instance.SIGNAL_SET IS '信号集合';
+      COMMENT ON COLUMN nop_wf_instance.PRIORITY IS '优先级';
+                    
+      COMMENT ON COLUMN nop_wf_instance.SIGNAL_TEXT IS '信号集合';
+                    
+      COMMENT ON COLUMN nop_wf_instance.TAG_TEXT IS '标签';
                     
       COMMENT ON COLUMN nop_wf_instance.VERSION IS '数据版本';
                     
@@ -664,8 +699,6 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_instance.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_wf_instance.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_wf_instance.PRIORITY IS '优先级';
                     
       COMMENT ON COLUMN nop_wf_instance.REMARK IS '备注';
                     

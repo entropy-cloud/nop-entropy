@@ -24,6 +24,7 @@ prop:
       parentId: Parent ID
       orderNum: Order Number
       deptType: Type
+      managerId: Manager
       email: Email
       phone: Phone
       delFlag: Deleted
@@ -35,6 +36,9 @@ prop:
       remark: Remark
       parent: Parent
       parent.deptName: Parent
+      manager: Manager
+      manager.userName: Manager
+      deptUsers: Users
       children: Children
     NopAuthExtLogin:
       sid: ID
@@ -58,6 +62,7 @@ prop:
       groupId: Group ID
       name: Name
       parentId: Parent ID
+      ownerId: Owner ID
       delFlag: Deleted
       version: Version
       createdBy: Created By
@@ -67,6 +72,8 @@ prop:
       remark: Remark
       parent: Parent
       parent.name: Parent
+      owner: Owner
+      owner.userName: Owner
       children: Children
       userMappings: UserMappings
       relatedUserList: User List

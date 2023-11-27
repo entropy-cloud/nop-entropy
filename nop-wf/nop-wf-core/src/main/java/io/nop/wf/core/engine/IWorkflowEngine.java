@@ -23,6 +23,10 @@ public interface IWorkflowEngine {
 
     IWfActor resolveUser(String userId);
 
+    IWfActor getManager(IWfActor actor, int upLevel);
+
+    IWfActor getDeptManager(IWfActor actor, int upLevel);
+
     void logError(IWorkflowImplementor wf, String stepName, String actionName, Throwable e);
 
     void save(IWorkflowImplementor wf, IServiceContext ctx);

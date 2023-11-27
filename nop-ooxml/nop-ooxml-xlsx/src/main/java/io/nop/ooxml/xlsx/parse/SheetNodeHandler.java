@@ -331,9 +331,8 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
                 String fv = value.toString();
 
                 try {
-                    Number d = StringHelper.parseNumber(fv);
-                    thisStr = d;
-                } catch (NumberFormatException e) {
+                    thisStr = StringHelper.parseNumber(fv);
+                } catch (Exception e) {
                     thisStr = fv;
                 }
                 formulaStr = formula.toString();
@@ -347,10 +346,9 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
 
             case SST_STRING:
                 String sstIndex = value.toString();
-                if (sstIndex.length() > 0) {
+                if (!sstIndex.isEmpty()) {
                     int idx = Integer.parseInt(sstIndex);
-                    String rtss = sharedStringsTable.getItemAt(idx);
-                    thisStr = rtss;
+                    thisStr = sharedStringsTable.getItemAt(idx);
                 }
                 break;
 

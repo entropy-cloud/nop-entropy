@@ -7,8 +7,9 @@
  -->
 <assignment selection="enum:io.nop.wf.api.actor.WfAssignmentSelection" mustInAssignment="!boolean=true"
             ignoreNoAssign="!boolean=false" useManagerWhenNoAssign="!boolean=true"
-            xdef:name="WfAssignmentModel" xdef:bean-package="io.nop.wf.core.model"
+            xdef:name="WfAssignmentModel" xdef:bean-package="io.nop.wf.core.model" xdef:check-ns="wf"
             x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+            xmlns:wf="wf"
 >
     <!--
     从actors集合中过滤得到实际使用的actor列表。仅当selection=auto时才会被使用。
@@ -20,16 +21,24 @@
     -->
     <defaultOwnerExpr xdef:value="xpl"/>
 
-    <actors xdef:body-type="list">
+    <actors xdef:body-type="list" xdef:key-attr="actorModelId">
         <!--
           @actorType actor类型，如果包含名字空间，则对应于标签库中定义的动态Actor
           @selectUser 选择actor本身还是actor对应的user
           @voteWeight [投票权重]
           @assignForUser 是否为actor中的每个用户生成步骤实例
+          @wf:formAuth 表单权限，一般为可编辑的字段列表
+          @wf:permissions 操作权限，例如允许回退，允许加签/减签，允许转交等
         -->
-        <actor actorId="string" actorType="!string" deptId="string" selectUser="!boolean=true"
-               voteWeight="int" assignForUser="!boolean=false"
+        <actor actorModelId="!string" actorId="string" actorType="!string" deptId="string" selectUser="!boolean=true"
+               voteWeight="!int=1" assignForUser="!boolean=false" wf:formAuth="string" wf:permissions="csv-set"
+               wf:upLevel="int"
                xdef:allow-multiple="true" xdef:name="WfAssignmentActorModel"/>
     </actors>
+
+    <!--
+    当actors集合中实际选择的人员为空时会使用defaultActor
+    -->
+    <defaultActorExpr xdef:value="xpl"/>
 
 </assignment>

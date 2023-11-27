@@ -37,20 +37,20 @@
             this._wfVersion = value;
         }
     
-        private java.util.Map<java.lang.String,java.lang.Object> _args;
+        private java.util.Map<java.lang.String,java.lang.Object> _wfParams;
 
         /**
          * 启动参数 
          */
-        public java.util.Map<java.lang.String,java.lang.Object> getArgs(){
-            return _args;
+        public java.util.Map<java.lang.String,java.lang.Object> getWfParams(){
+            return _wfParams;
         }
 
         /**
          * 启动参数 
          */
-        public void setArgs(java.util.Map<java.lang.String,java.lang.Object> value){
-            this._args = value;
+        public void setWfParams(java.util.Map<java.lang.String,java.lang.Object> value){
+            this._wfParams = value;
         }
     
         private String _parentWfName;

@@ -85,6 +85,10 @@ public class DictProvider implements IDictProvider {
         if (dictLoader != null) {
             return dictLoader.existsDict(dictName);
         }
+
+        if (StringHelper.isValidClassName(dictName))
+            return EnumDictLoader.INSTANCE.existsDict(dictName);
+
         String path = getDefaultDictPath(dictName);
         return VirtualFileSystem.instance().getResource(path).exists();
     }
@@ -108,7 +112,7 @@ public class DictProvider implements IDictProvider {
         if (dictLoader != null) {
             dict = dictLoader.loadDict(locale, dictName, ctx);
         } else {
-            dict = defaultLoadDictBean(locale, dictName,ctx);
+            dict = defaultLoadDictBean(locale, dictName, ctx);
         }
 
         if (dict == null)
@@ -149,7 +153,7 @@ public class DictProvider implements IDictProvider {
         }
 
         if (StringHelper.isValidClassName(dictName))
-            return EnumDictLoader.INSTANCE.loadDict(locale, dictName,ctx);
+            return EnumDictLoader.INSTANCE.loadDict(locale, dictName, ctx);
 
         String dictPath = getDefaultDictPath(dictName);
         DictModel model = (DictModel) ResourceComponentManager.instance().loadComponentModel(dictPath);

@@ -10,9 +10,9 @@ drop table nop_auth_tenant;
 drop table nop_auth_resource;
 drop table nop_auth_role;
 drop table nop_auth_session;
-drop table nop_auth_user;
 drop table nop_auth_group;
 drop table nop_auth_site;
+drop table nop_auth_user;
 drop table nop_auth_dept;
 drop table nop_auth_position;
 

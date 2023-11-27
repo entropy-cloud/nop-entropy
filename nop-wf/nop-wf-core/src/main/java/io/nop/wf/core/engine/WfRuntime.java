@@ -57,7 +57,7 @@ public class WfRuntime implements IWfRuntime {
     private Set<String> targetCases;
 
 
-    private List<IWfActor> currentActors;
+    private List<WfActorWithWeight> currentActorAssignments;
     private IWorkflowStepImplementor currentStep;
 
     private IWorkflowStepImplementor prevStep;
@@ -230,13 +230,13 @@ public class WfRuntime implements IWfRuntime {
     }
 
     @Override
-    public List<IWfActor> getCurrentActors() {
-        return currentActors;
+    public List<WfActorWithWeight> getCurrentActorAssignments() {
+        return currentActorAssignments;
     }
 
     @Override
-    public void setCurrentActors(List<IWfActor> currentActors) {
-        this.currentActors = currentActors;
+    public void setCurrentActorAssignments(List<WfActorWithWeight> currentActorAssignments) {
+        this.currentActorAssignments = currentActorAssignments;
     }
 
     @Override
@@ -320,5 +320,26 @@ public class WfRuntime implements IWfRuntime {
 
     public boolean willEnd() {
         return wf.getRecord().willEnd();
+    }
+
+    @Override
+    public void logMsg(String msg) {
+        String stepId = currentStep == null ? null : currentStep.getStepId();
+        String actionId = actionRecord == null ? null : actionRecord.getSid();
+        wf.getStore().logMsg(wf.getRecord(), stepId, actionId, msg);
+    }
+
+    @Override
+    public void logError(String errorCode, Map<String, Object> params) {
+        String stepId = currentStep == null ? null : currentStep.getStepId();
+        String actionId = actionRecord == null ? null : actionRecord.getSid();
+        wf.getStore().logError(wf.getRecord(), stepId, actionId, errorCode, params);
+    }
+
+    @Override
+    public void logError(Throwable exp) {
+        String stepId = currentStep == null ? null : currentStep.getStepId();
+        String actionId = actionRecord == null ? null : actionRecord.getSid();
+        wf.getStore().logError(wf.getRecord(), stepId, actionId, exp);
     }
 }

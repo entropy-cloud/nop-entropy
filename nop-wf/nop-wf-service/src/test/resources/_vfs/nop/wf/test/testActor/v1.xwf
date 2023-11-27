@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow bizEntityStateProp="statusId" x:dump="true" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <diagram/>
+
+    <actions>
+        <action displayName="审批" name="sp">
+            <transition bizEntityState="20">
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="actor1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp"/>
+            </ref-actions>
+        </step>
+    </steps>
+
+    <start startStepName="wf-start"/>
+</workflow>

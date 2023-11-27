@@ -64,61 +64,61 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_endTime = "endTime";
     public static final int PROP_ID_endTime = 11;
     
-    /* 暂停时间: SUSPEND_TIME TIMESTAMP */
-    public static final String PROP_NAME_suspendTime = "suspendTime";
-    public static final int PROP_ID_suspendTime = 12;
-    
     /* 完成时限: DUE_TIME TIMESTAMP */
     public static final String PROP_NAME_dueTime = "dueTime";
-    public static final int PROP_ID_dueTime = 13;
+    public static final int PROP_ID_dueTime = 12;
     
     /* 业务唯一键: BIZ_KEY VARCHAR */
     public static final String PROP_NAME_bizKey = "bizKey";
-    public static final int PROP_ID_bizKey = 14;
+    public static final int PROP_ID_bizKey = 13;
     
     /* 业务对象名: BIZ_OBJ_NAME VARCHAR */
     public static final String PROP_NAME_bizObjName = "bizObjName";
-    public static final int PROP_ID_bizObjName = 15;
+    public static final int PROP_ID_bizObjName = 14;
     
     /* 业务对象ID: BIZ_OBJ_ID VARCHAR */
     public static final String PROP_NAME_bizObjId = "bizObjId";
-    public static final int PROP_ID_bizObjId = 16;
+    public static final int PROP_ID_bizObjId = 15;
     
     /* 父工作流名称: PARENT_WF_NAME VARCHAR */
     public static final String PROP_NAME_parentWfName = "parentWfName";
-    public static final int PROP_ID_parentWfName = 17;
+    public static final int PROP_ID_parentWfName = 16;
     
     /* 父流程版本: PARENT_WF_VERSION BIGINT */
     public static final String PROP_NAME_parentWfVersion = "parentWfVersion";
-    public static final int PROP_ID_parentWfVersion = 18;
+    public static final int PROP_ID_parentWfVersion = 17;
     
     /* 父流程ID: PARENT_WF_ID VARCHAR */
     public static final String PROP_NAME_parentWfId = "parentWfId";
-    public static final int PROP_ID_parentWfId = 19;
+    public static final int PROP_ID_parentWfId = 18;
     
     /* 父流程步骤ID: PARENT_STEP_ID VARCHAR */
     public static final String PROP_NAME_parentStepId = "parentStepId";
-    public static final int PROP_ID_parentStepId = 20;
+    public static final int PROP_ID_parentStepId = 19;
     
     /* 启动人ID: STARTER_ID VARCHAR */
     public static final String PROP_NAME_starterId = "starterId";
-    public static final int PROP_ID_starterId = 21;
+    public static final int PROP_ID_starterId = 20;
     
     /* 启动人: STARTER_NAME VARCHAR */
     public static final String PROP_NAME_starterName = "starterName";
-    public static final int PROP_ID_starterName = 22;
+    public static final int PROP_ID_starterName = 21;
     
     /* 启动人单位ID: STARTER_DEPT_ID VARCHAR */
     public static final String PROP_NAME_starterDeptId = "starterDeptId";
-    public static final int PROP_ID_starterDeptId = 23;
+    public static final int PROP_ID_starterDeptId = 22;
     
     /* 上次操作者ID: LAST_OPERATOR_ID VARCHAR */
     public static final String PROP_NAME_lastOperatorId = "lastOperatorId";
-    public static final int PROP_ID_lastOperatorId = 24;
+    public static final int PROP_ID_lastOperatorId = 23;
     
     /* 上次操作者: LAST_OPERATOR_NAME VARCHAR */
     public static final String PROP_NAME_lastOperatorName = "lastOperatorName";
-    public static final int PROP_ID_lastOperatorName = 25;
+    public static final int PROP_ID_lastOperatorName = 24;
+    
+    /* 上次操作者单位ID: LAST_OPERATOR_DEPT_ID VARCHAR */
+    public static final String PROP_NAME_lastOperatorDeptId = "lastOperatorDeptId";
+    public static final int PROP_ID_lastOperatorDeptId = 25;
     
     /* 上次操作时间: LAST_OPERATE_TIME TIMESTAMP */
     public static final String PROP_NAME_lastOperateTime = "lastOperateTime";
@@ -140,44 +140,51 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_managerId = "managerId";
     public static final int PROP_ID_managerId = 30;
     
-    /* 信号集合: SIGNAL_SET VARCHAR */
-    public static final String PROP_NAME_signalSet = "signalSet";
-    public static final int PROP_ID_signalSet = 31;
+    /* 优先级: PRIORITY INTEGER */
+    public static final String PROP_NAME_priority = "priority";
+    public static final int PROP_ID_priority = 31;
+    
+    /* 信号集合: SIGNAL_TEXT VARCHAR */
+    public static final String PROP_NAME_signalText = "signalText";
+    public static final int PROP_ID_signalText = 32;
+    
+    /* 标签: TAG_TEXT VARCHAR */
+    public static final String PROP_NAME_tagText = "tagText";
+    public static final int PROP_ID_tagText = 33;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 32;
+    public static final int PROP_ID_version = 34;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 33;
+    public static final int PROP_ID_createdBy = 35;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 34;
+    public static final int PROP_ID_createTime = 36;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 35;
+    public static final int PROP_ID_updatedBy = 37;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 36;
-    
-    /* 优先级: PRIORITY INTEGER */
-    public static final String PROP_NAME_priority = "priority";
-    public static final int PROP_ID_priority = 37;
+    public static final int PROP_ID_updateTime = 38;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 38;
+    public static final int PROP_ID_remark = 40;
     
 
-    private static int _PROP_ID_BOUND = 39;
+    private static int _PROP_ID_BOUND = 41;
 
     
     /* relation: 父流程 */
     public static final String PROP_NAME_wfInstance = "wfInstance";
+    
+    /* relation:  */
+    public static final String PROP_NAME_statusHistories = "statusHistories";
     
     /* relation:  */
     public static final String PROP_NAME_steps = "steps";
@@ -195,7 +202,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[39];
+    private static final String[] PROP_ID_TO_NAME = new String[41];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -231,9 +238,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_endTime] = PROP_NAME_endTime;
           PROP_NAME_TO_ID.put(PROP_NAME_endTime, PROP_ID_endTime);
-      
-          PROP_ID_TO_NAME[PROP_ID_suspendTime] = PROP_NAME_suspendTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_suspendTime, PROP_ID_suspendTime);
       
           PROP_ID_TO_NAME[PROP_ID_dueTime] = PROP_NAME_dueTime;
           PROP_NAME_TO_ID.put(PROP_NAME_dueTime, PROP_ID_dueTime);
@@ -274,6 +278,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_lastOperatorName] = PROP_NAME_lastOperatorName;
           PROP_NAME_TO_ID.put(PROP_NAME_lastOperatorName, PROP_ID_lastOperatorName);
       
+          PROP_ID_TO_NAME[PROP_ID_lastOperatorDeptId] = PROP_NAME_lastOperatorDeptId;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastOperatorDeptId, PROP_ID_lastOperatorDeptId);
+      
           PROP_ID_TO_NAME[PROP_ID_lastOperateTime] = PROP_NAME_lastOperateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_lastOperateTime, PROP_ID_lastOperateTime);
       
@@ -289,8 +296,14 @@ public class _NopWfInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_managerId] = PROP_NAME_managerId;
           PROP_NAME_TO_ID.put(PROP_NAME_managerId, PROP_ID_managerId);
       
-          PROP_ID_TO_NAME[PROP_ID_signalSet] = PROP_NAME_signalSet;
-          PROP_NAME_TO_ID.put(PROP_NAME_signalSet, PROP_ID_signalSet);
+          PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
+          PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
+      
+          PROP_ID_TO_NAME[PROP_ID_signalText] = PROP_NAME_signalText;
+          PROP_NAME_TO_ID.put(PROP_NAME_signalText, PROP_ID_signalText);
+      
+          PROP_ID_TO_NAME[PROP_ID_tagText] = PROP_NAME_tagText;
+          PROP_NAME_TO_ID.put(PROP_NAME_tagText, PROP_ID_tagText);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -306,9 +319,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_updateTime] = PROP_NAME_updateTime;
           PROP_NAME_TO_ID.put(PROP_NAME_updateTime, PROP_ID_updateTime);
-      
-          PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
-          PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
       
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
@@ -349,9 +359,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /* 结束时间: END_TIME */
     private java.sql.Timestamp _endTime;
     
-    /* 暂停时间: SUSPEND_TIME */
-    private java.sql.Timestamp _suspendTime;
-    
     /* 完成时限: DUE_TIME */
     private java.sql.Timestamp _dueTime;
     
@@ -391,6 +398,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /* 上次操作者: LAST_OPERATOR_NAME */
     private java.lang.String _lastOperatorName;
     
+    /* 上次操作者单位ID: LAST_OPERATOR_DEPT_ID */
+    private java.lang.String _lastOperatorDeptId;
+    
     /* 上次操作时间: LAST_OPERATE_TIME */
     private java.sql.Timestamp _lastOperateTime;
     
@@ -406,8 +416,14 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /* 管理者ID: MANAGER_ID */
     private java.lang.String _managerId;
     
-    /* 信号集合: SIGNAL_SET */
-    private java.lang.String _signalSet;
+    /* 优先级: PRIORITY */
+    private java.lang.Integer _priority;
+    
+    /* 信号集合: SIGNAL_TEXT */
+    private java.lang.String _signalText;
+    
+    /* 标签: TAG_TEXT */
+    private java.lang.String _tagText;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -423,9 +439,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
     
     /* 修改时间: UPDATE_TIME */
     private java.sql.Timestamp _updateTime;
-    
-    /* 优先级: PRIORITY */
-    private java.lang.Integer _priority;
     
     /* 备注: REMARK */
     private java.lang.String _remark;
@@ -533,9 +546,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
             case PROP_ID_endTime:
                return getEndTime();
         
-            case PROP_ID_suspendTime:
-               return getSuspendTime();
-        
             case PROP_ID_dueTime:
                return getDueTime();
         
@@ -575,6 +585,9 @@ public class _NopWfInstance extends DynamicOrmEntity{
             case PROP_ID_lastOperatorName:
                return getLastOperatorName();
         
+            case PROP_ID_lastOperatorDeptId:
+               return getLastOperatorDeptId();
+        
             case PROP_ID_lastOperateTime:
                return getLastOperateTime();
         
@@ -590,8 +603,14 @@ public class _NopWfInstance extends DynamicOrmEntity{
             case PROP_ID_managerId:
                return getManagerId();
         
-            case PROP_ID_signalSet:
-               return getSignalSet();
+            case PROP_ID_priority:
+               return getPriority();
+        
+            case PROP_ID_signalText:
+               return getSignalText();
+        
+            case PROP_ID_tagText:
+               return getTagText();
         
             case PROP_ID_version:
                return getVersion();
@@ -607,9 +626,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
         
             case PROP_ID_updateTime:
                return getUpdateTime();
-        
-            case PROP_ID_priority:
-               return getPriority();
         
             case PROP_ID_remark:
                return getRemark();
@@ -732,16 +748,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_endTime));
                }
                setEndTime(typedValue);
-               break;
-            }
-        
-            case PROP_ID_suspendTime:{
-               java.sql.Timestamp typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_suspendTime));
-               }
-               setSuspendTime(typedValue);
                break;
             }
         
@@ -875,6 +881,16 @@ public class _NopWfInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_lastOperatorDeptId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_lastOperatorDeptId));
+               }
+               setLastOperatorDeptId(typedValue);
+               break;
+            }
+        
             case PROP_ID_lastOperateTime:{
                java.sql.Timestamp typedValue = null;
                if(value != null){
@@ -925,13 +941,33 @@ public class _NopWfInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_signalSet:{
+            case PROP_ID_priority:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_priority));
+               }
+               setPriority(typedValue);
+               break;
+            }
+        
+            case PROP_ID_signalText:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_signalSet));
+                       err-> newTypeConversionError(PROP_NAME_signalText));
                }
-               setSignalSet(typedValue);
+               setSignalText(typedValue);
+               break;
+            }
+        
+            case PROP_ID_tagText:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_tagText));
+               }
+               setTagText(typedValue);
                break;
             }
         
@@ -982,16 +1018,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_updateTime));
                }
                setUpdateTime(typedValue);
-               break;
-            }
-        
-            case PROP_ID_priority:{
-               java.lang.Integer typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_priority));
-               }
-               setPriority(typedValue);
                break;
             }
         
@@ -1091,13 +1117,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_suspendTime:{
-               onInitProp(propId);
-               this._suspendTime = (java.sql.Timestamp)value;
-               
-               break;
-            }
-        
             case PROP_ID_dueTime:{
                onInitProp(propId);
                this._dueTime = (java.sql.Timestamp)value;
@@ -1189,6 +1208,13 @@ public class _NopWfInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_lastOperatorDeptId:{
+               onInitProp(propId);
+               this._lastOperatorDeptId = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_lastOperateTime:{
                onInitProp(propId);
                this._lastOperateTime = (java.sql.Timestamp)value;
@@ -1224,9 +1250,23 @@ public class _NopWfInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_signalSet:{
+            case PROP_ID_priority:{
                onInitProp(propId);
-               this._signalSet = (java.lang.String)value;
+               this._priority = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_signalText:{
+               onInitProp(propId);
+               this._signalText = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_tagText:{
+               onInitProp(propId);
+               this._tagText = (java.lang.String)value;
                
                break;
             }
@@ -1262,13 +1302,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
             case PROP_ID_updateTime:{
                onInitProp(propId);
                this._updateTime = (java.sql.Timestamp)value;
-               
-               break;
-            }
-        
-            case PROP_ID_priority:{
-               onInitProp(propId);
-               this._priority = (java.lang.Integer)value;
                
                break;
             }
@@ -1491,25 +1524,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
-            
-        }
-    }
-    
-    /**
-     * 暂停时间: SUSPEND_TIME
-     */
-    public java.sql.Timestamp getSuspendTime(){
-         onPropGet(PROP_ID_suspendTime);
-         return _suspendTime;
-    }
-
-    /**
-     * 暂停时间: SUSPEND_TIME
-     */
-    public void setSuspendTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_suspendTime,value)){
-            this._suspendTime = value;
-            internalClearRefs(PROP_ID_suspendTime);
             
         }
     }
@@ -1762,6 +1776,25 @@ public class _NopWfInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 上次操作者单位ID: LAST_OPERATOR_DEPT_ID
+     */
+    public java.lang.String getLastOperatorDeptId(){
+         onPropGet(PROP_ID_lastOperatorDeptId);
+         return _lastOperatorDeptId;
+    }
+
+    /**
+     * 上次操作者单位ID: LAST_OPERATOR_DEPT_ID
+     */
+    public void setLastOperatorDeptId(java.lang.String value){
+        if(onPropSet(PROP_ID_lastOperatorDeptId,value)){
+            this._lastOperatorDeptId = value;
+            internalClearRefs(PROP_ID_lastOperatorDeptId);
+            
+        }
+    }
+    
+    /**
      * 上次操作时间: LAST_OPERATE_TIME
      */
     public java.sql.Timestamp getLastOperateTime(){
@@ -1857,20 +1890,58 @@ public class _NopWfInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 信号集合: SIGNAL_SET
+     * 优先级: PRIORITY
      */
-    public java.lang.String getSignalSet(){
-         onPropGet(PROP_ID_signalSet);
-         return _signalSet;
+    public java.lang.Integer getPriority(){
+         onPropGet(PROP_ID_priority);
+         return _priority;
     }
 
     /**
-     * 信号集合: SIGNAL_SET
+     * 优先级: PRIORITY
      */
-    public void setSignalSet(java.lang.String value){
-        if(onPropSet(PROP_ID_signalSet,value)){
-            this._signalSet = value;
-            internalClearRefs(PROP_ID_signalSet);
+    public void setPriority(java.lang.Integer value){
+        if(onPropSet(PROP_ID_priority,value)){
+            this._priority = value;
+            internalClearRefs(PROP_ID_priority);
+            
+        }
+    }
+    
+    /**
+     * 信号集合: SIGNAL_TEXT
+     */
+    public java.lang.String getSignalText(){
+         onPropGet(PROP_ID_signalText);
+         return _signalText;
+    }
+
+    /**
+     * 信号集合: SIGNAL_TEXT
+     */
+    public void setSignalText(java.lang.String value){
+        if(onPropSet(PROP_ID_signalText,value)){
+            this._signalText = value;
+            internalClearRefs(PROP_ID_signalText);
+            
+        }
+    }
+    
+    /**
+     * 标签: TAG_TEXT
+     */
+    public java.lang.String getTagText(){
+         onPropGet(PROP_ID_tagText);
+         return _tagText;
+    }
+
+    /**
+     * 标签: TAG_TEXT
+     */
+    public void setTagText(java.lang.String value){
+        if(onPropSet(PROP_ID_tagText,value)){
+            this._tagText = value;
+            internalClearRefs(PROP_ID_tagText);
             
         }
     }
@@ -1971,25 +2042,6 @@ public class _NopWfInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 优先级: PRIORITY
-     */
-    public java.lang.Integer getPriority(){
-         onPropGet(PROP_ID_priority);
-         return _priority;
-    }
-
-    /**
-     * 优先级: PRIORITY
-     */
-    public void setPriority(java.lang.Integer value){
-        if(onPropSet(PROP_ID_priority,value)){
-            this._priority = value;
-            internalClearRefs(PROP_ID_priority);
-            
-        }
-    }
-    
-    /**
      * 备注: REMARK
      */
     public java.lang.String getRemark(){
@@ -2027,6 +2079,16 @@ public class _NopWfInstance extends DynamicOrmEntity{
                  
           });
        }
+    }
+       
+    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStatusHistory> _statusHistories = new OrmEntitySet<>(this, PROP_NAME_statusHistories,
+        io.nop.wf.dao.entity.NopWfStatusHistory.PROP_NAME_wfInstance, null,io.nop.wf.dao.entity.NopWfStatusHistory.class);
+
+    /**
+     * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStatusHistory> getStatusHistories(){
+       return _statusHistories;
     }
        
     private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstance> _steps = new OrmEntitySet<>(this, PROP_NAME_steps,

@@ -5,7 +5,7 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
     <bean id="MyBeanBizModel"
-          class="io.nop.biz.crud.DynamicBizModel">
+          class="io.nop.biz.crud.DynamicCrudBizModel">
         <property name="bizObjName" value="MyBean"/>
     </bean>
 </beans>

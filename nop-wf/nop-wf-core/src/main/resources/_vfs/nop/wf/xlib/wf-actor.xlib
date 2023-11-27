@@ -1,13 +1,9 @@
 <lib x:schema="/nop/schema/xlib.xdef"
      xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <CurrentCaller>
-            <attr name="actorModel" implicit="true" />
-            <attr name="wfRt" implicit="true" />
-
-            <description>
-                当前执行用户
-            </description>
+        <CurrentCaller displayName="当前执行用户">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
 
             <source>
                 <c:script>
@@ -16,13 +12,9 @@
             </source>
         </CurrentCaller>
 
-        <PrevStepActor>
-            <attr name="actorModel" implicit="true" />
-            <attr name="wfRt" implicit="true" />
-
-            <description>
-                保持前一步骤的actor
-            </description>
+        <PrevStepActor displayName="前一步骤的actor">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
 
             <source>
                 <c:script>
@@ -31,13 +23,9 @@
             </source>
         </PrevStepActor>
 
-        <ManagerActorOrSysUser>
-            <attr name="actorModel" implicit="true" />
-            <attr name="wfRt" implicit="true" />
-
-            <description>
-                流程的管理员或者系统用户
-            </description>
+        <ManagerActorOrSysUser displayName="流程的管理员或者系统用户">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
 
             <source>
                 <c:script>
@@ -46,13 +34,9 @@
             </source>
         </ManagerActorOrSysUser>
 
-        <SysUser>
-            <attr name="actorModel" implicit="true" />
-            <attr name="wfRt" implicit="true" />
-
-            <description>
-                系统用户
-            </description>
+        <SysUser displayName="系统用户">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
 
             <source>
                 <c:script>
@@ -61,13 +45,9 @@
             </source>
         </SysUser>
 
-        <ManagerActor>
-            <attr name="actorModel" implicit="true" />
-            <attr name="wfRt" implicit="true" />
-
-            <description>
-                系统用户
-            </description>
+        <ManagerActor displayName="流程管理员">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
 
             <source>
                 <c:script>
@@ -75,5 +55,75 @@
                 </c:script>
             </source>
         </ManagerActor>
+
+        <Starter displayName="流程发起者">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    return wfRt.wf.starterActor
+                </c:script>
+            </source>
+        </Starter>
+
+        <StepActorManager displayName="上级">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const actor = wfRt.currentStep.actor
+                    return wfRt.wf.getManager(actor, actorModel['wf:upLevel'] || 0)
+                </c:script>
+            </source>
+        </StepActorManager>
+
+        <StepActorDeptManager displayName="部门负责人">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const actor = wfRt.currentStep.actor
+                    return wfRt.wf.getDeptManager(actor, actorModel['wf:upLevel'] || 0)
+                </c:script>
+            </source>
+        </StepActorDeptManager>
+
+        <StarterManager displayName="发起人的上级">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const actor = wfRt.wf.starter
+                    return wfRt.wf.getManager(actor, actorModel['wf:upLevel'] || 0)
+                </c:script>
+            </source>
+        </StarterManager>
+
+        <StarterDeptManager displayName="发起人的部门负责人">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const actor = wfRt.wf.starter
+                    return wfRt.wf.getDeptManager(actor, actorModel['wf:upLevel'] || 0)
+                </c:script>
+            </source>
+        </StarterDeptManager>
+
+        <AllUser displayName="所有可选用户">
+            <attr name="actorModel" implicit="true"/>
+            <attr name="wfRt" implicit="true"/>
+
+            <source>
+                <c:script>
+                    return wfRt.wf.resolveActor('all','all',null);
+                </c:script>
+            </source>
+        </AllUser>
     </tags>
 </lib>

@@ -27,6 +27,7 @@ public interface IWfActor {
     String ACTOR_TYPE_ROLE = "role";
 
     String ACTOR_TYPE_GROUP = "group";
+    String ACTOR_TYPE_ALL = "all";
 
     /**
      * 自动执行任务可能将任务分配到executor
@@ -69,12 +70,13 @@ public interface IWfActor {
         if (ACTOR_TYPE_USER.equals(getActorType()))
             return getActorId().equals(userId);
 
+        if (ACTOR_TYPE_ALL.equals(getActorType()))
+            return true;
+
         List<? extends IWfActor> users = getUsers();
-        if (users != null) {
-            for (IWfActor user : users) {
-                if (user.getActorId().equals(userId))
-                    return true;
-            }
+        for (IWfActor user : users) {
+            if (user.getActorId().equals(userId))
+                return true;
         }
         return false;
     }

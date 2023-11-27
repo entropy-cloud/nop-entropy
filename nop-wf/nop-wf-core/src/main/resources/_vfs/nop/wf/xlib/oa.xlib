@@ -14,7 +14,7 @@
                     const actionModel = wfRt.actionModel;
                     if(actionModel.forReject){
                         const currentStep = wfRt.currentStep;
-                        const otherSteps = currentStep.getOtherStepsWithSameName(currentStep.name, false);
+                        const otherSteps = currentStep.getStepsWithSameStepGroup(currentStep.name, false, false);
                         otherSteps.forEach(otherStep=> otherStep.kill(null, wfRt.svcCtx));
                         wfRt.wf.getLatestStepByName(currentStep.name + '_join_')?.kill(null, wfRt.svcCtx);
                     }

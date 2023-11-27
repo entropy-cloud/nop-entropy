@@ -9,10 +9,12 @@ package io.nop.wf.api.actor;
 
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 
 @DataBean
-public class WfActorBean implements IWfActor{
+public class WfActorBean implements IWfActor {
     private String actorType;
     private String actorId;
     private String deptId;
@@ -20,8 +22,19 @@ public class WfActorBean implements IWfActor{
 
     private List<WfUserActorBean> users;
 
+    private transient Supplier<List<WfUserActorBean>> usersLoader;
+
     public List<WfUserActorBean> getUsers() {
+        if (users == null && usersLoader != null) {
+            users = usersLoader.get();
+        }
+        if (users == null)
+            users = Collections.emptyList();
         return users;
+    }
+
+    public void setUsersLoader(Supplier<List<WfUserActorBean>> usersLoader) {
+        this.usersLoader = usersLoader;
     }
 
     public void setUsers(List<WfUserActorBean> users) {

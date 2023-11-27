@@ -6,8 +6,8 @@
 -->
 <workflow displayName="string" bizEntityStateProp="prop-name"
           xdef:default-extends="/nop/core/defaults/default.wf.xml"
-          defaultPriority="!int=100" allowStepLoop="!boolean=false"
-          wfName="string" wfVersion="!long=0"
+          priority="!int=100" allowStepLoop="!boolean=false"
+          wfName="string" wfVersion="!long=0" tagSet="csv-set"
           x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
           xmlns:xdef="/nop/schema/xdef.xdef"
           xdef:name="WfModel" xdef:bean-package="io.nop.wf.core.model"
@@ -113,7 +113,7 @@
             <when xdef:value="xpl-predicate"/>
 
             <!-- 仅当common=true的时候使用，用于限制仅应用某些步骤  -->
-            <when-steps xdef:value="csv-set" />
+            <when-steps xdef:value="csv-set"/>
 
             <arg name="!var-name" xdef:ref="WfArgVarModel" xdef:unique-attr="name"/>
 
@@ -167,13 +167,17 @@
           @appState 进入步骤时将record的appState设置为特定值
           @specialType 可视化设计器识别的分类标记。每一种specialType对应设计器中的一种图标。
           @independent 正常情况下整个流程结束时所有正在运行的步骤都会被强制kill，而如果标记为independent，则可以继续保持运行状态。
+          @initAsWaiting [初始化为等待状态] 新建步骤时是否自动初始化为等待状态
         -->
         <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
               internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
               optional="!boolean=false" priority="!int=100" appState="#string"
-              tags="csv-set" allowWithdraw="!boolean=false"
-              allowReject="!boolean=false" dueAction="string"
+              tagSet="csv-set" allowWithdraw="!boolean=false"
+              allowReject="!boolean=false" dueAction="string" initAsWaiting="!boolean=false"
               specialType="string" independent="!boolean=false">
+
+            <!-- 是否当前可以激活 -->
+            <may-activated xdef:value="xpl-predicate"/>
 
             <!-- 如果不自动迁移，则必须有assignment -->
             <assignment xdef:ref="assignment.xdef"/>
@@ -216,10 +220,11 @@
         <!--
           @joinType joinType=and时等待所有上游步骤都到达时才激活，
                  而joinType=or时只要有一个步骤到达就激活，后续步骤再到达时如果join步骤还处于活动状态，则不会产生新的join步骤。
-          @waitSteps joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
+          @waitStepNames joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
+          @passWeight 所有同意的参与者投票权重超过多少记为通过
         -->
         <join name="!string" xdef:ref="WfStepModel" joinType="enum:io.nop.wf.core.model.WfJoinType"
-              waitStepNames="csv-set" passWeight="int" xdef:name="WfJoinStepModel">
+              waitStepNames="csv-set" passWeight="int" passPercent="double" xdef:name="WfJoinStepModel">
             <!--
             joinGroupExpr指定join时的分组条件。
             join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。
@@ -228,8 +233,6 @@
             -->
             <joinGroupExpr xdef:value="xpl"/>
 
-            <!-- 是否当前可以激活 -->
-            <may-activated xdef:value="xpl-predicate"/>
         </join>
 
         <!--

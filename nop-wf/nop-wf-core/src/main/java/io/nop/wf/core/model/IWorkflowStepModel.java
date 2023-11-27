@@ -7,13 +7,16 @@
  */
 package io.nop.wf.core.model;
 
+import io.nop.commons.lang.ITagSetSupport;
 import jakarta.annotation.Nonnull;
 
 import java.util.List;
 import java.util.Set;
 
-public interface IWorkflowStepModel {
+public interface IWorkflowStepModel extends ITagSetSupport {
     String getName();
+
+    String getDisplayName();
 
     String getSpecialType();
 

@@ -32,40 +32,47 @@ public class _NopAuthGroup extends DynamicOrmEntity{
     public static final String PROP_NAME_parentId = "parentId";
     public static final int PROP_ID_parentId = 3;
     
+    /* 所有者ID: OWNER_ID VARCHAR */
+    public static final String PROP_NAME_ownerId = "ownerId";
+    public static final int PROP_ID_ownerId = 4;
+    
     /* 删除标识: DEL_FLAG TINYINT */
     public static final String PROP_NAME_delFlag = "delFlag";
-    public static final int PROP_ID_delFlag = 4;
+    public static final int PROP_ID_delFlag = 5;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 5;
+    public static final int PROP_ID_version = 6;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 6;
+    public static final int PROP_ID_createdBy = 7;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 7;
+    public static final int PROP_ID_createTime = 8;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 8;
+    public static final int PROP_ID_updatedBy = 9;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 9;
+    public static final int PROP_ID_updateTime = 10;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 10;
+    public static final int PROP_ID_remark = 11;
     
 
-    private static int _PROP_ID_BOUND = 11;
+    private static int _PROP_ID_BOUND = 12;
 
     
     /* relation: 父分组 */
     public static final String PROP_NAME_parent = "parent";
+    
+    /* relation: 所有者 */
+    public static final String PROP_NAME_owner = "owner";
     
     /* relation: 子分组 */
     public static final String PROP_NAME_children = "children";
@@ -77,7 +84,7 @@ public class _NopAuthGroup extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_groupId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_groupId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[11];
+    private static final String[] PROP_ID_TO_NAME = new String[12];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -89,6 +96,9 @@ public class _NopAuthGroup extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_parentId] = PROP_NAME_parentId;
           PROP_NAME_TO_ID.put(PROP_NAME_parentId, PROP_ID_parentId);
+      
+          PROP_ID_TO_NAME[PROP_ID_ownerId] = PROP_NAME_ownerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_ownerId, PROP_ID_ownerId);
       
           PROP_ID_TO_NAME[PROP_ID_delFlag] = PROP_NAME_delFlag;
           PROP_NAME_TO_ID.put(PROP_NAME_delFlag, PROP_ID_delFlag);
@@ -122,6 +132,9 @@ public class _NopAuthGroup extends DynamicOrmEntity{
     
     /* 父ID: PARENT_ID */
     private java.lang.String _parentId;
+    
+    /* 所有者ID: OWNER_ID */
+    private java.lang.String _ownerId;
     
     /* 删除标识: DEL_FLAG */
     private java.lang.Byte _delFlag;
@@ -223,6 +236,9 @@ public class _NopAuthGroup extends DynamicOrmEntity{
             case PROP_ID_parentId:
                return getParentId();
         
+            case PROP_ID_ownerId:
+               return getOwnerId();
+        
             case PROP_ID_delFlag:
                return getDelFlag();
         
@@ -282,6 +298,16 @@ public class _NopAuthGroup extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_parentId));
                }
                setParentId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_ownerId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_ownerId));
+               }
+               setOwnerId(typedValue);
                break;
             }
         
@@ -381,6 +407,13 @@ public class _NopAuthGroup extends DynamicOrmEntity{
             case PROP_ID_parentId:{
                onInitProp(propId);
                this._parentId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_ownerId:{
+               onInitProp(propId);
+               this._ownerId = (java.lang.String)value;
                
                break;
             }
@@ -493,6 +526,25 @@ public class _NopAuthGroup extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_parentId,value)){
             this._parentId = value;
             internalClearRefs(PROP_ID_parentId);
+            
+        }
+    }
+    
+    /**
+     * 所有者ID: OWNER_ID
+     */
+    public java.lang.String getOwnerId(){
+         onPropGet(PROP_ID_ownerId);
+         return _ownerId;
+    }
+
+    /**
+     * 所有者ID: OWNER_ID
+     */
+    public void setOwnerId(java.lang.String value){
+        if(onPropSet(PROP_ID_ownerId,value)){
+            this._ownerId = value;
+            internalClearRefs(PROP_ID_ownerId);
             
         }
     }
@@ -646,6 +698,27 @@ public class _NopAuthGroup extends DynamicOrmEntity{
           internalSetRefEntity(PROP_NAME_parent, refEntity,()->{
              
                     this.setParentId(refEntity.getGroupId());
+                 
+          });
+       }
+    }
+       
+    /**
+     * 所有者
+     */
+    public io.nop.auth.dao.entity.NopAuthUser getOwner(){
+       return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_owner);
+    }
+
+    public void setOwner(io.nop.auth.dao.entity.NopAuthUser refEntity){
+       if(refEntity == null){
+         
+         this.setOwnerId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_owner, refEntity,()->{
+             
+                    this.setOwnerId(refEntity.getUserId());
                  
           });
        }
