@@ -31,6 +31,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
+     * xml name: auths
+     * 
+     */
+    private java.util.List<io.nop.wf.core.model.WfModelAuth> _auths = java.util.Collections.emptyList();
+    
+    /**
+     *  
      * xml name: bizEntityStateProp
      * 
      */
@@ -42,6 +49,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * 触发每一个action的时候所执行的权限验证逻辑
      */
     private io.nop.core.lang.eval.IEvalAction _checkActionAuth ;
+    
+    /**
+     *  
+     * xml name: check-edit-auth
+     * 编辑工作流定义时执行的权限验证逻辑
+     */
+    private io.nop.core.lang.eval.IEvalAction _checkEditAuth ;
     
     /**
      *  
@@ -98,13 +112,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * 
      */
     private KeyedList<io.nop.wf.core.model.WfListenerModel> _listeners = KeyedList.emptyList();
-    
-    /**
-     *  
-     * xml name: manager-assignment
-     * 
-     */
-    private io.nop.wf.core.model.WfAssignmentModel _managerAssignment ;
     
     /**
      *  
@@ -250,6 +257,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      * 
+     * xml name: auths
+     *  
+     */
+    
+    public java.util.List<io.nop.wf.core.model.WfModelAuth> getAuths(){
+      return _auths;
+    }
+
+    
+    public void setAuths(java.util.List<io.nop.wf.core.model.WfModelAuth> value){
+        checkAllowChange();
+        
+        this._auths = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: bizEntityStateProp
      *  
      */
@@ -282,6 +308,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         checkAllowChange();
         
         this._checkActionAuth = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: check-edit-auth
+     *  编辑工作流定义时执行的权限验证逻辑
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getCheckEditAuth(){
+      return _checkEditAuth;
+    }
+
+    
+    public void setCheckEditAuth(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._checkEditAuth = value;
            
     }
 
@@ -463,25 +508,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     public boolean hasListeners(){
         return !this._listeners.isEmpty();
     }
-    
-    /**
-     * 
-     * xml name: manager-assignment
-     *  
-     */
-    
-    public io.nop.wf.core.model.WfAssignmentModel getManagerAssignment(){
-      return _managerAssignment;
-    }
-
-    
-    public void setManagerAssignment(io.nop.wf.core.model.WfAssignmentModel value){
-        checkAllowChange();
-        
-        this._managerAssignment = value;
-           
-    }
-
     
     /**
      * 
@@ -753,11 +779,11 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         
            this._actions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._actions);
             
+           this._auths = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auths);
+            
            this._end = io.nop.api.core.util.FreezeHelper.deepFreeze(this._end);
             
            this._listeners = io.nop.api.core.util.FreezeHelper.deepFreeze(this._listeners);
-            
-           this._managerAssignment = io.nop.api.core.util.FreezeHelper.deepFreeze(this._managerAssignment);
             
            this._start = io.nop.api.core.util.FreezeHelper.deepFreeze(this._start);
             
@@ -773,8 +799,10 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         
         out.put("actions",this.getActions());
         out.put("allowStepLoop",this.isAllowStepLoop());
+        out.put("auths",this.getAuths());
         out.put("bizEntityStateProp",this.getBizEntityStateProp());
         out.put("checkActionAuth",this.getCheckActionAuth());
+        out.put("checkEditAuth",this.getCheckEditAuth());
         out.put("checkManageAuth",this.getCheckManageAuth());
         out.put("checkStartAuth",this.getCheckStartAuth());
         out.put("deploy",this.getDeploy());
@@ -783,7 +811,6 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("displayName",this.getDisplayName());
         out.put("end",this.getEnd());
         out.put("listeners",this.getListeners());
-        out.put("managerAssignment",this.getManagerAssignment());
         out.put("onError",this.getOnError());
         out.put("onSignal",this.getOnSignal());
         out.put("priority",this.getPriority());

@@ -47,6 +47,11 @@
     <check-action-auth xdef:value="xpl"/>
 
     <!--
+    编辑工作流定义时执行的权限验证逻辑
+    -->
+    <check-edit-auth xdef:value="xpl"/>
+
+    <!--
     对工作流执行管理操作的时候所执行的权限验证逻辑
     -->
     <check-manage-auth xdef:value="xpl"/>
@@ -65,7 +70,10 @@
 
     <undeploy xdef:value="xpl"/>
 
-    <manager-assignment xdef:ref="assignment.xdef"/>
+    <auths xdef:body-type="list">
+        <auth xdef:name="WfModelAuth" actorType="!string" actorId="!string" deptId="string"
+              allowEdit="!boolean=false" allowManage="!boolean=false" allowStart="!boolean=false"/>
+    </auths>
 
     <on-error xdef:value="xpl"/>
 

@@ -3,7 +3,7 @@
 
     <x:gen-extends>
         <biz-gen:DefaultBizGenExtends xpl:lib="/nop/core/xlib/biz-gen.xlib" forEntity="true"
-                                      entityName="io.nop.wf.dao.entity.NopWfStepActor"/>
+                                      entityName="io.nop.wf.dao.entity.NopWfDefinitionAuth"/>
     </x:gen-extends>
 
     <x:post-extends>

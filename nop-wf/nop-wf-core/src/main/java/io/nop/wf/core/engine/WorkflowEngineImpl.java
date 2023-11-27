@@ -40,6 +40,7 @@ import io.nop.wf.core.model.WfAssignmentModel;
 import io.nop.wf.core.model.WfEndModel;
 import io.nop.wf.core.model.WfJoinType;
 import io.nop.wf.core.model.WfModel;
+import io.nop.wf.core.model.WfModelAuth;
 import io.nop.wf.core.model.WfReturnVarModel;
 import io.nop.wf.core.model.WfSplitType;
 import io.nop.wf.core.model.WfStepModel;
@@ -173,13 +174,20 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (!passConditions(wfModel.getStart(), wfRt))
             throw wfRt.newError(ERR_WF_NOT_ALLOW_START);
 
-        WfAssignmentModel manager = wfModel.getManagerAssignment();
-        if (manager != null) {
-            // 只取assignment配置的第一个actor
-            List<WfActorWithWeight> actors = this.getAssignmentActors(manager, wfRt);
-            if (!actors.isEmpty()) {
-                IWfActor actor = actors.get(0).getActor();
-                wf.getRecord().setManager(actor);
+        List<WfModelAuth> auths = wfModel.getAuths();
+        if (auths != null) {
+            for (WfModelAuth auth : auths) {
+                if (auth.isAllowManage()) {
+                    IWfActor actor = resolveActor(auth.getActorType(), auth.getActorId(), auth.getDeptId());
+                    if (actor == null)
+                        throw new NopException(ERR_WF_ACTOR_NOT_EXISTS)
+                                .param(ARG_WF_NAME, wf.getWfName())
+                                .param(ARG_WF_VERSION, wf.getWfVersion())
+                                .param(ARG_ACTOR_TYPE, auth.getActorType())
+                                .param(ARG_ACTOR_ID, auth.getActorId());
+                    record.setManager(actor);
+                    break;
+                }
             }
         }
 

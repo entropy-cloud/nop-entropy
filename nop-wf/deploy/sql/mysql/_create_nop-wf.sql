@@ -1,19 +1,21 @@
 
-CREATE TABLE nop_wf_definition(
-  WF_DEF_ID VARCHAR(32) NOT NULL    COMMENT '主键',
-  WF_NAME VARCHAR(500) NOT NULL    COMMENT '工作流名称',
-  WF_VERSION BIGINT NOT NULL    COMMENT '工作流版本',
-  DISPLAY_NAME VARCHAR(200) NOT NULL    COMMENT '显示名称',
-  DESCRIPTION VARCHAR(1000) NULL    COMMENT '描述',
-  MODEL_TEXT LONGTEXT NOT NULL    COMMENT '模型文本',
-  STATUS INTEGER NOT NULL    COMMENT '状态',
+CREATE TABLE nop_wf_definition_auth(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  WF_DEF_ID VARCHAR(32) NOT NULL    COMMENT '工作流定义ID',
+  ACTOR_TYPE VARCHAR(10) NOT NULL    COMMENT '参与者类型',
+  ACTOR_ID VARCHAR(100) NOT NULL    COMMENT '参与者ID',
+  ACTOR_DEPT_ID VARCHAR(50) NULL    COMMENT '参与者部门ID',
+  ACTOR_NAME VARCHAR(100) NOT NULL    COMMENT '参与者名称',
+  ALLOW_EDIT BOOLEAN NOT NULL    COMMENT '允许编辑',
+  ALLOW_MANAGE BOOLEAN NOT NULL    COMMENT '允许管理',
+  ALLOW_START BOOLEAN NOT NULL    COMMENT '允许启动',
   VERSION INTEGER NOT NULL    COMMENT '数据版本',
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
-  constraint PK_nop_wf_definition primary key (WF_DEF_ID)
+  constraint PK_nop_wf_definition_auth primary key (SID)
 );
 
 CREATE TABLE nop_wf_status_history(
@@ -40,24 +42,6 @@ CREATE TABLE nop_wf_step_instance_link(
   CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
   CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
   constraint PK_nop_wf_step_instance_link primary key (WF_ID,STEP_ID,NEXT_STEP_ID)
-);
-
-CREATE TABLE nop_wf_step_actor(
-  SID VARCHAR(32) NOT NULL    COMMENT '主键',
-  WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
-  STEP_ID VARCHAR(32) NOT NULL    COMMENT '工作流步骤ID',
-  ACTOR_TYPE VARCHAR(10) NULL    COMMENT '参与者类型',
-  ACTOR_ID VARCHAR(100) NULL    COMMENT '参与者ID',
-  ACTOR_DEPT_ID VARCHAR(50) NULL    COMMENT '参与者部门ID',
-  ACTOR_NAME VARCHAR(100) NULL    COMMENT '参与者名称',
-  VOTE_WEIGHT INTEGER NULL    COMMENT '投票权重',
-  ASSIGN_FOR_USER BOOLEAN NOT NULL    COMMENT '是否分配到用户',
-  VERSION INTEGER NOT NULL    COMMENT '数据版本',
-  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
-  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
-  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
-  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
-  constraint PK_nop_wf_step_actor primary key (SID)
 );
 
 CREATE TABLE nop_wf_user_delegate(
@@ -141,6 +125,23 @@ CREATE TABLE nop_wf_work(
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_wf_work primary key (WORK_ID)
+);
+
+CREATE TABLE nop_wf_definition(
+  WF_DEF_ID VARCHAR(32) NOT NULL    COMMENT '主键',
+  WF_NAME VARCHAR(500) NOT NULL    COMMENT '工作流名称',
+  WF_VERSION BIGINT NOT NULL    COMMENT '工作流版本',
+  DISPLAY_NAME VARCHAR(200) NOT NULL    COMMENT '显示名称',
+  DESCRIPTION VARCHAR(1000) NULL    COMMENT '描述',
+  MODEL_TEXT LONGTEXT NOT NULL    COMMENT '模型文本',
+  STATUS INTEGER NOT NULL    COMMENT '状态',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_wf_definition primary key (WF_DEF_ID)
 );
 
 CREATE TABLE nop_wf_action(
@@ -258,13 +259,11 @@ CREATE TABLE nop_wf_instance(
 );
 
 
-   ALTER TABLE nop_wf_definition COMMENT '工作流模型定义';
+   ALTER TABLE nop_wf_definition_auth COMMENT '工作流定义权限';
                 
    ALTER TABLE nop_wf_status_history COMMENT '工作流状态变迁历史';
                 
    ALTER TABLE nop_wf_step_instance_link COMMENT '工作流步骤关联';
-                
-   ALTER TABLE nop_wf_step_actor COMMENT '工作流步骤参与者';
                 
    ALTER TABLE nop_wf_user_delegate COMMENT '用户代理配置';
                 
@@ -275,6 +274,8 @@ CREATE TABLE nop_wf_instance(
    ALTER TABLE nop_wf_log COMMENT '工作流日志';
                 
    ALTER TABLE nop_wf_work COMMENT '代办工作';
+                
+   ALTER TABLE nop_wf_definition COMMENT '工作流模型定义';
                 
    ALTER TABLE nop_wf_action COMMENT '工作流动作';
                 

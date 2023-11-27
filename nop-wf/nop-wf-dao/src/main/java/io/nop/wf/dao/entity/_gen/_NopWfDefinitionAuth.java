@@ -10,103 +10,117 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.wf.dao.entity.NopWfDefinition;
+import io.nop.wf.dao.entity.NopWfDefinitionAuth;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  工作流模型定义: nop_wf_definition
+ *  工作流定义权限: nop_wf_definition_auth
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public class _NopWfDefinition extends DynamicOrmEntity{
+public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     
-    /* 主键: WF_DEF_ID VARCHAR */
+    /* 主键: SID VARCHAR */
+    public static final String PROP_NAME_sid = "sid";
+    public static final int PROP_ID_sid = 1;
+    
+    /* 工作流定义ID: WF_DEF_ID VARCHAR */
     public static final String PROP_NAME_wfDefId = "wfDefId";
-    public static final int PROP_ID_wfDefId = 1;
+    public static final int PROP_ID_wfDefId = 2;
     
-    /* 工作流名称: WF_NAME VARCHAR */
-    public static final String PROP_NAME_wfName = "wfName";
-    public static final int PROP_ID_wfName = 2;
+    /* 参与者类型: ACTOR_TYPE VARCHAR */
+    public static final String PROP_NAME_actorType = "actorType";
+    public static final int PROP_ID_actorType = 3;
     
-    /* 工作流版本: WF_VERSION BIGINT */
-    public static final String PROP_NAME_wfVersion = "wfVersion";
-    public static final int PROP_ID_wfVersion = 3;
+    /* 参与者ID: ACTOR_ID VARCHAR */
+    public static final String PROP_NAME_actorId = "actorId";
+    public static final int PROP_ID_actorId = 4;
     
-    /* 显示名称: DISPLAY_NAME VARCHAR */
-    public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 4;
+    /* 参与者部门ID: ACTOR_DEPT_ID VARCHAR */
+    public static final String PROP_NAME_actorDeptId = "actorDeptId";
+    public static final int PROP_ID_actorDeptId = 5;
     
-    /* 描述: DESCRIPTION VARCHAR */
-    public static final String PROP_NAME_description = "description";
-    public static final int PROP_ID_description = 5;
+    /* 参与者名称: ACTOR_NAME VARCHAR */
+    public static final String PROP_NAME_actorName = "actorName";
+    public static final int PROP_ID_actorName = 6;
     
-    /* 模型文本: MODEL_TEXT VARCHAR */
-    public static final String PROP_NAME_modelText = "modelText";
-    public static final int PROP_ID_modelText = 6;
+    /* 允许编辑: ALLOW_EDIT BOOLEAN */
+    public static final String PROP_NAME_allowEdit = "allowEdit";
+    public static final int PROP_ID_allowEdit = 7;
     
-    /* 状态: STATUS INTEGER */
-    public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 7;
+    /* 允许管理: ALLOW_MANAGE BOOLEAN */
+    public static final String PROP_NAME_allowManage = "allowManage";
+    public static final int PROP_ID_allowManage = 8;
+    
+    /* 允许启动: ALLOW_START BOOLEAN */
+    public static final String PROP_NAME_allowStart = "allowStart";
+    public static final int PROP_ID_allowStart = 9;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 8;
+    public static final int PROP_ID_version = 10;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 9;
+    public static final int PROP_ID_createdBy = 11;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 10;
+    public static final int PROP_ID_createTime = 12;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 11;
+    public static final int PROP_ID_updatedBy = 13;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 12;
+    public static final int PROP_ID_updateTime = 14;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 13;
+    public static final int PROP_ID_remark = 15;
     
 
-    private static int _PROP_ID_BOUND = 14;
+    private static int _PROP_ID_BOUND = 16;
 
     
-    /* relation: 工作流定义权限 */
-    public static final String PROP_NAME_definitionAuths = "definitionAuths";
+    /* relation: 工作流定义 */
+    public static final String PROP_NAME_wfDefinition = "wfDefinition";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfDefId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfDefId};
+    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[14];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
+      
+          PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
+          PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
           PROP_ID_TO_NAME[PROP_ID_wfDefId] = PROP_NAME_wfDefId;
           PROP_NAME_TO_ID.put(PROP_NAME_wfDefId, PROP_ID_wfDefId);
       
-          PROP_ID_TO_NAME[PROP_ID_wfName] = PROP_NAME_wfName;
-          PROP_NAME_TO_ID.put(PROP_NAME_wfName, PROP_ID_wfName);
+          PROP_ID_TO_NAME[PROP_ID_actorType] = PROP_NAME_actorType;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorType, PROP_ID_actorType);
       
-          PROP_ID_TO_NAME[PROP_ID_wfVersion] = PROP_NAME_wfVersion;
-          PROP_NAME_TO_ID.put(PROP_NAME_wfVersion, PROP_ID_wfVersion);
+          PROP_ID_TO_NAME[PROP_ID_actorId] = PROP_NAME_actorId;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorId, PROP_ID_actorId);
       
-          PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
-          PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
+          PROP_ID_TO_NAME[PROP_ID_actorDeptId] = PROP_NAME_actorDeptId;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorDeptId, PROP_ID_actorDeptId);
       
-          PROP_ID_TO_NAME[PROP_ID_description] = PROP_NAME_description;
-          PROP_NAME_TO_ID.put(PROP_NAME_description, PROP_ID_description);
+          PROP_ID_TO_NAME[PROP_ID_actorName] = PROP_NAME_actorName;
+          PROP_NAME_TO_ID.put(PROP_NAME_actorName, PROP_ID_actorName);
       
-          PROP_ID_TO_NAME[PROP_ID_modelText] = PROP_NAME_modelText;
-          PROP_NAME_TO_ID.put(PROP_NAME_modelText, PROP_ID_modelText);
+          PROP_ID_TO_NAME[PROP_ID_allowEdit] = PROP_NAME_allowEdit;
+          PROP_NAME_TO_ID.put(PROP_NAME_allowEdit, PROP_ID_allowEdit);
       
-          PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
-          PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
+          PROP_ID_TO_NAME[PROP_ID_allowManage] = PROP_NAME_allowManage;
+          PROP_NAME_TO_ID.put(PROP_NAME_allowManage, PROP_ID_allowManage);
+      
+          PROP_ID_TO_NAME[PROP_ID_allowStart] = PROP_NAME_allowStart;
+          PROP_NAME_TO_ID.put(PROP_NAME_allowStart, PROP_ID_allowStart);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -129,26 +143,32 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     }
 
     
-    /* 主键: WF_DEF_ID */
+    /* 主键: SID */
+    private java.lang.String _sid;
+    
+    /* 工作流定义ID: WF_DEF_ID */
     private java.lang.String _wfDefId;
     
-    /* 工作流名称: WF_NAME */
-    private java.lang.String _wfName;
+    /* 参与者类型: ACTOR_TYPE */
+    private java.lang.String _actorType;
     
-    /* 工作流版本: WF_VERSION */
-    private java.lang.Long _wfVersion;
+    /* 参与者ID: ACTOR_ID */
+    private java.lang.String _actorId;
     
-    /* 显示名称: DISPLAY_NAME */
-    private java.lang.String _displayName;
+    /* 参与者部门ID: ACTOR_DEPT_ID */
+    private java.lang.String _actorDeptId;
     
-    /* 描述: DESCRIPTION */
-    private java.lang.String _description;
+    /* 参与者名称: ACTOR_NAME */
+    private java.lang.String _actorName;
     
-    /* 模型文本: MODEL_TEXT */
-    private java.lang.String _modelText;
+    /* 允许编辑: ALLOW_EDIT */
+    private java.lang.Boolean _allowEdit;
     
-    /* 状态: STATUS */
-    private java.lang.Integer _status;
+    /* 允许管理: ALLOW_MANAGE */
+    private java.lang.Boolean _allowManage;
+    
+    /* 允许启动: ALLOW_START */
+    private java.lang.Boolean _allowStart;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -169,16 +189,16 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     private java.lang.String _remark;
     
 
-    public _NopWfDefinition(){
+    public _NopWfDefinitionAuth(){
     }
 
-    protected NopWfDefinition newInstance(){
-       return new NopWfDefinition();
+    protected NopWfDefinitionAuth newInstance(){
+       return new NopWfDefinitionAuth();
     }
 
     @Override
-    public NopWfDefinition cloneInstance() {
-        NopWfDefinition entity = newInstance();
+    public NopWfDefinitionAuth cloneInstance() {
+        NopWfDefinitionAuth entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
@@ -191,7 +211,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.wf.dao.entity.NopWfDefinition";
+      return "io.nop.wf.dao.entity.NopWfDefinitionAuth";
     }
 
     @Override
@@ -205,14 +225,14 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_wfDefId);
+        return buildSimpleId(PROP_ID_sid);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_wfDefId;
+            return propId == PROP_ID_sid;
           
     }
 
@@ -238,26 +258,32 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
+            case PROP_ID_sid:
+               return getSid();
+        
             case PROP_ID_wfDefId:
                return getWfDefId();
         
-            case PROP_ID_wfName:
-               return getWfName();
+            case PROP_ID_actorType:
+               return getActorType();
         
-            case PROP_ID_wfVersion:
-               return getWfVersion();
+            case PROP_ID_actorId:
+               return getActorId();
         
-            case PROP_ID_displayName:
-               return getDisplayName();
+            case PROP_ID_actorDeptId:
+               return getActorDeptId();
         
-            case PROP_ID_description:
-               return getDescription();
+            case PROP_ID_actorName:
+               return getActorName();
         
-            case PROP_ID_modelText:
-               return getModelText();
+            case PROP_ID_allowEdit:
+               return getAllowEdit();
         
-            case PROP_ID_status:
-               return getStatus();
+            case PROP_ID_allowManage:
+               return getAllowManage();
+        
+            case PROP_ID_allowStart:
+               return getAllowStart();
         
             case PROP_ID_version:
                return getVersion();
@@ -288,6 +314,16 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
+            case PROP_ID_sid:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_sid));
+               }
+               setSid(typedValue);
+               break;
+            }
+        
             case PROP_ID_wfDefId:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -298,63 +334,73 @@ public class _NopWfDefinition extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_wfName:{
+            case PROP_ID_actorType:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_wfName));
+                       err-> newTypeConversionError(PROP_NAME_actorType));
                }
-               setWfName(typedValue);
+               setActorType(typedValue);
                break;
             }
         
-            case PROP_ID_wfVersion:{
-               java.lang.Long typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toLong(value,
-                       err-> newTypeConversionError(PROP_NAME_wfVersion));
-               }
-               setWfVersion(typedValue);
-               break;
-            }
-        
-            case PROP_ID_displayName:{
+            case PROP_ID_actorId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_displayName));
+                       err-> newTypeConversionError(PROP_NAME_actorId));
                }
-               setDisplayName(typedValue);
+               setActorId(typedValue);
                break;
             }
         
-            case PROP_ID_description:{
+            case PROP_ID_actorDeptId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_description));
+                       err-> newTypeConversionError(PROP_NAME_actorDeptId));
                }
-               setDescription(typedValue);
+               setActorDeptId(typedValue);
                break;
             }
         
-            case PROP_ID_modelText:{
+            case PROP_ID_actorName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_modelText));
+                       err-> newTypeConversionError(PROP_NAME_actorName));
                }
-               setModelText(typedValue);
+               setActorName(typedValue);
                break;
             }
         
-            case PROP_ID_status:{
-               java.lang.Integer typedValue = null;
+            case PROP_ID_allowEdit:{
+               java.lang.Boolean typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_status));
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_allowEdit));
                }
-               setStatus(typedValue);
+               setAllowEdit(typedValue);
+               break;
+            }
+        
+            case PROP_ID_allowManage:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_allowManage));
+               }
+               setAllowManage(typedValue);
+               break;
+            }
+        
+            case PROP_ID_allowStart:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_allowStart));
+               }
+               setAllowStart(typedValue);
                break;
             }
         
@@ -427,51 +473,65 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_wfDefId:{
+            case PROP_ID_sid:{
                onInitProp(propId);
-               this._wfDefId = (java.lang.String)value;
+               this._sid = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
         
-            case PROP_ID_wfName:{
+            case PROP_ID_wfDefId:{
                onInitProp(propId);
-               this._wfName = (java.lang.String)value;
+               this._wfDefId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_wfVersion:{
+            case PROP_ID_actorType:{
                onInitProp(propId);
-               this._wfVersion = (java.lang.Long)value;
+               this._actorType = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_displayName:{
+            case PROP_ID_actorId:{
                onInitProp(propId);
-               this._displayName = (java.lang.String)value;
+               this._actorId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_description:{
+            case PROP_ID_actorDeptId:{
                onInitProp(propId);
-               this._description = (java.lang.String)value;
+               this._actorDeptId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_modelText:{
+            case PROP_ID_actorName:{
                onInitProp(propId);
-               this._modelText = (java.lang.String)value;
+               this._actorName = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_status:{
+            case PROP_ID_allowEdit:{
                onInitProp(propId);
-               this._status = (java.lang.Integer)value;
+               this._allowEdit = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_allowManage:{
+               onInitProp(propId);
+               this._allowManage = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_allowStart:{
+               onInitProp(propId);
+               this._allowStart = (java.lang.Boolean)value;
                
                break;
             }
@@ -525,7 +585,26 @@ public class _NopWfDefinition extends DynamicOrmEntity{
 
     
     /**
-     * 主键: WF_DEF_ID
+     * 主键: SID
+     */
+    public java.lang.String getSid(){
+         onPropGet(PROP_ID_sid);
+         return _sid;
+    }
+
+    /**
+     * 主键: SID
+     */
+    public void setSid(java.lang.String value){
+        if(onPropSet(PROP_ID_sid,value)){
+            this._sid = value;
+            internalClearRefs(PROP_ID_sid);
+            orm_id();
+        }
+    }
+    
+    /**
+     * 工作流定义ID: WF_DEF_ID
      */
     public java.lang.String getWfDefId(){
          onPropGet(PROP_ID_wfDefId);
@@ -533,126 +612,145 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     }
 
     /**
-     * 主键: WF_DEF_ID
+     * 工作流定义ID: WF_DEF_ID
      */
     public void setWfDefId(java.lang.String value){
         if(onPropSet(PROP_ID_wfDefId,value)){
             this._wfDefId = value;
             internalClearRefs(PROP_ID_wfDefId);
-            orm_id();
-        }
-    }
-    
-    /**
-     * 工作流名称: WF_NAME
-     */
-    public java.lang.String getWfName(){
-         onPropGet(PROP_ID_wfName);
-         return _wfName;
-    }
-
-    /**
-     * 工作流名称: WF_NAME
-     */
-    public void setWfName(java.lang.String value){
-        if(onPropSet(PROP_ID_wfName,value)){
-            this._wfName = value;
-            internalClearRefs(PROP_ID_wfName);
             
         }
     }
     
     /**
-     * 工作流版本: WF_VERSION
+     * 参与者类型: ACTOR_TYPE
      */
-    public java.lang.Long getWfVersion(){
-         onPropGet(PROP_ID_wfVersion);
-         return _wfVersion;
+    public java.lang.String getActorType(){
+         onPropGet(PROP_ID_actorType);
+         return _actorType;
     }
 
     /**
-     * 工作流版本: WF_VERSION
+     * 参与者类型: ACTOR_TYPE
      */
-    public void setWfVersion(java.lang.Long value){
-        if(onPropSet(PROP_ID_wfVersion,value)){
-            this._wfVersion = value;
-            internalClearRefs(PROP_ID_wfVersion);
+    public void setActorType(java.lang.String value){
+        if(onPropSet(PROP_ID_actorType,value)){
+            this._actorType = value;
+            internalClearRefs(PROP_ID_actorType);
             
         }
     }
     
     /**
-     * 显示名称: DISPLAY_NAME
+     * 参与者ID: ACTOR_ID
      */
-    public java.lang.String getDisplayName(){
-         onPropGet(PROP_ID_displayName);
-         return _displayName;
+    public java.lang.String getActorId(){
+         onPropGet(PROP_ID_actorId);
+         return _actorId;
     }
 
     /**
-     * 显示名称: DISPLAY_NAME
+     * 参与者ID: ACTOR_ID
      */
-    public void setDisplayName(java.lang.String value){
-        if(onPropSet(PROP_ID_displayName,value)){
-            this._displayName = value;
-            internalClearRefs(PROP_ID_displayName);
+    public void setActorId(java.lang.String value){
+        if(onPropSet(PROP_ID_actorId,value)){
+            this._actorId = value;
+            internalClearRefs(PROP_ID_actorId);
             
         }
     }
     
     /**
-     * 描述: DESCRIPTION
+     * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public java.lang.String getDescription(){
-         onPropGet(PROP_ID_description);
-         return _description;
+    public java.lang.String getActorDeptId(){
+         onPropGet(PROP_ID_actorDeptId);
+         return _actorDeptId;
     }
 
     /**
-     * 描述: DESCRIPTION
+     * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public void setDescription(java.lang.String value){
-        if(onPropSet(PROP_ID_description,value)){
-            this._description = value;
-            internalClearRefs(PROP_ID_description);
+    public void setActorDeptId(java.lang.String value){
+        if(onPropSet(PROP_ID_actorDeptId,value)){
+            this._actorDeptId = value;
+            internalClearRefs(PROP_ID_actorDeptId);
             
         }
     }
     
     /**
-     * 模型文本: MODEL_TEXT
+     * 参与者名称: ACTOR_NAME
      */
-    public java.lang.String getModelText(){
-         onPropGet(PROP_ID_modelText);
-         return _modelText;
+    public java.lang.String getActorName(){
+         onPropGet(PROP_ID_actorName);
+         return _actorName;
     }
 
     /**
-     * 模型文本: MODEL_TEXT
+     * 参与者名称: ACTOR_NAME
      */
-    public void setModelText(java.lang.String value){
-        if(onPropSet(PROP_ID_modelText,value)){
-            this._modelText = value;
-            internalClearRefs(PROP_ID_modelText);
+    public void setActorName(java.lang.String value){
+        if(onPropSet(PROP_ID_actorName,value)){
+            this._actorName = value;
+            internalClearRefs(PROP_ID_actorName);
             
         }
     }
     
     /**
-     * 状态: STATUS
+     * 允许编辑: ALLOW_EDIT
      */
-    public java.lang.Integer getStatus(){
-         onPropGet(PROP_ID_status);
-         return _status;
+    public java.lang.Boolean getAllowEdit(){
+         onPropGet(PROP_ID_allowEdit);
+         return _allowEdit;
     }
 
     /**
-     * 状态: STATUS
+     * 允许编辑: ALLOW_EDIT
      */
-    public void setStatus(java.lang.Integer value){
-        if(onPropSet(PROP_ID_status,value)){
-            this._status = value;
-            internalClearRefs(PROP_ID_status);
+    public void setAllowEdit(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_allowEdit,value)){
+            this._allowEdit = value;
+            internalClearRefs(PROP_ID_allowEdit);
+            
+        }
+    }
+    
+    /**
+     * 允许管理: ALLOW_MANAGE
+     */
+    public java.lang.Boolean getAllowManage(){
+         onPropGet(PROP_ID_allowManage);
+         return _allowManage;
+    }
+
+    /**
+     * 允许管理: ALLOW_MANAGE
+     */
+    public void setAllowManage(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_allowManage,value)){
+            this._allowManage = value;
+            internalClearRefs(PROP_ID_allowManage);
+            
+        }
+    }
+    
+    /**
+     * 允许启动: ALLOW_START
+     */
+    public java.lang.Boolean getAllowStart(){
+         onPropGet(PROP_ID_allowStart);
+         return _allowStart;
+    }
+
+    /**
+     * 允许启动: ALLOW_START
+     */
+    public void setAllowStart(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_allowStart,value)){
+            this._allowStart = value;
+            internalClearRefs(PROP_ID_allowStart);
             
         }
     }
@@ -771,14 +869,25 @@ public class _NopWfDefinition extends DynamicOrmEntity{
         }
     }
     
-    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfDefinitionAuth> _definitionAuths = new OrmEntitySet<>(this, PROP_NAME_definitionAuths,
-        io.nop.wf.dao.entity.NopWfDefinitionAuth.PROP_NAME_wfDefinition, null,io.nop.wf.dao.entity.NopWfDefinitionAuth.class);
-
     /**
-     * 工作流定义权限。 refPropName: wfDefinition, keyProp: {rel.keyProp}
+     * 工作流定义
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfDefinitionAuth> getDefinitionAuths(){
-       return _definitionAuths;
+    public io.nop.wf.dao.entity.NopWfDefinition getWfDefinition(){
+       return (io.nop.wf.dao.entity.NopWfDefinition)internalGetRefEntity(PROP_NAME_wfDefinition);
+    }
+
+    public void setWfDefinition(io.nop.wf.dao.entity.NopWfDefinition refEntity){
+       if(refEntity == null){
+         
+         this.setWfDefId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_wfDefinition, refEntity,()->{
+             
+                    this.setWfDefId(refEntity.getWfDefId());
+                 
+          });
+       }
     }
        
 }

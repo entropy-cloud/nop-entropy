@@ -1,19 +1,21 @@
 
-CREATE TABLE nop_wf_definition(
+CREATE TABLE nop_wf_definition_auth(
+  SID VARCHAR2(32) NOT NULL ,
   WF_DEF_ID VARCHAR2(32) NOT NULL ,
-  WF_NAME VARCHAR2(500) NOT NULL ,
-  WF_VERSION NUMBER(20) NOT NULL ,
-  DISPLAY_NAME VARCHAR2(200) NOT NULL ,
-  DESCRIPTION VARCHAR2(1000)  ,
-  MODEL_TEXT CLOB NOT NULL ,
-  STATUS INTEGER NOT NULL ,
+  ACTOR_TYPE VARCHAR2(10) NOT NULL ,
+  ACTOR_ID VARCHAR2(100) NOT NULL ,
+  ACTOR_DEPT_ID VARCHAR2(50)  ,
+  ACTOR_NAME VARCHAR2(100) NOT NULL ,
+  ALLOW_EDIT CHAR(1) NOT NULL ,
+  ALLOW_MANAGE CHAR(1) NOT NULL ,
+  ALLOW_START CHAR(1) NOT NULL ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
-  constraint PK_nop_wf_definition primary key (WF_DEF_ID)
+  constraint PK_nop_wf_definition_auth primary key (SID)
 );
 
 CREATE TABLE nop_wf_status_history(
@@ -40,24 +42,6 @@ CREATE TABLE nop_wf_step_instance_link(
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   constraint PK_nop_wf_step_instance_link primary key (WF_ID,STEP_ID,NEXT_STEP_ID)
-);
-
-CREATE TABLE nop_wf_step_actor(
-  SID VARCHAR2(32) NOT NULL ,
-  WF_ID VARCHAR2(32) NOT NULL ,
-  STEP_ID VARCHAR2(32) NOT NULL ,
-  ACTOR_TYPE VARCHAR2(10)  ,
-  ACTOR_ID VARCHAR2(100)  ,
-  ACTOR_DEPT_ID VARCHAR2(50)  ,
-  ACTOR_NAME VARCHAR2(100)  ,
-  VOTE_WEIGHT INTEGER  ,
-  ASSIGN_FOR_USER CHAR(1) NOT NULL ,
-  VERSION INTEGER NOT NULL ,
-  CREATED_BY VARCHAR2(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR2(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_wf_step_actor primary key (SID)
 );
 
 CREATE TABLE nop_wf_user_delegate(
@@ -141,6 +125,23 @@ CREATE TABLE nop_wf_work(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_wf_work primary key (WORK_ID)
+);
+
+CREATE TABLE nop_wf_definition(
+  WF_DEF_ID VARCHAR2(32) NOT NULL ,
+  WF_NAME VARCHAR2(500) NOT NULL ,
+  WF_VERSION NUMBER(20) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(200) NOT NULL ,
+  DESCRIPTION VARCHAR2(1000)  ,
+  MODEL_TEXT CLOB NOT NULL ,
+  STATUS INTEGER NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_wf_definition primary key (WF_DEF_ID)
 );
 
 CREATE TABLE nop_wf_action(
@@ -258,33 +259,37 @@ CREATE TABLE nop_wf_instance(
 );
 
 
-      COMMENT ON TABLE nop_wf_definition IS '工作流模型定义';
+      COMMENT ON TABLE nop_wf_definition_auth IS '工作流定义权限';
                 
-      COMMENT ON COLUMN nop_wf_definition.WF_DEF_ID IS '主键';
+      COMMENT ON COLUMN nop_wf_definition_auth.SID IS '主键';
                     
-      COMMENT ON COLUMN nop_wf_definition.WF_NAME IS '工作流名称';
+      COMMENT ON COLUMN nop_wf_definition_auth.WF_DEF_ID IS '工作流定义ID';
                     
-      COMMENT ON COLUMN nop_wf_definition.WF_VERSION IS '工作流版本';
+      COMMENT ON COLUMN nop_wf_definition_auth.ACTOR_TYPE IS '参与者类型';
                     
-      COMMENT ON COLUMN nop_wf_definition.DISPLAY_NAME IS '显示名称';
+      COMMENT ON COLUMN nop_wf_definition_auth.ACTOR_ID IS '参与者ID';
                     
-      COMMENT ON COLUMN nop_wf_definition.DESCRIPTION IS '描述';
+      COMMENT ON COLUMN nop_wf_definition_auth.ACTOR_DEPT_ID IS '参与者部门ID';
                     
-      COMMENT ON COLUMN nop_wf_definition.MODEL_TEXT IS '模型文本';
+      COMMENT ON COLUMN nop_wf_definition_auth.ACTOR_NAME IS '参与者名称';
                     
-      COMMENT ON COLUMN nop_wf_definition.STATUS IS '状态';
+      COMMENT ON COLUMN nop_wf_definition_auth.ALLOW_EDIT IS '允许编辑';
                     
-      COMMENT ON COLUMN nop_wf_definition.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_wf_definition_auth.ALLOW_MANAGE IS '允许管理';
                     
-      COMMENT ON COLUMN nop_wf_definition.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_wf_definition_auth.ALLOW_START IS '允许启动';
                     
-      COMMENT ON COLUMN nop_wf_definition.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_wf_definition_auth.VERSION IS '数据版本';
                     
-      COMMENT ON COLUMN nop_wf_definition.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_wf_definition_auth.CREATED_BY IS '创建人';
                     
-      COMMENT ON COLUMN nop_wf_definition.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_wf_definition_auth.CREATE_TIME IS '创建时间';
                     
-      COMMENT ON COLUMN nop_wf_definition.REMARK IS '备注';
+      COMMENT ON COLUMN nop_wf_definition_auth.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_wf_definition_auth.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_wf_definition_auth.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_wf_status_history IS '工作流状态变迁历史';
                 
@@ -325,36 +330,6 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_step_instance_link.CREATED_BY IS '创建人';
                     
       COMMENT ON COLUMN nop_wf_step_instance_link.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON TABLE nop_wf_step_actor IS '工作流步骤参与者';
-                
-      COMMENT ON COLUMN nop_wf_step_actor.SID IS '主键';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.WF_ID IS '工作流实例ID';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.STEP_ID IS '工作流步骤ID';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.ACTOR_TYPE IS '参与者类型';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.ACTOR_ID IS '参与者ID';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.ACTOR_DEPT_ID IS '参与者部门ID';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.ACTOR_NAME IS '参与者名称';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.VOTE_WEIGHT IS '投票权重';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.ASSIGN_FOR_USER IS '是否分配到用户';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_wf_step_actor.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_wf_user_delegate IS '用户代理配置';
                 
@@ -491,6 +466,34 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_work.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_wf_work.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_wf_definition IS '工作流模型定义';
+                
+      COMMENT ON COLUMN nop_wf_definition.WF_DEF_ID IS '主键';
+                    
+      COMMENT ON COLUMN nop_wf_definition.WF_NAME IS '工作流名称';
+                    
+      COMMENT ON COLUMN nop_wf_definition.WF_VERSION IS '工作流版本';
+                    
+      COMMENT ON COLUMN nop_wf_definition.DISPLAY_NAME IS '显示名称';
+                    
+      COMMENT ON COLUMN nop_wf_definition.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_wf_definition.MODEL_TEXT IS '模型文本';
+                    
+      COMMENT ON COLUMN nop_wf_definition.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_wf_definition.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_wf_definition.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_wf_definition.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_wf_definition.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_wf_definition.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_wf_definition.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_wf_action IS '工作流动作';
                 

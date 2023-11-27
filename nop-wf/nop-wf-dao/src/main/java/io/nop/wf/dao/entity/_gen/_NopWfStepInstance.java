@@ -233,9 +233,6 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_prevLinks = "prevLinks";
     
     /* relation:  */
-    public static final String PROP_NAME_stepActors = "stepActors";
-    
-    /* relation:  */
     public static final String PROP_NAME_stepActions = "stepActions";
     
 
@@ -2610,16 +2607,6 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
      */
     public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> getPrevLinks(){
        return _prevLinks;
-    }
-       
-    private final OrmEntitySet<io.nop.wf.dao.entity.NopWfStepActor> _stepActors = new OrmEntitySet<>(this, PROP_NAME_stepActors,
-        io.nop.wf.dao.entity.NopWfStepActor.PROP_NAME_wfStepInstance, null,io.nop.wf.dao.entity.NopWfStepActor.class);
-
-    /**
-     * 。 refPropName: wfStepInstance, keyProp: {rel.keyProp}
-     */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepActor> getStepActors(){
-       return _stepActors;
     }
        
     private final OrmEntitySet<io.nop.wf.dao.entity.NopWfAction> _stepActions = new OrmEntitySet<>(this, PROP_NAME_stepActions,
