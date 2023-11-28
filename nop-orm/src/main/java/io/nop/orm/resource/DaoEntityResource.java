@@ -44,11 +44,11 @@ public class DaoEntityResource extends AbstractResource {
         this.daoProvider = daoProvider;
     }
 
-    public static String makeDaoResourcePath(String entityName, String entityId) {
+    public static String makeDaoResourcePath(String entityName, Object entityId) {
         return "dao:" + entityName + "/" + entityId;
     }
 
-    public static String makeDaoResource(IOrmEntity entity) {
+    public static String makeDaoResourcePath(IOrmEntity entity) {
         return makeDaoResourcePath(entity.orm_entityName(), entity.orm_idString());
     }
 
@@ -84,7 +84,7 @@ public class DaoEntityResource extends AbstractResource {
 
     private void checkLoad() {
         long now = CoreMetrics.currentTimeMillis();
-        if (lastCheckTime > 0 && now - lastCheckTime < checkInterval) {
+        if (checkInterval > 0 && lastCheckTime > 0 && now - lastCheckTime < checkInterval) {
             return;
         }
 

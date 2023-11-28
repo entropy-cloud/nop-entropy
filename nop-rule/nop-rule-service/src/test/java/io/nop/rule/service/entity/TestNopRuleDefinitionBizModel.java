@@ -21,11 +21,14 @@ import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.rule.dao.entity.NopRuleDefinition;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import jakarta.inject.Inject;
 import java.io.InputStream;
 import java.util.Map;
+
+import static io.nop.orm.OrmConfigs.CFG_DAO_RESOURCE_CHECK_INTERVAL;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
 @NopTestProperty(name="nop.file.store-dir",value = "./target")
@@ -33,6 +36,11 @@ public class TestNopRuleDefinitionBizModel extends JunitAutoTestCase {
 
     @Inject
     IGraphQLEngine graphQLEngine;
+
+    @BeforeEach
+    public void init(){
+        setTestConfig(CFG_DAO_RESOURCE_CHECK_INTERVAL,0L);
+    }
 
     @EnableSnapshot
     @Test

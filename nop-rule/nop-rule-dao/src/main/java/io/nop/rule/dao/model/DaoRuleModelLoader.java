@@ -20,6 +20,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.model.tree.TreeIndex;
 import io.nop.core.resource.IResourceObjectLoader;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.core.resource.component.version.VersionedName;
 import io.nop.dao.api.IDaoProvider;
@@ -79,8 +80,11 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
     public RuleModel loadRule(String ruleName, Long ruleVersion) {
         NopRuleDefinition entity = loadRuleDefinition(ruleName, ruleVersion);
+
+        ResourceComponentManager.instance().traceDepends(DaoEntityResource.makeDaoResourcePath(entity));
+
         RuleModel model = buildRuleModel(entity);
-        String path = DaoEntityResource.makeDaoResource(entity);
+        String path = DaoEntityResource.makeDaoResourcePath(entity);
         model.setLocation(SourceLocation.fromPath(path));
         return model;
     }
