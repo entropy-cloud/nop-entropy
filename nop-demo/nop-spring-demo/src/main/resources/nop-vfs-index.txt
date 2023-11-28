@@ -266,6 +266,7 @@
 /nop/orm/imp/template.orm.xlsx
 /nop/orm/xlib/ddl/ddl.xlib
 /nop/orm/xlib/ddl/ddl_h2.xlib
+/nop/orm/xlib/ddl/ddl_h2gis.xlib
 /nop/orm/xlib/ddl/ddl_mariadb.xlib
 /nop/orm/xlib/ddl/ddl_mssql.xlib
 /nop/orm/xlib/ddl/ddl_mysql.xlib
@@ -496,6 +497,8 @@
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/impl/{serviceModel.name}Impl.java.xgen
 /nop/templates/api/{serviceModuleName}/src/main/java/{servicePackagePath}/{serviceModel.name}Spi.java.xgen
 /nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/beans/_api-impl.beans.xml.xgen
+/nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/model/{!!serviceModel.tagSet.@biz}{serviceModel.bizObjName}/_{serviceModel.name}.xbiz.xgen
+/nop/templates/api/{serviceModuleName}/src/main/resources/_vfs/{moduleId}/model/{!!serviceModel.tagSet.@biz}{serviceModel.bizObjName}/{serviceModel.bizObjName}.xbiz.xgen
 /nop/templates/ast/@init.xrun
 /nop/templates/ast/src/main/java/{ast.packagePath}/_gen/_{astNode.name}.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Kind.java.xgen
@@ -504,6 +507,8 @@
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Processor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{ast.name}Visitor.java.xgen
 /nop/templates/ast/src/main/java/{ast.packagePath}/{astNode.name}.java.xgen
+/nop/templates/backend/@init.xrun
+/nop/templates/backend/a-imp.xrun
 /nop/templates/i18n/@init.xrun
 /nop/templates/i18n/_templates/_{metaInfo.objName}.json.xgen
 /nop/templates/i18n/src/main/resources/_vfs/i18n/{defaultLocale}/_{moduleName}.i18n.yaml.xgen
@@ -536,6 +541,7 @@
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.lib.xjs
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/pages/{metaInfo.forEntity}{metaInfo.baseObjName}/{metaInfo.objName}.view.xml.xgen
 /nop/templates/orm/@init.xrun
+/nop/templates/orm/deploy/sql/{dialect}/_add_tenant_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_create_{appName}.sql.xgen
 /nop/templates/orm/deploy/sql/{dialect}/_drop_{appName}.sql.xgen
 /nop/templates/orm/pom.xml.xgen

@@ -63,7 +63,7 @@ public class RoundRobinSupplier<T extends AutoCloseable> implements AutoCloseabl
                 for (int i = 0; i < objects.length(); i++) {
                     newObjects.set(i, objects.get(i));
                 }
-                
+
                 for (int i = objects.length(); i < size; i++) {
                     newObjects.set(i, factory.get());
                 }
