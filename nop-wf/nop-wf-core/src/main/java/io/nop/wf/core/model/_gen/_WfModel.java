@@ -34,7 +34,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * xml name: auths
      * 
      */
-    private java.util.List<io.nop.wf.core.model.WfModelAuth> _auths = java.util.Collections.emptyList();
+    private KeyedList<io.nop.wf.core.model.WfModelAuth> _auths = KeyedList.emptyList();
     
     /**
      *  
@@ -269,10 +269,36 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     public void setAuths(java.util.List<io.nop.wf.core.model.WfModelAuth> value){
         checkAllowChange();
         
-        this._auths = value;
+        this._auths = KeyedList.fromList(value, io.nop.wf.core.model.WfModelAuth::getId);
            
     }
 
+    
+    public io.nop.wf.core.model.WfModelAuth getAuth(String name){
+        return this._auths.getByKey(name);
+    }
+
+    public boolean hasAuth(String name){
+        return this._auths.containsKey(name);
+    }
+
+    public void addAuth(io.nop.wf.core.model.WfModelAuth item) {
+        checkAllowChange();
+        java.util.List<io.nop.wf.core.model.WfModelAuth> list = this.getAuths();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.wf.core.model.WfModelAuth::getId);
+            setAuths(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_auths(){
+        return this._auths.keySet();
+    }
+
+    public boolean hasAuths(){
+        return !this._auths.isEmpty();
+    }
     
     /**
      * 

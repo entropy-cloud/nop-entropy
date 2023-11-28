@@ -7,6 +7,7 @@
  */
 package io.nop.wf.service;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
@@ -58,13 +59,12 @@ public class TestWorkflowEngine extends BaseTestCase {
 
         WorkflowEngineImpl engine = new WorkflowEngineImpl();
         engine.setWfActorResolver(new MockWfActorResolver());
-        //engine.setWorkflowCoordinator();
         workflowManager.setWorkflowEngine(engine);
         MockWorkflowStore store = new MockWorkflowStore();
         workflowManager.setWorkflowStore(store);
-        // workflowManager.setWorkflowModelStore(new ResourceWorkflowModelStore());
 
         workflowManager.init();
+        ContextProvider.getOrCreateContext().setUserId("1");
     }
 
     /**

@@ -57,6 +57,13 @@ public abstract class _WfModelAuth extends io.nop.core.resource.component.Abstra
     private java.lang.String _deptId ;
     
     /**
+     *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
      * 
      * xml name: actorId
      *  
@@ -170,6 +177,25 @@ public abstract class _WfModelAuth extends io.nop.core.resource.component.Abstra
     }
 
     
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
+    
 
     public void freeze(boolean cascade){
         if(frozen()) return;
@@ -189,6 +215,7 @@ public abstract class _WfModelAuth extends io.nop.core.resource.component.Abstra
         out.put("allowManage",this.isAllowManage());
         out.put("allowStart",this.isAllowStart());
         out.put("deptId",this.getDeptId());
+        out.put("id",this.getId());
     }
 }
  // resume CPD analysis - CPD-ON

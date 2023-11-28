@@ -51,6 +51,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: before-transition
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _beforeTransition ;
+    
+    /**
+     *  
      * xml name: bizEntityState
      * 
      */
@@ -294,6 +301,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._assignment = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: before-transition
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getBeforeTransition(){
+      return _beforeTransition;
+    }
+
+    
+    public void setBeforeTransition(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._beforeTransition = value;
            
     }
 
@@ -766,6 +792,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("allowWithdraw",this.isAllowWithdraw());
         out.put("appState",this.getAppState());
         out.put("assignment",this.getAssignment());
+        out.put("beforeTransition",this.getBeforeTransition());
         out.put("bizEntityState",this.getBizEntityState());
         out.put("checkComplete",this.getCheckComplete());
         out.put("displayName",this.getDisplayName());
