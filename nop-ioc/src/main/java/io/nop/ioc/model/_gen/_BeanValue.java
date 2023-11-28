@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [115:6:0:0]/nop/schema/beans.xdef <p>
+ * generate from [116:6:0:0]/nop/schema/beans.xdef <p>
  * 指定parent属性时，从parent对应的bean继承配置。但是class/primary/abstract/autowire-candidate/lazy-init/depends-on等属性不会被继承
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -154,6 +154,13 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
      * 
      */
     private io.nop.xlang.api.EvalCode _iocDestroy ;
+    
+    /**
+     *  
+     * xml name: ioc:force-init
+     * 在START_LAZY启动模式下即使设置了lazy-init=false，缺省也不会自动启动。但是如果设置了ioc:force-init，则强制新建。
+     */
+    private boolean _iocForceInit  = false;
     
     /**
      *  
@@ -670,6 +677,25 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
     
     /**
      * 
+     * xml name: ioc:force-init
+     *  在START_LAZY启动模式下即使设置了lazy-init=false，缺省也不会自动启动。但是如果设置了ioc:force-init，则强制新建。
+     */
+    
+    public boolean isIocForceInit(){
+      return _iocForceInit;
+    }
+
+    
+    public void setIocForceInit(boolean value){
+        checkAllowChange();
+        
+        this._iocForceInit = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: ioc:init
      *  
      */
@@ -1051,6 +1077,7 @@ public abstract class _BeanValue extends io.nop.core.resource.component.Abstract
         out.put("iocDelayMethod",this.getIocDelayMethod());
         out.put("iocDelayStart",this.getIocDelayStart());
         out.put("iocDestroy",this.getIocDestroy());
+        out.put("iocForceInit",this.isIocForceInit());
         out.put("iocInit",this.getIocInit());
         out.put("iocInitOrder",this.getIocInitOrder());
         out.put("iocInterceptors",this.getIocInterceptors());
