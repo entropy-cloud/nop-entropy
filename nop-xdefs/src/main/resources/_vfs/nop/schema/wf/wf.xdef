@@ -70,8 +70,8 @@
 
     <undeploy xdef:value="xpl"/>
 
-    <auths xdef:body-type="list">
-        <auth xdef:name="WfModelAuth" actorType="!string" actorId="!string" deptId="string"
+    <auths xdef:body-type="list" xdef:key-attr="id">
+        <auth xdef:name="WfModelAuth" id="!string" actorType="!string" actorId="!string" deptId="string"
               allowEdit="!boolean=false" allowManage="!boolean=false" allowStart="!boolean=false"/>
     </auths>
 
@@ -212,16 +212,18 @@
             <source xdef:value="xpl"/>
 
             <!--
+            如果check-complete不为空，则为异步任务，需要等待任务结束才能迁移到下一步骤
+            -->
+            <check-complete xdef:value="xpl"/>
+
+            <!--
 
             -->
             <transition xdef:ref="WfTransitionModel"/>
 
-            <after-transition xdef:value="xpl"/>
+            <before-transition xdef:value="xpl"/>
 
-            <!--
-            如果check-complete不为空，则为异步任务，需要等待任务结束才能迁移到下一步骤
-            -->
-            <check-complete xdef:value="xpl"/>
+            <after-transition xdef:value="xpl"/>
 
         </step>
 

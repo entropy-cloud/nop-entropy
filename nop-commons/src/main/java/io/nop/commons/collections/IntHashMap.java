@@ -1069,14 +1069,14 @@ public class IntHashMap<V> implements MapOfInt<V> {
         }
     }
 
-    static public class Values<V> extends MapIterator<V> implements Iterable<V>, Iterator<V> {
+    static public class Values<V> extends MapIterator<V> implements  Iterator<V> {
         public Values(IntHashMap<V> map) {
             super(map);
         }
 
-        public boolean hasNext() {
-            return hasNext;
-        }
+//        public boolean hasNext() {
+//            return hasNext;
+//        }
 
         public V next() {
             if (!hasNext)

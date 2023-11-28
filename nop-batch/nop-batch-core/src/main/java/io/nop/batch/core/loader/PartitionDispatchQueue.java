@@ -8,6 +8,7 @@
 package io.nop.batch.core.loader;
 
 import io.nop.api.core.exceptions.NopBreakException;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.IntHashMap;
 import io.nop.commons.collections.MapOfInt;
@@ -129,7 +130,8 @@ public class PartitionDispatchQueue<T> {
                 try {
                     notEmpty.await();
                 } catch (InterruptedException e) {
-
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e);
                 }
             } finally {
                 lock.unlock();
@@ -203,7 +205,8 @@ public class PartitionDispatchQueue<T> {
         try {
             semaphore.acquire(data.size());
         } catch (InterruptedException e) {
-
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
         }
 
         lock.lock();

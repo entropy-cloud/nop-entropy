@@ -729,6 +729,8 @@ public class ConvertHelper {
         if (isEmpty(str))
             return null;
         Short value = stringToShort(str, errorFactory);
+        if(value == null)
+            return null;
         return value.byteValue();
     }
 
@@ -769,15 +771,15 @@ public class ConvertHelper {
             char c = str.charAt(str.length() - 1);
             if (c == 'G' || c == 'g') {
                 str = str.substring(0, str.length() - 1);
-                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024 * 1024);
+                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024 * 1024L);
                 return value;
             } else if (c == 'M' || c == 'm') {
                 str = str.substring(0, str.length() - 1);
-                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024);
+                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024 * 1024L);
                 return value;
             } else if (c == 'K' || c == 'k') {
                 str = str.substring(0, str.length() - 1);
-                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024);
+                long value = (long) (stringToNumber(str, errorFactory).doubleValue() * 1024L);
                 return value;
             }
         }
@@ -1271,19 +1273,19 @@ public class ConvertHelper {
             }
 
             if (s.endsWith("s")) {
-                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000, errorFactory));
+                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000L, errorFactory));
             }
 
             if (s.endsWith("m")) {
-                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000 * 60, errorFactory));
+                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000 * 60L, errorFactory));
             }
 
             if (s.endsWith("h")) {
-                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000 * 60 * 60, errorFactory));
+                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000 * 60 * 60L, errorFactory));
             }
 
             if (s.endsWith("d")) {
-                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000 * 60 * 60 * 24, errorFactory));
+                return Duration.ofMillis(toMillis(s.substring(0, s.length() - 1).trim(), 1000 * 60 * 60 * 24L, errorFactory));
             }
 
             return Duration.ofMillis(stringToLong(s, errorFactory));

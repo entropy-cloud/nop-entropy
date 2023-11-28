@@ -171,7 +171,7 @@ public class LoginServiceImpl extends AbstractLoginService {
             }
         }
 
-        if (errorCode != null) {
+        if (errorCode != null || user == null) {
             failCount++;
             if (user != null)
                 userContextCache.setLoginFailCountForUser(user.getUserName(), failCount);

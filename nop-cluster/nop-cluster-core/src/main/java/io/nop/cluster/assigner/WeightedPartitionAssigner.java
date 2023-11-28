@@ -55,6 +55,9 @@ public class WeightedPartitionAssigner implements IPartitionAssigner {
 
     private List<IntRangeBean> assignWeighted(IntRangeBean range, List<ServiceInstance> servers) {
         int ttlWeight = getTotalWeight(servers);
+        if(ttlWeight == 0)
+            ttlWeight = 1;
+
         int offset = range.getOffset();
         int limit = range.getLimit();
         int end = range.getEnd();

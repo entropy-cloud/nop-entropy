@@ -1,0 +1,432 @@
+{
+  "nodeConfig": {
+    "name": "发起人",
+    "type": 0,
+    "childNode": {
+      "name": "审核人",
+      "type": 1,
+      "assignees": [
+        {
+          "rid": "616256279471460352",
+          "layer": 0,
+          "layerType": 0,
+          "assigneeType": 1
+        }
+      ],
+      "childNode": {
+        "name": "审核人",
+        "type": 1,
+        "assignees": [
+          {
+            "rid": "616257855678320640",
+            "layer": 0,
+            "layerType": 0,
+            "assigneeType": 2
+          }
+        ],
+        "childNode": {
+          "ccs": [
+            {
+              "rid": "616258163204689920",
+              "ccType": 4,
+              "assignees": [
+                "staffId-wangwu"
+              ]
+            }
+          ],
+          "name": "抄送人",
+          "type": 2,
+          "childNode": {
+            "name": "审核人",
+            "type": 1,
+            "assignees": [
+              {
+                "rid": "616257904571322368",
+                "assignees": [
+                  "staffId-renshibuzhang"
+                ],
+                "assigneeType": 4
+              }
+            ],
+            "childNode": null,
+            "approvalType": 0,
+            "flowNodeNoAuditorType": 0,
+            "flowNodeSelfAuditorType": 1,
+            "multiInstanceApprovalType": 0,
+            "formAuths": [
+              {
+                "name": "INPUT_616257020936327168",
+                "type": 0,
+                "label": "付款事由",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "MONEY_616257099650830336",
+                "type": 4,
+                "label": "付款总额",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "SELECT_616257240084516864",
+                "type": 5,
+                "label": "付款方式",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "DATE_616257444204515328",
+                "type": 7,
+                "label": "支付日期",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "INPUT_616257514945646592",
+                "type": 0,
+                "label": "支付对象",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "INPUT_616257561993154560",
+                "type": 0,
+                "label": "开户行",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "INPUT_616257595476283392",
+                "type": 0,
+                "label": "银行账户",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "TEXT_616257655337390080",
+                "type": 1,
+                "label": "备注",
+                "readable": true,
+                "editable": false
+              },
+              {
+                "name": "ATTACH_616257683552473088",
+                "type": 11,
+                "label": "附件",
+                "readable": true,
+                "editable": false
+              }
+            ]
+          },
+          "formAuths": [
+            {
+              "name": "INPUT_616257020936327168",
+              "type": 0,
+              "label": "付款事由",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "MONEY_616257099650830336",
+              "type": 4,
+              "label": "付款总额",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "SELECT_616257240084516864",
+              "type": 5,
+              "label": "付款方式",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "DATE_616257444204515328",
+              "type": 7,
+              "label": "支付日期",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "INPUT_616257514945646592",
+              "type": 0,
+              "label": "支付对象",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "INPUT_616257561993154560",
+              "type": 0,
+              "label": "开户行",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "INPUT_616257595476283392",
+              "type": 0,
+              "label": "银行账户",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "TEXT_616257655337390080",
+              "type": 1,
+              "label": "备注",
+              "readable": true,
+              "editable": false
+            },
+            {
+              "name": "ATTACH_616257683552473088",
+              "type": 11,
+              "label": "附件",
+              "readable": true,
+              "editable": false
+            }
+          ]
+        },
+        "approvalType": 0,
+        "flowNodeNoAuditorType": 0,
+        "flowNodeSelfAuditorType": 1,
+        "multiInstanceApprovalType": 0,
+        "formAuths": [
+          {
+            "name": "INPUT_616257020936327168",
+            "type": 0,
+            "label": "付款事由",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "MONEY_616257099650830336",
+            "type": 4,
+            "label": "付款总额",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "SELECT_616257240084516864",
+            "type": 5,
+            "label": "付款方式",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "DATE_616257444204515328",
+            "type": 7,
+            "label": "支付日期",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "INPUT_616257514945646592",
+            "type": 0,
+            "label": "支付对象",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "INPUT_616257561993154560",
+            "type": 0,
+            "label": "开户行",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "INPUT_616257595476283392",
+            "type": 0,
+            "label": "银行账户",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "TEXT_616257655337390080",
+            "type": 1,
+            "label": "备注",
+            "readable": true,
+            "editable": false
+          },
+          {
+            "name": "ATTACH_616257683552473088",
+            "type": 11,
+            "label": "附件",
+            "readable": true,
+            "editable": false
+          }
+        ]
+      },
+      "approvalType": 0,
+      "flowNodeNoAuditorType": 0,
+      "flowNodeSelfAuditorType": 1,
+      "multiInstanceApprovalType": 0,
+      "formAuths": [
+        {
+          "name": "INPUT_616257020936327168",
+          "type": 0,
+          "label": "付款事由",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "MONEY_616257099650830336",
+          "type": 4,
+          "label": "付款总额",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "SELECT_616257240084516864",
+          "type": 5,
+          "label": "付款方式",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "DATE_616257444204515328",
+          "type": 7,
+          "label": "支付日期",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "INPUT_616257514945646592",
+          "type": 0,
+          "label": "支付对象",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "INPUT_616257561993154560",
+          "type": 0,
+          "label": "开户行",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "INPUT_616257595476283392",
+          "type": 0,
+          "label": "银行账户",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "TEXT_616257655337390080",
+          "type": 1,
+          "label": "备注",
+          "readable": true,
+          "editable": false
+        },
+        {
+          "name": "ATTACH_616257683552473088",
+          "type": 11,
+          "label": "附件",
+          "readable": true,
+          "editable": false
+        }
+      ]
+    }
+  },
+  "flowWidgets": [
+    {
+      "name": "INPUT_616257020936327168",
+      "type": 0,
+      "label": "付款事由",
+      "required": true,
+      "placeholder": "请输入"
+    },
+    {
+      "name": "MONEY_616257099650830336",
+      "type": 4,
+      "comma": true,
+      "label": "付款总额",
+      "summary": true,
+      "required": true,
+      "placeholder": "请输入金额"
+    },
+    {
+      "name": "SELECT_616257240084516864",
+      "type": 5,
+      "label": "付款方式",
+      "options": [
+        "网银汇款",
+        "电汇",
+        "现金",
+        "银行卡",
+        "支票",
+        "其他"
+      ],
+      "required": true,
+      "placeholder": "请选择"
+    },
+    {
+      "name": "DATE_616257444204515328",
+      "type": 7,
+      "label": "支付日期",
+      "format": "YYYY-MM-DD",
+      "required": true,
+      "placeholder": "请选择日期"
+    },
+    {
+      "name": "INPUT_616257514945646592",
+      "type": 0,
+      "label": "支付对象",
+      "summary": true,
+      "required": true,
+      "placeholder": "请输入"
+    },
+    {
+      "name": "INPUT_616257561993154560",
+      "type": 0,
+      "label": "开户行",
+      "required": true,
+      "placeholder": "请输入"
+    },
+    {
+      "name": "INPUT_616257595476283392",
+      "type": 0,
+      "label": "银行账户",
+      "required": true,
+      "placeholder": "请输入"
+    },
+    {
+      "name": "TEXT_616257655337390080",
+      "type": 1,
+      "label": "备注",
+      "placeholder": "请输入"
+    },
+    {
+      "name": "ATTACH_616257683552473088",
+      "type": 11,
+      "label": "附件"
+    }
+  ],
+  "workFlowDef": {
+    "id": "1692376803982188545",
+    "icon": "cash",
+    "name": "付款申请",
+    "groupId": "1691426200669958145",
+    "cancelable": 1,
+    "flowAdmins": [
+      {
+        "id": "staffId-renshibuzhang",
+        "name": "红发",
+        "type": 2,
+        "adminId": "staffId-renshibuzhang"
+      },
+      {
+        "id": "staffId-jishubuzhang",
+        "name": "路飞",
+        "type": 2,
+        "adminId": "staffId-jishubuzhang"
+      }
+    ],
+    "flowAdminIds": [
+      "staffId-renshibuzhang",
+      "staffId-jishubuzhang"
+    ]
+  },
+  "flowPermission": {
+    "type": 0
+  },
+  "flowDefJson": "{\"nodeConfig\":{\"name\":\"发起人\",\"type\":0,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616256279471460352\",\"layer\":0,\"layerType\":0,\"assigneeType\":1}],\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616257855678320640\",\"layer\":0,\"layerType\":0,\"assigneeType\":2}],\"childNode\":{\"ccs\":[{\"rid\":\"616258163204689920\",\"ccType\":4,\"assignees\":[\"staffId-wangwu\"]}],\"name\":\"抄送人\",\"type\":2,\"childNode\":{\"name\":\"审核人\",\"type\":1,\"assignees\":[{\"rid\":\"616257904571322368\",\"assignees\":[\"staffId-renshibuzhang\"],\"assigneeType\":4}],\"childNode\":null,\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":0,\"formAuths\":[{\"name\":\"INPUT_616257020936327168\",\"type\":0,\"label\":\"付款事由\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_616257099650830336\",\"type\":4,\"label\":\"付款总额\",\"readable\":true,\"editable\":false},{\"name\":\"SELECT_616257240084516864\",\"type\":5,\"label\":\"付款方式\",\"readable\":true,\"editable\":false},{\"name\":\"DATE_616257444204515328\",\"type\":7,\"label\":\"支付日期\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257514945646592\",\"type\":0,\"label\":\"支付对象\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257561993154560\",\"type\":0,\"label\":\"开户行\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257595476283392\",\"type\":0,\"label\":\"银行账户\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616257655337390080\",\"type\":1,\"label\":\"备注\",\"readable\":true,\"editable\":false},{\"name\":\"ATTACH_616257683552473088\",\"type\":11,\"label\":\"附件\",\"readable\":true,\"editable\":false}]},\"formAuths\":[{\"name\":\"INPUT_616257020936327168\",\"type\":0,\"label\":\"付款事由\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_616257099650830336\",\"type\":4,\"label\":\"付款总额\",\"readable\":true,\"editable\":false},{\"name\":\"SELECT_616257240084516864\",\"type\":5,\"label\":\"付款方式\",\"readable\":true,\"editable\":false},{\"name\":\"DATE_616257444204515328\",\"type\":7,\"label\":\"支付日期\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257514945646592\",\"type\":0,\"label\":\"支付对象\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257561993154560\",\"type\":0,\"label\":\"开户行\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257595476283392\",\"type\":0,\"label\":\"银行账户\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616257655337390080\",\"type\":1,\"label\":\"备注\",\"readable\":true,\"editable\":false},{\"name\":\"ATTACH_616257683552473088\",\"type\":11,\"label\":\"附件\",\"readable\":true,\"editable\":false}]},\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":0,\"formAuths\":[{\"name\":\"INPUT_616257020936327168\",\"type\":0,\"label\":\"付款事由\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_616257099650830336\",\"type\":4,\"label\":\"付款总额\",\"readable\":true,\"editable\":false},{\"name\":\"SELECT_616257240084516864\",\"type\":5,\"label\":\"付款方式\",\"readable\":true,\"editable\":false},{\"name\":\"DATE_616257444204515328\",\"type\":7,\"label\":\"支付日期\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257514945646592\",\"type\":0,\"label\":\"支付对象\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257561993154560\",\"type\":0,\"label\":\"开户行\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257595476283392\",\"type\":0,\"label\":\"银行账户\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616257655337390080\",\"type\":1,\"label\":\"备注\",\"readable\":true,\"editable\":false},{\"name\":\"ATTACH_616257683552473088\",\"type\":11,\"label\":\"附件\",\"readable\":true,\"editable\":false}]},\"approvalType\":0,\"flowNodeNoAuditorType\":0,\"flowNodeSelfAuditorType\":1,\"multiInstanceApprovalType\":0,\"formAuths\":[{\"name\":\"INPUT_616257020936327168\",\"type\":0,\"label\":\"付款事由\",\"readable\":true,\"editable\":false},{\"name\":\"MONEY_616257099650830336\",\"type\":4,\"label\":\"付款总额\",\"readable\":true,\"editable\":false},{\"name\":\"SELECT_616257240084516864\",\"type\":5,\"label\":\"付款方式\",\"readable\":true,\"editable\":false},{\"name\":\"DATE_616257444204515328\",\"type\":7,\"label\":\"支付日期\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257514945646592\",\"type\":0,\"label\":\"支付对象\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257561993154560\",\"type\":0,\"label\":\"开户行\",\"readable\":true,\"editable\":false},{\"name\":\"INPUT_616257595476283392\",\"type\":0,\"label\":\"银行账户\",\"readable\":true,\"editable\":false},{\"name\":\"TEXT_616257655337390080\",\"type\":1,\"label\":\"备注\",\"readable\":true,\"editable\":false},{\"name\":\"ATTACH_616257683552473088\",\"type\":11,\"label\":\"附件\",\"readable\":true,\"editable\":false}]}},\"flowWidgets\":[{\"name\":\"INPUT_616257020936327168\",\"type\":0,\"label\":\"付款事由\",\"required\":true,\"placeholder\":\"请输入\"},{\"name\":\"MONEY_616257099650830336\",\"type\":4,\"comma\":true,\"label\":\"付款总额\",\"summary\":true,\"required\":true,\"placeholder\":\"请输入金额\"},{\"name\":\"SELECT_616257240084516864\",\"type\":5,\"label\":\"付款方式\",\"options\":[\"网银汇款\",\"电汇\",\"现金\",\"银行卡\",\"支票\",\"其他\"],\"required\":true,\"placeholder\":\"请选择\"},{\"name\":\"DATE_616257444204515328\",\"type\":7,\"label\":\"支付日期\",\"format\":\"YYYY-MM-DD\",\"required\":true,\"placeholder\":\"请选择日期\"},{\"name\":\"INPUT_616257514945646592\",\"type\":0,\"label\":\"支付对象\",\"summary\":true,\"required\":true,\"placeholder\":\"请输入\"},{\"name\":\"INPUT_616257561993154560\",\"type\":0,\"label\":\"开户行\",\"required\":true,\"placeholder\":\"请输入\"},{\"name\":\"INPUT_616257595476283392\",\"type\":0,\"label\":\"银行账户\",\"required\":true,\"placeholder\":\"请输入\"},{\"name\":\"TEXT_616257655337390080\",\"type\":1,\"label\":\"备注\",\"placeholder\":\"请输入\"},{\"name\":\"ATTACH_616257683552473088\",\"type\":11,\"label\":\"附件\"}],\"workFlowDef\":{\"id\":\"1692376803982188545\",\"icon\":\"cash\",\"name\":\"付款申请\",\"groupId\":\"1691426200669958145\",\"cancelable\":1,\"flowAdmins\":[{\"id\":\"staffId-renshibuzhang\",\"name\":\"红发\",\"type\":2,\"adminId\":\"staffId-renshibuzhang\"},{\"id\":\"staffId-jishubuzhang\",\"name\":\"路飞\",\"type\":2,\"adminId\":\"staffId-jishubuzhang\"}],\"flowAdminIds\":[\"staffId-renshibuzhang\",\"staffId-jishubuzhang\"]},\"flowPermission\":{\"type\":0}}"
+}

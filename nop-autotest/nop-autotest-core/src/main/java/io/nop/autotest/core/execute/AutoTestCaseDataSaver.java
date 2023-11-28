@@ -15,6 +15,8 @@ import io.nop.dao.DaoConstants;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import org.apache.commons.csv.CSVFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -27,6 +29,8 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 public class AutoTestCaseDataSaver {
+    static final Logger LOG = LoggerFactory.getLogger(AutoTestCaseDataSaver.class);
+
     private final AutoTestCaseData caseData;
     private final AutoTestOrmHook ormHook;
     private final String variant;
@@ -85,7 +89,9 @@ public class AutoTestCaseDataSaver {
 
     private void removeInputTable(IEntityModel entityModel) {
         File file = caseData.getInputTableFile(entityModel.getTableName(), null);
-        file.delete();
+        if(file.delete()){
+            LOG.debug("nop.autotest.remove-input-file:{}",file);
+        }
     }
 
     private List<String> getColNames(IEntityModel entityModel) {

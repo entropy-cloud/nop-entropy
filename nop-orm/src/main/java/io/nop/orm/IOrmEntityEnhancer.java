@@ -13,7 +13,7 @@ import io.nop.orm.model.IEntityModel;
 import java.util.Map;
 
 public interface IOrmEntityEnhancer {
-
+    boolean isClosed();
     Class<?> getEntityClass(IEntityModel entityModel);
 
     Object internalCompute(IOrmEntity entity, String propName, Map<String, Object> args);

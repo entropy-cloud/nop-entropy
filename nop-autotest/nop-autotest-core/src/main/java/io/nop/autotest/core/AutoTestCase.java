@@ -122,7 +122,8 @@ public class AutoTestCase extends BaseTestCase {
         caseData.getInputDir().mkdirs();
         caseData.getOutputDir().mkdirs();
         try {
-            new File(caseDataDir, "autotest.yaml").createNewFile();
+            boolean b = new File(caseDataDir, "autotest.yaml").createNewFile();
+            LOG.debug("nop.autotest.init-file:{}",b);
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
@@ -141,6 +142,7 @@ public class AutoTestCase extends BaseTestCase {
     }
 
     public void initDao() {
+        AutoTestVars.clear();
         daoProvider = initDaoProvider();
         jdbcTemplate = initJdbcTemplate();
         sessionFactory = initSessionFactory();

@@ -42,7 +42,7 @@ public class BizObjMetaHelper {
         if (relatedTag != null && !baseProp.containsTag(relatedTag))
             return null;
 
-        ISchema schema = propMeta.getSchema();
+        ISchema schema = baseProp.getSchema();
         if (schema == null)
             return null;
 

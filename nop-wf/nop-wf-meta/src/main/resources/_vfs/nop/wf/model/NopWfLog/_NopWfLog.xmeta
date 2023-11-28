@@ -30,6 +30,10 @@
               insertable="true" updatable="false" ext:relation="wfStepInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
+        <prop name="actionId" displayName="动作ID" i18n-en:displayName="Action ID" queryable="true" sortable="true"
+              insertable="true" updatable="false" ext:relation="wfAction">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
         <prop name="logLevel" displayName="日志级别" i18n-en:displayName="Log Level" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="false">
             <schema type="java.lang.Integer" dict="core/log-level"/>
@@ -37,6 +41,10 @@
         <prop name="logMsg" displayName="日志消息" i18n-en:displayName="Log Message" queryable="true" sortable="true"
               insertable="true" updatable="false">
             <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="errCode" displayName="错误码" i18n-en:displayName="Error Code" queryable="true" sortable="true"
+              insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false">
@@ -59,6 +67,11 @@
               tagSet="pub,ref-pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="stepId"
               ext:joinRightProp="stepId" insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopWfStepInstance"/>
+        </prop>
+        <prop name="wfAction" displayName="工作流动作" i18n-en:displayName="Workflow Action" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="actionId" ext:joinRightProp="sid"
+              insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopWfAction"/>
         </prop>
     </props>
 </meta>

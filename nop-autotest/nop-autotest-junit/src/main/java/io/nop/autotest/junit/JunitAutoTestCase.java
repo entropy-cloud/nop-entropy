@@ -9,6 +9,7 @@ package io.nop.autotest.junit;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.api.core.util.Guard;
 import io.nop.autotest.core.AutoTestCase;
 import io.nop.autotest.core.data.AutoTestDataHelper;
 import org.junit.jupiter.api.AfterEach;
@@ -60,10 +61,13 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
 
     @AfterEach
     public void destroy(ExtensionContext ctx) {
-        complete(!ctx.getExecutionException().isPresent());
+        complete(ctx.getExecutionException().isEmpty());
     }
 
     protected void configExecutionMode(TestInfo testInfo) {
+        if (testInfo.getTestMethod().isEmpty())
+            return;
+
         EnableSnapshot enableSnapshot = testInfo.getTestMethod().get().getAnnotation(EnableSnapshot.class);
         if (enableSnapshot != null && !CFG_AUTOTEST_DISABLE_SNAPSHOT.get()) {
             setCheckOutput(enableSnapshot.checkOutput());
@@ -97,6 +101,7 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
     }
 
     protected String getCaseDataPath(TestInfo testInfo) {
+        Guard.checkArgument(testInfo.getTestMethod().isPresent());
         return AutoTestDataHelper.getTestDataPath(testInfo.getTestClass().get(), testInfo.getTestMethod().get());
     }
 

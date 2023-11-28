@@ -7,6 +7,7 @@
  */
 package io.nop.autotest.junit;
 
+import io.nop.api.core.util.Guard;
 import io.nop.autotest.core.data.AutoTestDataHelper;
 import io.nop.commons.util.ArrayHelper;
 import io.nop.commons.util.MavenDirHelper;
@@ -32,6 +33,9 @@ public class VariantsArgumentProvider implements ArgumentsProvider, AnnotationCo
 
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+        Guard.checkArgument(context.getTestClass().isPresent());
+        Guard.checkArgument(context.getTestMethod().isPresent());
+
         Class<?> testClass = context.getTestClass().get();
         Method testMethod = context.getTestMethod().get();
 

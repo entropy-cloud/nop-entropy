@@ -72,5 +72,13 @@
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="definitionAuths" displayName="工作流定义权限" i18n-en:displayName="Definition Auths"
+              tagSet="pub,grid,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ui:editGrid="sub-grid-edit" ui:viewGrid="sub-grid-view" ext:joinLeftProp="wfDefId"
+              ext:joinRightProp="wfDefId" insertable="true" updatable="true" lazy="true">
+            <schema>
+                <item bizObjName="NopWfDefinitionAuth"/>
+            </schema>
+        </prop>
     </props>
 </meta>

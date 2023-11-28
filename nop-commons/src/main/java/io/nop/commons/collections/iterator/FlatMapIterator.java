@@ -19,7 +19,7 @@ public class FlatMapIterator<S, R> implements Iterator<R> {
     public FlatMapIterator(Iterator<S> parentIt, Function<? super S, ? extends Iterable<R>> fn) {
         this.parentIt = parentIt;
         this.fn = fn;
-        hasNext();
+//        hasNext();
     }
 
     @Override

@@ -1187,7 +1187,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         IEntityModel entityModel = entity.orm_entityModel();
         for (IEntityRelationModel relModel : entityModel.getRelations()) {
             String propName = relModel.getName();
-            if (entity.orm_refLoaded(propName))
+            if (!entity.orm_refLoaded(propName))
                 continue;
 
             if (relModel.isToOneRelation()) {
@@ -1260,7 +1260,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     private boolean isBindToOtherSession(IOrmEntity entity) {
         IOrmEntityEnhancer session = entity.orm_enhancer();
-        return session != null && session != this;
+        return session != null && session != this && !session.isClosed();
     }
 
     @Override

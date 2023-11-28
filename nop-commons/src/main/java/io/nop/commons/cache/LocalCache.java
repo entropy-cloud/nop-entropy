@@ -151,37 +151,32 @@ public class LocalCache<K, V> implements ICache<K, V>, IConfigRefreshable, IDest
     private void updateCache(CacheConfig config) {
         Policy<K, V> policy = cache.policy();
         if (config.getMaximumSize() > 0) {
-            policy.eviction().map(evt -> {
+            policy.eviction().ifPresent(evt -> {
                 evt.setMaximum(config.getMaximumSize());
-                return null;
             });
         }
 
         if (config.getMaximumWeight() > 0) {
-            policy.eviction().map(evt -> {
+            policy.eviction().ifPresent(evt -> {
                 evt.setMaximum(config.getMaximumWeight());
-                return null;
             });
         }
 
         if (config.getExpireAfterAccess() != null) {
-            policy.expireAfterAccess().map(exp -> {
+            policy.expireAfterAccess().ifPresent(exp -> {
                 exp.setExpiresAfter(config.getExpireAfterAccess());
-                return null;
             });
         }
 
         if (config.getExpireAfterWrite() != null) {
-            policy.expireAfterWrite().map(exp -> {
+            policy.expireAfterWrite().ifPresent(exp -> {
                 exp.setExpiresAfter(config.getExpireAfterWrite());
-                return null;
             });
         }
 
         if (config.getRefreshAfterWrite() != null) {
-            policy.refreshAfterWrite().map(exp -> {
+            policy.refreshAfterWrite().ifPresent(exp -> {
                 exp.setRefreshesAfter(config.getRefreshAfterWrite());
-                return null;
             });
         }
 

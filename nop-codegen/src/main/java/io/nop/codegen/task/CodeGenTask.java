@@ -170,7 +170,7 @@ public class CodeGenTask {
             File tplRootPath = new File(projectPath, tplRoot);
             if (FileHelper.isEmptyDir(tplRootPath)) {
                 // 模板目录位空时自动跳过，没有必要执行
-                System.out.println("nop.skip-codegen=when-tpl-dir-is-empty;" + tplRootPath.getAbsolutePath());
+                System.out.println("nop.skip-codegen-when-tpl-dir-is-empty:" + tplRootPath.getAbsolutePath());
                 return;
             }
 

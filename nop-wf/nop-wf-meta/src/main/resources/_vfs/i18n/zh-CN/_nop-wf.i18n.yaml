@@ -2,12 +2,14 @@ entity:
   label:
     NopWfAction: 工作流动作
     NopWfDefinition: 工作流模型定义
+    NopWfDefinitionAuth: 工作流定义权限
     NopWfInstance: 工作流模型定义
     NopWfLog: 工作流日志
     NopWfOutput: 工作流输出变量
-    NopWfStepActor: 工作流步骤参与者
+    NopWfStatusHistory: 工作流状态变迁历史
     NopWfStepInstance: 工作流步骤实例
     NopWfStepInstanceLink: 工作流步骤关联
+    NopWfUserDelegate: 用户代理配置
     NopWfVar: 工作流状态变量
     NopWfWork: 代办工作
     WfActionRequestBean: 执行动作请求消息
@@ -23,6 +25,7 @@ prop:
       callerName: 调用者姓名
       createTime: 创建时间
       createdBy: 创建人
+      displayName: 动作显示名称
       execTime: 执行时刻
       opinion: 意见
       sid: 主键
@@ -37,6 +40,7 @@ prop:
     NopWfDefinition:
       createTime: 创建时间
       createdBy: 创建人
+      definitionAuths: 工作流定义权限
       description: 描述
       displayName: 显示名称
       modelText: 模型文本
@@ -49,18 +53,38 @@ prop:
       wfDefId: 主键
       wfName: 工作流名称
       wfVersion: 工作流版本
+    NopWfDefinitionAuth:
+      actorDeptId: 参与者部门ID
+      actorId: 参与者ID
+      actorName: 参与者名称
+      actorType: 参与者类型
+      allowEdit: 允许编辑
+      allowManage: 允许管理
+      allowStart: 允许启动
+      createTime: 创建时间
+      createdBy: 创建人
+      remark: 备注
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+      wfDefId: 工作流定义ID
+      wfDefinition: 工作流定义
+      wfDefinition.displayName: 工作流定义
     NopWfInstance:
       appState: 应用状态
       bizKey: 业务唯一键
       bizObjId: 业务对象ID
       bizObjName: 业务对象名
-      cancellerId: 取消人ID
-      cancellerName: 取消人
       createTime: 创建时间
       createdBy: 创建人
       dueTime: 完成时限
       endTime: 结束时间
       globalVars: null
+      lastOperateTime: 上次操作时间
+      lastOperatorDeptId: 上次操作者单位ID
+      lastOperatorId: 上次操作者ID
+      lastOperatorName: 上次操作者
       managerDeptId: 管理者单位ID
       managerId: 管理者ID
       managerName: 管理者
@@ -72,16 +96,16 @@ prop:
       parentWfVersion: 父流程版本
       priority: 优先级
       remark: 备注
+      signalText: 信号集合
       startTime: 启动时间
       starterDeptId: 启动人单位ID
       starterId: 启动人ID
       starterName: 启动人
       status: 状态
+      statusHistories: null
       status_label: 状态
       steps: null
-      suspendTime: 暂停时间
-      suspenderId: 暂停人ID
-      suspenderName: 暂停人
+      tagText: 标签
       title: 实例标题
       updateTime: 修改时间
       updatedBy: 修改人
@@ -93,15 +117,19 @@ prop:
       wfName: 工作流名称
       wfParams: 工作流参数
       wfVersion: 工作流版本
+      workScope: 工作分类
       works: null
     NopWfLog:
+      actionId: 动作ID
       createTime: 创建时间
       createdBy: 创建人
+      errCode: 错误码
       logLevel: 日志级别
       logLevel_label: 日志级别
       logMsg: 日志消息
       sid: 日志ID
       stepId: 工作流步骤ID
+      wfAction: 工作流动作
       wfId: 工作流实例ID
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
@@ -122,26 +150,27 @@ prop:
       wfId: 工作流实例ID
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
-    NopWfStepActor:
-      actorDeptId: 参与者部门ID
-      actorId: 参与者ID
-      actorName: 参与者名称
-      actorType: 参与者类型
-      assignForUser: 是否分配到用户
+    NopWfStatusHistory:
+      changeTime: 状态变动时间
       createTime: 创建时间
       createdBy: 创建人
+      fromStatus: 源状态
+      fromStatus_label: 源状态
+      operatorDeptId: 操作者部门ID
+      operatorId: 操作者ID
+      operatorName: 操作者
       sid: 主键
-      stepId: 工作流步骤ID
-      updateTime: 修改时间
-      updatedBy: 修改人
+      toAppState: 目标应用状态
+      toStatus: 目标状态
+      toStatus_label: 目标状态
       version: 数据版本
-      wfId: 工作流实例ID
+      wfId: 主键
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
-      wfStepInstance: 工作流步骤实例
     NopWfStepInstance:
       actorDeptId: 参与者部门ID
       actorId: 参与者ID
+      actorModelId: 参与者模型ID
       actorName: 参与者名称
       actorType: 参与者类型
       appState: 应用状态
@@ -153,13 +182,18 @@ prop:
       cancellerName: 取消人姓名
       createTime: 创建时间
       createdBy: 创建人
+      displayName: 步骤显示名称
       dueTime: 到期时间
+      execOrder: 执行顺序
       finishTime: 结束时间
       fromAction: 来源操作
       isRead: 是否已读
       joinGroup: 汇聚分组
       lastAction: 最后一次操作
       nextLinks: null
+      nextRetryTime: 下次重试时间
+      nextStepId: 下一步骤ID
+      ownerDeptId: 拥有者部门ID
       ownerId: 拥有者ID
       ownerName: 拥有者姓名
       prevLinks: null
@@ -168,11 +202,12 @@ prop:
       remark: 备注
       remindCount: 提醒次数
       remindTime: 提醒时间
+      retryCount: 已重试次数
       startTime: 开始时间
       status: 状态
       status_label: 状态
       stepActions: null
-      stepActors: null
+      stepGroup: 步骤分组
       stepId: 步骤ID
       stepName: 步骤名称
       stepType: 步骤类型
@@ -184,10 +219,11 @@ prop:
       subWfResultStatus: 子流程结果状态
       subWfResultStatus_label: 子流程结果状态
       subWfVersion: 子流程版本
-      tagSet: 标签
+      tagText: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+      voteWeight: 投票权重
       wfId: 工作流实例ID
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
@@ -202,6 +238,16 @@ prop:
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
       wfStep: 工作流步骤
+    NopWfUserDelegate:
+      createTime: 创建时间
+      createdBy: 创建人
+      delegateId: 代理人ID
+      delegateScope: 代理范围
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      userId: 用户ID
+      version: 数据版本
     NopWfVar:
       createTime: 创建时间
       createdBy: 创建人
@@ -255,12 +301,12 @@ prop:
       wfName: 工作流名称
       wfVersion: 工作流版本
     WfStartRequestBean:
-      args: 启动参数
       parentWfId: 父工作流ID
       parentWfName: 父工作流名称
       parentWfStepId: 父工作流步骤ID
       parentWfVersion: 父工作流版本
       wfName: 工作流名称
+      wfParams: 启动参数
       wfVersion: 工作流版本
     WfStartResponseBean:
       managerDeptId: 管理者部门ID

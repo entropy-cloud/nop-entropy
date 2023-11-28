@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 
 import static io.nop.commons.CommonErrors.ERR_COLLECTIONS_ITERATOR_EOF;
@@ -54,7 +55,7 @@ public class SelectNextIterator<T> implements Iterator<T> {
     @Override
     public T next() {
         if (!hasNext())
-            throw new NopException(ERR_COLLECTIONS_ITERATOR_EOF);
+            throw new NoSuchElementException();
 
         T ret = entityList.get(currentIndex++);
         if (currentIndex >= entityList.size())

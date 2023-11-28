@@ -36,7 +36,11 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="wfGroup" displayName="工作流分组" i18n-en:displayName="Workflow Group" queryable="true" sortable="true"
+        <prop name="wfGroup" displayName="工作流分组" i18n-en:displayName="Workflow Group" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="workScope" displayName="工作分类" i18n-en:displayName="Work Scope" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
@@ -60,12 +64,8 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="suspendTime" displayName="暂停时间" i18n-en:displayName="Suspend Time" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.sql.Timestamp"/>
-        </prop>
-        <prop name="dueTime" displayName="完成时限" i18n-en:displayName="Due Time" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="dueTime" displayName="完成时限" i18n-en:displayName="Due Time" tagSet="clock" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
         <prop name="bizKey" displayName="业务唯一键" i18n-en:displayName="BizKey" queryable="true" sortable="true"
@@ -92,8 +92,8 @@
               sortable="true" insertable="true" updatable="true" ext:relation="wfInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="parentStepId" displayName="父流程步骤ID" i18n-en:displayName="Parent Step ID" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="parentStepId" displayName="父流程步骤ID" i18n-en:displayName="Parent Step ID" tagSet="var"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="starterId" displayName="启动人ID" i18n-en:displayName="Starter ID" queryable="true" sortable="true"
@@ -108,21 +108,21 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="cancellerId" displayName="取消人ID" i18n-en:displayName="Canceller ID" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="cancellerName" displayName="取消人" i18n-en:displayName="Canceller Name" queryable="true"
+        <prop name="lastOperatorId" displayName="上次操作者ID" i18n-en:displayName="Last Operator ID" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="suspenderId" displayName="暂停人ID" i18n-en:displayName="Suspender ID" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="suspenderName" displayName="暂停人" i18n-en:displayName="Suspender Name" queryable="true"
+        <prop name="lastOperatorName" displayName="上次操作者" i18n-en:displayName="Last Operator Name" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="lastOperatorDeptId" displayName="上次操作者单位ID" i18n-en:displayName="Last Operator Dept ID"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="lastOperateTime" displayName="上次操作时间" i18n-en:displayName="Last Operate Time" tagSet="clock"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
         </prop>
         <prop name="managerType" displayName="管理者类型" i18n-en:displayName="Manager Type" queryable="true" sortable="true"
               insertable="true" updatable="true">
@@ -139,6 +139,18 @@
         <prop name="managerId" displayName="管理者ID" i18n-en:displayName="Manager ID" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="priority" displayName="优先级" i18n-en:displayName="Priority" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="signalText" displayName="信号集合" i18n-en:displayName="Signal Set" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="1000"/>
+        </prop>
+        <prop name="tagText" displayName="标签" i18n-en:displayName="Tags" queryable="true" sortable="true"
+              insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
@@ -160,10 +172,6 @@
               sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="priority" displayName="优先级" i18n-en:displayName="Priority" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" ui:show="S">
-            <schema type="java.lang.Integer"/>
-        </prop>
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
@@ -176,6 +184,12 @@
         <prop name="wfInstance.title" displayName="父流程" i18n-en:displayName="Parent Workflow" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="statusHistories" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="wfId" ext:joinRightProp="wfId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopWfStatusHistory"/>
+            </schema>
         </prop>
         <prop name="steps" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="wfId"
               ext:joinRightProp="wfId" insertable="false" updatable="false" lazy="true">

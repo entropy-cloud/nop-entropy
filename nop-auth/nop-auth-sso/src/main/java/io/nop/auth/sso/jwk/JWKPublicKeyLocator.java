@@ -29,6 +29,7 @@ import jakarta.inject.Inject;
 import java.security.PublicKey;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * When needed, publicKeys are downloaded by sending request to realm's jwks_url
@@ -39,7 +40,7 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
 
     private static final Logger log = LoggerFactory.getLogger(JWKPublicKeyLocator.class);
 
-    private volatile Map<String, PublicKey> currentKeys = new ConcurrentHashMap<>();
+    private volatile ConcurrentMap<String, PublicKey> currentKeys = new ConcurrentHashMap<>();
 
     private volatile long lastRequestTime = 0;
 

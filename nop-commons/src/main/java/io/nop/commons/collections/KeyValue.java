@@ -12,6 +12,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 @DataBean
 public class KeyValue implements Serializable {
@@ -35,7 +36,8 @@ public class KeyValue implements Serializable {
 
     private void output(StringBuilder sb, String v) {
         String encValue = StringHelper.escapeJava(v);
-        if (encValue == v) {
+        if (Objects.equals(encValue, v)) {
+            // 不包含转义字符则直接输出
             sb.append(v);
         } else {
             sb.append('"');

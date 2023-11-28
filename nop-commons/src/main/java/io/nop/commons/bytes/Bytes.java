@@ -31,10 +31,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 
 public class Bytes {
@@ -309,7 +306,7 @@ public class Bytes {
                     continue;
                 }
                 // turn hex ASCII digit -> number
-                byte d = (byte) ((toBinaryFromHex((byte) hd1) << 4) + (toBinaryFromHex((byte) hd2)) & 0xff);
+                byte d = (byte) ((toBinaryFromHex((byte) hd1) << 4) + (toBinaryFromHex((byte) hd2) & 0xff));
 
                 b[size++] = d;
                 i += 3; // skip 3
@@ -1209,6 +1206,9 @@ public class Bytes {
 
             @Override
             public byte[] next() {
+                if (!hasNext())
+                    throw new NoSuchElementException();
+
                 i++;
                 if (i == 0)
                     return a;

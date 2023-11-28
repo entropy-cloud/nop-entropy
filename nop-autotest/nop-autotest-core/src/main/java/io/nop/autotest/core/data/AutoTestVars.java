@@ -55,6 +55,8 @@ public class AutoTestVars {
                 value = JsonTool.serialize(value, false);
             }
             vars.put(name, value);
+
+            LOG.info("nop.autotest.vars.setVar:name={},value={}",name,value);
         }
 
         public synchronized void addVar(String name, Object value) {
@@ -75,6 +77,8 @@ public class AutoTestVars {
                     }
                 }
             }
+
+            LOG.info("nop.autotest.vars.addVar:name={},value={}",name,value);
         }
 
         public synchronized String getNameByValue(Object value) {
@@ -154,8 +158,8 @@ public class AutoTestVars {
 
     public static void clear() {
         t_vars.remove();
-        if (useGlobalVars)
-            g_vars.clear();
+        g_vars.clear();
+        LOG.info("nop.autotest.vars.clearVars");
     }
 
     public static Object getVar(String name) {

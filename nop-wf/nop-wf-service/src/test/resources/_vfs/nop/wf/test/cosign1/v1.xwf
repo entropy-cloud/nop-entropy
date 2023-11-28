@@ -27,7 +27,7 @@
                 <ref-action name="sh"/>
             </ref-actions>
         </step>
-        <join displayName="会签步骤" specialType="cosign" name="join">
+        <join displayName="会签步骤" specialType="co-sign" name="join">
             <assignment ignoreNoAssign="false" selection="auto">
                 <actors>
                     <actor actorId="1" actorType="user" actorModelId="actor1"/>

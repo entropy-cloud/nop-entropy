@@ -9,6 +9,7 @@ package io.nop.commons.collections.iterator;
 
 import java.lang.reflect.Array;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 public class ArrayIterator implements Iterator<Object> {
     private final Object array;
@@ -27,6 +28,8 @@ public class ArrayIterator implements Iterator<Object> {
 
     @Override
     public Object next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
         return Array.get(array, index++);
     }
 }
