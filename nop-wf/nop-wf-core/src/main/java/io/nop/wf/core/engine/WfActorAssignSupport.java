@@ -17,6 +17,8 @@ import io.nop.wf.api.actor.WfActorCandidateBean;
 import io.nop.wf.api.actor.WfActorCandidatesBean;
 import io.nop.wf.api.actor.WfAssignmentSelection;
 import io.nop.wf.core.NopWfCoreConstants;
+import io.nop.wf.core.delegate.IUserDelegateService;
+import io.nop.wf.core.impl.IWorkflowStepImplementor;
 import io.nop.wf.core.model.WfAssignmentActorModel;
 import io.nop.wf.core.model.WfAssignmentModel;
 import io.nop.xlang.api.XLang;
@@ -49,6 +51,13 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_USER_NOT_EXISTS;
 public class WfActorAssignSupport {
     private IWfActorResolver wfActorResolver;
 
+    private IUserDelegateService userDelegateService;
+
+    @Inject
+    public void setUserDelegateService(IUserDelegateService userDelegateService) {
+        this.userDelegateService = userDelegateService;
+    }
+
     @Inject
     public void setWfActorResolver(IWfActorResolver wfActorResolver) {
         this.wfActorResolver = wfActorResolver;
@@ -56,6 +65,14 @@ public class WfActorAssignSupport {
 
     public IWfActor resolveActor(String actorType, String actorId, String deptId) {
         return wfActorResolver.resolveActor(actorType, actorId, deptId);
+    }
+
+    public boolean canBeDelegatedBy(IWorkflowStepImplementor step, String userId) {
+        String ownerId = step.getRecord().getOwnerId();
+        if (StringHelper.isEmpty(ownerId))
+            return false;
+        return userDelegateService.canDelegate(userId, ownerId,
+                step.getWorkflow().getRecord().getWorkScope());
     }
 
     public IWfActor resolveUser(String userId) {
@@ -255,11 +272,11 @@ public class WfActorAssignSupport {
     }
 
     protected IWfActor getOwner(WfAssignmentModel assignment, IWfActor actor, WfRuntime wfRt) {
-        if (assignment == null || assignment.getDefaultOwnerExpr() == null)
-            return null;
-
         if (actor.getActorType().equals(IWfActor.ACTOR_TYPE_USER))
             return actor;
+
+        if (assignment == null || assignment.getDefaultOwnerExpr() == null)
+            return null;
 
         Object value = assignment.getDefaultOwnerExpr().invoke(wfRt);
         if (value == null)

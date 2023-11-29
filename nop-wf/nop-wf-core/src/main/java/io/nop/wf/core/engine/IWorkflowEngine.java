@@ -28,6 +28,8 @@ public interface IWorkflowEngine {
 
     IWfActor getDeptManager(IWfActor actor, int upLevel);
 
+    boolean canBeDelegatedBy(IWorkflowStepImplementor step, String userId);
+
     void logError(IWorkflowImplementor wf, String stepName, String actionName, Throwable e);
 
     void save(IWorkflowImplementor wf, IServiceContext ctx);
@@ -63,6 +65,8 @@ public interface IWorkflowEngine {
     boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 
     void notifySubFlowEnd(IWorkflowStepImplementor step, int status, Map<String, Object> args, IServiceContext ctx);
+
+    boolean isAllowCall(IWorkflowStepImplementor step, IServiceContext ctx);
 
     List<? extends IWorkflowActionModel> getAllowedActions(IWorkflowStepImplementor step, IServiceContext ctx);
 

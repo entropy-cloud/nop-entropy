@@ -1,3 +1,3 @@
 _chgType,WF_ID,STEP_ID,NEXT_STEP_ID,EXEC_ACTION,CREATED_BY,CREATE_TIME
-A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,@var:NopWfStepInstance@stepId_1,sh,autotest-ref,*
 A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_1,@var:NopWfStepInstance@stepId_2,_rejectAction,autotest-ref,*
+A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,@var:NopWfStepInstance@stepId_1,sh,autotest-ref,*

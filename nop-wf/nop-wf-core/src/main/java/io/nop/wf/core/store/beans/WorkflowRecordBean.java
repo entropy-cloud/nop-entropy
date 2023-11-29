@@ -30,6 +30,8 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private String wfName;
     private Long wfVersion;
 
+    private String workScope;
+
     private Map<String, Object> wfParams;
     private Integer status;
 
@@ -101,6 +103,16 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     @Override
     public void transitToStatus(int status) {
         this.setStatus(status);
+    }
+
+    @Override
+    public String getWorkScope() {
+        return workScope;
+    }
+
+    @Override
+    public void setWorkScope(String workScope) {
+        this.workScope = workScope;
     }
 
     @Override

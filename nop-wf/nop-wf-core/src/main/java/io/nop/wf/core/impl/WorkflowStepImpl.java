@@ -7,6 +7,7 @@
  */
 package io.nop.wf.core.impl;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.model.graph.dag.DagNode;
@@ -28,6 +29,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_TYPE;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_CALLER_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_OWNER_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_CALL_ACTION_ON_STEP;
 
 public class WorkflowStepImpl implements IWorkflowStepImplementor {
     private final IWorkflowImplementor wf;
@@ -179,6 +191,11 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
         });
     }
 
+    @Override
+    public boolean isAllowCall(IServiceContext ctx) {
+        return wf.getEngine().isAllowCall(this, ctx);
+    }
+
     @Nonnull
     @Override
     public List<? extends IWorkflowActionModel> getAllowedActions(IServiceContext ctx) {
@@ -187,6 +204,18 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public Object invokeAction(String actionName, Map<String, Object> args, IServiceContext ctx) {
+        if (!isAllowCall(ctx))
+            throw new NopException(ERR_WF_NOT_ALLOW_CALL_ACTION_ON_STEP)
+                    .param(ARG_WF_NAME, getWfName())
+                    .param(ARG_WF_VERSION, getWfVersion())
+                    .param(ARG_WF_ID, getWfId())
+                    .param(ARG_STEP_NAME, getStepName())
+                    .param(ARG_STEP_ID, getStepId())
+                    .param(ARG_OWNER_ID, getRecord().getOwnerId())
+                    .param(ARG_CALLER_ID, ctx.getUserId())
+                    .param(ARG_ACTOR_TYPE, getRecord().getActorType())
+                    .param(ARG_ACTOR_ID, getRecord().getActorId());
+
         return wf.executeNow(() -> {
             return wf.getEngine().invokeAction(this, actionName, args, ctx);
         });

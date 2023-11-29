@@ -103,6 +103,11 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
 
     void setContext(IContext context);
 
+    default String getUserId() {
+        IContext ctx = getContext();
+        return ctx == null ? null : ctx.getUserId();
+    }
+
     static IServiceContext fromEvalContext(IEvalContext context) {
         if (context == null)
             return null;

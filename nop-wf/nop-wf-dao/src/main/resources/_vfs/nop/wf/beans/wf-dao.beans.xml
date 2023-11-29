@@ -16,4 +16,7 @@
     <bean id="nopWfResourceNamespaceHandler" ioc:default="true"
           class="io.nop.wf.dao.store.WfResourceNamespaceHandler"/>
 
+    <bean id="nopUserDelegateService" ioc:default="true"
+          class="io.nop.wf.dao.delegate.DaoUserDelegateService" />
+
 </beans>

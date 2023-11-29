@@ -24,6 +24,10 @@ public interface IWorkflowRecord extends ITagSetSupport {
 
     Long getWfVersion();
 
+    String getWorkScope();
+
+    void setWorkScope(String workScope);
+
     Integer getStatus();
 
     void transitToStatus(int status);

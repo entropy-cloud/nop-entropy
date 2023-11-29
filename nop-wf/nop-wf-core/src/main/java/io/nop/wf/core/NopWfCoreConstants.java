@@ -96,8 +96,10 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String WF_ACTOR_LIB_PATH = "/nop/wf/xlib/wf-actor.xlib";
     String WF_ACTOR_NS_PREFIX = "wf-actor:";
 
-    String SYS_ACTION_START = "_start";
-    String SYS_ACTION_SUSPEND = "_suspend";
-    String SYS_ACTION_RESUME = "_resume";
-    String SYS_ACTION_KILL = "_kill";
+    String SYS_ACTION_START = "_start_";
+    String SYS_ACTION_SUSPEND = "_suspend_";
+    String SYS_ACTION_RESUME = "_resume_";
+    String SYS_ACTION_KILL = "_kill_";
+
+    String DELEGATE_SCOPE_ALL = "all";
 }

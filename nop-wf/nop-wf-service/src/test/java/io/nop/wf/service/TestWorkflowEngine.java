@@ -210,6 +210,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflowStep genHqStep = activeSteps.get(0);
 
         assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, genHqStep.getRecord().getStatus());
+
+        context.getContext().setUserId("2");
         invokeAction(step2, "sp", null, null, null, context);
         List<? extends IWorkflowStep> steps = workflow.getStepsByName("join_join_");
         assertEquals(1, steps.size());
@@ -249,6 +251,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflowStep genHqStep = activeSteps.get(0);
 
         assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, genHqStep.getRecord().getStatus());
+
+        context.getContext().setUserId("2");
         invokeAction(step2, "sp", null, "user", "1", context);
         List<? extends IWorkflowStep> steps = workflow.getStepsByName("join_join_");
         assertEquals(1, steps.size());
@@ -279,6 +283,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         invokeAction(ysh1, "sp", "ysp", "user", "1", context);
         IWorkflowStep ysp = workflow.getLatestStepByName("ysp");
         assertEquals(NopWfCoreConstants.WF_STEP_STATUS_WAITING, ysp.getRecord().getStatus());
+        context.getContext().setUserId("2");
         invokeAction(ysh2, "sp", "ysp", "user", "2", context);
 
         assertTrue(workflow.getLatestStepByName("ysp").isActivated());
@@ -434,6 +439,7 @@ public class TestWorkflowEngine extends BaseTestCase {
         }
         assertNotNull(rejectAction);
 
+        context.getContext().setUserId("2");
         ysh.invokeAction("_rejectAction", null, context);
 
         List<? extends IWorkflowStep> activeSteps = workflow.getSteps(false);

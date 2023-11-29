@@ -895,6 +895,28 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     @Override
+    public boolean isAllowCall(IWorkflowStepImplementor step, IServiceContext ctx) {
+        IWfActor owner = step.getOwner();
+        String userId = ctx.getUserId();
+
+        if (owner != null) {
+            if (owner.getActorId().equals(userId))
+                return true;
+
+            return canBeDelegatedBy(step, userId);
+        }
+
+        IWfActor actor = step.getActor();
+        if (IWfActor.ACTOR_TYPE_USER.equals(actor.getActorType())) {
+            if (actor.getActorId().equals(userId))
+                return true;
+
+            return canBeDelegatedBy(step, userId);
+        }
+        return actor.containsUser(userId);
+    }
+
+    @Override
     public List<? extends IWorkflowActionModel> getAllowedActions(IWorkflowStepImplementor step, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(step, ctx);
         List<WfActionModel> ret = new ArrayList<>();
