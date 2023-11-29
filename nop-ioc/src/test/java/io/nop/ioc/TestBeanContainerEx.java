@@ -55,4 +55,14 @@ public class TestBeanContainerEx extends BaseTestCase {
         assertNotNull(a.getB());
 
     }
+
+    @Test
+    public void testInjectProtected(){
+        IBeanContainer container = new AppBeanContainerLoader().loadFromResource("test",
+                attachmentResource("test_inject.beans.xml"));
+        container.start();
+        MyBeanA a = container.getBeanByType(MyBeanA.class);
+        assertNotNull(a.getBeanD());
+        container.stop();
+    }
 }
