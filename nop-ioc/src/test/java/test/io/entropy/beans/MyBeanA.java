@@ -9,6 +9,7 @@ package test.io.entropy.beans;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.ioc.IBeanContainer;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
 import java.util.List;
@@ -33,6 +34,7 @@ public class MyBeanA extends MyBaseBean {
     int x;
 
     @Inject
+    @Nullable
     protected MyBeanD beanD;
 
     public MyBeanC[] arrayC;
