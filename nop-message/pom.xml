@@ -20,6 +20,7 @@
         <module>nop-message-model</module>
         <module>nop-message-kafka</module>
         <module>nop-message-codec</module>
+        <module>nop-message-debezium</module>
     </modules>
 
     <dependencies>
