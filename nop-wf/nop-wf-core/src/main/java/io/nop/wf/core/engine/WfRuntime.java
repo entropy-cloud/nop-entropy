@@ -34,9 +34,6 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
  */
 public class WfRuntime implements IWfRuntime {
 
-//    static final ThreadLocal<Map<IWorkflowImplementor, ContinuationExecutor.Continuation>> s_continuation
-//            = ThreadLocal.withInitial(HashMap::new);
-
     private final IEvalScope scope;
     private final IServiceContext serviceContext;
     private final IWorkflowImplementor wf;
@@ -65,14 +62,11 @@ public class WfRuntime implements IWfRuntime {
 
     private IWorkflowStepImplementor actionStep;
 
+    private IWfActor assigner;
+
     private Throwable exception;
 
-//    class WfContinuation extends ContinuationExecutor.Continuation {
-//        @Override
-//        protected void onLoopFinished() {
-//            s_continuation.get().remove(wf);
-//        }
-//    }
+    private Object bizEntity;
 
     public WfRuntime(IWorkflowImplementor wf, IServiceContext serviceContext) {
         this.serviceContext = serviceContext;
@@ -89,6 +83,14 @@ public class WfRuntime implements IWfRuntime {
         scope.setLocalValue(null, NopWfCoreConstants.VAR_WF, wf);
         scope.setLocalValue(null, NopWfCoreConstants.VAR_WF_RT, this);
         return scope;
+    }
+
+    public IWfActor getAssigner() {
+        return assigner;
+    }
+
+    public void setAssigner(IWfActor assigner) {
+        this.assigner = assigner;
     }
 
     /**
@@ -146,6 +148,14 @@ public class WfRuntime implements IWfRuntime {
     @Override
     public void setRejectSteps(Set<String> rejectSteps) {
         this.rejectSteps = rejectSteps;
+    }
+
+    @Override
+    public Object getBizEntity() {
+        if (bizEntity == null) {
+            bizEntity = wf.getBizEntity();
+        }
+        return bizEntity;
     }
 
     @Override
@@ -252,7 +262,7 @@ public class WfRuntime implements IWfRuntime {
     public void triggerEvent(String event) {
         WfModel wfModel = (WfModel) wf.getModel();
         List<WfListenerModel> listeners = wfModel.getListeners();
-        if (listeners != null && listeners.isEmpty()) {
+        if (listeners != null && !listeners.isEmpty()) {
             for (WfListenerModel listener : listeners) {
                 if (listener.matchPattern(event)) {
                     IEvalAction source = listener.getSource();
@@ -262,10 +272,6 @@ public class WfRuntime implements IWfRuntime {
                 }
             }
         }
-    }
-
-    private void doExecute(Runnable task) {
-
     }
 
     @Override

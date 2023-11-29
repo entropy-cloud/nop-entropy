@@ -11,6 +11,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.model.graph.dag.DagNode;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.WorkflowTransitionTarget;
@@ -114,6 +115,14 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     }
 
     @Override
+    public IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner, IServiceContext ctx) {
+        return wf.executeNow(() -> {
+            IWorkflowStepImplementor step = wf.getEngine().transferToActor(this, actorAndOwner, ctx);
+            return step;
+        });
+    }
+
+    @Override
     public WfAssignmentActorModel getActorModel(String actorModelId) {
         WfAssignmentModel assignment = ((WfStepModel) model).getAssignment();
         if (assignment == null)
@@ -193,6 +202,14 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     public void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx) {
         wf.executeNow(() -> {
             wf.getEngine().transitTo(this, stepName, args, ctx);
+            return null;
+        });
+    }
+
+    @Override
+    public void exitStep(int status, Map<String, Object> args, IServiceContext ctx) {
+        wf.executeNow(() -> {
+            wf.getEngine().exitStep(this, status, args, ctx);
             return null;
         });
     }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:oa="oa">
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:oa="oa" xmlns:wf="wf">
 
     <start startStepName="start">
     </start>
@@ -20,7 +20,7 @@
                     <actor actorType="wf-actor:CurrentCaller"/>
                 </actors>
             </assignment>
-            <transition>
+            <transition >
                 <to-step stepName="approve1"/>
             </transition>
         </step>
@@ -31,7 +31,7 @@
                     <actor actorType="wf-actor:StarterManager" actorModelId="actor1"/>
                 </actors>
             </assignment>
-            <transition>
+            <transition onAppStates="agree">
                 <to-step stepName="approve2"/>
             </transition>
         </step>
@@ -43,7 +43,7 @@
                            wf:permissions="transfer,reject,add-sign"/>
                 </actors>
             </assignment>
-            <transition>
+            <transition onAppStates="agree">
                 <to-step stepName="cc1"/>
             </transition>
         </step>
@@ -73,7 +73,7 @@
                 </actors>
             </assignment>
 
-            <transition wfAppState="agree">
+            <transition wfAppState="agree" onAppStates="agree">
                 <to-end/>
             </transition>
         </step>

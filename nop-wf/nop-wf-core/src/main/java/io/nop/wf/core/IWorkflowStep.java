@@ -10,6 +10,7 @@ package io.nop.wf.core;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.WfStepReference;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.model.WfAssignmentActorModel;
@@ -118,6 +119,8 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     void changeOwnerId(String ownerId, IServiceContext ctx);
 
+    IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner, IServiceContext ctx);
+
     WfAssignmentActorModel getActorModel(String actorModelId);
 
     @Nonnull
@@ -155,9 +158,14 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
 
     /**
-     * 强制转移到指定步骤。转移到指定步骤。如果本步骤尚未结束，则先结束本步骤。如果本步骤已结束，则直接增加目标步骤实例
+     * 强制转移到指定步骤。转移到指定步骤。本步骤并没有结束
      */
     void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx);
+
+    /**
+     * 如果本步骤尚未结束，则先结束本步骤。如果本步骤已结束，则直接增加目标步骤实例
+     */
+    void exitStep(int status, Map<String, Object> args, IServiceContext ctx);
 
     /**
      * 找到具有指定类型的，最近时刻的前导步骤实例

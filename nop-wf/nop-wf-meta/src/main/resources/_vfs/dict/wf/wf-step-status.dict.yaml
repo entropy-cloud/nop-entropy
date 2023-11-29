@@ -21,6 +21,10 @@ options:
     value: 30
     description: 步骤处于激活状态，一般此时在界面上才显示操作按钮
   
+  - label: 已执行
+    value: 35
+    description: 步骤工作已经完成，等待执行步骤迁移
+  
   - label: 已完成
     value: 40
     description: 步骤正常结束
@@ -44,4 +48,8 @@ options:
   - label: 已撤销
     value: 90
     description: 发送到下一步骤之后，在下一步骤的状态转变为历史状态之前，可以执行撤回操作，被撤回的下一步骤状态变为WITHDRAWN。
+  
+  - label: 已转交
+    value: 100
+    description: 转交给其他人执行
   

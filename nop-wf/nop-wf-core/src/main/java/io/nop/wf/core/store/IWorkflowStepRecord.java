@@ -21,11 +21,14 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     String getStepName();
 
+    String getAppState();
+
     Integer getStatus();
 
     @JsonIgnore
     default boolean isActivated() {
-        return getStatus() == NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED;
+        return getStatus() >= NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED
+                && getStatus() < NopWfCoreConstants.WF_STEP_STATUS_COMPLETED;
     }
 
     @JsonIgnore
@@ -83,6 +86,8 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
     void setActor(IWfActor actor);
 
     void setOwner(IWfActor owner);
+
+    void setAssigner(IWfActor assigner);
 
     void setFromAction(String fromAction);
 

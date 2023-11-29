@@ -131,8 +131,9 @@
               @splitType 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
               @appState 设置步骤实例上的appState字段
               @wfAppState  设置工作流实例wfRecord上的appState字段
+              @onAppStates 当步骤的appState为指定值的时候才会触发transition
             -->
-            <transition splitType="enum:io.nop.wf.core.model.WfSplitType"
+            <transition splitType="enum:io.nop.wf.core.model.WfSplitType" onAppStates="csv-set"
                         appState="#string" wfAppState="#string" bizEntityState="#string"
                         xdef:name="WfTransitionModel">
 
@@ -208,6 +209,17 @@
             <!-- 在本步骤执行action/source/transition失败时执行
             -->
             <on-error xdef:value="xpl"/>
+
+            <!--
+              执行source的时候如果发生异常，则可以重试
+            -->
+            <retry maxRetryCount="!int=0" retryDelay="!int=0" maxRetryDelay="!int=0"
+                   exponentialDelay="!boolean=true" xdef:name="WfRetryModel">
+                <!--
+                  上下文环境中存在$exception变量，返回false表示异常不可被恢复，不能继续重试
+                -->
+                <exception-filter xdef:value="xpl-predicate"/>
+            </retry>
 
             <source xdef:value="xpl"/>
 

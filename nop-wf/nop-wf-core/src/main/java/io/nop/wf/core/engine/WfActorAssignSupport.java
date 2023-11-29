@@ -7,10 +7,12 @@
  */
 package io.nop.wf.core.engine;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.api.actor.IWfActorResolver;
+import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.api.actor.WfActorCandidateBean;
 import io.nop.wf.api.actor.WfActorCandidatesBean;
 import io.nop.wf.api.actor.WfAssignmentSelection;
@@ -28,17 +30,21 @@ import java.util.List;
 import java.util.Set;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_CANDIDATES;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_DEPT_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_MODEL_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_TYPE;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_USER_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_VALUE;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ACTOR_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ACTOR_TYPE;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ACTOR_NOT_EXISTS;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ASSIGNMENT_DYNAMIC_RETURN_NOT_WF_ACTOR;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_ASSIGNMENT_OWNER_EXPR_RESULT_NOT_WF_ACTOR;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_DYNAMIC_ACTOR_RESOLVE_TO_MULTIPLE_ACTOR;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_SELECTED_ACTOR_COUNT_NOT_ONE;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_SELECTED_ACTOR_NOT_IN_ASSIGNMENT;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_USER_NOT_EXISTS;
 
 public class WfActorAssignSupport {
     private IWfActorResolver wfActorResolver;
@@ -54,6 +60,14 @@ public class WfActorAssignSupport {
 
     public IWfActor resolveUser(String userId) {
         return wfActorResolver.resolveUser(userId);
+    }
+
+    public IWfActor requireUser(String userId, IWfRuntime wfRt) {
+        IWfActor user = resolveUser(userId);
+        if (user == null)
+            throw wfRt.newError(ERR_WF_USER_NOT_EXISTS)
+                    .param(ARG_USER_ID, userId);
+        return user;
     }
 
     public IWfActor getManager(IWfActor actor, int upLevel) {
@@ -99,7 +113,27 @@ public class WfActorAssignSupport {
         return wfRt.getCurrentActorAssignments();
     }
 
-    private List<IWfActor> getDynamicActors(WfAssignmentActorModel actorModel, WfRuntime wfRt) {
+    public IWfActor resolveDynamicActor(WfActorAndOwner actorAndOwner, IWfRuntime wfRt) {
+        if (actorAndOwner.getActorType().startsWith(NopWfCoreConstants.WF_ACTOR_NS_PREFIX)) {
+            WfAssignmentActorModel actorModel = new WfAssignmentActorModel();
+            actorModel.setActorId(actorAndOwner.getActorId());
+            actorModel.setActorType(actorAndOwner.getActorType());
+            actorModel.setDeptId(actorModel.getDeptId());
+            actorModel.setExtProps(actorAndOwner.getAttrs());
+            List<IWfActor> actors = getDynamicActors(actorModel, wfRt);
+            if (actors.isEmpty())
+                return null;
+            if (actors.size() != 1)
+                throw new NopException(ERR_WF_DYNAMIC_ACTOR_RESOLVE_TO_MULTIPLE_ACTOR)
+                        .param(ARG_ACTOR_TYPE, actorAndOwner.getActorType())
+                        .param(ARG_ACTOR_ID, actorAndOwner.getActorId())
+                        .param(ARG_ACTOR_DEPT_ID, actorAndOwner.getActorDeptId());
+            return actors.get(0);
+        }
+        return resolveActor(actorAndOwner.getActorType(), actorAndOwner.getActorId(), actorAndOwner.getActorDeptId());
+    }
+
+    private List<IWfActor> getDynamicActors(WfAssignmentActorModel actorModel, IWfRuntime wfRt) {
         String tagName = StringHelper.removeHead(actorModel.getActorType(), NopWfCoreConstants.WF_ACTOR_NS_PREFIX);
         wfRt.setValue(NopWfCoreConstants.VAR_ACTOR_MODEL, actorModel);
         Object value = XLang.getTagAction(NopWfCoreConstants.WF_ACTOR_LIB_PATH, tagName).invoke(wfRt);

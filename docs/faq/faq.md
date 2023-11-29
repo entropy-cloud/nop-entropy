@@ -169,3 +169,22 @@ xlib就是xpl模板语言的函数库，一般写在自己模块的xlib目录下
 标签库就可以使用。常用的内置标签库有：
 1. web.xlib是用于根据xview模型生成amis页面
 2. control.xlib根据字段的domain和type等信息推导得到显示控件。
+
+
+## 3. 没有实体定义的情况下也可以写BizModel吗？
+
+可以，Nop平台的整体设计是分层的，后一层不依赖于前一层。自己写一个BizModel类即可，参见LoginApiBizModel。
+
+````
+  Excel --> ORM --> BizModel --> XView --> Page
+````
+
+通过Nop平台的代码生成器，我们可以根据Excel中的数据模型定义一路推导得到前端页面，但是每个推导步骤都是可选步骤，并不一定需要前一个步骤的存在。
+
+参考[LoginApiBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java)的实现，我们可以在Java中直接编写一个BizModel类，然后在某个beans.xml中注册，即可通过NopGraphQL引擎来调用。
+
+> LoginApiBizModel实现ILoginSpi接口仅仅是为了提高代码可读性和可维护性，并不是必须的。一个BizModel类可以不继承任何基类，也不需要实现任何接口，
+> 本质上BizModel与Spring框架中的Controller类似，只是它不依赖于任何Web运行时环境，返回结果也不要求是POJO等可以直接进行JSON序列化的对象。
+> （BizModel中函数的返回值会经过NopGraphQL引擎处理后得到返回值）
+
+使用NopGraphQL，一般没有必要再区分Controller和Service，直接在Service上增加@BizModel注解（并注册在beans.xml）中即可直接将服务发布为Web服务。通过meta层可以进行返回结果增强和后处理等，即NopGraphQL本身提供了一个弹性适配层，很多情况下都没有必要再增加一个对象来实现适配。

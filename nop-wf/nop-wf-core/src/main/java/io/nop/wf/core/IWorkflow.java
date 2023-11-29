@@ -57,7 +57,8 @@ public interface IWorkflow {
     }
 
     default boolean isActivated() {
-        return getWfStatus() == NopWfCoreConstants.WF_STATUS_ACTIVATED;
+        return getWfStatus() >= NopWfCoreConstants.WF_STATUS_ACTIVATED
+                && getWfStatus() < NopWfCoreConstants.WF_STATUS_COMPLETED;
     }
 
     default boolean isSuspended() {
@@ -103,6 +104,11 @@ public interface IWorkflow {
     List<? extends IWorkflowStep> getWaitingSteps();
 
     List<? extends IWorkflowStep> getSteps(boolean includeHistory);
+
+    /**
+     * 重新从数据库中加载
+     */
+    void reload();
 
     /**
      * 获取跳转到指定步骤时的actor设置

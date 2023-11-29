@@ -57,6 +57,17 @@ public class NopWfStepInstance extends _NopWfStepInstance implements IWorkflowSt
     }
 
     @Override
+    public void setAssigner(IWfActor assigner) {
+        if(assigner != null){
+            setAssignerId(assigner.getActorId());
+            setAssignerName(assigner.getActorName());
+        }else{
+            setAssignerId(null);
+            setAssignerName(null);
+        }
+    }
+
+    @Override
     public void setSubWfRef(WfReference wfRef) {
         if (wfRef != null) {
             setSubWfId(wfRef.getWfId());

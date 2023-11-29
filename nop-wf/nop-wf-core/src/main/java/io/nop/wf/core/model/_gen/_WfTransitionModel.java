@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [135:14:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [136:14:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -27,6 +27,13 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
      * 
      */
     private java.lang.String _bizEntityState ;
+    
+    /**
+     *  
+     * xml name: onAppStates
+     * 当步骤的appState为指定值的时候才会触发transition
+     */
+    private java.util.Set<java.lang.String> _onAppStates ;
     
     /**
      *  
@@ -104,6 +111,25 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._bizEntityState = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onAppStates
+     *  当步骤的appState为指定值的时候才会触发transition
+     */
+    
+    public java.util.Set<java.lang.String> getOnAppStates(){
+      return _onAppStates;
+    }
+
+    
+    public void setOnAppStates(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._onAppStates = value;
            
     }
 
@@ -271,6 +297,7 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
         
         out.put("appState",this.getAppState());
         out.put("bizEntityState",this.getBizEntityState());
+        out.put("onAppStates",this.getOnAppStates());
         out.put("splitType",this.getSplitType());
         out.put("toAssigned",this.getToAssigned());
         out.put("toEmpty",this.getToEmpty());

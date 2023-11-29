@@ -141,8 +141,13 @@ public class MockWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public IWorkflowRecord getWfRecord(String wfName, String wfVersion, String wfId) {
+    public IWorkflowRecord getWfRecord(String wfName, Long wfVersion, String wfId) {
         return workflowBeans.get(wfId);
+    }
+
+    @Override
+    public IWorkflowRecord reloadWfRecord(IWorkflowRecord wfRecord) {
+        return wfRecord;
     }
 
     @Override

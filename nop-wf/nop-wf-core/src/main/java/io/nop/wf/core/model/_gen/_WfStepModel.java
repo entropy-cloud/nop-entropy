@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [180:10:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [181:10:0:0]/nop/schema/wf/wf.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -167,6 +167,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private KeyedList<io.nop.wf.core.model.WfRefActionModel> _refActions = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: retry
+     * 执行source的时候如果发生异常，则可以重试
+     */
+    private io.nop.wf.core.model.WfRetryModel _retry ;
     
     /**
      *  
@@ -656,6 +663,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: retry
+     *  执行source的时候如果发生异常，则可以重试
+     */
+    
+    public io.nop.wf.core.model.WfRetryModel getRetry(){
+      return _retry;
+    }
+
+    
+    public void setRetry(io.nop.wf.core.model.WfRetryModel value){
+        checkAllowChange();
+        
+        this._retry = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -779,6 +805,8 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
             
            this._refActions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._refActions);
             
+           this._retry = io.nop.api.core.util.FreezeHelper.deepFreeze(this._retry);
+            
            this._transition = io.nop.api.core.util.FreezeHelper.deepFreeze(this._transition);
             
         }
@@ -809,6 +837,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.put("optional",this.isOptional());
         out.put("priority",this.getPriority());
         out.put("refActions",this.getRefActions());
+        out.put("retry",this.getRetry());
         out.put("source",this.getSource());
         out.put("specialType",this.getSpecialType());
         out.put("tagSet",this.getTagSet());

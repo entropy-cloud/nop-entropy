@@ -26,7 +26,11 @@ public interface NopWfCoreErrors {
     String ARG_ACTOR_TYPE = "actorType";
     String ARG_ACTOR_ID = "actorId";
 
+    String ARG_ACTOR_DEPT_ID = "actorDeptId";
+
     String ARG_ACTOR_MODEL_ID = "actorModelId";
+
+    String ARG_USER_ID = "userId";
 
     String ARG_PARENT_STEP_ID = "parentStepId";
 
@@ -49,6 +53,8 @@ public interface NopWfCoreErrors {
 
     String ARG_LOOP_EDGES = "loopEdges";
 
+    String ARG_TO_STEP_NAME = "toStepName";
+
     ErrorCode ERR_WF_STEP_INSTANCE_NOT_EXISTS =
             define("nop.err.wf.step-instance-not-exists",
                     "工作流[{wfName}]的步骤实例[{stepId}]不存在", ARG_WF_NAME, ARG_STEP_ID);
@@ -63,6 +69,10 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_ASSIGNMENT_DYNAMIC_RETURN_NOT_WF_ACTOR =
             define("nop.err.wf.assignment-dynamic-return-not-wf-actor",
                     "动态分配[{wfActorType}]返回的结果不是IWfActor或者IWfActor列表", ARG_WF_ACTOR_TYPE);
+
+    ErrorCode ERR_WF_DYNAMIC_ACTOR_RESOLVE_TO_MULTIPLE_ACTOR =
+            define("nop.err.wf.dynamic-actor-resolve-to-multiple-actor",
+                    "动态参与者[{actorType}]对应的实际参与者必须是唯一的一个，不允许对应于多个参与者", ARG_ACTOR_TYPE);
 
     ErrorCode ERR_WF_UNKNOWN_ACTION_ARG =
             define("nop.err.wf.unknown-action-arg",
@@ -192,4 +202,13 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_ACTOR_NOT_EXISTS =
             define("nop.err.wf.actor-not-exists", "参与者[{actorType}:{actorId}]不存在",
                     ARG_ACTOR_TYPE, ARG_ACTOR_ID);
+
+    ErrorCode ERR_WF_USER_NOT_EXISTS =
+            define("nop.err.wf.user-not-exists", "用户[{userId}]不存在", ARG_USER_ID);
+
+    ErrorCode ERR_WF_NO_ACTOR_ASSIGNED_FOR_TRANSFER =
+            define("nop.err.wf.no-actor-assigned-for-transfer", "没有指定参与者");
+
+    ErrorCode ERR_WF_TRANSIT_TO_NO_TARGETS =
+            define("nop.err.wf.transit-to-no-targets", "步骤迁移没有目标参与者，迁移失败", ARG_STEP_NAME);
 }

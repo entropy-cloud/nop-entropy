@@ -170,8 +170,13 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public IWorkflowRecord getWfRecord(String wfName, String wfVersion, String wfId) {
+    public IWorkflowRecord getWfRecord(String wfName, Long wfVersion, String wfId) {
         return wfDao().getEntityById(wfId);
+    }
+
+    @Override
+    public IWorkflowRecord reloadWfRecord(IWorkflowRecord wfRecord) {
+        return wfDao().requireEntityById(wfRecord.getWfId());
     }
 
     @Override

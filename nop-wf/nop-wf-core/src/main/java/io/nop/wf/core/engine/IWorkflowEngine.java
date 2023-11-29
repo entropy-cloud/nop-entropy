@@ -9,6 +9,7 @@ package io.nop.wf.core.engine;
 
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.impl.IWorkflowImplementor;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
@@ -53,6 +54,8 @@ public interface IWorkflowEngine {
 
     void changeOwner(IWorkflowStepImplementor step, String ownerId, IServiceContext ctx);
 
+    IWorkflowStepImplementor transferToActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner, IServiceContext ctx);
+
     void triggerStepEvent(IWorkflowStepImplementor step, String eventName, IServiceContext ctx);
 
     void killStep(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
@@ -70,6 +73,8 @@ public interface IWorkflowEngine {
                                                                  String actionName, IServiceContext ctx);
 
     void transitTo(IWorkflowStepImplementor step, String stepName, Map<String, Object> args, IServiceContext ctx);
+
+    void exitStep(IWorkflowStepImplementor step, int status, Map<String, Object> args, IServiceContext ctx);
 
     List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWorkflowStepImplementor step, IWfRuntime wfRt);
 }

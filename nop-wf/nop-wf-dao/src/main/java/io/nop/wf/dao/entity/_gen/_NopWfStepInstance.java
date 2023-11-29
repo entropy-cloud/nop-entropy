@@ -164,60 +164,68 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_retryCount = "retryCount";
     public static final int PROP_ID_retryCount = 36;
     
+    /* 错误码: ERR_CODE VARCHAR */
+    public static final String PROP_NAME_errCode = "errCode";
+    public static final int PROP_ID_errCode = 37;
+    
+    /* 错误消息: ERR_MSG VARCHAR */
+    public static final String PROP_NAME_errMsg = "errMsg";
+    public static final int PROP_ID_errMsg = 38;
+    
     /* 优先级: PRIORITY INTEGER */
     public static final String PROP_NAME_priority = "priority";
-    public static final int PROP_ID_priority = 37;
+    public static final int PROP_ID_priority = 39;
     
     /* 投票权重: VOTE_WEIGHT INTEGER */
     public static final String PROP_NAME_voteWeight = "voteWeight";
-    public static final int PROP_ID_voteWeight = 38;
+    public static final int PROP_ID_voteWeight = 40;
     
     /* 执行顺序: EXEC_ORDER DOUBLE */
     public static final String PROP_NAME_execOrder = "execOrder";
-    public static final int PROP_ID_execOrder = 39;
+    public static final int PROP_ID_execOrder = 41;
     
     /* 汇聚分组: JOIN_GROUP VARCHAR */
     public static final String PROP_NAME_joinGroup = "joinGroup";
-    public static final int PROP_ID_joinGroup = 40;
+    public static final int PROP_ID_joinGroup = 42;
     
     /* 标签: TAG_TEXT VARCHAR */
     public static final String PROP_NAME_tagText = "tagText";
-    public static final int PROP_ID_tagText = 41;
+    public static final int PROP_ID_tagText = 43;
     
     /* 下一步骤ID: NEXT_STEP_ID VARCHAR */
     public static final String PROP_NAME_nextStepId = "nextStepId";
-    public static final int PROP_ID_nextStepId = 42;
+    public static final int PROP_ID_nextStepId = 44;
     
     /* 步骤分组: STEP_GROUP VARCHAR */
     public static final String PROP_NAME_stepGroup = "stepGroup";
-    public static final int PROP_ID_stepGroup = 43;
+    public static final int PROP_ID_stepGroup = 45;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 44;
+    public static final int PROP_ID_version = 46;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 45;
+    public static final int PROP_ID_createdBy = 47;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 46;
+    public static final int PROP_ID_createTime = 48;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 47;
+    public static final int PROP_ID_updatedBy = 49;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 48;
+    public static final int PROP_ID_updateTime = 50;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 49;
+    public static final int PROP_ID_remark = 51;
     
 
-    private static int _PROP_ID_BOUND = 50;
+    private static int _PROP_ID_BOUND = 52;
 
     
     /* relation: 工作流实例 */
@@ -239,7 +247,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[50];
+    private static final String[] PROP_ID_TO_NAME = new String[52];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -350,6 +358,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_retryCount] = PROP_NAME_retryCount;
           PROP_NAME_TO_ID.put(PROP_NAME_retryCount, PROP_ID_retryCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
+          PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
+      
+          PROP_ID_TO_NAME[PROP_ID_errMsg] = PROP_NAME_errMsg;
+          PROP_NAME_TO_ID.put(PROP_NAME_errMsg, PROP_ID_errMsg);
       
           PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
           PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
@@ -500,6 +514,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     
     /* 已重试次数: RETRY_COUNT */
     private java.lang.Integer _retryCount;
+    
+    /* 错误码: ERR_CODE */
+    private java.lang.String _errCode;
+    
+    /* 错误消息: ERR_MSG */
+    private java.lang.String _errMsg;
     
     /* 优先级: PRIORITY */
     private java.lang.Integer _priority;
@@ -717,6 +737,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_retryCount:
                return getRetryCount();
+        
+            case PROP_ID_errCode:
+               return getErrCode();
+        
+            case PROP_ID_errMsg:
+               return getErrMsg();
         
             case PROP_ID_priority:
                return getPriority();
@@ -1128,6 +1154,26 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_errCode:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errCode));
+               }
+               setErrCode(typedValue);
+               break;
+            }
+        
+            case PROP_ID_errMsg:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_errMsg));
+               }
+               setErrMsg(typedValue);
+               break;
+            }
+        
             case PROP_ID_priority:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -1515,6 +1561,20 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_retryCount:{
                onInitProp(propId);
                this._retryCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errCode:{
+               onInitProp(propId);
+               this._errCode = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_errMsg:{
+               onInitProp(propId);
+               this._errMsg = (java.lang.String)value;
                
                break;
             }
@@ -2296,6 +2356,44 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_retryCount,value)){
             this._retryCount = value;
             internalClearRefs(PROP_ID_retryCount);
+            
+        }
+    }
+    
+    /**
+     * 错误码: ERR_CODE
+     */
+    public java.lang.String getErrCode(){
+         onPropGet(PROP_ID_errCode);
+         return _errCode;
+    }
+
+    /**
+     * 错误码: ERR_CODE
+     */
+    public void setErrCode(java.lang.String value){
+        if(onPropSet(PROP_ID_errCode,value)){
+            this._errCode = value;
+            internalClearRefs(PROP_ID_errCode);
+            
+        }
+    }
+    
+    /**
+     * 错误消息: ERR_MSG
+     */
+    public java.lang.String getErrMsg(){
+         onPropGet(PROP_ID_errMsg);
+         return _errMsg;
+    }
+
+    /**
+     * 错误消息: ERR_MSG
+     */
+    public void setErrMsg(java.lang.String value){
+        if(onPropSet(PROP_ID_errMsg,value)){
+            this._errMsg = value;
+            internalClearRefs(PROP_ID_errMsg);
             
         }
     }

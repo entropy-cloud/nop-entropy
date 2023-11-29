@@ -154,6 +154,8 @@ CREATE TABLE nop_wf_action(
   CALLER_ID VARCHAR(50)  ,
   CALLER_NAME VARCHAR(50)  ,
   OPINION VARCHAR(4000)  ,
+  ERR_CODE VARCHAR(200)  ,
+  ERR_MSG VARCHAR(4000)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -199,6 +201,8 @@ CREATE TABLE nop_wf_step_instance(
   REMIND_COUNT INT4  ,
   NEXT_RETRY_TIME TIMESTAMP  ,
   RETRY_COUNT INT4  ,
+  ERR_CODE VARCHAR(200)  ,
+  ERR_MSG VARCHAR(4000)  ,
   PRIORITY INT4 NOT NULL ,
   VOTE_WEIGHT INT4  ,
   EXEC_ORDER FLOAT8 NOT NULL ,
@@ -515,6 +519,10 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_action.OPINION IS '意见';
                     
+      COMMENT ON COLUMN nop_wf_action.ERR_CODE IS '错误码';
+                    
+      COMMENT ON COLUMN nop_wf_action.ERR_MSG IS '错误消息';
+                    
       COMMENT ON COLUMN nop_wf_action.VERSION IS '数据版本';
                     
       COMMENT ON COLUMN nop_wf_action.CREATED_BY IS '创建人';
@@ -598,6 +606,10 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_step_instance.NEXT_RETRY_TIME IS '下次重试时间';
                     
       COMMENT ON COLUMN nop_wf_step_instance.RETRY_COUNT IS '已重试次数';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.ERR_CODE IS '错误码';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.ERR_MSG IS '错误消息';
                     
       COMMENT ON COLUMN nop_wf_step_instance.PRIORITY IS '优先级';
                     

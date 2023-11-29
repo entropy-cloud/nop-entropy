@@ -22,6 +22,10 @@ public interface IWfRuntime extends IEvalContext {
 
     void setValue(String name, Object value);
 
+    IWfActor getAssigner();
+
+    void setAssigner(IWfActor assigner);
+
     List<IWfActor> getSelectedActors();
 
     Map<String, List<IWfActor>> getSelectedStepActors();
@@ -29,6 +33,8 @@ public interface IWfRuntime extends IEvalContext {
     Set<String> getRejectSteps();
 
     void setRejectSteps(Set<String> rejectSteps);
+
+    Object getBizEntity();
 
     Set<String> getTargetSteps();
 
@@ -47,6 +53,10 @@ public interface IWfRuntime extends IEvalContext {
     IWfActor getCaller();
 
     IWfActor getSysUser();
+
+    default IWfActor getStarter(){
+        return getWf().getStarter();
+    }
 
     IWfActor getManagerActor();
 

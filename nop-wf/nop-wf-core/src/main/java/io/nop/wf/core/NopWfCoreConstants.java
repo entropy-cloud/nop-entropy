@@ -38,6 +38,10 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String VAR_SELECTED_STEP_ACTORS = "selectedStepActors";
 
+    String INTERNAL_ACTION_TRANSFER_TO_ACTOR = "_transferToActor_";
+
+    String INTERNAL_ACTION_TRANSIT = "_transit_";
+
     String VAR_ACTORS = "actors";
     String VAR_REJECT_STEPS = "rejectSteps"; // reject action的参数
     String VAR_TARGET_STEPS = "targetSteps";
@@ -51,6 +55,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String EVENT_BEFORE_START = "before-start";
     String EVENT_AFTER_START = "after-start";
+
+    String EVENT_TRANSFER_TO_ACTOR = "transfer-to-actor";
 
     String EVENT_ON_NO_ASSIGN = "on-no-assign";
     String EVENT_ENTER_STEP = "enter-step";

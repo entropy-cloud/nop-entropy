@@ -8,6 +8,7 @@
 package io.nop.wf.core.store;
 
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -50,7 +51,9 @@ public interface IWorkflowStore {
 
     void addNextSpecialStep(IWorkflowStepRecord currentStep, String actionId, String specialStepId);
 
-    IWorkflowRecord getWfRecord(String wfName, String wfVersion, String wfId);
+    IWorkflowRecord getWfRecord(String wfName, Long wfVersion, String wfId);
+
+    IWorkflowRecord reloadWfRecord(IWorkflowRecord wfRecord);
 
     IWorkflowVarSet getGlobalVars(IWorkflowRecord wfRecord);
 
