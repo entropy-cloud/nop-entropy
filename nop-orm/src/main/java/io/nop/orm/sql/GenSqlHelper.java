@@ -394,7 +394,7 @@ public class GenSqlHelper {
         sb.and();
 
         List<? extends IEntityJoinConditionModel> ownerJoins = getOwnerBatchLoadJoins(collectionModel);
-        if (ownerJoins != null) {
+        if (ownerJoins.size() == 1) {
             IColumnModel col = (IColumnModel) ownerJoins.get(0).getRightPropModel();
             appendCol(sb, dialect, null, col);
         } else {

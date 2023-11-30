@@ -72,7 +72,7 @@ public class ProjectDirHelper {
             }
             currentPath = currentPath.getParent();
         }
-        LOG.warn("Unable to find a project directory for {}.", p.toString());
+        LOG.warn("Unable to find a project directory for {}.", p);
         return null;
     }
 
@@ -87,7 +87,7 @@ public class ProjectDirHelper {
             }
             currentPath = currentPath.getParent();
         }
-        LOG.warn("Unable to find a build tool in {} or in any parent.", project.toString());
+        LOG.warn("Unable to find a build tool in {} or in any parent.", project);
         return null;
     }
 

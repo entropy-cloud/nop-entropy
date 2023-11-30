@@ -163,12 +163,12 @@ public class RetryPolicy<C> implements Serializable, IRetryPolicy<C>, ICloneable
         if (isExceedRetryCount(retryTimes))
             return -1;
 
-        int tryDelay = this.getRetryDelay();
+        long tryDelay = this.getRetryDelay();
 
         long timeToSleep = 0;
         if (tryDelay > 0) {
             boolean exponentialDelay = this.isExponentialDelay();
-            int maxRetryDelay = this.getMaxRetryDelay();
+            long maxRetryDelay = this.getMaxRetryDelay();
             if (maxRetryDelay < tryDelay) {
                 maxRetryDelay = tryDelay;
             }

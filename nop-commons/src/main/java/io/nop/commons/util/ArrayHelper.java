@@ -45,7 +45,7 @@ public class ArrayHelper {
         return array;
     }
 
-    public static <T> T[] assign(@Nonnull T[] array, int i, T o, Class<?> componentType) {
+    public static <T> T[] assign(T[] array, int i, T o, Class<?> componentType) {
         if (array == null) {
             Class<?> type = componentType == null ? o.getClass() : componentType;
             array = (T[]) Array.newInstance(type, i + 1);

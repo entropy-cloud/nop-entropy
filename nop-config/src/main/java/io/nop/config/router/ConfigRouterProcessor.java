@@ -78,7 +78,7 @@ public class ConfigRouterProcessor {
 
         @Override
         public boolean containsValue(String name) {
-            return vars.containsValue(name);
+            return vars.containsKey(name);
         }
 
         @Override

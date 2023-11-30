@@ -797,6 +797,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -820,6 +821,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

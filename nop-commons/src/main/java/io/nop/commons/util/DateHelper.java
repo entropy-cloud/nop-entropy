@@ -11,24 +11,10 @@ import io.nop.api.core.util.ApiStringHelper;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.MonthDay;
-import java.time.Period;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 
 /**
  * 获得本月的天数 localDate.lengthOfMonth() 获得本年的天数 localDate.lengthOfYear() 判断是否闰年 localDate.isLeapYear()
@@ -176,11 +162,9 @@ public class DateHelper {
 
     public static long getMonthEndWithTimeZoneTs(TimeZone timeZone, long ts) {
         Calendar calendar = Calendar.getInstance(timeZone, Locale.ROOT);
-        calendar.setTimeInMillis(ts);
-        calendar.set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONDAY), calendar.get(Calendar.DAY_OF_MONTH), 0,
-                0, 0);
+        calendar.setTimeInMillis(getDayStartWithTimeZoneTs(timeZone, ts));
         calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH));
-        calendar.set(Calendar.HOUR_OF_DAY, 24);
+        calendar.set(Calendar.HOUR_OF_DAY, 24); //NOSONAR
         return calendar.getTimeInMillis();
     }
 
@@ -347,7 +331,7 @@ public class DateHelper {
         if (dayOfWeek <= 0 || dayOfWeek > 7)
             throw new IllegalArgumentException("invalid dayOfWeek:" + dayOfWeek);
 
-        return date.plusDays(-date.getDayOfWeek().getValue() + dayOfWeek);
+        return date.plusDays(-date.getDayOfWeek().getValue() + (long) dayOfWeek);
     }
 
     public static LocalDateTime toZone(LocalDateTime dateTime, ZoneId zone) {

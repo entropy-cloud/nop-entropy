@@ -67,6 +67,7 @@ public abstract class _RuleInputDefineModel extends io.nop.xlang.xmeta.ObjVarDef
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -76,6 +77,7 @@ public abstract class _RuleInputDefineModel extends io.nop.xlang.xmeta.ObjVarDef
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

@@ -67,6 +67,7 @@ public abstract class _BeanXplValue extends io.nop.core.resource.component.Abstr
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -76,6 +77,7 @@ public abstract class _BeanXplValue extends io.nop.core.resource.component.Abstr
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

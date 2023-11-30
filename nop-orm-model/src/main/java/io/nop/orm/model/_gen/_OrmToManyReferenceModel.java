@@ -149,6 +149,7 @@ public abstract class _OrmToManyReferenceModel extends io.nop.orm.model.OrmRefer
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -160,6 +161,7 @@ public abstract class _OrmToManyReferenceModel extends io.nop.orm.model.OrmRefer
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

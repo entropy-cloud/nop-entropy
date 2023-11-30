@@ -13,6 +13,7 @@ entity:
     NopWfVar: Workflow Variables
     NopWfWork: Work List
     WfActionRequestBean: Workflow Action Request
+    WfChangeActorRequestBean: Change Actor Request
     WfCommandRequestBean: Workflow Command Request
     WfStartRequestBean: Workflow Start Request
     WfStartResponseBean: Workflow Start Response
@@ -29,6 +30,8 @@ prop:
       callerId: Caller ID
       callerName: Caller Name
       opinion: Opinion
+      errCode: Error Code
+      errMsg: Error Message
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -207,6 +210,8 @@ prop:
       remindCount: Remind Count
       nextRetryTime: Next Retry Time
       retryCount: Retry Count
+      errCode: Error Code
+      errMsg: Error Message
       priority: Priority
       voteWeight: Vote Weight
       execOrder: Execution Order
@@ -295,6 +300,16 @@ prop:
       stepId: Step ID
       actionName: Action Name
       args: Action Args
+    WfChangeActorRequestBean:
+      wfName: Workflow Name
+      wfVersion: Workflow Version
+      wfId: Workflow ID
+      stepId: Step ID
+      actorType: Action Type
+      actorId: Action ID
+      actorDeptId: Action Dept ID
+      ownerId: Owner ID
+      attrs: Attributes
     WfCommandRequestBean:
       wfName: Workflow Name
       wfVersion: Workflow Version

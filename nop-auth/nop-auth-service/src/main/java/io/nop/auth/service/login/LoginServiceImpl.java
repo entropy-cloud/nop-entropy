@@ -153,9 +153,7 @@ public class LoginServiceImpl extends AbstractLoginService {
             errorCode = ERR_AUTH_INVALID_LOGIN_REQUEST;
         } else {
             user = getAuthUser(request);
-            if (user == null) {
-                errorCode = ERR_AUTH_LOGIN_WITH_UNKNOWN_USER;
-            } else {
+            if (user != null) {
                 failCount = userContextCache.getLoginFailCountForUser(user.getUserName());
 
                 int maxFailCount = CFG_AUTH_MAX_LOGIN_FAIL_COUNT.get();
@@ -172,6 +170,9 @@ public class LoginServiceImpl extends AbstractLoginService {
         }
 
         if (errorCode != null || user == null) {
+            if(errorCode == null)
+                errorCode = ERR_AUTH_LOGIN_WITH_UNKNOWN_USER;
+
             failCount++;
             if (user != null)
                 userContextCache.setLoginFailCountForUser(user.getUserName(), failCount);

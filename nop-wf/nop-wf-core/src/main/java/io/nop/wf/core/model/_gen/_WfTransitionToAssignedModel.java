@@ -41,6 +41,7 @@ public abstract class _WfTransitionToAssignedModel extends io.nop.wf.core.model.
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _WfTransitionToAssignedModel extends io.nop.wf.core.model.
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

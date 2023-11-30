@@ -15,6 +15,7 @@ import io.nop.core.lang.json.IJsonHandler;
 public abstract class _BeanNullValue extends io.nop.core.resource.component.AbstractComponentModel {
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -24,6 +25,7 @@ public abstract class _BeanNullValue extends io.nop.core.resource.component.Abst
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

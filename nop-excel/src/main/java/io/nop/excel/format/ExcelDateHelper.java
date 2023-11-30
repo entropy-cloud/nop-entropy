@@ -50,7 +50,7 @@ public class ExcelDateHelper {
     // add "\u5e74 \u6708 \u65e5"（年月日） for Chinese/Japanese date
     // format:2017年2月7日
     private static final Pattern date_ptrn3b = Pattern
-            .compile("^[\\[\\]yYmMdDhHsS\\-T/\u5e74\u6708\u65e5,. :\"\\\\]+0*[ampAMP/]*$");
+            .compile("^[\\[\\]yYmMdDhHsS\\-T/\u5e74\u6708\u65e5,. :\"\\\\]+0*[ampAMP/]*$"); //NOSONAR
     // elapsed time patterns: [h],[m] and [s]
     private static final Pattern date_ptrn4 = Pattern.compile("^\\[([hH]+|[mM]+|[sS]+)\\]");
 

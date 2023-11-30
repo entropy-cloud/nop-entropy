@@ -67,6 +67,7 @@ public abstract class _ExcelTable extends io.nop.core.model.table.impl.AbstractT
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -80,6 +81,7 @@ public abstract class _ExcelTable extends io.nop.core.model.table.impl.AbstractT
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

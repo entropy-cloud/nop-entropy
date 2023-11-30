@@ -41,6 +41,7 @@ public abstract class _TaskChooseOtherwiseModel extends io.nop.task.model.TaskSt
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _TaskChooseOtherwiseModel extends io.nop.task.model.TaskSt
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

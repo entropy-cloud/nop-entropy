@@ -67,7 +67,7 @@ public class JdbcEntityPersistDriver implements IEntityPersistDriver {
 
     private IDataParameterBinder[] binders;
 
-    private volatile EntitySQL lastUpdateSql;
+    private volatile EntitySQL lastUpdateSql; //NOSONAR
 
     IJdbcTemplate jdbc() {
         return jdbcTemplate;

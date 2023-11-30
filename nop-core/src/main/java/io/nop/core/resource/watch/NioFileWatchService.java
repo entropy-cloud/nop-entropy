@@ -15,16 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.FileVisitOption;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -134,7 +125,8 @@ public class NioFileWatchService extends LifeCycleSupport implements IFileWatchS
                     }
                     key.reset();
                 } catch (InterruptedException e2) {
-
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e2);
                 }
             } while (isActive());
         } catch (IOException e) {

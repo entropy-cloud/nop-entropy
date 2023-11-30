@@ -41,6 +41,7 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

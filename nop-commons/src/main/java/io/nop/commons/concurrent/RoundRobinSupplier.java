@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 public class RoundRobinSupplier<T extends AutoCloseable> implements AutoCloseable, Supplier<T> {
 
     private final Supplier<T> factory;
-    private volatile AtomicReferenceArray<T> objects;
+    private volatile AtomicReferenceArray<T> objects; //NOSONAR
     private final AtomicInteger nextIndex = new AtomicInteger();
 
     public RoundRobinSupplier(Supplier<T> factory, int size) {
@@ -44,34 +44,42 @@ public class RoundRobinSupplier<T extends AutoCloseable> implements AutoCloseabl
         return objects.get(index);
     }
 
-    public synchronized void resize(int size) {
+    public void resize(int size) {
         Guard.positiveInt(size, "cache size");
 
-        AtomicReferenceArray<T> objects = this.objects;
-        if (objects.length() > size) {
-            AtomicReferenceArray<T> array = new AtomicReferenceArray<>(size);
-            for (int i = 0; i < size; i++) {
-                array.set(i, objects.get(i));
-            }
-            // 缩小
-            this.objects = array;
-            closeNext(objects, size);
-        } else if (objects.length() < size) {
-            // 扩大
-            AtomicReferenceArray<T> newObjects = new AtomicReferenceArray<>(size);
-            try {
-                for (int i = 0; i < objects.length(); i++) {
-                    newObjects.set(i, objects.get(i));
-                }
+        AtomicReferenceArray<T> toClose = null;
+        try {
+            synchronized (this) {
+                AtomicReferenceArray<T> objects = this.objects;
+                if (objects.length() > size) {
+                    AtomicReferenceArray<T> array = new AtomicReferenceArray<>(size);
+                    for (int i = 0; i < size; i++) {
+                        array.set(i, objects.get(i));
+                    }
+                    // 缩小
+                    this.objects = array;
+                    toClose = objects;
+                } else if (objects.length() < size) {
+                    // 扩大
+                    AtomicReferenceArray<T> newObjects = new AtomicReferenceArray<>(size);
+                    try {
+                        for (int i = 0; i < objects.length(); i++) {
+                            newObjects.set(i, objects.get(i));
+                        }
 
-                for (int i = objects.length(); i < size; i++) {
-                    newObjects.set(i, factory.get());
+                        for (int i = objects.length(); i < size; i++) {
+                            newObjects.set(i, factory.get());
+                        }
+                    } catch (Exception e) {
+                        toClose = newObjects;
+                        throw NopException.adapt(e);
+                    }
+                    this.objects = newObjects;
                 }
-            } catch (Exception e) {
-                closeNext(newObjects, size);
-                throw NopException.adapt(e);
             }
-            this.objects = newObjects;
+        } finally {
+            if (toClose != null)
+                closeNext(toClose, size);
         }
     }
 

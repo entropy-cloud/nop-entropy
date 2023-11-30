@@ -245,7 +245,7 @@ public class BaseContext implements IContext {
 
         IContext context = BaseContextProvider.contextHolder().get();
         if (context == this) {
-            BaseContextProvider.contextHolder().remove();
+            BaseContextProvider.clear();
         }
         this.closed = true;
         this.attributes.clear();

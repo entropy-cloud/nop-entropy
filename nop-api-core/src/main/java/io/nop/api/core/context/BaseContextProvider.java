@@ -19,6 +19,10 @@ public class BaseContextProvider implements IContextProvider {
         return t_context.get();
     }
 
+    public static void clear(){
+        t_context.remove();
+    }
+
     @Override
     public IContext getOrCreateContext() {
         IContext context = t_context.get();

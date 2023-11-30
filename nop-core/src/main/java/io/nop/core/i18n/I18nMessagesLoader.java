@@ -111,7 +111,7 @@ public class I18nMessagesLoader {
         } else {
             old = merged.put(key, vl);
         }
-        if (old != null && !old.equals(value)) {
+        if (old != null && !old.equals(vl)) {
             if (!allowReplace)
                 throw new NopException(ERR_I18N_DUPLICATED_MESSAGE_KEY).param(ARG_KEY,key).param(ARG_LOC_A, old.getLocation())
                         .param(ARG_VALUE_A, old.getValue()).param(ARG_LOC_B, vl.getLocation())

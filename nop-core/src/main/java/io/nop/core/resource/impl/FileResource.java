@@ -13,24 +13,15 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
-
 import jakarta.annotation.Nonnull;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+
+import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.nop.core.CoreErrors.ARG_RESOURCE;
-import static io.nop.core.CoreErrors.ERR_RESOURCE_CREATE_NEW_FILE_FAIL;
-import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_DIR;
-import static io.nop.core.CoreErrors.ERR_RESOURCE_OPEN_INPUT_STREAM_FAIL;
-import static io.nop.core.CoreErrors.ERR_RESOURCE_OPEN_OUTPUT_STREAM_FAIL;
+import static io.nop.core.CoreErrors.*;
 
 public class FileResource extends AbstractFile implements IFile {
 
@@ -82,7 +73,8 @@ public class FileResource extends AbstractFile implements IFile {
 
     @Override
     public void setLastModified(long time) {
-        file.setLastModified(time);
+        if (!file.setLastModified(time))
+            LOG.info("nop.resource.file.setLastModified.failed:file={}", file);
     }
 
     @Override

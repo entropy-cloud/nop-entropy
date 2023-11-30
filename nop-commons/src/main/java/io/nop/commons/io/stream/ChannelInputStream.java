@@ -50,7 +50,7 @@ public class ChannelInputStream extends InputStream {
         if (n <= 0)
             return -1;
         buf.position(0);
-        return buf.get();
+        return buf.get() & 0xFF;
     }
 
     /**

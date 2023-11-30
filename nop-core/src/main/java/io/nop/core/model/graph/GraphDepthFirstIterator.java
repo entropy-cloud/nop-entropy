@@ -18,13 +18,7 @@ package io.nop.core.model.graph;
 
 import io.nop.commons.util.CollectionHelper;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Iterates over the vertices in a directed graph in depth-first order.
@@ -74,6 +68,8 @@ public class GraphDepthFirstIterator<V, E extends IEdge<V>> implements Iterator<
     }
 
     public V next() {
+        if (!hasNext())
+            throw new NoSuchElementException();
         return next(deque, graph, set);
     }
 }

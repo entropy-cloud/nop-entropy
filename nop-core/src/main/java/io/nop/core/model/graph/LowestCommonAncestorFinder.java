@@ -117,8 +117,11 @@ public class LowestCommonAncestorFinder<N, E extends IEdge<N>> {
         }
 
         @Override
-        @SuppressWarnings({"EqualsUnsafeCast"})
         public boolean equals(Object other) {
+            if(this == other)
+                return true;
+            if(!(other instanceof Color))
+                return false;
             return this.bitset == ((Color) other).bitset;
         }
 

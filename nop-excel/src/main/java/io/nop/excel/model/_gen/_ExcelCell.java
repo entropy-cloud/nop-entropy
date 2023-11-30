@@ -275,6 +275,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -288,6 +289,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

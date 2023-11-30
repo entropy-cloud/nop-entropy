@@ -16,7 +16,7 @@ public interface SsoConstants {
     String JWT_BEARER_CLIENT_ASSERTION_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 
     String CLIENT_CREDENTIALS_GRANT = "client_credentials";
-    String PASSWORD_GRANT = "password";
+    String PASSWORD_GRANT = "password"; //NOSONAR
     String REFRESH_TOKEN_GRANT = "refresh_token";
     String REFRESH_TOKEN_VALUE = "refresh_token";
 
@@ -34,8 +34,8 @@ public interface SsoConstants {
     String INTROSPECTION_TOKEN_USERNAME = "username";
     String INTROSPECTION_TOKEN_SUB = "sub";
 
-    String PASSWORD_GRANT_USERNAME = "username";
-    String PASSWORD_GRANT_PASSWORD = "password";
+    String PASSWORD_GRANT_USERNAME = "username";  //NOSONAR
+    String PASSWORD_GRANT_PASSWORD = "password";  //NOSONAR
 
     String TOKEN_SCOPE = "scope";
     String GRANT_TYPE = "grant_type";

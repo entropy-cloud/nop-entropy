@@ -15,6 +15,7 @@ import io.nop.core.lang.json.IJsonHandler;
 public abstract class _WfTransitionToEndModel extends io.nop.wf.core.model.WfTransitionToModel {
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -24,6 +25,7 @@ public abstract class _WfTransitionToEndModel extends io.nop.wf.core.model.WfTra
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

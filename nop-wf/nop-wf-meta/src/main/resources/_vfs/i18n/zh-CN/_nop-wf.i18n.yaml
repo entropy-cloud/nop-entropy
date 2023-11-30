@@ -13,6 +13,7 @@ entity:
     NopWfVar: 工作流状态变量
     NopWfWork: 代办工作
     WfActionRequestBean: 执行动作请求消息
+    WfChangeActorRequestBean: 执行动作请求消息
     WfCommandRequestBean: 执行命令请求消息
     WfStartRequestBean: 启动工作流请求消息
     WfStartResponseBean: 启动工作流响应消息
@@ -26,6 +27,8 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       displayName: 动作显示名称
+      errCode: 错误码
+      errMsg: 错误消息
       execTime: 执行时刻
       opinion: 意见
       sid: 主键
@@ -184,6 +187,8 @@ prop:
       createdBy: 创建人
       displayName: 步骤显示名称
       dueTime: 到期时间
+      errCode: 错误码
+      errMsg: 错误消息
       execOrder: 执行顺序
       finishTime: 结束时间
       fromAction: 来源操作
@@ -291,6 +296,16 @@ prop:
     WfActionRequestBean:
       actionName: 执行动作
       args: 执行参数
+      stepId: 工作流步骤ID
+      wfId: 工作流ID
+      wfName: 工作流名称
+      wfVersion: 工作流版本
+    WfChangeActorRequestBean:
+      actorDeptId: 参与者部门ID
+      actorId: 参与者ID
+      actorType: 参与者类型
+      attrs: 扩展属性
+      ownerId: 拥有者ID
       stepId: 工作流步骤ID
       wfId: 工作流ID
       wfName: 工作流名称

@@ -29,37 +29,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 
 import static io.nop.api.core.ApiErrors.ARG_CLASS_NAME;
 import static io.nop.api.core.ApiErrors.ARG_EXPECTED_TYPE;
-import static io.nop.commons.CommonErrors.ARG_CLASS;
-import static io.nop.commons.CommonErrors.ERR_LOAD_CLASS_NOT_EXPECTED_TYPE;
-import static io.nop.commons.CommonErrors.ERR_REFLECT_NEW_INSTANCE_FAIL;
+import static io.nop.commons.CommonErrors.*;
 
 
 @NoReflection
@@ -349,7 +327,7 @@ public class ClassHelper {
         try {
             return (clToUse != null ? clToUse.loadClass(name) : Class.forName(name));
         } catch (ClassNotFoundException ex) {
-            LOG.debug("nop.class-not-found:class={},classLoader={}",name,clToUse);
+            LOG.debug("nop.class-not-found:class={},classLoader={}", name, clToUse);
             int lastDotIndex = name.lastIndexOf(PACKAGE_SEPARATOR);
             if (lastDotIndex != -1) {
                 String innerClassName = name.substring(0, lastDotIndex) + INNER_CLASS_SEPARATOR
@@ -749,7 +727,7 @@ public class ClassHelper {
         return clazz == null ? null : clazz.getCanonicalName();
     }
 
-    static Optional<Class<? extends Annotation>> _vertxDataObject = null;
+    private static Class<? extends Annotation> _vertxDataObject = null;
 
     public static boolean isVertxDataObject(Class<?> clazz) {
         if (_vertxDataObject == null) {
@@ -757,11 +735,15 @@ public class ClassHelper {
             try {
                 dataObject = (Class<? extends Annotation>) getSafeClassLoader().loadClass("io.vertx.codegen.annotations.DataObject");
             } catch (Exception e) {
+                LOG.trace("nop.commons.not-find-vertx-data-object");
             }
-            _vertxDataObject = Optional.ofNullable(dataObject);
+            _vertxDataObject = dataObject;
+            if (dataObject == null) {
+                _vertxDataObject = DataBean.class;
+            }
         }
-        if (_vertxDataObject.isPresent()) {
-            return clazz.getAnnotation(_vertxDataObject.get()) != null;
+        if (_vertxDataObject != DataBean.class) {
+            return clazz.getAnnotation(_vertxDataObject) != null;
         } else {
             return false;
         }

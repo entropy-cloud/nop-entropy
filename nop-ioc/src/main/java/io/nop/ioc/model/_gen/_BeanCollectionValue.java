@@ -67,6 +67,7 @@ public abstract class _BeanCollectionValue extends io.nop.core.resource.componen
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -78,6 +79,7 @@ public abstract class _BeanCollectionValue extends io.nop.core.resource.componen
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

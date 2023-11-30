@@ -279,6 +279,7 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -288,6 +289,7 @@ public abstract class _XptSheetModel extends io.nop.core.resource.component.Abst
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

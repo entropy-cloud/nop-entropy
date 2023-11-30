@@ -49,7 +49,7 @@ public class FileScanHelper {
     }
 
     public static void scanZip(ZipFile file, String entryPath, BiConsumer<ZipFile, ZipEntry> action) {
-        Enumeration<? extends ZipEntry> en = file.entries();
+        Enumeration<? extends ZipEntry> en = file.entries(); //NOSONAR
         while (en.hasMoreElements()) {
             ZipEntry entry = en.nextElement();
             if (entry.getName().startsWith(entryPath)) {

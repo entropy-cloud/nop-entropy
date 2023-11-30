@@ -53,7 +53,7 @@ public class Log4j2Configurator implements ILoggerConfigurator {
             }
         }
         if (logger != null) {
-            logger.setLevel(level);
+            logger.setLevel(level); //NOSONAR
         } else {
             loggerContext.getConfiguration().addLogger(loggerName,
                     new NopLoggerConfig(loggerName, level, true));

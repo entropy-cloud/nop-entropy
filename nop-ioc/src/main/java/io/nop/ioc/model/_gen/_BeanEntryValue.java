@@ -93,6 +93,7 @@ public abstract class _BeanEntryValue extends io.nop.ioc.model.BeanPropValue {
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -102,6 +103,7 @@ public abstract class _BeanEntryValue extends io.nop.ioc.model.BeanPropValue {
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

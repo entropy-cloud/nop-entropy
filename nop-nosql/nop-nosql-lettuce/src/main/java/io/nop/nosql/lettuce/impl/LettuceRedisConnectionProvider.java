@@ -51,7 +51,6 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
 
     @Override
     public void refreshConfig() {
-        this.config = config;
         if (connectionSupplier != null) {
             int n = config.getConnectionPoolSize();
             if (n <= 0) {

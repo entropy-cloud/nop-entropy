@@ -47,7 +47,7 @@ public class NestedLoop implements INestedLoop {
         if (varName != null) {
             if (!model.isGlobalVar(varName) && !model.isLoopVar(varName))
                 throw new NopException(ERR_LOOP_VAR_NOT_DEFINED)
-                        .param(ARG_VAR_NAME, varName).param(ARG_GLOBAL_VARS, globalVars.keySet());
+                        .param(ARG_VAR_NAME, varName).param(ARG_GLOBAL_VARS, this.globalVars.keySet());
         }
     }
 

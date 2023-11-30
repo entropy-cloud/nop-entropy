@@ -51,8 +51,8 @@ public class DefaultConfigProvider implements IConfigProvider {
     private final Map<String, DefaultConfigReference<?>> usedRefs;
 
     private IConfigSource configSource;
-    private volatile Map<String, IConfigReference<?>> configRefs;
-    private volatile Map<String, ValueWithLocation> configValues;
+    private volatile Map<String, IConfigReference<?>> configRefs; //NOSONAR
+    private volatile Map<String, ValueWithLocation> configValues; //NOSONAR
     private ConfigModel configModel;
 
     private final ChangeSubscriptions subscriptions = new ChangeSubscriptions();

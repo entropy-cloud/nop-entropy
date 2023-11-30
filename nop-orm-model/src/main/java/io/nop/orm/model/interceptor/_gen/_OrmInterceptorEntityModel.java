@@ -75,6 +75,7 @@ public abstract class _OrmInterceptorEntityModel extends io.nop.core.resource.co
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -86,6 +87,7 @@ public abstract class _OrmInterceptorEntityModel extends io.nop.core.resource.co
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

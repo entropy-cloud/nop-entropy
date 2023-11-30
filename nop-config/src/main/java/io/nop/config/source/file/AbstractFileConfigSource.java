@@ -35,7 +35,7 @@ public abstract class AbstractFileConfigSource implements IConfigSource {
      */
     private final List<Path> paths;
     private final Future<?> refreshFuture;
-    private volatile Map<String, ValueWithLocation> vars;
+    private volatile Map<String, ValueWithLocation> vars; //NOSONAR
 
     private final List<Runnable> tasks = new CopyOnWriteArrayList<>();
 

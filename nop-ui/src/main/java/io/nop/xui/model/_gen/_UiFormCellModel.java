@@ -171,6 +171,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -180,6 +181,7 @@ public abstract class _UiFormCellModel extends io.nop.xui.model.UiDisplayMeta {
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

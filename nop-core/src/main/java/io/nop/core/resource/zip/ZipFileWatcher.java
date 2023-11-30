@@ -60,8 +60,8 @@ public class ZipFileWatcher {
         });
     }
 
-    public static void main(String[] args) {
-        args =  new String[]{"c:/watch/a.xpt.xlsx"};
+    public static void main(String[] inputArgs) {
+        String[] args =  new String[]{"c:/watch/a.xpt.xlsx"};
         NioFileWatchService watchService = new NioFileWatchService();
         watchService.start();
 

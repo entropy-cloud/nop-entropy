@@ -223,6 +223,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -232,6 +233,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

@@ -17,12 +17,7 @@ import io.nop.orm.session.IOrmSessionImplementor;
 
 import java.util.Objects;
 
-import static io.nop.orm.OrmErrors.ARG_REV_BEGIN_VER;
-import static io.nop.orm.OrmErrors.ARG_REV_END_VER;
-import static io.nop.orm.OrmErrors.ARG_REV_VER;
-import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_ALREADY_EXISTS;
-import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_NOT_CURRENT_REVISION;
-import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_REV_VER_IS_LESS_THAN_HIS_VER;
+import static io.nop.orm.OrmErrors.*;
 
 public class OrmRevisionHelper {
     public static void onRevSave(IEntityModel entityModel, IOrmEntity entity, EntityPersisterImpl persister,
@@ -48,7 +43,8 @@ public class OrmRevisionHelper {
         int endVerPropId = entityModel.getNopRevEndVarPropId();
         if (endVerPropId > 0) {
             entity.orm_internalSet(endVerPropId, OrmConstants.NOP_VER_MAX_VALUE);
-            oldEntity.orm_propValue(endVerPropId, ver);
+            if (oldEntity != null)
+                oldEntity.orm_propValue(endVerPropId, ver);
         }
 
         if (oldEntity != null)

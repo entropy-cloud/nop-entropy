@@ -203,12 +203,14 @@ public class ErrorMessageManager implements IErrorMessageManager {
     protected String getFieldDisplayName(String locale, String fieldName, Map<String, ?> params) {
         String entityName = (String) params.get(ApiConstants.PARAM_ENTITY_NAME);
         String fullFieldName = fieldName;
+        boolean useFullName = false;
         if (!StringHelper.isEmpty(entityName)) {
             fullFieldName = entityName + '.' + fieldName;
+            useFullName = true;
         }
 
         String displayName = I18nMessageManager.instance().getMessage(locale, "prop.label." + fullFieldName, null);
-        if (displayName == null && fullFieldName != fieldName) {
+        if (displayName == null && useFullName) {
             int pos = entityName.lastIndexOf('.');
             if (pos > 0) {
                 fullFieldName = entityName.substring(pos + 1) + '.' + fieldName;

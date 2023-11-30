@@ -197,6 +197,7 @@ public abstract class _WfModelAuth extends io.nop.core.resource.component.Abstra
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -206,6 +207,7 @@ public abstract class _WfModelAuth extends io.nop.core.resource.component.Abstra
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

@@ -38,6 +38,8 @@
   "remindCount": 0,
   "nextRetryTime": "2000-01-01 14:00:00",
   "retryCount": 0,
+  "errCode": "",
+  "errMsg": "",
   "priority": 0,
   "voteWeight": 0,
   "execOrder": 0.0,

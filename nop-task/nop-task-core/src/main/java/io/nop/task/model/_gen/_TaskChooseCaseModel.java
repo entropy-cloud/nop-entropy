@@ -41,6 +41,7 @@ public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsMo
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsMo
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

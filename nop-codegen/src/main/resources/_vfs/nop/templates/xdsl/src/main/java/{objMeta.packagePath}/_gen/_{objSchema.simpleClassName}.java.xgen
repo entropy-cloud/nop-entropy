@@ -117,6 +117,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
     </c:if>
     </c:for>
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -131,6 +132,7 @@ public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implI
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         <c:for var="prop" items="${objSchema.localProps}">

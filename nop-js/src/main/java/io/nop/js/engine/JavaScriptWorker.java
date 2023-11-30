@@ -259,7 +259,8 @@ public class JavaScriptWorker implements Runnable, AutoCloseable {
                         }
                     }
                 } catch (InterruptedException e) { //NOPMD
-                    // ignore
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e);
                 }
 
             } while (!closed);

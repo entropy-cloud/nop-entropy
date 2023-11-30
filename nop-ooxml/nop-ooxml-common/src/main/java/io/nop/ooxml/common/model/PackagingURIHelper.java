@@ -157,13 +157,13 @@ public final class PackagingURIHelper {
      * @param partUri URI to check.
      * @return <i>true</i> if the URI <i>false</i>.
      */
-    public static boolean isRelationshipPartURI(URI partUri) {
-        if (partUri == null)
-            throw new IllegalArgumentException("partUri");
-
-        return partUri.getPath()
-                .matches(".*" + RELATIONSHIP_PART_SEGMENT_NAME + ".*" + RELATIONSHIP_PART_EXTENSION_NAME + "$");
-    }
+//    public static boolean isRelationshipPartURI(URI partUri) {
+//        if (partUri == null)
+//            throw new IllegalArgumentException("partUri");
+//
+//        return partUri.getPath()
+//                .matches(".*" + RELATIONSHIP_PART_SEGMENT_NAME + ".*" + RELATIONSHIP_PART_EXTENSION_NAME + "$");
+//    }
 
     /**
      * Get file name from the specified URI.
@@ -410,30 +410,30 @@ public final class PackagingURIHelper {
         return retUri;
     }
 
-    /**
-     * Get the source part URI from a specified relationships part.
-     *
-     * @param relationshipPartUri The relationship part use to retrieve the source part.
-     * @return The source part URI from the specified relationships part.
-     */
-    public static URI getSourcePartUriFromRelationshipPartUri(URI relationshipPartUri) {
-        if (relationshipPartUri == null)
-            throw new IllegalArgumentException("Must not be null");
-
-        if (!isRelationshipPartURI(relationshipPartUri))
-            throw new IllegalArgumentException("Must be a relationship part");
-
-        if (relationshipPartUri.compareTo(PACKAGE_RELATIONSHIPS_ROOT_URI) == 0)
-            return PACKAGE_ROOT_URI;
-
-        String filename = relationshipPartUri.getPath();
-        String filenameWithoutExtension = getFilenameWithoutExtension(relationshipPartUri);
-        filename = filename.substring(0,
-                ((filename.length() - filenameWithoutExtension.length()) - RELATIONSHIP_PART_EXTENSION_NAME.length()));
-        filename = filename.substring(0, filename.length() - RELATIONSHIP_PART_SEGMENT_NAME.length() - 1);
-        filename = combine(filename, filenameWithoutExtension);
-        return getURIFromPath(filename);
-    }
+//    /**
+//     * Get the source part URI from a specified relationships part.
+//     *
+//     * @param relationshipPartUri The relationship part use to retrieve the source part.
+//     * @return The source part URI from the specified relationships part.
+//     */
+//    public static URI getSourcePartUriFromRelationshipPartUri(URI relationshipPartUri) {
+//        if (relationshipPartUri == null)
+//            throw new IllegalArgumentException("Must not be null");
+//
+//        if (!isRelationshipPartURI(relationshipPartUri))
+//            throw new IllegalArgumentException("Must be a relationship part");
+//
+//        if (relationshipPartUri.compareTo(PACKAGE_RELATIONSHIPS_ROOT_URI) == 0)
+//            return PACKAGE_ROOT_URI;
+//
+//        String filename = relationshipPartUri.getPath();
+//        String filenameWithoutExtension = getFilenameWithoutExtension(relationshipPartUri);
+//        filename = filename.substring(0,
+//                ((filename.length() - filenameWithoutExtension.length()) - RELATIONSHIP_PART_EXTENSION_NAME.length()));
+//        filename = filename.substring(0, filename.length() - RELATIONSHIP_PART_SEGMENT_NAME.length() - 1);
+//        filename = combine(filename, filenameWithoutExtension);
+//        return getURIFromPath(filename);
+//    }
 
     /**
      * Create an OPC compliant part name by throwing an exception if the URI is not valid.

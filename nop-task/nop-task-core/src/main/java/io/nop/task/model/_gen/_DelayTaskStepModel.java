@@ -41,6 +41,7 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepMode
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

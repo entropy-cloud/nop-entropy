@@ -15,6 +15,7 @@ import io.nop.core.lang.json.IJsonHandler;
 public abstract class _EndTaskStepModel extends io.nop.task.model.TaskStepModel {
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -24,6 +25,7 @@ public abstract class _EndTaskStepModel extends io.nop.task.model.TaskStepModel 
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

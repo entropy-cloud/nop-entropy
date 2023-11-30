@@ -112,7 +112,8 @@ public class ByteBufferOutputStream extends OutputStream {
      * @throws IOException if an I/O error occurs.
      */
     public void writeTo(OutputStream out) throws IOException {
-        WritableByteChannel channel = Channels.newChannel(out);
+        // 无需关闭channel，否则会自动关闭内部的OutputStream
+        WritableByteChannel channel = Channels.newChannel(out); //NOSONAR
         ByteBuffer bb = buf.duplicate();
         bb.flip();
         channel.write(bb);

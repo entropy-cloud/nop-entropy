@@ -9,6 +9,8 @@ package io.nop.dao.dialect;
 
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.Objects;
+
 @DataBean
 public class DialectSelector implements Comparable<DialectSelector> {
     private String dialectName;
@@ -83,7 +85,7 @@ public class DialectSelector implements Comparable<DialectSelector> {
     }
 
     int compare(String s1, String s2) {
-        if (s1 == s2)
+        if (Objects.equals(s1, s2))
             return 0;
         if (s1 == null)
             return -1;

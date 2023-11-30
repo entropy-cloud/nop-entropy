@@ -162,6 +162,14 @@
               insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Integer"/>
         </prop>
+        <prop name="errCode" displayName="错误码" i18n-en:displayName="Error Code" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="errMsg" displayName="错误消息" i18n-en:displayName="Error Message" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
         <prop name="priority" displayName="优先级" i18n-en:displayName="Priority" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Integer"/>

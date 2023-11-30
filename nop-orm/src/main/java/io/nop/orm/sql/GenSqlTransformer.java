@@ -195,6 +195,6 @@ public class GenSqlTransformer {
         int expectCount = sql.getValueMarkerCount();
         if (paramCount != expectCount)
             throw new OrmException(ERR_ORM_SQL_PARAM_COUNT_MISMATCH).param(ARG_SQL, sql)
-                    .param(ARG_COUNT, paramValues.size()).param(ARG_EXPECTED, expectCount);
+                    .param(ARG_COUNT, paramCount).param(ARG_EXPECTED, expectCount);
     }
 }

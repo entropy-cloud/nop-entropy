@@ -19,10 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import static io.nop.commons.CommonErrors.ARG_PATH;
-import static io.nop.commons.CommonErrors.ARG_WAIT_TIME;
-import static io.nop.commons.CommonErrors.ERR_FILE_ACQUIRE_LOCK_FAIL;
-import static io.nop.commons.CommonErrors.ERR_FILE_ACQUIRE_LOCK_TIMEOUT;
+import static io.nop.commons.CommonErrors.*;
 
 public class LocalFileLock implements Lock {
 
@@ -54,18 +51,22 @@ public class LocalFileLock implements Lock {
                 channel = randomAccessFile.getChannel();
                 lock = channel.tryLock();
 
+                if(timeoutMs <= 0)
+                    break;
+
                 if (lock == null) {
                     IoHelper.safeCloseObject(channel);
                     IoHelper.safeCloseObject(randomAccessFile);
                     try {
                         Thread.sleep(pollIntervalMs);
-                    } catch (InterruptedException e) {
+                    } catch (InterruptedException e) { //NOSONAR
                         if (interruptable)
                             throw e;
                     }
                 }
             } while (lock == null && !CoreMetrics.isExpiredNanos(expireNanos));
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw e;
         } catch (Exception e) {
             throw new NopException(ERR_FILE_ACQUIRE_LOCK_FAIL, e).param(ARG_WAIT_TIME, timeoutMs).param(ARG_PATH,
@@ -82,6 +83,7 @@ public class LocalFileLock implements Lock {
             if (!result)
                 throw new NopException(ERR_FILE_ACQUIRE_LOCK_TIMEOUT).param(ARG_PATH, lockFile.getAbsolutePath());
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new NopException(ERR_FILE_ACQUIRE_LOCK_FAIL, e).param(ARG_PATH, lockFile.getAbsolutePath());
         }
     }
@@ -97,7 +99,7 @@ public class LocalFileLock implements Lock {
     public boolean tryLock() {
         try {
             return tryLock(0, false);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException e) { //NOSONAR
             return false;
         }
     }

@@ -37,36 +37,14 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Deque;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static io.nop.commons.CommonConfigs.CFG_UTILS_STRING_MAX_PAD_LEN;
 import static io.nop.commons.CommonConfigs.CFG_UTILS_STRING_MAX_REPEAT_LEN;
-import static io.nop.commons.CommonErrors.ARG_LENGTH;
-import static io.nop.commons.CommonErrors.ARG_PARAM_NAME;
-import static io.nop.commons.CommonErrors.ARG_QUERY;
-import static io.nop.commons.CommonErrors.ARG_STR;
-import static io.nop.commons.CommonErrors.ERR_TEXT_ILLEGAL_HEX_STRING;
-import static io.nop.commons.CommonErrors.ERR_TEXT_INVALID_UNICODE;
-import static io.nop.commons.CommonErrors.ERR_TEXT_INVALID_UUID_RANGE;
-import static io.nop.commons.CommonErrors.ERR_UTILS_DUPLICATE_PARAM_NAME_IS_NOT_ALLOWED_IN_SIMPLE_QUERY;
-import static io.nop.commons.CommonErrors.ERR_UTILS_INVALID_QUOTED_STRING;
+import static io.nop.commons.CommonErrors.*;
 
 /**
  * 所有关于String的常用帮助函数。为方便在EL表达式中调用，所有参数都允许为null。 为了与EL表达式集成，第一个参数一般情况下应该是String或者CharSequence类型。
@@ -142,8 +120,8 @@ public class StringHelper extends ApiStringHelper {
         if (str == null || str.length() == 0 || fromChars == null || fromChars.length == 0)
             return str == null ? null : str.toString();
 
-        Guard.checkArgument(toStrs != null && fromChars.length == toStrs.length,
-                "escape fromChars and toChars length not match");
+        if (toStrs == null || fromChars.length != toStrs.length)
+            throw new IllegalArgumentException("escape fromChars and toChars length not match");
 
         int sz = str.length();
         StringBuilder buf = null;
@@ -242,8 +220,8 @@ public class StringHelper extends ApiStringHelper {
         if (str == null || str.length() == 0 || fromChars == null || fromChars.length == 0)
             return 0;
 
-        Guard.checkArgument(toStrs != null && fromChars.length == toStrs.length,
-                "escape fromChars and toChars length not match");
+        if (toStrs == null || fromChars.length != toStrs.length)
+            throw new IllegalArgumentException("escape fromChars and toChars length not match");
 
         int count = 0;
         int sz = str.length();
@@ -722,7 +700,7 @@ public class StringHelper extends ApiStringHelper {
         if (str == null)
             return null;
 
-        if (str.length() == 0)
+        if (str.isEmpty())
             return EMPTY_BYTES;
 
         if (startsWithIgnoreCase(str, "0x"))
@@ -827,8 +805,8 @@ public class StringHelper extends ApiStringHelper {
         if (isEmpty(str) || isEmpty(searchChars)) {
             return str;
         }
-        Guard.checkArgument(replaceChars != null && searchChars.length() == replaceChars.length(),
-                "replaceChars and searchChars length not match");
+        if (replaceChars == null || searchChars.length() != replaceChars.length())
+            throw new IllegalArgumentException("replaceChars and searchChars length not match");
 
         final int strLength = str.length();
         StringBuilder buf = null;
@@ -838,7 +816,7 @@ public class StringHelper extends ApiStringHelper {
             if (index >= 0) {
                 if (buf == null) {
                     buf = new StringBuilder(strLength);
-                    buf.append(str.substring(0, i));
+                    buf.append(str, 0, i);
                 }
                 buf.append(replaceChars.charAt(index));
             } else if (buf != null) {
@@ -1105,22 +1083,21 @@ public class StringHelper extends ApiStringHelper {
         if (str == null || str.isEmpty())
             return str;
 
+
         str = str.toLowerCase();
         if (str.indexOf(separator) < 0) {
-            if (firstUpper)
+            if (firstUpper) {
                 return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+            }
             return str;
         }
 
         StringBuilder sb = new StringBuilder();
         boolean nextIsUpper = false;
-        if (str.length() > 1 && str.charAt(1) == separator) {
-            char c = firstUpper ? Character.toUpperCase(str.charAt(0)) : str.charAt(0);
-            sb.append(c);
-        } else {
-            char c = firstUpper ? Character.toUpperCase(str.charAt(0)) : str.charAt(0);
-            sb.append(c);
-        }
+
+        char cc = firstUpper ? Character.toUpperCase(str.charAt(0)) : str.charAt(0);
+        sb.append(cc);
+
         for (int i = 1, n = str.length(); i < n; i++) {
             char c = str.charAt(i);
             if (c == separator) {
@@ -1391,7 +1368,10 @@ public class StringHelper extends ApiStringHelper {
 
     @Deterministic
     public static String hmacSha256(String str, String salt) {
-        return bytesToHex(HashHelper.hmacSha256(utf8Bytes(str), utf8Bytes(salt)));
+        byte[] bytes = utf8Bytes(str);
+        if (bytes == null)
+            return null;
+        return bytesToHex(HashHelper.hmacSha256(bytes, utf8Bytes(salt)));
     }
 
     @Deterministic
@@ -2958,7 +2938,7 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
-    public static String limitUtf8Len(CharSequence str, int utfLen){
+    public static String limitUtf8Len(CharSequence str, int utfLen) {
         return limitUtfLen(str, 0, utfLen);
     }
 

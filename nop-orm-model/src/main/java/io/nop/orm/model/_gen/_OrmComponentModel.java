@@ -223,6 +223,7 @@ public abstract class _OrmComponentModel extends io.nop.core.resource.component.
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -234,6 +235,7 @@ public abstract class _OrmComponentModel extends io.nop.core.resource.component.
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

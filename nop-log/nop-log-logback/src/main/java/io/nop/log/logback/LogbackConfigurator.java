@@ -42,7 +42,7 @@ public class LogbackConfigurator implements ILoggerConfigurator {
             LoggerContext context = (LoggerContext) loggerFactory;
             LOG.info("nop.log.change-log-level:loggerName={},logLevel={}", loggerName, logLevel);
             Logger logger = context.getLogger(loggerName);
-            logger.setLevel(toLogbackLevel(logLevel));
+            logger.setLevel(toLogbackLevel(logLevel)); //NOSONAR
         }
     }
 

@@ -42,7 +42,7 @@ public class NetAddress implements Serializable {
      */
     private final int port;
 
-    private transient volatile InetSocketAddress addr;
+    private transient volatile InetSocketAddress addr; //NOSONAR
 
     public NetAddress(String host, int port) {
         this.host = host;
@@ -135,17 +135,19 @@ public class NetAddress implements Serializable {
     public InetSocketAddress resolve() {
         if (addr != null)
             return addr;
-        if (host == null || host.isEmpty()) {
-            addr = new InetSocketAddress(port);
-        } else {
-            try {
-                InetAddress netAddr = DnsResolver.instance().resolve(host);
-                addr = new InetSocketAddress(netAddr, port);
-            } catch (Exception e) {
-                throw new NopException(ERR_NET_UNKNOWN_HOST, e).param(ARG_HOST, host);
+        synchronized (this) {
+            if (host == null || host.isEmpty()) {
+                addr = new InetSocketAddress(port);
+            } else {
+                try {
+                    InetAddress netAddr = DnsResolver.instance().resolve(host);
+                    addr = new InetSocketAddress(netAddr, port);
+                } catch (Exception e) {
+                    throw new NopException(ERR_NET_UNKNOWN_HOST, e).param(ARG_HOST, host);
+                }
             }
+            return addr;
         }
-        return addr;
     }
 
     /**
@@ -161,7 +163,7 @@ public class NetAddress implements Serializable {
     public static NetAddress fromString(String hostPortString) {
         Guard.notNull(hostPortString, "net.err_null_hostPort_string");
         String host;
-        String portString = null;
+        String portString = "";
 
         if (hostPortString.startsWith("[")) {
             String[] hostAndPort = getHostAndPortFromBracketedHost(hostPortString);

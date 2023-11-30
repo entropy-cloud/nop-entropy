@@ -119,6 +119,7 @@ public abstract class _BeanConstructorArgModel extends io.nop.ioc.model.BeanProp
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -128,6 +129,7 @@ public abstract class _BeanConstructorArgModel extends io.nop.ioc.model.BeanProp
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

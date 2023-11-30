@@ -127,7 +127,7 @@ public class MdxQueryExecutor {
         List<T> records = new ArrayList<>(ret.size());
         for (int i = 0, n = ret.size(); i < n; i++) {
             IDataRow row = new MapDataRow(meta, true, ret.get(i));
-            T record = resultMapper.mapRow(row, i + 1, DefaultFieldMapper.INSTANCE);
+            T record = resultMapper.mapRow(row, i + 1L, DefaultFieldMapper.INSTANCE);
             records.add(record);
         }
         return records;

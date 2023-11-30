@@ -67,6 +67,7 @@ public abstract class _NativeSqlItemModel extends io.nop.orm.sql_lib.SqlItemMode
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -76,6 +77,7 @@ public abstract class _NativeSqlItemModel extends io.nop.orm.sql_lib.SqlItemMode
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

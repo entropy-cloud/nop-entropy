@@ -128,6 +128,9 @@ public class BaseTestCase {
 
             try {
                 barrier.await(timeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
             } catch (Exception e) {
                 return false;
             }

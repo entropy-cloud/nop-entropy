@@ -301,6 +301,7 @@ public abstract class _OrmModel extends io.nop.xlang.xdsl.AbstractDslModel {
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -318,6 +319,7 @@ public abstract class _OrmModel extends io.nop.xlang.xdsl.AbstractDslModel {
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

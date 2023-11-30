@@ -18,16 +18,9 @@ package io.nop.job.core.utils;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
-
 import jakarta.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.TimeZone;
+
+import java.util.*;
 
 import static io.nop.job.core.JobCoreErrors.ARG_CRON_EXPR;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL;
@@ -271,6 +264,8 @@ public class CronExpression implements ICronExpression {
      * Parse the given pattern expression.
      */
     private void parse(String expression) throws IllegalArgumentException {
+        if (expression == null || expression.isEmpty())
+            throw new IllegalArgumentException("empty cron expression");
         String[] fields = StringHelper.tokenizeToStringArray(expression, " ");
         if (!areValidCronFields(fields)) {
             throw new IllegalArgumentException(String.format(

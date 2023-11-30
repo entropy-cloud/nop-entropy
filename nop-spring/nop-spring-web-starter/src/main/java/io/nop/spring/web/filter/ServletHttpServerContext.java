@@ -110,6 +110,7 @@ public class ServletHttpServerContext implements IHttpServerContext {
         }
         Cookie retCookie = new Cookie(name, "");
         retCookie.setPath("/");
+        retCookie.setHttpOnly(true);
         retCookie.setMaxAge(0);
         response.addCookie(retCookie);
     }
@@ -118,7 +119,9 @@ public class ServletHttpServerContext implements IHttpServerContext {
     public void removeCookie(String name, String domain, String path) {
         Cookie retCookie = new Cookie(name, "");
         retCookie.setPath(path);
-        retCookie.setDomain(domain);
+        if(Objects.nonNull(domain))
+            retCookie.setDomain(domain);
+        retCookie.setHttpOnly(true);
         retCookie.setMaxAge(0);
         response.addCookie(retCookie);
     }

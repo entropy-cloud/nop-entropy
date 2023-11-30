@@ -33,11 +33,12 @@ public class VariantsArgumentProvider implements ArgumentsProvider, AnnotationCo
 
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-        Guard.checkArgument(context.getTestClass().isPresent());
-        Guard.checkArgument(context.getTestMethod().isPresent());
 
-        Class<?> testClass = context.getTestClass().get();
-        Method testMethod = context.getTestMethod().get();
+        Class<?> testClass = context.getTestClass().orElse(null);
+        Method testMethod = context.getTestMethod().orElse(null);
+
+        if(testClass == null || testMethod == null)
+            throw new IllegalArgumentException("null test info");
 
         String dataDir = AutoTestDataHelper.getTestDataPath(testClass, testMethod);
 

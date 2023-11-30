@@ -197,6 +197,7 @@ public abstract class _BeanListModel extends io.nop.ioc.model.BeanListValue {
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -206,6 +207,7 @@ public abstract class _BeanListModel extends io.nop.ioc.model.BeanListValue {
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

@@ -28,8 +28,10 @@ public class RetryHelper {
                 if (delay > 0) {
                     try {
                         Thread.sleep(delay);
-                    } catch (Exception ex) { //NOPMD - suppressed EmptyCatchBlock
+                    } catch (InterruptedException ex) { //NOPMD - suppressed EmptyCatchBlock
                         // ignore
+                        Thread.currentThread().interrupt();
+                        throw NopException.adapt(e);
                     }
                 }
                 retryTimes++;

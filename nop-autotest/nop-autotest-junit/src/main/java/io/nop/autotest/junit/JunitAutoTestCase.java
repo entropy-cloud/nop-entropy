@@ -65,10 +65,11 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
     }
 
     protected void configExecutionMode(TestInfo testInfo) {
-        if (testInfo.getTestMethod().isEmpty())
+        Method method = testInfo.getTestMethod().orElse(null);
+        if (method == null)
             return;
 
-        EnableSnapshot enableSnapshot = testInfo.getTestMethod().get().getAnnotation(EnableSnapshot.class);
+        EnableSnapshot enableSnapshot = method.getAnnotation(EnableSnapshot.class);
         if (enableSnapshot != null && !CFG_AUTOTEST_DISABLE_SNAPSHOT.get()) {
             setCheckOutput(enableSnapshot.checkOutput());
             setLocalDb(enableSnapshot.localDb());
@@ -101,8 +102,11 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
     }
 
     protected String getCaseDataPath(TestInfo testInfo) {
-        Guard.checkArgument(testInfo.getTestMethod().isPresent());
-        return AutoTestDataHelper.getTestDataPath(testInfo.getTestClass().get(), testInfo.getTestMethod().get());
+        Class<?> testClass = testInfo.getTestClass().orElse(null);
+        Method testMethod = testInfo.getTestMethod().orElse(null);
+        if(testClass == null || testMethod == null)
+            throw new IllegalArgumentException("null test info");
+        return AutoTestDataHelper.getTestDataPath(testClass, testMethod);
     }
 
     protected void checkEquals(ErrorCode errorCode, String fileName, Object expected, Object value) {

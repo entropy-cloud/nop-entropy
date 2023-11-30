@@ -171,6 +171,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -184,6 +185,7 @@ public abstract class _ForkTaskStepModel extends io.nop.task.model.TaskStepsMode
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

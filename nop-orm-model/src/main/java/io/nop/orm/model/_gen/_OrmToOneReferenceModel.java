@@ -119,6 +119,7 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -130,6 +131,7 @@ public abstract class _OrmToOneReferenceModel extends io.nop.orm.model.OrmRefere
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

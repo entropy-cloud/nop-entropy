@@ -159,7 +159,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2 | b3 | b4) < 0) {
                 throw new EOFException();
             } else {
-                return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4 << 0);
+                return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -181,7 +181,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2) < 0) {
                 throw new EOFException();
             } else {
-                return (short) ((b2 << 8) + (b1 << 0));
+                return (short) ((b2 << 8) + (b1));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -198,7 +198,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2 | b3 | b4) < 0) {
                 throw new EOFException();
             } else {
-                return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1 << 0);
+                return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -234,7 +234,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2) < 0) {
                 throw new EOFException();
             } else {
-                return (b1 << 8) + (b2 << 0);
+                return (b1 << 8) + (b2);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -251,7 +251,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2 | b3 | b4) < 0) {
                 throw new EOFException();
             } else {
-                return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4 << 0);
+                return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -266,7 +266,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2) < 0) {
                 throw new EOFException();
             } else {
-                return (b2 << 8) + (b1 << 0);
+                return (b2 << 8) + (b1);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -283,7 +283,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2 | b3 | b4) < 0) {
                 throw new EOFException();
             } else {
-                return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1 << 0);
+                return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

@@ -19,7 +19,7 @@ import java.util.function.Function;
 public class JavaScriptService extends LifeCycleSupport implements IConfigRefreshable, IAsyncFunctionService {
     private String initScriptPath;
     private int workerCount = 5;
-    private volatile JavaScriptWorker[] workers;
+    private volatile JavaScriptWorker[] workers; //NOSONAR
     private DefaultThreadPoolExecutor executor;
     private Function<String, String> jsLibLoader;
 

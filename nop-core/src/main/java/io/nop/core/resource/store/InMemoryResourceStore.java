@@ -63,6 +63,7 @@ public class InMemoryResourceStore implements IResourceStore {
                     throw NopException.adapt(e);
                 }
             });
+            input.close();
         } catch (IOException e) {
             throw NopException.adapt(e);
         } finally {

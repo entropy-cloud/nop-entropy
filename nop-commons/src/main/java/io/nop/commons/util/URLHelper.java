@@ -24,15 +24,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
 
-import static io.nop.commons.CommonErrors.ARG_URL;
-import static io.nop.commons.CommonErrors.ERR_UTILS_INVALID_URL;
-import static io.nop.commons.CommonErrors.ERR_UTILS_URL_OPEN_STREAM_FAIL;
+import static io.nop.commons.CommonErrors.*;
 
 public class URLHelper {
     static final Logger LOG = LoggerFactory.getLogger(URLHelper.class);
@@ -106,10 +100,16 @@ public class URLHelper {
     }
 
     public static boolean exists(URL url) {
+        if(url == null)
+            return false;
+
         try {
             if (isFileURL(url)) {
                 // Proceed with file system resolution
-                return getFile(url).exists();
+                File file = getFile(url);
+                if (file == null)
+                    return false;
+                return file.exists();
             } else {
                 // Try a URL connection content-length header
                 URLConnection con = url.openConnection();

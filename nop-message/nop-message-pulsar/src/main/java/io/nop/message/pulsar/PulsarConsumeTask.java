@@ -8,12 +8,7 @@
 package io.nop.message.pulsar;
 
 import io.nop.api.core.beans.ApiMessage;
-import io.nop.api.core.message.ConsumeLater;
-import io.nop.api.core.message.IMessageConsumeContext;
-import io.nop.api.core.message.IMessageConsumer;
-import io.nop.api.core.message.MessageSendOptions;
-import io.nop.api.core.message.MessageSubscriptionConfig;
-import io.nop.api.core.message.TopicMessage;
+import io.nop.api.core.message.*;
 import io.nop.api.core.util.FutureHelper;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -37,6 +32,8 @@ public class PulsarConsumeTask {
     private final Consumer<Object> pulsarConsumer;
     private final PulsarMessageService service;
     private final MessageSubscriptionConfig config;
+
+    private volatile boolean active = false;
 
     public PulsarConsumeTask(PulsarMessageService service, Executor executor,
                              Consumer<Object> pulsarConsumer, MessageSubscriptionConfig config) {
@@ -73,7 +70,11 @@ public class PulsarConsumeTask {
                 LOG.error("nop.err.pulsar.consume-fail", e);
                 config.getConsumer().onException(e);
             }
-        } while (true);
+        } while (active);
+    }
+
+    public void stop() {
+        active = false;
     }
 
     void batchConsume() throws Exception {

@@ -41,6 +41,7 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _EqlSqlItemModel extends io.nop.orm.sql_lib.SqlItemModel {
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

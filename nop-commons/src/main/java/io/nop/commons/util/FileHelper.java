@@ -13,34 +13,19 @@ import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.io.Writer;
+import java.io.*;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
-import java.nio.file.DirectoryNotEmptyException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 
-import static io.nop.commons.CommonErrors.ARG_DEST;
-import static io.nop.commons.CommonErrors.ARG_PATH;
-import static io.nop.commons.CommonErrors.ERR_FILE_WRITE_CONFLICT;
-import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_DIRECTORY;
-import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_FILE;
+import static io.nop.commons.CommonErrors.*;
 
 public class FileHelper {
     static final Logger LOG = LoggerFactory.getLogger(FileHelper.class);
@@ -253,12 +238,12 @@ public class FileHelper {
             if (overwrite) {
                 if (Files.isSymbolicLink(dest.toPath()) && unlinkSymlinkIfOverwrite) {
                     // unlink (a.k.a delete the symlink path)
-                    dest.delete();
+                    return dest.delete();
                 } else if (!dest.canWrite()) {
                     // if the file *isn't* "writable" (see javadoc of
                     // File.canWrite() on what that means)
                     // we delete it.
-                    dest.delete();
+                    return dest.delete();
                 } // if dest is writable, the copy will overwrite it without
                 // requiring a delete
             } else {
@@ -278,7 +263,8 @@ public class FileHelper {
                 deleteAll(sub);
             }
         }
-        file.delete();
+        if (!file.delete())
+            LOG.error("nop.file.delete-fail:file={}", file);
     }
 
     public static boolean deleteIfExists(File file) throws IOException {
@@ -329,13 +315,13 @@ public class FileHelper {
         }
         // add others permissions
         if ((mode & 0x0004) > 0) {
-            perms.add(PosixFilePermission.OTHERS_READ);
+            perms.add(PosixFilePermission.OTHERS_READ); //NOSONAR
         }
         if ((mode & 0x0002) > 0) {
-            perms.add(PosixFilePermission.OTHERS_WRITE);
+            perms.add(PosixFilePermission.OTHERS_WRITE); //NOSONAR
         }
         if ((mode & 0x0001) > 0) {
-            perms.add(PosixFilePermission.OTHERS_EXECUTE);
+            perms.add(PosixFilePermission.OTHERS_EXECUTE); //NOSONAR
         }
         return perms;
     }
@@ -350,6 +336,8 @@ public class FileHelper {
 
     public static File getAttachmentFile(Class<?> clazz, String attachmentFileName) {
         File file = getClassFile(clazz);
+        if (file == null)
+            throw new IllegalStateException("null class file");
         return new File(file.getParentFile(), attachmentFileName);
     }
 
@@ -386,7 +374,8 @@ public class FileHelper {
         if (children != null) {
             for (File child : children) {
                 if (child.getName().startsWith(prefix))
-                    child.delete();
+                    if (!child.delete())
+                        LOG.error("nop.err.file.remove-file-fail:file={}", child);
             }
         }
     }
@@ -447,6 +436,7 @@ public class FileHelper {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             LOG.warn("sleep wrong", e);
         }
     }

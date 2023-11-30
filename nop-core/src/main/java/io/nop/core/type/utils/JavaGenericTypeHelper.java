@@ -77,7 +77,7 @@ public class JavaGenericTypeHelper {
     /**
      * Returns true if {@code a} and {@code b} are equal.
      */
-    public static boolean equals(Type a, Type b) {
+    public static boolean typeEquals(Type a, Type b) {
         if (a == b) {
             return true; // Also handles (a == null && b == null).
 
@@ -89,7 +89,7 @@ public class JavaGenericTypeHelper {
                 return false;
             ParameterizedType pa = (ParameterizedType) a;
             ParameterizedType pb = (ParameterizedType) b;
-            return equal(pa.getOwnerType(), pb.getOwnerType()) && pa.getRawType().equals(pb.getRawType())
+            return equalsObject(pa.getOwnerType(), pb.getOwnerType()) && pa.getRawType().equals(pb.getRawType())
                     && Arrays.equals(pa.getActualTypeArguments(), pb.getActualTypeArguments());
 
         } else if (a instanceof GenericArrayType) {
@@ -97,7 +97,7 @@ public class JavaGenericTypeHelper {
                 return false;
             GenericArrayType ga = (GenericArrayType) a;
             GenericArrayType gb = (GenericArrayType) b;
-            return equals(ga.getGenericComponentType(), gb.getGenericComponentType());
+            return typeEquals(ga.getGenericComponentType(), gb.getGenericComponentType());
 
         } else if (a instanceof WildcardType) {
             if (!(b instanceof WildcardType))
@@ -165,7 +165,7 @@ public class JavaGenericTypeHelper {
         throw new NoSuchElementException();
     }
 
-    private static boolean equal(Object a, Object b) {
+    private static boolean equalsObject(Object a, Object b) {
         return a == b || (a != null && a.equals(b));
     }
 
@@ -425,7 +425,7 @@ public class JavaGenericTypeHelper {
         public boolean equals(Object other) {
             if (this == other)
                 return true;
-            return other instanceof ParameterizedType && JavaGenericTypeHelper.equals(this, (ParameterizedType) other);
+            return other instanceof ParameterizedType && JavaGenericTypeHelper.typeEquals(this, (ParameterizedType) other);
         }
 
         @Override
@@ -461,7 +461,7 @@ public class JavaGenericTypeHelper {
 
         @Override
         public boolean equals(Object o) {
-            return o instanceof GenericArrayType && JavaGenericTypeHelper.equals(this, (GenericArrayType) o);
+            return o instanceof GenericArrayType && JavaGenericTypeHelper.typeEquals(this, (GenericArrayType) o);
         }
 
         @Override
@@ -518,7 +518,7 @@ public class JavaGenericTypeHelper {
 
         @Override
         public boolean equals(Object other) {
-            return other instanceof WildcardType && JavaGenericTypeHelper.equals(this, (WildcardType) other);
+            return other instanceof WildcardType && JavaGenericTypeHelper.typeEquals(this, (WildcardType) other);
         }
 
         @Override

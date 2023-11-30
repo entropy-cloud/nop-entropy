@@ -158,7 +158,7 @@ public class ConfigStarter extends LifeCycleSupport {
                 configSources.add(jdbcSource);
                 configSources.addAll(baseSource.getConfigSources());
 
-                configSource = new CompositeConfigSource(configSources);
+                configSource = new CompositeConfigSource(configSources); //NOSONAR
             }
 
             // 7. 加载扩展配置
