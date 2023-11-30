@@ -40,7 +40,7 @@ public class WidthFirstIterator<T> implements IterableIterator<T> {
             }
         }
         this.filter = filter;
-        next();
+        peek = _next();
     }
 
     @Override
