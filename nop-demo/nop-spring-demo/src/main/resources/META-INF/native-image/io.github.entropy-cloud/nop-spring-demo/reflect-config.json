@@ -33410,6 +33410,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isIocForceInit",
+        "parameterTypes": []
+      },
+      {
         "name": "isIocProxy",
         "parameterTypes": []
       },
@@ -33549,6 +33553,12 @@
         "name": "setIocDestroy",
         "parameterTypes": [
           "io.nop.xlang.api.EvalCode"
+        ]
+      },
+      {
+        "name": "setIocForceInit",
+        "parameterTypes": [
+          "boolean"
         ]
       },
       {
