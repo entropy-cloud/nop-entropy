@@ -31,7 +31,11 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.NoSuchElementException;
 
 
 public class Bytes {
@@ -108,6 +112,13 @@ public class Bytes {
      */
     final public static int len(byte[] b) {
         return b == null ? 0 : b.length;
+    }
+
+    public static byte[] concat(byte[] a, byte[] b) {
+        byte[] ret = new byte[a.length + b.length];
+        System.arraycopy(a, 0, ret, 0, a.length);
+        System.arraycopy(b, 0, ret, a.length, b.length);
+        return ret;
     }
 
     /**
@@ -1064,7 +1075,7 @@ public class Bytes {
      * @return First <code>length</code> bytes from <code>a</code>
      */
     public static byte[] head(final byte[] a, final int length) {
-        if (a.length < length) {
+        if (a.length <= length) {
             return null;
         }
         byte[] result = new byte[length];
@@ -1078,7 +1089,7 @@ public class Bytes {
      * @return Last <code>length</code> bytes from <code>a</code>
      */
     public static byte[] tail(final byte[] a, final int length) {
-        if (a.length < length) {
+        if (a.length <= length) {
             return null;
         }
         byte[] result = new byte[length];

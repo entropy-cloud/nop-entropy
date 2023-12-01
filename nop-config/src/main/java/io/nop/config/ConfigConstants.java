@@ -70,6 +70,10 @@ public interface ConfigConstants {
 
     String CFG_CONFIG_ENCRYPT_KEY = "nop.config.encrypt-key";
 
+    String CFG_CONFIG_ENCRYPT_SALT_KEY = "nop.config.encrypt-salt-key";
+
+    String CFG_CONFIG_ENCRYPT_CONCAT_IV = "nop.config.encrypt-concat-iv";
+
     String CFG_KEY_FILE_CONFIG_SOURCE_PATHS = "nop.config.key-config-source.paths";
 
     String CFG_PROPS_FILE_CONFIG_SOURCE_PATHS = "nop.config.props-config-source.paths";

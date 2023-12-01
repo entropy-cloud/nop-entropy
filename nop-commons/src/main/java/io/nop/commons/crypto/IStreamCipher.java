@@ -11,11 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public interface IStreamCipher {
-    InputStream encryptInputStream(InputStream is);
-
     InputStream decryptInputStream(InputStream is);
 
     OutputStream encryptOutputStream(OutputStream os);
-
-    OutputStream decryptOutputStream(OutputStream os);
 }

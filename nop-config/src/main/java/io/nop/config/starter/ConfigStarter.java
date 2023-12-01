@@ -418,6 +418,16 @@ public class ConfigStarter extends LifeCycleSupport {
             cipher.setEncKey(encKey);
         }
 
+        String saltKey = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_ENCRYPT_SALT_KEY, "");
+        if (!saltKey.isEmpty()) {
+            cipher.setSaltKey(saltKey);
+        }
+
+        boolean concatIv = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_ENCRYPT_CONCAT_IV, false);
+        if (concatIv) {
+            cipher.setConcatIv(true);
+        }
+
         DefaultConfigValueEnhancer enhancer = new DefaultConfigValueEnhancer(cipher);
         return enhancer;
     }

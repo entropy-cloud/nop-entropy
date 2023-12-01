@@ -13,6 +13,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.type.IGenericType;
 import org.apache.commons.csv.CSVFormat;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,14 @@ public class CsvHelper {
 
     public static List<Map<String, Object>> readCsv(IResource resource) {
         return readCsv(resource, null, CSVFormat.DEFAULT);
+    }
+
+    public static String format(Object value) {
+        return CSVFormat.DEFAULT.format(value);
+    }
+
+    public static void print(Object value, Appendable out, boolean newRecord) throws IOException {
+        CSVFormat.DEFAULT.print(value, out, newRecord);
     }
 
     public static <T> void writeCsv(IResource resource, CSVFormat format, List<String> headers, List<T> data) {
