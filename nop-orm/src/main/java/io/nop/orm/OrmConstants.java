@@ -47,6 +47,11 @@ public interface OrmConstants {
     String TAG_ENC = "enc";
 
     /**
+     * 存储源码、模型定义等的文本字段
+     */
+    String TAG_CONTENT = "content";
+
+    /**
      * 标记字段为敏感字段，打印到log文件中时需要做mask处理，不能直接输出
      */
     String TAG_MASKED = OrmModelConstants.TAG_MASKED;

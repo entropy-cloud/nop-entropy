@@ -375,4 +375,8 @@ public interface OrmErrors {
 
     ErrorCode ERR_ORM_INVALID_DAO_PATH = define("nop.err.orm.nop-update-time-col",
             "实体[{entityName}]没有定义修改时间字段", ARG_ENTITY_NAME);
+
+    ErrorCode ERR_ORM_ENTITY_NO_CONTENT_PROP =
+            define("nop.err.orm.entity-no-content-prop",
+                    "实体模型[{entityName}]没有定义标记为content的字段", ARG_ENTITY_NAME);
 }
