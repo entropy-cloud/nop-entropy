@@ -269,3 +269,7 @@ output.generateToFile(outputFile, scope);
 ````
 
 可以通过scope对象向报表中传递变量。在报表表达式中即可使用这些变量，并且可以在【展开前】等处理阶段对这些变量进行进一步的加工、计算等。
+
+在【展开前】配置中可以使用xpl模板语言和XScript脚本语言来动态加工数据。
+* 可以使用import来引入Java类
+* 可以使用inject(beanName)引入IoC容器中定义的bean

@@ -1,4 +1,4 @@
-# 可视化设计器
+# 开发问题
 
 ## 1. 修改列名后保存，刷新前台列表页面后发现修改没有应用。但是设计器中已经修改。
 保存到后台后，可以发现page.yaml中label携带了i18n key，则前台得到的页面实际上会被国际化文本替换。
@@ -106,9 +106,13 @@ NopGraphQL的设计是与Web环境无关，它可以用在消息队列、批处�
 在IServiceContext中可以通过setAttribute/getAttribute等方法保存自定义对象。IServiceContext.getCache()还提供了一个单次请求范围内有效的缓存对象，
 可以用于缓存字典数据等。一般业务参数应该显式传递，IServiceContext基本等价于一个Map结构，主要用于在框架内部保存一些单次请求范围内的共享信息。
 
+## 5. Nop跟keycloak的集成除了单点以外，授权等特性也可以用吗？
+做了角色集成，可以使用keycloak中配置的角色，角色与权限的配置关联要在nop平台中做。keycloak可以配置用户和角色的关联，参见OAuthLoginServiceImpl.java
+
+
 # 部署问题
 
-h
+
 # 设计问题
 
 ## 1. Nop平台的文档中提到的函数抽象和函数模板化是什么意思？
