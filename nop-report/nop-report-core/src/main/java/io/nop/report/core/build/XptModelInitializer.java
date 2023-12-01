@@ -31,6 +31,7 @@ import io.nop.excel.model.constants.XptExpandType;
 import io.nop.report.core.expr.ExcelFormulaParser;
 import io.nop.report.core.initialize.TemplateReportExprStdDomainHandler;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.xdef.domain.XplStdDomainHandlers;
 
 import java.util.List;
 import java.util.Set;
@@ -39,11 +40,9 @@ import static io.nop.report.core.XptConstants.EXCEL_MODEL_FIELD_PREFIX;
 import static io.nop.report.core.XptErrors.ARG_CELL_POS;
 import static io.nop.report.core.XptErrors.ARG_COL_PARENT;
 import static io.nop.report.core.XptErrors.ARG_DS_NAME;
-import static io.nop.report.core.XptErrors.ARG_EXPR;
 import static io.nop.report.core.XptErrors.ARG_FIELD_NAME;
 import static io.nop.report.core.XptErrors.ARG_ROW_PARENT;
 import static io.nop.report.core.XptErrors.ARG_SHEET_NAME;
-import static io.nop.report.core.XptErrors.ERR_XPT_CELL_EXPR_NO_DS_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_COL_PARENT_CONTAINS_LOOP;
 import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_COL_PARENT;
 import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_DS_NAME;
@@ -186,12 +185,17 @@ public class XptModelInitializer {
             cellModel.setExpandType(expandType);
         }
 
-        int pos = text.indexOf('!');
-        if (pos < 0 && expandType != null)
-            throw new NopException(ERR_XPT_CELL_EXPR_NO_DS_NAME)
-                    .loc(loc)
-                    .param(ARG_EXPR, text);
+        int pos0 = text.indexOf('@');
+        if (pos0 > 0) {
+            String expr = text.substring(pos0 + 1).trim();
+            text = text.substring(0, pos0);
 
+            IEvalAction expandExpr = XplStdDomainHandlers.ExprType.INSTANCE.parseProp(null, loc,
+                    "expandExpr", expr, cp);
+            cellModel.setExpandExpr(expandExpr);
+        }
+
+        int pos = text.indexOf('!');
         if (pos > 0) {
             String ds = text.substring(0, pos);
             String field = text.substring(pos + 1);
@@ -213,6 +217,11 @@ public class XptModelInitializer {
                         .param(ARG_FIELD_NAME, text);
             cellModel.setField(text);
         }
+
+//        if (pos < 0 && expandType != null)
+//            throw new NopException(ERR_XPT_CELL_EXPR_NO_DS_NAME)
+//                    .loc(loc)
+//                    .param(ARG_EXPR, text);
     }
 
     private void initParentChildren(ExcelSheet sheet) {

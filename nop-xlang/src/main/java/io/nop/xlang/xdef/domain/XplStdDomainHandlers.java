@@ -363,6 +363,8 @@ public class XplStdDomainHandlers {
     }
 
     public static class ExprType extends AbstractExprType {
+        public static final ExprType INSTANCE = new ExprType();
+
         @Override
         public String getName() {
             return XDefConstants.STD_DOMAIN_EXPR;

@@ -54,6 +54,7 @@ NopReport报表模型可以看作是对Excel模型的一种扩展。在单元格
    A. `*=fieldName` 等价于配置field=fieldName
    B. `*=^ds1!fieldName`，等价于配置 expandType=r, ds=ds1, field=fieldName
    C. `*=>ds1!fieldName` 等价于配置 expandType=c, ds=ds1, field=fieldName
+   D. `*=^fieldName@entity.children` 等价于配置expandType=r,field=fieldName,expandExpr=entity.children
 
 详细说明参见文档[xpt-report.md](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/dev-guide/report/xpt-report.md)
 
