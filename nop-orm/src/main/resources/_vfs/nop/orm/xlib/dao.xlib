@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpl="xpl" xmlns:thisLib="thisLib">
+    <tags>
+        <_FindBase x:abstract="true">
+            <attr name="sqlType" type="String" optional="true"/>
+            <attr name="rowType" type="String" stdDomain="generic-type" optional="true"/>
+            <attr name="cacheName" type="String" optional="true"/>
+            <attr name="cacheKey" type="String" optional="true"/>
+            <attr name="querySpace" type="String" optional="true"/>
+            <attr name="timeout" type="Integer" optional="true"/>
+            <attr name="disableLogicalDelete" type="Boolean" optional="true"/>
+
+            <slot name="default" outputMode="sql"/>
+        </_FindBase>
+
+        <FindAll x:prototype="_FindBase">
+            <source>
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <c:script><![CDATA[
+                    const isSql = sqlType == 'sql';
+                    const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
+                    if(rowType == null)
+                        return executor.findAll(sql);
+                    return executor.findAll(sql, executor.getRowMapper(rowType, isSql));
+                ]]></c:script>
+            </source>
+        </FindAll>
+
+        <FindPage x:prototype="_FindBase">
+            <attr name="offset" type="Long"/>
+            <attr name="limit" type="Long"/>
+
+            <source>
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <c:script><![CDATA[
+                    const isSql = sqlType == 'sql';
+                    const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
+                    if(rowType == null)
+                        return executor.findPage(sql, offset, limit);
+                    return executor.findPage(sql, offset, limit, executor.getRowMapper(rowType, isSql));
+                ]]></c:script>
+            </source>
+        </FindPage>
+
+        <FindFirst x:prototype="_FindBase">
+            <source>
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <c:script><![CDATA[
+                    const isSql = sqlType == 'sql';
+                    const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
+                    if(rowType == null)
+                        return executor.findFirst(sql);
+                    return executor.findFirst(sql, executor.getRowMapper(rowType, isSql));
+                ]]></c:script>
+            </source>
+        </FindFirst>
+
+        <Exists x:prototype="_FindBase">
+            <attr name="rowType" x:prototype-override="remove"/>
+
+            <source>
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <c:script><![CDATA[
+                    const isSql = sqlType == 'sql';
+                    const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
+                    return executor.exists(sql);
+                ]]></c:script>
+            </source>
+        </Exists>
+
+        <GenSQL>
+            <attr name="generator"/>
+            <attr name="cacheName" type="String" implicit="true"/>
+            <attr name="cacheKey" type="Object" implicit="true"/>
+            <attr name="querySpace" type="String" implicit="true"/>
+            <attr name="timeout" type="Integer" implicit="true"/>
+            <attr name="disableLogicalDelete" type="Boolean" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.xlang.utils.ExprEvalHelper;
+
+                    const builder = generator().extend();
+                    return builder.cache(cacheName, cacheKey).querySpace(querySpace)
+                                .timeout(timeout).disableLogicalDelete(disableLogicalDelete)
+                                .end();
+                ]]></c:script>
+            </source>
+        </GenSQL>
+
+        <ExecuteUpdate>
+            <attr name="sqlType" type="String" optional="true"/>
+            <attr name="cacheName" type="String" optional="true"/>
+            <attr name="cacheKey" type="String" optional="true"/>
+            <attr name="querySpace" type="String" optional="true"/>
+            <attr name="timeout" type="Integer" optional="true"/>
+            <attr name="disableLogicalDelete" type="Boolean" optional="true"/>
+
+            <slot name="default" outputMode="sql"/>
+
+            <source>
+                <thisLib:GenSQL generator="${slot_default}" xpl:return="sql" />
+                <c:script><![CDATA[
+                    const isSql = sqlType == 'sql';
+                    const executor = isSql ? inject('nopJdbcTemplate') : inject('nopOrmTemplate');
+                    cont ret = executor.executeUpdate(sql);
+                    return ret;
+                ]]></c:script>
+            </source>
+        </ExecuteUpdate>
+    </tags>
+</lib>

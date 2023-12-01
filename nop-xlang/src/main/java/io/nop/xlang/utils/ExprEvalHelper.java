@@ -56,6 +56,19 @@ public class ExprEvalHelper {
         }
     }
 
+    public static SQL.SqlBuilder generateSqlBuilder(Function<IEvalContext, ?> task, IEvalContext context) {
+        IEvalScope scope = context.getEvalScope();
+        IEvalOutput oldOut = scope.getOut();
+        try {
+            CollectSqlOutput out = new CollectSqlOutput();
+            scope.setOut(out);
+            task.apply(context);
+            return out.getResult();
+        } finally {
+            scope.setOut(oldOut);
+        }
+    }
+
     public static Object generateXjson(Function<IEvalContext, ?> task, IEvalContext context) {
         IEvalScope scope = context.getEvalScope();
 
