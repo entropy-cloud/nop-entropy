@@ -1,4 +1,4 @@
 _chgType,WF_ID,STEP_ID,NEXT_STEP_ID,EXEC_ACTION,CREATED_BY,CREATE_TIME
-A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,@var:NopWfStepInstance@stepId_1,_start_,autotest-ref,*
-A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,@var:NopWfStepInstance@stepId_2,_start_,autotest-ref,*
-A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_1,@end,_start_,autotest-ref,*
+A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId_1,@end,_transit_,autotest-ref,*
+A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,@var:NopWfStepInstance@stepId_2,_transit_,autotest-ref,*
+A,@var:NopWfInstance@wfId,@var:NopWfStepInstance@stepId,@var:NopWfStepInstance@stepId_1,_transit_,autotest-ref,*

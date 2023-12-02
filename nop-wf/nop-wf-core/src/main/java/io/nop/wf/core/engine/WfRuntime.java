@@ -9,6 +9,7 @@ package io.nop.wf.core.engine;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -21,6 +22,7 @@ import io.nop.wf.core.model.WfListenerModel;
 import io.nop.wf.core.model.WfModel;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -247,6 +249,34 @@ public class WfRuntime implements IWfRuntime {
     @Override
     public void setCurrentActorAssignments(List<WfActorWithWeight> currentActorAssignments) {
         this.currentActorAssignments = currentActorAssignments;
+    }
+
+    public WfActorWithWeight getActorAssignmentForUser(String userId) {
+        if (currentActorAssignments == null)
+            return null;
+        for (WfActorWithWeight actorWithWeight : this.currentActorAssignments) {
+            if (actorWithWeight.isUser(userId))
+                return actorWithWeight;
+        }
+        return null;
+    }
+
+    @Override
+    public void replaceActorAssignment(WfActorWithWeight assignment, IWfActor actor) {
+        Guard.notNull(assignment, "assignment");
+        Guard.notNull(actor, "actor");
+
+        if (currentActorAssignments == null) {
+            this.currentActorAssignments = new ArrayList<>();
+            this.currentActorAssignments.add(assignment.replaceActor(actor));
+        } else {
+            int index = this.currentActorAssignments.indexOf(assignment);
+            if (index < 0) {
+                this.currentActorAssignments.add(assignment.replaceActor(actor));
+            } else {
+                this.currentActorAssignments.set(index, assignment.replaceActor(actor));
+            }
+        }
     }
 
     @Override

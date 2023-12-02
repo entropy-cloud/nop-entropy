@@ -3,14 +3,11 @@ package io.nop.wf.service;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.context.ContextProvider;
-import io.nop.auth.dao.entity.NopAuthRole;
-import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.orm.IOrmTemplate;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true, disableSnapshot = false)
@@ -37,26 +34,11 @@ public class TestDaoWorkflowEngine extends JunitAutoTestCase {
     }
 
     protected void saveUser(String userId) {
-        NopAuthUser user = new NopAuthUser();
-        user.setUserName("user_" + userId);
-        user.setUserId(userId);
-        user.setNickName(user.getUserName());
-        user.setPassword("123");
-        user.setOpenId(userId);
-        user.setUserType(1);
-        user.setStatus(1);
-        user.setGender(1);
-        user.setTenantId("0");
-
-        daoProvider().daoFor(NopAuthUser.class).saveEntity(user);
+        DaoTestHelper.saveUser(userId);
     }
 
     protected void saveRole(String roleId) {
-        NopAuthRole role = new NopAuthRole();
-        role.setRoleId(roleId);
-        role.setRoleName(roleId);
-
-        daoProvider().daoFor(NopAuthRole.class).saveEntity(role);
+        DaoTestHelper.saveRole(roleId);
     }
 
 

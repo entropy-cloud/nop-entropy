@@ -28,6 +28,10 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     IWorkflow getWorkflow();
 
+    default String getSpecialType() {
+        return getModel().getSpecialType();
+    }
+
     default WfStepReference getStepReference() {
         return new WfStepReference(getWfName(), getWfVersion(), getWfId(), getStepId());
     }

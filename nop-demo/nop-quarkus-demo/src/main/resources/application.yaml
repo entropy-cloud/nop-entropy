@@ -111,7 +111,7 @@ quarkus:
 
     category:
       "io.nop":
-        level: trace
+        level: INFO
 
     file:
       enable: false

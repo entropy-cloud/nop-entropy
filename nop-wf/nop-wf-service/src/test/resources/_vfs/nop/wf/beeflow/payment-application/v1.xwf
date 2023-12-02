@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:oa="oa" xmlns:wf="wf">
+<workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:oa="oa" xmlns:wf="wf" xmlns:c="c">
+
+    <x:config>
+        <c:import from="/nop/wf/xlib/oa.xlib"/>
+    </x:config>
 
     <start startStepName="start">
     </start>
@@ -17,10 +21,11 @@
         <step displayName="发起人" name="start">
             <assignment>
                 <actors>
-                    <actor actorType="wf-actor:CurrentCaller"/>
+                    <actor actorType="wf-actor:CurrentCaller" actorModelId="m1"/>
                 </actors>
             </assignment>
-            <transition >
+
+            <transition>
                 <to-step stepName="approve1"/>
             </transition>
         </step>
@@ -28,9 +33,10 @@
         <step displayName="审批人1" name="approve1">
             <assignment>
                 <actors>
-                    <actor actorType="wf-actor:StarterManager" actorModelId="actor1"/>
+                    <actor actorType="wf-actor:StarterManager" actorModelId="m1"/>
                 </actors>
             </assignment>
+
             <transition onAppStates="agree">
                 <to-step stepName="approve2"/>
             </transition>
@@ -39,22 +45,27 @@
         <step displayName="审批人2" name="approve2">
             <assignment>
                 <actors>
-                    <actor actorType="wf-actor:StarterDeptManager" actorModelId="actor1"
+                    <actor actorType="wf-actor:StarterDeptManager" actorModelId="m1"
                            wf:permissions="transfer,reject,add-sign"/>
                 </actors>
             </assignment>
+
+            <source>
+                <oa:AutoAgreeWhenStarter/>
+            </source>
+
             <transition onAppStates="agree">
                 <to-step stepName="cc1"/>
             </transition>
         </step>
 
-        <step displayName="抄送人" name="cc1">
+        <step displayName="抄送人" name="cc1" specialType="cc">
             <assignment>
                 <actors>
-                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                    <actor actorId="4" actorType="user" actorModelId="m1"/>
                 </actors>
             </assignment>
-            <transition>
+            <transition onAppStates="confirm">
                 <to-step stepName="approve3"/>
             </transition>
         </step>
@@ -66,10 +77,10 @@
                     当审批人与发起人同一个人时，存在4种情况：
                     1. 由发起人自己审批  2. 自动跳过 3. 转交给直接上级审批 4. 转交给部门负责人审批
                     -->
-                    <oa:FilterWhenStarter processType="1"/>
+                    <oa:FilterWhenStarter processType="2"/>
                 </selectExpr>
                 <actors>
-                    <actor actorId="manager" actorType="role" actorModelId="actor1"/>
+                    <actor actorId="manager" actorType="role" actorModelId="m1"/>
                 </actors>
             </assignment>
 
@@ -102,6 +113,13 @@
                 <oa:WhenAllowReject/>
             </when>
             <transition appState="reject"/>
+        </action>
+
+        <action name="confirm" displayName="已阅" common="true" local="true">
+            <when>
+                <oa:WhenAllowConfirm/>
+            </when>
+            <transition appState="confirm"/>
         </action>
     </actions>
 

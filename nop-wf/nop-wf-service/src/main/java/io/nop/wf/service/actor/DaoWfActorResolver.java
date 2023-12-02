@@ -162,14 +162,19 @@ public class DaoWfActorResolver implements IWfActorResolver {
     public IWfActor getManager(IWfActor actor, int upLevel) {
         String userId = getUserIdFromActor(actor);
         NopAuthUser user = userDao().requireEntityById(userId);
-        NopAuthUser manager = null;
-        for (int i = 0; i < upLevel; i++) {
-            manager = user.getManager();
-            if (manager == null)
-                break;
-            user = manager;
+
+        NopAuthUser manager = user.getManager();
+        if (manager != null) {
+            for (int i = 0; i < upLevel; i++) {
+                manager = manager.getManager();
+                if (manager == null)
+                    break;
+            }
         }
-        return buildUserActor(user);
+
+        if (manager == null)
+            return null;
+        return buildUserActor(manager);
     }
 
     @Override

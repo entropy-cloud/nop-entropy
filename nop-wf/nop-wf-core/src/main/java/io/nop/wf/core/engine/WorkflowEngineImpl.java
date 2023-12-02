@@ -452,7 +452,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         return false;
     }
 
-    private Object runXpl(IEvalAction action, WfRuntime wfRt) {
+    private Object runXpl(IEvalAction action, IWfRuntime wfRt) {
         if (action == null)
             return null;
         return action.invoke(wfRt);
@@ -724,10 +724,12 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (!step.isActivated())
             return false;
 
+        wfRt.setCurrentStep(step);
         WfStepModel stepModel = (WfStepModel) step.getModel();
         try {
             if (step.getRecord().getStatus() <= NopWfCoreConstants.WF_STEP_STATUS_EXECUTED) {
-                Object value = FutureHelper.tryResolve(runXpl(stepModel.getSource(), wfRt));
+                Object value = runSource(stepModel, wfRt);
+
                 if (value instanceof CompletionStage) {
                     CompletionStage<Object> future = (CompletionStage<Object>) value;
                     IServiceContext ctx = wfRt.getSvcCtx();
@@ -760,7 +762,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                         return false;
                     }
                 }
-                boolean hasTrans = this.doTransition(step, step.getRecord().getFromAction(),
+                boolean hasTrans = this.doTransition(step, NopWfCoreConstants.INTERNAL_ACTION_TRANSIT,
                         stepModel.getTransition(), wfRt);
                 if (hasTrans) {
                     if (!step.isHistory()) {
@@ -775,6 +777,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             this.handleError(e, NopWfCoreConstants.INTERNAL_ACTION_TRANSIT, stepModel, wfRt);
             return false;
         }
+    }
+
+    protected Object runSource(WfStepModel stepModel, IWfRuntime wfRt) {
+        return FutureHelper.tryResolve(runXpl(stepModel.getSource(), wfRt));
     }
 
     @Override

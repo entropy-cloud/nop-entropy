@@ -54,8 +54,12 @@ public interface IWfRuntime extends IEvalContext {
 
     IWfActor getSysUser();
 
-    default IWfActor getStarter(){
+    default IWfActor getStarter() {
         return getWf().getStarter();
+    }
+
+    default String getStarterId(){
+        return getWf().getRecord().getStarterId();
     }
 
     IWfActor getManagerActor();
@@ -69,6 +73,10 @@ public interface IWfRuntime extends IEvalContext {
     List<WfActorWithWeight> getCurrentActorAssignments();
 
     void setCurrentActorAssignments(List<WfActorWithWeight> currentActorAssignments);
+
+    WfActorWithWeight getActorAssignmentForUser(String userId);
+
+    void replaceActorAssignment(WfActorWithWeight assignment, IWfActor actor);
 
     IWorkflowStepImplementor getPrevStep();
 
@@ -101,5 +109,5 @@ public interface IWfRuntime extends IEvalContext {
 
     void logError(Throwable exp);
 
-    
+
 }

@@ -18,6 +18,22 @@ public class WfActorWithWeight {
         this.voteWeight = voteWeight;
     }
 
+    public WfActorWithWeight replaceActor(IWfActor actor) {
+        return new WfActorWithWeight(actor, actorModelId, voteWeight);
+    }
+
+    public String getActorType() {
+        return actor.getActorType();
+    }
+
+    public String getActorId() {
+        return actor.getActorId();
+    }
+
+    public boolean isUser(String userId) {
+        return actor.isUser(userId);
+    }
+
     public String getActorModelId() {
         return actorModelId;
     }
