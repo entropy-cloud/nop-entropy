@@ -1011,6 +1011,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -1028,6 +1029,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

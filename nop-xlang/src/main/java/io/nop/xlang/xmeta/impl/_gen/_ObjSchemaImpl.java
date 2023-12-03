@@ -357,6 +357,7 @@ public abstract class _ObjSchemaImpl extends io.nop.xlang.xmeta.impl.SchemaNodeI
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -372,6 +373,7 @@ public abstract class _ObjSchemaImpl extends io.nop.xlang.xmeta.impl.SchemaNodeI
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

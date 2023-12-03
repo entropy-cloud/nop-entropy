@@ -310,6 +310,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -319,6 +320,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

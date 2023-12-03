@@ -1017,6 +1017,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -1036,6 +1037,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

@@ -41,6 +41,7 @@ public abstract class _XtChooseWhenModel extends io.nop.xlang.xt.model.XtRuleGro
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -50,6 +51,7 @@ public abstract class _XtChooseWhenModel extends io.nop.xlang.xt.model.XtRuleGro
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

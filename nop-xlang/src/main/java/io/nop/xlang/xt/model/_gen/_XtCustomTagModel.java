@@ -123,6 +123,7 @@ public abstract class _XtCustomTagModel extends io.nop.xlang.xt.model.XtRuleGrou
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -134,6 +135,7 @@ public abstract class _XtCustomTagModel extends io.nop.xlang.xt.model.XtRuleGrou
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

@@ -93,6 +93,7 @@ public abstract class _XtApplyTemplateModel extends io.nop.xlang.xt.model.XtRule
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -102,6 +103,7 @@ public abstract class _XtApplyTemplateModel extends io.nop.xlang.xt.model.XtRule
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

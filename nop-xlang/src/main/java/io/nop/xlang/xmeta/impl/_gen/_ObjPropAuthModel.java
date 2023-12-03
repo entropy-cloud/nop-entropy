@@ -97,6 +97,7 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -106,6 +107,7 @@ public abstract class _ObjPropAuthModel extends io.nop.core.resource.component.A
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

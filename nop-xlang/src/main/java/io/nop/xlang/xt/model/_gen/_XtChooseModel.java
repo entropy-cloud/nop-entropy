@@ -67,6 +67,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
 
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -80,6 +81,7 @@ public abstract class _XtChooseModel extends io.nop.xlang.xt.model.XtRuleModel {
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         

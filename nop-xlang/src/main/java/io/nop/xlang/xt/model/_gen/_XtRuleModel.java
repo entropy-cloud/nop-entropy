@@ -15,6 +15,7 @@ import io.nop.core.lang.json.IJsonHandler;
 public abstract class _XtRuleModel extends io.nop.core.resource.component.AbstractComponentModel implements io.nop.xlang.xt.model.IXtRuleModel{
     
 
+    @Override
     public void freeze(boolean cascade){
         if(frozen()) return;
         super.freeze(cascade);
@@ -24,6 +25,7 @@ public abstract class _XtRuleModel extends io.nop.core.resource.component.Abstra
         }
     }
 
+    @Override
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
