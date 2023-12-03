@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [69:10:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from [73:10:0:0]/nop/schema/orm/entity.xdef <p>
  * column必须是原子数据类型，它对应于数据库中的字段。其他属性都根据column字段的值衍生而来。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

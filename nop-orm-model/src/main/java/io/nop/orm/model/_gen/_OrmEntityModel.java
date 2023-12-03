@@ -136,6 +136,13 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: filters
+     * 
+     */
+    private KeyedList<io.nop.orm.model.OrmEntityFilterModel> _filters = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: indexes
      * 
      */
@@ -761,6 +768,51 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
            
     }
 
+    
+    /**
+     * 
+     * xml name: filters
+     *  
+     */
+    
+    public java.util.List<io.nop.orm.model.OrmEntityFilterModel> getFilters(){
+      return _filters;
+    }
+
+    
+    public void setFilters(java.util.List<io.nop.orm.model.OrmEntityFilterModel> value){
+        checkAllowChange();
+        
+        this._filters = KeyedList.fromList(value, io.nop.orm.model.OrmEntityFilterModel::getName);
+           
+    }
+
+    
+    public io.nop.orm.model.OrmEntityFilterModel getFilter(String name){
+        return this._filters.getByKey(name);
+    }
+
+    public boolean hasFilter(String name){
+        return this._filters.containsKey(name);
+    }
+
+    public void addFilter(io.nop.orm.model.OrmEntityFilterModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.orm.model.OrmEntityFilterModel> list = this.getFilters();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.orm.model.OrmEntityFilterModel::getName);
+            setFilters(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_filters(){
+        return this._filters.keySet();
+    }
+
+    public boolean hasFilters(){
+        return !this._filters.isEmpty();
+    }
     
     /**
      * 
@@ -1392,6 +1444,8 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
             
            this._computes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._computes);
             
+           this._filters = io.nop.api.core.util.FreezeHelper.deepFreeze(this._filters);
+            
            this._indexes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._indexes);
             
            this._relations = io.nop.api.core.util.FreezeHelper.deepFreeze(this._relations);
@@ -1422,6 +1476,7 @@ public abstract class _OrmEntityModel extends io.nop.core.resource.component.Abs
         out.put("dimensionalType",this.getDimensionalType());
         out.put("displayName",this.getDisplayName());
         out.put("entityModeEnabled",this.isEntityModeEnabled());
+        out.put("filters",this.getFilters());
         out.put("indexes",this.getIndexes());
         out.put("kvTable",this.isKvTable());
         out.put("labelProp",this.getLabelProp());

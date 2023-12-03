@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [84:10:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from [88:10:0:0]/nop/schema/orm/entity.xdef <p>
  * 关联表上的字段可以通过alias映射为主实体的属性，从而简化程序编写
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

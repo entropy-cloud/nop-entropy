@@ -8,6 +8,9 @@
 package io.nop.orm.eql.meta;
 
 import io.nop.dao.dialect.IDialect;
+import io.nop.orm.model.OrmEntityFilterModel;
+
+import java.util.List;
 
 public interface ISqlTableMeta extends ISqlSelectionMeta {
     String getEntityName();
@@ -17,6 +20,12 @@ public interface ISqlTableMeta extends ISqlSelectionMeta {
     ISqlExprMeta getEntityExprMeta();
 
     boolean isUseLogicalDelete();
+
+    default boolean hasFilter() {
+        return getFilters() != null && !getFilters().isEmpty();
+    }
+
+    List<OrmEntityFilterModel> getFilters();
 
     //   ISqlExprMeta getDeleteFlagPropMeta();
 

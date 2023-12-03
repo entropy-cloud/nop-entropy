@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [177:10:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from [181:10:0:0]/nop/schema/orm/entity.xdef <p>
  * 唯一键
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

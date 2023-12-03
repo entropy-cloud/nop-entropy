@@ -254,6 +254,12 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
      */
     List<? extends IEntityRelationModel> getColumnsRefs(int propId);
 
+    default boolean hasFilter() {
+        return getFilters() != null && !getFilters().isEmpty();
+    }
+
+    List<OrmEntityFilterModel> getFilters();
+
     int getNopRevTypePropId();
 
     int getNopRevBeginVerPropId();

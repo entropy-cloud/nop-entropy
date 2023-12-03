@@ -7,19 +7,12 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [101:18:0:0]/nop/schema/orm/entity.xdef <p>
+ * generate from [53:10:0:0]/nop/schema/orm/entity.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
-public abstract class _OrmComputeArgModel extends io.nop.core.resource.component.AbstractComponentModel {
-    
-    /**
-     *  
-     * xml name: displayName
-     * 
-     */
-    private java.lang.String _displayName ;
+public abstract class _OrmEntityFilterModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
@@ -30,29 +23,10 @@ public abstract class _OrmComputeArgModel extends io.nop.core.resource.component
     
     /**
      *  
-     * xml name: type
+     * xml name: value
      * 
      */
-    private io.nop.core.type.IGenericType _type ;
-    
-    /**
-     * 
-     * xml name: displayName
-     *  
-     */
-    
-    public java.lang.String getDisplayName(){
-      return _displayName;
-    }
-
-    
-    public void setDisplayName(java.lang.String value){
-        checkAllowChange();
-        
-        this._displayName = value;
-           
-    }
-
+    private java.lang.Object _value ;
     
     /**
      * 
@@ -75,19 +49,19 @@ public abstract class _OrmComputeArgModel extends io.nop.core.resource.component
     
     /**
      * 
-     * xml name: type
+     * xml name: value
      *  
      */
     
-    public io.nop.core.type.IGenericType getType(){
-      return _type;
+    public java.lang.Object getValue(){
+      return _value;
     }
 
     
-    public void setType(io.nop.core.type.IGenericType value){
+    public void setValue(java.lang.Object value){
         checkAllowChange();
         
-        this._type = value;
+        this._value = value;
            
     }
 
@@ -107,9 +81,8 @@ public abstract class _OrmComputeArgModel extends io.nop.core.resource.component
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.put("displayName",this.getDisplayName());
         out.put("name",this.getName());
-        out.put("type",this.getType());
+        out.put("value",this.getValue());
     }
 }
  // resume CPD analysis - CPD-ON

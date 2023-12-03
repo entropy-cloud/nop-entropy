@@ -33,7 +33,7 @@
         useTenant="!boolean=false" tenantProp="var-name"
         useWorkflow="!boolean=false" useRevision="!boolean=false"
         useLogicalDelete="!boolean=false" deleteFlagProp="var-name" deleteVersionProp="var-name"
-        versionProp="var-name"  dbCatalog="string" dbSchema="string" dbPkName="string"
+        versionProp="var-name" dbCatalog="string" dbSchema="string" dbPkName="string"
         createrProp="var-name" createTimeProp="var-name" updaterProp="var-name" updateTimeProp="var-name"
         notGenCode="!boolean=false" registerShortName="!boolean=false"
         maxBatchLoadSize="int" checkVersionWhenLazyLoad="!boolean=true"
@@ -48,6 +48,10 @@
     <sqlText xdef:value="string"/>
 
     <comment xdef:value="string"/>
+
+    <filters xdef:body-type="list" xdef:key-attr="name">
+        <filter name="!var-name" value="any" xdef:name="OrmEntityFilterModel"/>
+    </filters>
 
     <!-- 每个column都对应实体上的一个属性。relation本身不创建新的对象属性，而是使用上的属性所覆盖 -->
     <columns xdef:body-type="list" xdef:key-attr="name">
@@ -92,9 +96,9 @@
         compute的结果不会被自动缓存，每次访问都会重新计算。
         -->
         <compute name="!prop-name" displayName="string" type="generic-type" notGenCode="!boolean=false"
-                 xdef:name="OrmComputePropModel">
+                 xdef:name="OrmComputePropModel" tagSet="tag-set">
             <args xdef:body-type="list" xdef:key-attr="name">
-                <arg name="!prop-name" type="generic-type" xdef:name="OrmComputeArgModel"/>
+                <arg name="!prop-name" displayName="string" type="!generic-type" xdef:name="OrmComputeArgModel"/>
             </args>
             <getter xdef:value="xpl"/>
             <setter xdef:value="xpl"/>
@@ -175,7 +179,7 @@
          @columns 逗号分隔的列名（name）的列表
          -->
         <unique-key xdef:name="OrmUniqueKeyModel" name="!string" displayName="string" columns="!csv-list"
-                    constraint="string" >
+                    constraint="string">
             <comment xdef:value="string"/>
         </unique-key>
     </unique-keys>

@@ -12,7 +12,6 @@ import io.nop.core.type.IGenericType;
 import io.nop.orm.model._gen._OrmComputePropModel;
 
 import java.util.List;
-import java.util.Set;
 
 public class OrmComputePropModel extends _OrmComputePropModel implements IComputePropModel {
     private OrmEntityModel ownerEntityModel;
@@ -43,16 +42,6 @@ public class OrmComputePropModel extends _OrmComputePropModel implements IComput
         this.ownerEntityModel = ownerEntityModel;
     }
 
-//    @Override
-//    public Object getPropValue(IOrmEntity entity) {
-//        return entity.orm_propValueByName(getName());
-//    }
-//
-//    @Override
-//    public void setPropValue(IOrmEntity entity, Object value) {
-//        entity.orm_propValueByName(getName(), value);
-//    }
-
     @Override
     public List<? extends IColumnModel> getColumns() {
         return null;
@@ -60,7 +49,8 @@ public class OrmComputePropModel extends _OrmComputePropModel implements IComput
 
     @Override
     public StdDataType getStdDataType() {
-        return StdDataType.ANY;
+        IGenericType type = getType();
+        return type == null ? StdDataType.ANY : type.getStdDataType();
     }
 
     @Override
@@ -75,7 +65,7 @@ public class OrmComputePropModel extends _OrmComputePropModel implements IComput
 
     @Override
     public int getColumnPropId() {
-        return 0;
+        return -1;
     }
 
     @Override
@@ -98,8 +88,4 @@ public class OrmComputePropModel extends _OrmComputePropModel implements IComput
         return null;
     }
 
-    @Override
-    public Set<String> getTagSet() {
-        return null;
-    }
 }

@@ -23,6 +23,7 @@ import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmEntityFilterModel;
 import io.nop.orm.model.OrmModelConstants;
 
 import java.util.ArrayList;
@@ -39,6 +40,8 @@ public class EntityTableMeta implements ISqlTableMeta {
     private final Map<String, ISqlExprMeta> propExprMetas = new LinkedHashMap<>();
 
     private final Map<String, ISqlExprMeta> valueExprMetas;
+
+    private final List<OrmEntityFilterModel> filters;
 
     public EntityTableMeta(IEntityModel entityModel, IOrmColumnBinderEnhancer enhancer, IDialect dialect) {
         IDataParameterBinder[] colBinders = OrmBinderHelper.buildBinders(dialect, entityModel, enhancer);
@@ -75,6 +78,8 @@ public class EntityTableMeta implements ISqlTableMeta {
         } else {
             valueExprMetas = Collections.emptyMap();
         }
+
+        this.filters = entityModel.getFilters();
     }
 
     @Override
@@ -89,6 +94,12 @@ public class EntityTableMeta implements ISqlTableMeta {
 //    public ISqlExprMeta getDeleteFlagPropMeta() {
 //        return propExprMetas.get(getEntityModel().getDeleteFlagProp());
 //    }
+
+
+    @Override
+    public List<OrmEntityFilterModel> getFilters() {
+        return filters;
+    }
 
     public String getDeleteFlagPropName() {
         return getEntityModel().getDeleteFlagProp();
