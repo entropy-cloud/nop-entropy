@@ -72,4 +72,6 @@ public interface AuthApiConstants {
     String JWT_CLAIMS_REALM_ACCESS = "realm_access";
 
     String JWT_CLAIMS_ROLES = "roles";
+
+    String DELEGATE_SCOPE_ALL = "all";
 }

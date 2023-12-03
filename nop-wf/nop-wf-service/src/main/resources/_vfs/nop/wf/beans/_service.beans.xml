@@ -24,8 +24,6 @@
 
     <bean id="io.nop.wf.service.entity.NopWfStepInstanceLinkBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.wf.service.entity.NopWfUserDelegateBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.wf.service.entity.NopWfVarBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfWorkBizModel" ioc:type="@bean:id" ioc:default="true"/>

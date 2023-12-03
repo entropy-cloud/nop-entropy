@@ -32,40 +32,44 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     public static final String PROP_NAME_substitutedUserId = "substitutedUserId";
     public static final int PROP_ID_substitutedUserId = 3;
     
+    /* 工作范围: WORK_SCOPE VARCHAR */
+    public static final String PROP_NAME_workScope = "workScope";
+    public static final int PROP_ID_workScope = 4;
+    
     /* 开始时间: START_TIME DATETIME */
     public static final String PROP_NAME_startTime = "startTime";
-    public static final int PROP_ID_startTime = 4;
+    public static final int PROP_ID_startTime = 5;
     
     /* 结束时间: END_TIME DATETIME */
     public static final String PROP_NAME_endTime = "endTime";
-    public static final int PROP_ID_endTime = 5;
+    public static final int PROP_ID_endTime = 6;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 6;
+    public static final int PROP_ID_version = 7;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 7;
+    public static final int PROP_ID_createdBy = 8;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 8;
+    public static final int PROP_ID_createTime = 9;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 9;
+    public static final int PROP_ID_updatedBy = 10;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 10;
+    public static final int PROP_ID_updateTime = 11;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 11;
+    public static final int PROP_ID_remark = 12;
     
 
-    private static int _PROP_ID_BOUND = 12;
+    private static int _PROP_ID_BOUND = 13;
 
     
     /* relation: 用户 */
@@ -78,7 +82,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[12];
+    private static final String[] PROP_ID_TO_NAME = new String[13];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -90,6 +94,9 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_substitutedUserId] = PROP_NAME_substitutedUserId;
           PROP_NAME_TO_ID.put(PROP_NAME_substitutedUserId, PROP_ID_substitutedUserId);
+      
+          PROP_ID_TO_NAME[PROP_ID_workScope] = PROP_NAME_workScope;
+          PROP_NAME_TO_ID.put(PROP_NAME_workScope, PROP_ID_workScope);
       
           PROP_ID_TO_NAME[PROP_ID_startTime] = PROP_NAME_startTime;
           PROP_NAME_TO_ID.put(PROP_NAME_startTime, PROP_ID_startTime);
@@ -126,6 +133,9 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     
     /* 被代理的用户ID: SUBSTITUTED_USER_ID */
     private java.lang.String _substitutedUserId;
+    
+    /* 工作范围: WORK_SCOPE */
+    private java.lang.String _workScope;
     
     /* 开始时间: START_TIME */
     private java.time.LocalDateTime _startTime;
@@ -230,6 +240,9 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
             case PROP_ID_substitutedUserId:
                return getSubstitutedUserId();
         
+            case PROP_ID_workScope:
+               return getWorkScope();
+        
             case PROP_ID_startTime:
                return getStartTime();
         
@@ -292,6 +305,16 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_substitutedUserId));
                }
                setSubstitutedUserId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_workScope:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_workScope));
+               }
+               setWorkScope(typedValue);
                break;
             }
         
@@ -401,6 +424,13 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
             case PROP_ID_substitutedUserId:{
                onInitProp(propId);
                this._substitutedUserId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_workScope:{
+               onInitProp(propId);
+               this._workScope = (java.lang.String)value;
                
                break;
             }
@@ -520,6 +550,25 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_substitutedUserId,value)){
             this._substitutedUserId = value;
             internalClearRefs(PROP_ID_substitutedUserId);
+            
+        }
+    }
+    
+    /**
+     * 工作范围: WORK_SCOPE
+     */
+    public java.lang.String getWorkScope(){
+         onPropGet(PROP_ID_workScope);
+         return _workScope;
+    }
+
+    /**
+     * 工作范围: WORK_SCOPE
+     */
+    public void setWorkScope(java.lang.String value){
+        if(onPropSet(PROP_ID_workScope,value)){
+            this._workScope = value;
+            internalClearRefs(PROP_ID_workScope);
             
         }
     }

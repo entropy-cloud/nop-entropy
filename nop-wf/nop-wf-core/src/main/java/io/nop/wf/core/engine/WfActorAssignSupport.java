@@ -17,7 +17,7 @@ import io.nop.wf.api.actor.WfActorCandidateBean;
 import io.nop.wf.api.actor.WfActorCandidatesBean;
 import io.nop.wf.api.actor.WfAssignmentSelection;
 import io.nop.wf.core.NopWfCoreConstants;
-import io.nop.wf.core.delegate.IUserDelegateService;
+import io.nop.api.core.auth.IUserDelegateService;
 import io.nop.wf.core.impl.IWorkflowStepImplementor;
 import io.nop.wf.core.model.WfAssignmentActorModel;
 import io.nop.wf.core.model.WfAssignmentModel;

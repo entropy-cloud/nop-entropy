@@ -10,9 +10,23 @@ package io.nop.auth.dao.entity;
 import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.auth.dao.entity._gen._NopAuthUserSubstitution;
 
+import java.time.LocalDateTime;
+
 @BizObjName("NopAuthUserSubstitution")
 public class NopAuthUserSubstitution extends _NopAuthUserSubstitution {
     public NopAuthUserSubstitution() {
     }
 
+    public boolean isValid(LocalDateTime now) {
+        LocalDateTime start = getStartTime();
+        if (start != null && start.isAfter(now))
+            return false;
+
+        LocalDateTime end = getEndTime();
+        if (end != null) {
+            if (end.isBefore(now))
+                return false;
+        }
+        return true;
+    }
 }

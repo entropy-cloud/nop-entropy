@@ -19,8 +19,6 @@ alter table nop_wf_step_instance add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0
 
 alter table nop_wf_step_instance_link add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
-alter table nop_wf_user_delegate add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
-
 alter table nop_wf_var add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_wf_work add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -54,9 +52,6 @@ alter table nop_wf_step_instance add primary key (NOP_TENANT_ID, STEP_ID);
 
 alter table nop_wf_step_instance_link drop primary key;
 alter table nop_wf_step_instance_link add primary key (NOP_TENANT_ID, WF_ID,STEP_ID,NEXT_STEP_ID);
-
-alter table nop_wf_user_delegate drop primary key;
-alter table nop_wf_user_delegate add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_wf_var drop primary key;
 alter table nop_wf_var add primary key (NOP_TENANT_ID, WF_ID,FIELD_NAME);

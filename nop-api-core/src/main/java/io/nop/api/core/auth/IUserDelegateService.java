@@ -1,4 +1,4 @@
-package io.nop.wf.core.delegate;
+package io.nop.api.core.auth;
 
 import java.util.Set;
 

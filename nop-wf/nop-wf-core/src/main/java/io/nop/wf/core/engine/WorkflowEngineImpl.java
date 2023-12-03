@@ -415,6 +415,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         wfRt.saveWfRecord(NopWfCoreConstants.WF_STATUS_ACTIVATED);
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_START);
+
+        WfModel wfModel = wfRt.getWfModel();
+        if (!StringHelper.isEmpty(wfModel.getBizEntityFlowIdProp())) {
+            wfRt.getWf().getStore().bindBizEntityFlowId(wfRecord, wfModel.getBizEntityFlowIdProp());
+        }
     }
 
     void setDefaultTitle(IWorkflowRecord wfRecord, WfRuntime wfRt) {
@@ -1182,11 +1187,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     void changeBizEntityState(IWorkflowStepImplementor step, String bizEntityState) {
         WfModel wfModel = (WfModel) step.getWorkflow().getModel();
         if (bizEntityState != null && wfModel.getBizEntityStateProp() != null) {
-            Object bo = step.getWorkflow().getBizEntity();
-            if (bo != null) {
-                step.getStore().updateBizEntityState(step.getWorkflow().getBizObjName(), bo,
-                        wfModel.getBizEntityStateProp(), bizEntityState);
-            }
+            step.getStore().updateBizEntityState(step.getWorkflow().getRecord(),
+                    wfModel.getBizEntityStateProp(), bizEntityState);
         }
     }
 

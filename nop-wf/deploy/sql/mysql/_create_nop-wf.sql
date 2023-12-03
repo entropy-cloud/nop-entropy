@@ -44,19 +44,6 @@ CREATE TABLE nop_wf_step_instance_link(
   constraint PK_nop_wf_step_instance_link primary key (WF_ID,STEP_ID,NEXT_STEP_ID)
 );
 
-CREATE TABLE nop_wf_user_delegate(
-  SID VARCHAR(32) NOT NULL    COMMENT '主键',
-  USER_ID VARCHAR(32) NOT NULL    COMMENT '用户ID',
-  DELEGATE_ID VARCHAR(32) NOT NULL    COMMENT '代理人ID',
-  DELEGATE_SCOPE VARCHAR(300) NULL    COMMENT '代理范围',
-  VERSION INTEGER NOT NULL    COMMENT '数据版本',
-  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
-  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
-  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
-  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
-  constraint PK_nop_wf_user_delegate primary key (SID)
-);
-
 CREATE TABLE nop_wf_output(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
   FIELD_NAME VARCHAR(100) NOT NULL    COMMENT '变量名',
@@ -132,9 +119,9 @@ CREATE TABLE nop_wf_dyn_entity(
   OBJ_TYPE VARCHAR(100) NOT NULL    COMMENT '对象类型',
   NAME VARCHAR(100) NOT NULL    COMMENT '名称',
   DISPLAY_NAME VARCHAR(500) NULL    COMMENT '显示名称',
-  WF_ID VARCHAR(32) NULL    COMMENT '工作流实例ID',
   SORT_ORDER INTEGER NOT NULL    COMMENT '排序',
-  FLOW_STATUS INTEGER NOT NULL    COMMENT '流程状态',
+  NOP_FLOW_ID VARCHAR(32) NULL    COMMENT '工作流实例ID',
+  BIZ_STATUS INTEGER NOT NULL    COMMENT '业务状态码',
   BIZ_STATE VARCHAR(50) NULL    COMMENT '业务状态',
   PARENT_ID VARCHAR(32) NOT NULL    COMMENT '父ID',
   OWNER_NAME VARCHAR(50) NULL    COMMENT '拥有者姓名',
@@ -304,8 +291,6 @@ CREATE TABLE nop_wf_instance(
    ALTER TABLE nop_wf_status_history COMMENT '工作流状态变迁历史';
                 
    ALTER TABLE nop_wf_step_instance_link COMMENT '工作流步骤关联';
-                
-   ALTER TABLE nop_wf_user_delegate COMMENT '用户代理配置';
                 
    ALTER TABLE nop_wf_output COMMENT '工作流输出变量';
                 

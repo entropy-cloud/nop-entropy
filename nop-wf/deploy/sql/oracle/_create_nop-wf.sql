@@ -44,19 +44,6 @@ CREATE TABLE nop_wf_step_instance_link(
   constraint PK_nop_wf_step_instance_link primary key (WF_ID,STEP_ID,NEXT_STEP_ID)
 );
 
-CREATE TABLE nop_wf_user_delegate(
-  SID VARCHAR2(32) NOT NULL ,
-  USER_ID VARCHAR2(32) NOT NULL ,
-  DELEGATE_ID VARCHAR2(32) NOT NULL ,
-  DELEGATE_SCOPE VARCHAR2(300)  ,
-  VERSION INTEGER NOT NULL ,
-  CREATED_BY VARCHAR2(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR2(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  constraint PK_nop_wf_user_delegate primary key (SID)
-);
-
 CREATE TABLE nop_wf_output(
   WF_ID VARCHAR2(32) NOT NULL ,
   FIELD_NAME VARCHAR2(100) NOT NULL ,
@@ -132,9 +119,9 @@ CREATE TABLE nop_wf_dyn_entity(
   OBJ_TYPE VARCHAR2(100) NOT NULL ,
   NAME VARCHAR2(100) NOT NULL ,
   DISPLAY_NAME VARCHAR2(500)  ,
-  WF_ID VARCHAR2(32)  ,
   SORT_ORDER INTEGER NOT NULL ,
-  FLOW_STATUS INTEGER NOT NULL ,
+  NOP_FLOW_ID VARCHAR2(32)  ,
+  BIZ_STATUS INTEGER NOT NULL ,
   BIZ_STATE VARCHAR2(50)  ,
   PARENT_ID VARCHAR2(32) NOT NULL ,
   OWNER_NAME VARCHAR2(50)  ,
@@ -371,26 +358,6 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_step_instance_link.CREATE_TIME IS '创建时间';
                     
-      COMMENT ON TABLE nop_wf_user_delegate IS '用户代理配置';
-                
-      COMMENT ON COLUMN nop_wf_user_delegate.SID IS '主键';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.USER_ID IS '用户ID';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.DELEGATE_ID IS '代理人ID';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.DELEGATE_SCOPE IS '代理范围';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_wf_user_delegate.UPDATE_TIME IS '修改时间';
-                    
       COMMENT ON TABLE nop_wf_output IS '工作流输出变量';
                 
       COMMENT ON COLUMN nop_wf_output.WF_ID IS '工作流实例ID';
@@ -517,11 +484,11 @@ CREATE TABLE nop_wf_instance(
                     
       COMMENT ON COLUMN nop_wf_dyn_entity.DISPLAY_NAME IS '显示名称';
                     
-      COMMENT ON COLUMN nop_wf_dyn_entity.WF_ID IS '工作流实例ID';
-                    
       COMMENT ON COLUMN nop_wf_dyn_entity.SORT_ORDER IS '排序';
                     
-      COMMENT ON COLUMN nop_wf_dyn_entity.FLOW_STATUS IS '流程状态';
+      COMMENT ON COLUMN nop_wf_dyn_entity.NOP_FLOW_ID IS '工作流实例ID';
+                    
+      COMMENT ON COLUMN nop_wf_dyn_entity.BIZ_STATUS IS '业务状态码';
                     
       COMMENT ON COLUMN nop_wf_dyn_entity.BIZ_STATE IS '业务状态';
                     
