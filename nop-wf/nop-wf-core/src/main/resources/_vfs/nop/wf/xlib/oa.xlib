@@ -22,6 +22,22 @@
             </source>
         </ExitCosignStep>
 
+        <SelectFirstActorAssignment>
+            <attr name="wfRt" implicit="true"/>
+            <description>
+                选择第一个备选actor
+            </description>
+
+            <source>
+                <c:script><![CDATA[
+                    const first = wfRt.currentActorAssignments[0];
+                    if(first){
+                        wfRt.currentActorAssignments = [first];
+                    }
+                ]]></c:script>
+            </source>
+        </SelectFirstActorAssignment>
+
         <FilterWhenStarter>
             <attr name="processType" type="Integer"/>
             <attr name="wfRt" implicit="true"/>

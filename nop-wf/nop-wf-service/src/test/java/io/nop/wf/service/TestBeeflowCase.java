@@ -74,10 +74,22 @@ public class TestBeeflowCase extends JunitAutoTestCase {
             start(wf, "1");  // 发送到上级 user_2
             invoke(wf, "2", "agree"); // 发送到部门主管 user_3
             invoke(wf, "3", "agree"); // 抄送用户 user_4
-            invoke(wf, "4", "confirm");
+            invoke(wf, "4", "confirm"); // 抄送用户缺省后发给 角色 manager
             invoke(wf, "5", "agree");
 
             assertTrue(wf.isEnded());
+        });
+    }
+
+    @Test
+    public void testSalaryAdjustment() {
+        runInSession(() -> {
+            IWorkflow wf = workflowManager.newWorkflow("beeflow/salary-adjustment", null);
+            start(wf, "1");  // 根据部门条件发送到 user2
+            invoke(wf, "2", "agree"); //
+            invoke(wf, "3", "agree"); // 抄送用户 user_4
+            invoke(wf, "4", "confirm"); // 抄送用户缺省后发给 角色 manager
+            invoke(wf, "5", "agree");
         });
     }
 }

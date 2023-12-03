@@ -5,6 +5,8 @@ alter table nop_wf_definition add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' 
 
 alter table nop_wf_definition_auth add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_wf_dyn_entity add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_wf_instance add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_wf_log add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
@@ -31,6 +33,9 @@ alter table nop_wf_definition add constraint PK_nop_wf_definition primary key (N
 
 alter table nop_wf_definition_auth drop constraint PK_nop_wf_definition_auth;
 alter table nop_wf_definition_auth add constraint PK_nop_wf_definition_auth primary key (NOP_TENANT_ID, SID);
+
+alter table nop_wf_dyn_entity drop constraint PK_nop_wf_dyn_entity;
+alter table nop_wf_dyn_entity add constraint PK_nop_wf_dyn_entity primary key (NOP_TENANT_ID, SID);
 
 alter table nop_wf_instance drop constraint PK_nop_wf_instance;
 alter table nop_wf_instance add constraint PK_nop_wf_instance primary key (NOP_TENANT_ID, WF_ID);

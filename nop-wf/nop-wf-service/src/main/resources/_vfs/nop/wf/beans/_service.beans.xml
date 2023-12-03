@@ -10,6 +10,8 @@
 
     <bean id="io.nop.wf.service.entity.NopWfDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.wf.service.entity.NopWfDynEntityBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.wf.service.entity.NopWfInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
