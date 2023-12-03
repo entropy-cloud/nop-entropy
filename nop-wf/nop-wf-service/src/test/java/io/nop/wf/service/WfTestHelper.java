@@ -1,17 +1,32 @@
 package io.nop.wf.service;
 
 import io.nop.api.core.util.Guard;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
+import io.nop.wf.core.NopWfCoreConstants;
+import io.nop.wf.dao.entity.NopWfDynEntity;
 
 import java.util.List;
 
 public class WfTestHelper {
-    public static void start(IWorkflow wf, String starerId) {
+    public static void start(IWorkflow wf, String starterId) {
         IServiceContext ctx = new ServiceContextImpl();
-        ctx.getContext().setUserId(starerId);
+        ctx.getContext().setUserId(starterId);
+        wf.start(null, ctx);
+        wf.runAutoTransitions(ctx);
+    }
+
+    public static void start(IWorkflow wf, String starterId, NopWfDynEntity entity) {
+        IServiceContext ctx = new ServiceContextImpl();
+        IEvalScope scope = ctx.getEvalScope();
+        scope.setLocalValue(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME, StringHelper.simpleClassName(entity.get_entityName()));
+        scope.setLocalValue(NopWfCoreConstants.PARAM_BIZ_OBJ_ID, entity.orm_idString());
+
+        ctx.getContext().setUserId(starterId);
         wf.start(null, ctx);
         wf.runAutoTransitions(ctx);
     }

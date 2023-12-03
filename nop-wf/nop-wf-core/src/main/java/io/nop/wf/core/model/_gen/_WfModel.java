@@ -38,6 +38,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
+     * xml name: bizEntityFlowIdProp
+     * 
+     */
+    private java.lang.String _bizEntityFlowIdProp ;
+    
+    /**
+     *  
      * xml name: bizEntityStateProp
      * 
      */
@@ -299,6 +306,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     public boolean hasAuths(){
         return !this._auths.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: bizEntityFlowIdProp
+     *  
+     */
+    
+    public java.lang.String getBizEntityFlowIdProp(){
+      return _bizEntityFlowIdProp;
+    }
+
+    
+    public void setBizEntityFlowIdProp(java.lang.String value){
+        checkAllowChange();
+        
+        this._bizEntityFlowIdProp = value;
+           
+    }
+
     
     /**
      * 
@@ -828,6 +854,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.put("actions",this.getActions());
         out.put("allowStepLoop",this.isAllowStepLoop());
         out.put("auths",this.getAuths());
+        out.put("bizEntityFlowIdProp",this.getBizEntityFlowIdProp());
         out.put("bizEntityStateProp",this.getBizEntityStateProp());
         out.put("checkActionAuth",this.getCheckActionAuth());
         out.put("checkEditAuth",this.getCheckEditAuth());

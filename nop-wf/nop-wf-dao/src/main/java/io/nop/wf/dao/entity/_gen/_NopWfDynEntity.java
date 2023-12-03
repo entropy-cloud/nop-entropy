@@ -36,17 +36,17 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 4;
     
-    /* 工作流实例ID: WF_ID VARCHAR */
-    public static final String PROP_NAME_wfId = "wfId";
-    public static final int PROP_ID_wfId = 5;
-    
     /* 排序: SORT_ORDER INTEGER */
     public static final String PROP_NAME_sortOrder = "sortOrder";
-    public static final int PROP_ID_sortOrder = 6;
+    public static final int PROP_ID_sortOrder = 5;
     
-    /* 流程状态: FLOW_STATUS INTEGER */
-    public static final String PROP_NAME_flowStatus = "flowStatus";
-    public static final int PROP_ID_flowStatus = 7;
+    /* 工作流实例ID: NOP_FLOW_ID VARCHAR */
+    public static final String PROP_NAME_nopFlowId = "nopFlowId";
+    public static final int PROP_ID_nopFlowId = 6;
+    
+    /* 业务状态码: BIZ_STATUS INTEGER */
+    public static final String PROP_NAME_bizStatus = "bizStatus";
+    public static final int PROP_ID_bizStatus = 7;
     
     /* 业务状态: BIZ_STATE VARCHAR */
     public static final String PROP_NAME_bizState = "bizState";
@@ -181,14 +181,14 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
-          PROP_ID_TO_NAME[PROP_ID_wfId] = PROP_NAME_wfId;
-          PROP_NAME_TO_ID.put(PROP_NAME_wfId, PROP_ID_wfId);
-      
           PROP_ID_TO_NAME[PROP_ID_sortOrder] = PROP_NAME_sortOrder;
           PROP_NAME_TO_ID.put(PROP_NAME_sortOrder, PROP_ID_sortOrder);
       
-          PROP_ID_TO_NAME[PROP_ID_flowStatus] = PROP_NAME_flowStatus;
-          PROP_NAME_TO_ID.put(PROP_NAME_flowStatus, PROP_ID_flowStatus);
+          PROP_ID_TO_NAME[PROP_ID_nopFlowId] = PROP_NAME_nopFlowId;
+          PROP_NAME_TO_ID.put(PROP_NAME_nopFlowId, PROP_ID_nopFlowId);
+      
+          PROP_ID_TO_NAME[PROP_ID_bizStatus] = PROP_NAME_bizStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_bizStatus, PROP_ID_bizStatus);
       
           PROP_ID_TO_NAME[PROP_ID_bizState] = PROP_NAME_bizState;
           PROP_NAME_TO_ID.put(PROP_NAME_bizState, PROP_ID_bizState);
@@ -280,14 +280,14 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
     /* 显示名称: DISPLAY_NAME */
     private java.lang.String _displayName;
     
-    /* 工作流实例ID: WF_ID */
-    private java.lang.String _wfId;
-    
     /* 排序: SORT_ORDER */
     private java.lang.Integer _sortOrder;
     
-    /* 流程状态: FLOW_STATUS */
-    private java.lang.Integer _flowStatus;
+    /* 工作流实例ID: NOP_FLOW_ID */
+    private java.lang.String _nopFlowId;
+    
+    /* 业务状态码: BIZ_STATUS */
+    private java.lang.Integer _bizStatus;
     
     /* 业务状态: BIZ_STATE */
     private java.lang.String _bizState;
@@ -446,14 +446,14 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
             case PROP_ID_displayName:
                return getDisplayName();
         
-            case PROP_ID_wfId:
-               return getWfId();
-        
             case PROP_ID_sortOrder:
                return getSortOrder();
         
-            case PROP_ID_flowStatus:
-               return getFlowStatus();
+            case PROP_ID_nopFlowId:
+               return getNopFlowId();
+        
+            case PROP_ID_bizStatus:
+               return getBizStatus();
         
             case PROP_ID_bizState:
                return getBizState();
@@ -581,16 +581,6 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_wfId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_wfId));
-               }
-               setWfId(typedValue);
-               break;
-            }
-        
             case PROP_ID_sortOrder:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -601,13 +591,23 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_flowStatus:{
+            case PROP_ID_nopFlowId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_nopFlowId));
+               }
+               setNopFlowId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_bizStatus:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_flowStatus));
+                       err-> newTypeConversionError(PROP_NAME_bizStatus));
                }
-               setFlowStatus(typedValue);
+               setBizStatus(typedValue);
                break;
             }
         
@@ -898,13 +898,6 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_wfId:{
-               onInitProp(propId);
-               this._wfId = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_sortOrder:{
                onInitProp(propId);
                this._sortOrder = (java.lang.Integer)value;
@@ -912,9 +905,16 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_flowStatus:{
+            case PROP_ID_nopFlowId:{
                onInitProp(propId);
-               this._flowStatus = (java.lang.Integer)value;
+               this._nopFlowId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_bizStatus:{
+               onInitProp(propId);
+               this._bizStatus = (java.lang.Integer)value;
                
                break;
             }
@@ -1177,25 +1177,6 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
     }
     
     /**
-     * 工作流实例ID: WF_ID
-     */
-    public java.lang.String getWfId(){
-         onPropGet(PROP_ID_wfId);
-         return _wfId;
-    }
-
-    /**
-     * 工作流实例ID: WF_ID
-     */
-    public void setWfId(java.lang.String value){
-        if(onPropSet(PROP_ID_wfId,value)){
-            this._wfId = value;
-            internalClearRefs(PROP_ID_wfId);
-            
-        }
-    }
-    
-    /**
      * 排序: SORT_ORDER
      */
     public java.lang.Integer getSortOrder(){
@@ -1215,20 +1196,39 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
     }
     
     /**
-     * 流程状态: FLOW_STATUS
+     * 工作流实例ID: NOP_FLOW_ID
      */
-    public java.lang.Integer getFlowStatus(){
-         onPropGet(PROP_ID_flowStatus);
-         return _flowStatus;
+    public java.lang.String getNopFlowId(){
+         onPropGet(PROP_ID_nopFlowId);
+         return _nopFlowId;
     }
 
     /**
-     * 流程状态: FLOW_STATUS
+     * 工作流实例ID: NOP_FLOW_ID
      */
-    public void setFlowStatus(java.lang.Integer value){
-        if(onPropSet(PROP_ID_flowStatus,value)){
-            this._flowStatus = value;
-            internalClearRefs(PROP_ID_flowStatus);
+    public void setNopFlowId(java.lang.String value){
+        if(onPropSet(PROP_ID_nopFlowId,value)){
+            this._nopFlowId = value;
+            internalClearRefs(PROP_ID_nopFlowId);
+            
+        }
+    }
+    
+    /**
+     * 业务状态码: BIZ_STATUS
+     */
+    public java.lang.Integer getBizStatus(){
+         onPropGet(PROP_ID_bizStatus);
+         return _bizStatus;
+    }
+
+    /**
+     * 业务状态码: BIZ_STATUS
+     */
+    public void setBizStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_bizStatus,value)){
+            this._bizStatus = value;
+            internalClearRefs(PROP_ID_bizStatus);
             
         }
     }
@@ -1718,12 +1718,12 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
     public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
        if(refEntity == null){
          
-         this.setWfId(null);
+         this.setNopFlowId(null);
          
        }else{
           internalSetRefEntity(PROP_NAME_wfInstance, refEntity,()->{
              
-                    this.setWfId(refEntity.getWfId());
+                    this.setNopFlowId(refEntity.getWfId());
                  
           });
        }

@@ -566,7 +566,7 @@ public interface CoreErrors {
             ARG_NODE, ARG_INDEX);
 
     ErrorCode ERR_XML_DUPLICATE_ATTR_NAME = define("nop.err.core.xml.duplicate-attr-name",
-            "XML节点的属性名重复：attrName={attrName},node={ARG_NODE}", ARG_ATTR_NAME, ARG_NODE);
+            "XML节点的属性名重复：attrName={attrName}", ARG_ATTR_NAME, ARG_NODE);
 
     ErrorCode ERR_XML_ATTR_VALUE_NOT_QUOTED = define("nop.err.core.xml.attr-value-not-quoted", "XML属性必须以引号包裹");
 

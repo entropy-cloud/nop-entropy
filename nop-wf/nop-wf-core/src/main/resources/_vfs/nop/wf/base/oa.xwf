@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-          xmlns:oa="oa" xmlns:x="/nop/schema/xdsl.xdef">
+          xmlns:oa="oa">
 
     <start startStepName="start">
     </start>

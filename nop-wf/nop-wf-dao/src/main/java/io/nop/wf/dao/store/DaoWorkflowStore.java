@@ -72,14 +72,8 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
     public Object loadBizEntity(String bizObjType, String bizEntityId) {
         if (StringHelper.isEmpty(bizObjType))
             return null;
-        return daoProvider.dao(bizObjType).getEntityById(bizEntityId);
+        return daoProvider.dao(bizObjType).requireEntityById(bizEntityId);
     }
-
-    @Override
-    public void updateBizEntityState(String bizObjType, Object bizEntity, String bizEntityStateProp, String state) {
-        BeanTool.setComplexProperty(bizEntity, bizEntityStateProp, state);
-    }
-
     @Override
     public IWorkflowRecord newWfRecord(IWorkflowModel wfModel) {
         NopWfInstance wfRecord = new NopWfInstance();

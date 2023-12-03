@@ -82,7 +82,6 @@ public class OrmEntityModelInitializer {
     int nopRevExtChangePropId;
 
     int nopFlowIdPropId;
-    int nopFlowStatusPropId;
 
     int deleteFlagPropId;
     int createrPropId;
@@ -183,10 +182,6 @@ public class OrmEntityModelInitializer {
 
     public int getNopFlowIdPropId() {
         return nopFlowIdPropId;
-    }
-
-    public int getNopFlowStatusPropId() {
-        return nopFlowStatusPropId;
     }
 
     public int getDeleteFlagPropId() {
@@ -345,8 +340,6 @@ public class OrmEntityModelInitializer {
 
         if (entityModel.isUseWorkflow()) {
             nopFlowIdPropId = addColumn(OrmModelConstants.PROP_NAME_nopFlowId, StdSqlType.VARCHAR, 32).getColumnPropId();
-            nopFlowStatusPropId = addColumn(OrmModelConstants.PROP_NAME_nopFlowStatus, StdSqlType.INTEGER, null)
-                    .getColumnPropId();
         }
 
         this.versionPropId = getColPropId(entityModel.getVersionProp());

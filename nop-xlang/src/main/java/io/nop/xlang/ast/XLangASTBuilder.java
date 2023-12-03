@@ -151,7 +151,7 @@ public class XLangASTBuilder {
     }
 
     public static Expression ifStatement(SourceLocation loc, Expression test, Expression consequence) {
-        return IfStatement.valueOf(loc, test, consequence, null,false);
+        return IfStatement.valueOf(loc, test, consequence, null, false);
     }
 
     public static ImportAsDeclaration importLib(SourceLocation loc, Literal lib, Identifier local) {
@@ -259,8 +259,17 @@ public class XLangASTBuilder {
             return Identifier.valueOf(loc, propName);
 
         Expression id = Identifier.valueOf(loc, propName.substring(0, pos));
+        return buildPropExpr(id, loc, propName.substring(pos + 1));
+    }
 
-        Expression prop = buildPropExpr(loc, propName.substring(pos + 1));
-        return MemberExpression.valueOf(loc, id, prop, false, true);
+    public static Expression buildPropExpr(Expression obj, SourceLocation loc, String propName) {
+        int pos = propName.indexOf('.');
+        if (pos < 0) {
+            return MemberExpression.valueOf(loc, obj, Identifier.valueOf(loc, propName), false, true);
+        }
+
+        Expression id = Identifier.valueOf(loc, propName.substring(0, pos));
+        MemberExpression member = MemberExpression.valueOf(loc, obj, id, false, true);
+        return buildPropExpr(member, loc, propName.substring(pos + 1));
     }
 }

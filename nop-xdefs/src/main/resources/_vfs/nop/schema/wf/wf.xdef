@@ -4,7 +4,7 @@
   @allowStepLoop 是否允许步骤之间构成循环（除了backLink连接之外）。为了支持回退操作，需要所有步骤节点构成有向无环图。
   在回退连接上标记backLink=true可以忽略该循环依赖
 -->
-<workflow displayName="string" bizEntityStateProp="prop-name"
+<workflow displayName="string" bizEntityStateProp="prop-name" bizEntityFlowIdProp="prop-name"
           xdef:default-extends="/nop/core/defaults/default.wf.xml"
           priority="!int=100" allowStepLoop="!boolean=false"
           wfName="string" wfVersion="!long=0" tagSet="csv-set" wfGroup="string"
@@ -14,7 +14,6 @@
 >
 
     <description xdef:value="string"/>
-
 
     <!-- start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点 -->
     <start xdef:mandatory="true" startStepName="!string" xdef:name="WfStartModel">

@@ -8,7 +8,6 @@
 package io.nop.wf.core.store;
 
 import io.nop.wf.api.actor.IWfActor;
-import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -24,7 +23,9 @@ public interface IWorkflowStore {
 
     Object loadBizEntity(String bizObjType, String bizEntityId);
 
-    void updateBizEntityState(String bizObjType, Object bizEntity, String bizEntityStateProp, String state);
+    void updateBizEntityState(IWorkflowRecord wfRecord, String bizEntityStateProp, String state);
+
+    void bindBizEntityFlowId(IWorkflowRecord wfRecord, String bizFlowIdProp);
 
     IWorkflowRecord newWfRecord(IWorkflowModel model);
 

@@ -124,7 +124,7 @@ public class OrmModelInitializer {
             entityMap.put(entityModel.getName(), entityModel);
             if (entityModel.isRegisterShortName()) {
                 IEntityModel oldModel = entityMap.put(entityModel.getShortName(), entityModel);
-                if (oldModel != null)
+                if (oldModel != null && oldModel != entityModel)
                     throw new NopException(ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME).source(entityModel)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_OTHER_LOC, oldModel.getLocation())
                             .param(ARG_OTHER_ENTITY_NAME, oldModel.getName());

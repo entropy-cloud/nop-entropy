@@ -1,6 +1,7 @@
 package io.nop.wf.core.store;
 
 import io.nop.core.model.tree.TreeVisitors;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.NopWfCoreConstants;
 
@@ -21,6 +22,22 @@ public abstract class AbstractWorkflowStore implements IWorkflowStore {
     protected abstract IWorkflowRecord getWfRecord(IWorkflowStepRecord stepRecord);
 
     protected abstract Collection<? extends IWorkflowStepRecord> getSteps(IWorkflowRecord wfRecord);
+
+    @Override
+    public void updateBizEntityState(IWorkflowRecord wfRecord, String bizEntityStateProp, String state) {
+        Object bizEntity = loadBizEntity(wfRecord.getBizObjName(), wfRecord.getBizObjId());
+        if(bizEntity != null){
+            BeanTool.setComplexProperty(bizEntity, bizEntityStateProp, state);
+        }
+    }
+
+    @Override
+    public void bindBizEntityFlowId(IWorkflowRecord wfRecord, String bizFlowIdProp) {
+        Object bizEntity = loadBizEntity(wfRecord.getBizObjName(), wfRecord.getBizObjId());
+        if(bizEntity != null){
+            BeanTool.setComplexProperty(bizEntity, bizFlowIdProp, wfRecord.getWfId());
+        }
+    }
 
     @Override
     public IWorkflowStepRecord getLatestStepRecordByName(IWorkflowRecord wfRecord, String stepName) {

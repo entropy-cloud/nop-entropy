@@ -266,8 +266,15 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
        </when>
 
        <otherwise>
+           <c:script>
+               function buildRefEntityParam(rel){
+                  if(rel.refEntityModel.name == rel.refEntityModel.className)
+                    return rel.refEntityModel.name + '.class';
+                  return rel.refEntityModel.className + '.class,"'+rel.refEntityModel.name+'"';
+               }
+           </c:script>
     private final OrmEntitySet&lt;${rel.refEntityModel.name}> _${rel.name} = new OrmEntitySet&lt;>(this, PROP_NAME_${rel.name},
-        ${rel.refPropName? rel.refEntityName + '.PROP_NAME_' + rel.refPropName : 'null'}, ${rel.keyProp? rel.refEntityName + '.PROP_NAME_' + rel.keyProp : 'null'},${rel.refEntityModel.name}.class);
+        ${rel.refPropName? rel.refEntityName + '.PROP_NAME_' + rel.refPropName : 'null'}, ${rel.keyProp? rel.refEntityName + '.PROP_NAME_' + rel.keyProp : 'null'},${buildRefEntityParam(rel)});
 
     /**
      * ${rel.displayName}。 refPropName: ${rel.refPropName}, keyProp: {rel.keyProp}

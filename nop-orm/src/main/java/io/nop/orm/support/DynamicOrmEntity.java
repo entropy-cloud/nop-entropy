@@ -187,7 +187,8 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
             if (entitySet == null) {
                 IEntityRelationModel relModel = (IEntityRelationModel) propModel;
                 entitySet = new OrmEntitySet(this, propName, ((IEntityRelationModel) propModel).getRefPropName(),
-                        relModel.getKeyProp(), orm_enhancer().getEntityClass(((IEntityRelationModel) propModel).getRefEntityModel()));
+                        relModel.getKeyProp(), orm_enhancer().getEntityClass(((IEntityRelationModel) propModel).getRefEntityModel()),
+                        relModel.getRefEntityModel().getName());
                 refProps.put(propName, entitySet);
             }
             return entitySet;

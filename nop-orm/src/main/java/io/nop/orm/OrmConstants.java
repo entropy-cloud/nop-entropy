@@ -129,4 +129,18 @@ public interface OrmConstants {
 
     String NAMESPACE_DAO = "dao";
 
+    String PROP_NAME_fieldName = "fieldName"; //NOSONAR
+
+    String PROP_NAME_fieldType = "fieldType"; //NOSONAR
+
+    String PROP_NAME_decimalScale = "decimalScale"; //NOSONAR
+
+    String PROP_NAME_decimalValue = "decimalValue"; //NOSONAR
+
+    String PROP_NAME_stringValue = "stringValue"; //NOSONAR
+
+    String PROP_NAME_dateValue = "dateValue"; //NOSONAR
+
+    String PROP_NAME_timestampValue = "timestampValue"; //NOSONAR
+
 }

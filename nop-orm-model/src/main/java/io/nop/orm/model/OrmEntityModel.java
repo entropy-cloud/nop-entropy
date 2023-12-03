@@ -53,6 +53,7 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
     private int updaterPropId;
     private int updateTimePropId;
 
+    private int nopFlowIdPropId;
     private int nopRevTypePropId;
     private int nopRevBeginVerPropId;
     private int nopRevEndVerPropId;
@@ -326,8 +327,14 @@ public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INe
         this.idProp = initializer.getIdProp();
         this.props = initializer.getProps();
         this.containsTenantIdInPk = initializer.isContainsTenantIdInPk();
+        this.nopFlowIdPropId = initializer.getNopFlowIdPropId();
 
         inited = true;
+    }
+
+    @Override
+    public int getNopFlowIdPropId(){
+        return nopFlowIdPropId;
     }
 
     public void addProp(IEntityPropModel prop) {

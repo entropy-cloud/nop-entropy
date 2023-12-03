@@ -10,6 +10,7 @@ package io.nop.orm.support;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.ClassHelper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntityEnhancer;
@@ -68,6 +69,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     private final Class<? extends IOrmEntity> refEntityClass;
 
+    private final String refEntityName;
+
     private Map<String, T> keyToEntityMap;
 
     /**
@@ -81,17 +84,23 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
     private boolean dirty;
     private boolean readonly;
 
-    private boolean kvTable;
+    private final boolean kvTable;
 
     public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp,
-                        Class<? extends IOrmEntity> refEntityClass) {
+                        Class<? extends IOrmEntity> refEntityClass, String refEntityName) {
         this.owner = owner;
         this.collectionName = OrmModelHelper.buildCollectionName(owner.orm_entityName(), propName);
         this.propName = propName;
         this.refPropName = refPropName;
         this.keyProp = keyProp;
-        this.refEntityClass = refEntityClass;
-        this.kvTable = refEntityClass != null && IOrmKeyValueTable.class.isAssignableFrom(refEntityClass);
+        this.refEntityClass = Guard.notNull(refEntityClass, "refEntityClass");
+        this.kvTable = IOrmKeyValueTable.class.isAssignableFrom(refEntityClass);
+        this.refEntityName = Guard.notEmpty(refEntityName, "refEntityName");
+    }
+
+    public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp,
+                        Class<? extends IOrmEntity> refEntityClass) {
+        this(owner, propName, refPropName, keyProp, refEntityClass, refEntityClass.getName());
     }
 
 //    public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp) {
@@ -121,7 +130,7 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         if (enhancer == null) {
             entity = (IOrmEntity) ClassHelper.newInstance(refEntityClass);
         } else {
-            entity = enhancer.newEntity(refEntityClass.getName());
+            entity = enhancer.newEntity(refEntityName);
 
             if (refPropName != null) {
                 entity.orm_propValueByName(refPropName, owner);

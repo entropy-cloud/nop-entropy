@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<orm x:schema="/nop/schema/orm/orm.xdef" x:extends="super" xmlns:x="/nop/schema/xdsl.xdef">
+<orm x:schema="/nop/schema/orm/orm.xdef" x:extends="super" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
 
-    <entities/>
+    <entities>
+
+        <entity name="dyn.AppDynSalaryAdjustment" displayName="调薪申请" x:prototype="WfDynEntityTemplate">
+            <filters>
+                <filter name="objType" value="AppDynSalaryAdjustment"/>
+            </filters>
+
+            <aliases>
+                <alias name="employeeId" type="String" propPath="extFields.employeeId.string"/>
+                <alias name="salary1" type="Double" propPath="extFields.salary1.double"/>
+                <alias name="salary2" type="Double" propPath="extFields.salary2.double"/>
+            </aliases>
+        </entity>
+    </entities>
 </orm>

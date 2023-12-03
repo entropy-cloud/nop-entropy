@@ -47,11 +47,6 @@ public class MockWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public void updateBizEntityState(String bizObjType, Object bizEntity, String bizEntityStateProp, String state) {
-        BeanTool.setComplexProperty(bizEntity, bizEntityStateProp, state);
-    }
-
-    @Override
     protected IWorkflowRecord getWfRecord(IWorkflowStepRecord stepRecord) {
         return workflowBeans.get(stepRecord.getWfId());
     }

@@ -379,4 +379,8 @@ public interface OrmErrors {
     ErrorCode ERR_ORM_ENTITY_NO_CONTENT_PROP =
             define("nop.err.orm.entity-no-content-prop",
                     "实体模型[{entityName}]没有定义标记为content的字段", ARG_ENTITY_NAME);
+
+    ErrorCode ERR_ORM_DUPLICATE_SHORT_ENTITY_NAME =
+            define("nop.err.orm.duplicate-short-entity-name", "实体名[{entityName}]和实体名[{otherEntityName}]的短名字重复",
+                    ARG_ENTITY_NAME, ARG_OTHER_ENTITY_NAME);
 }

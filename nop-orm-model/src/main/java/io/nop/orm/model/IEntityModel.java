@@ -223,6 +223,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     int getUpdateTimePropId();
 
+    int getNopFlowIdPropId();
+
     default IColumnModel getVersionPropModel() {
         int propId = getVersionPropId();
         if (propId <= 0)
@@ -244,6 +246,13 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     default IColumnModel getTenantColumn() {
         int tenantPropId = getTenantPropId();
         return tenantPropId <= 0 ? null : getColumnByPropId(tenantPropId, false);
+    }
+
+    default IColumnModel getNopFlowIdColumn() {
+        int flowIdPropId = getNopFlowIdPropId();
+        if (flowIdPropId <= 0)
+            return null;
+        return getColumnByPropId(flowIdPropId, false);
     }
 
     /**

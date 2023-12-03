@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [20:6:0:0]/nop/schema/wf/wf.xdef <p>
+ * generate from [19:6:0:0]/nop/schema/wf/wf.xdef <p>
  * start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",

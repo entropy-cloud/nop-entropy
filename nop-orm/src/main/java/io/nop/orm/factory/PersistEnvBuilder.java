@@ -29,8 +29,10 @@ import java.util.Objects;
 
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_PROP_NAME;
+import static io.nop.orm.OrmErrors.ARG_OTHER_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_PROP_ID;
 import static io.nop.orm.OrmErrors.ARG_PROP_NAME;
+import static io.nop.orm.OrmErrors.ERR_ORM_DUPLICATE_SHORT_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ERR_ORM_ENTITY_PROP_ID_NOT_MATCH_DEF_IN_MODEL;
 
 /**
@@ -111,6 +113,13 @@ class PersistEnvBuilder {
             try {
                 IEntityPersister persister = newEntityPersister(entityModel, ormModel);
                 persisters.put(entityModel.getName(), persister);
+                if (entityModel.isRegisterShortName()) {
+                    IEntityPersister oldPersister = persisters.putIfAbsent(entityModel.getShortName(), persister);
+                    if (oldPersister != null && oldPersister != persister)
+                        throw new NopException(ERR_ORM_DUPLICATE_SHORT_ENTITY_NAME)
+                                .param(ARG_ENTITY_NAME, entityModel.getName())
+                                .param(ARG_OTHER_ENTITY_NAME, oldPersister.getEntityModel().getName());
+                }
             } catch (NopException e) {
                 e.addXplStack("createEntityPersistDriver:" + entityModel.getName());
                 throw e;
