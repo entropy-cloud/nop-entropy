@@ -227,10 +227,16 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         wfRecord.setBizObjName(bizObjName);
 
         String bizEntityId = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_OBJ_ID);
-        wfRecord.setBizObjId(bizEntityId);
+        if (!StringHelper.isEmpty(bizEntityId)) {
+            //VarCollector.instance().collectVar("NopWfInstance@bizEntityId",bizEntityId);
+            wfRecord.setBizObjId(bizEntityId);
+        }
 
         String bizKey = (String) args.remove(NopWfCoreConstants.PARAM_BIZ_KEY);
-        wfRecord.setBizKey(bizKey);
+        if (!StringHelper.isEmpty(bizKey)) {
+            //VarCollector.instance().collectVar("NopWfInstance@bizKey",bizKey);
+            wfRecord.setBizKey(bizKey);
+        }
         return args;
     }
 
@@ -357,6 +363,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         // add step link after saving step
         if (currentStep != null) {
             wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
+        }
+
+        // 处于等待状态的join步骤，新增加上游步骤之后需要检查是否可以转入激活状态
+        if (stepModel.getJoinType() != null && step.isWaiting()) {
+            wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
         }
 
         return step;
@@ -762,8 +773,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 Set<String> onStates = stepModel.getTransition().getOnAppStates();
                 if (onStates != null && !onStates.isEmpty()) {
                     if (!onStates.contains(step.getRecord().getAppState())) {
-                        LOG.info("nop.wf.step-not-allow-transition-when-state-not-ready:state={},onStates={}",
-                                step.getRecord().getAppState(), onStates);
+                        LOG.info("nop.wf.step-not-allow-transition-when-state-not-ready:stepName={},state={},onStates={},wfName={},wfId={}",
+                                step.getModel().getName(), step.getRecord().getAppState(), onStates, wfRt.getWf().getWfName(), wfRt.getWf().getWfId());
                         return false;
                     }
                 }
@@ -878,8 +889,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     public boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
         WfRuntime wfRt = newWfRuntime(step, ctx);
         initArgs(wfRt, args);
-        checkWaitingStep(step, wfRt);
         return runStepAutoTransition(step, wfRt);
+    }
+
+    @Override
+    public boolean triggerWaiting(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
+        WfRuntime wfRt = newWfRuntime(step, ctx);
+        initArgs(wfRt, args);
+        return checkWaitingStep(step, wfRt);
     }
 
     @Override

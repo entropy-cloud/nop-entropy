@@ -176,10 +176,16 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     }
 
     @Override
-    public void triggerTransition(Map<String, Object> args, IServiceContext ctx) {
-        wf.executeNow(() -> {
-            wf.getEngine().triggerTransition(this, args, ctx);
-            return null;
+    public boolean triggerTransition(Map<String, Object> args, IServiceContext ctx) {
+        return wf.executeNow(() -> {
+            return wf.getEngine().triggerTransition(this, args, ctx);
+        });
+    }
+
+    @Override
+    public boolean triggerWaiting(Map<String, Object> args, IServiceContext ctx) {
+        return wf.executeNow(() -> {
+            return wf.getEngine().triggerWaiting(this, args, ctx);
         });
     }
 

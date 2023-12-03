@@ -4,13 +4,15 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
-import io.nop.core.lang.eval.IEvalScope;
+import io.nop.dao.api.DaoProvider;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.dao.entity.NopWfDynEntity;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class WfTestHelper {
     public static void start(IWorkflow wf, String starterId) {
@@ -21,13 +23,15 @@ public class WfTestHelper {
     }
 
     public static void start(IWorkflow wf, String starterId, NopWfDynEntity entity) {
+        DaoProvider.instance().dao(entity.get_entityName()).saveOrUpdateEntity(entity);
+
         IServiceContext ctx = new ServiceContextImpl();
-        IEvalScope scope = ctx.getEvalScope();
-        scope.setLocalValue(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME, StringHelper.simpleClassName(entity.get_entityName()));
-        scope.setLocalValue(NopWfCoreConstants.PARAM_BIZ_OBJ_ID, entity.orm_idString());
+        Map<String, Object> args = new HashMap<>();
+        args.put(NopWfCoreConstants.PARAM_BIZ_OBJ_NAME, StringHelper.simpleClassName(entity.get_entityName()));
+        args.put(NopWfCoreConstants.PARAM_BIZ_OBJ_ID, entity.orm_idString());
 
         ctx.getContext().setUserId(starterId);
-        wf.start(null, ctx);
+        wf.start(args, ctx);
         wf.runAutoTransitions(ctx);
     }
 
@@ -41,6 +45,7 @@ public class WfTestHelper {
         for (IWorkflowStep step : activeSteps) {
             if (step.getActor().containsUser(userId)) {
                 step.invokeAction(action, null, ctx);
+                wf.runAutoTransitions(ctx);
                 wf.runAutoTransitions(ctx);
                 return;
             }

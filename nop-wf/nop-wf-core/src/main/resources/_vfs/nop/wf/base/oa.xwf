@@ -2,6 +2,10 @@
 <workflow x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef"
           xmlns:oa="oa">
 
+    <x:config>
+        <c:import from="/nop/wf/xlib/oa.xlib" />
+    </x:config>
+
     <start startStepName="start">
     </start>
 

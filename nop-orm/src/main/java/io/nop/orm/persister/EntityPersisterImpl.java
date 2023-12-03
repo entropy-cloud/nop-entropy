@@ -119,8 +119,10 @@ public class EntityPersisterImpl implements IEntityPersister {
     @Override
     public IOrmEntity newEntity(IOrmSessionImplementor session) {
         IOrmEntity entity = (IOrmEntity) constructor.newInstance();
-        entity.orm_attach(session);
+        entity.orm_entityModel(entityModel);
+        // 需要在attach之前设置值，否则实体会被标记为dirty
         bindFilter(entity);
+        entity.orm_attach(session);
         return entity;
     }
 

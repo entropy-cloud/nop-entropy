@@ -200,11 +200,11 @@
                 <column code="DUE_TIME" displayName="完成时限" name="dueTime" propId="12" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Due Time"/>
                 <column code="BIZ_KEY" displayName="业务唯一键" name="bizKey" precision="200" propId="13"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizKey"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="BizKey"/>
                 <column code="BIZ_OBJ_NAME" displayName="业务对象名" name="bizObjName" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjName"/>
                 <column code="BIZ_OBJ_ID" displayName="业务对象ID" name="bizObjId" precision="200" propId="15"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjId"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="BizObjId"/>
                 <column code="PARENT_WF_NAME" displayName="父工作流名称" name="parentWfName" precision="500" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Parent Flow Name"/>
                 <column code="PARENT_WF_VERSION" displayName="父流程版本" name="parentWfVersion" propId="17"
@@ -820,15 +820,15 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
                 <column code="DISPLAY_NAME" displayName="显示名称" name="displayName" precision="500" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Display Name"/>
-                <column code="SORT_ORDER" displayName="排序" mandatory="true" name="sortOrder" propId="5"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Sort Order"/>
+                <column code="SORT_ORDER" displayName="排序" name="sortOrder" propId="5" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Sort Order"/>
                 <column code="NOP_FLOW_ID" displayName="工作流实例ID" name="nopFlowId" precision="32" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Workflow ID"/>
-                <column code="BIZ_STATUS" displayName="业务状态码" mandatory="true" name="bizStatus" propId="7"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Biz Status"/>
+                <column code="BIZ_STATUS" displayName="业务状态码" name="bizStatus" propId="7" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Biz Status"/>
                 <column code="BIZ_STATE" comment="业务状态是由业务自由定义" displayName="业务状态" name="bizState" precision="50"
                         propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Biz State"/>
-                <column code="PARENT_ID" displayName="父ID" mandatory="true" name="parentId" precision="32" propId="9"
+                <column code="PARENT_ID" displayName="父ID" name="parentId" precision="32" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="parent" i18n-en:displayName="Parent ID"/>
                 <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name"/>

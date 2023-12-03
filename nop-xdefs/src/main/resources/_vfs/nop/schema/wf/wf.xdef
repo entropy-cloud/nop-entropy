@@ -127,7 +127,7 @@
             <source xdef:value="xpl"/>
 
             <!--
-              @splitType 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
+              @splitType 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。缺省为and
               @appState 设置步骤实例上的appState字段
               @wfAppState  设置工作流实例wfRecord上的appState字段
               @onAppStates 当步骤的appState为指定值的时候才会触发transition
@@ -244,7 +244,7 @@
           @waitStepNames joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
           @passWeight 所有同意的参与者投票权重超过多少记为通过
         -->
-        <join name="!string" xdef:ref="WfStepModel" joinType="enum:io.nop.wf.core.model.WfJoinType"
+        <join name="!string" xdef:ref="WfStepModel" joinType="!enum:io.nop.wf.core.model.WfJoinType=and"
               waitStepNames="csv-set" passWeight="int" passPercent="double" xdef:name="WfJoinStepModel">
             <!--
             joinGroupExpr指定join时的分组条件。

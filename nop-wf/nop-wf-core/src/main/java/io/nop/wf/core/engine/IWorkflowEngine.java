@@ -64,6 +64,8 @@ public interface IWorkflowEngine {
 
     boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 
+    boolean triggerWaiting(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
+
     void notifySubFlowEnd(IWorkflowStepImplementor step, int status, Map<String, Object> args, IServiceContext ctx);
 
     boolean isAllowCall(IWorkflowStepImplementor step, IServiceContext ctx);

@@ -618,7 +618,7 @@ public class GenSqlHelper {
                 if (prependAnd)
                     sb.and();
                 OrmColumnModel col = filter.getColumn();
-                appendEq(sb, dialect, owner, col, binders[col.getPropId()], filter.getValue());
+                appendEq(sb, dialect, owner, col, null, filter.getValue());
                 if (!prependAnd)
                     sb.and();
             });

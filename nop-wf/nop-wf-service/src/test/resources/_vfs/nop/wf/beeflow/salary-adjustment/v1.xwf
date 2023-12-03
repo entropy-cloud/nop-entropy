@@ -82,11 +82,11 @@
             </transition>
         </step>
 
-        <join name="approve-join" displayName="合并" internal="true">
+        <join name="approve-join" displayName="合并" internal="true" >
             <transition splitType="or">
                 <to-step stepName="approve21" order="1">
                     <when>
-                        <le name="wfRt.bizEntity.salary2" value="30000"/>
+                        <le name="wfRt.bizEntity.salary2" value="@:30000"/>
                     </when>
                 </to-step>
 

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 测试类钉钉审批流相关用例
  */
-@NopTestConfig(localDb = true, initDatabaseSchema = true)
+@NopTestConfig //(localDb = true, initDatabaseSchema = true)
 public class TestBeeflowCase extends JunitAutoTestCase {
 
     @Inject
@@ -85,12 +85,16 @@ public class TestBeeflowCase extends JunitAutoTestCase {
         });
     }
 
+    @EnableSnapshot
     @Test
     public void testSalaryAdjustment() {
+        forceStackTrace();
         runInSession(() -> {
+            // 在/_vfs/_delta/default目录下定制wf模块的app.orm.xml，增加动态实体定义
             IEntityDao<NopWfDynEntity> dao = DaoProvider.instance().dao("AppDynSalaryAdjustment");
             // 必须通过dao创建，此时实体名才会被强制设置为AppDynSalaryAdjustment
             NopWfDynEntity entity = dao.newEntity();
+            entity.prop_set("name", "abc");
             entity.prop_set("employeeId", 100);
             entity.prop_set("salary1", 30000);
             entity.prop_set("salary2", 40000);
@@ -99,10 +103,10 @@ public class TestBeeflowCase extends JunitAutoTestCase {
             start(wf, "1", entity);  // 根据部门条件发送到 user2
             assertEquals(wf.getWfId(), entity.getNopFlowId());
 
-            invoke(wf, "2", "agree"); //
-            invoke(wf, "3", "agree"); // 抄送用户 user_4
-            invoke(wf, "4", "confirm"); // 抄送用户缺省后发给 角色 manager
+            invoke(wf, "2", "agree"); // 根据salary2条件发送user5
             invoke(wf, "5", "agree");
+
+            assertTrue(wf.isEnded());
         });
     }
 }

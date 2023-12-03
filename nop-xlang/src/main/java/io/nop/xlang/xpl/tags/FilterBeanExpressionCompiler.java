@@ -13,6 +13,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.query.FilterBeanVisitor;
 import io.nop.core.model.query.FilterOp;
@@ -27,6 +28,7 @@ import io.nop.xlang.ast.LogicalExpression;
 import io.nop.xlang.ast.UnaryExpression;
 import io.nop.xlang.ast.XLangASTBuilder;
 import io.nop.xlang.ast.XLangOperator;
+import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.utils.XplParseHelper;
 
@@ -130,7 +132,13 @@ public class FilterBeanExpressionCompiler extends FilterBeanVisitor<Expression> 
 
         if (value instanceof String) {
             String str = value.toString();
-            return compiler.parseSimpleExpr(loc, str, compileScope);
+            if (str.startsWith("@:")) {
+                Object jsonValue = JsonTool.parseNonStrict(loc, str.substring(2).trim());
+                return Literal.valueOf(loc, jsonValue);
+            }
+            if (str.indexOf("${") > 0)
+                return compiler.parseTemplateExpr(loc, str, false, ExprPhase.eval, compileScope);
+            return Literal.valueOf(loc, value);
         } else {
             return Literal.valueOf(loc, value);
         }

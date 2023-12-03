@@ -72,15 +72,15 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     }
 
     default boolean isHistory() {
-        return getStepStatus() >= NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND;
+        return getRecord().isHistory();
     }
 
     default boolean isWaiting() {
-        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_WAITING;
+        return getRecord().isWaiting();
     }
 
     default boolean isActivated() {
-        return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED;
+        return getRecord().isActivated();
     }
 
     default boolean isSuspended() {
@@ -137,7 +137,23 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     void kill(Map<String, Object> args, IServiceContext ctx);
 
-    void triggerTransition(Map<String, Object> args, IServiceContext ctx);
+    /**
+     * 对于状态处于activated的步骤，触发transition迁移
+     *
+     * @param args 输入参数
+     * @param ctx  执行上下文
+     * @return 返回true表示发生了迁移
+     */
+    boolean triggerTransition(Map<String, Object> args, IServiceContext ctx);
+
+    /**
+     * 检查步骤状态是否可以从waiting转换为activated
+     *
+     * @param args 输入参数
+     * @param ctx  执行上下文
+     * @return 返回true表示状态发生了变化
+     */
+    boolean triggerWaiting(Map<String, Object> args, IServiceContext ctx);
 
     void notifySubFlowEnd(int status, Map<String, Object> results, IServiceContext ctx);
 

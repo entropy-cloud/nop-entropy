@@ -24,14 +24,14 @@ public class DynamicOrmKeyValueTable extends AbstractOrmKeyValueTable {
 
     @Override
     public Integer getFieldType() {
-        int propId = orm_propId(OrmConstants.PROP_NAME_fieldName);
+        int propId = orm_propId(OrmConstants.PROP_NAME_fieldType);
         return ConvertHelper.toInteger(orm_propValue(propId),
                 err -> this.newError(err).param(ARG_PROP_NAME, OrmConstants.PROP_NAME_fieldType));
     }
 
     @Override
     public void setFieldType(Integer fieldType) {
-        int propId = orm_propId(OrmConstants.PROP_NAME_fieldName);
+        int propId = orm_propId(OrmConstants.PROP_NAME_fieldType);
         orm_propValue(propId, fieldType);
     }
 

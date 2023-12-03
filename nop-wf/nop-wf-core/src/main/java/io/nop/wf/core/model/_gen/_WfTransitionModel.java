@@ -38,7 +38,7 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
     /**
      *  
      * xml name: splitType
-     * 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
+     * 分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。缺省为and
      */
     private io.nop.wf.core.model.WfSplitType _splitType ;
     
@@ -137,7 +137,7 @@ public abstract class _WfTransitionModel extends io.nop.core.resource.component.
     /**
      * 
      * xml name: splitType
-     *  分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。
+     *  分支类型，and表示每个分支都执行，or表示从上至下执行，只执行第一个满足条件的迁移目标。缺省为and
      */
     
     public io.nop.wf.core.model.WfSplitType getSplitType(){
