@@ -68,7 +68,7 @@ public interface IWorkflowEngine {
 
     void notifySubFlowEnd(IWorkflowStepImplementor step, int status, Map<String, Object> args, IServiceContext ctx);
 
-    boolean isAllowCall(IWorkflowStepImplementor step, IServiceContext ctx);
+    boolean allowCallByUser(IWorkflowStepImplementor step, IServiceContext ctx);
 
     List<? extends IWorkflowActionModel> getAllowedActions(IWorkflowStepImplementor step, IServiceContext ctx);
 

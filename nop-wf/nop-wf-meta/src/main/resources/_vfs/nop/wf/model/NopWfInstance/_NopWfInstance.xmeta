@@ -68,16 +68,16 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="bizKey" displayName="业务唯一键" i18n-en:displayName="BizKey" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="bizKey" displayName="业务唯一键" i18n-en:displayName="BizKey" tagSet="var" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="bizObjName" displayName="业务对象名" i18n-en:displayName="BizObjName" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="bizObjId" displayName="业务对象ID" i18n-en:displayName="BizObjId" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+        <prop name="bizObjId" displayName="业务对象ID" i18n-en:displayName="BizObjId" tagSet="var" queryable="true"
+              sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="parentWfName" displayName="父工作流名称" i18n-en:displayName="Parent Flow Name" queryable="true"

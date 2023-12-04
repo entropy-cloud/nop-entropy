@@ -39,7 +39,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
-import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_CALL_ACTION_ON_STEP;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER;
 
 public class WorkflowStepImpl implements IWorkflowStepImplementor {
     private final IWorkflowImplementor wf;
@@ -198,8 +198,8 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     }
 
     @Override
-    public boolean isAllowCall(IServiceContext ctx) {
-        return wf.getEngine().isAllowCall(this, ctx);
+    public boolean allowCallByUser(IServiceContext ctx) {
+        return wf.getEngine().allowCallByUser(this, ctx);
     }
 
     @Nonnull
@@ -210,8 +210,8 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Override
     public Object invokeAction(String actionName, Map<String, Object> args, IServiceContext ctx) {
-        if (!isAllowCall(ctx))
-            throw new NopException(ERR_WF_NOT_ALLOW_CALL_ACTION_ON_STEP)
+        if (!allowCallByUser(ctx))
+            throw new NopException(ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER)
                     .param(ARG_WF_NAME, getWfName())
                     .param(ARG_WF_VERSION, getWfVersion())
                     .param(ARG_WF_ID, getWfId())

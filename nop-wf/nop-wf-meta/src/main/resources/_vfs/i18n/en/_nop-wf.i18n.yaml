@@ -3,13 +3,13 @@ entity:
     NopWfAction: Workflow Action
     NopWfDefinition: Worflow Definition
     NopWfDefinitionAuth: Workflow Definition Auth
+    NopWfDynEntity: Dynamic Entity
     NopWfInstance: Worflow Instance
     NopWfLog: Workflow Log
     NopWfOutput: Workflow Outputs
     NopWfStatusHistory: Workflow Status History
     NopWfStepInstance: Workflow Step Instance
     NopWfStepInstanceLink: Workflow Step Instance Link
-    NopWfUserDelegate: User Delegate
     NopWfVar: Workflow Variables
     NopWfWork: Work List
     WfActionRequestBean: Workflow Action Request
@@ -74,6 +74,46 @@ prop:
       remark: Remark
       wfDefinition: Workflow Definition
       wfDefinition.displayName: Workflow Definition
+    NopWfDynEntity:
+      sid: SID
+      objType: Object Type
+      name: Name
+      displayName: Display Name
+      sortOrder: Sort Order
+      nopFlowId: Workflow ID
+      bizStatus: Biz Status
+      bizState: Biz State
+      parentId: Parent ID
+      ownerName: Owner Name
+      ownerId: Owner ID
+      deptId: Department ID
+      stringFld1: String Field1
+      decimalFld1: Decimal Field1
+      intFld1: Integer Field1
+      longFld1: Long Field1
+      dateFld1: Date Field1
+      timestampFld1: Timestamp Field1
+      fileFld1: File Field1
+      stringFld2: String Field2
+      decimalFld2: Decimal Field2
+      intFld2: Integer Field2
+      longFld2: Long Field2
+      dateFld2: Date Field2
+      timestampFld2: Timestamp Field2
+      fileFld2: File Field2
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      wfInstance: Workflow Instance
+      wfInstance.title: Workflow Instance
+      parent: Parent
+      children: Children
+      extFields: null
+      fileFld1Component: null
+      fileFld2Component: null
     NopWfInstance:
       wfId: Workflow ID
       wfName: Workflow Name
@@ -243,16 +283,6 @@ prop:
       wfInstance.title: Workflow Instance
       wfStep: Workflow Step
       nextWfStep: Next Workflow Step
-    NopWfUserDelegate:
-      sid: SID
-      userId: User ID
-      delegateId: Delegate ID
-      delegateScope: Delegate Scope
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
     NopWfVar:
       wfId: Workflow ID
       fieldName: Field Name

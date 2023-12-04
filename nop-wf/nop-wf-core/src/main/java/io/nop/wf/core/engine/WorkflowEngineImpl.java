@@ -448,6 +448,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (!step.isWaiting())
             return false;
 
+        LOG.info("nop.wf.check-waiting-join-step:wfName={},stepName={},stepId={}", step.getWfName(),
+                step.getStepName(), step.getStepId());
+
         if (!wf.isAllSignalOn(step.getModel().getWaitSignals()))
             return false;
 
@@ -463,6 +466,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (allWaitFinished) {
             step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED);
             wfRt.triggerEvent(NopWfCoreConstants.EVENT_ACTIVATE_STEP);
+
+            LOG.info("nop.wf.waiting-join-step-transit-to-activated:wfName={},stepName={},stepId={}", step.getWfName(),
+                    step.getStepName(), step.getStepId());
             return true;
         }
         return false;
@@ -919,11 +925,12 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         args.put(NopWfCoreConstants.VAR_SUB_WF_RESULTS, results);
 
         // 触发工作流引擎检查step的状态检查，再根据状态触发auto action实现变迁
+        step.triggerWaiting(args, ctx);
         step.triggerTransition(args, ctx);
     }
 
     @Override
-    public boolean isAllowCall(IWorkflowStepImplementor step, IServiceContext ctx) {
+    public boolean allowCallByUser(IWorkflowStepImplementor step, IServiceContext ctx) {
         IWfActor owner = step.getOwner();
         String userId = ctx.getUserId();
 
@@ -972,9 +979,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         WfActionModel actionModel = requireActionModel(wfRt, actionName);
 
-        checkActionAuth(wfModel, wfRt);
+        ErrorCode errorCode = checkAllowedAction(actionModel, step, wfRt);
+        if (errorCode != null)
+            throw wfRt.newError(errorCode).param(ARG_ACTION_NAME, actionModel.getName());
 
-        checkAllowedAction(actionModel, step, wfRt);
+        checkActionAuth(wfModel, wfRt);
 
         initArgs(actionModel, args, actionName, wfRt);
 
@@ -1275,11 +1284,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             IWorkflowRecord wfRecord = wf.getRecord();
             boolean bEnd = wfRt.willEnd();
             if (bEnd) {
-                LOG.info("wf.force_end:wfRecord={}", wfRecord);
+                LOG.info("nop.wf.force-end:wfName={},wfRecord={}", wfRecord.getWfName(), wfRecord);
                 killSteps(wfRt);
             } else if (wf.getStore().isAllStepsHistory(wfRecord)) {
                 bEnd = true;
-                LOG.info("wf.auto_end_since_all_steps_finished:wfRecord={}", wfRecord);
+                LOG.info("nop.wf.auto-end-since-all-steps-finished:wfName={},wfRecord={}", wfRecord.getWfName(), wfRecord);
             }
             if (bEnd) {
                 this.doEndWorkflow(NopWfCoreConstants.WF_STATUS_COMPLETED, wfRt);
@@ -1292,7 +1301,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (wf.isEnded())
             return;
 
-        LOG.debug("wf.end-workflow:status={},wf={}", status, wf.getRecord());
+        LOG.debug("wf.end-workflow:wfName={},status={},wf={}", wf.getWfName(), status, wf.getRecord());
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_END);
         IWorkflowRecord wfRecord = wf.getRecord();
         wfRecord.setEndTime(CoreMetrics.currentTimestamp());
@@ -1413,8 +1422,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
         }
 
-        if (actionModel.isCommon() && actionModel.getWhenSteps() != null && !actionModel.getWhenSteps().isEmpty()) {
-            if (!actionModel.getWhenSteps().contains(step.getStepName()))
+        if (actionModel.isCommon()) {
+            if (actionModel.getWhenSteps() != null && !actionModel.getWhenSteps().isEmpty()) {
+                if (!actionModel.getWhenSteps().contains(step.getStepName()))
+                    return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
+            }
+        } else {
+            if (step.getModel().getAction(actionModel.getName()) == null)
                 return ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
         }
 
@@ -1443,8 +1457,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     private boolean isForStatus(IWorkflowStepImplementor step, WfActionModel actionModel) {
         // 如果流程被挂起，则暂停所有action的执行
-        if (step.getWorkflow().isSuspended())
+        if (step.getWorkflow().isSuspended()) {
+            LOG.info("nop.wf.workflow-is-suspended:wfName={},wfId={}", step.getWfName(), step.getWfId());
             return false;
+        }
 
         // 如果流程已结束, 一般情况下是不允许执行action的
         if (step.getWorkflow().isEnded()) {

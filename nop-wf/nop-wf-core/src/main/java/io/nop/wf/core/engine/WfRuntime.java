@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_NAME;
+import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_STATUS;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_ID;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
@@ -204,6 +207,12 @@ public class WfRuntime implements IWfRuntime {
     public NopException newError(ErrorCode errorCode) {
         NopException e = new NopException(errorCode).param(ARG_WF_NAME, wf.getWfName())
                 .param(ARG_WF_VERSION, wf.getWfVersion()).param(ARG_WF_ID, wf.getWfId());
+
+        if (currentStep != null) {
+            e.param(ARG_STEP_NAME, currentStep.getStepName())
+                    .param(ARG_STEP_ID, currentStep.getStepId())
+                    .param(ARG_STEP_STATUS, currentStep.getStepStatus());
+        }
         return e;
     }
 

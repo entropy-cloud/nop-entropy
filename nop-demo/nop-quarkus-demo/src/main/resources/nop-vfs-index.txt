@@ -53,6 +53,7 @@
 /nop/auth/beans/_service.beans.xml
 /nop/auth/beans/app-service.beans.xml
 /nop/auth/beans/auth-core-defaults.beans.xml
+/nop/auth/beans/auth-dao.beans.xml
 /nop/auth/beans/auth-service.beans.xml
 /nop/auth/beans/sso-defaults.beans.xml
 /nop/auth/model/NopAuthDept/NopAuthDept.xbiz

@@ -25,6 +25,8 @@ public interface NopWfCoreErrors {
 
     String ARG_CALLER_ID = "callerId";
 
+    String ARG_ACTOR_NAME = "actorName";
+
     String ARG_OWNER_ID = "ownerId";
 
     String ARG_ACTOR_TYPE = "actorType";
@@ -216,7 +218,8 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_TRANSIT_TO_NO_TARGETS =
             define("nop.err.wf.transit-to-no-targets", "步骤迁移没有目标参与者，迁移失败", ARG_STEP_NAME);
 
-    ErrorCode ERR_WF_NOT_ALLOW_CALL_ACTION_ON_STEP =
-            define("nop.err.wf.not-allow-call-action-on-step",
-                    "步骤[{stepName}:{stepId}]不允许被用户[{callerId}]调用", ARG_STEP_NAME, ARG_STEP_ID, ARG_CALLER_ID);
+    ErrorCode ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER =
+            define("nop.err.wf.not-allow-call-action-by-user",
+                    "步骤[{stepName}:{stepId}]不允许被用户[{callerId}]调用,步骤的参与者限定为[{actorType}:${actorId}]",
+                    ARG_STEP_NAME, ARG_STEP_ID, ARG_CALLER_ID, ARG_ACTOR_TYPE, ARG_ACTOR_ID);
 }

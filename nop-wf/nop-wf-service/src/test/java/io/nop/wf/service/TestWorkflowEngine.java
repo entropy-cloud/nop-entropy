@@ -8,6 +8,7 @@
 package io.nop.wf.service;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
@@ -21,7 +22,6 @@ import io.nop.wf.core.engine.WorkflowEngineImpl;
 import io.nop.wf.core.impl.WorkflowManagerImpl;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.store.IWorkflowRecord;
-import io.nop.wf.dao.entity.NopWfInstance;
 import io.nop.wf.service.mock.MockWfActorResolver;
 import io.nop.wf.service.mock.MockWorkflowStore;
 import org.junit.jupiter.api.AfterAll;
@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP;
+import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -145,13 +147,29 @@ public class TestWorkflowEngine extends BaseTestCase {
                 ysh2 = activeStep;
             }
         }
+
+        try {
+            ysh1.invokeAction("sp2", null, context);
+            assertTrue(false);
+        } catch (NopException e) {
+            assertEquals(ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP.getErrorCode(), e.getErrorCode());
+        }
+
         ysh1.invokeAction("sp1", null, context);
+        workflow.runAutoTransitions(context);
         assertFalse(workflow.isEnded());
-        ysh1.invokeAction("sp2", null, context);
+
+        try {
+            ysh1.invokeAction("sp1", null, context);
+            assertTrue(false);
+        } catch (NopException e) {
+            assertEquals(ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS.getErrorCode(), e.getErrorCode());
+        }
+
+        ysh2.invokeAction("sp2", null, context);
         assertTrue(workflow.runAutoTransitions(context));
 
         assertTrue(workflow.isEnded());
-
     }
 
     void invokeAction(IWorkflowStep step, String actionId, String toStepId, String actorType, String actorId,
@@ -312,6 +330,8 @@ public class TestWorkflowEngine extends BaseTestCase {
         subFlow.runAutoTransitions(context);
 
         assertTrue(subFlow.isEnded());
+
+        workflow.runAutoTransitions(context);
 
         assertTrue(workflow.isEnded());
     }
@@ -553,8 +573,12 @@ public class TestWorkflowEngine extends BaseTestCase {
         IWorkflow workflow = workflowManager.newWorkflow("test/assignAnd", null);
         workflow.start(null, context);
         IWorkflowStep startStep = workflow.getActivatedSteps().get(0);
-        invokeAction(startStep, "sh", "ysh", "user", "1", context);
         invokeAction(startStep, "sh", "ysp", "user", "1", context);
+        workflow.runAutoTransitions(context);
+
+        IWorkflowStep ysp = workflow.getLatestStepByName("ysp");
+        invokeAction(ysp, "end", null, null, null, context);
+        assertTrue(workflow.isEnded());
     }
 
     /**
