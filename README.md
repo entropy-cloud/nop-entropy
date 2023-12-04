@@ -179,38 +179,23 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
 
 > 核心引擎的功能并不依赖于数据库，可以以纯内存的方式运行。所有存储相关的代码都已经剥离到独立的dao模块中，例如nop-auth-dao，nop-sys-dao等。
 
-1.
+1. 作为增量式代码生成工具使用：maven打包时可以读取Excel模型文件，应用指定的模板目录，以增量化的方式生成代码。参见[codegen.md](docs/dev-guide/codegen.md)
 
-作为增量式代码生成工具使用：maven打包时可以读取Excel模型文件，应用指定的模板目录，以增量化的方式生成代码。参见[codegen.md](docs/dev-guide/codegen.md)
+2. 为已有的XML/JSON/YAML格式的配置文件、领域模型文件提供可逆计算支持：为模型文件增加动态分解、合并、产品化定制机制，对应用层完全透明，对于引擎层只需要编写一个自定义的模型文件加载器。参见[delta-loader.md](docs/dev-guide/delta-loader.md)
 
-2.
+3. 为开发领域特定语言(DSL)提供支持：只需要定义xdef元模型文件即可获得语法提示、链接跳转、断点调试等IDE支持。后续会提供可视化设计器定制支持。参见[idea-plugin.md](docs/user-guide/idea/idea-plugin.md)
 
-为已有的XML/JSON/YAML格式的配置文件、领域模型文件提供可逆计算支持：为模型文件增加动态分解、合并、产品化定制机制，对应用层完全透明，对于引擎层只需要编写一个自定义的模型文件加载器。参见[delta-loader.md](docs/dev-guide/delta-loader.md)
+4. 作为模型驱动的GraphQL引擎使用：根据Excel模型自动生成GraphQL服务，支持复杂主子表的增删改查。参见[graphql.md](docs/dev-guide/graphql/graphql-java.md)
 
-3. 为开发领域特定语言(DSL)
-   提供支持：只需要定义xdef元模型文件即可获得语法提示、链接跳转、断点调试等IDE支持。后续会提供可视化设计器定制支持。参见[idea-plugin.md](docs/user-guide/idea/idea-plugin.md)
+5. 作为报表引擎使用：只需要在Word或者Excel文件中增加少量标注即可作为报表模板运行，动态生成复杂的中国式报表。参见[report.md](docs/user-guide/report.md)
 
-4.
+6. 作为工作流引擎使用：与定时调度引擎相结合，支持人工操作的审批工作流，也支持类似airflow的分布式DAG任务流。参见[workflow.md](docs/user-guide/workflow.md)
 
-作为模型驱动的GraphQL引擎使用：根据Excel模型自动生成GraphQL服务，支持复杂主子表的增删改查。参见[graphql.md](docs/dev-guide/graphql/graphql-java.md)
-
-5.
-
-作为报表引擎使用：只需要在Word或者Excel文件中增加少量标注即可作为报表模板运行，动态生成复杂的中国式报表。参见[report.md](docs/user-guide/report.md)
-
-6.
-
-作为工作流引擎使用：与定时调度引擎相结合，支持人工操作的审批工作流，也支持类似airflow的分布式DAG任务流。参见[workflow.md](docs/user-guide/workflow.md)
-
-7.
-
-作为批处理引擎使用：类似SpringBatch+XXLJob框架，提供分布式批处理任务支持。可以通过配置文件指定如何解析、生成文本或者二进制数据文件，无需编写解析和生成代码。参见[batch.md](docs/user-guide/batch.md)
+7. 作为批处理引擎使用：类似SpringBatch+XXLJob框架，提供分布式批处理任务支持。可以通过配置文件指定如何解析、生成文本或者二进制数据文件，无需编写解析和生成代码。参见[batch.md](docs/user-guide/batch.md)
 
 8. 作为规则引擎使用：通过配置实现复杂的业务规则判断。参见[rule.md](docs/user-guide/rule.md)
 
-9.
-
-作为数据驱动的自动化测试框架使用：通过录制、回放的机制实现自动化测试。第一遍运行的时候自动录制输出数据，此后运行时自动和录制的数据快照进行比较，减少手工需要编写的代码量。参见[autotest.md](docs/dev-guide/autotest.md)
+9. 作为数据驱动的自动化测试框架使用：通过录制、回放的机制实现自动化测试。第一遍运行的时候自动录制输出数据，此后运行时自动和录制的数据快照进行比较，减少手工需要编写的代码量。参见[autotest.md](docs/dev-guide/autotest.md)
 
 #### 示例页面
 
