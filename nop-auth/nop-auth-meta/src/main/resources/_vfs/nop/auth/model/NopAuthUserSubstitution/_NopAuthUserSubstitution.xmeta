@@ -30,6 +30,10 @@
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="substitutedUser">
             <schema domain="userId" type="java.lang.String" precision="32"/>
         </prop>
+        <prop name="workScope" displayName="工作范围" i18n-en:displayName="Work Scope" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
         <prop name="startTime" displayName="开始时间" i18n-en:displayName="Start Time" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.time.LocalDateTime"/>

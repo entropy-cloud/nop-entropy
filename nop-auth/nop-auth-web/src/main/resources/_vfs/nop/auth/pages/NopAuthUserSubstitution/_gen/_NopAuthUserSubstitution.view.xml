@@ -16,6 +16,9 @@
                 <!--被代理的用户ID-->
                 <col id="substitutedUserId" mandatory="true" sortable="true"/>
 
+                <!--工作范围-->
+                <col id="workScope" mandatory="true" sortable="true"/>
+
                 <!--开始时间-->
                 <col id="startTime" sortable="true"/>
 
@@ -44,15 +47,12 @@
     <forms>
         <form id="view" editMode="view" title="查看-用户代理" i18n-en:title="View User Substitution">
             <layout>
- userId[用户ID]
- substitutedUserId[被代理的用户ID]
- startTime[开始时间]
- endTime[结束时间]
- createdBy[创建人]
- createTime[创建时间]
- updatedBy[修改人]
- updateTime[修改时间]
- remark[备注]
+ userId[用户ID] substitutedUserId[被代理的用户ID]
+ workScope[工作范围] startTime[开始时间]
+ endTime[结束时间] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-用户代理" i18n-en:title="Add User Substitution" x:prototype="edit"/>
@@ -60,6 +60,7 @@
             <layout>
  userId[用户ID]
  substitutedUserId[被代理的用户ID]
+ workScope[工作范围]
  startTime[开始时间]
  endTime[结束时间]
  remark[备注]

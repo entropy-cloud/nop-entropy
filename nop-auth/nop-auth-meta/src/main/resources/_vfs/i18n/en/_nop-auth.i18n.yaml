@@ -342,6 +342,7 @@ prop:
       sid: SID
       userId: User ID
       substitutedUserId: Substituted User
+      workScope: Work Scope
       startTime: Start Time
       endTime: End Time
       version: Version

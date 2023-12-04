@@ -354,3 +354,4 @@ prop:
       user.userName: 用户
       userId: 用户ID
       version: 数据版本
+      workScope: 工作范围
