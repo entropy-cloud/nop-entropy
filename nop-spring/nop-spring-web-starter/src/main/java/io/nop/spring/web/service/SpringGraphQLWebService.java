@@ -108,7 +108,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
                                                               @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
                                                               @RequestBody(required = false) String body) {
         return runRest(null, operationName, () -> {
-            return (ApiRequest<?>) buildRequest(body, selection, true);
+            return buildRequest(body, selection, true);
         }, this::transformRestResponse);
     }
 

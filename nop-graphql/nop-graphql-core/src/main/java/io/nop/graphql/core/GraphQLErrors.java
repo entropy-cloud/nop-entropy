@@ -23,7 +23,7 @@ public interface GraphQLErrors {
 
     String ARG_OBJ_NAME = "objName";
     String ARG_FIELD_NAME = "fieldName";
-    String ARG_ALLOWED_NAMES = "definedFields";
+    String ARG_ALLOWED_NAMES = "allowedNames";
 
     String ARG_PARENT_NAME = "parentName";
 

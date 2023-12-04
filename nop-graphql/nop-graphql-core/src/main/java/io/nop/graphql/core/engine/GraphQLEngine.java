@@ -377,6 +377,10 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     void checkOperationArgs(GraphQLFieldDefinition field, Map<String, Object> data) {
         for (String name : data.keySet()) {
+            // 忽略以_为前缀的属性。AMIS的schemaApi会自动添加_replace=1
+            if(name.startsWith("_"))
+                continue;
+
             if (field.getArg(name) == null)
                 throw new NopException(ERR_GRAPHQL_UNKNOWN_OPERATION_ARG)
                         .param(ARG_OPERATION_NAME, field.getOperationName())
