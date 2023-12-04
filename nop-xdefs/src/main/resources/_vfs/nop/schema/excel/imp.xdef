@@ -30,7 +30,7 @@
         -->
         <sheet name="!string" namePattern="regex" sheetNameProp="string"
                xdef:name="ImportSheetModel" resultType="generic-type" ignore="!boolean=false"
-               multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false"
+               multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false" displayMode="string"
                field="string" sheetVarName="string" keyProp="string"
                imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
         >
@@ -58,7 +58,7 @@
                 @ignoreWhenEmpty 当数据为空的时候自动忽略该字段，不设置到record对象上
                 -->
                 <field name="!xml-name" xdef:name="ImportFieldModel" parentProp="string" typeProp="prop-name"
-                       displayName="string" stripText="boolean" mandatory="!boolean=false"
+                       displayName="string" stripText="boolean" mandatory="!boolean=false" displayMode="string"
                        list="!boolean=false" computed="!boolean=false" virtual="!boolean=false"
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
                        xpt:formatExpr="string" xpt:exportFormula="boolean"  xpt:exportFormattedValue="boolean"

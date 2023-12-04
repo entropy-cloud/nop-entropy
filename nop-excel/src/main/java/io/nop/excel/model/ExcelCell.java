@@ -93,6 +93,23 @@ public class ExcelCell extends _ExcelCell {
     @Override
     public boolean isExportFormattedValue() {
         XptCellModel model = getModel();
-        return model != null ? model.isExportFormattedValue() : false;
+        return model != null && model.isExportFormattedValue();
+    }
+
+    public ExcelCell getTop() {
+        ExcelCell real = getRealCell();
+        return null;
+    }
+
+    public ExcelCell getLeft() {
+        return null;
+    }
+
+    public ExcelCell getRight() {
+        return null;
+    }
+
+    public ExcelCell getDown() {
+        return null;
     }
 }

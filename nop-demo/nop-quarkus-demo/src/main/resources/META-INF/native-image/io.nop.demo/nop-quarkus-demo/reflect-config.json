@@ -3789,6 +3789,221 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "closed"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "s_seq"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "taskQueue"
+      }
+    ],
+    "methods": [
+      {
+        "name": "checkClosed",
+        "parameterTypes": []
+      },
+      {
+        "name": "close",
+        "parameterTypes": []
+      },
+      {
+        "name": "execute",
+        "parameterTypes": [
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "executeBlocking",
+        "parameterTypes": [
+          "java.util.function.Supplier",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAttrs",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCallExpireTime",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCallIp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInternalContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPropagateRpcHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSeq",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTaskQueue",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimezone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTraceId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserRefNo",
+        "parameterTypes": []
+      },
+      {
+        "name": "isClosed",
+        "parameterTypes": []
+      },
+      {
+        "name": "isRunningOnContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "runOnContext",
+        "parameterTypes": [
+          "java.lang.Runnable"
+        ]
+      },
+      {
+        "name": "setAttribute",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setCallExpireTime",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "setCallIp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLocale",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPropagateRpcHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setTenantId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimezone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTraceId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserRefNo",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "syncGet",
+        "parameterTypes": [
+          "java.util.concurrent.CompletionStage"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.context.BaseContext",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -4432,6 +4647,11 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "DELEGATE_SCOPE_ALL"
+      },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
@@ -6124,6 +6344,202 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "addRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "clearDirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "dirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAccessToken",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDeptId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLocale",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNickName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOpenId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPrimaryRole",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRefreshToken",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRoles",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSessionId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTenantId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTimeZone",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUserName",
+        "parameterTypes": []
+      },
+      {
+        "name": "isUserInAnyRole",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "isUserInRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "markDirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "removeRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "serializeToJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAccessToken",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setAttr",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setAttrs",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setDeptId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLocale",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNickName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOpenId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setPrimaryRole",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRefreshToken",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRoles",
+        "parameterTypes": [
+          "java.util.Set"
+        ]
+      },
+      {
+        "name": "setSessionId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTenantId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTimeZone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.auth.core.login.UserContextImpl",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.auth.core.model.ActionAuthModel",
     "unsafeAllocated": false
@@ -7016,7 +7432,14 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "isValid",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      }
+    ],
     "name": "io.nop.auth.dao.entity.NopAuthUserSubstitution",
     "unsafeAllocated": false
   },
@@ -13211,6 +13634,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_workScope"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_createTime"
       },
       {
@@ -13272,6 +13700,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_workScope"
       }
     ],
     "methods": [
@@ -13329,6 +13762,10 @@
       },
       {
         "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWorkScope",
         "parameterTypes": []
       },
       {
@@ -13461,6 +13898,12 @@
         "name": "setVersion",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setWorkScope",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -23159,6 +23602,12 @@
       {
         "name": "instance",
         "parameterTypes": []
+      },
+      {
+        "name": "registerInstance",
+        "parameterTypes": [
+          "io.nop.core.module.ModuleManager"
+        ]
       }
     ],
     "name": "io.nop.core.module.ModuleManager",
@@ -38775,6 +39224,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFilters",
+        "parameterTypes": []
+      },
+      {
         "name": "getIdProp",
         "parameterTypes": []
       },
@@ -38788,6 +39241,10 @@
       },
       {
         "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNopFlowIdPropId",
         "parameterTypes": []
       },
       {
@@ -39527,6 +39984,10 @@
       },
       {
         "name": "getMinimumLazyLoadProps",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNopFlowIdPropId",
         "parameterTypes": []
       },
       {
@@ -40596,6 +41057,12 @@
         ]
       },
       {
+        "name": "addFilter",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmEntityFilterModel"
+        ]
+      },
+      {
         "name": "addIndex",
         "parameterTypes": [
           "io.nop.orm.model.OrmIndexModel"
@@ -40701,6 +41168,16 @@
       },
       {
         "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFilters",
         "parameterTypes": []
       },
       {
@@ -40830,6 +41307,16 @@
         "parameterTypes": []
       },
       {
+        "name": "hasFilter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasFilters",
+        "parameterTypes": []
+      },
+      {
         "name": "hasIndex",
         "parameterTypes": [
           "java.lang.String"
@@ -40925,6 +41412,10 @@
       },
       {
         "name": "keySet_computes",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_filters",
         "parameterTypes": []
       },
       {
@@ -41045,6 +41536,12 @@
         "name": "setEntityModeEnabled",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setFilters",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {

@@ -19,6 +19,7 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
+/dict/rpt/data-display-mode.dict.yaml
 /dict/rule/rule-type.dict.yaml
 /i18n/en/_nop-auth-web.i18n.yaml
 /i18n/en/_nop-auth.i18n.yaml
