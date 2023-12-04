@@ -9,7 +9,7 @@ It is committed to overcoming the dilemma that low-code platform can not get rid
 transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained
 software reuse.
 
-Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
+Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码(lowcode)平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
 
 - nop-entropy是Nop平台的后端部分。它采用Java语言实现，不依赖第三方框架，可以和Quarkus或者Spring框架集成在一起使用。
 
@@ -146,6 +146,7 @@ gradlew buildPlugin
 ```
 
 > 目前使用的idea打包插件不支持高版本gradle。gradlew会自动下载所需的gradle版本，目前使用的是7.5.1
+> 如果想加快gradle下载速度，可以gradle-wrapper.properties中换成 distributionUrl=https://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip
 
 编译出来的插件存放在build/distributions目录下。参见[插件的安装和使用](docs/dev-guide/ide/idea.md)。
 
