@@ -37,6 +37,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: displayMode
+     * 
+     */
+    private java.lang.String _displayMode ;
+    
+    /**
+     *  
      * xml name: field
      * 整个sheet的数据解析为一个字段。如果multiple=true，则field对应List类型，而sheet的数据解析为List中的一个条目。
      */
@@ -200,6 +207,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._description = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: displayMode
+     *  
+     */
+    
+    public java.lang.String getDisplayMode(){
+      return _displayMode;
+    }
+
+    
+    public void setDisplayMode(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayMode = value;
            
     }
 
@@ -556,6 +582,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         out.put("afterParse",this.getAfterParse());
         out.put("beforeParse",this.getBeforeParse());
         out.put("description",this.getDescription());
+        out.put("displayMode",this.getDisplayMode());
         out.put("field",this.getField());
         out.put("fieldDecider",this.getFieldDecider());
         out.put("fields",this.getFields());

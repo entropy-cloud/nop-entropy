@@ -109,8 +109,71 @@ NopGraphQL的设计是与Web环境无关，它可以用在消息队列、批处�
 ## 5. Nop跟keycloak的集成除了单点以外，授权等特性也可以用吗？
 做了角色集成，可以使用keycloak中配置的角色，角色与权限的配置关联要在nop平台中做。keycloak可以配置用户和角色的关联，参见OAuthLoginServiceImpl.java
 
+## 6. `_ExcelWorkbook`这样的模型类是什么时候生成的
+模型类是采用代码生成器在maven打包的时候生成。
+
+mvn package执行的时候会执行exec-maven-plugin插件，在nop-entropy项目的根pom.xml文件的pluginManagement中，引入了如下配置
+
+````xml
+ <plugin>
+    <groupId>org.codehaus.mojo</groupId>
+    <artifactId>exec-maven-plugin</artifactId>
+    <version>3.0.0</version>
+    <executions>
+        <execution>
+            <id>precompile</id>
+            <phase>generate-sources</phase>
+            <goals>
+                <goal>java</goal>
+            </goals>
+            <configuration>
+                <arguments>
+                    <argument>${project.basedir}</argument>
+                    <argument>precompile</argument>
+                </arguments>
+
+                <!--
+                避免包含META-INF目录导致加载尚未编译的ICoreInitializer
+                -->
+                <addResourcesToClasspath>false</addResourcesToClasspath>
+                <addOutputToClasspath>false</addOutputToClasspath>
+            </configuration>
+        </execution>
+        ...
+    </executions>
+</plugin>
+````
+
+在nop-excel项目的pom文件中，引入exec-maven-plugin插件就会自动执行precompile目录下的代码生成脚本
+````xml
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+````
+
+在precompile目录下所有xgen后缀名的文件都会被自动执行
+````xml
+<c:script>
+codeGenerator.renderModel('/nop/schema/excel/workbook.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/excel/imp.xdef','/nop/templates/xdsl', '/',$scope);
+</c:script>
+````
+
+XCodeGenerator上的renderModel函数可以读取模型文件，然后执行代码生成模板。在上面的例子中是读取xdef元模型定义，然后调用nop-codegen模块下的/nop/templates/xds模板。
+
+## 7. 系统什么时候自动建表
+配置了nop.orm.init-database-schema=true之后，在应用启动的时候DatabaseSchemaInitializer类会负责自动创建数据库表。
+但是如果建表语句执行失败会自动忽略错误，并且不再执行后续的建表语句。也就是说，如果数据库为空库，则会成功建表，如果数据库中已经有表，则会因为建表失败而忽略。
+
+一般只是新加个别表的时候，目前并不会自动识别并新建。 可以将Log级别设置为TRACE级别，建表失败的时候会打印日志信息。
 
 # 部署问题
+
 
 
 # 设计问题

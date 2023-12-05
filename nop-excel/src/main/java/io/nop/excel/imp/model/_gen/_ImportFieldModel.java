@@ -30,6 +30,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: displayMode
+     * 
+     */
+    private java.lang.String _displayMode ;
+    
+    /**
+     *  
      * xml name: displayName
      * 
      */
@@ -197,6 +204,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._computed = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: displayMode
+     *  
+     */
+    
+    public java.lang.String getDisplayMode(){
+      return _displayMode;
+    }
+
+    
+    public void setDisplayMode(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayMode = value;
            
     }
 
@@ -613,6 +639,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         
         out.put("alias",this.getAlias());
         out.put("computed",this.isComputed());
+        out.put("displayMode",this.getDisplayMode());
         out.put("displayName",this.getDisplayName());
         out.put("exportExpr",this.getExportExpr());
         out.put("fieldDecider",this.getFieldDecider());
