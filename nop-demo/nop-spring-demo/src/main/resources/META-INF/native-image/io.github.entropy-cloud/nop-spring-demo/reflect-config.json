@@ -4739,6 +4739,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "DELEGATE_SCOPE_ALL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "JWT_CLAIMS_REALM_ACCESS"
       },
       {
@@ -7135,7 +7140,14 @@
     "allPublicConstructors": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "isValid",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      }
+    ],
     "name": "io.nop.auth.dao.entity.NopAuthUserSubstitution",
     "unsafeAllocated": false
   },
@@ -13330,6 +13342,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_workScope"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_createTime"
       },
       {
@@ -13391,6 +13408,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_workScope"
       }
     ],
     "methods": [
@@ -13448,6 +13470,10 @@
       },
       {
         "name": "getVersion",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWorkScope",
         "parameterTypes": []
       },
       {
@@ -13580,6 +13606,12 @@
         "name": "setVersion",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setWorkScope",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       }
     ],
@@ -35744,6 +35776,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getFilters",
+        "parameterTypes": []
+      },
+      {
         "name": "getIdProp",
         "parameterTypes": []
       },
@@ -35757,6 +35793,10 @@
       },
       {
         "name": "getName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNopFlowIdPropId",
         "parameterTypes": []
       },
       {
@@ -36479,6 +36519,10 @@
       },
       {
         "name": "getMinimumLazyLoadProps",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNopFlowIdPropId",
         "parameterTypes": []
       },
       {
@@ -37502,6 +37546,12 @@
         ]
       },
       {
+        "name": "addFilter",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmEntityFilterModel"
+        ]
+      },
+      {
         "name": "addIndex",
         "parameterTypes": [
           "io.nop.orm.model.OrmIndexModel"
@@ -37607,6 +37657,16 @@
       },
       {
         "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFilter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getFilters",
         "parameterTypes": []
       },
       {
@@ -37736,6 +37796,16 @@
         "parameterTypes": []
       },
       {
+        "name": "hasFilter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasFilters",
+        "parameterTypes": []
+      },
+      {
         "name": "hasIndex",
         "parameterTypes": [
           "java.lang.String"
@@ -37831,6 +37901,10 @@
       },
       {
         "name": "keySet_computes",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_filters",
         "parameterTypes": []
       },
       {
@@ -37951,6 +38025,12 @@
         "name": "setEntityModeEnabled",
         "parameterTypes": [
           "boolean"
+        ]
+      },
+      {
+        "name": "setFilters",
+        "parameterTypes": [
+          "java.util.List"
         ]
       },
       {

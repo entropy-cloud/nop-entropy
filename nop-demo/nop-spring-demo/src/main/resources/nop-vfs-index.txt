@@ -18,6 +18,7 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
+/dict/rpt/data-display-mode.dict.yaml
 /i18n/en/_nop-auth-web.i18n.yaml
 /i18n/en/_nop-auth.i18n.yaml
 /i18n/en/_nop-sys-web.i18n.yaml
@@ -43,6 +44,7 @@
 /nop/auth/beans/_service.beans.xml
 /nop/auth/beans/app-service.beans.xml
 /nop/auth/beans/auth-core-defaults.beans.xml
+/nop/auth/beans/auth-dao.beans.xml
 /nop/auth/beans/auth-service.beans.xml
 /nop/auth/model/NopAuthDept/NopAuthDept.xbiz
 /nop/auth/model/NopAuthDept/NopAuthDept.xmeta

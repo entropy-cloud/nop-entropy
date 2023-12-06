@@ -46,6 +46,7 @@ public class TestJavaScriptService extends BaseTestCase {
 
     @Test
     public void testExecute() {
+        forceStackTrace();
         JavaScriptService service = newService();
         service.start();
         CompletionStage<Object> future = service.invokeAsync("rollupTransform", "/localhost/a.mjs",
