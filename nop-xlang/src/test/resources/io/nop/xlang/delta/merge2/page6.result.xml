@@ -1,0 +1,19 @@
+<page xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--LOC:[2:6:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge2/page6Super.xpage-->
+    <title>page6Super</title>
+
+    <body>
+        <crud>
+            <api>/amis/api/mock2/sample</api>
+            <bulkActions>
+                <!--LOC:[6:18:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge2/page6Current.xpage-->
+                <button actionType="alert"/>
+                <!--LOC:[8:18:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge2/page6Super.xpage
+                 @id=[8:29:0:0]file:/C:/can/nop/nop-entropy/nop-xlang/target/test-classes/io/nop/xlang/delta/merge2/page6Current.xpage
+                -->
+                <button id="batchUpdate1" label="批量修改1" newname="batchUpdate1"/>
+            </bulkActions>
+        </crud>
+    </body>
+</page>

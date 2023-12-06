@@ -131,4 +131,28 @@ public class TestDeltaMerger extends BaseTestCase {
         XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
         node.dump();
     }
+
+    @Test
+    public void testMergeSuper(){
+        IResource resource = attachmentResource("merge/PageExt.xpage");
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        node.dump();
+        assertEquals(attachmentXmlText("merge/PageExt.result.xml"),node.xml());
+    }
+
+    @Test
+    public void testMergeOverride(){
+        IResource resource = attachmentResource("merge/PageExt2.xpage");
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        node.dump();
+        assertEquals(attachmentXmlText("merge/PageExt2.result.xml"),node.xml());
+    }
+
+    @Test
+    public void testMergeNoId(){
+        IResource resource = attachmentResource("merge2/page6Current.xpage");
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        node.dump();
+        assertEquals(attachmentXmlText("merge2/page6.result.xml"),node.xml());
+    }
 }

@@ -1,0 +1,12 @@
+<page  x:schema="/nop/schema/xjson.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       x:extends="page6Super.xpage"  x:override="merge">
+    <body>
+        <crud>
+            <bulkActions>
+                <button actionType="alert"/>
+                <button id="batchDelete1" label="批量删除" x:override="remove" />
+                <button id="batchUpdate1" label="批量修改1" newname="batchUpdate1"></button>
+            </bulkActions>
+        </crud>
+    </body>
+</page>

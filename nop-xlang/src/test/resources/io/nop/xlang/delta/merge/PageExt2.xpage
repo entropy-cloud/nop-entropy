@@ -1,0 +1,13 @@
+<page x:extends="PageSuper.xpage" xmlns:x="/nop/schema/xdsl.xdef"
+      x:schema="/test/demo-xjson.xdef" x:override="merge">
+    <title>page6Current</title>
+
+    <body>
+        <crud>
+            <bulkActions j:list="true">
+                <button id="batchUpdate1" label="批量修改-Ext"></button>
+                <button id="new" label="新建" />
+            </bulkActions>
+        </crud>
+    </body>
+</page>
