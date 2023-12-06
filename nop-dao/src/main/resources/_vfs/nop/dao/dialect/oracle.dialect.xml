@@ -155,11 +155,11 @@
         <!--
         32767 bytes or characters if MAX_STRING_SIZE = EXTENDED
         -->
-        <sqlDataType name="VARCHAR2" precision="4000" stdSqlType="VARCHAR"/>
+        <sqlDataType name="VARCHAR2" precision="4000" stdSqlType="VARCHAR" alias="VARCHAR"/>
         <sqlDataType name="CLOB" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="DATE" stdSqlType="DATETIME"/>
-        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP" alias="TIMESTAMP(6) WITH LOCAL TIME ZONE"/>
         <sqlDataType name="BINARY_FLOAT" stdSqlType="FLOAT"/>
         <sqlDataType name="BINARY_DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="NUMBER" stdSqlType="DECIMAL"/>
