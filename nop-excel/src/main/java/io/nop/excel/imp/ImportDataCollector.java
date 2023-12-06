@@ -185,7 +185,8 @@ public class ImportDataCollector implements ITableDataEventListener {
     }
 
     @Override
-    public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel field, String fieldLabel) {
+    public void simpleField(int rowIndex, int colIndex, ICellView cell, LabelData labelData) {
+        ImportFieldModel field = labelData.getField();
         Object value = cell == null ? null : cell.getValue();
         LOG.trace("nop.imp.parse-field:name={},r={},c={},value={}", field.getName(), rowIndex, colIndex, value);
 
@@ -194,8 +195,10 @@ public class ImportDataCollector implements ITableDataEventListener {
                 value = StringHelper.strip(value.toString());
         }
 
+        String fieldLabel = labelData.getFieldLabel();;
         scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, fieldLabel);
         scope.setLocalValue(ExcelConstants.VAR_CELL, cell);
+        scope.setLocalValue(ExcelConstants.VAR_LABEL_DATA, labelData);
 
         if (field.getValueExpr() != null) {
             scope.setLocalValue(null, ExcelConstants.VAR_VALUE, value);

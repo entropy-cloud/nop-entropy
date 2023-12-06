@@ -11,6 +11,9 @@ public interface ExcelConstants {
     String VAR_WORKBOOK = "workbook";
     String VAR_SHEET = "sheet";
     String VAR_CELL = "cell";
+
+    String VAR_LABEL_DATA = "labelData";
+    String VAR_LABEL_CELL = "labelCell";
     String VAR_ROW = "row";
     String VAR_TABLE = "table";
     String VAR_COL = "col";
@@ -42,4 +45,6 @@ public interface ExcelConstants {
     String XDSL_SCHEMA_IMP = "/nop/schema/excel/imp.xdef";
 
     double DEFAULT_COL_WIDTH = 8.5;
+
+    String DISPLAY_MODE_TABLE = "table";
 }

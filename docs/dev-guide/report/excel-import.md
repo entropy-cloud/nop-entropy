@@ -75,6 +75,72 @@ cell.cp.ev对应于cell.colParent.expandValue，用于获取列的展开值。_.
 实际导出的结果为
 ![](excel-import/export-with-style.png)
 
+# 支持复合表头
+导入数据的时候可以支持多级表头（目前只支持两级）
+![](excel-import/template-group-header.png)
+
+导出结果为
+![](excel-import/group-header-export.png)
+
+在imp.xml导入模型中进行配置时，只考虑匹配最下层的字段，分组字段不会直接参与匹配。
+
+在field配置上增加groupField配置，它对应于另一个field配置，在其中可以配置`xpt:labelExpandExpr`等导出配置。
+
+````xml
+<fields>
+    <field name="indexValue" displayName="X年" virtual="true" groupField="group">
+        <schema stdDomain="int"/>
+        <valueExpr>
+            // 如果是第一次访问indexValues属性，则自动创建一个List
+            let list = record.makeList('indexValues')
+            let year = fieldLabel.$removeTail('年').$toInt()
+            let group = labelData.groupLabel
+            list.add({ year, value,group})
+        </valueExpr>
+
+        <xpt:labelExpandExpr>
+            <!-- 外部传入的年份列表数据。也可以通过cell.cp.ev来访问分组单元格的值 -->
+            indexYears
+        </xpt:labelExpandExpr>
+
+        <!-- 根据展开表达式值动态构建字段标题 -->
+        <xpt:labelValueExpr>
+            cell.ev + '年'
+        </xpt:labelValueExpr>
+
+        <!-- xpt:valueExpr是导出时执行的，而valueExpr是导入时执行的。因为执行时机不同，它们的上下文环境中
+        可访问的变量也不同。导出时主要是cell和xptRt，也就是NopReport中的变量。而导入时是record, cell, fieldLabel等，
+        此时没有rowParent和colParent等概念。
+        -->
+        <xpt:valueExpr>
+            // cell.cp.cp表示取当前单元格的列父格的列父格。
+            // cp是colParent的缩写。当前单元格的列父格就是动态展开的列的label所在的单元格。label单元格的父格就是分组单元格
+            _.findWhere(cell.rp.ev.indexValues,{ year: cell.cp.ev.$toInt(), group: cell.cp.cp.value})?.value
+        </xpt:valueExpr>
+
+        <xpt:labelStyleIdExpr>
+            cell.ev == 2002 ? 'red' : null
+        </xpt:labelStyleIdExpr>
+
+        <xpt:styleIdExpr>
+            cell.value > 300 ? 'red' : null
+            <!--cell.value == 'A2' ? 'red' : null-->
+        </xpt:styleIdExpr>
+    </field>
+
+    <!--
+    indexValue字段的groupField属性指向这个分组字段。这里主要是引入labelExpandExpr配置，也就是导出报表时的一些相关配置
+    -->
+    <field name="group" displayName="group">
+        <schema stdDomain="string" />
+        <xpt:labelExpandExpr>
+            groups
+        </xpt:labelExpandExpr>
+    </field>
+</fields>
+````
+
+在导入具体数据单元格的时候，可以通过labelData变量（LabelData类型）访问到对应的labelCell和groupCell, 以及对应的field配置等。
 
 # 与Spring框架集成
 如果要使用Nop平台的Excel导入导出功能，只需要在pom文件中引入如下模块

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     templatePath="template-group-header.test.xlsx"
+     xmlns:xpt="xpt">
+
+    <!--    <x:post-extends>-->
+    <!--        <imp-gen:TreeTableSupport xpl:lib="/nop/excel/xlib/imp-gen.xlib"/>-->
+    <!--    </x:post-extends>-->
+
+    <sheets>
+
+        <sheet name="指标3"  field="projectIndexC">
+            <fields>
+                <field name="projectName" displayName="项目名称" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="msrp" displayName="价格"  list="true">
+                    <fields>
+                        <field name="derive" displayName="派生">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="unit" displayName="单位">
+                            <schema stdDomain="string"/>
+                        </field>
+
+
+                        <field name="indexValue" displayName="X年" virtual="true" groupField="group">
+                            <schema stdDomain="int"/>
+                            <valueExpr>
+                                // 如果是第一次访问indexValues属性，则自动创建一个List
+                                let list = record.makeList('indexValues')
+                                let year = fieldLabel.$removeTail('年').$toInt()
+                                let group = labelData.groupLabel
+                                list.add({ year, value,group})
+                            </valueExpr>
+
+                            <xpt:labelExpandExpr>
+                                <!-- 外部传入的年份列表数据。也可以通过cell.cp.ev来访问分组单元格的值 -->
+                                indexYears
+                            </xpt:labelExpandExpr>
+
+                            <!-- 根据展开表达式值动态构建字段标题 -->
+                            <xpt:labelValueExpr>
+                                cell.ev + '年'
+                            </xpt:labelValueExpr>
+
+                            <!-- xpt:valueExpr是导出时执行的，而valueExpr是导入时执行的。因为执行时机不同，它们的上下文环境中
+                            可访问的变量也不同。导出时主要是cell和xptRt，也就是NopReport中的变量。而导入时是record, cell, fieldLabel等，
+                            此时没有rowParent和colParent等概念。
+                            -->
+                            <xpt:valueExpr>
+                                // cell.cp.cp表示取当前单元格的列父格的列父格。
+                                // cp是colParent的缩写。当前单元格的列父格就是动态展开的列的label所在的单元格。label单元格的父格就是分组单元格
+                                _.findWhere(cell.rp.ev.indexValues,{ year: cell.cp.ev.$toInt(), group: cell.cp.cp.value})?.value
+                            </xpt:valueExpr>
+
+                            <xpt:labelStyleIdExpr>
+                                cell.ev == 2002 ? 'red' : null
+                            </xpt:labelStyleIdExpr>
+
+                            <xpt:styleIdExpr>
+                                cell.value > 300 ? 'red' : null
+                                <!--cell.value == 'A2' ? 'red' : null-->
+                            </xpt:styleIdExpr>
+                        </field>
+
+                        <!--
+                        indexValue字段的groupField属性指向这个分组字段。这里主要是引入labelExpandExpr配置，也就是导出报表时的一些相关配置
+                        -->
+                        <field name="group" displayName="group">
+                            <schema stdDomain="string" />
+                            <xpt:labelExpandExpr>
+                                groups
+                            </xpt:labelExpandExpr>
+                        </field>
+                    </fields>
+                    <fieldDecider>
+                        fieldLabel.endsWith("年") ? "indexValue" : null
+                    </fieldDecider>
+                </field>
+            </fields>
+        </sheet>
+
+    </sheets>
+</imp>

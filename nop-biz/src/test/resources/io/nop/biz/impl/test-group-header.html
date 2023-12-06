@@ -1,0 +1,206 @@
+<div id="xpt-report">
+<style>
+#xpt-report .xpt-table{
+   border-collapse:collapse;border-spacing:0;table-layout:fixed;
+}
+#xpt-report .xpt-cell-num{ text-align:right; }
+#xpt-report .xpt-cell{
+   word-wrap:break-word;word-break:break-all;padding:2px;box-sizing:border-box;
+}
+#xpt-report .xpt-s-0{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:none;}
+#xpt-report .xpt-s-1{
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:none;}
+#xpt-report .xpt-s-2{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+background-color:#9CC2E5;
+border:none;}
+#xpt-report .xpt-s-3{
+font-family:等线;
+font-size:11pt;
+color:#FFFFFF;
+background-color:rgba(255,0,0,1.0);
+border:none;}
+#xpt-report .xpt-s-4{
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-5{
+text-align:center;
+font-family:等线;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+border:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-6{
+text-align:center;
+font-family:等线;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:none;}
+#xpt-report .xpt-s-7{
+text-align:center;
+font-family:等线;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-8{
+text-align:center;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+border-top:1px dashed black;
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:none;}
+#xpt-report .xpt-s-9{
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+background-color:#C5DEB5;
+border:none;}
+#xpt-report .xpt-s-10{
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-11{
+text-align:center;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:1px solid rgba(0,0,0,1.0);
+border-bottom:1px solid rgba(0,0,0,1.0);
+border-left:none;border-right:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-12{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:none;border-bottom:1px solid rgba(0,0,0,1.0);
+border-left:1px solid rgba(0,0,0,1.0);
+border-right:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-13{
+font-family:微软雅黑;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:none;border-bottom:1px solid rgba(0,0,0,1.0);
+border-left:1px solid rgba(0,0,0,1.0);
+border-right:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-14{
+vertical-align:middle;
+text-align:left;
+font-family:微软雅黑;
+font-size:11pt;
+color:#000000;
+background-color:#FFFFFF;
+border-top:none;border-bottom:1px solid rgba(0,0,0,1.0);
+border-left:1px solid rgba(0,0,0,1.0);
+border-right:1px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-15{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:2px solid rgba(0,0,0,1.0);
+border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-16{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:none;border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:none;border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-17{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-18{
+vertical-align:middle;
+text-align:center;
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border-top:none;border-bottom:2px solid rgba(0,0,0,1.0);
+border-left:2px solid rgba(0,0,0,1.0);
+border-right:2px solid rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-19{
+text-align:left;
+font-family:微软雅黑;
+font-weight:bold;
+font-size:11pt;
+color:#000000;
+border:1px dashed rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-20{
+font-family:等线;
+font-size:11pt;
+color:#000000;
+border:1px dashed rgba(0,0,0,1.0);
+}
+#xpt-report .xpt-s-red{
+font-family:等线;
+font-size:11pt;
+color:#FFFFFF;
+background-color:rgba(255,0,0,1.0);
+border:none;}
+</style>
+<div id="xpt-report-sheet-1">
+<table  class="xpt-table">
+<colgroup><col  style="width:33.033203125pt" /><col  style="width:74.75pt" /><col  style="width:107.783203125pt" /><col  style="width:86.658203125pt" /><col  style="width:86.658203125pt" /><col  style="width:86.658203125pt" /><col  style="width:86.658203125pt" /></colgroup>
+<thead>
+</thead>
+<tbody>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-19" colspan="2">项目名称</td><td  class="xpt-cell xpt-s-20">项目3</td><td  class="xpt-cell xpt-s-20"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:17.0pt"><td  class="xpt-cell"></td><td  class="xpt-cell xpt-s-8" colspan="3"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
+<tr  class="xpt-row" style="height:14.5pt"><td  class="xpt-cell xpt-s-5" colspan="7">价格</td></tr>
+<tr  class="xpt-row" style="height:14.5pt"><td  class="xpt-cell xpt-s-17" rowspan="2">序号</td><td  class="xpt-cell xpt-s-17" rowspan="2">派生</td><td  class="xpt-cell xpt-s-15" rowspan="2">单位</td><td  class="xpt-cell xpt-s-10" colspan="2">分组1</td><td  class="xpt-cell xpt-s-10" colspan="2">分组2</td></tr>
+<tr  class="xpt-row" style="height:17.0pt"><td  class="xpt-cell xpt-s-11">2001年</td><td  class="xpt-cell xpt-s-red">2002年</td><td  class="xpt-cell xpt-s-11">2001年</td><td  class="xpt-cell xpt-s-red">2002年</td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-12">1</td><td  class="xpt-cell xpt-s-13">派生A</td><td  class="xpt-cell xpt-s-14">个</td><td  class="xpt-cell-num xpt-cell xpt-s-4">1</td><td  class="xpt-cell-num xpt-cell xpt-s-4">2</td><td  class="xpt-cell-num xpt-cell xpt-s-4">3</td><td  class="xpt-cell xpt-s-4"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-12">2</td><td  class="xpt-cell xpt-s-13">派生B</td><td  class="xpt-cell xpt-s-14">个</td><td  class="xpt-cell-num xpt-cell xpt-s-4">4</td><td  class="xpt-cell-num xpt-cell xpt-s-4">5</td><td  class="xpt-cell-num xpt-cell xpt-s-4">6</td><td  class="xpt-cell xpt-s-4"></td></tr>
+<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-12">3</td><td  class="xpt-cell xpt-s-13">派生C</td><td  class="xpt-cell xpt-s-14">个</td><td  class="xpt-cell xpt-s-4"></td><td  class="xpt-cell xpt-s-4"></td><td  class="xpt-cell xpt-s-4"></td><td  class="xpt-cell xpt-s-4"></td></tr>
+</tbody>
+<tfoot></tfoot>
+</table>
+</div>
+</div>

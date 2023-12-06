@@ -67,4 +67,9 @@ public interface ExcelErrors {
 
     ErrorCode ERR_EXCEL_INVALID_PAPER_SIZE =
             define("nop.err.excel.invalid-paper-size", "页面大小[{paperSize}]不是允许的值", ARG_PAPER_SIZE);
+
+
+    ErrorCode ERR_IMPORT_UNKNOWN_GROUP_FIELD =
+            define("nop.err.excel.import.unknown-group-field",
+                    "未知的分组字段:{fieldName}", ARG_FIELD_NAME);
 }

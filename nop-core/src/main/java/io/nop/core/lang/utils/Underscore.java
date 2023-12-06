@@ -52,7 +52,7 @@ public class Underscore {
             return true;
 
         if (v instanceof String)
-            return v.toString().length() == 0;
+            return v.toString().isEmpty();
 
         if (v instanceof Collection)
             return ((Collection<?>) v).isEmpty();

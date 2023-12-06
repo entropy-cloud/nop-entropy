@@ -9,6 +9,7 @@ package io.nop.excel.imp.block;
 
 import io.nop.core.model.table.ICellView;
 import io.nop.excel.imp.ITableDataEventListener;
+import io.nop.excel.imp.LabelData;
 import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
 import io.nop.excel.imp.model.ImportSheetModel;
@@ -74,13 +75,13 @@ public class TableBlockCollector implements ITableDataEventListener {
     }
 
     @Override
-    public void simpleField(int rowIndex, int colIndex, ICellView cell, ImportFieldModel fieldModel, String fieldLabel) {
+    public void simpleField(int rowIndex, int colIndex, ICellView cell, LabelData labelData) {
         FieldBlock block = new FieldBlock();
         block.setRowIndex(rowIndex);
         block.setMaxRowIndex(rowIndex + (cell == null ? 0 : cell.getMergeDown()));
         block.setColIndex(colIndex);
         block.setMaxColIndex(colIndex + (cell == null ? 0 : cell.getMergeAcross()));
-        block.setFieldModel(fieldModel);
+        block.setFieldModel(labelData.getField());
 
         FieldsBlock parent = blockStack.get(blockStack.size() - 1);
         parent.addChild(block);

@@ -20,8 +20,6 @@ public abstract class AbstractCell extends AbstractComponentModel implements ICe
 
     private String id;
     private String styleId;
-    private int mergeAcross;
-    private int mergeDown;
     private IRow row;
 
     public String toString() {
@@ -30,9 +28,9 @@ public abstract class AbstractCell extends AbstractComponentModel implements ICe
         if (id != null)
             sb.append("id=").append(id).append(",");
         sb.append("text=").append(getText());
-        if (this.mergeAcross > 0)
+        if (this.getMergeAcross() > 0)
             sb.append(",colSpan=").append(getColSpan());
-        if (this.mergeDown > 0)
+        if (this.getMergeDown() > 0)
             sb.append(",rowSpan=").append(getRowSpan());
 
         appendInfo(sb);
@@ -45,8 +43,6 @@ public abstract class AbstractCell extends AbstractComponentModel implements ICe
 
     protected void copyTo(AbstractCell cell) {
         cell.id = id;
-        cell.mergeAcross = mergeAcross;
-        cell.mergeDown = mergeDown;
     }
 
     public String getId() {
@@ -68,24 +64,6 @@ public abstract class AbstractCell extends AbstractComponentModel implements ICe
         this.styleId = styleId;
     }
 
-    @Override
-    public void setMergeAcross(int mergeAcross) {
-        this.mergeAcross = mergeAcross;
-    }
-
-    @Override
-    public void setMergeDown(int mergeDown) {
-        checkAllowChange();
-        this.mergeDown = mergeDown;
-    }
-
-    public int getMergeAcross() {
-        return mergeAcross;
-    }
-
-    public int getMergeDown() {
-        return mergeDown;
-    }
 
     @JsonIgnore
     @Override
@@ -106,9 +84,5 @@ public abstract class AbstractCell extends AbstractComponentModel implements ICe
             out.put("id", id);
         if (styleId != null)
             out.put("styleId", styleId);
-        if (mergeAcross > 0)
-            out.put("mergeAcross", mergeAcross);
-        if (mergeDown > 0)
-            out.put("mergeDown", mergeDown);
     }
 }
