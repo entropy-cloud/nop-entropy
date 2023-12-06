@@ -233,6 +233,10 @@
                     <schema stdDomain="string"/>
                 </field>
 
+                <field name="querySpace" displayName="查询空间">
+                    <schema stdDomain="string"/>
+                </field>
+
                 <field name="ext:minPropId" displayName="propId的起始值">
                     <schema stdDomain="int"/>
                 </field>
