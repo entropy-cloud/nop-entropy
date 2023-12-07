@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * column必须是原子数据类型，它对应于数据库中的字段。其他属性都根据column字段的值衍生而来。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _OrmColumnModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

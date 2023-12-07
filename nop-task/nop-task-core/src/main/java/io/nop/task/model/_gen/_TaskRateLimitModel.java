@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 限制对同一个key的调用速率不能超过指定值
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _TaskRateLimitModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

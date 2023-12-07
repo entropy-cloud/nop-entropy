@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * sql数据库内部支持的原生函数。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _SqlNativeFunctionModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

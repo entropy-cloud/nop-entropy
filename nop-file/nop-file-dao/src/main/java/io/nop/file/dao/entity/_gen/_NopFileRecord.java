@@ -17,7 +17,7 @@ import io.nop.file.dao.entity.NopFileRecord;
  *  文件记录: nop_file_record
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopFileRecord extends DynamicOrmEntity{
     
     /* 文件ID: FILE_ID VARCHAR */

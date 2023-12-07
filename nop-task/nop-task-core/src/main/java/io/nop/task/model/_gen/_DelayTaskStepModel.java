@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 延迟执行后续step
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _DelayTaskStepModel extends io.nop.task.model.TaskStepModel {
     
     /**

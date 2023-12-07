@@ -189,7 +189,7 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             compiledTag = this.cachedCompiledTag.getObject(CFG_XPL_LIB_TAG_RELOADABLE.get());
         }
 
-        List<Expression> runtimeExprs = tag.isMacro() ? new ArrayList<>() : null;
+        List<Expression> runtimeExprs = tag.isMacro() ? new ArrayList<>() : Collections.emptyList();
         List<Expression> tagArgs = parseFuncArgs(node, cp, scope, runtimeExprs);
 
         CallExpression callExpr = new CallExpression();

@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 应用指定mapping
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _XtApplyMappingModel extends io.nop.xlang.xt.model.XtRuleGroupModel {
     
     /**

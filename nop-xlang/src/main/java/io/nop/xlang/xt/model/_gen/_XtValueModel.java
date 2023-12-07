@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 作为XNode的value输出
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _XtValueModel extends io.nop.xlang.xt.model.XtRuleModel {
     
     /**

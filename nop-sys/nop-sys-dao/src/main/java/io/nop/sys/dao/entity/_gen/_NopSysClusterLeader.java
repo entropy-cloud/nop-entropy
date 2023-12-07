@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysClusterLeader;
  *  集群选举: nop_sys_cluster_leader
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopSysClusterLeader extends DynamicOrmEntity{
     
     /* 集群ID: CLUSTER_ID VARCHAR */

@@ -20,7 +20,7 @@ import ${_import};
 </c:for>
 
 // tell cpd to start ignoring code - CPD-OFF
-@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName","java:S116"})
 public abstract class _${parser.name}ASTBuildVisitor extends ${parser.name}${parser.parserGrammar?'Parser':''}BaseVisitor&lt;${ast.name}Node>{
 <c:for var="rule" items="${grammar.rules}">
   <c:script>

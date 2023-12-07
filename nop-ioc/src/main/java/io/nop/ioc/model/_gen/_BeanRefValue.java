@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * ref local机制在spring4.0被废除
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _BeanRefValue extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

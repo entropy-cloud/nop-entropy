@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 对于xpath选中的一组节点，每一个都应用body段的规则
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _XtEachModel extends io.nop.xlang.xt.model.XtRuleGroupModel {
     
     /**

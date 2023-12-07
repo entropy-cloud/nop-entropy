@@ -85,14 +85,21 @@ public class FileHelper {
     public static void assureParent(File file) {
         File parent = file.getParentFile();
         if (parent != null)
-            parent.mkdirs();
+            if (!parent.mkdirs())
+                LOG.warn("nop.io.file.make-dirs-fail:path={}", parent.getAbsolutePath());
     }
 
     public static void assureFileExists(File file) {
         assureParent(file);
         if (!file.exists()) {
             try {
-                file.createNewFile();
+                if (!file.createNewFile()) {
+                    if (!file.exists())
+                        throw new NopException(ERR_IO_CREATE_FILE_FAIL)
+                                .param(ARG_PATH, file.getAbsolutePath());
+                }
+            } catch (NopException e) {
+                throw e;
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -149,10 +156,7 @@ public class FileHelper {
         try {
             Files.move(srcFile.toPath(), dstFile.toPath());
             return true;
-        } catch (FileAlreadyExistsException e) {
-            LOG.debug("nop.commons.io.move-file-fail:src={},dest={}", srcFile, dstFile, e);
-            return false;
-        } catch (DirectoryNotEmptyException e) {
+        } catch (FileAlreadyExistsException | DirectoryNotEmptyException e) {
             LOG.debug("nop.commons.io.move-file-fail:src={},dest={}", srcFile, dstFile, e);
             return false;
         } catch (IOException e) {

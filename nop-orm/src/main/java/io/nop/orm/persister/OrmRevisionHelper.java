@@ -33,10 +33,12 @@ public class OrmRevisionHelper {
 
         int beginVerPropId = entityModel.getNopRevBeginVerPropId();
         if (beginVerPropId > 0) {
-            long beginVer = (Long) oldEntity.orm_propValue(beginVerPropId);
-            if (beginVer <= ver)
-                throw newError(entityModel, ERR_ORM_ENTITY_REV_VER_IS_LESS_THAN_HIS_VER, oldEntity).param(ARG_REV_VER,
-                        ver);
+            if (oldEntity != null) {
+                long beginVer = (Long) oldEntity.orm_propValue(beginVerPropId);
+                if (beginVer <= ver)
+                    throw newError(entityModel, ERR_ORM_ENTITY_REV_VER_IS_LESS_THAN_HIS_VER, oldEntity).param(ARG_REV_VER,
+                            ver);
+            }
             entity.orm_internalSet(beginVerPropId, ver);
         }
 

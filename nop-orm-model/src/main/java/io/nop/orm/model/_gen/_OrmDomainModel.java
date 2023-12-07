@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 数据域定义。orm模型解析完毕之后，domain的定义会合并到column上。如果设置了domain是以domain的设置为准
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _OrmDomainModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

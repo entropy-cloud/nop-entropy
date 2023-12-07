@@ -17,7 +17,7 @@ import io.nop.batch.dao.entity.NopBatchRecordResult;
  *  批处理记录结果: nop_batch_record_result
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopBatchRecordResult extends DynamicOrmEntity{
     
     /* 主键: TASK_ID VARCHAR */

@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 将子工作流中的output变量返回到本工作流中作为变量var
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _WfSubFlowReturnModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

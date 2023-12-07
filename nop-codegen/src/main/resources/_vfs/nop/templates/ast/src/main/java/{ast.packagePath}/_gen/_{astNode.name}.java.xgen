@@ -2,7 +2,7 @@
 package ${ast.packageName}._gen;
 
 import ${astNode.className};
-import ${ast.packageName}.${ast.name}Node; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import ${ast.packageName}.${ast.name}Node; //NOPMD NOSONAR - suppressed UnusedImports - Auto Gen Code
 <c:if test="${!astNode.abstract}">
 import ${ast.packageName}.${ast.name}Kind;
 import io.nop.core.lang.json.IJsonHandler;
@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 </c:if>
 
 // tell cpd to start ignoring code - CPD-OFF
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S116",
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _${astNode.simpleClassName} extends ${astNode.extendsType ?? ast.name + 'Node'} ${astNode.implementsTypes?.join(',')?.$wrap('implements ','')}{
     <c:for var="_f" items="${astNode.localProps}">

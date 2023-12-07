@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysI18n;
  *  多语言消息: nop_sys_i18n
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopSysI18n extends DynamicOrmEntity{
     
     /* 字符串Key: I18N_KEY VARCHAR */

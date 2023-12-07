@@ -61,7 +61,7 @@ public class ExpandedCol implements IColumnConfig {
 
     @Override
     public boolean isHidden() {
-        return colModel == null ? null : colModel.isHidden();
+        return colModel != null && colModel.isHidden();
     }
 
     public ExcelColumnConfig getColModel() {
@@ -126,14 +126,6 @@ public class ExpandedCol implements IColumnConfig {
 
     public void setAssignedColIndex(int assignedColIndex) {
         this.assignedColIndex = assignedColIndex;
-    }
-
-
-    public void visitThreeCol(IThreeCellProcessor processor) {
-        int colIndex = getColIndex();
-        ExpandedCol prevCol = colIndex <= 0 ? null : table.getCol(colIndex - 1);
-        ExpandedCol nextCol = colIndex >= table.getColCount() ? null : table.getCol(colIndex + 1);
-        visitThreeCol(prevCol, this, nextCol, processor);
     }
 
     public static void visitTwoCol(ExpandedCol col1, ExpandedCol col2,

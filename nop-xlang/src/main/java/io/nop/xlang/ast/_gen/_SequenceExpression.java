@@ -2,7 +2,7 @@
 package io.nop.xlang.ast._gen;
 
 import io.nop.xlang.ast.SequenceExpression;
-import io.nop.xlang.ast.XLangASTNode; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.xlang.ast.XLangASTNode; //NOPMD NOSONAR - suppressed UnusedImports - Auto Gen Code
 
 import io.nop.xlang.ast.XLangASTKind;
 import io.nop.core.lang.json.IJsonHandler;
@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 
 
 // tell cpd to start ignoring code - CPD-OFF
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S116",
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _SequenceExpression extends io.nop.xlang.ast.Expression {
     

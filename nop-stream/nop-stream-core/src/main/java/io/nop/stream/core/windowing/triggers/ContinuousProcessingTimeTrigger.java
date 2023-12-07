@@ -47,11 +47,11 @@ public class ContinuousProcessingTimeTrigger<W extends Window> extends Trigger<O
     }
 
     @Override
-    public TriggerResult onElement(Object element, long timestamp, W window, TriggerContext ctx)
+    public TriggerResult onElement(Object element, long timestampIgnore, W window, TriggerContext ctx)
             throws Exception {
         SimpleAccumulator<Long> fireTimestampState = ctx.getSimpleAccumulator(stateDesc);
 
-        timestamp = ctx.getCurrentProcessingTime();
+        long timestamp = ctx.getCurrentProcessingTime();
 
         if (fireTimestampState.get() == null) {
             registerNextFireTimestamp(

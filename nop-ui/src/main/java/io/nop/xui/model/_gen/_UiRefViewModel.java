@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 对于对象属性或者对象列表属性，使用xview文件中定义的page去显示
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _UiRefViewModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

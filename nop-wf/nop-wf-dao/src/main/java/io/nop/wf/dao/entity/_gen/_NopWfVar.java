@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfVar;
  *  工作流状态变量: nop_wf_var
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopWfVar extends AbstractOrmKeyValueTable{
     
     /* 工作流实例ID: WF_ID VARCHAR */

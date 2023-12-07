@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 按标签名映射到不同的规则
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _XtMappingModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

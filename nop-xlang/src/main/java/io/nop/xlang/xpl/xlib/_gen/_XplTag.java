@@ -12,7 +12,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * <my:MyTag c:return="x" />
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _XplTag extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

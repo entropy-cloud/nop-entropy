@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 导入其他的xt转换规则定义
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _XtImportModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

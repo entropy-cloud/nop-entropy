@@ -42,7 +42,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     private final Map<String, SeqItem> cache = new ConcurrentHashMap<>();
 
     private final LocalCache<String, SeqItem> defaultCache = LocalCache.newCache("default-seq-cache",
-            CacheConfig.newConfig(500, 60 * 1000));
+            CacheConfig.newConfig(500, 60 * 1000L));
 
     static class SeqItem {
         String name; // 对象类型, 如果没有找到匹配的对象类型，则使用default类型

@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfLog;
  *  工作流日志: nop_wf_log
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopWfLog extends DynamicOrmEntity{
     
     /* 日志ID: SID VARCHAR */

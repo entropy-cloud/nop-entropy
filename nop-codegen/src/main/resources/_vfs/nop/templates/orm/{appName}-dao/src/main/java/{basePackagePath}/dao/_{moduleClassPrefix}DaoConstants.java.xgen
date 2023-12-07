@@ -1,5 +1,6 @@
 <c:unit xpl:outputMode="text">package ${basePackageName}.dao;
 
+@SuppressWarnings({"PMD","java:S116"})
 public interface _${moduleClassPrefix}DaoConstants {
     <c:if test="${!useCoreModule}">
     <c:for var="dict" items="${ormModel.dicts}">

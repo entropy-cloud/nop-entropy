@@ -142,7 +142,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
             if ((b1 | b2) < 0) {
                 throw new EOFException();
             } else {
-                return (short) ((b1 << 8) + (b2 << 0));
+                return (short) ((b1 << 8) + (b2));
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -170,7 +170,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
     public long readS8be() {
         long b1 = readU4be();
         long b2 = readU4be();
-        return (b1 << 32) + (b2 << 0);
+        return (b1 << 32) + (b2 );
     }
 
     @Override
@@ -209,7 +209,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
     public long readS8le() {
         long b1 = readU4le();
         long b2 = readU4le();
-        return (b2 << 32) + (b1 << 0);
+        return (b2 << 32) + (b1);
     }
 
     @Override

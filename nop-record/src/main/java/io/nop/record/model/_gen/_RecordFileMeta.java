@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 定长记录文件的描述
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _RecordFileMeta extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

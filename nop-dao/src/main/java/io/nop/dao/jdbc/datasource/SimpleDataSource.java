@@ -46,7 +46,7 @@ public class SimpleDataSource implements DataSource {
             mergedProps.setProperty("password", password);
         }
 
-        Connection con = DriverManager.getConnection(url, mergedProps);
+        Connection con = DriverManager.getConnection(url, mergedProps); // NOSONAR
 
         if (catalog != null)
             con.setCatalog(catalog);

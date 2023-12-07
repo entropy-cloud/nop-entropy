@@ -48,12 +48,12 @@ public class CastExecutable extends AbstractExecutable {
         if (value == null)
             return defaultValue;
 
-        Object converted = converter.convertEx(scope, value, err -> newError(err));
+        Object converted = converter.convertEx(scope, value, this::newError);
         if (converted != null) {
             // 总是校验一下，避免converter不准确
             if (!clazz.isInstance(value))
                 throw newError(ApiErrors.ERR_CONVERT_TO_TYPE_FAIL).param(ApiErrors.ARG_VALUE, value)
-                        .param(ApiErrors.ARG_SRC_TYPE, value == null ? null : value.getClass().getTypeName())
+                        .param(ApiErrors.ARG_SRC_TYPE, value.getClass().getTypeName())
                         .param(ApiErrors.ARG_TARGET_TYPE, clazz.getTypeName());
         }
         return converted;

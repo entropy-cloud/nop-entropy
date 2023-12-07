@@ -18,7 +18,7 @@ import io.nop.orm.eql.ast.EqlASTNode;
 
 
 // tell cpd to start ignoring code - CPD-OFF
-@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName","java:S116"})
 public abstract class _EqlASTBuildVisitor extends EqlBaseVisitor<EqlASTNode>{
 
       public io.nop.orm.eql.ast.SqlAndExpr visitSqlAndExpr(SqlAndExprContext ctx){

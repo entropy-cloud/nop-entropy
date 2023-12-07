@@ -18,7 +18,7 @@ import io.nop.xlang.ast.XLangASTNode;
 
 
 // tell cpd to start ignoring code - CPD-OFF
-@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName"})
+@SuppressWarnings({"PMD.UnnecessaryFullyQualifiedName","java:S116"})
 public abstract class _XLangASTBuildVisitor extends XLangParserBaseVisitor<XLangASTNode>{
 
       public io.nop.xlang.ast.ArrayBinding visitArrayBinding_full(ArrayBinding_fullContext ctx){

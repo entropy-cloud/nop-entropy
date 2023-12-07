@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 如果bean是interceptor，会检查容器中所有ioc:aop=true的bean，作用于具有指定注解的方法上
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _BeanPointcutModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

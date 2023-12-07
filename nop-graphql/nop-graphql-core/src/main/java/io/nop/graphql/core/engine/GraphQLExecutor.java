@@ -46,6 +46,8 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     private final IGraphQLEngine engine;
     private final IFlowControlRunner runner;
 
+    private final Object resultLock = new Object();
+
     public GraphQLExecutor(IAsyncFunctionInvoker operationInvoker, IGraphQLHook graphQLHook,
                            IFlowControlRunner runner,
                            IGraphQLEngine engine) {
@@ -260,7 +262,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                     opEnv.setRoot(r.getValue());
                     return r.getValue();
                 }), opEnv).thenApply(v -> {
-                    synchronized (result) {
+                    synchronized (resultLock) {
                         result.put(alias, v);
                     }
                     return v;
@@ -313,13 +315,13 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                         promises = new ArrayList<>();
                     CompletionStage<?> promise = (CompletionStage<?>) value;
                     promise = promise.thenAccept(v -> {
-                        synchronized (ret) {
+                        synchronized (resultLock) {
                             ret.put(alias, v);
                         }
                     });
                     promises.add(promise);
                 } else {
-                    synchronized (ret) {
+                    synchronized (resultLock) {
                         ret.put(alias, value);
                     }
                 }

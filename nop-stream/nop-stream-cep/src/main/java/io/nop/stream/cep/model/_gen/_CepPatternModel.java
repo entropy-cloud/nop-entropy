@@ -13,7 +13,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 3. “not”类型的模式不能被optional所修饰；
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _CepPatternModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

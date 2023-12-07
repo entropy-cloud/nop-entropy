@@ -224,8 +224,9 @@ public class NFACompiler {
          * Check pattern after match skip strategy.
          */
         private void checkPatternSkipStrategy() {
-            if (afterMatchSkipStrategy.getPatternName().isPresent()) {
-                String patternName = afterMatchSkipStrategy.getPatternName().get();
+            Optional<String> name = afterMatchSkipStrategy.getPatternName();
+            if (name.isPresent()) {
+                String patternName = name.get();
                 Pattern<T, ?> pattern = currentPattern;
                 while (pattern.getPrevious() != null && !pattern.getName().equals(patternName)) {
                     pattern = pattern.getPrevious();

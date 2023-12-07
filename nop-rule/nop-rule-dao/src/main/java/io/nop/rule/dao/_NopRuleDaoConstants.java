@@ -1,5 +1,6 @@
 package io.nop.rule.dao;
 
+@SuppressWarnings({"PMD","java:S116"})
 public interface _NopRuleDaoConstants {
     
     /**

@@ -17,7 +17,7 @@ import io.nop.tcc.dao.entity.NopTccRecord;
  *  TCC事务记录: nop_tcc_record
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopTccRecord extends DynamicOrmEntity{
     
     /* 事务ID: TXN_ID VARCHAR */

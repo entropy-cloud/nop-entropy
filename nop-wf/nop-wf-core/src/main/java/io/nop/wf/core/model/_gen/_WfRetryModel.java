@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 执行source的时候如果发生异常，则可以重试
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _WfRetryModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

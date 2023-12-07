@@ -38,11 +38,7 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.execute.RuleOutputAction;
 import io.nop.rule.core.expr.RuleExprParser;
-import io.nop.rule.core.model.RuleDecisionMatrixModel;
-import io.nop.rule.core.model.RuleDecisionTreeModel;
-import io.nop.rule.core.model.RuleModel;
-import io.nop.rule.core.model.RuleOutputValueModel;
-import io.nop.rule.core.model.RuleTableCellModel;
+import io.nop.rule.core.model.*;
 import io.nop.xlang.api.EvalCode;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
@@ -57,19 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.rule.core.RuleErrors.ARG_CELL_POS;
-import static io.nop.rule.core.RuleErrors.ARG_TEXT;
-import static io.nop.rule.core.RuleErrors.ARG_VAR_NAME;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_DECISION_TREE_TABLE;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_INPUT_VAR;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_OUTPUT_CELL;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_NOT_ALLOW_MERGED_CELL;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_INPUT_VAR;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_OUTPUT_VAR;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_SPAN_MUST_BE_ONE;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_TEXT_IS_EMPTY;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_CONFIG_SHEET;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_RULE_SHEET;
+import static io.nop.rule.core.RuleErrors.*;
 
 public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
     private final XLangCompileTool compileTool;
@@ -316,7 +300,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         if (predicate != null) {
             node.setPredicate(XNode.fromTreeBean(predicate));
         }
-        if(StringHelper.isEmpty(label))
+        if (StringHelper.isEmpty(label))
             label = "-";
         node.setLabel(label);
         node.setMultiMatch(getMultiMatch(commentVars, false));
@@ -485,7 +469,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
     }
 
     private SourceLocation getLocation(ExcelCell cell, String sheetName, int rowIndex, int colIndex) {
-        if (cell.getLocation() != null)
+        if (cell != null && cell.getLocation() != null)
             return cell.getLocation();
         String path = "<excel>";
         return new SourceLocation(path, 0, 0, 0, 0, sheetName, CellPosition.toABString(rowIndex, colIndex), null);
@@ -619,6 +603,8 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             int colLeafIndex = 0;
             for (int j = outBeginCol; j < outEndCol; j++) {
                 ExcelCell topCell = (ExcelCell) getRealCell(table, outBeginRow - 1, j);
+                if (topCell == null)
+                    throw new IllegalArgumentException("null top cell");
 
                 RuleTableCellModel cellModel = new RuleTableCellModel();
                 cellModel.setPos(CellPosition.of(rowLeafIndex, colLeafIndex));
@@ -632,7 +618,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                     output.setValueExpr(outAction);
                     cellModel.addOutput(output);
                 } else {
-                    if (leftCell.getRowSpan() != 2) {
+                    if (leftCell == null || leftCell.getRowSpan() != 2) {
                         throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
                                 .param(ARG_CELL_POS, CellPosition.toABString(i, j));
                     }
@@ -644,6 +630,8 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                 j += topCell.getMergeAcross();
             }
             rowLeafIndex++;
+            if (leftCell == null)
+                throw new IllegalArgumentException("null leftCell");
             i += leftCell.getMergeDown();
         }
     }

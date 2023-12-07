@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 新增或者修改的时候如果前台没有发送本字段的值，则可以根据autoExpr来自动计算得到
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _ObjConditionExpr extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

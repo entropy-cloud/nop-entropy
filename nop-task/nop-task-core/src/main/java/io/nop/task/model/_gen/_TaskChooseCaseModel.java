@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 可能用于全局跳转，因此不使用嵌套步骤定义
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _TaskChooseCaseModel extends io.nop.task.model.TaskStepsModel {
     
     /**

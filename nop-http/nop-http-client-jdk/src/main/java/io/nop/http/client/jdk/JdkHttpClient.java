@@ -122,7 +122,7 @@ public class JdkHttpClient implements IHttpClient {
                 keyManagers = config.getKeyManagers();
             }
 
-            SSLContext sslContext = SSLContext.getInstance("TLS");
+            SSLContext sslContext = SSLContext.getInstance(config.getSslVersion());
             sslContext.init(keyManagers, new TrustManager[]{compositeX509TrustManager}, config.getSecureRandom());
 
             return sslContext;
@@ -241,7 +241,8 @@ public class JdkHttpClient implements IHttpClient {
     Map<String, String> toMap(HttpHeaders headers) {
         Map<String, String> ret = new HashMap<>();
         for (String name : headers.map().keySet()) {
-            ret.put(name, headers.firstValue(name).get());
+            Optional<String> value = headers.firstValue(name);
+            value.ifPresent(s -> ret.put(name, s));
         }
         return ret;
     }

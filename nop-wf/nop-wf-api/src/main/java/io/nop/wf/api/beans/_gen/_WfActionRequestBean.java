@@ -1,7 +1,7 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.wf.api.beans._gen;
 
-    @SuppressWarnings({"PMD"})
+    @SuppressWarnings({"PMD","java:S116"})
     public class _WfActionRequestBean{
 
     

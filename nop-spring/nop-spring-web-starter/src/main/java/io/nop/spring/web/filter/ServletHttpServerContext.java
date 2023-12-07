@@ -112,6 +112,7 @@ public class ServletHttpServerContext implements IHttpServerContext {
         retCookie.setPath("/");
         retCookie.setHttpOnly(true);
         retCookie.setMaxAge(0);
+        retCookie.setSecure(true);
         response.addCookie(retCookie);
     }
 
@@ -122,6 +123,7 @@ public class ServletHttpServerContext implements IHttpServerContext {
         if(Objects.nonNull(domain))
             retCookie.setDomain(domain);
         retCookie.setHttpOnly(true);
+        retCookie.setSecure(true);
         retCookie.setMaxAge(0);
         response.addCookie(retCookie);
     }

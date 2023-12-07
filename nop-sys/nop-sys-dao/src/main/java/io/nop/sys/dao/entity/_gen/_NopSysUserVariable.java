@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysUserVariable;
  *  用户变量: nop_sys_user_variable
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopSysUserVariable extends DynamicOrmEntity{
     
     /* 用户ID: USER_ID VARCHAR */

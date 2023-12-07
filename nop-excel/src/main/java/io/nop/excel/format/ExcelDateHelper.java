@@ -360,6 +360,12 @@ public class ExcelDateHelper {
     private static ThreadLocal<String> lastFormatString = new ThreadLocal<String>();
     private static ThreadLocal<Boolean> lastCachedResult = new ThreadLocal<Boolean>();
 
+    public static void clear(){
+        lastFormatString.remove();
+        lastFormatIndex.remove();
+        lastCachedResult.remove();
+    }
+
     private static boolean isCached(String formatString, int formatIndex) {
         String cachedFormatString = lastFormatString.get();
         return cachedFormatString != null && formatIndex == lastFormatIndex.get()
@@ -613,7 +619,7 @@ public class ExcelDateHelper {
         int minutes = parseInt(minStr, "minute", MINUTES_PER_HOUR);
         int seconds = parseInt(secStr, "second", SECONDS_PER_MINUTE);
 
-        double totalSeconds = seconds + (minutes + (hours) * 60) * 60;
+        double totalSeconds = (double)seconds + (minutes + (hours) * 60) * 60;
         return totalSeconds / (SECONDS_PER_DAY);
     }
 

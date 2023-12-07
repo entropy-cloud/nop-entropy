@@ -125,7 +125,7 @@ public final class ContentType {
          */
 
         patternTypeSubType = Pattern.compile("^(" + token + "+)/(" + token + "+)$");
-        patternTypeSubTypeParams = Pattern.compile("^(" + token + "+)/(" + token + "+)(;" + parameter + ")*$");
+        patternTypeSubTypeParams = Pattern.compile("^(" + token + "+)/(" + token + "+)(;" + parameter + ")*$");//NOSONAR
         patternParams = Pattern.compile(";" + parameter);
     }
 

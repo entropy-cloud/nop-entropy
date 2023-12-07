@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * ooxml的文档参考 http://officeopenxml.com/SSstyles.php
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _ExcelWorkbook extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

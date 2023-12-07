@@ -1,5 +1,6 @@
 package io.nop.wf.core;
 
+@SuppressWarnings({"PMD","java:S116"})
 public interface _NopWfCoreConstants {
     
     /**

@@ -21,6 +21,7 @@ import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.InternalLoginRequest;
 import io.nop.auth.api.messages.LoginRequest;
 import io.nop.auth.api.utils.AuthMDCHelper;
+import io.nop.auth.core.AuthCoreConfigs;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.login.AuthToken;
 import io.nop.auth.core.login.ILoginService;
@@ -228,10 +229,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         }
     }
 
-    private void addCookie(String name, String value, IHttpServerContext context) {
+    protected void addCookie(String name, String value, IHttpServerContext context) {
         HttpCookie cookie = new HttpCookie(name, value);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
+        cookie.setSecure(AuthCoreConfigs.CFG_AUTH_USE_SECURE_COOKIE.get());
         context.addCookie("Lax", cookie);
     }
 

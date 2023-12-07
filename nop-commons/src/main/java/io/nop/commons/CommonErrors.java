@@ -88,6 +88,9 @@ public interface CommonErrors {
     ErrorCode ERR_IO_COPY_DEST_NOT_DIRECTORY = define("nop.err.commons.io.copy-dest-not-directory",
             "目录拷贝的目的地已经存在，且不是目录", ARG_DEST);
 
+    ErrorCode ERR_IO_CREATE_FILE_FAIL = define("nop.err.commons.io.create-file-fail",
+            "创建文件失败:{path}", ARG_PATH);
+
     ErrorCode ERR_IO_URL_NOT_RESOLVE_TO_FILE = define("nop.err.commons.io.url-not-resolve-to-file",
             "URL无法被转换为文件对象:{url}", ARG_URL);
 

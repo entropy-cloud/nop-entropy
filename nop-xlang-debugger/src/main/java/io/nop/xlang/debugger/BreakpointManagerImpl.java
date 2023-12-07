@@ -33,7 +33,7 @@ public class BreakpointManagerImpl implements IBreakpointManager {
     private static final Logger LOG = LoggerFactory.getLogger(BreakpointManagerImpl.class);
 
     // key为externalPath而不是SourceLocation.getPath()。因为外部编辑器增加断点的时候可能只知道文件本身的绝对路径，而不是在虚拟文件系统中的虚拟路径
-    private Map<String, IntHashMap<Breakpoint>> breakpoints = new ConcurrentHashMap<>();
+    private final Map<String, IntHashMap<Breakpoint>> breakpoints = new ConcurrentHashMap<>();
 
     private boolean useExternalPath = true;
 
@@ -74,7 +74,7 @@ public class BreakpointManagerImpl implements IBreakpointManager {
     @Override
     public List<Breakpoint> getBreakpoints() {
         return breakpoints.values().stream().flatMap(map -> {
-            synchronized (map) {
+            synchronized (map) { //NOSONAR
                 return map.values().toArray().stream();
             }
         }).collect(Collectors.toList());

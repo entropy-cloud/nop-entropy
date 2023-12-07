@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 多次import同一资源只会实际执行一次。所有的bean不允许重名，从而避免出现import顺序不同导致结果不同。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _BeanImportModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

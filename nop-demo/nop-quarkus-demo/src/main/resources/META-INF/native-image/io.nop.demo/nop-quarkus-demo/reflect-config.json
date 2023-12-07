@@ -23210,6 +23210,14 @@
         "parameterTypes": []
       },
       {
+        "name": "getMergeAcross",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMergeDown",
+        "parameterTypes": []
+      },
+      {
         "name": "getValue",
         "parameterTypes": []
       },
@@ -23223,6 +23231,18 @@
         "name": "setComment",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMergeAcross",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "setMergeDown",
+        "parameterTypes": [
+          "int"
         ]
       },
       {
@@ -62949,6 +62969,21 @@
       }
     ],
     "name": "java.util.SequencedCollection",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "reversed",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.util.SequencedSet",
     "unsafeAllocated": false
   },
   {

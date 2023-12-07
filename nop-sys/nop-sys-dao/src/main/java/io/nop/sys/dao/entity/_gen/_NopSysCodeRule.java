@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysCodeRule;
  *  编码规则: nop_sys_code_rule
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopSysCodeRule extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysExtField;
  *  扩展字段: nop_sys_ext_field
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopSysExtField extends AbstractOrmKeyValueTable{
     
     /* 实体名: ENTITY_NAME VARCHAR */

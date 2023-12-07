@@ -14,7 +14,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * </x:gen-extends>
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _UiImportModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

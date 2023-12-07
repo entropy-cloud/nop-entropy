@@ -321,7 +321,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             bean = beanDef.getBeanInstance(bean, onlyProducer);
             isNew = true;
         } else {
-            synchronized (beanDef) {
+            synchronized (beanDef) { //NOSONAR
                 bean = beanScope.get(beanDef.getId());
                 if (bean == null) {
                     LOG.info("nop.new-bean:{}", beanDef);

@@ -112,7 +112,7 @@ quarkus:
 
     category:
       "io.nop":
-        level: INFO
+        level: DEBUG
 
     file:
       enable: false

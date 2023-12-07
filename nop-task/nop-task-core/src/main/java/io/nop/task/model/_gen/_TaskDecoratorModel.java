@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 对taskStep进行增强，返回新的step
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _TaskDecoratorModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

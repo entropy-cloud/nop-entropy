@@ -2,7 +2,7 @@
 package io.nop.orm.eql.ast._gen;
 
 import io.nop.orm.eql.ast.SqlSubQueryExpr;
-import io.nop.orm.eql.ast.EqlASTNode; //NOPMD - suppressed UnusedImports - Auto Gen Code
+import io.nop.orm.eql.ast.EqlASTNode; //NOPMD NOSONAR - suppressed UnusedImports - Auto Gen Code
 
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.core.lang.json.IJsonHandler;
@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 
 
 // tell cpd to start ignoring code - CPD-OFF
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S116",
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _SqlSubQueryExpr extends io.nop.orm.eql.ast.SqlExpr {
     

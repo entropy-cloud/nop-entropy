@@ -41,6 +41,9 @@ public class ShardSelection implements Serializable {
 
         if (this == o)
             return true;
+        if (!(o instanceof ShardSelection))
+            return false;
+
         ShardSelection other = (ShardSelection) o;
         return Objects.equals(shardName, other.shardName) && Objects.equals(querySpace, other.querySpace);
     }

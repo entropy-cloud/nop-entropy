@@ -16,20 +16,13 @@ import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.nop.shell.ShellErrors.ARG_COMMAND;
-import static io.nop.shell.ShellErrors.ARG_TIMEOUT;
-import static io.nop.shell.ShellErrors.ERR_SHELL_EXEC_COMMAND_FAIL;
-import static io.nop.shell.ShellErrors.ERR_SHELL_EXEC_COMMAND_TIMEOUT;
+import static io.nop.shell.ShellErrors.*;
 
 /**
  * refactor Shell.java from hadoop-commons project
@@ -99,6 +92,9 @@ public class ShellRunner implements IShellRunner {
                 if (errorFuture != null)
                     errorFuture.cancel(false);
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
         } catch (Exception e) {
             throw new NopException(ERR_SHELL_EXEC_COMMAND_FAIL, e).param(ARG_COMMAND, command.getCommandString());
         }

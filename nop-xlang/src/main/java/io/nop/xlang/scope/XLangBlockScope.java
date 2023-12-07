@@ -64,9 +64,9 @@ public class XLangBlockScope {
     private int macrolLoopLevel;
 
     // 对于FunctionBlock（即functionScope=true）时，记录本函数内部所引用的closure变量有哪些
-    private Map<String, ClosureRefDefinition> closureVars = new LinkedHashMap<>();
+    private final Map<String, ClosureRefDefinition> closureVars = new LinkedHashMap<>();
 
-    private Map<String, ClosureRefDefinition> macroClosureVars = new LinkedHashMap<>();
+    private final Map<String, ClosureRefDefinition> macroClosureVars = new LinkedHashMap<>();
 
     // 在编译期离开scope时所需要执行的清理函数。主要处理c:macro-var产生的编译期变量定义
     private List<Runnable> cleanupActions;
@@ -188,10 +188,6 @@ public class XLangBlockScope {
         if (macro)
             return macroClosureVars.get(name);
         return closureVars.get(name);
-    }
-
-    public Map<String, ClosureRefDefinition> getMacroClosureVars() {
-        return closureVars;
     }
 
     public boolean isFunctionScope() {

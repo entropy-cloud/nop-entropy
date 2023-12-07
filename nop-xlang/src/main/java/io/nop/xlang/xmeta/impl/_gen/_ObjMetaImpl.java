@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * schema节点的基类
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _ObjMetaImpl extends io.nop.xlang.xmeta.impl.ObjSchemaImpl {
     
     /**

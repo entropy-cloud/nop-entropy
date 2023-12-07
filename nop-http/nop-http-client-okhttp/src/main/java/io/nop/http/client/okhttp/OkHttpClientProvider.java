@@ -151,15 +151,15 @@ public class OkHttpClientProvider extends LifeCycleSupport {
         if (config.isUseSsl()) {
             try {
                 X509TrustManager trustManager = this.trustManager != null ? this.trustManager
-                        : new DisableValidationTrustManager();
+                        : new DisableValidationTrustManager(); //NOSONAR
                 TrustManager[] trustManagers = new TrustManager[]{trustManager};
-                SSLContext sslContext = SSLContext.getInstance("SSL");
+                SSLContext sslContext = SSLContext.getInstance(config.getSslVersion());
                 sslContext.init((KeyManager[]) null, trustManagers, new SecureRandom());
                 SSLSocketFactory socketFactory = sslContext.getSocketFactory();
                 builder.sslSocketFactory(socketFactory, trustManager);
 
                 HostnameVerifier verifier = this.hostnameVerifier != null ? this.hostnameVerifier
-                        : new TrustAllHostnames();
+                        : new TrustAllHostnames(); //NOSONAR
                 builder.hostnameVerifier(verifier);
             } catch (Exception e) {
                 LOG.warn("nop.err.okhttp.setSocketFactory-fail", e);

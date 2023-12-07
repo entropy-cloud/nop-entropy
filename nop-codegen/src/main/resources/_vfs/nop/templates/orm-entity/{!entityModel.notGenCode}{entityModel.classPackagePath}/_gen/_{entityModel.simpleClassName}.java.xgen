@@ -17,7 +17,7 @@ import ${entityModel.classPackageName}.${entityModel.simpleClassName};
  *  ${entityModel.displayName}: ${entityModel.tableName}
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClass'] ||  (entityModel.kvTable ? 'AbstractOrmKeyValueTable' : 'DynamicOrmEntity')}{
     <c:for var="col" items="${entityModel.columns}">
         <c:script> if(col.notGenCode) continue</c:script>

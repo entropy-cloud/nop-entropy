@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 动态确定字段类型
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _RecordFieldSwitch extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

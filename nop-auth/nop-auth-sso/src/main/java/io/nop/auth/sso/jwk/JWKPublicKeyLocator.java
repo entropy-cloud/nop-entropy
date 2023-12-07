@@ -40,7 +40,7 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
 
     private static final Logger log = LoggerFactory.getLogger(JWKPublicKeyLocator.class);
 
-    private volatile ConcurrentHashMap<String, PublicKey> currentKeys = new ConcurrentHashMap<>();
+    private volatile ConcurrentHashMap<String, PublicKey> currentKeys = new ConcurrentHashMap<>(); //NOSONAR
 
     private volatile long lastRequestTime = 0;
 

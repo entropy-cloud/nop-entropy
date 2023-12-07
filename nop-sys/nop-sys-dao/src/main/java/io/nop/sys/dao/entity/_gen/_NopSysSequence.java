@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysSequence;
  *  序列号: nop_sys_sequence
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopSysSequence extends DynamicOrmEntity{
     
     /* 名称: SEQ_NAME VARCHAR */

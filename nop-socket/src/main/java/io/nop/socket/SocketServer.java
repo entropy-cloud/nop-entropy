@@ -222,7 +222,7 @@ public class SocketServer extends LifeCycleSupport implements ICommandServer {
                     break;
                 throw new NopException(ERR_SOCKET_ACCEPT_FAIL, e);
             }
-        } while (true);
+        } while (!stopped);
         LOG.info("nop.socket.server-exit:host={},port={}", config.getHost(), config.getPort());
     }
 

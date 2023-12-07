@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 带ioc前缀的属性和子节点是相对于spring配置格式增加的扩展
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _BeansModel extends io.nop.xlang.xdsl.AbstractDslModel {
     
     /**

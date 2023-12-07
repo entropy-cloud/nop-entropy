@@ -21,41 +21,17 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.xlang.XLangConstants;
-import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IXDefAttribute;
-import io.nop.xlang.xdef.IXDefComment;
-import io.nop.xlang.xdef.IXDefNode;
-import io.nop.xlang.xdef.IXDefProp;
-import io.nop.xlang.xdef.IXDefinition;
-import io.nop.xlang.xdef.XDefBodyType;
-import io.nop.xlang.xdef.XDefOverride;
-import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.*;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ISchemaNode;
-import io.nop.xlang.xmeta.impl.IObjSchemaImpl;
-import io.nop.xlang.xmeta.impl.ObjMetaImpl;
-import io.nop.xlang.xmeta.impl.ObjMetaRefResolver;
-import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
-import io.nop.xlang.xmeta.impl.SchemaImpl;
+import io.nop.xlang.xmeta.impl.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static io.nop.xlang.XLangErrors.ARG_NODE;
-import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_KEYED_LIST_MUST_ASSIGN_BEAN_BODY_TYPE_EXPLICITLY;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_LIST_NO_CHILD;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_MAP_NO_CHILD;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
-import static io.nop.xlang.XLangErrors.ERR_XMETA_SCHEMEA_DEFINE_NO_NAME_ATTR;
-import static io.nop.xlang.XLangErrors.ERR_XMETA_UNION_SCHEMA_NO_SUB_TYPE_PROP;
+import static io.nop.xlang.XLangErrors.*;
 
 /**
  * 将{@link IXDefinition}转换为{@link ObjMetaImpl}结构
@@ -162,7 +138,7 @@ public class XDefToObjMeta {
         KeyedList<ISchema> ret = new KeyedList<>(defs.size(), ISchemaNode::getName);
         for (IXDefNode def : defs) {
             ISchema schema = toSchema(def);
-            if (schema.getName() == null)
+            if (schema == null || schema.getName() == null)
                 throw new NopException(ERR_XMETA_SCHEMEA_DEFINE_NO_NAME_ATTR).source(schema);
             if (def.isExplicitDefine())
                 ((SchemaImpl) schema).setExplicitDefine(def.isExplicitDefine());
@@ -644,9 +620,11 @@ public class XDefToObjMeta {
         prop.setLocation(node.getLocation());
         prop.setName(name);
         prop.setSchema(schema);
-        prop.setDeprecated(type.isDeprecated());
-        prop.setMandatory(type.isMandatory());
-        prop.setInternal(type.isInternal());
+        if (type != null) {
+            prop.setDeprecated(type.isDeprecated());
+            prop.setMandatory(type.isMandatory());
+            prop.setInternal(type.isInternal());
+        }
 
         prop.setDefaultOverride(XDefOverride.REPLACE);
         prop.setXmlPos(XNodeValuePosition.value);

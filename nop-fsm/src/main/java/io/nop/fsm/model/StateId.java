@@ -94,21 +94,24 @@ public class StateId implements IJsonString, Comparable<StateId> {
         return text.compareTo(o.text);
     }
 
+    @Override
     public String toString() {
         return text;
     }
 
+    @Override
     public int hashCode() {
         return text.hashCode();
     }
 
-    public boolean equals(StateId o) {
+    @Override
+    public boolean equals(Object o) {
         if (o == this)
             return true;
 
         if (!(o instanceof StateId))
             return false;
 
-        return o.text.equals(text);
+        return ((StateId) o).text.equals(text);
     }
 }

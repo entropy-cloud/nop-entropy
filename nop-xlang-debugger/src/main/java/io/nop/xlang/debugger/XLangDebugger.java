@@ -11,11 +11,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.api.debugger.Breakpoint;
-import io.nop.api.debugger.DebugValueKey;
-import io.nop.api.debugger.DebugVariable;
-import io.nop.api.debugger.StackInfo;
-import io.nop.api.debugger.ThreadInfo;
+import io.nop.api.debugger.*;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.collections.LongHashMap;
@@ -56,9 +52,9 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     private final ICache<String, IExecutableExpression> compileCache = LocalCache.newCache("debug-expr-cache",
             newConfig(100), this::compileExpr);
 
-    private volatile SuspendedThread lastSuspendThread;
+    private volatile SuspendedThread lastSuspendThread; //NOSONAR
 
-    private volatile Breakpoint tempBreakpoint;
+    private volatile Breakpoint tempBreakpoint; //NOSONAR
 
     private volatile boolean suspended;
     private volatile boolean closed;
@@ -130,9 +126,11 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         try {
             while (!suspended) {
                 try {
-                    suspendedCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS);
+                    if (!suspendedCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
+                        LOG.trace("nop.debugger.suspend-await-timeout");
+                    }
                 } catch (InterruptedException e) {
-
+                    Thread.currentThread().interrupt();
                 }
             }
         } finally {
@@ -533,10 +531,13 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
                 thread.setSuspended(true);
                 suspendedCondition.signalAll();
                 while (suspended && !closed) {
-                    resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS);
+                    if(resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)){
+                        LOG.trace("nop.debugger.monitor-await-timeout");
+                    }
                 }
             } catch (InterruptedException e) {
                 // ignore
+                Thread.currentThread().interrupt();
             } finally {
                 thread.setSuspended(false);
                 monitorLock.unlock();

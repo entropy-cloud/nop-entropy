@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _RuleOutputValueModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

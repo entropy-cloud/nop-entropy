@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfAction;
  *  工作流动作: nop_wf_action
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopWfAction extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

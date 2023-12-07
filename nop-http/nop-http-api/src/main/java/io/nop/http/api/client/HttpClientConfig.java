@@ -26,6 +26,8 @@ public class HttpClientConfig {
     private int maxConnTotal = 2000;
     private int maxRequestsPerHost;
 
+    private String sslVersion = "TLSv1.2";
+
     private boolean followRedirects;
     private boolean retryOnConnectionFailure;
     private Duration readTimeout = Duration.of(30, ChronoUnit.SECONDS);
@@ -167,6 +169,14 @@ public class HttpClientConfig {
 
     public void setUserAgent(String userAgent) {
         this.userAgent = userAgent;
+    }
+
+    public String getSslVersion() {
+        return sslVersion;
+    }
+
+    public void setSslVersion(String sslVersion) {
+        this.sslVersion = sslVersion;
     }
 
     public boolean isLogBody() {

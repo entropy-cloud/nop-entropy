@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 监听全局EventBus上的event。当执行BizModel的action时会触发event, 此时from=bizObjName,event=actionId
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _WfSubscribeModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

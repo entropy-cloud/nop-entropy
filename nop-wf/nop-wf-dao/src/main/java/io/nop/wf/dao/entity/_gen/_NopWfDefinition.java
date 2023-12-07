@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfDefinition;
  *  工作流模型定义: nop_wf_definition
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopWfDefinition extends DynamicOrmEntity{
     
     /* 主键: WF_DEF_ID VARCHAR */

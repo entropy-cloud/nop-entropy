@@ -15,7 +15,7 @@ import java.lang.reflect.InvocationHandler;
  */
 public class ProducedBeanInstance {
     private final Object createdBean;
-    private volatile Object bean;
+    private Object bean;
 
     public ProducedBeanInstance(Object createdBean) {
         this.createdBean = createdBean;
@@ -29,11 +29,11 @@ public class ProducedBeanInstance {
         return createdBean;
     }
 
-    public Object getBean() {
+    public synchronized Object getBean() {
         return bean;
     }
 
-    public void setBean(Object bean) {
+    public synchronized void setBean(Object bean) {
         this.bean = bean;
     }
 }

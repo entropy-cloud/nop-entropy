@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 配置变量的值为true或者指定值的时候返回true
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _BeanIfPropertyCondition extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

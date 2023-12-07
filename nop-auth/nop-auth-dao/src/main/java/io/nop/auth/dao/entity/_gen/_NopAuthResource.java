@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthResource;
  *  菜单资源: nop_auth_resource
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopAuthResource extends DynamicOrmEntity{
     
     /* 资源ID: RESOURCE_ID VARCHAR */

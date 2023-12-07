@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthPosition;
  *  岗位: nop_auth_position
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopAuthPosition extends DynamicOrmEntity{
     
     /* 主键: POSITION_ID VARCHAR */

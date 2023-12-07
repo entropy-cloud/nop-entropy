@@ -30,25 +30,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_ARGS;
@@ -61,6 +50,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Override
     protected Map<String, String> getParams() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null)
+            throw new IllegalStateException("null request context");
         HttpServletRequest request = attrs.getRequest();
         Map<String, String> ret = new HashMap<>();
         for (String paramName : request.getParameterMap().keySet()) {
@@ -72,6 +63,8 @@ public class SpringGraphQLWebService extends GraphQLWebService {
     @Override
     protected Map<String, Object> getHeaders() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs == null)
+            throw new IllegalStateException("null request context");
         HttpServletRequest request = attrs.getRequest();
         Map<String, Object> ret = new TreeMap<>();
         Enumeration<String> it = request.getHeaderNames();

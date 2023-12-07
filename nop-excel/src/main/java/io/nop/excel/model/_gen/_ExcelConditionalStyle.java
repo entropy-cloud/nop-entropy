@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 当条件满足时，将对指定区间单元格的样式进行增量修改
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public abstract class _ExcelConditionalStyle extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

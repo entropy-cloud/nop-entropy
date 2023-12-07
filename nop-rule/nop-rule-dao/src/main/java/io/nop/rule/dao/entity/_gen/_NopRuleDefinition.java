@@ -17,7 +17,7 @@ import io.nop.rule.dao.entity.NopRuleDefinition;
  *  规则模型定义: nop_rule_definition
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopRuleDefinition extends DynamicOrmEntity{
     
     /* 主键: RULE_ID VARCHAR */

@@ -17,19 +17,9 @@ import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdef.impl.XDefComment;
 import io.nop.xlang.xdef.impl.XDefNode;
 import io.nop.xlang.xdef.impl.XDefinition;
-import io.nop.xlang.xmeta.IListSchema;
-import io.nop.xlang.xmeta.IObjMeta;
-import io.nop.xlang.xmeta.IObjPropMeta;
-import io.nop.xlang.xmeta.IObjSchema;
-import io.nop.xlang.xmeta.ISchema;
-import io.nop.xlang.xmeta.ISimpleSchema;
-import io.nop.xlang.xmeta.IUnionSchema;
+import io.nop.xlang.xmeta.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinition> {
     private final XDefKeys keys;
@@ -56,6 +46,9 @@ public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinitio
         def.setLocation(objMeta.getLocation());
         def.setXdefDefines(toDefinitions(objMeta.getDefines()));
         XDefNode node = toNode(objMeta.getRootSchema());
+        if (node == null)
+            throw new IllegalStateException("root schema transform to null node");
+
         node.setTagName(objMeta.getXmlName());
         // def.setRootNode(node);
         return def;
@@ -72,6 +65,8 @@ public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinitio
             String description = schema.getDescription();
 
             XDefNode node = toNode(schema);
+            if (node == null)
+                throw new IllegalStateException("schema transform to null node");
             node.setXdefName(name);
 
             if (displayName != null || description != null) {
@@ -126,6 +121,8 @@ public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinitio
             node.setChildren(map);
         } else {
             XDefNode child = toNode(itemSchema);
+            if (child == null)
+                throw new IllegalStateException("itemSchema transform to null node");
             node.setChildren(Collections.singletonMap(child.getTagName(), child));
         }
         return node;
@@ -171,6 +168,8 @@ public class ObjMetaToXDef implements IComponentTransformer<IObjMeta, XDefinitio
                 }
                 case child: {
                     XDefNode child = toNode(prop.getSchema());
+                    if (child == null)
+                        throw new IllegalStateException("prop schema transform to null node:" + prop.getName());
                     child.setTagName(prop.getXmlName());
                     children.put(child.getTagName(), child);
                     break;

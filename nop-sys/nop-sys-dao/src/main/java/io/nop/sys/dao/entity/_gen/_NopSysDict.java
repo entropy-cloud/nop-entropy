@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysDict;
  *  字典表: nop_sys_dict
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
 public class _NopSysDict extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */
