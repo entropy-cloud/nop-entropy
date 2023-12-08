@@ -5778,6 +5778,14 @@
     ],
     "methods": [
       {
+        "name": "addCookie",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
         "name": "checkLogoutUrl",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
@@ -15925,12 +15933,26 @@
         ]
       },
       {
+        "name": "getActions",
+        "parameterTypes": []
+      },
+      {
         "name": "getBizModel",
         "parameterTypes": []
       },
       {
         "name": "getBizObjName",
         "parameterTypes": []
+      },
+      {
+        "name": "getEntityName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getExtAttribute",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "getLocation",
@@ -15962,8 +15984,18 @@
         ]
       },
       {
+        "name": "getOperations",
+        "parameterTypes": []
+      },
+      {
         "name": "getStateMachine",
         "parameterTypes": []
+      },
+      {
+        "name": "isAllowInheritAction",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "method_invoke",
@@ -34735,6 +34767,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSslVersion",
+        "parameterTypes": []
+      },
+      {
         "name": "getThreadName",
         "parameterTypes": []
       },
@@ -34924,6 +34960,12 @@
         "name": "setSslSocketFactory",
         "parameterTypes": [
           "javax.net.ssl.SSLSocketFactory"
+        ]
+      },
+      {
+        "name": "setSslVersion",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
