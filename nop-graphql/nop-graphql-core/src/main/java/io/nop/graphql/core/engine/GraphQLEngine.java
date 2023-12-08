@@ -409,10 +409,12 @@ public class GraphQLEngine implements IGraphQLEngine {
             }
         }
 
-        if (err != null) {
-            context.completeExceptionally(err);
-        } else {
-            context.complete();
+        if(context != null) {
+            if (err != null) {
+                context.completeExceptionally(err);
+            } else {
+                context.complete();
+            }
         }
         return ret;
     }
