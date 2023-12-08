@@ -496,6 +496,9 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_INVALID_PATH = define("nop.err.core.resource.invalid-path",
             "资源路径只能使用/为路径分隔符，且不能以/结尾，不能包含../等相对路径，也不能包含windows路径所不允许的特殊字符:{resourcePath}", ARG_RESOURCE_PATH);
 
+    ErrorCode ERR_RESOURCE_INVALID_RELATIVE_NAME = define("nop.err.core.resource.invalid-relative-name",
+            "相对路径不能以/开始，只能使用/为路径分隔符，不能包含../等相对路径，也不能包含windows路径所不允许的特殊字符:{resourcePath}", ARG_RESOURCE_PATH);
+
     ErrorCode ERR_RESOURCE_PATH_NOT_IN_NAMESPACE = define("nop.err.core.resource.path-not-in-namespace",
             "资源路径[{resourcePath}]不属于名字空间[{namespace}]", ARG_RESOURCE_PATH, ARG_NAMESPACE);
 

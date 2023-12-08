@@ -531,5 +531,6 @@
         <module>nop-datav</module>
         <module>nop-dev</module>
         <module>nop-all-for-spring</module>
+        <module>nop-git</module>
     </modules>
 </project>

@@ -69,6 +69,7 @@ import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_MODULE_ID;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_MODULE_NAME;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_PATH;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_RELATIVE_NAME;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_DIR;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_PATH_NOT_IN_NAMESPACE;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_SAVE_FROM_STREAM_FAIL;
@@ -251,6 +252,12 @@ public class ResourceHelper {
     public static void checkNormalVirtualPath(String path) {
         if (!isNormalVirtualPath(path))
             throw new NopException(ERR_RESOURCE_INVALID_PATH).param(ARG_RESOURCE_PATH, path);
+    }
+
+    public static void checkValidRelativeName(String path) {
+        if (!isValidRelativeName(path))
+            throw new NopException(ERR_RESOURCE_INVALID_RELATIVE_NAME)
+                    .param(ARG_RESOURCE_PATH, path);
     }
 
     public static String buildNamespacePath(String ns, String path) {

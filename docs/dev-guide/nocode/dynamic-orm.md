@@ -3,7 +3,7 @@
 NopORM引擎是一个完整的ORM引擎，不是专门为LowCode开发定制的一种狭窄用途的ORM引擎。基于NopORM的通用机制，平台也内置了一些LowCode专用的动态模型。
 
 nop-wf模块提供了一个NopWfDynEntity实体，它具有nopFlowId字段，可以自动与工作流引擎关联，作为工作流实例关联的业务实体来使用。无需建表，只要调整
-ORM配置即可利用基础的NopWfDynEntity分化出新的ORM实体对象（实体名和属性名不同），实际数据保存在nop_wf_dyn_entity表（纵表）以及nop_wf_dyn_entity表的扩展字段中。
+ORM配置即可利用基础的NopWfDynEntity分化出新的ORM实体对象（实体名和属性名不同），实际数据保存在nop_wf_dyn_entity表（纵表）以及nop_wf_dyn_entity_ext表的扩展字段中。
 
 具体使用方法如下：
 
@@ -29,7 +29,7 @@ ORM配置即可利用基础的NopWfDynEntity分化出新的ORM实体对象（实
 </orm>
 ````
 
-1. `x:prototyp="WfDynEntityTemplate`表示从nop-wf-dao模块内置的WfDynEntityTemplate模板继承一些配置。WfDynEntityTemplate已经开启了扩展字段支持，
+1. `x:prototype="WfDynEntityTemplate`表示从nop-wf-dao模块内置的WfDynEntityTemplate模板继承一些配置。WfDynEntityTemplate已经开启了扩展字段支持，
 扩展字段会存放在nop_wf_dyn_entity_ext表中。
 2. 动态实体实际存放在底层的NopWfDynEntity表中，只是每个动态实体都对应于不同的objType限制条件。通过filter配置过滤条件，从而从同一个业务对象中分化出多个具有不同属性的对象。
 3. 通过alias可以将扩展字段重命名为具有业务含义的更加简洁的名称，在XScript脚本语言以及EQL查询语言中，alias可以看作是实体原生属性来使用。
