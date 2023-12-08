@@ -12,7 +12,7 @@
     </domains>
 
     <dicts xdef:body-type="list" xdef:key-attr="name">
-        <dict name="!string" xdef:ref="dict.xdef" />
+        <dict name="!string" xdef:ref="/nop/schema/orm/dict.xdef" />
     </dicts>
 
     <!--
