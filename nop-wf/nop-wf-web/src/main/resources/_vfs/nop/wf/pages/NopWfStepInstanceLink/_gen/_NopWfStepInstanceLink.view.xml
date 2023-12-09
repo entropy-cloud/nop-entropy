@@ -16,8 +16,8 @@
                 <!--步骤ID-->
                 <col id="stepId" mandatory="true" sortable="true"/>
 
-                <!--迁移步骤 ID-->
-                <col id="prevStepId" mandatory="true" sortable="true"/>
+                <!--下一步骤 ID-->
+                <col id="nextStepId" mandatory="true" sortable="true"/>
 
                 <!--执行动作-->
                 <col id="execAction" mandatory="true" sortable="true"/>
@@ -37,7 +37,7 @@
             <layout>
  wfId[工作流实例ID]
  stepId[步骤ID]
- prevStepId[迁移步骤 ID]
+ nextStepId[下一步骤 ID]
  execAction[执行动作]
  createdBy[创建人]
  createTime[创建时间]
@@ -49,7 +49,7 @@
             <layout>
  wfId[工作流实例ID]
  stepId[步骤ID]
- prevStepId[迁移步骤 ID]
+ nextStepId[下一步骤 ID]
  execAction[执行动作]
 </layout>
         </form>

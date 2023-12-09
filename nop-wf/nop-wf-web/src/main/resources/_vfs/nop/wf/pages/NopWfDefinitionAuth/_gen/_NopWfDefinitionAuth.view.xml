@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopWfWork" xmlns:i18n-en="i18n-en"
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopWfDefinitionAuth" xmlns:i18n-en="i18n-en"
       xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
 
-    <objMeta>/nop/wf/model/NopWfWork/NopWfWork.xmeta</objMeta>
+    <objMeta>/nop/wf/model/NopWfDefinitionAuth/NopWfDefinitionAuth.xmeta</objMeta>
 
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
 
@@ -10,44 +10,26 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--工作ID-->
-                <col id="workId" mandatory="true" sortable="true"/>
+                <!--工作流定义ID-->
+                <col id="wfDefId" mandatory="true" sortable="true"/>
 
-                <!--工作流实例ID-->
-                <col id="wfId" sortable="true"/>
+                <!--参与者类型-->
+                <col id="actorType" mandatory="true" sortable="true"/>
 
-                <!--工作流步骤ID-->
-                <col id="stepId" sortable="true"/>
+                <!--参与者部门ID-->
+                <col id="actorDeptId" sortable="true"/>
 
-                <!--工作类型-->
-                <col id="workType" mandatory="true" sortable="true"/>
+                <!--参与者名称-->
+                <col id="actorName" mandatory="true" sortable="true"/>
 
-                <!--工作标题-->
-                <col id="title" mandatory="true" sortable="true"/>
+                <!--允许编辑-->
+                <col id="allowEdit" mandatory="true" sortable="true"/>
 
-                <!--工作链接-->
-                <col id="linkUrl" mandatory="true" sortable="true"/>
+                <!--允许管理-->
+                <col id="allowManage" mandatory="true" sortable="true"/>
 
-                <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
-
-                <!--拥有者ID-->
-                <col id="ownerId" sortable="true"/>
-
-                <!--拥有者姓名-->
-                <col id="ownerName" sortable="true"/>
-
-                <!--调用者ID-->
-                <col id="callerId" sortable="true"/>
-
-                <!--调用者姓名-->
-                <col id="callerName" sortable="true"/>
-
-                <!--读取时间-->
-                <col id="readTime" sortable="true"/>
-
-                <!--完成时间-->
-                <col id="finishTime" sortable="true"/>
+                <!--允许启动-->
+                <col id="allowStart" mandatory="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -66,34 +48,45 @@
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+        <grid id="sub-grid-edit" x:prototype="list" editMode="list-edit">
+            <cols>
+                <col id="wfDefId" x:abstract="true"/>
+                <col id="createdBy" x:abstract="true"/>
+                <col id="createTime" x:abstract="true"/>
+                <col id="updatedBy" x:abstract="true"/>
+                <col id="updateTime" x:abstract="true"/>
+            </cols>
+        </grid>
+        <grid id="sub-grid-view" x:prototype="list" editMode="list-view">
+            <cols>
+                <col id="wfDefId" x:abstract="true"/>
+            </cols>
+        </grid>
     </grids>
 
     <forms>
-        <form id="view" editMode="view" title="查看-代办工作" i18n-en:title="View Work List">
+        <form id="view" editMode="view" title="查看-工作流定义权限" i18n-en:title="View Workflow Definition Auth">
             <layout>
- workId[工作ID] wfId[工作流实例ID]
- stepId[工作流步骤ID] workType[工作类型]
- title[工作标题] linkUrl[工作链接]
- status[状态] ownerId[拥有者ID]
- ownerName[拥有者姓名] callerId[调用者ID]
- callerName[调用者姓名] readTime[读取时间]
- finishTime[完成时间] createdBy[创建人]
+ wfDefId[工作流定义ID] actorType[参与者类型]
+ actorDeptId[参与者部门ID] actorName[参与者名称]
+ allowEdit[允许编辑] allowManage[允许管理]
+ allowStart[允许启动] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
 </layout>
         </form>
-        <form id="add" editMode="add" title="新增-代办工作" i18n-en:title="Add Work List" x:prototype="edit"/>
-        <form id="edit" editMode="edit" title="编辑-代办工作" i18n-en:title="Edit Work List">
+        <form id="add" editMode="add" title="新增-工作流定义权限" i18n-en:title="Add Workflow Definition Auth" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-工作流定义权限" i18n-en:title="Edit Workflow Definition Auth">
             <layout>
- workId[工作ID] wfId[工作流实例ID]
- stepId[工作流步骤ID] workType[工作类型]
- title[工作标题] linkUrl[工作链接]
- status[状态] ownerId[拥有者ID]
- ownerName[拥有者姓名] callerId[调用者ID]
- callerName[调用者姓名] readTime[读取时间]
- finishTime[完成时间] 
-                remark[备注]
+ wfDefId[工作流定义ID]
+ actorType[参与者类型]
+ actorDeptId[参与者部门ID]
+ actorName[参与者名称]
+ allowEdit[允许编辑]
+ allowManage[允许管理]
+ allowStart[允许启动]
+ remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
@@ -102,7 +95,8 @@
         <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
             <layout/>
         </form>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-代办工作" i18n-en:title="Update Work List">
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流定义权限"
+              i18n-en:title="Update Workflow Definition Auth">
             <layout/>
         </form>
     </forms>
@@ -110,11 +104,11 @@
     <pages>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
-                <api url="@query:NopWfWork__findPage" gql:selection="{@pageSelection}"/>
+                <api url="@query:NopWfDefinitionAuth__findPage" gql:selection="{@pageSelection}"/>
             </table>
             <listActions>
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopWfWork__batchDelete?ids=$ids"/>
+                    <api url="@mutation:NopWfDefinitionAuth__batchDelete?ids=$ids"/>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
                 </action>
                 <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
@@ -129,7 +123,7 @@
                     <dialog page="update"/>
                 </action>
                 <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
-                    <api url="@mutation:NopWfWork__delete?id=$id"/>
+                    <api url="@mutation:NopWfDefinitionAuth__delete?id=$id"/>
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
@@ -137,7 +131,7 @@
                         <dialog page="update"/>
                     </action>
                     <action id="row-delete-button" level="danger" label="@i18n:common.delete">
-                        <api url="@mutation:NopWfWork__delete?id=$id"/>
+                        <api url="@mutation:NopWfDefinitionAuth__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
                 </actionGroup>
@@ -145,18 +139,18 @@
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table>
-                <api url="@query:NopWfWork__findPage" gql:selection="{@pageSelection}"/>
+                <api url="@query:NopWfDefinitionAuth__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>
         <simple name="add" form="add">
-            <api url="@mutation:NopWfWork__save/id"/>
+            <api url="@mutation:NopWfDefinitionAuth__save/id"/>
         </simple>
         <simple name="view" form="view">
-            <initApi url="@query:NopWfWork__get?id=$id" gql:selection="{@formSelection}"/>
+            <initApi url="@query:NopWfDefinitionAuth__get?id=$id" gql:selection="{@formSelection}"/>
         </simple>
         <simple name="update" form="edit">
-            <initApi url="@query:NopWfWork__get?id=$id" gql:selection="{@formSelection}"/>
-            <api url="@mutation:NopWfWork__update/id?id=$id" withFormData="true"/>
+            <initApi url="@query:NopWfDefinitionAuth__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopWfDefinitionAuth__update/id?id=$id" withFormData="true"/>
         </simple>
     </pages>
 </view>
