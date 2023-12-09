@@ -56,7 +56,7 @@ public class BaseCell extends AbstractCell {
         return comment;
     }
 
-    public void setComment(String comment){
+    public void setComment(String comment) {
         this.comment = comment;
     }
 
@@ -70,6 +70,10 @@ public class BaseCell extends AbstractCell {
                 out.put("value", value);
             if (comment != null)
                 out.put("comment", comment);
+            if (getMergeAcross() > 0)
+                out.put("mergeAcross", getMergeAcross());
+            if (getMergeDown() > 0)
+                out.put("mergeDown", getMergeDown());
         }
     }
 

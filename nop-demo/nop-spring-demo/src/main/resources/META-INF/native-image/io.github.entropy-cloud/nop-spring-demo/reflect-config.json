@@ -5867,6 +5867,14 @@
     ],
     "methods": [
       {
+        "name": "addCookie",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
         "name": "checkLogoutUrl",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
@@ -31576,6 +31584,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getSslVersion",
+        "parameterTypes": []
+      },
+      {
         "name": "getThreadName",
         "parameterTypes": []
       },
@@ -31765,6 +31777,12 @@
         "name": "setSslSocketFactory",
         "parameterTypes": [
           "javax.net.ssl.SSLSocketFactory"
+        ]
+      },
+      {
+        "name": "setSslVersion",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {

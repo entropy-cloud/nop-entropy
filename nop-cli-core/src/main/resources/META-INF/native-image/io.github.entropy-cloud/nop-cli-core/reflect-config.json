@@ -4532,6 +4532,12 @@
         ]
       },
       {
+        "name": "checkValidRelativeName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "copy",
         "parameterTypes": [
           "io.nop.core.resource.IFile",
@@ -8654,6 +8660,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getGroupField",
+        "parameterTypes": []
+      },
+      {
         "name": "getKeyProp",
         "parameterTypes": []
       },
@@ -8777,6 +8787,12 @@
         "name": "setFields",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setGroupField",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
