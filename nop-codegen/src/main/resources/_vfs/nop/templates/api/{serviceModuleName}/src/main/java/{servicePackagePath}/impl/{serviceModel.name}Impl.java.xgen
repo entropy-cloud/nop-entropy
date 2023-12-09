@@ -24,7 +24,7 @@
             <when test="${method.tagSet?.contains('sync')}"><![CDATA[
      @${method.mutation?'BizMutation':'BizQuery'}
      @Override
-     public ${method.simpleResponseMessage} ${method.name}(${method.voidRequest ? '': '@RequestBean '+method.simpleRequestMessage + ‘ request,’}
+     public ${method.simpleResponseMessage} ${method.name}(${method.voidRequest ? '': '@RequestBean '+method.simpleRequestMessage + ' request,'}
           FieldSelectionBean selection, IServiceContext ctx){
         ${method.simpleResponseMessage != 'void' ? 'return null;': ''}
      }
@@ -33,7 +33,7 @@
      @${method.mutation?'BizMutation':'BizQuery'}
      @Override
      public CompletionStage<${method.simpleResponseMessage == 'void' ? 'Void' : method.simpleResponseMessage}> ${method.name}Async(
-         ${method.voidRequest ? '': '@RequestBean '+method.simpleRequestMessage + ‘ request,’}, FieldSelectionBean selection, IServiceContext ctx){
+         ${method.voidRequest ? '': '@RequestBean '+method.simpleRequestMessage + ' request,'}, FieldSelectionBean selection, IServiceContext ctx){
         return FutureHelper.success(null);
      }
             ]]></otherwise>
