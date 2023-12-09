@@ -45,8 +45,12 @@ public class GenericParameterizedType extends AbstractGenericType implements IPa
     }
 
     public String getTypeName() {
-        if (typeName == null)
-            typeName = GenericTypeHelper.buildParameterizedTypeName(rawType, typeParameters);
+        if (typeName == null) {
+            String buildName = GenericTypeHelper.buildParameterizedTypeName(rawType, typeParameters);
+            if (isResolved())
+                this.typeName = buildName;
+            return buildName;
+        }
         return typeName;
     }
 
@@ -141,7 +145,7 @@ public class GenericParameterizedType extends AbstractGenericType implements IPa
     }
 
     @Override
-    public boolean isCollectionLike(){
+    public boolean isCollectionLike() {
         return rawType.isCollectionLike();
     }
 

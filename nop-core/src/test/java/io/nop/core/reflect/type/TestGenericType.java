@@ -101,4 +101,11 @@ public class TestGenericType {
         IGenericType dataType = propType.refine(beanModel.getType(), beanType);
         assertEquals(GraphQLRequestBean.class, dataType.getRawClass());
     }
+
+    @Test
+    public void testResolveClass() {
+        IGenericType type = new GenericTypeParser().parseFromText(null, "List<MyBean>");
+        type.resolveClassName(typeName -> "my." + typeName);
+        assertEquals("java.util.List<my.MyBean>", type.toString());
+    }
 }

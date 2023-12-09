@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.type.impl.GenericRawTypeReferenceImpl;
 import io.nop.core.type.utils.GenericTypeHelper;
 
 import java.io.Serializable;
@@ -19,6 +20,8 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 
 import static io.nop.core.CoreErrors.ARG_TYPE_NAME;
 import static io.nop.core.CoreErrors.ERR_TYPE_NOT_ARRAY_OR_LIST_TYPE;
@@ -38,6 +41,12 @@ public interface IGenericType extends Serializable, Type {
      * 对于泛型声明，包含所有泛型参数信息。对于StdDataType中包含的类型，因为系统中使用非常频繁，这里去除了包名部分以减少输出长度。 例如java.lang.String对应的typeName是String。
      */
     String getTypeName();
+
+    default boolean isJavaDefaultImportType() {
+        if (!isResolved())
+            return false;
+        return StringHelper.isJavaDefaultImportType(getRawTypeName());
+    }
 
     /**
      * 不包含泛型参数的类型名
@@ -215,6 +224,16 @@ public interface IGenericType extends Serializable, Type {
      */
     default IGenericType refine(ITypeScope resolver) {
         return this;
+    }
+
+    default void resolveClassName(Function<String, String> resolver) {
+        resolve(typeName -> {
+            String resolvedName = resolver.apply(typeName);
+            if (resolvedName == null || Objects.equals(resolvedName, typeName)) {
+                return null;
+            }
+            return new GenericRawTypeReferenceImpl(resolvedName);
+        });
     }
 
     /**

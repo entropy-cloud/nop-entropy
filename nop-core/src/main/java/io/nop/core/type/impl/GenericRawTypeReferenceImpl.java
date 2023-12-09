@@ -14,9 +14,7 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.IRawTypeReference;
 import io.nop.core.type.IRawTypeResolver;
 
-import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ARG_TYPE_NAME;
-import static io.nop.core.CoreErrors.ERR_TYPE_MULTIPLE_RAW_TYPE_HAS_SAME_NAME;
 import static io.nop.core.CoreErrors.ERR_TYPE_REFERENCE_NOT_RESOLVED;
 
 public class GenericRawTypeReferenceImpl extends AbstractGenericType implements IRawTypeReference {
@@ -33,10 +31,14 @@ public class GenericRawTypeReferenceImpl extends AbstractGenericType implements 
 
     @Override
     public String getRawTypeName() {
+        if (rawType != null)
+            return rawType.getRawTypeName();
         return typeName;
     }
 
     public String getClassName() {
+        if (rawType != null)
+            return rawType.getClassName();
         return typeName;
     }
 
@@ -55,7 +57,7 @@ public class GenericRawTypeReferenceImpl extends AbstractGenericType implements 
     }
 
     public boolean isResolved() {
-        return rawType != null;
+        return rawType != null && rawType.isResolved();
     }
 
     public Class<?> getRawClass() {
@@ -68,14 +70,14 @@ public class GenericRawTypeReferenceImpl extends AbstractGenericType implements 
         if (this.rawType == null) {
             this.rawType = resolver.resolveRawType(typeName);
         } else {
-            IGenericType resolved = resolver.resolveRawType(typeName);
-            if (resolved != null && resolved != rawType)
-                throw new NopException(ERR_TYPE_MULTIPLE_RAW_TYPE_HAS_SAME_NAME).param(ARG_CLASS_NAME, typeName);
+            rawType.resolve(resolver);
         }
     }
 
     @Override
     public String getTypeName() {
+        if (rawType != null)
+            return rawType.getTypeName();
         return typeName;
     }
 

@@ -14,8 +14,6 @@
     
         import io.nop.wf.api.beans.WfActionRequestBean;
     
-        import java.lang.Object;
-    
         import io.nop.wf.api.beans.WfCommandRequestBean;
     
 

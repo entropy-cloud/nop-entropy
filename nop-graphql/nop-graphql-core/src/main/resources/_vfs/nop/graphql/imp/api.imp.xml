@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     templatePath="template.api.xlsx"
-    xdef="/nop/schema/api.xdef">
+     templatePath="template.api.xlsx" xmlns:c="c" xmlns:xpt="xpt"
+     xdef="/nop/schema/api.xdef">
 
     <sheets>
         <sheet name="目录" ignore="true"/>
@@ -168,11 +168,10 @@
                     const beanPackage = rootRecord['ext:apiPackageName']+'.beans';
                     record.requestMessage = record.requestMessage.$normalizeClassName(
                                            beanPackage,false)
-                    record.responseMessage = record.responseMessage.$normalizeClassName(
-                                           beanPackage,true)
-                    record.simpleRequestMessage = record.requestMessage.$simplifyJavaType(beanPackage);
-                    record.simpleResponseMessage = record.responseMessage.$simplifyJavaType(beanPackage);
-
+                    record.responseMessage.resolveClassName(typeName=> typeName.$normalizeClassName(beanPackage,true));
+                    record.simpleRequestMessage = record.requestMessage.toString().$simplifyJavaType(beanPackage);
+                    record.simpleResponseMessage = record.responseMessage.toString().$simplifyJavaType(beanPackage);
+                    record.voidRequest = record.simpleRequestMessage == 'Void'
                 ]]></c:script>
                     </normalizeFieldsExpr>
 
@@ -203,7 +202,7 @@
                         </field>
 
                         <field name="responseMessage" displayName="响应消息" mandatory="true">
-                            <schema stdDomain="class-name"/>
+                            <schema stdDomain="generic-type"/>
                         </field>
 
                         <field name="description" displayName="描述">
@@ -215,14 +214,15 @@
                         </field>
 
                         <field name="ext:source" displayName="实现代码">
-                            <schema stdDomain="xml" />
+                            <schema stdDomain="xml"/>
                         </field>
                     </fields>
                 </field>
             </fields>
         </sheet>
 
-        <sheet name="消息定义" namePattern=".*" field="messages" multiple="true"  keyProp="name" sheetNameProp="name">
+        <sheet name="消息定义" namePattern=".*" field="messages" multiple="true" keyProp="name" sheetNameProp="name">
+
             <fields>
                 <field name="name" displayName="对象名">
                     <schema stdDomain="class-name"/>
@@ -249,6 +249,13 @@
                 </field>
 
                 <field name="fields" displayName="字段列表" list="true" keyProp="name">
+                    <normalizeFieldsExpr>
+                        <c:script><![CDATA[
+                    const beanPackage = rootRecord['ext:apiPackageName']+'.beans';
+                    record.schema.type.resolveClassName(typeName=> typeName.$normalizeClassName(beanPackage,true));
+                ]]></c:script>
+                    </normalizeFieldsExpr>
+
                     <fields>
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
                             <schema stdDomain="boolean"/>
@@ -271,7 +278,7 @@
 
                         <field name="i18n-en:displayName" displayName="英文名"/>
 
-                        <field name="schema.domain" displayName="数据域" >
+                        <field name="schema.domain" displayName="数据域">
                             <schema stdDomain="xml-name"/>
                         </field>
                         <field name="schema.type" displayName="类型" mandatory="true">

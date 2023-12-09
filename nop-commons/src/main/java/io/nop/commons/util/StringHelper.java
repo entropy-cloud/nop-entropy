@@ -37,14 +37,36 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import static io.nop.commons.CommonConfigs.CFG_UTILS_STRING_MAX_PAD_LEN;
 import static io.nop.commons.CommonConfigs.CFG_UTILS_STRING_MAX_REPEAT_LEN;
-import static io.nop.commons.CommonErrors.*;
+import static io.nop.commons.CommonErrors.ARG_LENGTH;
+import static io.nop.commons.CommonErrors.ARG_PARAM_NAME;
+import static io.nop.commons.CommonErrors.ARG_QUERY;
+import static io.nop.commons.CommonErrors.ARG_STR;
+import static io.nop.commons.CommonErrors.ERR_TEXT_ILLEGAL_HEX_STRING;
+import static io.nop.commons.CommonErrors.ERR_TEXT_INVALID_UNICODE;
+import static io.nop.commons.CommonErrors.ERR_TEXT_INVALID_UUID_RANGE;
+import static io.nop.commons.CommonErrors.ERR_UTILS_DUPLICATE_PARAM_NAME_IS_NOT_ALLOWED_IN_SIMPLE_QUERY;
+import static io.nop.commons.CommonErrors.ERR_UTILS_INVALID_QUOTED_STRING;
 
 /**
  * 所有关于String的常用帮助函数。为方便在EL表达式中调用，所有参数都允许为null。 为了与EL表达式集成，第一个参数一般情况下应该是String或者CharSequence类型。
@@ -3738,6 +3760,23 @@ public class StringHelper extends ApiStringHelper {
         }
 
         return packageName + '.' + className;
+    }
+
+    @Deterministic
+    public static boolean isJavaDefaultImportType(String typeName) {
+        if (isEmpty(typeName))
+            return false;
+
+        StdDataType type = StdDataType.fromJavaClassName(typeName);
+        if (type != null) {
+            // native type, such as int , float
+            if (Character.isLowerCase(typeName.charAt(0)))
+                return true;
+        }
+        if (typeName.startsWith("java.lang.") && countChar(typeName, '.') == 2) {
+            return true;
+        }
+        return false;
     }
 
     @Deterministic

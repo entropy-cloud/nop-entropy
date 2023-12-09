@@ -154,9 +154,9 @@
             <source><![CDATA[
                 let types = new Set();
                 serviceModel.methods.forEach(method=>{
-                   if(method.requestMessage != method.simpleRequestMessage)
+                   if(method.requestMessage != method.simpleRequestMessage && !method.voidRequest)
                       types.add(method.requestMessage);
-                   if(method.responseMessage != method.simpleResponseMessage)
+                   if(!method.responseMessage.javaDefaultImportType && method.responseMessage.toString() != method.simpleResponseMessage)
                       types.add(method.responseMessage);
                 });
                 return types;

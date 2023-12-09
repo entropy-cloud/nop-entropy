@@ -28,7 +28,7 @@
         <method name="!var-name" displayName="string" tagSet="word-set" xdef:unique-attr="name">
             <description xdef:value="string"/>
             <requestMessage xdef:value="class-name"/>
-            <responseMessage xdef:value="class-name"/>
+            <responseMessage xdef:value="!generic-type"/>
         </method>
 
     </service>
