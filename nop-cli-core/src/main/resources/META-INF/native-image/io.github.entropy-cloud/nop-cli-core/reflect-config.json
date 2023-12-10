@@ -13048,12 +13048,40 @@
         ]
       },
       {
+        "name": "childCell",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
+        "name": "childSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
+        "name": "childValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.report.core.engine.IXptRuntime"
+        ]
+      },
+      {
         "name": "cloneInstance",
         "parameterTypes": []
       },
       {
         "name": "colChildSet",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "cv",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
           "java.lang.String"
         ]
       },
