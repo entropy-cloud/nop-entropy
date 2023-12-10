@@ -10,6 +10,8 @@ import io.nop.report.core.coordinate.CellLayerCoordinate;
 import io.nop.xlang.ast.CustomExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Identifier;
+import io.nop.xlang.ast.MemberExpression;
+import io.nop.xlang.ast.XLangOperator;
 import io.nop.xlang.expr.simple.SimpleExprParser;
 
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ public class AbstractExcelFormulaParser extends SimpleExprParser {
         }
         return arrowFuncExpr(sc, id);
     }
+
     public CustomExpression parseCellExpr(TextScanner sc) {
         Identifier id = tokenExpr(sc);
         if (sc.cur == ':') {
@@ -37,6 +40,7 @@ public class AbstractExcelFormulaParser extends SimpleExprParser {
         }
         return cellCoordinateExpr(sc, id);
     }
+
     public CellLayerCoordinate parseLayerCoordinate(SourceLocation loc, String text) {
         TextScanner sc = TextScanner.fromString(loc, text);
         sc.skipBlank();
@@ -57,13 +61,13 @@ public class AbstractExcelFormulaParser extends SimpleExprParser {
         CellPosition last = CellPosition.fromABString(end.getName());
         CellRange range = CellRange.fromPosition(first, last);
         SourceLocation loc = id.getLocation();
-        return CustomExpression.build(loc, range.toString(), new CellRangeExecutable(loc, range));
+        return CustomExpression.build(loc, range.toString(), new CellRangeExecutable(loc, range, false));
     }
 
     protected CustomExpression cellCoordinateExpr(TextScanner sc, Identifier id) {
         SourceLocation loc = sc.location();
         CellLayerCoordinate layerCoordinate = cellCoordinate(sc, id);
-        return CustomExpression.build(loc, layerCoordinate.toString(), new CellLayerCoordinateExecutable(loc, layerCoordinate));
+        return CustomExpression.build(loc, layerCoordinate.toString(), new CellLayerCoordinateExecutable(loc, layerCoordinate, false));
     }
 
     private CellLayerCoordinate cellCoordinate(TextScanner sc, Identifier id) {
@@ -111,5 +115,38 @@ public class AbstractExcelFormulaParser extends SimpleExprParser {
             }
         }
         return ret.isEmpty() ? null : ret;
+    }
+
+
+    private Expression checkValueExpr(Expression expr) {
+        if (expr instanceof CustomExpression) {
+            CustomExpression custom = (CustomExpression) expr;
+            if (custom.getExecutable() instanceof ICellSetExecutable) {
+                MemberExpression member = new MemberExpression();
+                member.setObject(expr);
+                member.setProperty(Identifier.valueOf(null, "value"));
+                member.setOptional(true);
+                return member;
+            }
+        }
+        return expr;
+    }
+
+    @Override
+    protected Expression newBinaryExpr(SourceLocation loc, XLangOperator op, Expression x, Expression y) {
+        return super.newBinaryExpr(loc, op, checkValueExpr(x), checkValueExpr(y));
+    }
+
+    @Override
+    protected Expression newLogicExpr(SourceLocation loc, XLangOperator op, List<Expression> exprs, int startIndex) {
+        for (int i = 0, n = exprs.size(); i < n; i++) {
+            exprs.set(i, checkValueExpr(exprs.get(i)));
+        }
+        return super.newLogicExpr(loc, op, exprs, startIndex);
+    }
+
+    @Override
+    protected Expression newUnaryExpr(SourceLocation loc, XLangOperator op, Expression x) {
+        return super.newUnaryExpr(loc, op, checkValueExpr(x));
     }
 }

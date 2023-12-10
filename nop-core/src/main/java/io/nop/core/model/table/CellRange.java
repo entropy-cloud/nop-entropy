@@ -87,6 +87,9 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
     }
 
     public String toABString(boolean rowAbs, boolean colAbs) {
+        if (firstRowIndex == lastRowIndex && firstColIndex == lastColIndex)
+            return CellPosition.toABString(firstRowIndex, firstColIndex, rowAbs, colAbs);
+
         return CellPosition.toABString(firstRowIndex, firstColIndex, rowAbs, colAbs) + ':'
                 + CellPosition.toABString(lastRowIndex, lastColIndex, rowAbs, colAbs);
     }
@@ -97,6 +100,9 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
         } else if (isWholeCol()) {
             return "C" + (firstColIndex + 1) + ":C" + (lastColIndex + 1);
         }
+
+        if (firstRowIndex == lastRowIndex && firstColIndex == lastColIndex)
+            return CellPosition.toRCString(firstRowIndex, firstColIndex);
 
         return CellPosition.toRCString(firstRowIndex, firstColIndex) + ":"
                 + CellPosition.toRCString(lastRowIndex, lastColIndex);

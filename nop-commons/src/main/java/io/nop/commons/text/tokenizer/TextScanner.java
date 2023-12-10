@@ -964,9 +964,11 @@ public class TextScanner {
                     next();
                     continue;
                 }
+                break;
             }
             if (consumer != null)
                 consumer.accept(cur);
+            next();
         } while (true);
     }
 

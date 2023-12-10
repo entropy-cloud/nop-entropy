@@ -85,7 +85,7 @@ public class FileHelper {
     public static void assureParent(File file) {
         File parent = file.getParentFile();
         if (parent != null)
-            if (!parent.mkdirs())
+            if (!parent.exists() && !parent.mkdirs())
                 LOG.warn("nop.io.file.make-dirs-fail:path={}", parent.getAbsolutePath());
     }
 

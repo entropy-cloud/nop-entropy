@@ -186,6 +186,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                 xptRt.setCell(cell);
                 try {
                     String formula = new ReportFormulaGenerator(scope).toExprString(expr);
+                    LOG.debug("nop.report.gen-excel-formula:cellName={},{}", cellModel.getName(), formula);
                     cell.setFormula(formula);
                 } finally {
                     xptRt.setCell(null);

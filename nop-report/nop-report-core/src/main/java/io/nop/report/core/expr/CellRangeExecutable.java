@@ -22,14 +22,23 @@ import java.util.List;
 
 import static io.nop.report.core.XptErrors.ERR_XPT_MISSING_VAR_CELL;
 
-public class CellRangeExecutable extends AbstractExecutable implements ICellLayerCoordinateExecutable {
+public class CellRangeExecutable extends AbstractExecutable implements ICellSetExecutable {
     private final CellRange cellRange;
     private final String expr;
+    private final boolean absolute;
 
-    public CellRangeExecutable(SourceLocation loc, CellRange cellRange) {
+    public CellRangeExecutable(SourceLocation loc, CellRange cellRange, boolean absolute) {
         super(loc);
         this.cellRange = cellRange;
         this.expr = cellRange.toABString();
+        this.absolute = absolute;
+    }
+
+    public CellRangeExecutable toAbsolute() {
+        if (absolute)
+            return this;
+
+        return new CellRangeExecutable(getLocation(), cellRange, true);
     }
 
     public CellRange getCellRange() {
@@ -46,7 +55,7 @@ public class CellRangeExecutable extends AbstractExecutable implements ICellLaye
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public ExpandedCellSet execute(IExpressionExecutor executor, IEvalScope scope) {
         IXptRuntime xptRt = (IXptRuntime) scope.getValue(XptConstants.VAR_XPT_RT);
         if (xptRt == null)
             throw newError(ERR_XPT_MISSING_VAR_CELL);
@@ -55,9 +64,9 @@ public class CellRangeExecutable extends AbstractExecutable implements ICellLaye
         if (cell == null)
             throw newError(ERR_XPT_MISSING_VAR_CELL);
 
-        List<ExpandedCell> cells = CellCoordinateHelper.resolveCellRange(cell, cellRange);
-        if (cells == null)
-            return null;
+        List<ExpandedCell> cells = absolute ?
+                CellCoordinateHelper.resolveAbsoluteCellRange(cell, cellRange) :
+                CellCoordinateHelper.resolveCellRange(cell, cellRange);
 
         for (ExpandedCell layerCell : cells) {
             xptRt.evaluateCell(layerCell);

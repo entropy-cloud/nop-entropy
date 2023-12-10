@@ -22,18 +22,27 @@ import java.util.List;
 
 import static io.nop.report.core.XptErrors.ERR_XPT_MISSING_VAR_CELL;
 
-public class CellLayerCoordinateExecutable extends AbstractExecutable implements ICellLayerCoordinateExecutable{
+public class CellLayerCoordinateExecutable extends AbstractExecutable implements ICellSetExecutable {
     private final CellLayerCoordinate layerCoordinate;
     private final String expr;
+    private final boolean absolute;
 
-    public CellLayerCoordinateExecutable(SourceLocation loc, CellLayerCoordinate layerCoordinate) {
+    public CellLayerCoordinateExecutable(SourceLocation loc, CellLayerCoordinate layerCoordinate, boolean absolute) {
         super(loc);
         this.layerCoordinate = layerCoordinate;
         this.expr = layerCoordinate.toString();
+        this.absolute = absolute;
     }
 
     public CellLayerCoordinate getLayerCoordinate() {
         return layerCoordinate;
+    }
+
+    @Override
+    public ICellSetExecutable toAbsolute() {
+        if (absolute)
+            return this;
+        return new CellLayerCoordinateExecutable(getLocation(), layerCoordinate, true);
     }
 
     public String getExpr() {
@@ -46,7 +55,7 @@ public class CellLayerCoordinateExecutable extends AbstractExecutable implements
     }
 
     @Override
-    public Object execute(IExpressionExecutor executor, IEvalScope scope) {
+    public ExpandedCellSet execute(IExpressionExecutor executor, IEvalScope scope) {
         IXptRuntime xptRt = (IXptRuntime) scope.getValue(XptConstants.VAR_XPT_RT);
         if (xptRt == null)
             throw newError(ERR_XPT_MISSING_VAR_CELL);
@@ -55,7 +64,8 @@ public class CellLayerCoordinateExecutable extends AbstractExecutable implements
         if (cell == null)
             throw newError(ERR_XPT_MISSING_VAR_CELL);
 
-        List<ExpandedCell> cells = CellCoordinateHelper.resolveLayerCoordinate(cell, layerCoordinate);
+        List<ExpandedCell> cells = absolute ? cell.getTable().getNamedCells(cell.getName()) :
+                CellCoordinateHelper.resolveLayerCoordinate(cell, layerCoordinate);
         if (cells == null)
             return null;
 

@@ -31,7 +31,7 @@ public class ReportFormulaGenerator extends XLangExpressionPrinter {
         transformCellSet(node);
     }
 
-    private void transformCellSet(CustomExpression expr){
+    private void transformCellSet(CustomExpression expr) {
         IExecutableExpression executable = expr.getExecutable();
         ExpandedCellSet cellSet = (ExpandedCellSet) XLang.execute(executable, scope);
         if (cellSet.isEmpty()) {
@@ -86,7 +86,7 @@ public class ReportFormulaGenerator extends XLangExpressionPrinter {
     private boolean isCellValueExpr(MemberExpression node) {
         if (node.getObject() instanceof CustomExpression) {
             CustomExpression expr = (CustomExpression) node.getObject();
-            if (!(expr.getExecutable() instanceof CellLayerCoordinateExecutable))
+            if (!(expr.getExecutable() instanceof ICellSetExecutable))
                 return false;
 
             if (node.getProperty() instanceof Identifier)
