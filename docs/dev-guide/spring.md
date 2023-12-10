@@ -3,7 +3,7 @@
 只需引入nop-spring-core-starter模块即可实现Spring框架和Nop平台的集成
 
 ````xml
-
+<pom>
 <dependencyManagement>
 
     <dependencies>
@@ -23,7 +23,8 @@
     <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-spring-core-starter</artifactId>
 </dependency>
-</dependencies>    
+</dependencies>
+</pom>
 ````
 
 1. Spring框架启动完毕的时候自动调用CoreInitialization.initialize()函数来执行Nop平台的初始化.
