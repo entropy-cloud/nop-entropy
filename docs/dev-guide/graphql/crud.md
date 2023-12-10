@@ -108,6 +108,7 @@ mutation{
 ````
 
 ## 批量更新
+
 批量更新指定记录的指定字段
 
 ````
@@ -128,6 +129,7 @@ mutation{
 ````
 
 ## 批量增删改
+
 一次请求包含增加、删除、修改等多个操作
 
 ````
@@ -149,7 +151,6 @@ mutation{
    NopAuthUser__batchModify(data:$data)
 }
 ````
-
 
 ## 单条读取
 
@@ -235,6 +236,9 @@ POST /r/NopAuthUser__findFirst?@selection=name,status
   "query": {
      
      "filter": {
+        "$type": "eq",
+        "name": "status",
+        "value": 1
      },
      "orderBy":[
      ]
@@ -249,4 +253,94 @@ query{
    }
 }
 ````
+
+## QueryBean查询条件
+
+QueryBean中的filter支持and/or等复杂嵌套条件
+
+````
+POST /r/NopAuthUser__findPage
+
+{
+   "query": {
+      "filter": {
+          "$type": "and",
+          "$body": [
+            {
+              "$type": "eq",
+              "name": "deptName",
+              "value": "a"
+            }
+          ]
+      }
+   }
+}
+````
+
+filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结构，并且可以自动转换为XML格式。具体转换规则是Nop平台所定义的一种标准转换机制：
+
+1. $type属性对应于标签名
+2. $body对应于子节点和节点内容
+3. 不以$为前缀的其他属性对应于XML节点的属性
+4. 以`@:`为前缀的值按照json格式解析
+
+````xml
+
+<and>
+    <eq name="status" value="@:1"/>
+    <gt name="amount" value="@:3"/>
+</and>
+````
+
+对应于
+
+````json
+{
+  "$type": "and",
+  "$body": [
+    {
+      "$type": "eq",
+      "name": "status",
+      "value": 1
+    },
+    {
+      "$type": "gt",
+      "name": "amount",
+      "value": 3
+    }
+  ]
+}
+````
+
+过滤条件中所支持的运算符如eq,gt等，都是[FilterOp.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/model/query/FilterOp.java)
+中定义的操作符。
+重用的算符有：
+
+| 操作符         | 说明           |
+|-------------|--------------|
+| eq          | 等于           |
+| gt          | 大于           |
+| ge          | 大于等于         |
+| lt          | 小于           |
+| xe          | 小于等于         |
+| in          | 在集合中         |
+| between     | 介于min和max之间  |
+| betweenDate | 日期在min和max之间 |
+| alwaysTrue  | 总是为真         |
+| alwaysFalse | 总是为价         |
+| isEmpty     | name对应的值为空   |
+| startsWith  | 字符串的前缀为指定值   |
+| endsWith    | 字符串的后缀为指定值   |
+
+## 简化filter语法
+现在后台在REST调用模式下也支持直接简化的filter拼接语法
+
+/r/NopAuthUser__findPage?filter_userStatus=3
+
+```
+过滤字段名格式为: filter_{propName}__{filterOp}
+```
+
+例如 `filter_userName__contains`表示按照contains运算符对userName字段进行过滤。对于filterOp为eq(等于条件)
+的情况，可以省略filterOp的部分，例如 filter_userId等价于`filter_userId__eq`
 
