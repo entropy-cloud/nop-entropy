@@ -13,6 +13,8 @@ alter table nop_wf_log add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL
 
 alter table nop_wf_output add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_wf_page add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_wf_status_history add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_wf_step_instance add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -43,6 +45,9 @@ alter table nop_wf_log add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_wf_output drop primary key;
 alter table nop_wf_output add primary key (NOP_TENANT_ID, WF_ID,FIELD_NAME);
+
+alter table nop_wf_page drop primary key;
+alter table nop_wf_page add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_wf_status_history drop primary key;
 alter table nop_wf_status_history add primary key (NOP_TENANT_ID, SID);

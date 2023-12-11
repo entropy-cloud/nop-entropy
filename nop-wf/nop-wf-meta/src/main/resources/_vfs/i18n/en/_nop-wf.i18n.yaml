@@ -7,6 +7,7 @@ entity:
     NopWfInstance: Worflow Instance
     NopWfLog: Workflow Log
     NopWfOutput: Workflow Outputs
+    NopWfPage: Page
     NopWfStatusHistory: Workflow Status History
     NopWfStepInstance: Workflow Step Instance
     NopWfStepInstanceLink: Workflow Step Instance Link
@@ -193,6 +194,20 @@ prop:
       updateTime: Update Time
       wfInstance: Workflow Instance
       wfInstance.title: Workflow Instance
+    NopWfPage:
+      sid: SID
+      pageName: Page Name
+      pageGroup: Page Group
+      pageContent: Page Content
+      status: Status
+      ownerId: Owner ID
+      ownerName: Owner Name
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
     NopWfStatusHistory:
       sid: SID
       wfId: Workflow ID

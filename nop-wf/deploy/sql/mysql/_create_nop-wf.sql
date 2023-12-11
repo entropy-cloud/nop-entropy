@@ -150,6 +150,23 @@ CREATE TABLE nop_wf_dyn_entity(
   constraint PK_nop_wf_dyn_entity primary key (SID)
 );
 
+CREATE TABLE nop_wf_page(
+  SID VARCHAR(32) NOT NULL    COMMENT 'ID',
+  PAGE_NAME VARCHAR(200) NOT NULL    COMMENT '页面名称',
+  PAGE_GROUP VARCHAR(100) NOT NULL    COMMENT '页面分组',
+  PAGE_CONTENT LONGTEXT NOT NULL    COMMENT '页面内容',
+  STATUS INTEGER NOT NULL    COMMENT '状态',
+  OWNER_ID VARCHAR(50) NULL    COMMENT '拥有者ID',
+  OWNER_NAME VARCHAR(50) NULL    COMMENT '拥有者姓名',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_wf_page primary key (SID)
+);
+
 CREATE TABLE nop_wf_definition(
   WF_DEF_ID VARCHAR(32) NOT NULL    COMMENT '主键',
   WF_NAME VARCHAR(500) NOT NULL    COMMENT '工作流名称',
@@ -301,6 +318,8 @@ CREATE TABLE nop_wf_instance(
    ALTER TABLE nop_wf_work COMMENT '代办工作';
                 
    ALTER TABLE nop_wf_dyn_entity COMMENT '动态实体';
+                
+   ALTER TABLE nop_wf_page COMMENT '页面定义';
                 
    ALTER TABLE nop_wf_definition COMMENT '工作流模型定义';
                 

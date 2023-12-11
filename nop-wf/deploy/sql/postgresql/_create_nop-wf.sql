@@ -150,6 +150,23 @@ CREATE TABLE nop_wf_dyn_entity(
   constraint PK_nop_wf_dyn_entity primary key (SID)
 );
 
+CREATE TABLE nop_wf_page(
+  SID VARCHAR(32) NOT NULL ,
+  PAGE_NAME VARCHAR(200) NOT NULL ,
+  PAGE_GROUP VARCHAR(100) NOT NULL ,
+  PAGE_CONTENT TEXT NOT NULL ,
+  STATUS INT4 NOT NULL ,
+  OWNER_ID VARCHAR(50)  ,
+  OWNER_NAME VARCHAR(50)  ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_wf_page primary key (SID)
+);
+
 CREATE TABLE nop_wf_definition(
   WF_DEF_ID VARCHAR(32) NOT NULL ,
   WF_NAME VARCHAR(500) NOT NULL ,
@@ -539,6 +556,34 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_dyn_entity.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_wf_dyn_entity.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_wf_page IS '页面定义';
+                
+      COMMENT ON COLUMN nop_wf_page.SID IS 'ID';
+                    
+      COMMENT ON COLUMN nop_wf_page.PAGE_NAME IS '页面名称';
+                    
+      COMMENT ON COLUMN nop_wf_page.PAGE_GROUP IS '页面分组';
+                    
+      COMMENT ON COLUMN nop_wf_page.PAGE_CONTENT IS '页面内容';
+                    
+      COMMENT ON COLUMN nop_wf_page.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_wf_page.OWNER_ID IS '拥有者ID';
+                    
+      COMMENT ON COLUMN nop_wf_page.OWNER_NAME IS '拥有者姓名';
+                    
+      COMMENT ON COLUMN nop_wf_page.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_wf_page.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_wf_page.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_wf_page.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_wf_page.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_wf_page.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_wf_definition IS '工作流模型定义';
                 

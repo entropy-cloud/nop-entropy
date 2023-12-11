@@ -7,6 +7,7 @@ entity:
     NopWfInstance: 工作流模型定义
     NopWfLog: 工作流日志
     NopWfOutput: 工作流输出变量
+    NopWfPage: 页面定义
     NopWfStatusHistory: 工作流状态变迁历史
     NopWfStepInstance: 工作流步骤实例
     NopWfStepInstanceLink: 工作流步骤关联
@@ -193,6 +194,20 @@ prop:
       wfId: 工作流实例ID
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
+    NopWfPage:
+      createTime: 创建时间
+      createdBy: 创建人
+      ownerId: 拥有者ID
+      ownerName: 拥有者姓名
+      pageContent: 页面内容
+      pageGroup: 页面分组
+      pageName: 页面名称
+      remark: 备注
+      sid: ID
+      status: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopWfStatusHistory:
       changeTime: 状态变动时间
       createTime: 创建时间

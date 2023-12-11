@@ -18,6 +18,8 @@
 
     <bean id="io.nop.wf.service.entity.NopWfOutputBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.wf.service.entity.NopWfPageBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.wf.service.entity.NopWfStatusHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfStepInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
