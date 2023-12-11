@@ -184,6 +184,10 @@ XCodeGenerator上的renderModel函数可以读取模型文件，然后执行代�
 
 实体按照主键和外键进行加载的时候会自动执行跨库查询，但是一条EQL查询语句只允许访问一个库，不会自动执行跨库查询
 
+## 10. 报表模板中的表达式语法的文档在哪里
+报表相关的使用文档参见 [report.md](../user-guide/report.md)和[xpt-report.md](../dev-guide/report/index.md)
+报表表达式的语法与普通的XLang Expression语法类似，就是javascript语法，只是其中有有xptRt环境变量，以及一些扩展函数
+
 # 部署问题
 
 

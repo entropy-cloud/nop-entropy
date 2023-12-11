@@ -65,7 +65,39 @@ nop-cli gen model/app-mall.orm.xlsx -t=/nop/templates/orm
 
 上面的例子表示读取app-mall.orm.xlsx模型，应用虚拟文件系统中的/nop/templates/orm目录下的模板文件，生成代码到当前工程目录下。
 
+## 在Nop平台之外增加代码生成模板
 
+1. 在自己的工程（例如myapp-templates）中增加模板目录，必须要放到src/resources/_vfs目录下，例如src/resources/_vfs/xxx/yyy，然后在其中增加xgen文件。
+2. 代码生成器执行时引入myapp-templates.jar的依赖，这样虚拟文件系统初始化化时会自动扫描所有jar包中的_vfs目录，并把它们合成为一个统一的虚拟文件系统。
+此时就可以在代码生成时指定-t=/xxx/yyy来生成代码。
+````
+java -Xbootclasspath/a:myapp-templates.jar -jar nop-cli-2.0.0-BETA.1.jar  gen model/demo.orm.xlsx -t=/xxx/yyy
+````
+
+如果是使用maven集成的代码生成工具，可以在test scope中引入自己新建的模板工程
+
+````xml
+
+<pom>
+    <dependencies>
+        <dependency>
+            <groupId>me.app</groupId>
+            <artifactId>myapp-template</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</pom>
+````
 
 ## 数据驱动的代码生成器
 
@@ -96,23 +128,23 @@ builder.defineLoopVar("entityModel","ormModel", model => model.entityModelsInTop
 
 3. 目录和文件名中通过`{a.b.c}`形式的变量表达式来指定循环变量，从而以一种自然的方式表达多重嵌套循环，例如
 
-```java
+```javascript
 /nop/base/generator/test/{globalVar}/{var1}/sub/{var2.packagePath}/{var3}.java.xgen
 
-相当于三重循环
+// 相当于三重循环
 if(globalVar){
-for(let var1 of ...){
- for(let var2 of ...){
-    for(let var3 of ...){
-        if(var1 && var2 && var2.packagePath && var3){
-            let path = '/nop/base/generator/test/'
-            +globalVar+'/'+var1+'/sub/'+var2.packagePath
-            +'/'+var3+'.java';
-            ...
+    for(let var1 of ...){
+     for(let var2 of ...){
+        for(let var3 of ...){
+            if(var1 && var2 && var2.packagePath && var3){
+                let path = '/nop/base/generator/test/'
+                +globalVar+'/'+var1+'/sub/'+var2.packagePath
+                +'/'+var3+'.java';
+                ...
+            }
         }
+     }
     }
- }
-}
 }
 ```
 

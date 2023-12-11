@@ -24130,6 +24130,12 @@
         ]
       },
       {
+        "name": "checkValidRelativeName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "copy",
         "parameterTypes": [
           "io.nop.core.resource.IFile",
