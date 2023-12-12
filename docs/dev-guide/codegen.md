@@ -267,3 +267,14 @@ class _SqlTableSource extends EqlASTNode {...}
 * precompile是在编译前执行，不能访问当前工程中的类和资源文件。
 * precompile2是在编译前执行，但是可以访问当前工程中的资源文件。
 * postcompile是在编译后执行，会检查IoC容器中bean的配置，并可以访问当前工程中的类和资源文件。
+
+### 2. 如何定制已有的模板，比如说ORM生成时只生成某些工程
+* 增加一个模板目录
+* 在其中增加一个a-impl.xrun文件。xrun表示只执行代码不生成文件。a-impl的名称可以随意取，可以通过文件名控制它的执行顺序，所有模板文件按照文本顺序排序。
+* 在xrun文件中通过`gen:Render`标签来引用已有的模板
+````xml
+<c:unit>
+    <gen:Render template="/nop/templates/orm/{appName}-dao" targetDir="${targetResource.path.$filePath()}"
+                xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true"/>
+</c:unit>
+````

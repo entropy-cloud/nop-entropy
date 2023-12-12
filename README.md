@@ -132,6 +132,12 @@ mvn clean install "-DskipTests" "-Dquarkus.package.type=uber-jar"
 quarkus.package.type参数是quarkus框架所识别的一个参数，指定它为uber-jar将会把nop-quarkus-demo等项目打包成一个包含所有依赖类的单一jar包。可以通过java
 -jar XXX-runner.jar的方式直接运行。
 
+## PowerShell乱码问题解决
+可以将PowerShell的编码设置为UTF8
+````
+$OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
+````
+
 目前已经升级到quarkus3.0版本，用低版本maven运行nop-auth-app等模块可能会失败。建议升级到maven
 3.9.3版本，或者使用nop-entropy跟目录下的mvnw指令，它会自动下载并使用maven 3.9.3。
 
