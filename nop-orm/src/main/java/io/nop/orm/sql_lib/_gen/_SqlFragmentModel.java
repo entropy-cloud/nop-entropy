@@ -1,6 +1,6 @@
 package io.nop.orm.sql_lib._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 用于保存可以被复用的SQL片段，在下面的sql配置中可以通过<sql:fragment id="xx" />这种标签函数来引用SQL片段
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
 public abstract class _SqlFragmentModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfDynEntity;
  *  动态实体: nop_wf_dyn_entity
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfDynEntity extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfDefinitionAuth;
  *  工作流定义权限: nop_wf_definition_auth
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

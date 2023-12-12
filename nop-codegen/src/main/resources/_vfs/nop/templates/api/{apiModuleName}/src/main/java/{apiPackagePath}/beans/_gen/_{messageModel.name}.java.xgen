@@ -1,7 +1,7 @@
 <c:unit xpl:outputMode="text">//__XGEN_FORCE_OVERRIDE__
     package ${apiPackageName}.beans._gen;
 
-    @SuppressWarnings({"PMD","java:S116"})
+    @SuppressWarnings({"PMD","java:S116","java:S115"})
     public class _${messageModel.name}{
 
     <c:for var="field" items="${messageModel.fields}"><![CDATA[

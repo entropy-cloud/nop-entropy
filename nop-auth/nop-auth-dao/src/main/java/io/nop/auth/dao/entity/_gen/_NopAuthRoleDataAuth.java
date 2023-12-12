@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthRoleDataAuth;
  *  角色数据权限: nop_auth_role_data_auth
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

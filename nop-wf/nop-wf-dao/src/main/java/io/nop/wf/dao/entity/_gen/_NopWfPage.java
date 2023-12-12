@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfPage;
  *  页面定义: nop_wf_page
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfPage extends DynamicOrmEntity{
     
     /* ID: SID VARCHAR */

@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfWork;
  *  代办工作: nop_wf_work
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfWork extends DynamicOrmEntity{
     
     /* 工作ID: WORK_ID VARCHAR */

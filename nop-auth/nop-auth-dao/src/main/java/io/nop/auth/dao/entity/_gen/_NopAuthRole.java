@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthRole;
  *  角色: nop_auth_role
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopAuthRole extends DynamicOrmEntity{
     
     /* 角色ID: ROLE_ID VARCHAR */

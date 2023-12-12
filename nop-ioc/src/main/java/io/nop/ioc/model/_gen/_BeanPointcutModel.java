@@ -1,6 +1,6 @@
 package io.nop.ioc.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 如果bean是interceptor，会检查容器中所有ioc:aop=true的bean，作用于具有指定注解的方法上
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
 public abstract class _BeanPointcutModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

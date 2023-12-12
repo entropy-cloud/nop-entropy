@@ -1,6 +1,6 @@
 package io.nop.wf.core.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
 public abstract class _WfStartModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

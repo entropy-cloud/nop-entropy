@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthOpLog;
  *  操作日志: nop_auth_op_log
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopAuthOpLog extends DynamicOrmEntity{
     
     /* 主键: LOG_ID VARCHAR */

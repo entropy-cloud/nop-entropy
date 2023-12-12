@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthGroup;
  *  用户组: nop_auth_group
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopAuthGroup extends DynamicOrmEntity{
     
     /* 主键: GROUP_ID VARCHAR */

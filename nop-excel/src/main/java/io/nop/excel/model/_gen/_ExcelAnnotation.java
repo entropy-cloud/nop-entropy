@@ -1,6 +1,6 @@
 package io.nop.excel.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 行区间的类型标注。例如标记表头，表旁，表尾等
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
 public abstract class _ExcelAnnotation extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

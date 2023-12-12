@@ -17,7 +17,7 @@ import io.nop.report.dao.entity.NopReportDefinition;
  *  报表定义: nop_report_definition
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopReportDefinition extends DynamicOrmEntity{
     
     /* 主键: RPT_ID VARCHAR */

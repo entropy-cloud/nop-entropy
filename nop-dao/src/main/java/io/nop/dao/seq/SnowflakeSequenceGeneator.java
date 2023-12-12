@@ -89,6 +89,7 @@ public class SnowflakeSequenceGeneator implements ISequenceGenerator {
                                 .param(ARG_LAST_TS, lastTimestamp);
                     }
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw NopException.adapt(e);
                 }
 

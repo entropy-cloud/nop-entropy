@@ -1,6 +1,6 @@
 package io.nop.orm.model._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 
@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * column必须是原子数据类型，它对应于数据库中的字段。其他属性都根据column字段的值衍生而来。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
 public abstract class _OrmColumnModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

@@ -268,11 +268,11 @@ public class CronExpression implements ICronExpression {
             throw new IllegalArgumentException("empty cron expression");
         String[] fields = StringHelper.tokenizeToStringArray(expression, " ");
         if (fields == null)
-            fields = StringHelper.EMPTY_STRINGS;
+            fields =  new String[0];
 
         if (!areValidCronFields(fields)) {
             throw new IllegalArgumentException(String.format(
-                    "Cron expression must consist of 6 fields (found %d in \"%s\")", fields.length, expression));
+                    "Cron expression must consist of 6 fields (found %d in \"%s\")",fields.length, expression));
         }
         doParse(fields);
     }

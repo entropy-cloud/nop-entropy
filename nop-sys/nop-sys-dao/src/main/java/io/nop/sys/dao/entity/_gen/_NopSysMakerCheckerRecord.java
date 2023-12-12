@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysMakerCheckerRecord;
  *  MakerChecker审批记录: nop_sys_maker_checker_record
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopSysMakerCheckerRecord extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

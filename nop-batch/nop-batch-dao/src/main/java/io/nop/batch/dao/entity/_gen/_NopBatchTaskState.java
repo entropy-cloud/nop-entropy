@@ -17,7 +17,7 @@ import io.nop.batch.dao.entity.NopBatchTaskState;
  *  批处理任务状态变量: nop_batch_task_state
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopBatchTaskState extends DynamicOrmEntity{
     
     /* 主键: TASK_ID VARCHAR */

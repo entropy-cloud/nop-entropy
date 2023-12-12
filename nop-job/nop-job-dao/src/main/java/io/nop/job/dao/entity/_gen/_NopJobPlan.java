@@ -17,7 +17,7 @@ import io.nop.job.dao.entity.NopJobPlan;
  *  任务调度计划: nop_job_plan
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopJobPlan extends DynamicOrmEntity{
     
     /* SID: SID VARCHAR */

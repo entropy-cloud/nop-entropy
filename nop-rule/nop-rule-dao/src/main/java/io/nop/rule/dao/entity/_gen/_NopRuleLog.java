@@ -17,7 +17,7 @@ import io.nop.rule.dao.entity.NopRuleLog;
  *  规则执行日志: nop_rule_log
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopRuleLog extends DynamicOrmEntity{
     
     /* 日志ID: SID VARCHAR */

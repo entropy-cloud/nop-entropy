@@ -434,7 +434,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
     }
 
     private IEvalAction parseOutputAction(SourceLocation loc, String varName, String text) {
-        if (StringHelper.isBlank(text) || "-".equals(text.trim())) {
+        if (text == null || StringHelper.isBlank(text) || "-".equals(text.trim())) {
             return new EvalCode(loc, "", new RuleOutputAction(varName, new ExprEvalAction(NullExecutable.NULL)));
         }
 
@@ -599,6 +599,9 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         int rowLeafIndex = 0;
         for (int i = outBeginRow; i < outEndRow; i++) {
             ExcelCell leftCell = (ExcelCell) getRealCell(table, i, outBeginCol - 1);
+            if(leftCell == null){
+                leftCell = new ExcelCell();
+            }
 
             int colLeafIndex = 0;
             for (int j = outBeginCol; j < outEndCol; j++) {

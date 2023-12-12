@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysVariable;
  *  系统变量: nop_sys_variable
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopSysVariable extends DynamicOrmEntity{
     
     /* 变量名: VAR_NAME VARCHAR */

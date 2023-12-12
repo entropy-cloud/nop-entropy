@@ -174,6 +174,7 @@ public class OkHttpClientProvider extends LifeCycleSupport {
         }
     }
 
+    @SuppressWarnings("java:S5527")
     public static class TrustAllHostnames implements HostnameVerifier {
         public TrustAllHostnames() {
         }
@@ -183,6 +184,7 @@ public class OkHttpClientProvider extends LifeCycleSupport {
         }
     }
 
+    @SuppressWarnings({"java:S5527","java:S4830"})
     public static class DisableValidationTrustManager implements X509TrustManager {
         public DisableValidationTrustManager() {
         }

@@ -17,7 +17,7 @@ import io.nop.tcc.dao.entity.NopTccBranchRecord;
  *  TCC事务分支记录: nop_tcc_branch_record
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopTccBranchRecord extends DynamicOrmEntity{
     
     /* 事务分支ID: BRANCH_ID VARCHAR */

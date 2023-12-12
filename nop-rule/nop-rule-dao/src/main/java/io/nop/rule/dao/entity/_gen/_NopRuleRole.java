@@ -17,7 +17,7 @@ import io.nop.rule.dao.entity.NopRuleRole;
  *  规则角色: nop_rule_role
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopRuleRole extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

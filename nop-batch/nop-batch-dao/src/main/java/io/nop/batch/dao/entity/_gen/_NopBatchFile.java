@@ -17,7 +17,7 @@ import io.nop.batch.dao.entity.NopBatchFile;
  *  批处理文件: nop_batch_file
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopBatchFile extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */

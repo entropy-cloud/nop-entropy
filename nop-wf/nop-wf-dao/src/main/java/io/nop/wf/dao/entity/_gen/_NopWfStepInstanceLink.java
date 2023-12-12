@@ -17,7 +17,7 @@ import io.nop.wf.dao.entity.NopWfStepInstanceLink;
  *  工作流步骤关联: nop_wf_step_instance_link
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     
     /* 工作流实例ID: WF_ID VARCHAR */

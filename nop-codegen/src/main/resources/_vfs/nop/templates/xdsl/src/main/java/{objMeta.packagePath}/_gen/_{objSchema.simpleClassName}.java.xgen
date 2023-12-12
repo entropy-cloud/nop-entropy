@@ -1,6 +1,6 @@
 <c:unit xpl:outputMode="text">package ${objMeta.packageName}._gen;
 
-import io.nop.commons.collections.KeyedList; //NOPMD - suppressed UnusedImports - Used for List Prop
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 
 <c:script>
@@ -32,7 +32,7 @@ function build_defaults(prop){
  * ${objSchema.description?.$replace('*/','* /')?.$replace("\n","\n * ")}
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
 public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implIfs}{
     <c:for var="prop" items="${objSchema.localProps}">
         <c:continue xpl:if="prop.name.indexOf(':')>0" />

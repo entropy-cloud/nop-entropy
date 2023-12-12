@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthSite;
  *  子站点: nop_auth_site
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopAuthSite extends DynamicOrmEntity{
     
     /* 站点ID: SITE_ID VARCHAR */

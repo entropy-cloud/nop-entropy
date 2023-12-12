@@ -63,7 +63,7 @@ public class DepthFirstIterator<T> implements IterableIterator<T> {
         return ret;
     }
 
-    T _next() {
+    private T _next() {
         T o = deque.pollFirst();
         if (o == null)
             return null;

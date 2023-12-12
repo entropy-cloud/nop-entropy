@@ -473,6 +473,21 @@
         ]
       },
       {
+        "name": "forPrecompile2",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "forProjectTpl",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
         "name": "getTargetPath",
         "parameterTypes": [
           "java.lang.String"
@@ -509,6 +524,14 @@
       },
       {
         "name": "runPrecompile",
+        "parameterTypes": [
+          "java.io.File",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "runPrecompile2",
         "parameterTypes": [
           "java.io.File",
           "java.lang.String",

@@ -3,9 +3,7 @@ package io.nop.auth.dao.delegate;
 import io.nop.api.core.auth.IUserDelegateService;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.dao.entity.NopAuthUser;
-import io.nop.auth.dao.entity.NopAuthUserSubstitution;
 import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.api.IEntityDao;
 import jakarta.inject.Inject;
 
 import java.time.LocalDateTime;
@@ -23,9 +21,9 @@ public class DaoUserDelegateService implements IUserDelegateService {
         this.daoProvider = daoProvider;
     }
 
-    private IEntityDao<NopAuthUserSubstitution> delegateDao() {
-        return daoProvider.daoFor(NopAuthUserSubstitution.class);
-    }
+//    private IEntityDao<NopAuthUserSubstitution> delegateDao() {
+//        return daoProvider.daoFor(NopAuthUserSubstitution.class);
+//    }
 
     protected NopAuthUser requireUser(String userId) {
         return daoProvider.daoFor(NopAuthUser.class).requireEntityById(userId);

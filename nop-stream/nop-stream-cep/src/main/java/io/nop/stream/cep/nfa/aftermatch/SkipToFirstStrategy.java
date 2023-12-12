@@ -46,6 +46,7 @@ public final class SkipToFirstStrategy extends SkipToElementStrategy {
 
     @Override
     public String toString() {
-        return "SkipToFirstStrategy{" + "patternName='" + getPatternName().get() + '\'' + '}';
+        String name = getPatternName().orElse("");
+        return "SkipToFirstStrategy{" + "patternName='" + name + '\'' + '}';
     }
 }

@@ -17,7 +17,7 @@ import io.nop.report.dao.entity.NopReportDatasetAuth;
  *  数据集权限: nop_report_dataset_auth
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopReportDatasetAuth extends DynamicOrmEntity{
     
     /* 主键: DS_ID VARCHAR */

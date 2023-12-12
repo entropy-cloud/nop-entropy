@@ -24,8 +24,7 @@ public class NopAuthUserSubstitution extends _NopAuthUserSubstitution {
 
         LocalDateTime end = getEndTime();
         if (end != null) {
-            if (end.isBefore(now))
-                return false;
+            return !end.isBefore(now);
         }
         return true;
     }

@@ -17,7 +17,7 @@ import io.nop.auth.dao.entity.NopAuthDept;
  *  部门: nop_auth_dept
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopAuthDept extends DynamicOrmEntity{
     
     /* 主键: DEPT_ID VARCHAR */

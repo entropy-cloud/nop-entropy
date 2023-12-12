@@ -17,7 +17,7 @@ import io.nop.sys.dao.entity.NopSysNoticeTemplate;
  *  通知模板: nop_sys_notice_template
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116"})
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopSysNoticeTemplate extends DynamicOrmEntity{
     
     /* 主键: SID VARCHAR */
