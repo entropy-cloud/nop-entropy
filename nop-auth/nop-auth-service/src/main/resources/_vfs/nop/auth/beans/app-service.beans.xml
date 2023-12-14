@@ -23,5 +23,9 @@
     <import resource="_dao.beans.xml"/>
     <import resource="_service.beans.xml"/>
 
+    <bean id="NopAuthUserBizModel_tenant" class="io.nop.auth.service.entity.NopAuthUserBizModel">
+        <property name="bizObjName" value="NopAuthUser_tenant"/>
+    </bean>
+
     <import resource="auth-service.beans.xml"/>
 </beans>

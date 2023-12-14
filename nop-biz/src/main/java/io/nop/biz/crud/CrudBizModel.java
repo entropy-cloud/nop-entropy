@@ -45,6 +45,7 @@ import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.DaoHelper;
 import io.nop.fsm.execution.IStateMachine;
 import io.nop.graphql.core.GraphQLConstants;
+import io.nop.graphql.core.IBizModelImpl;
 import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
@@ -106,7 +107,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
-public abstract class CrudBizModel<T extends IOrmEntity> {
+public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImpl {
     static final Logger LOG = LoggerFactory.getLogger(CrudBizModel.class);
 
     private IDaoProvider daoProvider;
@@ -147,6 +148,13 @@ public abstract class CrudBizModel<T extends IOrmEntity> {
             bizObjName = bizModel.value();
         }
         return bizObjName;
+    }
+
+    /**
+     * 如果强制指定BizObjName，则以指定的值为准
+     */
+    public void setBizObjName(String bizObjName) {
+        this.bizObjName = bizObjName;
     }
 
     public IBizObject getThisObj() {
