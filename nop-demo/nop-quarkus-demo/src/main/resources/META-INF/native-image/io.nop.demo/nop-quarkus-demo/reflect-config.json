@@ -15382,6 +15382,12 @@
         ]
       },
       {
+        "name": "setBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setBizObjectManager",
         "parameterTypes": [
           "io.nop.biz.api.IBizObjectManager"
@@ -33647,6 +33653,21 @@
       }
     ],
     "name": "io.nop.file.quarkus.web.QuarkusFileService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.graphql.core.IBizModelImpl",
     "unsafeAllocated": false
   },
   {
@@ -57916,6 +57937,36 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.xui.model.UiActionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xui.model.UiApiModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xui.model.UiDialogModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.xui.model.UiDisplayMeta",
     "unsafeAllocated": false
   },
@@ -58036,6 +58087,811 @@
       }
     ],
     "name": "io.nop.xui.model.UiRefViewModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getActionType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getActive",
+        "parameterTypes": []
+      },
+      {
+        "name": "getActiveClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getActiveLevel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getApi",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBatch",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBlank",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBlock",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBody",
+        "parameterTypes": []
+      },
+      {
+        "name": "getClose",
+        "parameterTypes": []
+      },
+      {
+        "name": "getConfirmText",
+        "parameterTypes": []
+      },
+      {
+        "name": "getContent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCopyFormat",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCountDown",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCountDownTpl",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDialog",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisabledOn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisabledTip",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDrawer",
+        "parameterTypes": []
+      },
+      {
+        "name": "getFeedback",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHotKey",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIcon",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIconClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getIconOnly",
+        "parameterTypes": []
+      },
+      {
+        "name": "getId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getInitApi",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLabel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLevel",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLink",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMessages",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnClick",
+        "parameterTypes": []
+      },
+      {
+        "name": "getOnEvent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRedirect",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReload",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequired",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRightIcon",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRightIconClassName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTarget",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTooltip",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTooltipPlacement",
+        "parameterTypes": []
+      },
+      {
+        "name": "getType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUrl",
+        "parameterTypes": []
+      },
+      {
+        "name": "getVisibleOn",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasBody",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasMessages",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasOnEvent",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setActionType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setActive",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setActiveClassName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setActiveLevel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setApi",
+        "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
+        ]
+      },
+      {
+        "name": "setBatch",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setBlank",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setBlock",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setBody",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setClose",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setConfirmText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setContent",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setCopyFormat",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setCountDown",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setCountDownTpl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDialog",
+        "parameterTypes": [
+          "io.nop.xui.model.UiDialogModel"
+        ]
+      },
+      {
+        "name": "setDisabledOn",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisabledTip",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDrawer",
+        "parameterTypes": [
+          "io.nop.xui.model.UiDialogModel"
+        ]
+      },
+      {
+        "name": "setFeedback",
+        "parameterTypes": [
+          "io.nop.xui.model.UiDialogModel"
+        ]
+      },
+      {
+        "name": "setHotKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIcon",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIconClassName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIconOnly",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setInitApi",
+        "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
+        ]
+      },
+      {
+        "name": "setLabel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLevel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setLink",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setMessages",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setOnClick",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setOnEvent",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setRedirect",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReload",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRequired",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setRightIcon",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setRightIconClassName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSize",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTarget",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTooltip",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTooltipPlacement",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUrl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setVisibleOn",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.xui.model._gen._UiActionModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAdaptor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAutoRefresh",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCache",
+        "parameterTypes": []
+      },
+      {
+        "name": "getConvertKeyToPath",
+        "parameterTypes": []
+      },
+      {
+        "name": "getData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDataType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "getMethod",
+        "parameterTypes": []
+      },
+      {
+        "name": "getReplaceData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRequestAdaptor",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResponseData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getResponseType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSendOn",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTrackExpression",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUrl",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWithFormData",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasData",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasHeaders",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasResponseData",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setAdaptor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setAutoRefresh",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setCache",
+        "parameterTypes": [
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setConvertKeyToPath",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setData",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setDataType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setHeaders",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setMethod",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReplaceData",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setRequestAdaptor",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setResponseData",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setResponseType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSendOn",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTrackExpression",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUrl",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setWithFormData",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.xui.model._gen._UiApiModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "freeze",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "getActions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCloseOnEsc",
+        "parameterTypes": []
+      },
+      {
+        "name": "getCloseOnOutside",
+        "parameterTypes": []
+      },
+      {
+        "name": "getData",
+        "parameterTypes": []
+      },
+      {
+        "name": "getHeight",
+        "parameterTypes": []
+      },
+      {
+        "name": "getNoActions",
+        "parameterTypes": []
+      },
+      {
+        "name": "getPage",
+        "parameterTypes": []
+      },
+      {
+        "name": "getShowCloseButton",
+        "parameterTypes": []
+      },
+      {
+        "name": "getSize",
+        "parameterTypes": []
+      },
+      {
+        "name": "getWidth",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasActions",
+        "parameterTypes": []
+      },
+      {
+        "name": "hasData",
+        "parameterTypes": []
+      },
+      {
+        "name": "keySet_actions",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      },
+      {
+        "name": "setActions",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setCloseOnEsc",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setCloseOnOutside",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setData",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setHeight",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setNoActions",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setPage",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setShowCloseButton",
+        "parameterTypes": [
+          "java.lang.Boolean"
+        ]
+      },
+      {
+        "name": "setSize",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setWidth",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.xui.model._gen._UiDialogModel",
     "unsafeAllocated": false
   },
   {
@@ -58836,7 +59692,19 @@
       {
         "name": "setApi",
         "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
+        ]
+      },
+      {
+        "name": "setApi",
+        "parameterTypes": [
           "java.util.Map"
+        ]
+      },
+      {
+        "name": "setAsyncApi",
+        "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
         ]
       },
       {
@@ -58902,7 +59770,19 @@
       {
         "name": "setInitApi",
         "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
+        ]
+      },
+      {
+        "name": "setInitApi",
+        "parameterTypes": [
           "java.util.Map"
+        ]
+      },
+      {
+        "name": "setInitAsyncApi",
+        "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
         ]
       },
       {
@@ -59436,6 +60316,12 @@
       {
         "name": "setApi",
         "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
+        ]
+      },
+      {
+        "name": "setApi",
+        "parameterTypes": [
           "java.util.Map"
         ]
       },
@@ -59514,6 +60400,12 @@
       {
         "name": "setInitApi",
         "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
+        ]
+      },
+      {
+        "name": "setInitApi",
+        "parameterTypes": [
           "java.util.Map"
         ]
       },
@@ -59569,6 +60461,12 @@
         "name": "setRowClassNameExpr",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSaveOrderApi",
+        "parameterTypes": [
+          "io.nop.xui.model.UiApiModel"
         ]
       },
       {

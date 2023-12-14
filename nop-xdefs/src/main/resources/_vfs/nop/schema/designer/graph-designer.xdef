@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <designer x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-    xmlns:xdef="/nop/schema/xdef.xdef">
+    xmlns:xdef="/nop/schema/xdef.xdef" xdef:name="GraphDesignerModel" xdef:bean-package="io.nop.xui.graph_designer">
     <actions xdef:ref="../xui/actions.xdef"/>
 
     <nodes xdef:body-type="list" xdef:key-attr="name">
@@ -17,18 +17,15 @@
               deletable="boolean" addable="boolean=true"
               textPosition="string" textDraggable="boolean"
               minOccurs="int" maxOccurs="int"
-              allowParents="csv-set" xdef:name="DesignerNodeModel"
+              allowParents="csv-set" xdef:name="GraphDesignerNodeModel"
+              layout="string" allowChildren="csv-set"
         >
-            <style xdef:value="xjson" />
+            <style xdef:value="string" />
             <template xdef:value="xml"/>
             <anchors xdef:body-type="list" xdef:key-attr="name">
-                <anchor name="!string" positon="string" tagSet="csv-set"/>
+                <anchor name="!string" positon="string" tagSet="csv-set" xdef:name="GraphDesignerAnchorModel"/>
             </anchors>
         </node>
-
-        <container name="!string" xdef:ref="DesignerNodeModel" layout="string" allowChildren="csv-set">
-
-        </container>
     </nodes>
 
     <edges xdef:body-type="list" xdef:key-attr="name">
@@ -36,10 +33,10 @@
         @propsForm 属性表单
         -->
         <edge name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
-              width="int"
+              width="int" xdef:name="GraphDesignerEdgeModel"
               deletable="boolean" addable="boolean=true" minOccurs="int" maxOccurs="int"
               allowSources="csv-set" allowTargets="csv-set" type="string">
-            <style xdef:value="xjson" />
+            <style xdef:value="string" />
             <template xdef:value="xml"/>
         </edge>
     </edges>

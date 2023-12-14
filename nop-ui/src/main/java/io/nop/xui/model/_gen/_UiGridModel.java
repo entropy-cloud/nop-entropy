@@ -47,7 +47,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      * xml name: api
      * 
      */
-    private java.util.Map _api ;
+    private io.nop.xui.model.UiApiModel _api ;
     
     /**
      *  
@@ -139,7 +139,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      * xml name: initApi
      * 
      */
-    private java.util.Map _initApi ;
+    private io.nop.xui.model.UiApiModel _initApi ;
     
     /**
      *  
@@ -209,7 +209,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      * xml name: saveOrderApi
      * 
      */
-    private java.util.Map _saveOrderApi ;
+    private io.nop.xui.model.UiApiModel _saveOrderApi ;
     
     /**
      *  
@@ -328,22 +328,18 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      *  
      */
     
-    public java.util.Map getApi(){
+    public io.nop.xui.model.UiApiModel getApi(){
       return _api;
     }
 
     
-    public void setApi(java.util.Map value){
+    public void setApi(io.nop.xui.model.UiApiModel value){
         checkAllowChange();
         
         this._api = value;
            
     }
 
-    
-    public boolean hasApi(){
-        return this._api != null && !this._api.isEmpty();
-    }
     
     /**
      * 
@@ -606,22 +602,18 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      *  
      */
     
-    public java.util.Map getInitApi(){
+    public io.nop.xui.model.UiApiModel getInitApi(){
       return _initApi;
     }
 
     
-    public void setInitApi(java.util.Map value){
+    public void setInitApi(io.nop.xui.model.UiApiModel value){
         checkAllowChange();
         
         this._initApi = value;
            
     }
 
-    
-    public boolean hasInitApi(){
-        return this._initApi != null && !this._initApi.isEmpty();
-    }
     
     /**
      * 
@@ -800,22 +792,18 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
      *  
      */
     
-    public java.util.Map getSaveOrderApi(){
+    public io.nop.xui.model.UiApiModel getSaveOrderApi(){
       return _saveOrderApi;
     }
 
     
-    public void setSaveOrderApi(java.util.Map value){
+    public void setSaveOrderApi(io.nop.xui.model.UiApiModel value){
         checkAllowChange();
         
         this._saveOrderApi = value;
            
     }
 
-    
-    public boolean hasSaveOrderApi(){
-        return this._saveOrderApi != null && !this._saveOrderApi.isEmpty();
-    }
     
     /**
      * 

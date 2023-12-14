@@ -110,7 +110,7 @@ public class ContextProvider {
      */
     public static <T> T runWithoutTenantId(Supplier<T> task) {
         IContext context = currentContext();
-        if (context == null)
+        if (context == null || context.isClosed())
             return task.get();
 
         String tenantId = context.getTenantId();

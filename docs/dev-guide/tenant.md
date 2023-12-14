@@ -6,7 +6,7 @@
 
 * nop_auth_user, nop_auth_session, nop_auth_op_log, nop_tenant这几个表不会自动启用租户配置
 
-* 如果配置nop.orm.user-use-tenant=true，则用户表也自动进行tenant过滤
+* 如果配置nop.orm.user-use-tenant=true，则用户表也自动进行tenant过滤，按主键查询的时候也会传入租户过滤条件。缺省是不需要的。
 
 ## 用户的租户管理
 

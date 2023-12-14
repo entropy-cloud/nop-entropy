@@ -5,18 +5,17 @@
 @dataType 设置为form时，将按照application/x-www-form-urlencoded格式提交。
     "dataType": "form-data"，可配置发送体格式为multipart/form-data。表单中包含文件类型时，自动使用这一类型
 @cache 缓存时间，单位为毫秒。在一段时间内多次请求只会返回缓存的记录。
-
 @responseType 配置为blob表示文件下载
 @replaceData 返回的数据是否替换掉当前的数据，默认为 false（即追加），设置为true就是完全替换当前数据。
 @autoRefresh 当所依赖的参数发生变化的时候，是否自动刷新。缺省为true
-@trackExpression 如果开启了自动刷新，这里显式的配置需要跟踪的变量。例如"trackExpression": "${a}"
 @withFormData 明确在data部分中包含form表单中的字段
 -->
 <api xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
-     xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-class="java.util.Map" xdef:check-ns="gql" xmlns:gql="gql"
+     xmlns:xdef="/nop/schema/xdef.xdef" xdef:check-ns="gql" xmlns:gql="gql"
+     xdef:name="UiApiModel" xdef:bean-package="io.nop.xui.model"
      url="#!string" method="string" convertKeyToPath="boolean"
      dataType="string" cache="int" responseType="string" gql:selection="string"
-     replaceData="boolean" autoRefresh="boolean" trackExpression="string" withFormData="boolean">
+     replaceData="boolean" autoRefresh="boolean" withFormData="boolean">
 
     <headers xdef:value="xjson"/>
 
@@ -26,6 +25,11 @@
     仅当满足条件的时候才触发
     -->
     <sendOn xdef:value="string"/>
+
+    <!--
+    如果开启了自动刷新，这里显式的配置需要跟踪的变量。例如"trackExpression": "${a}"
+    -->
+    <trackExpression xdef:value="string" />
 
     <!--
     对返回的结果数据进行转换

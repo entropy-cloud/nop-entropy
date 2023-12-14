@@ -1,5 +1,5 @@
 <actions x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-         xmlns:xdef="/nop/schema/xdef.xdef"
+         xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-body-type="List&lt;io.nop.xui.model.IUiActionModel>"
          xdef:body-type="list" xdef:key-attr="id">
     <action id="!string" xdef:ref="action.xdef"/>
     <actionGroup id="!string" xdef:ref="action-group.xdef"/>

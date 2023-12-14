@@ -6,7 +6,7 @@ import io.nop.xlang.ast.XLangASTNode; //NOPMD NOSONAR - suppressed UnusedImports
 
 
 // tell cpd to start ignoring code - CPD-OFF
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S116",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S116","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.UnnecessaryImport","PMD.EmptyControlStatement"})
 public abstract class _OutputExpression extends io.nop.xlang.ast.Expression {
     
