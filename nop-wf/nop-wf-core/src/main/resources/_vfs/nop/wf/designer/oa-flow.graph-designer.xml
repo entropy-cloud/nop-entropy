@@ -13,7 +13,7 @@
             </template>
         </node>
 
-        <node name="end" label="结束步骤">
+        <node name="end" label="结束步骤" propsForm="endStep">
             <template>
                 <div class="end-node">{{node.name}}</div>
             </template>
@@ -34,4 +34,21 @@
 
         </node>
     </nodes>
+
+    <forms>
+        <form id="endStep">
+            <renderer>
+                {
+                 ""
+                }
+            </renderer>
+            <layout>
+                a b
+                c d
+            </layout>
+            <cells>
+                <cell id="a" stdDomain="string" />
+            </cells>
+        </form>
+    </forms>
 </graph-designer>

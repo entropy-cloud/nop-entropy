@@ -6,7 +6,7 @@ Nop平台提供了一个内置的通用流程设计器，可以根据元模型�
 
 ## 流程设计器生成步骤
 1. 根据graph-designer.xdef设计一个具体的流程设计器模型，例如oa-flow.graph-designer.xml
-2. FlowBuilderGenerator根据approve-flow.graph-designer.xml生成一个js库，前端可以使用SystemJs包加载机制动态加载这个流程定义库
+2. FlowBuilderGenerator根据oa-flow.graph-designer.xml生成一个js库，前端可以使用SystemJs包加载机制动态加载这个流程定义库
 3. 在前端的amis页面中，已经内置了nop-graph-designer控件，它通过initApi加载流程图数据，通过saveApi保存流程图数据。
 它内部的editor会识别流程类型，并使用动态加载的流程定义库。
 
@@ -28,7 +28,7 @@ type RenderContext = {
     /**
      * 将json对象渲染为虚拟DOM类型。不同的框架实现不同
      */
-    render: (name:string, schema: SchemaType, props:any, ctx:any),
+    render: (name:string, schema: SchemaType, props:any, ctx:any) => VDomType,
 
     /**
      * 动态执行ajax调用，
