@@ -1,0 +1,37 @@
+<graph-designer x:schema="/nop/schema/designer/graph-designer.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+    editorType="">
+    <actions>
+        <action id="zoomIn" label="放大" actionType="designer:zoomIn" />
+        <action id="zoomOut" label="缩小" actionType="designer:zoomOut" />
+        <action id="exportPng" label="导出图片" actionType="designer:exportPng"/>
+    </actions>
+
+    <nodes>
+        <node name="start" label="起始步骤">
+            <template>
+                <div class="start-node">{{node.name}}</div>
+            </template>
+        </node>
+
+        <node name="end" label="结束步骤">
+            <template>
+                <div class="end-node">{{node.name}}</div>
+            </template>
+        </node>
+
+        <node name="sign-node" label="审批步骤">
+        </node>
+
+        <node name="condition-node" label="条件分支">
+
+        </node>
+
+        <node name="common-node" label="普通步骤">
+
+        </node>
+
+        <node name="cc-node" label="传阅步骤">
+
+        </node>
+    </nodes>
+</graph-designer>

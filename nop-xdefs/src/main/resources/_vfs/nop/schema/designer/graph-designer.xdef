@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
+<!--
+@editorType [编辑器类型] 比如flow-builder对应于类似钉钉的审批流编辑
+-->
 <designer x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          editorType="string"
     xmlns:xdef="/nop/schema/xdef.xdef" xdef:name="GraphDesignerModel" xdef:bean-package="io.nop.xui.graph_designer">
     <actions xdef:ref="../xui/actions.xdef"/>
+
+    <zoom initialValue="int" min="int" max="int" step="int" xdef:name="GraphDesignerZoomModel" />
 
     <nodes xdef:body-type="list" xdef:key-attr="name">
         <!--
@@ -12,7 +18,7 @@
         -->
         <node name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
               shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
-              width="int" height="int" fixedAspectRatio="boolean"
+              width="int" height="int" fixedAspectRatio="boolean"  start="!boolean=false" end="!boolean=false"
               draggable="boolean" resizable="boolean"
               deletable="boolean" addable="boolean=true"
               textPosition="string" textDraggable="boolean"
