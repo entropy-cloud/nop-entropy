@@ -55,9 +55,9 @@ result = xpl('my:MyTag',1, x+3)
    str.$capitalize()  相当于调用 StringHelper.capitalize(str);
 ````
 为了避免与Java类上已经定义的方法名冲突，一般扩展方法注册时都增加$前缀。
-ListFunctions为List增加了push/pop等JavaScript中Array对象的方法，为了尽量和JavaScript语法接近，这些扩展方法没有增加$前缀。
+ListFunctions为List增加了push/pop等JavaScript中Array对象的方法，为了尽量和JavaScript语法接近，这些扩展方法没有增加`$`前缀。
 
-4. 安全性限制。所有以$为前缀的变量名保留为系统变量名，无法在XScript脚本中声明或者设置以$为前缀的变量。禁止访问System, Class等敏感对象。
+4. 安全性限制。所有以`$`为前缀的变量名保留为系统变量名，无法在XScript脚本中声明或者设置以`$`为前缀的变量。禁止访问System, Class等敏感对象。
 
 ## 全局变量
 在XScript中可以使用的全局变量和全局函数通过 EvalGlobalRegistry类进行管理。目前主要是注册了GlobalFunctions类中定义的方法。
