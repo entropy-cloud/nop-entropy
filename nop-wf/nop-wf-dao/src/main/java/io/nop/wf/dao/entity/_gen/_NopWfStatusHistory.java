@@ -16,7 +16,7 @@ import io.nop.wf.dao.entity.NopWfStatusHistory;
 /**
  *  工作流状态变迁历史: nop_wf_status_history
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfStatusHistory extends DynamicOrmEntity{
     

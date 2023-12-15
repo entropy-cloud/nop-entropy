@@ -266,20 +266,34 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
        </when>
 
        <otherwise>
-           <c:script>
+           <c:script><![CDATA[
                function buildRefEntityParam(rel){
                   if(rel.refEntityModel.name == rel.refEntityModel.className)
                     return rel.refEntityModel.name + '.class';
                   return rel.refEntityModel.className + '.class,"'+rel.refEntityModel.name+'"';
                }
-           </c:script>
-    private final OrmEntitySet&lt;${rel.refEntityModel.name}> _${rel.name} = new OrmEntitySet&lt;>(this, PROP_NAME_${rel.name},
-        ${rel.refPropName? rel.refEntityName + '.PROP_NAME_' + rel.refPropName : 'null'}, ${rel.keyProp? rel.refEntityName + '.PROP_NAME_' + rel.keyProp : 'null'},${buildRefEntityParam(rel)});
+
+               function buildRefPropName(rel){
+                    if(!rel.refPropName) return 'null'
+                    if(rel.refEntityModel.name == rel.refEntityModel.className)
+                        return rel.refEntityName + '.PROP_NAME_' + rel.refPropName;
+                    return rel.refPropName.$quote()
+               }
+
+               function buildRefKeyProp(rel){
+                   if(!rel.keyProp) return 'null';
+                    if(rel.refEntityModel.name == rel.refEntityModel.className)
+                        return rel.refEntityName + '.PROP_NAME_' + rel.keyProp;
+                    return rel.keyProp.$quote()
+               }
+           ]]></c:script>
+    private final OrmEntitySet&lt;${rel.refEntityModel.className}> _${rel.name} = new OrmEntitySet&lt;>(this, PROP_NAME_${rel.name},
+        ${buildRefPropName(rel)}, ${buildRefKeyProp(rel)},${buildRefEntityParam(rel)});
 
     /**
      * ${rel.displayName}。 refPropName: ${rel.refPropName}, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet&lt;${rel.refEntityModel.name}> ${rel.name.$methodGet()}(){
+    public IOrmEntitySet&lt;${rel.refEntityModel.className}> ${rel.name.$methodGet()}(){
        return _${rel.name};
     }
        </otherwise>

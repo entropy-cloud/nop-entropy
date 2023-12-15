@@ -16,7 +16,7 @@ import io.nop.wf.dao.entity.NopWfDynEntity;
 /**
  *  动态实体: nop_wf_dyn_entity
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfDynEntity extends DynamicOrmEntity{
     
@@ -160,6 +160,15 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
     
     /* relation: 子对象 */
     public static final String PROP_NAME_children = "children";
+    
+    /* relation:  */
+    public static final String PROP_NAME_extFields = "extFields";
+    
+    /* component:  */
+    public static final String PROP_NAME_fileFld1Component = "fileFld1Component";
+    
+    /* component:  */
+    public static final String PROP_NAME_fileFld2Component = "fileFld2Component";
     
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
@@ -1760,5 +1769,49 @@ public class _NopWfDynEntity extends DynamicOrmEntity{
        return _children;
     }
        
+    private final OrmEntitySet<io.nop.orm.support.DynamicOrmKeyValueTable> _extFields = new OrmEntitySet<>(this, PROP_NAME_extFields,
+        null, "fieldName",io.nop.orm.support.DynamicOrmKeyValueTable.class,"io.nop.wf.dao.entity.NopWfDynEntityExt");
+
+    /**
+     * 。 refPropName: , keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.orm.support.DynamicOrmKeyValueTable> getExtFields(){
+       return _extFields;
+    }
+       
+   private io.nop.orm.component.OrmFileComponent _fileFld1Component;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_fileFld1Component = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_fileFld1Component.put(io.nop.orm.component.OrmFileComponent.PROP_NAME_filePath,PROP_ID_fileFld1);
+      
+   }
+
+   public io.nop.orm.component.OrmFileComponent getFileFld1Component(){
+      if(_fileFld1Component == null){
+          _fileFld1Component = new io.nop.orm.component.OrmFileComponent();
+          _fileFld1Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_fileFld1Component);
+      }
+      return _fileFld1Component;
+   }
+
+   private io.nop.orm.component.OrmFileComponent _fileFld2Component;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_fileFld2Component = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_fileFld2Component.put(io.nop.orm.component.OrmFileComponent.PROP_NAME_filePath,PROP_ID_fileFld2);
+      
+   }
+
+   public io.nop.orm.component.OrmFileComponent getFileFld2Component(){
+      if(_fileFld2Component == null){
+          _fileFld2Component = new io.nop.orm.component.OrmFileComponent();
+          _fileFld2Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_fileFld2Component);
+      }
+      return _fileFld2Component;
+   }
+
 }
 // resume CPD analysis - CPD-ON

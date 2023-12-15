@@ -16,7 +16,7 @@ import io.nop.wf.dao.entity.NopWfOutput;
 /**
  *  工作流输出变量: nop_wf_output
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopWfOutput extends AbstractOrmKeyValueTable{
     
