@@ -23,8 +23,8 @@ XDef是XLang中的领域模型定义语法，作用类似于采用XML语法的XS
 
 ```
 <tasks interval="1000">
-  <task name="a" label="任务A" status="1" />
-  <task name="b" label="任务B" status="2" />
+  <task id="a" label="任务A" status="1" />
+  <task id="b" label="任务B" status="2" />
 </tasks>
 ```
 
