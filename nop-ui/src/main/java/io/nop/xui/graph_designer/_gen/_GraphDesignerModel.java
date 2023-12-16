@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [3:2:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [6:2:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -29,6 +29,13 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     private KeyedList<io.nop.xui.graph_designer.GraphDesignerEdgeModel> _edges = KeyedList.emptyList();
     
     /**
+     *  编辑器类型
+     * xml name: editorType
+     * 比如flow-builder对应于类似钉钉的审批流编辑
+     */
+    private java.lang.String _editorType ;
+    
+    /**
      *  
      * xml name: forms
      * 
@@ -48,6 +55,13 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
      * 
      */
     private java.lang.String _script ;
+    
+    /**
+     *  
+     * xml name: zoom
+     * 
+     */
+    private io.nop.xui.graph_designer.GraphDesignerZoomModel _zoom ;
     
     /**
      * 
@@ -120,6 +134,25 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     public boolean hasEdges(){
         return !this._edges.isEmpty();
     }
+    
+    /**
+     * 编辑器类型
+     * xml name: editorType
+     *  比如flow-builder对应于类似钉钉的审批流编辑
+     */
+    
+    public java.lang.String getEditorType(){
+      return _editorType;
+    }
+
+    
+    public void setEditorType(java.lang.String value){
+        checkAllowChange();
+        
+        this._editorType = value;
+           
+    }
+
     
     /**
      * 
@@ -230,6 +263,25 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     }
 
     
+    /**
+     * 
+     * xml name: zoom
+     *  
+     */
+    
+    public io.nop.xui.graph_designer.GraphDesignerZoomModel getZoom(){
+      return _zoom;
+    }
+
+    
+    public void setZoom(io.nop.xui.graph_designer.GraphDesignerZoomModel value){
+        checkAllowChange();
+        
+        this._zoom = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -246,6 +298,8 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
             
            this._nodes = io.nop.api.core.util.FreezeHelper.deepFreeze(this._nodes);
             
+           this._zoom = io.nop.api.core.util.FreezeHelper.deepFreeze(this._zoom);
+            
         }
     }
 
@@ -255,9 +309,11 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
         
         out.put("actions",this.getActions());
         out.put("edges",this.getEdges());
+        out.put("editorType",this.getEditorType());
         out.put("forms",this.getForms());
         out.put("nodes",this.getNodes());
         out.put("script",this.getScript());
+        out.put("zoom",this.getZoom());
     }
 }
  // resume CPD analysis - CPD-ON

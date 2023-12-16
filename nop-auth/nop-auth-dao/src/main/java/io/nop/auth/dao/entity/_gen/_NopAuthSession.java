@@ -16,7 +16,7 @@ import io.nop.auth.dao.entity.NopAuthSession;
 /**
  *  会话日志: nop_auth_session
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopAuthSession extends DynamicOrmEntity{
     

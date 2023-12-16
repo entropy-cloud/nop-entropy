@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [13:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [19:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -55,6 +55,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * 
      */
     private java.lang.Boolean _draggable ;
+    
+    /**
+     *  
+     * xml name: end
+     * 
+     */
+    private boolean _end  = false;
     
     /**
      *  
@@ -160,6 +167,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * 矩形、圆形等基础形状
      */
     private java.lang.String _shape ;
+    
+    /**
+     *  
+     * xml name: start
+     * 
+     */
+    private boolean _start  = false;
     
     /**
      *  
@@ -339,6 +353,25 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._draggable = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: end
+     *  
+     */
+    
+    public boolean isEnd(){
+      return _end;
+    }
+
+    
+    public void setEnd(boolean value){
+        checkAllowChange();
+        
+        this._end = value;
            
     }
 
@@ -630,6 +663,25 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: start
+     *  
+     */
+    
+    public boolean isStart(){
+      return _start;
+    }
+
+    
+    public void setStart(boolean value){
+        checkAllowChange();
+        
+        this._start = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: style
      *  
      */
@@ -765,6 +817,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.put("anchors",this.getAnchors());
         out.put("deletable",this.getDeletable());
         out.put("draggable",this.getDraggable());
+        out.put("end",this.isEnd());
         out.put("fixedAspectRatio",this.getFixedAspectRatio());
         out.put("height",this.getHeight());
         out.put("icon",this.getIcon());
@@ -780,6 +833,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.put("propsForm",this.getPropsForm());
         out.put("resizable",this.getResizable());
         out.put("shape",this.getShape());
+        out.put("start",this.isStart());
         out.put("style",this.getStyle());
         out.put("tagSet",this.getTagSet());
         out.put("template",this.getTemplate());

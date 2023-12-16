@@ -16,7 +16,7 @@ import io.nop.file.dao.entity.NopFileRecord;
 /**
  *  文件记录: nop_file_record
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopFileRecord extends DynamicOrmEntity{
     
