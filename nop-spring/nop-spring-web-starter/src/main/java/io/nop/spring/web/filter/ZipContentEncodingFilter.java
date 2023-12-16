@@ -48,7 +48,6 @@ public class ZipContentEncodingFilter implements Filter {
             } else {
                 resource = getResource("META-INF/resources/index.html");
                 if (resource.exists()) {
-                    setZipHeader(path, response);
                     request.getRequestDispatcher("/index.html").forward(request, newResponseWrapper(response));
                     return;
                 }

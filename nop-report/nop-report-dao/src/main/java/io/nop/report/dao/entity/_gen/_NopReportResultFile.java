@@ -16,7 +16,7 @@ import io.nop.report.dao.entity.NopReportResultFile;
 /**
  *  报表结果文件: nop_report_result_file
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
 public class _NopReportResultFile extends DynamicOrmEntity{
     
