@@ -7,9 +7,9 @@
  */
 package io.nop.auth.sso;
 
-import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.SigningKeyResolver;
+import io.jsonwebtoken.Locator;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.auth.core.jwt.JwtHelper;
@@ -34,15 +34,10 @@ public class TestJwtHelper {
 
         String token = "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIxMEM3YTJkOUZJV0ZVanhzdjEyYjAxT2hPemFnb0t0WkNQNnl0UWJLbDVvIn0.eyJleHAiOjE2NzA2NDI1OTMsImlhdCI6MTY3MDY0MjI5MywianRpIjoiODRiNmEwMTYtZjFjZi00ZmUwLThlNjctOWU3OWYyNzZlMTZjIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDQxL3JlYWxtcy9hcHAiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiNmFkMzZiODItZWY2Yy00YjI1LWIwNDItMGM4ZjQ1MGY2MjVjIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoidGVzdC1jbGllbnQiLCJzZXNzaW9uX3N0YXRlIjoiMjI2YzRlOGItNDA1ZC00OGMwLTkzN2EtM2M2MjAxMDhlNzE4IiwiYWNyIjoiMSIsInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJhcHBVc2VyIiwib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiIsImRlZmF1bHQtcm9sZXMtYXBwIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwic2lkIjoiMjI2YzRlOGItNDA1ZC00OGMwLTkzN2EtM2M2MjAxMDhlNzE4IiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJuYW1lIjoidGVzdCBBQkMiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0MSIsImdpdmVuX25hbWUiOiJ0ZXN0IiwiZmFtaWx5X25hbWUiOiJBQkMifQ.A2tbYa6sEiCLQ-lgXCZfVpYQF-D9Y3jRVairwTOLozPT3aaiGZaBWU-hTZhWVNHW0nxJHYrUE9AfFVXRhUJ3bWy2sUj_gDTmNjWsG32-9DUn_j8UK1qQnh8S9FB5GGzj4-1FOtIcvQf4byBagUFGj6FzhYu09rLFwF1SZCFQ6SylkEGOuUKxAR_EPy6U5INhFGGf6Q___oN4L2J5uOmq7Baf1VWRe3KFNNPns4rI6xik_3b2ayOyFmk_0uB4SWEmFRgRPaZd62Pi_DhJe2-6FE7QlLtCnynS3aRDkS8Loo-HIOgCV0zH4TqMeGEY6UUDoz4q_CcqSK0BOxd_sASlYg";
         try {
-            JwtHelper.parseToken(token, new SigningKeyResolver() {
+            JwtHelper.parseToken(token, new Locator<Key>() {
                 @Override
-                public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                    return keyLocator.getPublicKey(header.getKeyId());
-                }
-
-                @Override
-                public Key resolveSigningKey(JwsHeader header, String plaintext) {
-                    return null;
+                public Key locate(Header header) {
+                    return keyLocator.getPublicKey(((JwsHeader) header).getKeyId());
                 }
             });
         } catch (NopException e) {

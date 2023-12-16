@@ -100,6 +100,8 @@
 /nop/auth/model/NopAuthTenant/_NopAuthTenant.xmeta
 /nop/auth/model/NopAuthUser/NopAuthUser.xbiz
 /nop/auth/model/NopAuthUser/NopAuthUser.xmeta
+/nop/auth/model/NopAuthUser/NopAuthUser_tenant.xbiz
+/nop/auth/model/NopAuthUser/NopAuthUser_tenant.xmeta
 /nop/auth/model/NopAuthUser/_NopAuthUser.xbiz
 /nop/auth/model/NopAuthUser/_NopAuthUser.xmeta
 /nop/auth/model/NopAuthUserRole/NopAuthUserRole.xbiz
@@ -178,7 +180,10 @@
 /nop/auth/pages/NopAuthTenant/picker.page.yaml
 /nop/auth/pages/NopAuthUser/NopAuthUser.lib.xjs
 /nop/auth/pages/NopAuthUser/NopAuthUser.view.xml
+/nop/auth/pages/NopAuthUser/NopAuthUser_tenant.lib.xjs
+/nop/auth/pages/NopAuthUser/NopAuthUser_tenant.view.xml
 /nop/auth/pages/NopAuthUser/_gen/_NopAuthUser.view.xml
+/nop/auth/pages/NopAuthUser/_gen/_NopAuthUser_tenant.view.xml
 /nop/auth/pages/NopAuthUser/change-self-pass.page.yaml
 /nop/auth/pages/NopAuthUser/deleted.page.yaml
 /nop/auth/pages/NopAuthUser/demo.page.yaml

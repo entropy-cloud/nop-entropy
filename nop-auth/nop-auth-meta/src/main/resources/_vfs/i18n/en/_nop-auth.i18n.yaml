@@ -14,6 +14,7 @@ entity:
     NopAuthSite: Sub Site
     NopAuthTenant: Tenant
     NopAuthUser: User
+    NopAuthUser_tenant: User
     NopAuthUserRole: User Role
     NopAuthUserSubstitution: User Substitution
 prop:
@@ -302,6 +303,64 @@ prop:
       version: Version
       tenantId: Tenant ID
       tenantId_label: null
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      dept: Department
+      dept.deptName: Department
+      relatedDept: Related Department
+      relatedDept.deptName: Related Department
+      position: Position
+      position.name: Position
+      manager: Manager
+      manager.userName: Manager
+      roleMappings: RoleMappings
+      substitutionMappings: Substitution Mappings
+      groupMappings: GroupMappings
+      avatarComponent: null
+      relatedRoleList: Role List
+      relatedRoleIdList: Role List
+      relatedRoleList_label: Role List
+      relatedGroupList: Group List
+      relatedGroupIdList: Group List
+      relatedGroupList_label: Group List
+    NopAuthUser_tenant:
+      userId: User ID
+      userName: User Name
+      password: Password
+      salt: Salt
+      nickName: Nick Name
+      deptId: Department
+      openId: OpenId
+      relDeptId: Related Department
+      gender: Gender
+      gender_label: null
+      avatar: Avatar
+      email: Email
+      emailVerified: Email Verified
+      phone: Phone
+      phoneVerified: Phone Verified
+      birthday: Birthday
+      userType: User Type
+      userType_label: null
+      status: Status
+      status_label: null
+      idType: ID Type
+      idNbr: ID Number
+      expireAt: Expire At
+      pwdUpdateTime: Password Update Time
+      changePwdAtLogin: Change Password At Logon
+      realName: Real Name
+      managerId: Manager
+      workNo: Work NO
+      positionId: Position
+      telephone: Telephone
+      clientId: Client Id
+      delFlag: Deleted
+      version: Version
+      tenantId: Tenant ID
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By

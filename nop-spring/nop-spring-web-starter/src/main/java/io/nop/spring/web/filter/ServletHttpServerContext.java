@@ -14,10 +14,10 @@ import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.server.IAsyncBody;
 import io.nop.http.api.server.IHttpServerContext;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.net.HttpCookie;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -120,7 +120,7 @@ public class ServletHttpServerContext implements IHttpServerContext {
     public void removeCookie(String name, String domain, String path) {
         Cookie retCookie = new Cookie(name, "");
         retCookie.setPath(path);
-        if(Objects.nonNull(domain))
+        if (Objects.nonNull(domain))
             retCookie.setDomain(domain);
         retCookie.setHttpOnly(true);
         retCookie.setSecure(true);

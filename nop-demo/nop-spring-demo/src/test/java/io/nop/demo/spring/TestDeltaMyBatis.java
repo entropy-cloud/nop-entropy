@@ -29,10 +29,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
-@ComponentScan("io.nop.demo.spring")
+@ComponentScan({"io.nop.demo.spring"})
 @AutoConfigureTestDatabase
 public class TestDeltaMyBatis {
     static final Logger LOG = LoggerFactory.getLogger(TestDeltaMyBatis.class);
+
 
     @Autowired
     SysUserMapper sysUserMapper;

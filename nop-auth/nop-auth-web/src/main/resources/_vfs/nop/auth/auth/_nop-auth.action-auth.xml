@@ -161,15 +161,29 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopAuthUserSubstitution-main" displayName="用户代理" orderNo="10037"
+                <resource id="NopAuthUser_tenant-main" displayName="用户" orderNo="10037" i18n-en:displayName="User"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/auth/pages/NopAuthUser_tenant/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopAuthUser_tenant:query" displayName="查询用户" orderNo="10038"
+                                  resourceType="FNPT">
+                            <permissions>NopAuthUser_tenant:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopAuthUser_tenant:mutation" displayName="修改用户" orderNo="10039"
+                                  resourceType="FNPT">
+                            <permissions>NopAuthUser_tenant:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopAuthUserSubstitution-main" displayName="用户代理" orderNo="10040"
                           i18n-en:displayName="User Substitution" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/auth/pages/NopAuthUserSubstitution/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopAuthUserSubstitution:query" displayName="查询用户代理" orderNo="10038"
+                        <resource id="FNPT:NopAuthUserSubstitution:query" displayName="查询用户代理" orderNo="10041"
                                   resourceType="FNPT">
                             <permissions>NopAuthUserSubstitution:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopAuthUserSubstitution:mutation" displayName="修改用户代理" orderNo="10039"
+                        <resource id="FNPT:NopAuthUserSubstitution:mutation" displayName="修改用户代理" orderNo="10042"
                                   resourceType="FNPT">
                             <permissions>NopAuthUserSubstitution:mutation</permissions>
                         </resource>

@@ -12,6 +12,9 @@
     <artifactId>nop-spring</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+    </properties>
+
     <modules>
         <module>nop-spring-autoconfig</module>
         <module>nop-spring-core-starter</module>

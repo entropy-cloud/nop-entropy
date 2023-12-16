@@ -15139,6 +15139,12 @@
         ]
       },
       {
+        "name": "setBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setBizObjectManager",
         "parameterTypes": [
           "io.nop.biz.api.IBizObjectManager"
@@ -31079,6 +31085,13 @@
       {
         "name": "buildApiRequest",
         "parameterTypes": [
+          "jakarta.servlet.http.HttpServletRequest",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "buildApiRequest",
+        "parameterTypes": [
           "javax.servlet.http.HttpServletRequest",
           "java.lang.Object"
         ]
@@ -31095,7 +31108,22 @@
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String",
+          "jakarta.servlet.http.HttpServletRequest"
+        ]
+      },
+      {
+        "name": "download",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
           "javax.servlet.http.HttpServletRequest"
+        ]
+      },
+      {
+        "name": "upload",
+        "parameterTypes": [
+          "org.springframework.web.multipart.MultipartFile",
+          "jakarta.servlet.http.HttpServletRequest"
         ]
       },
       {
@@ -31107,6 +31135,21 @@
       }
     ],
     "name": "io.nop.file.spring.web.SpringFileService",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getBizObjName",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.graphql.core.IBizModelImpl",
     "unsafeAllocated": false
   },
   {
