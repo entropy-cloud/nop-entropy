@@ -16,7 +16,18 @@ nop:
           grade: 1,
           count: 3
         }]
-        
+
+  auth:
+    login:
+      allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码123
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:./db/test
+    username: sa
+    password:
+
+  orm:
+    init-database-schema: true
 
   graphql:
     schema-introspection:

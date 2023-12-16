@@ -43,7 +43,11 @@
         </property>
     </bean>
 
-    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer" />
+    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer" >
+        <ioc:condition>
+            <on-bean>nopDaoProvider</on-bean>
+        </ioc:condition>
+    </bean>
 
     <bean id="nopBizAuthChecker" class="io.nop.biz.impl.DefaultBizAuthChecker" ioc:default="true"/>
 
