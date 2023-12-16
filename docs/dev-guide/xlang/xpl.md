@@ -16,11 +16,11 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 <c:if test="${cond}">
   当条件为真时执行。
 </c:if>
-````   
+````
 
 * `<c:for>`
   循环语句。
-  index对应循环下标
+  `index`对应循环下标
 
 ````
 <c:for items="${list}" var="item" index="index">
@@ -36,16 +36,16 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 ````
 <c:while test="${cond}">
 </c:while>
-````   
+````
 
 * `<c:break>`
   跳出循环语句
 
 * `<c:continue>`
-  类似于java中的continue语句，跳过本次循环。
+  类似于java中的`continue`语句，跳过本次循环。
 
 * `<c:return>`
-  从自定义标签返回，可以通过value属性指定返回值.
+  从自定义标签返回，可以通过`value`属性指定返回值.
 
 ````
   <c:return value="${result}" />
@@ -63,7 +63,7 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
       当其他条件都不满足时执行
    </otherwise>
  </c:choose>
-````   
+````
 
 * `<c:throw>`
 
@@ -78,13 +78,13 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
   <body>
   需要执行的代码
   </body>
-  
+
   <catch>
      捕获异常，上下文中$excetion对应异常对象
   </catch>
-  
+
   <finally>
-     
+
   </finally>
 </c:try>
 ````
@@ -100,13 +100,13 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 ### 脚本语言
 
 * `<c:script>`
-  嵌入脚本语言，可以用lang属性来指定使用不同的脚本引擎，例如groovy等，缺省是xlang
+  嵌入脚本语言，可以用`lang`属性来指定使用不同的脚本引擎，例如`groovy`等，缺省是`xlang`
 
 ````
 <c:script lang="groovy">
   代码
 </c:script>
-````  
+````
 
 ### 编译期
 
@@ -119,7 +119,7 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 <c:import class="a.b.c.MyConstants" />
 ````
 
-引入标签库的时候缺省名字空间根据标签库文件名推定，例如 a.xlib => a, a!ext.xlib => a。
+引入标签库的时候缺省名字空间根据标签库文件名推定，例如 `a.xlib => a`, `a!ext.xlib => a`。
 也可以直接指定名字空间，例如
 
 ````xml
@@ -153,14 +153,14 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
       <div/>
       <input/>
    </c:unit>
-   
+
    等价于
    <div/>
    <input/>
 ````
 
 * `<c:log>`
-  只有io.nop.xpl.logger的对应log级别打开时，才拼接日志消息并打印日志。
+  只有`io.nop.xpl.logger`的对应log级别打开时，才拼接日志消息并打印日志。
 
 ```xml
   <c:log info="xxx ${myvar} ${myObj.func(3)} sss" />
@@ -170,7 +170,7 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 ### 条件标签
 
-当自定义标签的conditionTag设置为true时为条件标签
+当自定义标签的`conditionTag`设置为`true`时为条件标签
 
 ````
 标签定义
@@ -181,43 +181,43 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
        </c:script>
      </source>
    </WhenAdmin>
-   
-作为条件容器调用   
+
+作为条件容器调用
   <biz:WhenAdmin>
     当用户具有admin角色时执行这里的内容
   </biz:WhenAdmin>
 ````
 
-条件标签可以直接作为c:choose的分支
+条件标签可以直接作为`c:choose`的分支
 
 ````
   <c:choose>
     <biz:WhenAdmin>
     </biz:WhenAdmin>
-    
+
     <c:otherwise>
-      
+
     </c:otherwise>
   </c:choose>
 ````
 
 ## 动态属性
 
-* 如果属性值返回null, 则该属性在输出时会被自动忽略。
+* 如果属性值返回`null`, 则该属性在输出时会被自动忽略。
 
 ```
   <input class="${null}" />
   实际输出  <input />
 ```
 
-* xpl:attrs可以指定一个Map, 批量输出一组动态属性。如果属性值为null, 一样不输出
+* `xpl:attrs`可以指定一个Map, 批量输出一组动态属性。如果属性值为`null`, 一样不输出
 
 ```
   <input xpl:attrs="{name:'a',class:null}" />
    实际输出 <input name="a" />
 ```
 
-另外，需要注意，如果节点上已经存在某属性，则xpl:attrs指定的属性将会被忽略
+另外，需要注意，如果节点上已经存在某属性，则`xpl:attrs`指定的属性将会被忽略
 
 ```
   <input name="x" xpl:attrs="{name:'b'}" />
@@ -228,21 +228,22 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 xpl标签既有返回值，又有输出。输出具有多种模式
 
-* none 不允许输出文本
-* html 输出html文本，自动识别<script><div>等需要使用完整封闭形式的标签
-* xml 输出xml文本，如果xpl:allowUnknownTag为true, 则未识别的所有带名字空间的标签也会被输出
-* text 不能输出xml标签，但是可以输出文本内容，而且输出的文本不会进行xml转义
-* node 所有输出的内容自动被转化为XNode。
+* `none` 不允许输出文本
+* `html` 输出html文本，自动识别`<script>`、`<div>`等需要使用完整封闭形式的标签
+* `xml` 输出xml文本，如果`xpl:allowUnknownTag`为`true`, 则未识别的所有带名字空间的标签也会被输出
+* `text` 不能输出xml标签，但是可以输出文本内容，而且输出的文本不会进行xml转义
+* `node` 所有输出的内容自动被转化为`XNode`。
 
-1. 定义标签库时，可以通过在根结点上标记defaultOutputMode来设置本库中标签的缺省输出模式。
-2. 也可以在定义每个自定义标签时指定outputMode
-3. 在调用标签时，可以通过xpl:outputMode来设置未识别的标签的输出模式。如果自定义标签已经有自己的输出模式，则外部调用时再设置也是无效的。
+1. 定义标签库时，可以通过在根结点上标记`defaultOutputMode`来设置本库中标签的缺省输出模式。
+2. 也可以在定义每个自定义标签时指定`outputMode`
+3. 在调用标签时，可以通过`xpl:outputMode`来设置未识别的标签的输出模式。如果自定义标签已经有自己的输出模式，则外部调用时再设置也是无效的。
 
 ## thisLib
-在自定义标签库中，可以使用thisLib来指向当前标签库。
-例如在web.xlib中，  `<thisLib:LoadPage>`对应于 `<web:LoadPage xpl:lib="/nop/web/xlib/web.xlib">`
 
-引入thisLib这个特殊的名字空间的原因在于，外部引用标签库的时候有可能通过as来修改最终使用时的名字空间。例如
+在自定义标签库中，可以使用`thisLib`来指向当前标签库。
+例如在`web.xlib`中，  `<thisLib:LoadPage>`对应于 `<web:LoadPage xpl:lib="/nop/web/xlib/web.xlib">`
+
+引入`thisLib`这个特殊的名字空间的原因在于，外部引用标签库的时候有可能通过`as`来修改最终使用时的名字空间。例如
 
 ````
 <c:import from="/nop/web/xlib/web.xlib" as="myweb" />
@@ -252,13 +253,13 @@ xpl标签既有返回值，又有输出。输出具有多种模式
 ## xpl专用属性
 
 XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl属性的处理顺序为
-xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
---> xpl:lib --> xpl:outputMode --> xpl:is --> xpl:invert --> xpl:return
---> xpl:if
+`xpl:enableNs` -->  `xpl:disableNs` --> `xpl:attrs` -> `xpl:frame` -> `xpl:decorator`
+--> `xpl:lib` --> `xpl:outputMode` --> `xpl:is` --> `xpl:invert` --> `xpl:return`
+--> `xpl:if`
 
-1. xpl:disableNs/xpl:enableNs
-   xpl:disableNs 忽略指定的名字空间，不把它们看作是xpl标签库中的标签
-   xpl:enableNs 取消xpl:ignoreNs的作用，恢复识别指定名字空间对应的标签库
+1. `xpl:disableNs`/`xpl:enableNs`
+   `xpl:disableNs` 忽略指定的名字空间，不把它们看作是xpl标签库中的标签
+   `xpl:enableNs` 取消`xpl:ignoreNs`的作用，恢复识别指定名字空间对应的标签库
 
 ```
   <!-- c:if标签不会被解析，而是作为文本被直接输出 -->
@@ -273,8 +274,8 @@ xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
   </c:if>
 ```
 
-2. xpl:ignoreExpr
-   是否识别表达式。如果设置为true，则非自定义标签中用到的EL表达式将被作为文本直接输出。
+2. `xpl:ignoreExpr`
+   是否识别表达式。如果设置为`true`，则非自定义标签中用到的EL表达式将被作为文本直接输出。
 
 ````
 <div xpl:ignoreExpr="true">
@@ -282,7 +283,7 @@ xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
 </div>
 ````
 
-3. xpl:is
+3. `xpl:is`
    可以改变识别的xpl标签名
 
 ```
@@ -293,47 +294,47 @@ xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
 </my:MyTag>
 ```
 
-4. xpl:if
-   控制标签是否运行，相当于简化c:if调用
+4. `xpl:if`
+   控制标签是否运行，相当于简化`c:if`调用
 
 ```
   <div xpl:if="selectors.contains('a')">
   </div>
-  
+
   <!-- 如果使用编译期表达式，xpl引擎内部会实现自动优化 -->
   <div xpl:if="#{myVar}">
   </div>
 ```
 
-5. xpl:skipIf
-   如果为true, 则跳过本层标签，直接编译标签的body。相当于是控制跳过嵌套的层次
+5. `xpl:skipIf`
+   如果为`true`, 则跳过本层标签，直接编译标签的`body`。相当于是控制跳过嵌套的层次
 
 ```
   <my:MyTag xpl:skipIf="true">
      <body/>
   </my:MyTag>
-  
+
   等价于
    <body/>
 ```
 
-6. xpl:allowUnknownTag
-   是否允许未识别的带名字空间的标签。缺省为false, 当带名字空间的标签不能被识别为自定义标签时，会抛出异常。
+6. `xpl:allowUnknownTag`
+   是否允许未识别的带名字空间的标签。缺省为`false`, 当带名字空间的标签不能被识别为自定义标签时，会抛出异常。
 
-7. xpl:outputMode
-   设置xpl编译器的输出模式。注意，在c:macro和x:extends运行期间，缺省设置了xpl:outputMode=node
+7. `xpl:outputMode`
+   设置xpl编译器的输出模式。注意，在`c:macro`和`x:extends`运行期间，缺省设置了`xpl:outputMode=node`
 
-8. xpl:lib
+8. `xpl:lib`
    在局部范围内引入标签库。当超出标签范围后，引入的标签库不可见。
 
 ````
  <my:MyTag xpl:lib="my.xlib" />
- 
+
  <!-- xpl:lib引入的标签库仅对当前节点有效，对这里的节点不可见，因此编译时会报错 -->
  <my:MyTag />
 ````
 
-9. xpl:return
+9. `xpl:return`
    执行完标签后将把返回值设置为指定变量
 
 ```
@@ -342,14 +343,14 @@ xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
   </my:MyTag>
 ```
 
-10. xpl:invert
-    对于返回boolean值的自定义标签，xpl:invert表示对返回值取反。
+10. `xpl:invert`
+    对于返回`boolean`值的自定义标签，`xpl:invert`表示对返回值取反。
 
 ```
   <biz:WhenAdmin>
     当具有admin角色的时候执行这里的内容
   </biz:WhenAdmin>
-  
+
   <biz:WhenAdmin xpl:invert="true">
      当【不具有】admin角色的时候执行这里的内容
   </biz:WhenAdmin>
@@ -368,7 +369,7 @@ xpl:enableNs -->  xpl:disableNs --> xpl:attrs -> xpl:frame -> xpl:decorator
       <child/>
    </test:MyTag2>
  </xpl:decorator>
- 
+
  content
 </div>
 
