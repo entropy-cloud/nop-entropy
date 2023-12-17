@@ -7,24 +7,24 @@
  */
 package io.nop.auth.sso.web;
 
+import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.core.Name;
 import io.nop.auth.api.messages.LogoutRequest;
 import io.nop.auth.core.login.ILoginService;
-
 import jakarta.inject.Inject;
-import jakarta.ws.rs.FormParam;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
+
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.auth.api.AuthApiConstants.LOGOUT_TYPE_SSO_CALLBACK;
 
-public class LoginWebService {
+@BizModel("LoginApi")
+public class SsoLoginWebService {
     @Inject
     ILoginService loginService;
 
-    @POST
-    @Path("/sso-logout")
-    public CompletionStage<Void> ssoLogoutAsync(@FormParam("logout_token") String logoutToken) {
+    @BizMutation
+    public CompletionStage<Void> ssoLogoutAsync(@Name("accessToken") String logoutToken) {
         LogoutRequest req = new LogoutRequest();
         req.setAccessToken(logoutToken);
         return loginService.logoutAsync(LOGOUT_TYPE_SSO_CALLBACK, req);

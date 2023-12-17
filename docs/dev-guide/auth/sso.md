@@ -19,6 +19,15 @@ nop:
 * nop.auth.sso.realm是keycloak中配置的realm
 * nop.auth.sso.client-id和nop.auth.sso.client-secret是keycloak服务器中配置的客户端信息
 
+## 单点退出
+通过访问如下链接可以调用nop.auth.sso.logout-url来退出点点
+````
+POST /r/LoginApi__ssoLogout
+
+{
+   "accessToken": "xxx"
+}
+````
 
 ## 权限限制
 Nop平台只使用了单点服务器的用户和角色配置，对于更细粒度的资源访问权限，则需要在Nop平台内部配置。Nop平台通过指定Role可以访问哪些资源对象来控制用户操作权限。

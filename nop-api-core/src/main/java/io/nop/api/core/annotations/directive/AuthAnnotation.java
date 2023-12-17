@@ -10,9 +10,18 @@ package io.nop.api.core.annotations.directive;
 import java.lang.annotation.Annotation;
 
 public class AuthAnnotation implements Auth {
+    private boolean allowAnonymous;
     private String roles = "";
     private String permissions = "";
     private boolean noAuth;
+
+    public boolean allowAnonymous() {
+        return allowAnonymous;
+    }
+
+    public void setAllowAnonymous(boolean allowAnonymous) {
+        this.allowAnonymous = allowAnonymous;
+    }
 
     public String roles() {
         return roles;

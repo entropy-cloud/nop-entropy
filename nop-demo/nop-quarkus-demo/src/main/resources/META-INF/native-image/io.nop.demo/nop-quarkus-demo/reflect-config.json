@@ -11442,6 +11442,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_user"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_userId"
       },
       {
@@ -11514,6 +11519,10 @@
       },
       {
         "name": "getSessionId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getUser",
         "parameterTypes": []
       },
       {
@@ -11664,6 +11673,12 @@
         "name": "setSessionId",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUser",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthUser"
         ]
       },
       {

@@ -6,7 +6,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
-    <bean id="io.nop.auth.sso.web.LoginWebService" ioc:type="@bean:id">
+    <bean id="io.nop.auth.sso.web.SsoLoginWebService" ioc:type="@bean:id">
         <ioc:condition>
             <if-property name="nop.auth.sso.enabled"/>
         </ioc:condition>

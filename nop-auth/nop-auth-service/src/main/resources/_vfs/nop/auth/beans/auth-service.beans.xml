@@ -28,11 +28,10 @@
     <bean id="nopUserIdGenerator" class="io.nop.auth.dao.generator.DefaultUserIdGenerator"
           ioc:default="true"/>
 
-    <bean id="nopAuthHttpServerFilter" class="io.nop.auth.core.filter.AuthHttpServerFilter">
+    <bean id="nopAuthHttpServerFilter" class="io.nop.auth.core.filter.AuthHttpServerFilter" ioc:default="true">
         <ioc:condition>
             <if-property name="nop.auth.http-server-filter.enabled" enableIfMissing="true"/>
         </ioc:condition>
-        <property name="config" ref="nopAuthFilterConfig"/>
     </bean>
 
     <bean id="nopAuthFilterConfig" class="io.nop.auth.core.filter.AuthFilterConfig">

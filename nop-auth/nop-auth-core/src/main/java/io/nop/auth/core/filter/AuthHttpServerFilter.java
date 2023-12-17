@@ -66,6 +66,7 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
     private ILoginService loginService;
 
+    @Inject
     public void setConfig(AuthFilterConfig config) {
         this.config = config;
     }

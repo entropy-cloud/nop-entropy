@@ -18,6 +18,8 @@ import java.lang.annotation.Target;
 @Documented
 @Directive
 public @interface Auth {
+    boolean allowAnonymous() default false;
+
     boolean noAuth() default false;
 
     /**
