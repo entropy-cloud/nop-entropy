@@ -775,8 +775,11 @@
 
                const dlgProps = _.pickNotNull(dialog,["closeOnEsc","closeOnOutside","size","height",
                     "width","showCloseButton","actions"]) || {};
-               if(dlgProps.actions)
+               if(dlgProps?.actions?.length > 0){
                    dlgProps.actions = dlgProps.actions.map(a=>xpl('thisLib:NormalizeAction',a,{}));
+               }else{
+                   dlgProps.actions = null;
+               }
                if(dialog?.noActions)
                    dlgProps.actions = []
 

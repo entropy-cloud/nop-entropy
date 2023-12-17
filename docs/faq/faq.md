@@ -188,6 +188,11 @@ XCodeGenerator上的renderModel函数可以读取模型文件，然后执行代�
 报表相关的使用文档参见 [report.md](../user-guide/report.md)和[xpt-report.md](../dev-guide/report/index.md)
 报表表达式的语法与普通的XLang Expression语法类似，就是javascript语法，只是其中有有xptRt环境变量，以及一些扩展函数
 
+## 11. 修改Excel数据模型后，需要调用mvn clean install来重新生成代码吗？
+一般情况下不需要clean，只有删除了文件的情况下才需要clean。
+另外代码生成时会在xxx-codegen子项目下生成一个xxxCodeGen.java，例如nop-auth中的NopAuthCodeGen.java，可以用于直接在IDEA里执行生成代码，
+效果与执行mvn install等价。
+
 # 部署问题
 
 
@@ -283,3 +288,9 @@ Nop平台的发展目标是成为通用的领域语言工作台，其他都是�
 
 在第一代、第二代、第三代程序语言的发展过程中，不断的提升抽象层次，但它们仍然都是通用程序语言，但是发展到第四代程序语言，我们很可能得到的不是另一种通用程序语言，而是大量领域特定语言所构成的DSL森林，通过它们我们可以形成对原有程序结构的一种新的表示和认知。
 
+## 6. Excel模型中的appName，必须是两级名字吗，如果一级或者三级会有什么问题，这个限制比较奇怪。另外，自动成为两级目录名，这里的目录是指src下的包目录吗？
+
+这个两级目录名是对应于 `src/resources/_vfs/xxx/yyy`这里的目录名，是虚拟文件系统中的子目录名。
+目前限制为两级，因为平台启动的时候有一个模块扫描的过程，为了限制模块扫描的范围，目前只扫描两级目录，发现存在 `/_vfs/xxx/yyy/_module`文件，就认为是一个模块，会自动加载它的beans目录下的`app-*.beans.xml`文件。
+
+通过`module:/abc/yy.xml` 这种方式加载文件时会扫描所有模块下的/abc/yy.xml文件，例如`/_vfs/xxx/yyy/abc/yy.xml`

@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource.component;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.IFreezable;
@@ -46,6 +47,7 @@ public abstract class AbstractComponentModel extends SerializableExtensibleObjec
         this.frozen = true;
     }
 
+    @JsonIgnore
     @Override
     public SourceLocation getLocation() {
         return location;

@@ -16,6 +16,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Locator;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SigningKeyResolver;
+import io.jsonwebtoken.impl.DefaultJwtBuilder;
+import io.jsonwebtoken.impl.DefaultJwtParserBuilder;
 import io.jsonwebtoken.io.DeserializationException;
 import io.jsonwebtoken.io.Deserializer;
 import io.jsonwebtoken.io.SerializationException;
@@ -65,7 +67,7 @@ public class JwtHelper {
 
     public static AuthToken parseToken(String token, Locator<Key> keyLocator) {
         try {
-            Jws<Claims> jwt = Jwts.parser().keyLocator(keyLocator)
+            Jws<Claims> jwt = new DefaultJwtParserBuilder().keyLocator(keyLocator)
                     .deserializeJsonWith(new Deserializer<Map<String, ?>>() {
                         @Override
                         public Map<String, ?> deserialize(byte[] bytes) throws DeserializationException {
@@ -96,7 +98,7 @@ public class JwtHelper {
         long begin = CoreMetrics.currentTimeMillis();
         Map<String, Object> claims = new HashMap<>();
         claims.put(AuthApiConstants.JWT_CLAIMS_USERNAME, userName);
-        return Jwts.builder().addClaims(claims).setId(sessionId).setSubject(subject).setIssuedAt(new Date(begin)).signWith(key)
+        return new DefaultJwtBuilder().addClaims(claims).setId(sessionId).setSubject(subject).setIssuedAt(new Date(begin)).signWith(key)
                 .setExpiration(new Date(begin + expireSeconds * 1000L))
                 .serializeToJsonWith(new Serializer<>() {
                     @Override
