@@ -232,6 +232,7 @@ prop:
       logoutType_label: 退出方式
       remark: 备注
       sessionId: 会话ID
+      user: 用户
       userId: 用户ID
       userName: 用户名
       version: 数据版本

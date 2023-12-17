@@ -92,6 +92,9 @@ public class _NopAuthSession extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 18;
 
     
+    /* relation: 用户 */
+    public static final String PROP_NAME_user = "user";
+    
 
     public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sessionId);
     public static final int[] PK_PROP_IDS = new int[]{PROP_ID_sessionId};
@@ -964,5 +967,26 @@ public class _NopAuthSession extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 用户
+     */
+    public io.nop.auth.dao.entity.NopAuthUser getUser(){
+       return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_user);
+    }
+
+    public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
+       if(refEntity == null){
+         
+         this.setUserId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_user, refEntity,()->{
+             
+                    this.setUserId(refEntity.getUserId());
+                 
+          });
+       }
+    }
+       
 }
 // resume CPD analysis - CPD-ON

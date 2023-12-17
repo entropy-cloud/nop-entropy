@@ -686,6 +686,15 @@
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
+            <relations>
+                <to-one displayName="用户" name="user" refEntityName="io.nop.auth.dao.entity.NopAuthUser"
+                        i18n-en:displayName="User">
+                    <join>
+                        <on leftProp="userId" rightProp="userId"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthOpLog" createTimeProp="createTime" createrProp="createdBy"
                 displayName="操作日志" name="io.nop.auth.dao.entity.NopAuthOpLog" registerShortName="true"

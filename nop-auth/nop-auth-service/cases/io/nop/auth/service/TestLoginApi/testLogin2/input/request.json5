@@ -1,0 +1,7 @@
+{
+  data: {
+    loginType: 1,
+    principalId: "auto_test1",
+    principalSecret: "auto_test1"
+  }
+}

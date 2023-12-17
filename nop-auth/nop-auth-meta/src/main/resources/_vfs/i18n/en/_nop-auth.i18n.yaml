@@ -235,6 +235,7 @@ prop:
       createdBy: Created By
       createTime: Create Time
       remark: Remark
+      user: User
     NopAuthSite:
       siteId: Site ID
       displayName: Display Name
