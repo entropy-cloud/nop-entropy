@@ -38,7 +38,7 @@ System.register(['@nop-chaos/sdk','vue','react'], (function (exports) {
 				}
 			})
 
-			sdk.registerSchemaType('plain',{
+			sdk.registerSchemaProcessorType('plain',{
 				componentType,
 				editorComponentType: componentType
 			})
