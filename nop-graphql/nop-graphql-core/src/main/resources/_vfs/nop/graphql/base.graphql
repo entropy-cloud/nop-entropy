@@ -1,6 +1,9 @@
 "扩展数据类型，用于传递Map形式的数据"
 scalar Map
 
+"对应于Java中的Long类型"
+scalar Long
+
 "表示Tree结构。max指定最多嵌套几层"
 directive @TreeChildren(max:Int) on FIELD
 
