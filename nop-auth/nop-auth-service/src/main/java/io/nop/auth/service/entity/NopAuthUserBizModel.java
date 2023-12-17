@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizAudit;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
+import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Name;
@@ -48,6 +49,15 @@ public class NopAuthUserBizModel extends CrudBizModel<NopAuthUser> {
 
     public NopAuthUserBizModel() {
         setEntityName(NopAuthUser.class.getName());
+    }
+
+    @BizQuery
+    public NopAuthUser getUserByOpenId(@Name("openId") String openId, IServiceContext context) {
+        NopAuthUser example = new NopAuthUser();
+        example.setOpenId(openId);
+        NopAuthUser user = dao().findFirstByExample(example);
+        checkDataAuth("get", user, context);
+        return user;
     }
 
     @BizAction

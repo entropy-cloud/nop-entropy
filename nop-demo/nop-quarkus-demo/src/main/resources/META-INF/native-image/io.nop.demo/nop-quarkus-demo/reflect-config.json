@@ -5131,6 +5131,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDeptName",
+        "parameterTypes": []
+      },
+      {
         "name": "getHomePath",
         "parameterTypes": []
       },
@@ -5159,6 +5163,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getUserId",
+        "parameterTypes": []
+      },
+      {
         "name": "getUserName",
         "parameterTypes": []
       },
@@ -5171,6 +5179,12 @@
       },
       {
         "name": "setDeptId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDeptName",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -5213,6 +5227,12 @@
       },
       {
         "name": "setTimeZone",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setUserId",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -6038,9 +6058,19 @@
         ]
       },
       {
+        "name": "isReturnUserId",
+        "parameterTypes": []
+      },
+      {
         "name": "killLoginAsync",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setReturnUserId",
+        "parameterTypes": [
+          "boolean"
         ]
       }
     ],
@@ -14440,6 +14470,13 @@
         ]
       },
       {
+        "name": "getUserByOpenId",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "resetUserPassword",
         "parameterTypes": [
           "java.lang.String",
@@ -14616,6 +14653,12 @@
         ]
       },
       {
+        "name": "getDept",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getUserByEmail",
         "parameterTypes": [
           "java.lang.String"
@@ -14645,6 +14688,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "isReturnDeptName",
+        "parameterTypes": []
       },
       {
         "name": "isValid",
@@ -14707,6 +14754,12 @@
         "name": "setAllowedLoginMethods",
         "parameterTypes": [
           "java.util.Set"
+        ]
+      },
+      {
+        "name": "setReturnDeptName",
+        "parameterTypes": [
+          "boolean"
         ]
       }
     ],

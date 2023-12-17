@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.login;
 
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.audit.AuditRequest;
 import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.auth.IUserContext;
@@ -28,6 +29,7 @@ import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.core.password.IPasswordEncoder;
 import io.nop.auth.core.verifycode.IVerifyCodeGenerator;
 import io.nop.auth.core.verifycode.VerifyCode;
+import io.nop.auth.dao.entity.NopAuthDept;
 import io.nop.auth.dao.entity.NopAuthRole;
 import io.nop.auth.dao.entity.NopAuthTenant;
 import io.nop.auth.dao.entity.NopAuthUser;
@@ -90,6 +92,17 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     @Inject
     protected IAuthTokenProvider authTokenProvider;
+
+    private boolean returnDeptName;
+
+    public boolean isReturnDeptName() {
+        return returnDeptName;
+    }
+
+    @InjectValue("@cfg:nop.login.return-dept-name|false")
+    public void setReturnDeptName(boolean returnDeptName) {
+        this.returnDeptName = returnDeptName;
+    }
 
     public Set<String> getAllowedLoginMethods() {
         return allowedLoginMethods;
@@ -170,7 +183,7 @@ public class LoginServiceImpl extends AbstractLoginService {
         }
 
         if (errorCode != null || user == null) {
-            if(errorCode == null)
+            if (errorCode == null)
                 errorCode = ERR_AUTH_LOGIN_WITH_UNKNOWN_USER;
 
             failCount++;
@@ -220,6 +233,7 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     protected UserContextImpl buildUserContext(NopAuthUser user, LoginRequest request) {
         UserContextImpl context = new UserContextImpl();
+        context.setLoginType(request.getLoginType());
         context.setUserId(user.getUserId());
         context.setOpenId(user.getOpenId());
         context.setUserName(user.getUserName());
@@ -228,6 +242,11 @@ public class LoginServiceImpl extends AbstractLoginService {
         context.setTimeZone(request.getTimeZone() == null ? AppConfig.appTimezone() : request.getTimeZone());
         context.setDeptId(user.getDeptId());
         context.setTenantId(user.getTenantId());
+
+        NopAuthDept dept = getDept(user.getDeptId());
+        if (dept != null) {
+            context.setDeptName(dept.getDeptName());
+        }
 
         Set<NopAuthRole> roles = user.getRoles();
         Set<String> roleIds = new TreeSet<>();
@@ -246,6 +265,15 @@ public class LoginServiceImpl extends AbstractLoginService {
         }
 
         return context;
+    }
+
+    protected NopAuthDept getDept(String deptId) {
+        if (StringHelper.isEmpty(deptId))
+            return null;
+        if (!returnDeptName)
+            return null;
+
+        return daoProvider.daoFor(NopAuthDept.class).getEntityById(deptId);
     }
 
     protected void saveSession(UserContextImpl userContext, LoginRequest request,
