@@ -14,6 +14,7 @@
       "roles": [],
       "tenantId": "0",
       "timeZone": null,
+      "userId": "@var:NopAuthUser@userId",
       "userName": "auto_test1"
     }
   },

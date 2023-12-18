@@ -16,6 +16,7 @@ import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopLoginException;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.AuthApiConstants;
 import io.nop.auth.api.messages.InternalLoginRequest;
@@ -203,12 +204,17 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         try {
             if (needRefresh) {
                 String accessToken = loginService.refreshToken(userContext, authToken);
-                routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
-                if (config.getAuthCookie() != null) {
-                    addCookie(config.getAuthCookie(), accessToken, routeContext);
+                // 如果不支持刷新，则可能返回null
+                if (accessToken != null) {
+                    routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
+                    if (config.getAuthCookie() != null) {
+                        addCookie(config.getAuthCookie(), accessToken, routeContext);
+                    }
                 }
             } else if (config.getAuthCookie() != null) {
-                addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
+                // 如果cookie不一致，则增加cookie
+                if (!authToken.getToken().equals(getAuthTokenFromCookie(routeContext)))
+                    addCookie(config.getAuthCookie(), authToken.getToken(), routeContext);
             }
 
             CompletableFuture<Void> future = new CompletableFuture<>();
@@ -365,6 +371,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         String locale = context.getRequestStringHeader(ApiConstants.HEADER_LOCALE);
         if (locale == null) {
             locale = userContext.getLocale();
+        }
+        if (!StringHelper.isEmpty(locale)) {
+            ApiHeaders.checkLocaleFormat(locale);
         }
 
         IContext ctx = ContextProvider.getOrCreateContext();
