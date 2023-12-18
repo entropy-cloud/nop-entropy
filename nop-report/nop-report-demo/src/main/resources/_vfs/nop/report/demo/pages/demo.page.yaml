@@ -25,6 +25,7 @@ toolbar:
     actionType: download
     api:
       url: "/p/ReportDemo__downloadModel?reportName=${tree}"
+      data: {}
       responseType: "blob"
   - type: action
     level: primary
@@ -32,6 +33,7 @@ toolbar:
     actionType: download
     api:
       url: "/p/ReportDemo__download?reportName=${tree}&renderType=xlsx"
+      data: {}
 
   - type: action
     level: primary
@@ -44,6 +46,7 @@ body:
     name: reportService
     api:
       url: "@query:ReportDemo__renderHtml?reportName=${tree}"
+      data: {}
       responseKey: reportHtml
       sendOn: ${tree}
     body:
