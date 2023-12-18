@@ -156,7 +156,7 @@ public class ReflectionGraphQLTypeFactory {
         }
 
         if (type.getRawClass() == Object.class) {
-            return GraphQLTypeHelper.scalarType(GraphQLScalarType.String);
+            return GraphQLTypeHelper.scalarType(GraphQLScalarType.Any);
         }
 
         GraphQLScalarType scalarType = GraphQLScalarType.fromJavaClass(type.getRawClass());

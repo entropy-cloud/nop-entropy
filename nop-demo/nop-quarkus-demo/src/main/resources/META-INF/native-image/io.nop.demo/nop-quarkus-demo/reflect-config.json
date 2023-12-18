@@ -2611,6 +2611,11 @@
       },
       {
         "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CONTENT_TYPE_TEXT"
+      },
+      {
+        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "CONTENT_TYPE_XML"
       },
@@ -29719,6 +29724,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDisplayMode",
+        "parameterTypes": []
+      },
+      {
         "name": "getDisplayName",
         "parameterTypes": []
       },
@@ -29738,6 +29747,10 @@
       },
       {
         "name": "getFields",
+        "parameterTypes": []
+      },
+      {
+        "name": "getGroupField",
         "parameterTypes": []
       },
       {
@@ -29837,6 +29850,12 @@
         ]
       },
       {
+        "name": "setDisplayMode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setDisplayName",
         "parameterTypes": [
           "java.lang.String"
@@ -29858,6 +29877,12 @@
         "name": "setFields",
         "parameterTypes": [
           "java.util.List"
+        ]
+      },
+      {
+        "name": "setGroupField",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -30135,6 +30160,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDisplayMode",
+        "parameterTypes": []
+      },
+      {
         "name": "getField",
         "parameterTypes": []
       },
@@ -30238,6 +30267,12 @@
       },
       {
         "name": "setDescription",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setDisplayMode",
         "parameterTypes": [
           "java.lang.String"
         ]
@@ -30400,7 +30435,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getColIndex",
+        "parameterTypes": []
+      },
+      {
         "name": "getColOffset",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDownRealCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "getLeftRealCell",
         "parameterTypes": []
       },
       {
@@ -30412,7 +30459,23 @@
         "parameterTypes": []
       },
       {
+        "name": "getRightRealCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "getRowIndex",
+        "parameterTypes": []
+      },
+      {
         "name": "getRowOffset",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTopRealCell",
+        "parameterTypes": []
+      },
+      {
+        "name": "isExportFormattedValue",
         "parameterTypes": []
       },
       {
@@ -30701,6 +30764,12 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "getExcelFormatValue",
+        "parameterTypes": [
+          "io.nop.excel.model.ExcelCell"
+        ]
+      },
       {
         "name": "init",
         "parameterTypes": []
@@ -32390,6 +32459,10 @@
         "parameterTypes": []
       },
       {
+        "name": "isExportFormula",
+        "parameterTypes": []
+      },
+      {
         "name": "isKeepExpandEmpty",
         "parameterTypes": []
       },
@@ -32465,6 +32538,12 @@
       },
       {
         "name": "setExportFormattedValue",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setExportFormula",
         "parameterTypes": [
           "boolean"
         ]

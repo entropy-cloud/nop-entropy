@@ -13,6 +13,7 @@ import io.nop.commons.type.StdDataType;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("java:S115")
 public enum GraphQLScalarType {
     ID(StdDataType.STRING), //
     Boolean(StdDataType.BOOLEAN), //
@@ -24,7 +25,7 @@ public enum GraphQLScalarType {
     Float(StdDataType.DOUBLE), //
     String(StdDataType.STRING), //
     Map(StdDataType.MAP), //
-    ANY(StdDataType.ANY);
+    Any(StdDataType.ANY);
     // BigInteger(StdDataType.BIGINT),
     // BigDecimal(StdDataType.DECIMAL);
 
