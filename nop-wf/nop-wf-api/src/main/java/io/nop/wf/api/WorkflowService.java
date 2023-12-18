@@ -11,6 +11,9 @@
     import io.nop.api.core.annotations.biz.BizQuery;
     import io.nop.api.core.annotations.biz.RequestBean;
 
+    import jakarta.ws.rs.POST;
+    import jakarta.ws.rs.Path;
+
     
         import io.nop.wf.api.beans.WfStartRequestBean;
     
@@ -33,6 +36,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__startWorkflow")
         @BizMutation
         CompletionStage<ApiResponse<WfStartResponseBean>> startWorkflowAsync(ApiRequest<WfStartRequestBean> request,
             ICancelToken cancelToken);
@@ -47,6 +52,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__startWorkflow")
         @BizMutation
         ApiResponse<WfStartResponseBean> startWorkflow(ApiRequest<WfStartRequestBean> request,
             ICancelToken cancelToken);
@@ -61,6 +68,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__notifySubFlowEnd")
         @BizMutation
         CompletionStage<ApiResponse<Void>> notifySubFlowEndAsync(ApiRequest<WfSubFlowEndRequestBean> request,
             ICancelToken cancelToken);
@@ -75,6 +84,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__notifySubFlowEnd")
         @BizMutation
         ApiResponse<Void> notifySubFlowEnd(ApiRequest<WfSubFlowEndRequestBean> request,
             ICancelToken cancelToken);
@@ -89,6 +100,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__invokeAction")
         @BizMutation
         CompletionStage<ApiResponse<Object>> invokeActionAsync(ApiRequest<WfActionRequestBean> request,
             ICancelToken cancelToken);
@@ -103,6 +116,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__invokeAction")
         @BizMutation
         ApiResponse<Object> invokeAction(ApiRequest<WfActionRequestBean> request,
             ICancelToken cancelToken);
@@ -117,6 +132,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__killWorkflow")
         @BizMutation
         CompletionStage<ApiResponse<Void>> killWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
             ICancelToken cancelToken);
@@ -131,6 +148,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__killWorkflow")
         @BizMutation
         ApiResponse<Void> killWorkflow(ApiRequest<WfCommandRequestBean> request,
             ICancelToken cancelToken);
@@ -145,6 +164,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__suspendWorkflow")
         @BizMutation
         CompletionStage<ApiResponse<Void>> suspendWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
             ICancelToken cancelToken);
@@ -159,6 +180,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__suspendWorkflow")
         @BizMutation
         ApiResponse<Void> suspendWorkflow(ApiRequest<WfCommandRequestBean> request,
             ICancelToken cancelToken);
@@ -173,6 +196,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__resumeWorkflow")
         @BizMutation
         CompletionStage<ApiResponse<Void>> resumeWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
             ICancelToken cancelToken);
@@ -187,6 +212,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/WorkflowService__resumeWorkflow")
         @BizMutation
         ApiResponse<Void> resumeWorkflow(ApiRequest<WfCommandRequestBean> request,
             ICancelToken cancelToken);

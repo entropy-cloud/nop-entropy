@@ -2685,6 +2685,11 @@
       },
       {
         "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CONTENT_TYPE_TEXT"
+      },
+      {
+        "allowUnsafeAccess": false,
         "allowWrite": true,
         "name": "CONTENT_TYPE_XML"
       },

@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 关联表上的字段可以通过alias映射为主实体的属性，从而简化程序编写
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _OrmAliasModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

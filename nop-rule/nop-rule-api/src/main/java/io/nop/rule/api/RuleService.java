@@ -11,6 +11,9 @@
     import io.nop.api.core.annotations.biz.BizQuery;
     import io.nop.api.core.annotations.biz.RequestBean;
 
+    import jakarta.ws.rs.POST;
+    import jakarta.ws.rs.Path;
+
     
         import io.nop.rule.api.beans.RuleRequestBean;
     
@@ -31,6 +34,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/RuleService__executeRule")
         @BizMutation
         CompletionStage<ApiResponse<RuleResultBean>> executeRuleAsync(ApiRequest<RuleRequestBean> request,
             ICancelToken cancelToken);
@@ -45,6 +50,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/RuleService__executeRule")
         @BizMutation
         ApiResponse<RuleResultBean> executeRule(ApiRequest<RuleRequestBean> request,
             ICancelToken cancelToken);
@@ -59,6 +66,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/RuleService__getRuleMeta")
         @BizQuery
         CompletionStage<ApiResponse<RuleMetaBean>> getRuleMetaAsync(ApiRequest<RuleKeyBean> request,
             ICancelToken cancelToken);
@@ -73,6 +82,8 @@
         /**
          * 
          */
+        @POST
+        @Path("/r/RuleService__getRuleMeta")
         @BizQuery
         ApiResponse<RuleMetaBean> getRuleMeta(ApiRequest<RuleKeyBean> request,
             ICancelToken cancelToken);

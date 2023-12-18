@@ -16,8 +16,8 @@ import io.nop.sys.dao.entity.NopSysVariable;
 /**
  *  系统变量: nop_sys_variable
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopSysVariable extends DynamicOrmEntity{
     
     /* 变量名: VAR_NAME VARCHAR */
@@ -65,8 +65,8 @@ public class _NopSysVariable extends DynamicOrmEntity{
 
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_varName);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_varName};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_varName);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_varName};
 
     private static final String[] PROP_ID_TO_NAME = new String[11];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -137,6 +137,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     
 
     public _NopSysVariable(){
+        // for debug
     }
 
     protected NopSysVariable newInstance(){

@@ -12,7 +12,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * compute的结果不会被自动缓存，每次访问都会重新计算。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _OrmComputePropModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

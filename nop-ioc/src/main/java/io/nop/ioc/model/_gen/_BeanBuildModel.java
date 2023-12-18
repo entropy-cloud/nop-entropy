@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 将xml属性直接映射到bean属性，支持嵌套结构
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _BeanBuildModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

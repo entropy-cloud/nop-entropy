@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 多个字段可能构成一个component对象。component对象如果实现了IOrmComponent接口，则其结果可以被缓存。它的内部实现会自动实现与实体属性的同步
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _OrmComponentModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

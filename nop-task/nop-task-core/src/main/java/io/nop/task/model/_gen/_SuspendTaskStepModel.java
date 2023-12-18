@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 挂起当前任务，等待手工触发继续执行
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _SuspendTaskStepModel extends io.nop.task.model.TaskStepModel {
     
     /**

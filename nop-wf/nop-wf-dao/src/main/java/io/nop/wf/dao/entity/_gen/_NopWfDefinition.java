@@ -16,8 +16,8 @@ import io.nop.wf.dao.entity.NopWfDefinition;
 /**
  *  工作流模型定义: nop_wf_definition
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopWfDefinition extends DynamicOrmEntity{
     
     /* 主键: WF_DEF_ID VARCHAR */
@@ -80,8 +80,8 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_definitionAuths = "definitionAuths";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfDefId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfDefId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_wfDefId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_wfDefId};
 
     private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -170,6 +170,7 @@ public class _NopWfDefinition extends DynamicOrmEntity{
     
 
     public _NopWfDefinition(){
+        // for debug
     }
 
     protected NopWfDefinition newInstance(){

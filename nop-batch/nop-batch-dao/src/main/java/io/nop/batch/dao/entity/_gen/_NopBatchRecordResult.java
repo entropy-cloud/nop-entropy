@@ -16,8 +16,8 @@ import io.nop.batch.dao.entity.NopBatchRecordResult;
 /**
  *  批处理记录结果: nop_batch_record_result
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopBatchRecordResult extends DynamicOrmEntity{
     
     /* 主键: TASK_ID VARCHAR */
@@ -72,8 +72,8 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     public static final String PROP_NAME_task = "task";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_taskId,PROP_NAME_recordKey);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_taskId,PROP_ID_recordKey};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_taskId,PROP_NAME_recordKey);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_taskId,PROP_ID_recordKey};
 
     private static final String[] PROP_ID_TO_NAME = new String[12];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -150,6 +150,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     
 
     public _NopBatchRecordResult(){
+        // for debug
     }
 
     protected NopBatchRecordResult newInstance(){

@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * idref会验证值为container中存在的bean名称。它的功能与value类似，但是增加了校验功能。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _BeanIdRefValue extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

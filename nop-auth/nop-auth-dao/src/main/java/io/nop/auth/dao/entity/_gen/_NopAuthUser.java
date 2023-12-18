@@ -16,8 +16,8 @@ import io.nop.auth.dao.entity.NopAuthUser;
 /**
  *  用户: nop_auth_user
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopAuthUser extends DynamicOrmEntity{
     
     /* 用户ID: USER_ID VARCHAR */
@@ -193,8 +193,8 @@ public class _NopAuthUser extends DynamicOrmEntity{
     public static final String PROP_NAME_avatarComponent = "avatarComponent";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_userId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_userId};
 
     private static final String[] PROP_ID_TO_NAME = new String[37];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -421,6 +421,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     
 
     public _NopAuthUser(){
+        // for debug
     }
 
     protected NopAuthUser newInstance(){

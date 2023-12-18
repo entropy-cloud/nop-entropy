@@ -16,8 +16,8 @@ import io.nop.rule.dao.entity.NopRuleDefinition;
 /**
  *  规则模型定义: nop_rule_definition
  */
-@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602",
-        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101"})
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
+        "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopRuleDefinition extends DynamicOrmEntity{
     
     /* 主键: RULE_ID VARCHAR */
@@ -94,8 +94,8 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_modelTextXmlComponent = "modelTextXmlComponent";
     
 
-    public static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_ruleId);
-    public static final int[] PK_PROP_IDS = new int[]{PROP_ID_ruleId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_ruleId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_ruleId};
 
     private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
@@ -196,6 +196,7 @@ public class _NopRuleDefinition extends DynamicOrmEntity{
     
 
     public _NopRuleDefinition(){
+        // for debug
     }
 
     protected NopRuleDefinition newInstance(){

@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 每个业务模型(bizModel)必须关联一个对象模型(objMeta)。BizModel作为后端模型，只返回json, 不允许输出文本， 不包含具体界面实现
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _BizModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

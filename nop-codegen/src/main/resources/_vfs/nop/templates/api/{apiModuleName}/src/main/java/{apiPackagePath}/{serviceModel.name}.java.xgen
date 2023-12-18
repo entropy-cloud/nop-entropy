@@ -11,6 +11,9 @@
     import io.nop.api.core.annotations.biz.BizQuery;
     import io.nop.api.core.annotations.biz.RequestBean;
 
+    import jakarta.ws.rs.POST;
+    import jakarta.ws.rs.Path;
+
     <gen:CollectApiMessageImports xpl:lib="/nop/codegen/xlib/gen.xlib"
                                   serviceModel="${serviceModel}" xpl:return="types" />
     <c:for var="type" items="${types}">
@@ -33,6 +36,8 @@
         /**
          * ${method.description}
          */
+        @POST
+        @Path("/r/${serviceModel.bizObjName}__${method.name}")
         @${method.mutation?'BizMutation':'BizQuery'}
         CompletionStage<ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}>> ${method.name}Async(ApiRequest<${method.simpleRequestMessage}> request,
             ICancelToken cancelToken);
@@ -47,6 +52,8 @@
         /**
          * ${method.description}
          */
+        @POST
+        @Path("/r/${serviceModel.bizObjName}__${method.name}")
         @${method.mutation?'BizMutation':'BizQuery'}
         ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}(ApiRequest<${method.simpleRequestMessage}> request,
             ICancelToken cancelToken);
