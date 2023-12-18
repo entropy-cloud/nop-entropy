@@ -30,13 +30,13 @@ ToB市场中软件产品开发难以摆脱的一个魔咒是所谓的定制化�
 
 事前预测不靠谱，事后分离成本高。如果希望以低廉的成本实现定制化开发，在理想的情况下，定制化代码和基础产品代码应该物理隔离，同时无需预留接口，即可通过某种通用机制对基础产品功能进行剪裁、扩展。为了实现这个目标，我们有必要重新审视定制化开发的理论基础。
 
-假设我们已经建立了基础产品 X，它具有多个组成部分，可以用如下公式来表达：
+假设我们已经建立了基础产品`X`，它具有多个组成部分，可以用如下公式来表达：
 
 ```
    X = A + B + C
 ```
 
-我们希望开发的目标产品Y，它也具有多个组成部分，
+我们希望开发的目标产品`Y`，它也具有多个组成部分，
 
 ```
    Y = A + B + D
@@ -45,29 +45,29 @@ ToB市场中软件产品开发难以摆脱的一个魔咒是所谓的定制化�
 **在产品X的基础上来开发产品Y，翻译到抽象层面，对应于建立从X到Y的一个运算关系**
 
 ```
-   Y = A + B + D = (A + B + C) + (-C + D) = X + Delta  
+   Y = A + B + D = (A + B + C) + (-C + D) = X + Delta
 ```
 
-如果真的可以实现完全不修改基础产品X，那么一个很自然的理论推论是：**定制化代码相当于是一种针对基础产品的Delta修正**。
+如果真的可以实现完全不修改基础产品`X`，那么一个很自然的理论推论是：**定制化代码相当于是一种针对基础产品的Delta修正**。
 
 更进一步，我们可以有如下衍生的推论:
 
 1. 差量Delta应该是架构设计中的**第一类(First Class)概念**。
    这样它才可以被独立识别、管理、存放。定制化代码应该和基础产品代码在物理层面分离，单独进行版本管理。
 
-2. X = 0 + X，任何量作用于单位元都得到它自身，因此**全量是差量的一个特例**。 Delta的定义和表达形式在理论层面无需进行特殊设计，任何一个原有的形式表达都可以被看作是一种差量化表达，我们只需要定义好差量之间的运算规则即可。
+2. `X = 0 + X`，任何量作用于单位元都得到它自身，因此**全量是差量的一个特例**。 Delta的定义和表达形式在理论层面无需进行特殊设计，任何一个原有的形式表达都可以被看作是一种差量化表达，我们只需要定义好差量之间的运算规则即可。
 
-3. Y = X  + Delta1 + Delta2 = X + (Delta1 + Delta2) = X + Delta。 **Delta应该满足结合律**，这样可以脱离基础产品，独立的对多个Delta进行合并运算，将多个Delta打包为一个整体。
+3. `Y = X  + Delta1 + Delta2 = X + (Delta1 + Delta2) = X + Delta`。 **Delta应该满足结合律**，这样可以脱离基础产品，独立的对多个Delta进行合并运算，将多个Delta打包为一个整体。
 
-4. Delta = -C + D，除了新增组分之外，**Delta必须包含逆元**，这样才能实现对原系统的剪裁。Delta应该是新增、修改、删除的混合体。
+4. `Delta = -C + D`，除了新增组分之外，**Delta必须包含逆元**，这样才能实现对原系统的剪裁。Delta应该是新增、修改、删除的混合体。
 
-5. Y = (A + dA) + (B + dB) + (C + dC) = A + B + C + (dA + dB + dC) = X + Delta，如果允许原系统各处都可以发生变化，则Delta机制需要从原系统的各个细微之处搜集变化，然后把它们聚合为一个整体的Delta。**这隐含的要求原系统具有一个稳定的定位坐标系**。dA与A分离之后，存放到独立存在的Delta中，那么它必然保留了某种定位坐标，只有这样，当Delta与X结合的时候，才可以重新找到原始的结构A，然后与A相结合。
+5. `Y = (A + dA) + (B + dB) + (C + dC) = A + B + C + (dA + dB + dC) = X + Delta`，如果允许原系统各处都可以发生变化，则Delta机制需要从原系统的各个细微之处搜集变化，然后把它们聚合为一个整体的Delta。**这隐含的要求原系统具有一个稳定的定位坐标系**。`dA`与`A`分离之后，存放到独立存在的Delta中，那么它必然保留了某种定位坐标，只有这样，当Delta与`X`结合的时候，才可以重新找到原始的结构`A`，然后与`A`相结合。
 
 一些高度灵活的SAAS产品将表单配置和流程配置保存在数据库表中，然后通过调整配置来实现针对特定用户的定制化开发。在这种解决方案中，配置表和配置条目的主键相当于构成了一个坐标系统。在此基础上，可以为配置条目增加版本字段，从而实现版本管理甚至版本继承功能。
 
 一些软件提供的补丁热更新的机制本质上也是一种Delta修正机制。补丁的成功应用依赖于基础架构层面提供的坐标系定位机制以及定位后执行的差量合并算法。不过，与定制化开发相比，热更新对补丁的结构化要求较低，不一定要求补丁本身具有相对稳定的业务语义，补丁本身也不一定对应于程序员可以直接理解的源码。
 
-在Docker技术出现之前，虚拟机技术已经可以实现增量备份，但是虚拟机的增量是定义在二进制字节空间中，一个很小的业务变化就可能导致大量字节层面的变化，极不稳定，因此虚拟机增量备份不具备业务语义，也很少独立存在的价值。而**Docker相当于在文件系统空间中定义了差量合并规则，Docker镜像具有明确的业务语义，可以通过DockerFile这一领域语言来动态构建，可以上传到中心仓库存储、检索，这开辟了一条基于差量概念实现应用构建的完整技术路线**。
+在Docker技术出现之前，虚拟机技术已经可以实现增量备份，但是虚拟机的增量是定义在二进制字节空间中，一个很小的业务变化就可能导致大量字节层面的变化，极不稳定，因此虚拟机增量备份不具备业务语义，也很少有独立存在的价值。而**Docker相当于在文件系统空间中定义了差量合并规则，Docker镜像具有明确的业务语义，可以通过DockerFile这一领域语言来动态构建，可以上传到中心仓库存储、检索，这开辟了一条基于差量概念实现应用构建的完整技术路线**。
 
 可逆计算理论指出，各种基于差量概念的技术实践背后存在着统一的软件构造原理，它们都可以统一到如下公式中:
 
@@ -87,42 +87,42 @@ Nop平台是可逆计算理论的一个参考实现，基于Nop平台的Delta定
 
 所有差量定制代码可以集中存放在一个专用的Delta模块中，例如[app-mall-delta](https://gitee.com/canonical-entropy/nop-app-mall/tree/master/app-mall-delta)。
 
-在app-mall-codegen模块的[gen-orm.xgen](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-codegen/postcompile/gen-orm.xgen)文件中，增加如下调用，表示将差量化定制代码生成到app-mall-delta模块下。
+在`app-mall-codegen`模块的[gen-orm.xgen](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/app-mall-codegen/postcompile/gen-orm.xgen)文件中，增加如下调用，表示将差量化定制代码生成到`app-mall-delta`模块下。
 
 ```javascript
 codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx','/nop/templates/orm-delta', '/',$scope);
 codeGenerator.withTargetDir("../app-mall-delta").renderModel('../../model/nop-auth-delta.orm.xlsx','/nop/templates/meta-delta', '/',$scope);
 ```
 
-在其他模块中，例如app-mall-app模块中，只要依赖app-mall-delta模块即可实现对Nop平台内置功能的定制。
+在其他模块中，例如`app-mall-app`模块中，只要依赖`app-mall-delta`模块即可实现对Nop平台内置功能的定制。
 
 ## 3.2 数据模型的Delta定制
 
-nop-auth模块是Nop平台缺省提供的一个权限管理模块，Nop平台基于[nop-auth.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/model/nop-auth.orm.xlsx)这一数据模型来自动生成ORM模型定义以及GraphQL类型定义等。如果需要在系统内置的用户表上增加字段，则我们可以增加一个[nop-auth-delta.orm.xlsx](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/model/nop-auth-delta.orm.xlsx)差量模型，在其中只包含需要被扩展的表和字段。
+`nop-auth`模块是Nop平台缺省提供的一个权限管理模块，Nop平台基于[nop-auth.orm.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/model/nop-auth.orm.xlsx)这一数据模型来自动生成ORM模型定义以及GraphQL类型定义等。如果需要在系统内置的用户表上增加字段，则我们可以增加一个[nop-auth-delta.orm.xlsx](https://gitee.com/canonical-entropy/nop-app-mall/blob/master/model/nop-auth-delta.orm.xlsx)差量模型，在其中只包含需要被扩展的表和字段。
 
 ![delta-table.png](delta-table.png)
 
-在NopAuthUser表中我们增加了一个MALL_USER_ID字段，它关联到nop-app-mall项目中定义的LitemallUser表。
+在`NopAuthUser`表中我们增加了一个`MALL_USER_ID`字段，它关联到`nop-app-mall`项目中定义的`LitemallUser`表。
 
-1. MALL_USER_ID的【编号】列必须指定一个唯一编号，一般情况下我们可以选择从基础模型的最大编号+50开始，避免与基础模型中新增字段的编号重复。
+1. `MALL_USER_ID`的【编号】列必须指定一个唯一编号，一般情况下我们可以选择从`基础模型的最大编号+50`开始，避免与基础模型中新增字段的编号重复。
 
-2. 为了保证模型中数据结构的完整性，我们必须在NopAuthUser表中包含主键定义，为了避免重复生成代码，在【标签】列需要增加not-gen标签，表示它是基类中已经定义的字段，无需生成对应属性定义代码。
+2. 为了保证模型中数据结构的完整性，我们必须在`NopAuthUser`表中包含主键定义，为了避免重复生成代码，在【标签】列需要增加`not-gen`标签，表示它是基类中已经定义的字段，无需生成对应属性定义代码。
 
-3. 需要将表的【对象名】指定为io.nop.auth.dao.entity.NopAuthUser，这样可以保持基础模型中定义的实体对象名不变，所有已有的代码不会受到影响。
+3. 需要将表的【对象名】指定为`io.nop.auth.dao.entity.NopAuthUser`，这样可以保持基础模型中定义的实体对象名不变，所有已有的代码不会受到影响。
 
-4. 表的【基类】指定为io.nop.auth.dao.entity.NopAuthUser，【类型】指定为NopAuthUserEx，这样生成的实体类会从NopAuthUser类继承。
+4. 表的【基类】指定为`io.nop.auth.dao.entity.NopAuthUser`，【类名】指定为`NopAuthUserEx`，这样生成的实体类会从`NopAuthUser`类继承。
 
-在差量模型中如果引用其他模块中定义的实体类，则需要使用完整的实体名，例如app.mall.dao.entity.LitemallUser。
+在差量模型中如果引用其他模块中定义的实体类，则需要使用完整的实体名，例如`app.mall.dao.entity.LitemallUser`。
 
 ![external-table](external-table.png)
 
-因为不需要为这些外部表生成代码，所以我们在LitemallUser表的【标签】配置中增加not-gen标签，且表的字段定义只保留主键定义，用于模型解析时的完整性校验。
+因为不需要为这些外部表生成代码，所以我们在`LitemallUser`表的【标签】配置中增加`not-gen`标签，且表的字段定义只保留主键定义，用于模型解析时的完整性校验。
 
 ![delta-config](delta-config.png)
 
-**注意appName需要与自己定制的模块名保持一致，否则无法实现定制功能，运行时会出现重复定义实体的错误**
+**注意`appName`需要与自己定制的模块名保持一致，否则无法实现定制功能，运行时会出现重复定义实体的错误**
 
-在数据模型配置中，我们指定deltaDir=default，这样模型文件生成的路径为 `/_vfs/_delta/{deltaDir}/{originalPath}`。模型装载的时候会优先装载delta目录下的模型文件，从而覆盖基础产品中的模型定义。
+在数据模型配置中，我们指定`deltaDir=default`，这样模型文件生成的路径为 `/_vfs/_delta/{deltaDir}/{originalPath}`。模型装载的时候会优先装载delta目录下的模型文件，从而覆盖基础产品中的模型定义。
 
 实际生成ORM模型文件结构为
 
@@ -134,10 +134,10 @@ nop-auth模块是Nop平台缺省提供的一个权限管理模块，Nop平台基
              ...
      </entity>
   </entities>
-</orm>   
+</orm>
 ```
 
-在这种配置下，entityDao或者ormTemplate新建实体时返回的实现类为NopAuthUserEx类型，但是实体名保持为NoptAuthUser。
+在这种配置下，`entityDao`或者`ormTemplate`新建实体时返回的实现类为`NopAuthUserEx`类型，但是实体名保持为`NoptAuthUser`。
 
 ```javascript
  IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
@@ -161,7 +161,7 @@ class _NopAuthUserEx extends NopAuthUser{
 
 在扩展的实体类中，继承了基础模型实体类的全部功能，同时可以通过生成的`_NopAuthUserEx`类来增加新的字段信息。
 
-如果希望在数据库中精简字段，删除某些字段定义，则只需要在字段的【标签】配置中增加del标签，它对应生成如下配置
+如果希望在数据库中精简字段，删除某些字段定义，则只需要在字段的【标签】配置中增加`del`标签，它对应生成如下配置
 
 ```xml
 <orm>
@@ -169,8 +169,8 @@ class _NopAuthUserEx extends NopAuthUser{
       <entity name="io.nop.auth.dao.entity.NopAuthUser">
          <columns>
             <!-- x:override=remove表示删除此字段定义 -->
-            <column name="clientId" x:override="remove" /> 
-         </columns>   
+            <column name="clientId" x:override="remove" />
+         </columns>
       </entity>
    </entities>
 </orm>
@@ -197,20 +197,20 @@ Nop平台内置了一个兼容Spring1.0配置语法的IoC容器[NopIoC](https://
 ```
 
 2. 缺省实现
-   NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中存在其他同名的bean，则缺省实现会被自动忽略，这一点类似于SpringBoot中的ConditionOnMissingBean机制。
-   
+   NopIoC可以为指定名称的bean提供一个缺省实现，如果在容器中存在其他同名的bean，则缺省实现会被自动忽略，这一点类似于SpringBoot中的`ConditionOnMissingBean`机制。
+
    ```xml
     <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
-   
+
     <!-- 标记了ioc:default="true"的bean 会被其他文件中定义的同名的bean覆盖 -->
     <bean id="nopActionAuthChecker" class="com.ruoyi.framework.web.service.PermissionService" />
    ```
 
-也可以为新增的bean增加primary=true配置，它的优先级会高于所有没有标记为primary的bean的定义。
+也可以为新增的bean增加`primary=true`配置，它的优先级会高于所有没有标记为`primary`的bean的定义。
 
 3. x-extends继承
 
-NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。我们可以在delta目录下增加同名的beans.xml配置文件来覆盖基础产品中已有的配置文件。例如app-mall-delta模块中`/_vfs/_delta/default/nop/auth/auth-service.beans.xml`
+NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。我们可以在delta目录下增加同名的`beans.xml`配置文件来覆盖基础产品中已有的配置文件。例如`app-mall-delta`模块中`/_vfs/_delta/default/nop/auth/auth-service.beans.xml`
 
 ```xml
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -227,9 +227,9 @@ NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。�
 </beans>
 ```
 
-上面的配置表示继承已有的模型（`x:extends="true"`），然后修改nopAuthFilterConfig这个bean的authPaths属性的配置，为它增加一个条目。
+上面的配置表示继承已有的模型（`x:extends="super"`），然后修改`nopAuthFilterConfig`这个bean的`authPaths`属性的配置，为它增加一个条目。
 
-除了覆盖bean的配置之外，我们可以通过delta定制来删除bean的配置。例如Nop平台与Ruoyi框架集成的时候需要删除内置的dataSource配置
+除了覆盖bean的配置之外，我们可以通过delta定制来删除bean的配置。例如Nop平台与Ruoyi框架集成的时候需要删除内置的`dataSource`配置
 
 ```
     <bean id="nopDataSource" x:override="remove" />
@@ -237,7 +237,7 @@ NopIoC更为强大的地方是它支持XLang语言内置的Delta定制机制。�
 
 具体配置参见[delta目录下的dao-defaults.beans.xml](https://gitee.com/canonical-entropy/nop-for-ruoyi/blob/master/ruoyi-admin/src/main/resources/_vfs/_delta/default/nop/dao/beans/dao-defaults.beans.xml)
 
-Delta定制非常更加简单直观，**适用于所有模型文件而且可以定制到最细粒度的单个属性**。如果对比一下SpringBoot的等价实现，我们会发现SpringBoot的定制功能存在很大的限制：首先，为了实现Bean exclusion和 Bean Override，Spring需要在引擎内部增加大量相关的处理代码，同时也引入很多特殊的使用语法。第二，Spring的定制机制只针对单个Bean的配置，比如我们可以禁用某个bean，缺乏合适的针对单个属性的定制手段。如果事前规划的不好，我们很难通过简单的方式来覆盖系统中已有的Bean的定义。
+Delta定制非常简单直观，**适用于所有模型文件而且可以定制到最细粒度的单个属性**。如果对比一下SpringBoot的等价实现，我们会发现SpringBoot的定制功能存在很大的限制：首先，为了实现Bean exclusion和 Bean Override，Spring需要在引擎内部增加大量相关的处理代码，同时也引入很多特殊的使用语法。第二，Spring的定制机制只针对单个Bean的配置，比如我们可以禁用某个bean，但缺乏合适的针对单个属性的定制手段。如果事前规划的不好，我们很难通过简单的方式来覆盖系统中已有的Bean的定义。
 
 > 因为IoC容器可以按照名称、类型、注解等多种方式搜索匹配的bean，并实现装配，所以在一般情况下我们不需要再额外设计插件机制。
 
@@ -245,9 +245,9 @@ Delta定制非常更加简单直观，**适用于所有模型文件而且可以�
 
 ### 3.4 GraphQL对象的Delta定制
 
-Nop平台的GraphQL服务一般对应于BizModel对象，例如 NopAuthUser__findPage表示调用NopAuthUserBizModel类上的findPage方法。我们可以通过覆盖BizModel注册类的方式来实现对GraphQL服务的定制。具体做法如下：
+Nop平台的GraphQL服务一般对应于`BizModel`对象，例如`NopAuthUser__findPage`表示调用`NopAuthUserBizModel`类上的`findPage`方法。我们可以通过覆盖`BizModel`注册类的方式来实现对GraphQL服务的定制。具体做法如下：
 
-1. 从已有的BizModel类继承，在其中增加新的服务方法，或者重载原有的方法
+1. 从已有的`BizModel`类继承，在其中增加新的服务方法，或者重载原有的方法
 
 ```java
 public class NopAuthUserExBizModel extends NopAuthUserBizModel {
@@ -262,16 +262,16 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 }
 ```
 
-2. 在beans.xml中覆盖原有的bean定义。
-   
+2. 在`beans.xml`中覆盖原有的bean定义。
+
    ```xml
     <bean id="io.nop.auth.service.entity.NopAuthUserBizModel"
           class="app.mall.delta.biz.NopAuthUserExBizModel"/>
    ```
-   
-   自动生成的bean定义上标记了`ioc:default="true"`，所以只要重新按照同样的id注册，就会覆盖缺省的定义。
 
-除了扩展已有的BizModel类之外，我们可以通过XBiz模型来覆盖Java对象中定义的服务方法。例如定制NopAuthUser.xbiz文件，在其中增加方法定义
+   自动生成的bean定义上标记了`ioc:default="true"`，所以只要重新按照同样的`id`注册，就会覆盖缺省的定义。
+
+除了扩展已有的`BizModel`类之外，我们可以通过`XBiz`模型来覆盖Java对象中定义的服务方法。例如定制`NopAuthUser.xbiz`文件，在其中增加方法定义
 
 ```xml
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="super">
@@ -286,11 +286,11 @@ public class NopAuthUserExBizModel extends NopAuthUserBizModel {
 </biz>
 ```
 
-NopGraphQL引擎会自动收集所有biz文件以及标注了@BizModel的bean，并按照bizObjName把它们分组汇总为最终的服务对象。这种做法有些类似于游戏开发领域的[ECS架构(Entity-Component-System)](https://zhuanlan.zhihu.com/p/30538626)。在这种架构中，具有唯一标识的对象是由多个对象切片堆叠而成，因此定制的时候我们不一定需要修改原有的对象切片，而是可以选择堆叠一个新的切片覆盖此前的功能即可。XBiz文件中定义的函数优先级最高，它会覆盖BizModel中定义的函数。
+NopGraphQL引擎会自动收集所有biz文件以及标注了`@BizModel`的bean，并按照`bizObjName`把它们分组汇总为最终的服务对象。这种做法有些类似于游戏开发领域的[ECS架构(Entity-Component-System)](https://zhuanlan.zhihu.com/p/30538626)。在这种架构中，具有唯一标识的对象是由多个对象切片堆叠而成，因此定制的时候我们不一定需要修改原有的对象切片，而是可以选择堆叠一个新的切片覆盖此前的功能即可。`XBiz`文件中定义的函数优先级最高，它会覆盖`BizModel`中定义的函数。
 
 ## 3.5 前端页面的Delta定制
 
-Nop平台的前端页面主要在view.xml和page.yaml这两种模型文件中定义。前者是技术中立的XView视图大纲模型，它采用表单、表格、页面、按钮等粗粒度的概念实现对页面结构的描述，足以描述一般的管理页面。而page.yaml模型对应于百度AMIS框架的JSON描述，最终返回到前端的实际上是page.yaml文件中的内容。page.yaml利用`x:gen-extends`这一元编程机制动态根据XView模型来生成页面内容。
+Nop平台的前端页面主要在`view.xml`和`page.yaml`这两种模型文件中定义。前者是技术中立的`XView`视图大纲模型，它采用表单、表格、页面、按钮等粗粒度的概念实现对页面结构的描述，足以描述一般的管理页面。而`page.yaml`模型对应于百度AMIS框架的JSON描述，最终返回到前端的实际上是`page.yaml`文件中的内容。`page.yaml`利用`x:gen-extends`这一元编程机制根据`XView`模型来动态生成页面内容。
 
 通过定制这两种模型文件，我们可以调整表单的布局、设置单个字段的显示控件、在页面上增加按钮、删除按钮，甚至完全覆盖基础产品中的页面内容。
 
@@ -306,20 +306,20 @@ Nop平台中的所有模型，包括工作流模型、报表模型、规则模�
 与一般的报表引擎、工作流引擎不同，Nop平台中的引擎大量使用了Xpl模板语言作为可执行脚本，因此可以引入自定义标签库来实现定制扩展。例如，
 一般的报表引擎会内置几种数据加载机制:JDBC/CSV/JSON/Excel等。如果我们希望增加新的加载方式，一般需要实现引擎内置的特殊接口，并且使用特殊的注册机制将接口实现注册到引擎中，而修改可视化设计器，使其支持自定义配置一般也不是一项很简单的工作。
 
-而在NopReport报表模型中，提供了名为beforeExecute的Xpl模板配置，它可以看作是一个基于通用接口（[IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)）的扩展点。在beforeExecute段中我们可以采用如下方式引入新的数据加载机制：
+而在`NopReport`报表模型中，提供了名为`beforeExecute`的Xpl模板配置，它可以看作是一个基于通用接口（[IEvalAction](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/lang/eval/IEvalAction.java)）的扩展点。在`beforeExecute`段中我们可以采用如下方式引入新的数据加载机制：
 
 ```xml
 <beforeExecute>
    <spl:MakeDataSet xpl:lib="/nop/report/spl/spl.xlib" dsName="ds1" src="/nop/report/demo/spl/test-data.splx" />
-</beforeExecute>   
+</beforeExecute>
 ```
 
 > 只需要查看XDef元模型我们就可以很容易的发现哪些节点是Xpl模板配置节点，无需定义或者理解特殊的插件接口。
 
-标签调用既是一种函数调用，又可以看作是一种很容易被解析的XML配置，可以通过补充一个XView模型文件来自动生成beforeExecute段的可视化编辑器。
+标签调用既是一种函数调用，又可以看作是一种很容易被解析的XML配置，可以通过补充一个`XView`模型文件来自动生成`beforeExecute`段的可视化编辑器。
 如果平台已经提供了模型的可视化设计器，也可以很容易的通过定制设计器所对应的模型文件实现自定义扩展。
 
-另外一种做法是利用XDSL内置的扩展属性配置。Nop平台所有的模型文件都自动支持扩展属性，除了XDef元模型中定义的属性和节点之外，所有带名字空间的属性和节点在缺省情况下都不会参与格式校验，会作为扩展属性被存储（这一机制类似于允许在Java类中增加任意的Annotation注解）。我们引入扩展属性节点来保存配置，然后利用`x:post-extends`元编程机制在编译期解析扩展配置，动态生成beforeExecute段。这种做法不需要在报表模型中内置引入数据源配置这样的概念，也不需要报表引擎在运行时有任何特殊的接口支持，仅仅通过**局部的编译期变换**即可实现任意外部数据源的集成。
+另外一种做法是利用XDSL内置的扩展属性配置。Nop平台所有的模型文件都自动支持扩展属性，除了XDef元模型中定义的属性和节点之外，所有带名字空间的属性和节点在缺省情况下都不会参与格式校验，会作为扩展属性被存储（这一机制类似于允许在Java类中增加任意的Annotation注解）。我们引入扩展属性节点来保存配置，然后利用`x:post-extends`元编程机制在编译期解析扩展配置，动态生成`beforeExecute`段。这种做法不需要在报表模型中内置引入数据源配置这样的概念，也不需要报表引擎在运行时有任何特殊的接口支持，仅仅通过**局部的编译期变换**即可实现任意外部数据源的集成。
 
 ```xml
 <x:post-extends>
@@ -335,15 +335,15 @@ Nop平台中的所有模型，包括工作流模型、报表模型、规则模�
 
 ## 3.8 编译期的特性开关
 
-一个高度可配置的产品如果希望保持运行时性能，那么它应该尽量在编译期执行各类特性开关，这样最终生成的代码可以得到简化。在Nop平台中，所有的XDSL领域模型文件都支持feture:on和feature:off特性开关机制。例如
+一个高度可配置的产品如果希望保持运行时性能，那么它应该尽量在编译期执行各类特性开关，这样最终生成的代码可以得到简化。在Nop平台中，所有的XDSL领域模型文件都支持`feature:on`和`feature:off`特性开关机制。例如
 
 ```xml
-<form id="view" feture:on="!nop.auth.use-ext-info"> ...</form>
+<form id="view" feature:on="!nop.auth.use-ext-info"> ...</form>
 ```
 
-在任何一个XML节点上都可以设置feature:on和feture:off属性。feture:on="!nop.auth.use-ext-info"表示 nop.auth.use-ext-info配置变量为false时此节点才存在，否则它会被自动删除。
+在任何一个XML节点上都可以设置`feature:on`和`feature:off`属性。`feature:on="!nop.auth.use-ext-info"`表示`nop.auth.use-ext-info`配置变量为`false`时此节点才存在，否则它会被自动删除。
 
-可以和SpringBoot中的条件开关机制做一个对比：Nop平台内置的feature开关可以作用于任何模型文件的任何节点，模型本身并不需要针对条件开关做任何针对性设计，也不需要在运行时引擎增加任何相关代码，特性过滤是在XML加载时实现的。而SpringBoot的条件开关则需要专门编写相关代码，也无法应用于其他模型文件。
+可以和SpringBoot中的条件开关机制做一个对比：Nop平台内置的`feature`开关可以作用于任何模型文件的任何节点，模型本身并不需要针对条件开关做任何针对性设计，也不需要在运行时引擎增加任何相关代码，特性过滤是在XML加载时实现的。而SpringBoot的条件开关则需要专门编写相关代码，也无法应用于其他模型文件。
 
 # 四. 总结
 
@@ -353,5 +353,5 @@ Nop平台的开源地址：
 
 - gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
-- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md) 
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
 - [可逆计算原理和Nop平台介绍及答疑_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1u84y1w7kX/)

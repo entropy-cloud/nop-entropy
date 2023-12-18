@@ -4,7 +4,7 @@ Nop平台对百度开源的AMIS框架进行了一定的扩展。
 
 在手工编写和阅读的时候，XML格式相对于JSON格式是有一定优势的，特别是集成外部模板引擎用于动态生成的时候。Nop平台为AMIS增加了XML格式的语法表达形式，可以按照简单的几条规则实现XML和JSON之间的双向转换。具体规则如下:
 
-1. type属性对应于标签名
+1. `type`属性对应于标签名
 
 2. 简单类型的属性对应于XML的属性名
 
@@ -12,7 +12,7 @@ Nop平台对百度开源的AMIS框架进行了一定的扩展。
 
 4. 如果是列表类型，则在节点上标注`j:list=true`
 
-5. body属性会被特殊识别，不用明确标注j:list
+5. `body`属性会被特殊识别，不用明确标注`j:list`
 
 例如：
 
@@ -80,14 +80,15 @@ Nop平台中的XPL模板语言为动态生成XML提供了诸多简化帮助，�
 </button>
 ```
 
-作为模板运行时xpl:if表示条件表达式，只有表达式返回true时整个节点才会被生成。所有XML属性生成的时候，如果属性值为null，则它将被自动忽略，不会输出到最终的结果中。借助于这一null属性过滤机制，我们可以很简单的控制哪些属性会被生成。
+作为模板运行时`xpl:if`表示条件表达式，只有表达式返回`true`时整个节点才会被生成。所有XML属性生成的时候，如果属性值为`null`，则它将被自动忽略，不会输出到最终的结果中。借助于这一`null`属性过滤机制，我们可以很简单的控制哪些属性会被生成。
 
 AMIS的语法设计相对比较规整，转成XML之后很接近于普通的HTML或者Vue模板。相比之下，LowCodeEngine的DSL设计更像是针对领域对象的一种序列化协议，而不是一种便于手工编写和阅读的DSL语言。
 
-> AMIS早期版本的DSL设计中也存在着大量不一致的地方，比如容器控件的内容部分，有时叫做children，有时叫做controls，有时叫做content，最近重构后才普遍改成了body。
+> AMIS早期版本的DSL设计中也存在着大量不一致的地方，比如容器控件的内容部分，有时叫做`children`，有时叫做`controls`，有时叫做`content`，最近重构后才普遍改成了`body`。
 
 ### XView模型中配置gen-control
-在XView模型的grid或者form配置中，如果根据数据类型和数据域自动推定的控件不满足要求，我们可以手工实现gen-control。例如
+
+在`XView`模型的grid或者form配置中，如果根据数据类型和数据域自动推定的控件不满足要求，我们可以手工实现`gen-control`。例如
 
 ````xml
 <form id="add">
@@ -101,7 +102,9 @@ AMIS的语法设计相对比较规整，转成XML之后很接近于普通的HTML
    </cells>
 </form>
 ````
-在json中可以通过x:extends来继承已有的页面。
+
+在json中可以通过`x:extends`来继承已有的页面。
+
 ````
  <gen-control>
    // title会覆盖继承的页面中的title配置, 而initApi.url会覆盖对应的initApi对象中的url属性。依此类推，可以覆盖任意深度的属性
@@ -109,15 +112,16 @@ AMIS的语法设计相对比较规整，转成XML之后很接近于普通的HTML
  </gen-control>
 ````
 
-在gen-control段中也可以采用XML格式输出
+在`gen-control`段中也可以采用XML格式输出
 
 `````xml
 <gen-control>
    <input-text />
 </gen-control>
 `````
-XML格式将按照前面介绍的转换规则转换为对应的json. 在gen-control段中使用xml格式时，如果要用x:extends机制，则因为编译器解析XView时也要处理x:extends属性,
-所以我们必须回避这个名字，使用xdsl:extends来代替。例如
+
+XML格式将按照前面介绍的转换规则转换为对应的json. 在`gen-control`段中使用xml格式时，如果要用`x:extends`机制，则因为编译器解析XView时也要处理`x:extends`属性,
+所以我们必须回避这个名字，使用`xdsl:extends`来代替。例如
 
 ````xml
 <gen-control>
@@ -127,7 +131,7 @@ XML格式将按照前面介绍的转换规则转换为对应的json. 在gen-cont
 
 ## 1.2 可逆计算分解
 
-Nop平台基于可逆计算理论针对JSON和XML实现了通用的分解合并机制，可以按照通用的规则将很大的JSON文件分解为多个小型文件，相当于是为AMIS补充了某种模块组织语法。最常用的是两个语法，x:extends用于表示继承外部的某个文件，x:gen-extends表示动态生成可以被继承的JSON对象。
+Nop平台基于可逆计算理论针对JSON和XML实现了通用的分解合并机制，可以按照通用的规则将很大的JSON文件分解为多个小型文件，相当于是为AMIS补充了某种模块组织语法。最常用的是两个语法，`x:extends`用于表示继承外部的某个文件，`x:gen-extends`表示动态生成可以被继承的JSON对象。
 
 ```yaml
 x:gen-extends: |
@@ -145,11 +149,11 @@ body:
             "title": "Test Dialog"
 ```
 
-以上示例表示，首先根据NopAuthDept.view.xml的配置动态生成一个CRUD页面，然后再在批量操作按钮区增加一个Test按钮，点击这个按钮的时候会弹出一个对话框，对话框的实现代码是复用已有的test.page.yaml文件。title属性会覆盖`x:extends`继承的内容，将对话框的标题设置为`Test Dialog`。
+以上示例表示，首先根据`NopAuthDept.view.xml`的配置动态生成一个CRUD页面，然后再在批量操作按钮区增加一个`Test`按钮，点击这个按钮的时候会弹出一个对话框，对话框的实现代码是复用已有的`test.page.yaml`文件。`title`属性会覆盖`x:extends`继承的内容，将对话框的标题设置为`Test Dialog`。
 
 `x:extends`相当于是某种在Tree结构上执行的，类似面向对象的继承操作的通用操作符。
 
-对于任意的JSON格式的外部文件，我们只需要将普通的JSON文件的加载函数修改为Nop平台所提供的ResourceLoader调用即可自动获得可逆计算所定义的分解、合并操作，并支持编译期元编程，允许在编译期进行一系列复杂的结构变换。
+对于任意的JSON格式的外部文件，我们只需要将普通的JSON文件的加载函数修改为Nop平台所提供的`ResourceLoader`调用即可自动获得可逆计算所定义的分解、合并操作，并支持编译期元编程，允许在编译期进行一系列复杂的结构变换。
 
 具体介绍参见
 
@@ -172,11 +176,11 @@ body:
       a: 1
 ```
 
-以上示例表示，我们导入一个demo.lib.js库，然后通过demo.testAction引用其中的函数。
+以上示例表示，我们导入一个`demo.lib.js`库，然后通过`demo.testAction`引用其中的函数。
 
-`url: "@action:demo.testAction"`这一语法是我们在AMIS的环境抽象基础上所提供的一个action触发机制。它通过拦截AMIS的fetcher调用，识别`@action:`前缀，然后映射到已加载的JS函数上，调用时传入data指定的参数。
+`url: "@action:demo.testAction"`这一语法是我们在AMIS的环境抽象基础上所提供的一个`action`触发机制。它通过拦截AMIS的`fetcher`调用，识别`@action:`前缀，然后映射到已加载的JS函数上，调用时传入`data`指定的参数。
 
-脚本库的代码存放在demo.lib.xjs中（注意后缀名是xjs而不是js，我们会通过graalvm-js脚本引擎调用rollup打包工具将xjs转换为js文件，并打包成SystemJs模块结构）。
+脚本库的代码存放在`demo.lib.xjs`中（注意后缀名是xjs而不是js，我们会通过graalvm-js脚本引擎调用rollup打包工具将xjs转换为js文件，并打包成SystemJs模块结构）。
 
 ```javascript
 /* @x:gen-extends:
@@ -208,18 +212,18 @@ export function testAction(options, page){
 
 xjs文件可以按照普通的ESM模块文件的格式进行编写。我们通过在注释区增加`@x:gen-extends`为它增加了编译期动态生成的能力（这一能力在工作流编辑器的动态生成中会使用）。
 
-export的函数是暴露给外部调用的接口函数。import调用会被转化为SystemJs的dependency。这里有一个特殊处理，对于/parts/目录下的文件，我们会调用rollup把它的代码和主文件的代码打包在一起，即parts下的文件认为是内部实现文件，不会暴露为外部可访问的js库。
+`export`的函数是暴露给外部调用的接口函数。`import`调用会被转化为SystemJs的dependency。这里有一个特殊处理，对于`/parts/`目录下的文件，我们会调用rollup把它的代码和主文件的代码打包在一起，即`parts`下的文件认为是内部实现文件，不会暴露为外部可访问的js库。
 打包后生成的结果参见文件 [demo.lib.js](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-app/_dump/nop-app/nop/auth/pages/DemoPage/demo.lib.js)
 
-除了action调用之外，外部库函数可以用在一切允许嵌入js脚本的地方，为此我们提供了另一个前缀`@fn:`，使用它的时候需要明确传递函数参数（action的函数参数已经约定为options,page）。
+除了`action`调用之外，外部库函数可以用在一切允许嵌入js脚本的地方，为此我们提供了另一个前缀`@fn:`，使用它的时候需要明确传递函数参数（`action`的函数参数已经约定为`options`,`page`）。
 
 ```javascript
 "onClick":"@fn:demo.myListener(event,props)"
 ```
 
-重新思考一下onClick的调用过程，我们会发现根据函数名查找到函数实现体的过程很类似于DOM组件的事件冒泡处理过程。事件冒泡时传递的是事件名，逐层向上查找，找到响应函数后处理。AMIS的action响应处理过程是由每个组件检查自己的handleAction是否可以处理对应的actionType，如果不能处理，则调用父组件传入的onAction来进行处理。
+重新思考一下`onClick`的调用过程，我们会发现根据函数名查找到函数实现体的过程很类似于DOM组件的事件冒泡处理过程。事件冒泡时传递的是事件名，逐层向上查找，找到响应函数后处理。AMIS的`action`响应处理过程是由每个组件检查自己的`handleAction`是否可以处理对应的`actionType`，如果不能处理，则调用父组件传入的`onAction`来进行处理。
 
-**如果我们直接约定向上传递的事件名就是函数名，则事件冒泡处理的过程可以被看作是一个在词法作用域中解析函数名的过程**。在不同层级引入的xui:import相当于是创建了不同的词法作用域，我们总是在最近的词法作用域中查找对应的函数，如果未找到，则继续向上在父作用域中查找。
+**如果我们直接约定向上传递的事件名就是函数名，则事件冒泡处理的过程可以被看作是一个在词法作用域中解析函数名的过程**。在不同层级引入的`xui:import`相当于是创建了不同的词法作用域，我们总是在最近的词法作用域中查找对应的函数，如果未找到，则继续向上在父作用域中查找。
 
 ## 1.4 GraphQL简化
 
@@ -242,7 +246,7 @@ Nop平台中对JSON提供了统一的i18n字符串替换机制，它规定了如
 
 2. 为每个需要被国际化的key，增加对应的`@i18n:key`属性
    例如
-   
+
    ```javascript
    {
    label: "@i18n:common.batchDelete|批量删除"
@@ -273,6 +277,7 @@ AMIS底层是基于React技术开发，而Nop平台的前端主要基于Vue3.0�
 ```
 
 ## 1.8 复杂GraphQL调用
+
 ```
 api:{
   url: '@graphql:query($id:String){ NopAuthUser_get(id:$id){nickName}}',
@@ -282,7 +287,7 @@ api:{
 }
 ```
 
-通过`@graphql:`前缀来表示graphql请求，此时需要使用完整的grapqhl语法，参数需要指定类型。 通过data属性可以传递graphql请求所需的variables参数。
+通过`@graphql:`前缀来表示graphql请求，此时需要使用完整的graphql语法，参数需要指定类型。 通过`data`属性可以传递graphql请求所需的`variables`参数。
 
 ## 使用Vue3实现AMIS控件
 
@@ -302,9 +307,10 @@ import appva from '../../views/breadcrumb_example/Elbutton.vue'
   amisLib.Renderer({
     test: /(^|\/)my-custom/
   })(CustomComponent);
-````  
+````
 
 
 ## 问题
+
 1. 缺少一种通用的方案，对前台控件的值进行自定义转换
 2. 缺少一种通用的方案，可以通过弹出框来编辑指定字段的值。
