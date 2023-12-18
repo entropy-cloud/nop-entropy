@@ -19,16 +19,13 @@ public class GraphQLListType extends _GraphQLListType {
         return "[" + getType() + "]";
     }
 
-    public boolean isObjectType() {
-        return getType().isObjectType();
-    }
-
-    public boolean isScalarType() {
-        return getType().isScalarType();
-    }
-
     public String getNamedTypeName() {
         return getType().getNamedTypeName();
+    }
+
+    @Override
+    public boolean needFieldSelection() {
+        return getType().needFieldSelection();
     }
 
     public GraphQLType mergeType(GraphQLType type) {

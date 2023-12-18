@@ -147,7 +147,11 @@ public class ObjMetaToGraphQLDefinition {
         String graphqlType = (String) propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_TYPE);
         if (!StringHelper.isEmpty(graphqlType)) {
             GraphQLType type = new GraphQLDocumentParser().parseType(propMeta.getLocation(), graphqlType);
-            return typeRegistry.processSpecialType(type);
+            GraphQLType processedType = typeRegistry.processSpecialType(type);
+            if (propMeta.isMandatory() && !processedType.isNonNullType()) {
+                processedType = GraphQLTypeHelper.nonNullType(processedType);
+            }
+            return processedType;
         }
         return toGraphQLType(thisObjName, propMeta.getSchema(), mandatory, typeRegistry, false);
     }

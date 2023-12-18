@@ -5,6 +5,11 @@
     import io.nop.api.core.beans.ApiResponse;
     import java.util.concurrent.CompletionStage;
     import io.nop.api.core.util.FutureHelper;
+    import io.nop.api.core.util.ICancelToken;
+    import io.nop.api.core.annotations.biz.BizModel;
+    import io.nop.api.core.annotations.biz.BizMutation;
+    import io.nop.api.core.annotations.biz.BizQuery;
+    import io.nop.api.core.annotations.biz.RequestBean;
 
     
         import io.nop.rule.api.beans.RuleRequestBean;
@@ -19,31 +24,64 @@
     /**
      * 规则引擎服务 
      */
+    @BizModel("RuleService")
     public interface RuleService{
 
     
         /**
          * 
          */
-        CompletionStage<ApiResponse<RuleResultBean>> executeRuleAsync(ApiRequest<RuleRequestBean> request);
+        @BizMutation
+        CompletionStage<ApiResponse<RuleResultBean>> executeRuleAsync(ApiRequest<RuleRequestBean> request,
+            ICancelToken cancelToken);
 
         /**
          * 
          */
-        default ApiResponse<RuleResultBean> executeRule(ApiRequest<RuleRequestBean> request){
-            return FutureHelper.syncGet(executeRuleAsync(request));
+        default CompletionStage<RuleResultBean> executeRuleAsync(@RequestBean RuleRequestBean request){
+            return executeRuleAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
+        }
+
+        /**
+         * 
+         */
+        @BizMutation
+        ApiResponse<RuleResultBean> executeRule(ApiRequest<RuleRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 
+         */
+        default RuleResultBean executeRule(@RequestBean RuleRequestBean request){
+            return executeRule(ApiRequest.build(request), null).get();
         }
     
         /**
          * 
          */
-        CompletionStage<ApiResponse<RuleMetaBean>> getRuleMetaAsync(ApiRequest<RuleKeyBean> request);
+        @BizQuery
+        CompletionStage<ApiResponse<RuleMetaBean>> getRuleMetaAsync(ApiRequest<RuleKeyBean> request,
+            ICancelToken cancelToken);
 
         /**
          * 
          */
-        default ApiResponse<RuleMetaBean> getRuleMeta(ApiRequest<RuleKeyBean> request){
-            return FutureHelper.syncGet(getRuleMetaAsync(request));
+        default CompletionStage<RuleMetaBean> getRuleMetaAsync(@RequestBean RuleKeyBean request){
+            return getRuleMetaAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
+        }
+
+        /**
+         * 
+         */
+        @BizQuery
+        ApiResponse<RuleMetaBean> getRuleMeta(ApiRequest<RuleKeyBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 
+         */
+        default RuleMetaBean getRuleMeta(@RequestBean RuleKeyBean request){
+            return getRuleMeta(ApiRequest.build(request), null).get();
         }
     
     }

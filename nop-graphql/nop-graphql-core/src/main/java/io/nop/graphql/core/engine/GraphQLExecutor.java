@@ -315,12 +315,14 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                         promises = new ArrayList<>();
                     CompletionStage<?> promise = (CompletionStage<?>) value;
                     promise = promise.thenAccept(v -> {
+                        Object v2 = normalizeValue(v, fieldSelection);
                         synchronized (resultLock) {
-                            ret.put(alias, v);
+                            ret.put(alias, v2);
                         }
                     });
                     promises.add(promise);
                 } else {
+                    value = normalizeValue(value, fieldSelection);
                     synchronized (resultLock) {
                         ret.put(alias, value);
                     }
@@ -332,6 +334,15 @@ public class GraphQLExecutor implements IGraphQLExecutor {
             }
         }
         return promises;
+    }
+
+    // 确保返回值类型与GraphQL定义中的类型一致
+    private Object normalizeValue(Object value, GraphQLFieldSelection selection) {
+        GraphQLFieldDefinition field = selection.getFieldDefinition();
+        if (field.getType().isScalarType()) {
+            return field.getType().getScalarType().getStdDataType().convert(value);
+        }
+        return value;
     }
 
     /**

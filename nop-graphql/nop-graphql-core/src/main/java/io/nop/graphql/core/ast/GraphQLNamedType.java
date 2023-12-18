@@ -30,6 +30,11 @@ public class GraphQLNamedType extends _GraphQLNamedType {
     }
 
     @Override
+    public boolean needFieldSelection() {
+        return scalarType == null && !isEnumType();
+    }
+
+    @Override
     public void setName(String name) {
         super.setName(name);
         scalarType = GraphQLScalarType.fromText(name);

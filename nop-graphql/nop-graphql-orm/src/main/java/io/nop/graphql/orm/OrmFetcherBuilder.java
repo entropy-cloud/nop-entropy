@@ -12,10 +12,7 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.convert.ITypeConverter;
-import io.nop.api.core.convert.SysConverterRegistry;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -25,7 +22,6 @@ import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.fetcher.BeanPropertyFetcher;
-import io.nop.graphql.core.fetcher.ConvertTypeFetcher;
 import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
 import io.nop.graphql.core.utils.GraphQLTypeHelper;
@@ -38,7 +34,6 @@ import io.nop.graphql.orm.fetcher.OrmEntityRefFetcher;
 import io.nop.graphql.orm.fetcher.OrmEntitySetFetcher;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
-import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityPropModel;
@@ -215,24 +210,13 @@ public class OrmFetcherBuilder {
                 throw new NopException(ERR_GRAPHQL_FIELD_NOT_SCALAR).source(fieldDef)
                         .param(ARG_OBJ_NAME, objDef.getName()).param(ARG_FIELD_NAME, fieldDef.getName());
 
-            fetcher = buildColumnFetcher((IColumnModel) propModel, scalarType);
+            fetcher = getColumnFetcher(propModel.getColumnPropId());
         } else if (propModel.isToOneRelation()) {
             fetcher = new OrmEntityRefFetcher(ormTemplate, name);
         } else if (propModel.isToManyRelation()) {
             fetcher = new OrmEntitySetFetcher(ormTemplate, name);
         } else {
             fetcher = new OrmEntityPropertyFetcher(ormTemplate, name);
-        }
-        return fetcher;
-    }
-
-    private IDataFetcher buildColumnFetcher(IColumnModel col, GraphQLScalarType type) {
-        StdDataType colType = col.getStdDataType();
-        StdDataType fieldType = type.getStdDataType();
-        IDataFetcher fetcher = getColumnFetcher(col.getPropId());
-        if (colType != fieldType) {
-            ITypeConverter converter = SysConverterRegistry.instance().getConverterByType(fieldType.getJavaClass());
-            fetcher = new ConvertTypeFetcher(converter, fetcher);
         }
         return fetcher;
     }

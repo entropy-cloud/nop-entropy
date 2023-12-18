@@ -67,14 +67,13 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                 fileInput.setFieldName(fieldName);
 
                 res = uploadAsync(buildRequest(request, fileInput));
-                break;
+                return res.thenApply(JaxrsHelper::buildJaxrsResponse);
             }
             throw new IllegalArgumentException("No Upload File");
         } catch (Exception e) {
             res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
+            return res.thenApply(JaxrsHelper::buildJaxrsResponse);
         }
-
-        return res.thenApply(JaxrsHelper::buildJaxrsResponse);
     }
 
     /**
