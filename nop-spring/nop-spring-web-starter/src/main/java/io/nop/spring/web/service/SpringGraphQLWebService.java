@@ -175,7 +175,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         Object body;
         Object data = res.getData();
         if (data instanceof String) {
-            headers.set(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENt_TYPE_TEXT);
+            headers.set(ApiConstants.HEADER_CONTENT_TYPE, WebContentBean.CONTENT_TYPE_TEXT);
             LOG.debug("nop.graphql.response:{}", data);
             body = data;
         } else if (data instanceof WebContentBean) {

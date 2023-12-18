@@ -24,6 +24,8 @@ public interface AuthCoreErrors {
     String ARG_MIN_COUNT = "minCount";
     String ARG_CLAIMS = "claims";
 
+    String ARG_LOCALE = "locale";
+
     ErrorCode ERR_JWT_INVALID_ALGORITHM = define(API_STATUS_UNAUTHORIZED, "nop.err.auth.jwt.invalid-algorithm",
             "JWT使用了不支持的算法:{alg}", ARG_ALG);
 
@@ -68,5 +70,4 @@ public interface AuthCoreErrors {
     ErrorCode ERR_AUTH_NOT_AUTHORIZED =
             define("nop.err.auth.not-authorized",
                     "用户未登录或者会话已过期");
-
 }

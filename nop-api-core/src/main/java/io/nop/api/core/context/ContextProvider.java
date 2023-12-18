@@ -193,7 +193,7 @@ public class ContextProvider {
                 thenOnContext(handler.apply(ret, err), context).whenComplete((ret2, err2) -> {
                     FutureHelper.complete(f, ret2, err2);
                 });
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 f.completeExceptionally(e);
             }
         });

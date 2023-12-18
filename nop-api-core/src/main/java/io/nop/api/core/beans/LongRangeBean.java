@@ -26,7 +26,7 @@ public class LongRangeBean implements Serializable, Comparable<LongRangeBean> {
 
     //public static final LongRangeBean FIRST = longRange(0, 1);
 
-    public static char SEPARATOR = ',';
+    private static final char SEPARATOR = ',';
 
     private final long offset;
     private final long limit;

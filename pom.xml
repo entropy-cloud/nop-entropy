@@ -40,6 +40,10 @@
         </sonar.coverage.jacoco.xmlReportPaths>
         <sonar.language>java</sonar.language>
 
+        <sonar.exclusions>
+            **/_gen/**, **/*Errors.java,**/*Configs.java,**/*Constants.java
+        </sonar.exclusions>
+
         <!-- Plugins -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>

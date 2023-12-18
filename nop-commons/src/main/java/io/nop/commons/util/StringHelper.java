@@ -897,11 +897,6 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
-    public static boolean isAsciiLetter(int c) {
-        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
-    }
-
-    @Deterministic
     public static boolean isAsciiVarStart(char c) {
         return isAsciiLetter(c) || c == '_';
     }
@@ -1599,11 +1594,6 @@ public class StringHelper extends ApiStringHelper {
     @Deterministic
     public static Number parseNumber(String val) {
         return ConvertHelper.stringToNumber(val, NopException::new);
-    }
-
-    @Deterministic
-    public static boolean isDigit(int c) {
-        return c <= '9' && c >= '0';
     }
 
     @Deterministic

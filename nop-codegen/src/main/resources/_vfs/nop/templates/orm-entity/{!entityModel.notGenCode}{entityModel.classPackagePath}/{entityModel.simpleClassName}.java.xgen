@@ -8,8 +8,6 @@ import ${entityModel.classPackageName}._gen.${entityModel.simpleClassName}PkBuil
 
 @BizObjName("${entityModel.shortName}")
 public class ${entityModel.simpleClassName} extends _${entityModel.simpleClassName}{
-    public ${entityModel.simpleClassName}(){
-    }
 
 <c:if test="${entityModel.compositePk}">
     public static ${entityModel.simpleClassName}PkBuilder newPk(){

@@ -32,7 +32,7 @@ function build_defaults(prop){
  * ${objSchema.description?.$replace('*/','* /')?.$replace("\n","\n * ")}
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _${objSchema.simpleClassName} extends ${baseClass} ${implIfs}{
     <c:for var="prop" items="${objSchema.localProps}">
         <c:continue xpl:if="prop.name.indexOf(':')>0" />

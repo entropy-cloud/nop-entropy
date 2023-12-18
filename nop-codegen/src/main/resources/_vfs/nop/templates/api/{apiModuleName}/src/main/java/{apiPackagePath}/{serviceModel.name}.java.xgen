@@ -5,6 +5,11 @@
     import io.nop.api.core.beans.ApiResponse;
     import java.util.concurrent.CompletionStage;
     import io.nop.api.core.util.FutureHelper;
+    import io.nop.api.core.util.ICancelToken;
+    import io.nop.api.core.annotations.biz.BizModel;
+    import io.nop.api.core.annotations.biz.BizMutation;
+    import io.nop.api.core.annotations.biz.BizQuery;
+    import io.nop.api.core.annotations.biz.RequestBean;
 
     <gen:CollectApiMessageImports xpl:lib="/nop/codegen/xlib/gen.xlib"
                                   serviceModel="${serviceModel}" xpl:return="types" />
@@ -21,19 +26,36 @@
     /**
      * ${serviceModel.displayName} ${serviceModel.description}
      */
+    @BizModel("${serviceModel.bizObjName}")
     public interface ${serviceModel.name}{
 
     <c:for var="method" items="${serviceModel.methods}"><![CDATA[
         /**
          * ${method.description}
          */
-        CompletionStage<ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}>> ${method.name}Async(ApiRequest<${method.simpleRequestMessage}> request);
+        @${method.mutation?'BizMutation':'BizQuery'}
+        CompletionStage<ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}>> ${method.name}Async(ApiRequest<${method.simpleRequestMessage}> request,
+            ICancelToken cancelToken);
 
         /**
          * ${method.description}
          */
-        default ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}(ApiRequest<${method.simpleRequestMessage}> request){
-            return FutureHelper.syncGet(${method.name}Async(request));
+        default CompletionStage<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}Async(${method.voidRequest ? '': '@RequestBean '+method.simpleRequestMessage + ' request'}){
+            return ${method.name}Async(${method.voidRequest?'':'ApiRequest.build(request), '}null).thenApply(ApiResponse::get);
+        }
+
+        /**
+         * ${method.description}
+         */
+        @${method.mutation?'BizMutation':'BizQuery'}
+        ApiResponse<${normalizeReturnType(method.simpleResponseMessage)}> ${method.name}(ApiRequest<${method.simpleRequestMessage}> request,
+            ICancelToken cancelToken);
+
+        /**
+         * ${method.description}
+         */
+        default ${method.simpleResponseMessage} ${method.name}(${method.voidRequest ? '': '@RequestBean '+method.simpleRequestMessage + ' request'}){
+            ${method.simpleResponseMessage == 'void' ? '' : 'return'} ${method.name}(${method.voidRequest ? '': 'ApiRequest.build(request), '}null).get();
         }
     ]]></c:for>
     }

@@ -47,6 +47,8 @@ public interface ApiErrors {
 
     String ARG_SEQ = "seq";
 
+    String ARG_LOCALE = "locale";
+
     ErrorCode ERR_TIMEOUT = define("nop.err.api.exceptions.timeout", "超时");
 
     ErrorCode ERR_BREAK = define("nop.err.api.exceptions.break", "跳出当前函数");
@@ -169,5 +171,8 @@ public interface ApiErrors {
                     "服务调用已超时");
 
     ErrorCode ERR_API_NO_SERVICE_NAME_HEADER =
-            define("nop.err.api.no-service-name-header","请求头中没有包含nop-svc-name设置");
+            define("nop.err.api.no-service-name-header", "请求头中没有包含nop-svc-name设置");
+
+    ErrorCode ERR_API_INVALID_LOCALE_HEADER =
+            define(400, "nop.err.api.invalid-locale-header", "Locale的格式不正确");
 }
