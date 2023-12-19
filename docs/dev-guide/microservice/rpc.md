@@ -8,7 +8,7 @@ Nop平台通过基于HttpClient实现了简单的分布式RPC机制。具体设�
 
 ## 1.1 启用Nacos服务发现
 
-服务端和客户端都需要引入nop-cluster-nacos模块，使用nacos作为服务注册中心。配置参数如下：
+服务端和客户端都需要引入nop-cluster-nacos和nop-rpc-cluster模块，使用nacos作为服务注册中心。配置参数如下：
 
 | 参数                                      | 缺省值           | 说明                                    |
 |-----------------------------------------|---------------|---------------------------------------|
@@ -35,6 +35,8 @@ Nop平台通过基于HttpClient实现了简单的分布式RPC机制。具体设�
 在标准的sentinel.properties文件中增加sentinel内置变量配置，例如csp.sentinel.dashboard.server=localhost:
 8080表示将sentinel监控信息
 报送到sentinel可视化管理端。
+
+* 如果要使用sentinel限流，需要引入nop-cluster-sentinel模块。
 
 ## 1.3 实现服务
 
