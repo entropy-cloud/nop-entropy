@@ -21,7 +21,7 @@ public class DrawingBuilder {
         node.setAttr("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main");
 
         for (int i = 0, n = images.size(); i < n; i++) {
-            XNode anchor = buildAnchor(images.get(0), i);
+            XNode anchor = buildAnchor(images.get(i), i);
             node.appendChild(anchor);
         }
         return node;

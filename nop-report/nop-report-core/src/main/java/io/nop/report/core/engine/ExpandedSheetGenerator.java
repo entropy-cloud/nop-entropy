@@ -129,11 +129,10 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
 
         ExpandedSheetEvaluator.INSTANCE.evaluateSheetCells(expandedSheet, xptRt);
 
-        ExpandedSheetEvaluator.INSTANCE.evaluateImages(expandedSheet, sheet.getImages(), xptRt);
-
         dropRemoved(expandedSheet);
 
         expandedSheet.getTable().assignRowIndexAndColIndex();
+        ExpandedSheetEvaluator.INSTANCE.evaluateImages(expandedSheet, sheet.getImages(), xptRt);
 
         initExportFormula(expandedSheet, xptRt);
 
