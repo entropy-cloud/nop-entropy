@@ -34,7 +34,7 @@ public interface ILoginService {
      */
     CompletionStage<Void> flushUserContextAsync(IUserContext userContext);
 
-    CompletionStage<IUserContext> getUserContextAsync(AuthToken accessToken);
+    CompletionStage<IUserContext> getUserContextAsync(AuthToken accessToken, Map<String,Object> headers);
 
     /**
      * 得到指定用户当前的登录上下文

@@ -5716,11 +5716,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getOauthCallbackPath",
+        "parameterTypes": []
+      },
+      {
         "name": "getPublicPaths",
         "parameterTypes": []
       },
       {
         "name": "getRememberMeCookie",
+        "parameterTypes": []
+      },
+      {
+        "name": "getServicePaths",
         "parameterTypes": []
       },
       {
@@ -5735,6 +5743,16 @@
       },
       {
         "name": "isRememberMeEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "isServicePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isServicePublic",
         "parameterTypes": []
       },
       {
@@ -5768,6 +5786,12 @@
         ]
       },
       {
+        "name": "setOauthCallbackPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setPublicPaths",
         "parameterTypes": [
           "java.util.List"
@@ -5781,6 +5805,18 @@
       },
       {
         "name": "setRememberMeEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setServicePaths",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setServicePublic",
         "parameterTypes": [
           "boolean"
         ]
@@ -5895,6 +5931,12 @@
         ]
       },
       {
+        "name": "newSysUserContext",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
         "name": "order",
         "parameterTypes": []
       },
@@ -5905,9 +5947,33 @@
         ]
       },
       {
+        "name": "processOAuthCode",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "boolean",
+          "java.util.function.Supplier"
+        ]
+      },
+      {
         "name": "responseNotLogin",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "responseNotLogin",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "boolean"
+        ]
+      },
+      {
+        "name": "responseNotLogin",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "boolean",
+          "java.lang.String",
+          "java.lang.String"
         ]
       },
       {
@@ -5928,6 +5994,14 @@
         "name": "setLoginService",
         "parameterTypes": [
           "io.nop.auth.core.login.ILoginService"
+        ]
+      },
+      {
+        "name": "writeJsonResponse",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.lang.String",
+          "java.lang.String"
         ]
       }
     ],

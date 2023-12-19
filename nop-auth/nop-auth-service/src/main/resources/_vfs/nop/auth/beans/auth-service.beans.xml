@@ -60,10 +60,24 @@
             </list>
         </property>
 
+        <property name="servicePaths">
+            <list>
+                <value>/graphql*</value>
+                <!-- REST请求 -->
+                <value>/r/*</value>
+                <!-- 返回具有指定contentType的内容 -->
+                <value>/p/*</value>
+                <!-- 文件上传下载 -->
+                <value>/f/*</value>
+            </list>
+        </property>
+
         <!--
         单页应用总是跳转回首页，由首页中的js负责显示登录页面
         -->
         <property name="loginUrl" value="@cfg:nop.auth.login-url|/index.html#/login"/>
         <property name="logoutUrl" value="/r/LoginApi__logout"/>
+
+        <property name="servicePublic" value="@cfg:nop.auth.service-public|false"/>
     </bean>
 </beans>

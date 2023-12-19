@@ -27,11 +27,20 @@ public class AuthFilterConfig {
     private List<String> authPaths = Collections.emptyList();
 
     /**
+     * 服务路径。服务总是需要上下文
+     */
+    private List<String> servicePaths = Collections.emptyList();
+
+    private boolean servicePublic = false;
+
+    /**
      * 发现没有登录时会重定向到登录页
      */
     private String loginUrl;
 
     private String logoutUrl;
+
+    private String oauthCallbackPath;
 
     /**
      * 如果非空，则允许通过cookie传递auth token
@@ -95,7 +104,7 @@ public class AuthFilterConfig {
     }
 
     public void setPublicPaths(List<String> publicPaths) {
-        this.publicPaths = publicPaths;
+        this.publicPaths = publicPaths == null ? Collections.emptyList() : publicPaths;
     }
 
     public List<String> getAuthPaths() {
@@ -103,7 +112,31 @@ public class AuthFilterConfig {
     }
 
     public void setAuthPaths(List<String> authPaths) {
-        this.authPaths = authPaths;
+        this.authPaths = authPaths == null ? Collections.emptyList() : authPaths;
+    }
+
+    public List<String> getServicePaths() {
+        return servicePaths;
+    }
+
+    public void setServicePaths(List<String> servicePaths) {
+        this.servicePaths = servicePaths == null ? Collections.emptyList() : servicePaths;
+    }
+
+    public boolean isServicePublic() {
+        return servicePublic;
+    }
+
+    public void setServicePublic(boolean servicePublic) {
+        this.servicePublic = servicePublic;
+    }
+
+    public boolean isServicePath(String path) {
+        for (String servicePath : servicePaths) {
+            if (StringHelper.matchSimplePattern(path, servicePath))
+                return true;
+        }
+        return false;
     }
 
     public boolean isPublicPath(String path) {
@@ -134,5 +167,13 @@ public class AuthFilterConfig {
         }
 
         return false;
+    }
+
+    public String getOauthCallbackPath() {
+        return oauthCallbackPath;
+    }
+
+    public void setOauthCallbackPath(String oauthCallbackPath) {
+        this.oauthCallbackPath = oauthCallbackPath;
     }
 }

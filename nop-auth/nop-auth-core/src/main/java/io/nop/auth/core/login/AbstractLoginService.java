@@ -16,6 +16,7 @@ import io.nop.auth.api.messages.LoginUserInfo;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public abstract class AbstractLoginService implements ILoginService {
@@ -55,7 +56,7 @@ public abstract class AbstractLoginService implements ILoginService {
     }
 
     @Override
-    public CompletionStage<IUserContext> getUserContextAsync(AuthToken token) {
+    public CompletionStage<IUserContext> getUserContextAsync(AuthToken token, Map<String, Object> headers) {
         String sessionId = token.getSessionId();
         return doGetUserContext(sessionId);
     }
