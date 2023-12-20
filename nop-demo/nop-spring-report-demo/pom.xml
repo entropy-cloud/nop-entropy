@@ -44,12 +44,6 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-spring-core-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>nop-codegen</artifactId>
-                    <groupId>io.github.entropy-cloud</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <!-- Excel解析和报表引擎支持 -->

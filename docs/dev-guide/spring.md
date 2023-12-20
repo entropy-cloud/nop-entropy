@@ -83,6 +83,7 @@ nop.orm.use-parent-transaction-factory=true
     </dependency>
 </dependencies>    
 ````
+引入NopGraphQL服务会自动引入nop-orm，从而引入数据源配置，必须在application.yaml中配置nop.datasource.jdbc-url等参数，或者配置nop.orm.use-parent-data-source=true
 
 ## 集成Nop平台的AMIS前端
 

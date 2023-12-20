@@ -104,6 +104,7 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-dao</artifactId>
             <exclusions>
+                <!-- quarkus不使用HikariCP连接池，这里需要排除 -->
                 <exclusion>
                     <artifactId>HikariCP</artifactId>
                     <groupId>com.zaxxer</groupId>
@@ -114,6 +115,11 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-graphql-orm</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-graphql-gateway</artifactId>
         </dependency>
 
         <dependency>
