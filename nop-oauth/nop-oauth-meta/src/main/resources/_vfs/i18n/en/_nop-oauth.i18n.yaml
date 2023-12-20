@@ -1,0 +1,59 @@
+entity:
+  label:
+    NopOauthAuthorization: null
+    NopOauthAuthorizationConsent: null
+    NopOauthRegisteredClient: null
+prop:
+  label:
+    NopOauthAuthorization:
+      id: null
+      registeredClientId: null
+      principalName: null
+      authorizationGrantType: null
+      authorizedScopes: null
+      attributes: null
+      state: null
+      authorizationCodeValue: null
+      authorizationCodeIssuedAt: null
+      authorizationCodeExpiresAt: null
+      authorizationCodeMetadata: null
+      accessTokenValue: null
+      accessTokenIssuedAt: null
+      accessTokenExpiresAt: null
+      accessTokenMetadata: null
+      accessTokenType: null
+      accessTokenScopes: null
+      oidcIdTokenValue: null
+      oidcIdTokenIssuedAt: null
+      oidcIdTokenExpiresAt: null
+      oidcIdTokenMetadata: null
+      refreshTokenValue: null
+      refreshTokenIssuedAt: null
+      refreshTokenExpiresAt: null
+      refreshTokenMetadata: null
+      userCodeValue: null
+      userCodeIssuedAt: null
+      userCodeExpiresAt: null
+      userCodeMetadata: null
+      deviceCodeValue: null
+      deviceCodeIssuedAt: null
+      deviceCodeExpiresAt: null
+      deviceCodeMetadata: null
+    NopOauthAuthorizationConsent:
+      registeredClientId: null
+      principalName: null
+      authorities: null
+    NopOauthRegisteredClient:
+      id: null
+      clientId: null
+      clientIdIssuedAt: null
+      clientSecret: null
+      clientSecretExpiresAt: null
+      clientName: null
+      clientAuthenticationMethods: null
+      authorizationGrantTypes: null
+      redirectUris: null
+      postLogoutRedirectUris: null
+      scopes: null
+      clientSettings: null
+      tokenSettings: null

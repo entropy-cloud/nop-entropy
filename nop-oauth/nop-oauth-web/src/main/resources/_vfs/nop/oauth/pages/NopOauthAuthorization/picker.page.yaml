@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+    <web:GenPage view="NopOauthAuthorization.view.xml" page="picker" xpl:lib="/nop/web/xlib/web.xlib" />

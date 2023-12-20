@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopOauthRegisteredClient" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+
+    <objMeta>/nop/oauth/model/NopOauthRegisteredClient/NopOauthRegisteredClient.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--Id-->
+                <col id="id" mandatory="true" sortable="true"/>
+
+                <!--客户端ID-->
+                <col id="clientId" mandatory="true" sortable="true"/>
+
+                <!--客户端ID发放时间-->
+                <col id="clientIdIssuedAt" mandatory="true" sortable="true"/>
+
+                <!--客户端密码-->
+                <col id="clientSecret" sortable="true"/>
+
+                <!--客户端密码过期时间-->
+                <col id="clientSecretExpiresAt" sortable="true"/>
+
+                <!--客户端名称-->
+                <col id="clientName" mandatory="true" sortable="true"/>
+
+                <!--客户端授权方法-->
+                <col id="clientAuthenticationMethods" mandatory="true" sortable="true"/>
+
+                <!--客户端认证类型-->
+                <col id="authorizationGrantTypes" mandatory="true" sortable="true"/>
+
+                <!--重定向URI-->
+                <col id="redirectUris" sortable="true"/>
+
+                <!--Logout重定向URI-->
+                <col id="postLogoutRedirectUris" sortable="true"/>
+
+                <!--授权范围-->
+                <col id="scopes" mandatory="true" sortable="true"/>
+
+                <!--客户端设置-->
+                <col id="clientSettings" mandatory="true" sortable="true"/>
+
+                <!--Token设置-->
+                <col id="tokenSettings" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-Oauth注册客户端" i18n-en:title="View ">
+            <layout>
+ id[Id] clientId[客户端ID]
+ clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
+ clientSecretExpiresAt[客户端密码过期时间] clientName[客户端名称]
+ clientAuthenticationMethods[客户端授权方法] authorizationGrantTypes[客户端认证类型]
+ redirectUris[重定向URI] postLogoutRedirectUris[Logout重定向URI]
+ scopes[授权范围] clientSettings[客户端设置]
+ tokenSettings[Token设置] 
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-Oauth注册客户端" i18n-en:title="Add " x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-Oauth注册客户端" i18n-en:title="Edit ">
+            <layout>
+ id[Id] clientId[客户端ID]
+ clientIdIssuedAt[客户端ID发放时间] clientSecret[客户端密码]
+ clientSecretExpiresAt[客户端密码过期时间] clientName[客户端名称]
+ clientAuthenticationMethods[客户端授权方法] authorizationGrantTypes[客户端认证类型]
+ redirectUris[重定向URI] postLogoutRedirectUris[Logout重定向URI]
+ scopes[授权范围] clientSettings[客户端设置]
+ tokenSettings[Token设置] 
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
+            <layout/>
+        </form>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
+            <layout/>
+        </form>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-Oauth注册客户端" i18n-en:title="Update ">
+            <layout/>
+        </form>
+    </forms>
+
+    <pages>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopOauthRegisteredClient__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopOauthRegisteredClient__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopOauthRegisteredClient__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                        <api url="@mutation:NopOauthRegisteredClient__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table>
+                <api url="@query:NopOauthRegisteredClient__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopOauthRegisteredClient__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopOauthRegisteredClient__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopOauthRegisteredClient__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopOauthRegisteredClient__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>
