@@ -25,6 +25,7 @@ import io.nop.api.core.annotations.graphql.GraphQLReturn;
 import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
@@ -61,12 +62,14 @@ import io.nop.graphql.core.utils.GraphQLNameHelper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 import static io.nop.graphql.core.GraphQLErrors.ARG_ARG_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_CLASS;
 import static io.nop.graphql.core.GraphQLErrors.ARG_METHOD_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ARG_OBJ_NAME;
+import static io.nop.graphql.core.GraphQLErrors.ARG_RETURN_TYPE;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ACTION_RETURN_TYPE_MUST_NOT_BE_API_RESPONSE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_BATCH_LOAD_METHOD_MUST_RETURN_LIST;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_METHOD_PARAM_NO_REFLECTION_NAME_ANNOTATION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_ONLY_ALLOW_ONE_CONTEXT_SOURCE_PARAM;
@@ -302,6 +305,12 @@ public class ReflectionBizModelBuilder {
         field.setName(GraphQLNameHelper.getOperationName(bizObjName, name));
         field.setServiceAction(action);
         field.setFetcher(fetcher);
+
+        if (func.getAsyncReturnType().getRawClass() == ApiResponse.class)
+            throw new NopException(ERR_GRAPHQL_ACTION_RETURN_TYPE_MUST_NOT_BE_API_RESPONSE)
+                    .param(ARG_METHOD_NAME, func.getName())
+                    .param(ARG_CLASS, func.getDeclaringClass().getName())
+                    .param(ARG_RETURN_TYPE, func.getReturnType());
 
         field.setType(ReflectionGraphQLTypeFactory.INSTANCE.buildGraphQLType(func.getReturnType(), bizObjName,
                 getReturnBizObjName(func), registry, false));
