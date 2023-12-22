@@ -230,6 +230,65 @@ public interface EchoService {
 TestRpc rpc;
 ```
 
+## 2.5 服务接口说明
+NopGraphQL体系下，类似于Feign服务的实现，在客户端调用时使用的接口，与服务端实现时使用的接口并不需要保持完全一样。一般情况下服务端的接口函数允许额外传入
+selection和context参数。
+
+````java
+@BizModel("MyService")
+class MyServiceBizModel{
+    @BizMutation
+    public MyResponse myMethod(@RequestBean MyRequest request, FieldSelectionBean selection, IServiceContext context){
+        //...
+    }
+    
+    @BizMutation
+    MyResponse myMethod2(@Name("name") String name, @Name("value")String value){
+        
+    }
+}
+````
+
+* 如果参数个数较多，或者考虑到未来的可扩展性，我们会定义一个Request对象，然后增加`@RequestBean`注解，表示它对应所有前台发送的参数
+* 如果参数个数只有一两个，也可以使用`@Name`注解来逐个标记传入的参数
+* selection对应于GraphQL调用中的字段选择或者REST调用中的`@selection`参数，用于告诉服务端只要求返回哪些结果字段
+* context对应于服务端执行上下文，它的作用类似于一个Map，当GraphQL一次性调用多个后台服务函数时，可以利用这个上下文来缓存一些共享数据。
+此外前台可以主动取消执行到一般的服务函数，前台取消调用时会触发服务端`IServiceContext.cancel`函数。服务端可以通过`context.isCancelled()`来判断客户端是否已经主动取消。
+* selection和context都是可选参数，并不要求一定存在
+* 服务端函数的返回类型应该就是普通的JavaBean，不需要用ApiResponse。服务端函数抛出异常时，框架会自动捕获异常，最终返回给前端ApiResponse或者GraphQLResponseBean对象。
+
+## 2.6 客户端接口说明
+
+客户端调用接口一般格式如下：
+
+````java
+@BizModel("MyService")
+interface MyService{
+   @BizMutation("myMethod")
+   ApiResponse<MyResponse> api_myMethod(ApiRequest<MyRequest> request, ICancelToken cancelToken);
+   
+   @BizMutation("myMethod")
+   ApiResponse<MyResponse> myMethod(@RequestBean MyRequest request, @QueryParam("@selection") String selection);
+}
+````
+
+* 服务参数可以是ApiRequest类型，通过request的header可以传递额外信息，另外也可以通过request的selection传递字段选择信息
+* 此外也可以拆分开，使用`@RequestBean`来传递请求body，而通过`@selection`参数来传递字段选择信息。
+* 返回类型固定为ApiResponse。如果使用的是NopRPC客户端调用框架，则也可以直接返回MyResponse。这时如果返回的ApiResponse的status不是0，就会自动将ApiResponse中的错误信息作为NopRebuildException抛出。
+
+如果是通过Feign接口调用，则一般配置格式如下：
+
+````
+@FeignClient
+interface MyService{
+  @PostMapping("/r/MyService__myMethod")
+  ApiResponse<MyResponse> myMethod(@RequestBody MyRequest request, @QueryParam("%40selection") String selection);
+}
+````
+
+* 因为Feign框架实现层面的问题，url参数中的特殊字符，如`@`等需要编码，因此QueryParam的参数名只能是`%40selection`，如果使用`@selection`，则无法正常传递参数。
+* Feign接口的返回类型必须是`ApiResponse<T>`。调用端得到response之后，可以调用response.get()来获得实际的结果对象。此时如果ApiResponse的status不是0，则会抛出NopRebuildException异常。
+
 # 三. 使用服务网格
 
 如果使用k8s的服务网格，则不需要启用nacos注册中心，在客户端仍然按照上面的方式配置接口代理，同时增加如下配置

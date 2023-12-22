@@ -250,6 +250,100 @@ xpl标签既有返回值，又有输出。输出具有多种模式
 <myweb:GenPage page="xx" />
 ````
 
+## slot机制
+xpl模板标签的slot机制类似于Vue组件中的slot机制。
+
+### 1. 在标签库中定义标签时声明slot
+
+````xml
+<!-- /test/my-ext.xlib -->
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <tags>
+        <MyTagExt outputMode="xml">
+            <!-- 声明一个名称为ext的slot -->
+            <slot name="ext" >
+                <arg name="x" />
+            </slot>
+
+            <source>
+                <c:unit xpl:slot="ext" xpl:slotArgs="{x:3}" />
+            </source>
+        </MyTagExt>
+    </tags>
+</lib>
+````
+
+* 在标签实现中通过`xpl:slot`属性来引用外部传入的slot实现，通过`xpl:slotArgs`向slot传递参数。具体能够传递哪些参数需要在slot定义时指定
+* `xpl:slot`可以标记在任何标签上，并不是只能标记在`c:unit`标签上。与vue的slot类似，当`xpl:slot`指定的slot不存在时，会继续执行该标签，否则会用slot替换该标签。
+也就是说`xpl:slot`所在的标签相当于是提供了slot的缺省值。
+
+
+### 2. 调用标签时指定slot
+
+````xml
+<my-ext:MyTagExt xpl:lib="/test/my-ext.xlib">
+  <ext xpl:slotScope="x">
+     <x>${x}</x>
+  </ext>
+</my-ext:MyTagExt>
+````
+
+* 调用标签时通过`xpl:slotScope`来引入`xpl:slotArgs`传入的参数，此时可以利用javascript的解构语法来给变量重命名。
+* 如果不写`xpl:slotScope`，实际上仍然可以访问到`xpl:slotArgs`传入的参数
+* slot编译为一个函数 slot_{name}, `xpl:slotArgs`就是向这个函数传递的参数，必须是一个Map。而在标签调用时指定的`xpl:slotScope`相当于是声明这个函数的参数列表，此时可以重命名参数
+
+换句话说：
+1. slot是将调用方的body内容，放入实现方的`xpl:slot`位置
+2. slotArgs 是实现方向调用方传递的参数，在调用方的body中，可以使用这些参数
+3. 调用方可以使用`xpl:slotScope` 来明确引入实现方的参数，同时可以重命名
+
+### 3. 指定slotType=node
+缺省情况下slot的类型为renderer，编译为一个函数，这个函数的输出模式可以在slot上指定outputMode来定制。除了编译为函数之外，还可以将指定slotType=node，此时
+slot就保持XNode节点形式直接传入，而不会被转化为函数。此时也不能通过`xpl:slot="slotName"`来调用这个slot。
+
+一般使用`renderType=node`都是将传入的节点作为模型对象或者元数据来使用，特别是结合编译期宏标签机制，可以实现不同的DSL无缝嵌套在一起。
+
+例如biz.xlib中Validator标签
+
+````xml
+<Validator ignoreUnknownAttrs="true" macro="true">
+    <!--
+    runtime标识是运行期存在的变量。这个属性仅当标签是宏标签的时候起作用
+    -->
+    <attr name="obj" defaultValue="$scope" runtime="true" optional="true"/>
+
+    <!-- slotType=node表示保持XNode节点内容传入到source段中。如果不设置这个属性，则会编译后传入 -->
+    <slot name="default" slotType="node"/>
+
+    <source>
+        <!-- 在编译期解析标签体得到ValidatorModel, 保存为编译期的变量validatorModel -->
+        <c:script><![CDATA[
+           import io.nop.xlang.filter.BizValidatorHelper;
+
+            let validatorModel = BizValidatorHelper.parseValidator(slot_default);
+            ...返回编译得到的Expression对象
+        ]]></c:script>
+    </source>
+</Validator>
+````
+* slot的`name=default`和`slotType=node`表示调用时整个标签的body作为XNode类型的节点对象，名称为slot_default
+* Validator标签的`macro=true` 表示它是宏标签。它的source段在编译期会运行，输出的结果是一个表达式对象，然后再对该表达式对象进行编译。
+  宏标签相当于是一种内嵌的代码生成器
+
+调用时
+````xml
+<biz:Validator xpl:lib="/nop/core/xlib/biz.xlib" fatalSeverity="100"
+               obj="${entity}">
+
+    <check id="checkTransferCode" errorCode="test.not-transfer-code"
+           errorDescription="扫入的码不是流转码">
+        <eq name="flowMode" value="1"/>
+    </check>
+</biz:Validator>
+````
+
+这里`<biz:Validator>`内部嵌套的实际是`validator.xdef`元模型所定义的验证专用的DSL
+
 ## xpl专用属性
 
 XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl属性的处理顺序为
@@ -383,3 +477,26 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
   </test:MyTag2>
 </test:MyTag>
 ```
+
+## Xpl模板语言的意义
+xpl模板语言是XLang语言家族中的关键性成员，它的设计超越了现在所有的开源模板语言，特别是为元编程补充了大量语法特性。在XScript脚本语言中可以通过 
+
+````javscript
+let result = xpl `<c:if></c:if>` 
+````
+
+这种方式嵌入xpl模板语言，而在Xpl模板语言中，也可以用 `<c:script>`来嵌入脚本语言，并且可以通过各种自定义标签嵌入不同语义和形式的DSL语言。
+
+Xpl模板语言可以设置不同的输出模式，当输出模式为xjson时，可以将xml输出自动转化为json对象，因此我们可以用XML格式来编写AMIS页面
+
+````xml
+<form name="a">
+    <body>
+        <crud name="list">
+            <api url="xxx" />
+        </crud>
+    </body>
+</form>
+````
+
+各种逻辑结构的形式边界在xpl模板语言中可以被很自然的消解，这才是最关键的部分。

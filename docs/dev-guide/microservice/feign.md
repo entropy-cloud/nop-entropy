@@ -12,16 +12,18 @@ NopRPC目前集成了Nacos服务注册中心，因此只要SpringCloud也使用N
 
 ````java
 
-@FeignClient
+@FeignClient(name="rpc-demo-service")
 public interface MyService {
     @PostMapping("/r/MyService__myMethod")
-    ApiResponse<MyRespontBean> myMethod(@RequestBody MyRequest request, @QueryParam("@selection") String selection);
+    ApiResponse<MyRespontBean> myMethod(@RequestBody MyRequest request, @QueryParam("%40selection") String selection);
 }
 ````
 
 * NopRPC返回的结果类型固定为`ApiResponse<T>`类型, ApiResponse类定义在nop-api-core模块中。
 * NopRPC对外提供的REST接口url固定为`/r/{bizObjName}__{bizMethod}`形式，采用POST方式提交，通过body传递JSON数据
 * 可以通过在url中传递`@selection=a,b,c{f,g}`这种形式的字段选择表达式来实现类似GraphQL的字段选择机制
+
+**需要注意的是，Feign框架要求QueryParam的参数名必须是编码后的参数名，否则无法正常工作，所以@selection需要被替换为`%40selection`**
 
 ## 2. 在NopRPC中调用Feign服务
 

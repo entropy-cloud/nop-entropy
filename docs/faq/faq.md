@@ -193,6 +193,15 @@ XCodeGenerator上的renderModel函数可以读取模型文件，然后执行代�
 另外代码生成时会在xxx-codegen子项目下生成一个xxxCodeGen.java，例如nop-auth中的NopAuthCodeGen.java，可以用于直接在IDEA里执行生成代码，
 效果与执行mvn install等价。
 
+## 12. XPL模板中使用的变量从哪里来
+问题: codegen模块的orm模板，`@init.xrun` 中调用了`gen:DefineLoopForOrm`标签，在该标签的定义中，`<attr name="codeGenModel" implicit="true"/>`，
+codeGenModel 属性是隐式的， `@init.xrun` 也没有传这个属性，那它的属性值是从哪里来的呢？
+
+回答：这个变量是在XGenerator中通过scope.setLocalValue存进去的。在xrun文件中可以访问的变量除了定义的变量之外还有scope上下文传入的变量。
+在标签库中，所有变量都必须是传入的参数，无法直接访问scope变量。所以设置implicit=true的变量，从调用标签处捕获名称为codeGenModel的变量，作为标签参数传入。
+
+
+
 # 部署问题
 
 
@@ -294,3 +303,17 @@ Nop平台的发展目标是成为通用的领域语言工作台，其他都是�
 目前限制为两级，因为平台启动的时候有一个模块扫描的过程，为了限制模块扫描的范围，目前只扫描两级目录，发现存在 `/_vfs/xxx/yyy/_module`文件，就认为是一个模块，会自动加载它的beans目录下的`app-*.beans.xml`文件。
 
 通过`module:/abc/yy.xml` 这种方式加载文件时会扫描所有模块下的/abc/yy.xml文件，例如`/_vfs/xxx/yyy/abc/yy.xml`
+
+## 7. Nop平台中的GraphQL可以独立于Spring和Quarks框架使用吗?
+Nop平台的GraphQL引擎是纯逻辑的实现，它相当于是一种通用的服务分解机制，可以应用到所有request=>response这种处理逻辑流程中。
+GraphQLWebService提供了基于jaxrs标准的与Web层对接的一个实现。QuarkusGraphQLWebService和SpringGraphQLWebService等派生类填充了具体的一些框架相关的实现细节，
+由此对外暴露 `/graphql`和`/r/{operationName}`这两种对外接口方式。
+
+如果自己基于vertx框架或者netty框架简单写一个http协议适配，则也可以不依赖于quarkus或者spring框架。
+
+因为NopGraphQL的入口参数和返回结果都是POJO，所以它可以直接应用于批处理引擎以及kafka消息队列处理等场景，甚至在流处理框架中也可以使用。
+
+如果只想使用Nop平台的后端，不想引入前端AMIS技术，可以引入 nop-spring-web-starter（包括GraphQL和ORM）或者nop-spring-core-starter只包含基础的xlang，
+或者引入nop-quarkus-web-starter或者nop-quarkus-core-starter。
+
+starter提供了与spring框架以及quarkus框架的自动集成机制。只要引入相应依赖，应用启动后会自动调用Nop平台的初始化函数（CoreInitialization.initialize()）

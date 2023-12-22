@@ -164,7 +164,7 @@ XPL标签不仅仅可以作为前端模板引擎来使用，它也可以直接�
 my.xlib
 <lib>
   <MyDSL macro="true">
-     <slot name="default" type="node" />
+     <slot name="default" slotType="node" />
 
      <source>
         <c:script>
