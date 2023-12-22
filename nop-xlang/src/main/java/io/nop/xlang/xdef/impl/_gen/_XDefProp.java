@@ -11,7 +11,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * xdef转换为objMeta时，objPropMeta上存在的扩展属性
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _XDefProp extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**

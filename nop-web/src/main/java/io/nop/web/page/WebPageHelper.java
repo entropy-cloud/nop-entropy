@@ -55,6 +55,13 @@ public class WebPageHelper {
                     WebConstants.JS_FILE_TYPES);
     }
 
+    public static void checkXjsFile(String path) {
+        String fileType = StringHelper.fileExt(path);
+        if (!WebConstants.XJS_FILE_TYPES.contains(fileType))
+            throw new NopException(ERR_WEB_INVALID_JS_FILE_TYPE).param(ARG_PATH, path).param(ARG_ALLOWED_FILE_TYPES,
+                    WebConstants.XJS_FILE_TYPES);
+    }
+
     // 删除null值和空集合，简化最终的Page结构
     public static void removeNullEntry(Object map) {
         JsonCleaner.instance().clean(map, (name, value) -> {

@@ -39,6 +39,8 @@ public interface WebConstants {
 
     Set<String> JS_FILE_TYPES = buildImmutableSet(FILE_EXT_JS);
 
+    Set<String> XJS_FILE_TYPES = buildImmutableSet(FILE_EXT_JS, FILE_EXT_MJS, FILE_EXT_XJS);
+
     String ATTR_XUI_ROLES = "xui:roles";
 
     String ATTR_XUI_PERMISSIONS = "xui:permissions";
@@ -46,5 +48,9 @@ public interface WebConstants {
     String FUNC_ROLLUP_TRANSFORM = "rollupTransform";
 
 
-    String PREFIX_X_GEN_EXTENDS = "@x:gen-extends:";
+    String PREFIX_GENERATE = "@generate";
+
+    String PREFIX_BEGIN_MOCK = "//@begin-mock";
+
+    String PREFIX_END_MOCK = "//@end-mock";
 }

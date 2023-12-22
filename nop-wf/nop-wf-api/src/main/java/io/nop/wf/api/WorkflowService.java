@@ -1,18 +1,23 @@
 //__XGEN_FORCE_OVERRIDE__
     package io.nop.wf.api;
 
+    import java.util.concurrent.CompletionStage;
+
     import io.nop.api.core.beans.ApiRequest;
     import io.nop.api.core.beans.ApiResponse;
-    import java.util.concurrent.CompletionStage;
     import io.nop.api.core.util.FutureHelper;
     import io.nop.api.core.util.ICancelToken;
     import io.nop.api.core.annotations.biz.BizModel;
     import io.nop.api.core.annotations.biz.BizMutation;
     import io.nop.api.core.annotations.biz.BizQuery;
     import io.nop.api.core.annotations.biz.RequestBean;
+    import static io.nop.api.core.ApiConstants.SYS_PARAM_SELECTION;
 
     import jakarta.ws.rs.POST;
     import jakarta.ws.rs.Path;
+    import jakarta.ws.rs.Consumes;
+    import jakarta.ws.rs.core.MediaType;
+    import jakarta.ws.rs.QueryParam;
 
     
         import io.nop.wf.api.beans.WfStartRequestBean;
@@ -33,196 +38,262 @@
     public interface WorkflowService{
 
     
+
         /**
-         * 
+         * 启动工作流 
          */
         @POST
         @Path("/r/WorkflowService__startWorkflow")
-        @BizMutation
-        CompletionStage<ApiResponse<WfStartResponseBean>> startWorkflowAsync(ApiRequest<WfStartRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("startWorkflow")
+        CompletionStage<ApiResponse<WfStartResponseBean>> startWorkflowAsync(@RequestBean WfStartRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
 
         /**
-         * 
-         */
-        default CompletionStage<WfStartResponseBean> startWorkflowAsync(@RequestBean WfStartRequestBean request){
-            return startWorkflowAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
-        }
-
-        /**
-         * 
+         * 启动工作流 
          */
         @POST
         @Path("/r/WorkflowService__startWorkflow")
-        @BizMutation
-        ApiResponse<WfStartResponseBean> startWorkflow(ApiRequest<WfStartRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("startWorkflow")
+        ApiResponse<WfStartResponseBean> startWorkflow(@RequestBean WfStartRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
 
         /**
-         * 
-         */
-        default WfStartResponseBean startWorkflow(@RequestBean WfStartRequestBean request){
-            return startWorkflow(ApiRequest.build(request), null).get();
-        }
-    
-        /**
-         * 
+         * 通知子工作流结束 
          */
         @POST
         @Path("/r/WorkflowService__notifySubFlowEnd")
-        @BizMutation
-        CompletionStage<ApiResponse<Void>> notifySubFlowEndAsync(ApiRequest<WfSubFlowEndRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("notifySubFlowEnd")
+        CompletionStage<ApiResponse<Void>> notifySubFlowEndAsync(@RequestBean WfSubFlowEndRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
 
         /**
-         * 
-         */
-        default CompletionStage<Void> notifySubFlowEndAsync(@RequestBean WfSubFlowEndRequestBean request){
-            return notifySubFlowEndAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
-        }
-
-        /**
-         * 
+         * 通知子工作流结束 
          */
         @POST
         @Path("/r/WorkflowService__notifySubFlowEnd")
-        @BizMutation
-        ApiResponse<Void> notifySubFlowEnd(ApiRequest<WfSubFlowEndRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("notifySubFlowEnd")
+        ApiResponse<Void> notifySubFlowEnd(@RequestBean WfSubFlowEndRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
 
         /**
-         * 
-         */
-        default void notifySubFlowEnd(@RequestBean WfSubFlowEndRequestBean request){
-             notifySubFlowEnd(ApiRequest.build(request), null).get();
-        }
-    
-        /**
-         * 
+         * 执行动作 
          */
         @POST
         @Path("/r/WorkflowService__invokeAction")
-        @BizMutation
-        CompletionStage<ApiResponse<Object>> invokeActionAsync(ApiRequest<WfActionRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("invokeAction")
+        CompletionStage<ApiResponse<Object>> invokeActionAsync(@RequestBean WfActionRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
 
         /**
-         * 
-         */
-        default CompletionStage<Object> invokeActionAsync(@RequestBean WfActionRequestBean request){
-            return invokeActionAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
-        }
-
-        /**
-         * 
+         * 执行动作 
          */
         @POST
         @Path("/r/WorkflowService__invokeAction")
-        @BizMutation
-        ApiResponse<Object> invokeAction(ApiRequest<WfActionRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("invokeAction")
+        ApiResponse<Object> invokeAction(@RequestBean WfActionRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
 
         /**
-         * 
-         */
-        default Object invokeAction(@RequestBean WfActionRequestBean request){
-            return invokeAction(ApiRequest.build(request), null).get();
-        }
-    
-        /**
-         * 
+         * 中止工作流 
          */
         @POST
         @Path("/r/WorkflowService__killWorkflow")
-        @BizMutation
-        CompletionStage<ApiResponse<Void>> killWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("killWorkflow")
+        CompletionStage<ApiResponse<Void>> killWorkflowAsync(@RequestBean WfCommandRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
 
         /**
-         * 
-         */
-        default CompletionStage<Void> killWorkflowAsync(@RequestBean WfCommandRequestBean request){
-            return killWorkflowAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
-        }
-
-        /**
-         * 
+         * 中止工作流 
          */
         @POST
         @Path("/r/WorkflowService__killWorkflow")
-        @BizMutation
-        ApiResponse<Void> killWorkflow(ApiRequest<WfCommandRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("killWorkflow")
+        ApiResponse<Void> killWorkflow(@RequestBean WfCommandRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
 
         /**
-         * 
-         */
-        default void killWorkflow(@RequestBean WfCommandRequestBean request){
-             killWorkflow(ApiRequest.build(request), null).get();
-        }
-    
-        /**
-         * 
+         * 暂停工作流 
          */
         @POST
         @Path("/r/WorkflowService__suspendWorkflow")
-        @BizMutation
-        CompletionStage<ApiResponse<Void>> suspendWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("suspendWorkflow")
+        CompletionStage<ApiResponse<Void>> suspendWorkflowAsync(@RequestBean WfCommandRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
 
         /**
-         * 
-         */
-        default CompletionStage<Void> suspendWorkflowAsync(@RequestBean WfCommandRequestBean request){
-            return suspendWorkflowAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
-        }
-
-        /**
-         * 
+         * 暂停工作流 
          */
         @POST
         @Path("/r/WorkflowService__suspendWorkflow")
-        @BizMutation
-        ApiResponse<Void> suspendWorkflow(ApiRequest<WfCommandRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("suspendWorkflow")
+        ApiResponse<Void> suspendWorkflow(@RequestBean WfCommandRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
 
         /**
-         * 
-         */
-        default void suspendWorkflow(@RequestBean WfCommandRequestBean request){
-             suspendWorkflow(ApiRequest.build(request), null).get();
-        }
-    
-        /**
-         * 
+         * 继续工作流 
          */
         @POST
         @Path("/r/WorkflowService__resumeWorkflow")
-        @BizMutation
-        CompletionStage<ApiResponse<Void>> resumeWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
-            ICancelToken cancelToken);
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("resumeWorkflow")
+        CompletionStage<ApiResponse<Void>> resumeWorkflowAsync(@RequestBean WfCommandRequestBean request,
+            @QueryParam(SYS_PARAM_SELECTION) String selection);
+
 
         /**
-         * 
-         */
-        default CompletionStage<Void> resumeWorkflowAsync(@RequestBean WfCommandRequestBean request){
-            return resumeWorkflowAsync(ApiRequest.build(request), null).thenApply(ApiResponse::get);
-        }
-
-        /**
-         * 
+         * 继续工作流 
          */
         @POST
         @Path("/r/WorkflowService__resumeWorkflow")
-        @BizMutation
-        ApiResponse<Void> resumeWorkflow(ApiRequest<WfCommandRequestBean> request,
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("resumeWorkflow")
+        ApiResponse<Void> resumeWorkflow(@RequestBean WfCommandRequestBean request,
+             @QueryParam(SYS_PARAM_SELECTION) String selection);
+
+    
+        /**
+         * 启动工作流 
+         */
+        @POST
+        @Path("/r/WorkflowService__startWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("startWorkflow")
+        CompletionStage<ApiResponse<WfStartResponseBean>> api_startWorkflowAsync(ApiRequest<WfStartRequestBean> request,
             ICancelToken cancelToken);
 
         /**
-         * 
+         * 启动工作流 
          */
-        default void resumeWorkflow(@RequestBean WfCommandRequestBean request){
-             resumeWorkflow(ApiRequest.build(request), null).get();
-        }
-    
+        @POST
+        @Path("/r/WorkflowService__startWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("startWorkflow")
+        ApiResponse<WfStartResponseBean> api_startWorkflow(ApiRequest<WfStartRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 通知子工作流结束 
+         */
+        @POST
+        @Path("/r/WorkflowService__notifySubFlowEnd")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("notifySubFlowEnd")
+        CompletionStage<ApiResponse<Void>> api_notifySubFlowEndAsync(ApiRequest<WfSubFlowEndRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 通知子工作流结束 
+         */
+        @POST
+        @Path("/r/WorkflowService__notifySubFlowEnd")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("notifySubFlowEnd")
+        ApiResponse<Void> api_notifySubFlowEnd(ApiRequest<WfSubFlowEndRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 执行动作 
+         */
+        @POST
+        @Path("/r/WorkflowService__invokeAction")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("invokeAction")
+        CompletionStage<ApiResponse<Object>> api_invokeActionAsync(ApiRequest<WfActionRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 执行动作 
+         */
+        @POST
+        @Path("/r/WorkflowService__invokeAction")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("invokeAction")
+        ApiResponse<Object> api_invokeAction(ApiRequest<WfActionRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 中止工作流 
+         */
+        @POST
+        @Path("/r/WorkflowService__killWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("killWorkflow")
+        CompletionStage<ApiResponse<Void>> api_killWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 中止工作流 
+         */
+        @POST
+        @Path("/r/WorkflowService__killWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("killWorkflow")
+        ApiResponse<Void> api_killWorkflow(ApiRequest<WfCommandRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 暂停工作流 
+         */
+        @POST
+        @Path("/r/WorkflowService__suspendWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("suspendWorkflow")
+        CompletionStage<ApiResponse<Void>> api_suspendWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 暂停工作流 
+         */
+        @POST
+        @Path("/r/WorkflowService__suspendWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("suspendWorkflow")
+        ApiResponse<Void> api_suspendWorkflow(ApiRequest<WfCommandRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 继续工作流 
+         */
+        @POST
+        @Path("/r/WorkflowService__resumeWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("resumeWorkflow")
+        CompletionStage<ApiResponse<Void>> api_resumeWorkflowAsync(ApiRequest<WfCommandRequestBean> request,
+            ICancelToken cancelToken);
+
+        /**
+         * 继续工作流 
+         */
+        @POST
+        @Path("/r/WorkflowService__resumeWorkflow")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @BizMutation("resumeWorkflow")
+        ApiResponse<Void> api_resumeWorkflow(ApiRequest<WfCommandRequestBean> request,
+            ICancelToken cancelToken);
+
     }

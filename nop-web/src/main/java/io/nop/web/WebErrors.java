@@ -38,4 +38,6 @@ public interface WebErrors {
     ErrorCode ERR_WEB_INVALID_JS_FILE_TYPE = define("nop.err.web.invalid-js-file-types",
             "请求路径[{path}]不是可编辑的js文件，文件后缀名必须是{allowedFileTypes}", ARG_PATH, ARG_ALLOWED_FILE_TYPES);
 
+    ErrorCode ERR_WEB_JS_MISSING_END_BLOCK = define("nop.err.web.js-missing-end-block",
+            "没有找到匹配的//@end-block部分");
 }

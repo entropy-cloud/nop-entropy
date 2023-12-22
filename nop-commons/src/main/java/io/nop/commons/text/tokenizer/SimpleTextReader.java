@@ -7,11 +7,12 @@
  */
 package io.nop.commons.text.tokenizer;
 
+import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.util.StringHelper;
 
-public class SimpleTextReader {
+public class SimpleTextReader implements ISourceLocationGetter {
     private final SourceLocation baseLoc;
     private final String str;
     private int pos;
@@ -22,6 +23,22 @@ public class SimpleTextReader {
     public SimpleTextReader(SourceLocation baseLoc, String str) {
         this.baseLoc = baseLoc;
         this.str = str;
+    }
+
+    @Override
+    public SourceLocation getLocation() {
+        if (baseLoc == null)
+            return SourceLocation.fromLine("<text>", getLine());
+        return baseLoc.offset(getLine(), 0);
+    }
+
+    public int getLine() {
+        int cnt = 0;
+        for (int i = 0; i < pos; i++) {
+            if (str.charAt(i) == '\n')
+                cnt++;
+        }
+        return cnt;
     }
 
     public String toString() {
@@ -57,15 +74,16 @@ public class SimpleTextReader {
         this.pos = pos;
     }
 
-    public void skipBlank() {
+    public SimpleTextReader skipBlank() {
         for (int n = str.length(); pos < n; pos++) {
             char c = str.charAt(pos);
             if (!StringHelper.isWhitespace(c))
                 break;
         }
+        return this;
     }
 
-    public void skipLine() {
+    public SimpleTextReader skipLine() {
         for (int n = str.length(); pos < n; pos++) {
             char c = str.charAt(pos);
             if (c == '\n') {
@@ -73,6 +91,7 @@ public class SimpleTextReader {
                 break;
             }
         }
+        return this;
     }
 
     public SourceLocation location() {
@@ -142,11 +161,11 @@ public class SimpleTextReader {
         sb.setLength(0);
         for (int n = str.length(); pos < n; pos++) {
             char c = str.charAt(pos);
-            if(c == '\r'){
-                pos ++;
-                if(pos < n-1){
-                    if(str.charAt(pos) == '\n'){
-                        pos ++;
+            if (c == '\r') {
+                pos++;
+                if (pos < n - 1) {
+                    if (str.charAt(pos) == '\n') {
+                        pos++;
                     }
                 }
                 break;

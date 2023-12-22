@@ -63,4 +63,5 @@ public interface XuiConstants {
     String ID_SUB_GRID_EDIT = "sub-grid-edit";
 
     String ID_SUB_GRID_VIEW = "sub-grid-view";
+
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.IByteArrayView;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
@@ -379,6 +380,13 @@ public class ResourceHelper {
         return buildNamespacePath(ResourceConstants.DUMP_NS, dumpPath);
     }
 
+    public static void dumpResource(IResource resource, String source) {
+        if (AppConfig.isDebugMode()) {
+            String dumpPath = getDumpPath(resource.getPath());
+            IResource dumpFile = VirtualFileSystem.instance().getResource(dumpPath);
+            ResourceHelper.writeText(dumpFile, source);
+        }
+    }
     public static boolean isValidRelativeName(String name) {
         if (name.length() <= 0)
             return true;

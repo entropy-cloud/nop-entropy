@@ -12,7 +12,7 @@ import io.nop.core.lang.json.IJsonHandler;
  * 可以通过x:post-extends段实现对标签（函数）的aop加工。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
-    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101"})
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _XplTagLib extends io.nop.xlang.xdsl.AbstractDslModel {
     
     /**

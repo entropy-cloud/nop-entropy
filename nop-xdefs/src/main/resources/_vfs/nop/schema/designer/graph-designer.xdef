@@ -4,11 +4,13 @@
 @editorType [编辑器类型] 比如flow-builder对应于类似钉钉的审批流编辑
 -->
 <designer x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-          editorType="string"
+          editorType="string" codeGenLib="v-path"
     xmlns:xdef="/nop/schema/xdef.xdef" xdef:name="GraphDesignerModel" xdef:bean-package="io.nop.xui.graph_designer">
     <actions xdef:ref="../xui/actions.xdef"/>
 
     <zoom initialValue="int" min="int" max="int" step="int" xdef:name="GraphDesignerZoomModel" />
+
+    <style xdef:value="string" />
 
     <nodes xdef:body-type="list" xdef:key-attr="name">
         <!--
@@ -17,7 +19,7 @@
         @allowParents 允许嵌入在哪些容器类型中。如果不配置，则允许嵌入到任意容器中
         -->
         <node name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
-              shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
+              base="string" shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
               width="int" height="int" fixedAspectRatio="boolean"  start="!boolean=false" end="!boolean=false"
               draggable="boolean" resizable="boolean"
               deletable="boolean" addable="boolean=true"

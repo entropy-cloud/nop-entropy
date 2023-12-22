@@ -1,0 +1,31 @@
+<!--
+OA Flow Designer Generator
+-->
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+    <tags>
+        <GenerateJs outputMode="text">
+            <attr name="codeGenModel"/>
+
+            <source>
+                <c:include src="ofd-gen/impl_GenerateJs.xpl"/>
+            </source>
+        </GenerateJs>
+
+        <GenerateSchema outputMode="xjson">
+            <attr name="codeGenModel"/>
+
+            <source>
+                <c:include src="ofd-gen/impl_GenerateSchema.xpl"/>
+            </source>
+        </GenerateSchema>
+
+        <GenerateForm outputMode="xjson">
+            <attr name="codeGenModel"/>
+            <attr name="formModel"/>
+
+            <source>
+                <c:include src="ofd-gen/impl_GenerateForm.xpl"/>
+            </source>
+        </GenerateForm>
+    </tags>
+</lib>

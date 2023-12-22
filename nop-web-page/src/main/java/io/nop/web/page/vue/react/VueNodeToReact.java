@@ -2,6 +2,7 @@ package io.nop.web.page.vue.react;
 
 import io.nop.commons.text.IndentPrinter;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.XNode;
 import io.nop.web.page.vue.VueNode;
 import io.nop.web.page.vue.VueSlot;
 import io.nop.xlang.ast.Expression;
@@ -13,7 +14,6 @@ import java.util.List;
  * 蒋vue模板的解析结果转换为React的createElement调用
  */
 public class VueNodeToReact {
-
     public void render(VueNode node, IndentPrinter out) {
         renderFor(node, out);
     }
@@ -130,7 +130,7 @@ public class VueNodeToReact {
     }
 
     protected String getElementName(VueNode node) {
-        if("template".equals(node.getType()))
+        if ("template".equals(node.getType()))
             return "Fragment";
 
         String componentName = node.getComponentName();

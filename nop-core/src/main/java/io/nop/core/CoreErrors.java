@@ -405,7 +405,8 @@ public interface CoreErrors {
     ErrorCode ERR_RESOURCE_SAVE_FROM_STREAM_FAIL = define("nop.err.core.resource.save-from-stream-fail",
             "保存数据流到资源文件[{resourcePath}]失败", ARG_RESOURCE_PATH);
 
-    ErrorCode ERR_RESOURCE_NOT_EXISTS = define("nop.err.core.resource.not-exists", "资源文件[{resource}]不存在", ARG_RESOURCE);
+    ErrorCode ERR_RESOURCE_NOT_EXISTS = define("nop.err.core.resource.not-exists",
+            "资源文件[{resourcePath}]不存在", ARG_RESOURCE, ARG_RESOURCE_PATH);
 
     ErrorCode ERR_RESOURCE_GET_INPUT_STREAM_FAIL = define("nop.err.core.resource.get-input-stream-fail",
             "打开资源文件[{resource}]的输入流失败", ARG_RESOURCE);

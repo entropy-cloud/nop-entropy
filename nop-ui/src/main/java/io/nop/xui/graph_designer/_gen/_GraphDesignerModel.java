@@ -23,6 +23,13 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: codeGenLib
+     * 
+     */
+    private java.lang.String _codeGenLib ;
+    
+    /**
+     *  
      * xml name: edges
      * 
      */
@@ -58,6 +65,13 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: style
+     * 
+     */
+    private java.lang.String _style ;
+    
+    /**
+     *  
      * xml name: zoom
      * 
      */
@@ -89,6 +103,25 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     public boolean hasActions(){
         return !this._actions.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: codeGenLib
+     *  
+     */
+    
+    public java.lang.String getCodeGenLib(){
+      return _codeGenLib;
+    }
+
+    
+    public void setCodeGenLib(java.lang.String value){
+        checkAllowChange();
+        
+        this._codeGenLib = value;
+           
+    }
+
     
     /**
      * 
@@ -265,6 +298,25 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
     
     /**
      * 
+     * xml name: style
+     *  
+     */
+    
+    public java.lang.String getStyle(){
+      return _style;
+    }
+
+    
+    public void setStyle(java.lang.String value){
+        checkAllowChange();
+        
+        this._style = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: zoom
      *  
      */
@@ -308,11 +360,13 @@ public abstract class _GraphDesignerModel extends io.nop.core.resource.component
         super.outputJson(out);
         
         out.put("actions",this.getActions());
+        out.put("codeGenLib",this.getCodeGenLib());
         out.put("edges",this.getEdges());
         out.put("editorType",this.getEditorType());
         out.put("forms",this.getForms());
         out.put("nodes",this.getNodes());
         out.put("script",this.getScript());
+        out.put("style",this.getStyle());
         out.put("zoom",this.getZoom());
     }
 }

@@ -22,6 +22,7 @@ import io.nop.xlang.ast.XLangOutputMode;
 
 import static io.nop.web.WebErrors.ARG_LOC;
 import static io.nop.web.WebErrors.ERR_WEB_JS_COMMENT_NOT_END_PROPERLY;
+import static io.nop.web.WebErrors.ERR_WEB_JS_MISSING_END_BLOCK;
 
 public class XGenJsProcessor {
     public String process(SourceLocation loc, String text) {
@@ -29,9 +30,19 @@ public class XGenJsProcessor {
 
         SimpleTextReader tokenizer = new SimpleTextReader(loc, text);
         do {
+            int startPos = tokenizer.pos();
             tokenizer.skipBlank();
-            if (tokenizer.startsWith("//")) {
+
+            if (tokenizer.startsWith(WebConstants.PREFIX_BEGIN_MOCK)) {
+                int endPos = tokenizer.find(WebConstants.PREFIX_END_MOCK);
+                if(endPos < 0)
+                    throw new NopException(ERR_WEB_JS_MISSING_END_BLOCK).source(tokenizer);
+                tokenizer.moveTo(endPos);
                 tokenizer.skipLine();
+            } else if (tokenizer.startsWith("//")) {
+                tokenizer.skipLine();
+                ret.append(tokenizer.substring(startPos, tokenizer.pos()));
+                ret.append('\n');
                 continue;
             }
             if (tokenizer.startsWith("/*")) {
@@ -43,11 +54,13 @@ public class XGenJsProcessor {
                             .param(ARG_LOC, genLoc);
 
                 // 动态生成js文件内容
-                if (tokenizer.tryMatch(WebConstants.PREFIX_X_GEN_EXTENDS)) {
+                if (tokenizer.tryMatch(WebConstants.PREFIX_GENERATE)) {
                     int pos = tokenizer.pos();
                     String genSource = tokenizer.substring(pos, end);
                     String genJs = genJs(loc, genSource);
                     ret.append(genJs).append('\n');
+                } else {
+                    ret.append(tokenizer.substring(startPos, end + 2));
                 }
                 tokenizer.moveTo(end + 2);
             } else {

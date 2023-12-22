@@ -7,7 +7,7 @@ import io.nop.core.lang.json.IJsonHandler;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from [19:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
+ * generate from [21:10:0:0]/nop/schema/designer/graph-designer.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -41,6 +41,13 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * 
      */
     private KeyedList<io.nop.xui.graph_designer.GraphDesignerAnchorModel> _anchors = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: base
+     * 
+     */
+    private java.lang.String _base ;
     
     /**
      *  
@@ -318,6 +325,25 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
     public boolean hasAnchors(){
         return !this._anchors.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: base
+     *  
+     */
+    
+    public java.lang.String getBase(){
+      return _base;
+    }
+
+    
+    public void setBase(java.lang.String value){
+        checkAllowChange();
+        
+        this._base = value;
+           
+    }
+
     
     /**
      * 
@@ -815,6 +841,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
         out.put("allowChildren",this.getAllowChildren());
         out.put("allowParents",this.getAllowParents());
         out.put("anchors",this.getAnchors());
+        out.put("base",this.getBase());
         out.put("deletable",this.getDeletable());
         out.put("draggable",this.getDraggable());
         out.put("end",this.isEnd());
