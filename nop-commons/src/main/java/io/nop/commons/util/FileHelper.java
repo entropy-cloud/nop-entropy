@@ -13,19 +13,36 @@ import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.io.Writer;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
-import java.nio.file.*;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 
-import static io.nop.commons.CommonErrors.*;
+import static io.nop.commons.CommonErrors.ARG_DEST;
+import static io.nop.commons.CommonErrors.ARG_PATH;
+import static io.nop.commons.CommonErrors.ERR_FILE_WRITE_CONFLICT;
+import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_DIRECTORY;
+import static io.nop.commons.CommonErrors.ERR_IO_COPY_DEST_NOT_FILE;
+import static io.nop.commons.CommonErrors.ERR_IO_CREATE_FILE_FAIL;
 
 public class FileHelper {
     static final Logger LOG = LoggerFactory.getLogger(FileHelper.class);
@@ -122,6 +139,15 @@ public class FileHelper {
 
     public static void writeText(File file, String text, String encoding) {
         writeText(file, text, encoding, false);
+    }
+
+    public static void writeTextIfNotMatch(File file, String text, String encoding) {
+        if (file.exists()) {
+            String content = readText(file, encoding);
+            if (Objects.equals(content, text))
+                return;
+        }
+        writeText(file, text, encoding);
     }
 
     public static Properties readProperties(@Nonnull File file) {

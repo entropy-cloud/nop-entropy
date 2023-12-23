@@ -13,8 +13,11 @@
     <bean id="io.nop.web.biz.SystemJsProviderBizModel" ioc:type="@bean:id"/>
 
     <bean id="io.nop.web.page.SystemJsProvider" ioc:type="@bean:id">
-        <property name="jsFunctionService">
-            <ref bean="nopJsFunctionService" ioc:optional="true" />
+    </bean>
+
+    <bean id="nopModuleJsLoader" class="io.nop.web.page.ModuleJsLoader">
+        <property name="systemJsTransformer">
+            <ref bean="nopJsFunctionService" ioc:optional="true" ioc:ignore-depends="true"/>
         </property>
     </bean>
 
@@ -25,9 +28,7 @@
 
         <property name="initScriptPath" value="/nop/js/libs/nop-server-tool.mjs"/>
         <property name="workerCount" value="@r-cfg:nop.js.service.worker-count|5"/>
-        <property name="jsLibLoader">
-            <bean class="io.nop.web.page.ModuleJsLoader"/>
-        </property>
+        <property name="jsLibLoader" ref="nopModuleJsLoader" />
     </bean>
 
     <bean id="io.nop.web.page.PageModelValidator" ioc:type="@bean:id">

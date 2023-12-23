@@ -537,6 +537,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "ENCODED_PARAM_SELECTION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "GRAPHQL_EXTENSION_BIZ_FATAL"
       },
       {
@@ -5884,6 +5889,13 @@
         ]
       },
       {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.AuthToken",
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
         "name": "handlePublicPath",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext",
@@ -6131,6 +6143,13 @@
         ]
       },
       {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.AuthToken",
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "getUserInfo",
         "parameterTypes": [
           "io.nop.api.core.auth.IUserContext"
@@ -6313,6 +6332,13 @@
         "name": "getUserContextAsync",
         "parameterTypes": [
           "io.nop.auth.core.login.AuthToken"
+        ]
+      },
+      {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.AuthToken",
+          "java.util.Map"
         ]
       },
       {
@@ -52941,7 +52967,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "apply",
@@ -52962,6 +52994,22 @@
       },
       {
         "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadModuleJs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSystemJsTransformer",
+        "parameterTypes": [
+          "io.nop.commons.functional.IAsyncFunctionService"
+        ]
+      },
+      {
+        "name": "systemJsEmptyFile",
         "parameterTypes": []
       }
     ],
@@ -53141,6 +53189,16 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "autoLoadXjs"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "jsLoader"
       }
     ],
     "methods": [
@@ -53175,6 +53233,10 @@
       },
       {
         "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadAllXjs",
         "parameterTypes": []
       },
       {

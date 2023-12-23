@@ -8,6 +8,7 @@
 package io.nop.web.page;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -16,6 +17,7 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.TextFile;
 import io.nop.web.WebConstants;
 import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 
 import java.util.List;
 
@@ -23,6 +25,9 @@ public class SystemJsProvider extends ResourceWithHistoryProvider {
 
     @InjectValue("@cfg:nop.js.auto-load-xjs|false")
     boolean autoLoadXjs;
+
+    @Inject
+    ModuleJsLoader jsLoader;
 
     @PostConstruct
     public void init() {
@@ -33,7 +38,7 @@ public class SystemJsProvider extends ResourceWithHistoryProvider {
 
     public void loadAllXjs() {
         List<IResource> resources = ModuleManager.instance().findModuleResources("/pages", WebConstants.FILE_EXT_XJS);
-        resources.forEach(resource -> ResourceComponentManager.instance().loadComponentModel(resource.getStdPath()));
+        resources.forEach(resource -> jsLoader.apply(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_JS)));
     }
 
     public String getJs(String path) {

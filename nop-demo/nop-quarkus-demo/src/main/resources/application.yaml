@@ -74,6 +74,10 @@ nop:
       username: sa
       password:
 
+
+    js:
+      auto-load-xjs: true
+
     web:
       validate-page-model: true
 

@@ -97,24 +97,24 @@ public class ModuleJsLoader implements Function<String, String> {
 
             throw new NopException(ERR_RESOURCE_NOT_EXISTS).param(ARG_RESOURCE_PATH, path);
         } else if (WebConstants.FILE_EXT_JS.equals(fileExt) || WebConstants.FILE_EXT_XJS.equals(fileExt)) {
+            String jsPath = StringHelper.replaceFileExt(path, WebConstants.FILE_EXT_JS);
+            IResource jsResource = VirtualFileSystem.instance().getResource(jsPath);
+
             // 如果文件名后缀是js或者XJS，则返回SystemJS格式的js库
             String xjsPath = StringHelper.replaceFileExt(path, WebConstants.FILE_EXT_XJS);
             IResource xjsResource = VirtualFileSystem.instance().getResource(xjsPath);
-            boolean xjsExists = true;
-            if (xjsResource.exists()) {
-                ResourceComponentManager.instance().traceDepends(xjsResource.getPath());
-            }
+            boolean supportXjs = xjsResource.exists() && systemJsTransformer != null;
 
-            String jsPath = StringHelper.replaceFileExt(xjsResource.getPath(), WebConstants.FILE_EXT_JS);
-            IResource jsResource = VirtualFileSystem.instance().getResource(jsPath);
-
-            // 如果存在js文件，且比相应xjs文件更新，则直接返回js文件内容
-            if (jsResource.exists() && jsResource.lastModified() >= xjsResource.lastModified()) {
+            // 如果存在js文件，且不支持xjs文件，则直接返回js文件内容
+            if (jsResource.exists() && !supportXjs) {
                 ResourceComponentManager.instance().traceDepends(jsResource.getPath());
                 return new TextFile(loc, ResourceHelper.readText(jsResource));
             }
 
-            if (xjsExists) {
+
+            if (supportXjs) {
+                ResourceComponentManager.instance().traceDepends(xjsResource.getPath());
+
                 String source = generateFromXjs(loc, xjsResource);
                 source = transformToSystemJs(xjsResource, source);
 
@@ -122,12 +122,10 @@ public class ModuleJsLoader implements Function<String, String> {
                 ResourceHelper.dumpResource(jsResource, source);
 
                 // 如果xjs文件在文件目录中，则直接生成一个对应的js文件到同样的目录下
-                if (isSystemJs(source)) {
-                    File file = xjsResource.toFile();
-                    if (file != null) {
-                        File jsFile = new File(file.getParent(), StringHelper.replaceFileExt(file.getName(), WebConstants.FILE_EXT_JS));
-                        FileHelper.writeText(jsFile, source, null);
-                    }
+                File file = xjsResource.toFile();
+                if (file != null) {
+                    File jsFile = new File(file.getParent(), StringHelper.replaceFileExt(file.getName(), WebConstants.FILE_EXT_JS));
+                    FileHelper.writeTextIfNotMatch(jsFile, source, null);
                 }
 
                 return new TextFile(loc, source);
