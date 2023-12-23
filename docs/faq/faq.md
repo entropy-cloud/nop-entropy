@@ -200,6 +200,37 @@ codeGenModel 属性是隐式的， `@init.xrun` 也没有传这个属性，那�
 回答：这个变量是在XGenerator中通过scope.setLocalValue存进去的。在xrun文件中可以访问的变量除了定义的变量之外还有scope上下文传入的变量。
 在标签库中，所有变量都必须是传入的参数，无法直接访问scope变量。所以设置implicit=true的变量，从调用标签处捕获名称为codeGenModel的变量，作为标签参数传入。
 
+## 13. 前端如何使用类似like的查询条件
+参见[xview.md](../dev-guide/xui/xview.md)
+
+* 在meta中配置允许contains过滤运算
+````xml
+<prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
+````
+
+以上条件表示`userName`允许按照`eq`和`contains`两种关系过滤算符进行查询，`eq`表示相等条件，`contains`表示包含，通过`like`来实现。`xui:defaultFilterOp`表示缺省过滤算符采用`contains`。
+
+* 前台传送过滤条件
+前端条件拼接条件filter_{propName}_{filterOp}={value}，例如 filter_userName__contains=abc
+
+## 14. 为什么Inject bean没有成功
+````javascript
+@Inject
+private MyBean myBean;
+````
+
+NopIoC不支持对于private变量进行注入。目前Spring也不推荐这种使用方式，因为private方式不便于实现编译期IoC处理，也破坏了类的封装性。
+一般应该使用package protected或者protected变量。或者定义public的set方法。
+
+## 15. 除了系统内置自动加载的`app-xxx.beans.xml`，如何加载指定的beans.xml文件？
+
+NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xmⅠ中import其它的文件。
+* 注意，NopIoC中多次导入同一个文件会自动去重，这一点优于Spring的处理。Spring中import节点对应于include语义，而不是程序语言中常用的导入语义。
+在多个文件中多次导入同一个包应该等价于只导入一次。而include语义是每次执行都完整导入一次，会导致bean的定义出现冲突。
+
+````xml
+<import resource="a.beans.xml" />
+````
 
 
 # 部署问题
@@ -317,3 +348,9 @@ GraphQLWebService提供了基于jaxrs标准的与Web层对接的一个实现。Q
 或者引入nop-quarkus-web-starter或者nop-quarkus-core-starter。
 
 starter提供了与spring框架以及quarkus框架的自动集成机制。只要引入相应依赖，应用启动后会自动调用Nop平台的初始化函数（CoreInitialization.initialize()）
+
+## 8. Nop平台中的逻辑编排是代码逻辑还是服务调用逻辑，类似于zeebe是做微服务编排的
+
+逻辑编排引擎本身不应该知道是代码逻辑还是服务调用逻辑，这完全是实现层面的细节。微服务在调用时也就是体现为一个函数。只要能编配函数，原则上就可以编配服务，只是服务存在额外的一些管理逻辑，
+这些逻辑与编配无关，不应该污染编配引擎。Nop平台基于模板语言和DSL进行编配，底层运行时可以利用xpl模板语言实现无限扩展。
+重试、tcc回滚等都可以作为一种函数decorator出现。
