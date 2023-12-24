@@ -643,6 +643,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "ENCODED_PARAM_SELECTION"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "GRAPHQL_EXTENSION_BIZ_FATAL"
       },
       {
@@ -5813,11 +5818,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getOauthCallbackPath",
+        "parameterTypes": []
+      },
+      {
         "name": "getPublicPaths",
         "parameterTypes": []
       },
       {
         "name": "getRememberMeCookie",
+        "parameterTypes": []
+      },
+      {
+        "name": "getServicePaths",
         "parameterTypes": []
       },
       {
@@ -5832,6 +5845,16 @@
       },
       {
         "name": "isRememberMeEnabled",
+        "parameterTypes": []
+      },
+      {
+        "name": "isServicePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isServicePublic",
         "parameterTypes": []
       },
       {
@@ -5865,6 +5888,12 @@
         ]
       },
       {
+        "name": "setOauthCallbackPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setPublicPaths",
         "parameterTypes": [
           "java.util.List"
@@ -5878,6 +5907,18 @@
       },
       {
         "name": "setRememberMeEnabled",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setServicePaths",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "setServicePublic",
         "parameterTypes": [
           "boolean"
         ]
@@ -5945,6 +5986,13 @@
         ]
       },
       {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.AuthToken",
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
         "name": "handlePublicPath",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext",
@@ -5992,6 +6040,12 @@
         ]
       },
       {
+        "name": "newSysUserContext",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
         "name": "order",
         "parameterTypes": []
       },
@@ -6002,9 +6056,33 @@
         ]
       },
       {
+        "name": "processOAuthCode",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "boolean",
+          "java.util.function.Supplier"
+        ]
+      },
+      {
         "name": "responseNotLogin",
         "parameterTypes": [
           "io.nop.http.api.server.IHttpServerContext"
+        ]
+      },
+      {
+        "name": "responseNotLogin",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "boolean"
+        ]
+      },
+      {
+        "name": "responseNotLogin",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "boolean",
+          "java.lang.String",
+          "java.lang.String"
         ]
       },
       {
@@ -6025,6 +6103,14 @@
         "name": "setLoginService",
         "parameterTypes": [
           "io.nop.auth.core.login.ILoginService"
+        ]
+      },
+      {
+        "name": "writeJsonResponse",
+        "parameterTypes": [
+          "io.nop.http.api.server.IHttpServerContext",
+          "java.lang.String",
+          "java.lang.String"
         ]
       }
     ],
@@ -6151,6 +6237,13 @@
         "name": "getUserContextAsync",
         "parameterTypes": [
           "io.nop.auth.core.login.AuthToken"
+        ]
+      },
+      {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.AuthToken",
+          "java.util.Map"
         ]
       },
       {
@@ -6336,6 +6429,13 @@
         "name": "getUserContextAsync",
         "parameterTypes": [
           "io.nop.auth.core.login.AuthToken"
+        ]
+      },
+      {
+        "name": "getUserContextAsync",
+        "parameterTypes": [
+          "io.nop.auth.core.login.AuthToken",
+          "java.util.Map"
         ]
       },
       {
@@ -45134,7 +45234,13 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
-    "fields": [],
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
     "methods": [
       {
         "name": "apply",
@@ -45155,6 +45261,22 @@
       },
       {
         "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadModuleJs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSystemJsTransformer",
+        "parameterTypes": [
+          "io.nop.commons.functional.IAsyncFunctionService"
+        ]
+      },
+      {
+        "name": "systemJsEmptyFile",
         "parameterTypes": []
       }
     ],
@@ -45334,6 +45456,16 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "autoLoadXjs"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "jsLoader"
       }
     ],
     "methods": [
@@ -45368,6 +45500,10 @@
       },
       {
         "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadAllXjs",
         "parameterTypes": []
       },
       {

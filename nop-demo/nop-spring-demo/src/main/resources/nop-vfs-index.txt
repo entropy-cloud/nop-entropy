@@ -201,6 +201,7 @@
 /nop/autoconfig/nop-auth-core.beans
 /nop/autoconfig/nop-biz.beans
 /nop/autoconfig/nop-dao.beans
+/nop/autoconfig/nop-gateway.beans
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-report.beans
@@ -216,6 +217,7 @@
 /nop/core/registry/api.register-model.xml
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
+/nop/core/registry/gateway.register-model.xml
 /nop/core/registry/imp.register-model.xml
 /nop/core/registry/orm.register-model.xml
 /nop/core/registry/validator.register-model.xml
@@ -261,13 +263,13 @@
 /nop/file/beans/app-file-spring.beans.xml
 /nop/file/orm/_app.orm.xml
 /nop/file/orm/app.orm.xml
+/nop/gateway/beans/gateway-defaults.beans.xml
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/imp/api.imp.xml
 /nop/graphql/imp/template.api.xlsx
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
-/nop/js/libs/nop-server-tool.mjs
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/imp/orm.imp.xml
 /nop/orm/imp/template.orm.xlsx
@@ -614,6 +616,10 @@
 /nop/web/beans/web-defaults.beans.xml
 /nop/web/xlib/api-web.xlib
 /nop/web/xlib/control.xlib
+/nop/web/xlib/ofd-gen.xlib
+/nop/web/xlib/ofd-gen/impl_GenerateForm.xpl
+/nop/web/xlib/ofd-gen/impl_GenerateJs.xpl
+/nop/web/xlib/ofd-gen/impl_GenerateSchema.xpl
 /nop/web/xlib/std.xlib
 /nop/web/xlib/std/impl_GenValidator.xpl
 /nop/web/xlib/view-gen.xlib
