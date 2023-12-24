@@ -3,21 +3,36 @@ OA Flow Designer Generator
 -->
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
     <tags>
-        <GenerateJs outputMode="text">
-            <attr name="codeGenModel"/>
+        <GenerateBase x:abstract="true">
+            <attr name="codeGenModel" optional="true"/>
+            <attr name="modelPath" stdDomain="v-path" optional="true" />
+            <attr name="designerId" optional="true" defaultValue="designer"/>
 
             <source>
+                <c:script>
+                    import io.nop.core.resource.component.ResourceComponentManager;
+                    codeGenModel = codeGenModel || ResourceComponentManager.instance().loadComponentModel(modelPath)
+                </c:script>
+            </source>
+        </GenerateBase>
+
+        <GenerateJs outputMode="xjson" x:prototype="GenerateBase">
+            <source x:prototype-override="append">
                 <c:include src="ofd-gen/impl_GenerateJs.xpl"/>
             </source>
         </GenerateJs>
 
-        <GenerateSchema outputMode="xjson">
-            <attr name="codeGenModel"/>
-
-            <source>
+        <GenerateSchema outputMode="xjson" x:prototype="GenerateBase">
+            <source x:prototype-override="append">
                 <c:include src="ofd-gen/impl_GenerateSchema.xpl"/>
             </source>
         </GenerateSchema>
+
+        <GenerateCss outputMode="text" x:prototype="GenerateBase">
+            <source x:prototype-override="append">
+                <c:include src="ofd-gen/impl_GenerateCss.xpl"/>
+            </source>
+        </GenerateCss>
 
         <GenerateForm outputMode="xjson">
             <attr name="codeGenModel"/>

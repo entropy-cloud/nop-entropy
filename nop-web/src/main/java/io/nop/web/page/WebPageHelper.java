@@ -28,7 +28,7 @@ import java.util.Map;
 
 import static io.nop.web.WebErrors.ARG_ALLOWED_FILE_TYPES;
 import static io.nop.web.WebErrors.ARG_PATH;
-import static io.nop.web.WebErrors.ERR_WEB_INVALID_JS_FILE_TYPE;
+import static io.nop.web.WebErrors.ERR_WEB_UNSUPPORTED_FILE_TYPE;
 import static io.nop.web.WebErrors.ERR_WEB_INVALID_PAGE_FILE_TYPE;
 
 public class WebPageHelper {
@@ -51,14 +51,14 @@ public class WebPageHelper {
     public static void checkJsFile(String path) {
         String fileType = StringHelper.fileExt(path);
         if (!WebConstants.JS_FILE_TYPES.contains(fileType))
-            throw new NopException(ERR_WEB_INVALID_JS_FILE_TYPE).param(ARG_PATH, path).param(ARG_ALLOWED_FILE_TYPES,
+            throw new NopException(ERR_WEB_UNSUPPORTED_FILE_TYPE).param(ARG_PATH, path).param(ARG_ALLOWED_FILE_TYPES,
                     WebConstants.JS_FILE_TYPES);
     }
 
     public static void checkXjsFile(String path) {
         String fileType = StringHelper.fileExt(path);
         if (!WebConstants.XJS_FILE_TYPES.contains(fileType))
-            throw new NopException(ERR_WEB_INVALID_JS_FILE_TYPE).param(ARG_PATH, path).param(ARG_ALLOWED_FILE_TYPES,
+            throw new NopException(ERR_WEB_UNSUPPORTED_FILE_TYPE).param(ARG_PATH, path).param(ARG_ALLOWED_FILE_TYPES,
                     WebConstants.XJS_FILE_TYPES);
     }
 

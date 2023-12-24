@@ -15,7 +15,7 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
-import io.nop.web.page.SystemJsProvider;
+import io.nop.web.page.DynamicWebFileProvider;
 import jakarta.inject.Inject;
 
 import static io.nop.web.WebErrors.ERR_WEB_PAGE_NOT_ALLOW_EDIT;
@@ -26,7 +26,7 @@ import static io.nop.web.page.WebPageHelper.checkXjsFile;
 public class SystemJsProviderBizModel {
 
     @Inject
-    SystemJsProvider jsProvider;
+    DynamicWebFileProvider jsProvider;
 
     @InjectValue("@cfg:nop.web.page-provider.edit-enabled|true")
     boolean editEnabled;

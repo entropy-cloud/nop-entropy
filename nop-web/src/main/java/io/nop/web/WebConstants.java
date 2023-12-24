@@ -24,6 +24,10 @@ public interface WebConstants {
     String FILE_EXT_MJS = "mjs";
     String FILE_EXT_XJS = "xjs";
 
+    String FILE_EXT_CSS = "css";
+
+    String FILE_EXT_XCSS = "xcss";
+
     String MODEL_TYPE_XPAGE = "xpage";
 
     String FILE_TYPE_PAGE_XML = "page.xml";
@@ -50,7 +54,11 @@ public interface WebConstants {
 
     String PREFIX_GENERATE = "@generate";
 
-    String PREFIX_BEGIN_MOCK = "//@begin-mock";
+    String PREFIX_INLINE_BEGIN_MOCK = "//@begin-mock";
 
-    String PREFIX_END_MOCK = "//@end-mock";
+    String PREFIX_INLINE_END_MOCK = "//@end-mock";
+
+    String PREFIX_MULTILINE_BEGIN_MOCK = "/*@begin-mock";
+
+    String PREFIX_MULTILINE_END_MOCK = "/*@end-mock";
 }

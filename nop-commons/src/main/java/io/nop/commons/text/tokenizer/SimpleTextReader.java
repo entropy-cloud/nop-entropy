@@ -94,6 +94,26 @@ public class SimpleTextReader implements ISourceLocationGetter {
         return this;
     }
 
+    public SimpleTextReader skipUntilChar(char matchChar) {
+        for (int n = str.length(); pos < n; pos++) {
+            char c = str.charAt(pos);
+            if (c == matchChar) {
+                break;
+            }
+        }
+        return this;
+    }
+
+    public SimpleTextReader skipChars(String chars) {
+        for (int n = str.length(); pos < n; pos++) {
+            char c = str.charAt(pos);
+            if (chars.indexOf(c) < 0) {
+                break;
+            }
+        }
+        return this;
+    }
+
     public SourceLocation location() {
         if (lineFeedPos == null) {
             lineFeedPos = new MutableIntArray();

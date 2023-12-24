@@ -74,12 +74,9 @@ nop:
       username: sa
       password:
 
-
-    js:
-      auto-load-xjs: true
-
     web:
       validate-page-model: true
+      auto-load-dynamic-file: false
 
     orm:
       init-database-schema: true

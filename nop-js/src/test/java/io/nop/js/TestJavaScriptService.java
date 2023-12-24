@@ -101,4 +101,19 @@ public class TestJavaScriptService extends BaseTestCase {
 
         service.stop();
     }
+
+    @Test
+    public void testImportLib() {
+        JavaScriptService service = newService();
+        service.start();
+
+        String source = ResourceHelper.readText(VirtualFileSystem.instance().getResource("/nop/js/test-demo.lib.xjs"));
+        CompletionStage<Object> future = service.invokeAsync("rollupTransform", "/nop/js/test-demo.lib.js", source);
+        String result = (String) FutureHelper.syncGet(future);
+        System.out.println(result);
+        assertEquals(normalizeCRLF(attachmentText("test-demo-gen.lib.js")),
+                normalizeCRLF(result));
+
+        service.stop();
+    }
 }

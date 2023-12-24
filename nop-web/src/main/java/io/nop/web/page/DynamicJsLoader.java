@@ -16,6 +16,7 @@ import io.nop.commons.text.tokenizer.SimpleTextReader;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceTextLoader;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ComponentModelConfig;
@@ -29,16 +30,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 import static io.nop.core.CoreErrors.ARG_FILE_TYPE;
 import static io.nop.core.CoreErrors.ARG_MODEL_TYPE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_FILE_TYPE_FOR_MODEL_TYPE;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_NOT_EXISTS;
+import static io.nop.web.WebConfigs.CFG_WEB_USE_DYNAMIC_JS;
 
-public class ModuleJsLoader implements Function<String, String> {
-    static final Logger LOG = LoggerFactory.getLogger(ModuleJsLoader.class);
+public class DynamicJsLoader implements IResourceTextLoader {
+    static final Logger LOG = LoggerFactory.getLogger(DynamicJsLoader.class);
     private final Cancellable cancellable = new Cancellable();
 
     private IAsyncFunctionService systemJsTransformer;
@@ -52,8 +53,8 @@ public class ModuleJsLoader implements Function<String, String> {
         ComponentModelConfig config = new ComponentModelConfig();
         config.modelType(WebConstants.FILE_EXT_JS);
 
-        config.loader(WebConstants.FILE_EXT_JS, this::loadModuleJs);
-        config.loader(WebConstants.FILE_EXT_MJS, this::loadModuleJs);
+        config.loader(WebConstants.FILE_EXT_JS, this::loadDynamicJs);
+        config.loader(WebConstants.FILE_EXT_MJS, this::loadDynamicJs);
 
         cancellable.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
     }
@@ -64,15 +65,12 @@ public class ModuleJsLoader implements Function<String, String> {
     }
 
     @Override
-    public String apply(String path) {
-        if (path.endsWith(".lib")) {
-            path += "." + WebConstants.FILE_EXT_JS;
-        }
+    public String loadText(String path) {
         TextFile file = (TextFile) ResourceComponentManager.instance().loadComponentModel(path);
         return file.getText();
     }
 
-    public TextFile loadModuleJs(String path) {
+    public TextFile loadDynamicJs(String path) {
         SourceLocation loc = SourceLocation.fromPath(path);
         String fileExt = StringHelper.fileExt(path);
 
@@ -96,14 +94,13 @@ public class ModuleJsLoader implements Function<String, String> {
             }
 
             throw new NopException(ERR_RESOURCE_NOT_EXISTS).param(ARG_RESOURCE_PATH, path);
-        } else if (WebConstants.FILE_EXT_JS.equals(fileExt) || WebConstants.FILE_EXT_XJS.equals(fileExt)) {
-            String jsPath = StringHelper.replaceFileExt(path, WebConstants.FILE_EXT_JS);
-            IResource jsResource = VirtualFileSystem.instance().getResource(jsPath);
+        } else if (WebConstants.FILE_EXT_JS.equals(fileExt)) {
+            IResource jsResource = VirtualFileSystem.instance().getResource(path);
 
             // 如果文件名后缀是js或者XJS，则返回SystemJS格式的js库
             String xjsPath = StringHelper.replaceFileExt(path, WebConstants.FILE_EXT_XJS);
             IResource xjsResource = VirtualFileSystem.instance().getResource(xjsPath);
-            boolean supportXjs = xjsResource.exists() && systemJsTransformer != null;
+            boolean supportXjs = CFG_WEB_USE_DYNAMIC_JS.get() && xjsResource.exists() && systemJsTransformer != null;
 
             // 如果存在js文件，且不支持xjs文件，则直接返回js文件内容
             if (jsResource.exists() && !supportXjs) {
@@ -116,7 +113,7 @@ public class ModuleJsLoader implements Function<String, String> {
                 ResourceComponentManager.instance().traceDepends(xjsResource.getPath());
 
                 String source = generateFromXjs(loc, xjsResource);
-                source = transformToSystemJs(xjsResource, source);
+                source = transformToSystemJs(xjsResource.getPath(), jsResource.getStdPath(), source);
 
                 // 将动态生成的结果保存到dump目录下
                 ResourceHelper.dumpResource(jsResource, source);
@@ -143,18 +140,19 @@ public class ModuleJsLoader implements Function<String, String> {
         return new SimpleTextReader(source).skipBlank().startsWith("System.register(");
     }
 
-    private String transformToSystemJs(IResource resource, String text) {
+    private String transformToSystemJs(String xjsPath, String sourcePath, String text) {
         if (StringHelper.isEmpty(text))
             return systemJsEmptyFile();
 
         if (!isSystemJs(text)) {
             if (systemJsTransformer != null) {
+                LOG.debug("nop.web.rollup-js:path={},source={}", sourcePath, text);
                 CompletionStage<?> future = systemJsTransformer.invokeAsync(WebConstants.FUNC_ROLLUP_TRANSFORM,
-                        resource.getPath(), text);
+                        sourcePath, text);
                 String result = (String) FutureHelper.syncGet(future);
-                text = result;
+                text = "//generate from " + xjsPath + "\n" + result;
             } else {
-                LOG.warn("nop.web.no-system-js-transformer:resource={}", resource.getPath());
+                throw new IllegalStateException("nop.err.web.no-system-js-transformer:not include nop-js module");
             }
         }
         return text;
@@ -164,7 +162,7 @@ public class ModuleJsLoader implements Function<String, String> {
         ResourceComponentManager.instance().traceDepends(resource.getPath());
         String source = ResourceHelper.readText(resource);
         if (!StringHelper.isBlank(source)) {
-            source = new XGenJsProcessor().process(loc, source);
+            source = new WebDynamicFileProcessor().process(loc, source);
         }
         return source;
     }

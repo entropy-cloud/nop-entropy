@@ -16,15 +16,16 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.web.WebConstants;
+import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.XLangOutputMode;
 
 import static io.nop.web.WebErrors.ARG_LOC;
+import static io.nop.web.WebErrors.ERR_WEB_DYNAMIC_FILE_MISSING_END_MOCK;
 import static io.nop.web.WebErrors.ERR_WEB_JS_COMMENT_NOT_END_PROPERLY;
-import static io.nop.web.WebErrors.ERR_WEB_JS_MISSING_END_BLOCK;
 
-public class XGenJsProcessor {
+public class WebDynamicFileProcessor {
     public String process(SourceLocation loc, String text) {
         MutableString ret = new MutableString();
 
@@ -33,10 +34,16 @@ public class XGenJsProcessor {
             int startPos = tokenizer.pos();
             tokenizer.skipBlank();
 
-            if (tokenizer.startsWith(WebConstants.PREFIX_BEGIN_MOCK)) {
-                int endPos = tokenizer.find(WebConstants.PREFIX_END_MOCK);
-                if(endPos < 0)
-                    throw new NopException(ERR_WEB_JS_MISSING_END_BLOCK).source(tokenizer);
+            if (tokenizer.startsWith(WebConstants.PREFIX_INLINE_BEGIN_MOCK)) {
+                int endPos = tokenizer.find(WebConstants.PREFIX_INLINE_END_MOCK);
+                if (endPos < 0)
+                    throw new NopException(ERR_WEB_DYNAMIC_FILE_MISSING_END_MOCK).source(tokenizer);
+                tokenizer.moveTo(endPos);
+                tokenizer.skipLine();
+            } else if (tokenizer.startsWith(WebConstants.PREFIX_MULTILINE_BEGIN_MOCK)) {
+                int endPos = tokenizer.find(WebConstants.PREFIX_MULTILINE_END_MOCK);
+                if (endPos < 0)
+                    throw new NopException(ERR_WEB_DYNAMIC_FILE_MISSING_END_MOCK).source(tokenizer);
                 tokenizer.moveTo(endPos);
                 tokenizer.skipLine();
             } else if (tokenizer.startsWith("//")) {
@@ -46,19 +53,22 @@ public class XGenJsProcessor {
                 continue;
             }
             if (tokenizer.startsWith("/*")) {
-                tokenizer.move(2);
+                tokenizer.next(2);
+
                 SourceLocation genLoc = tokenizer.location();
                 int end = tokenizer.find("*/");
                 if (end < 0)
                     throw new NopException(ERR_WEB_JS_COMMENT_NOT_END_PROPERLY)
                             .param(ARG_LOC, genLoc);
 
-                // 动态生成js文件内容
+                tokenizer.skipChars("*").skipBlank();
+
+                // 动态生成文件内容
                 if (tokenizer.tryMatch(WebConstants.PREFIX_GENERATE)) {
                     int pos = tokenizer.pos();
                     String genSource = tokenizer.substring(pos, end);
-                    String genJs = genJs(loc, genSource);
-                    ret.append(genJs).append('\n');
+                    String code = genCode(loc, genSource);
+                    ret.append(code).append('\n');
                 } else {
                     ret.append(tokenizer.substring(startPos, end + 2));
                 }
@@ -72,12 +82,15 @@ public class XGenJsProcessor {
         return ret.trim().toString();
     }
 
-    private String genJs(SourceLocation loc, String genSource) {
+    private String genCode(SourceLocation loc, String genSource) {
         if (StringHelper.isBlank(genSource))
             return "";
         XNode node = XNodeParser.instance().parseFromText(loc, genSource);
         XLangCompileTool cp = XLang.newCompileTool();
         IEvalScope scope = XLang.newEvalScope();
-        return cp.compileTagBody(node, XLangOutputMode.text).generateText(scope);
+        ExprEvalAction action = cp.compileTag(node, XLangOutputMode.text);
+        if (action == null)
+            return "";
+        return action.generateText(scope);
     }
 }

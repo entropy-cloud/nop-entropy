@@ -1,4 +1,5 @@
-<graph-designer x:schema="/nop/schema/designer/graph-designer.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext">
+<designer x:schema="/nop/schema/designer/graph-designer.xdef" editorType="oa-flow"
+          xmlns:x="/nop/schema/xdsl.xdef" xmlns:ext="ext">
     <actions>
         <action id="zoomIn" label="放大" actionType="designer:zoomIn"/>
         <action id="zoomOut" label="缩小" actionType="designer:zoomOut"/>
@@ -108,4 +109,4 @@
         </form>
     </forms>
 
-</graph-designer>
+</designer>

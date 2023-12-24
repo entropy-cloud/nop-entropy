@@ -1,5 +1,5 @@
 <c:unit xmlns:c="c" xmlns:xpl="xpl">
-    <c:import from="io.nop.web.page.vue.VueTemplateHelper" />
+    <c:import class="io.nop.web.page.vue.VueTemplateHelper" />
 import { createElement as h} from 'react'
 import { NodeContext, registerFlowModel } from '@nop-chaos/nop-sdk'
 
@@ -22,6 +22,7 @@ function NodeComponent_${nodeModel.name.$camelCase('-',false)}(){
           <c:if test="${nodeModel['ext:conditionNodeType']}">conditionNodeType: "${nodeModel['ext:conditionNodeType']}"</c:if>
         },
     </c:for>
+    ]
 
     registerFlowModel("${codeGenModel.editorType}", registerNodes);
 </c:unit>

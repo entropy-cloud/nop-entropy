@@ -7,7 +7,6 @@
  */
 package io.nop.web.page;
 
-import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
@@ -21,24 +20,38 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
-public class SystemJsProvider extends ResourceWithHistoryProvider {
+import static io.nop.web.WebConfigs.CFG_WEB_AUTO_LOAD_DYNAMIC_FILE;
 
-    @InjectValue("@cfg:nop.js.auto-load-xjs|false")
-    boolean autoLoadXjs;
+public class DynamicWebFileProvider extends ResourceWithHistoryProvider {
 
     @Inject
-    ModuleJsLoader jsLoader;
+    DynamicJsLoader jsLoader;
+
+    @Inject
+    DynamicCssLoader cssLoader;
 
     @PostConstruct
     public void init() {
-        if (autoLoadXjs) {
+        if (CFG_WEB_AUTO_LOAD_DYNAMIC_FILE.get()) {
             loadAllXjs();
+            loadAllXcss();
         }
     }
 
     public void loadAllXjs() {
         List<IResource> resources = ModuleManager.instance().findModuleResources("/pages", WebConstants.FILE_EXT_XJS);
-        resources.forEach(resource -> jsLoader.apply(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_JS)));
+        resources.forEach(resource -> jsLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_JS)));
+
+        resources = ModuleManager.instance().findModuleResources("/js", WebConstants.FILE_EXT_XJS);
+        resources.forEach(resource -> jsLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_JS)));
+    }
+
+    public void loadAllXcss() {
+        List<IResource> resources = ModuleManager.instance().findModuleResources("/pages", WebConstants.FILE_EXT_XCSS);
+        resources.forEach(resource -> cssLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_CSS)));
+
+        resources = ModuleManager.instance().findModuleResources("/css", WebConstants.FILE_EXT_XCSS);
+        resources.forEach(resource -> cssLoader.loadText(StringHelper.replaceFileExt(resource.getStdPath(), WebConstants.FILE_EXT_CSS)));
     }
 
     public String getJs(String path) {

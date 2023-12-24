@@ -18,7 +18,7 @@
         @propsForm 属性表单
         @allowParents 允许嵌入在哪些容器类型中。如果不配置，则允许嵌入到任意容器中
         -->
-        <node name="!string" icon="!string" label="!string" tagSet="csv-set" propsForm="string"
+        <node name="!string" icon="string" label="!string" tagSet="csv-set" propsForm="string"
               base="string" shape="string" minWidth="int" maxWidth="int" minHeight="int" maxHeight="int"
               width="int" height="int" fixedAspectRatio="boolean"  start="!boolean=false" end="!boolean=false"
               draggable="boolean" resizable="boolean"

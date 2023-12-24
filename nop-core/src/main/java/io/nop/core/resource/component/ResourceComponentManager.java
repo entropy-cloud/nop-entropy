@@ -536,7 +536,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         ComponentModelConfig config = getModelConfigByModelPath(path);
         if (config == null)
             throw new NopException(ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE)
-                    .param(ARG_FILE_TYPE, StringHelper.fileExt(path)).param(ARG_RESOURCE_PATH, path);
+                    .param(ARG_FILE_TYPE, StringHelper.fileType(path)).param(ARG_RESOURCE_PATH, path);
         return config;
     }
 
