@@ -53709,6 +53709,37 @@
     "fields": [],
     "methods": [
       {
+        "name": "generateCss",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "generateForm",
+        "parameterTypes": [
+          "io.nop.xui.model.UiFormModel"
+        ]
+      },
+      {
+        "name": "generateJs",
+        "parameterTypes": []
+      },
+      {
+        "name": "generateSchema",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.web.page.grapn_designer.GraphDesignerCodeGenerator",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "vueTemplateToReact",
         "parameterTypes": [
           "io.nop.core.lang.xml.XNode"
@@ -62770,6 +62801,58 @@
       }
     ],
     "name": "io.nop.xlang.ast.XLangASTNode",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "json"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "none"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "sql"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "xml"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "xmlAttr"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "xmlValue"
+      }
+    ],
+    "methods": [
+      {
+        "name": "valueOf",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "values",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.xlang.ast.XLangEscapeMode",
     "unsafeAllocated": false
   },
   {

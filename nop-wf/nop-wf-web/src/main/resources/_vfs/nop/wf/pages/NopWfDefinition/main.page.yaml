@@ -3,3 +3,4 @@ x:gen-extends: |
     <web:GenPage view="NopWfDefinition.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
 
 xui:import: ofd-models.lib.js,ofd-models.lib.css
+
