@@ -21,7 +21,7 @@
 
     <props>
         <prop name="sid" displayName="ID" i18n-en:displayName="SID" tagSet="seq" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false">
+              sortable="true" insertable="false" updatable="false" ui:show="R">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="pageName" displayName="页面名称" i18n-en:displayName="Page Name" tagSet="disp" mandatory="true"
@@ -32,20 +32,25 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="pageContent" displayName="页面内容" i18n-en:displayName="Page Content" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema domain="json-16M" type="java.lang.String" precision="16777216"/>
+        <prop name="pageSchemaType" displayName="页面类型" i18n-en:displayName="Page Schema Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100" dict="web/page-schema-type"/>
+        </prop>
+        <prop name="pageContent" displayName="页面内容" i18n-en:displayName="Page Content" tagSet="content" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true"
+              graphql:jsonComponentProp="pageContentComponent" ui:show="X">
+            <schema stdDomain="json" domain="json-16M" type="java.lang.String" precision="16777216"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer"/>
+            <schema type="java.lang.Integer" dict="core/active-status"/>
         </prop>
         <prop name="ownerId" displayName="拥有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+              insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="ownerName" displayName="拥有者姓名" i18n-en:displayName="Owner Name" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+              insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
@@ -71,6 +76,10 @@
         <prop name="remark" displayName="备注" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="pageContentComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" mandatory="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>
 </meta>

@@ -2,8 +2,11 @@
   "sid": "",
   "pageName": "",
   "pageGroup": "",
+  "pageSchemaType": "",
+  "pageSchemaType_label": "",
   "pageContent": "",
   "status": 0,
+  "status_label": "",
   "ownerId": "",
   "ownerName": "",
   "version": 0,
@@ -11,5 +14,6 @@
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
-  "remark": ""
+  "remark": "",
+  "pageContentComponent": null
 }

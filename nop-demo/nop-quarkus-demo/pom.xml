@@ -130,6 +130,17 @@
             <artifactId>nop-wf-web</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-report-service</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-report-web</artifactId>
+        </dependency>
+
+
 
         <!-- 引入报表测试文件和测试服务 -->
         <dependency>

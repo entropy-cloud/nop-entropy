@@ -67,7 +67,7 @@
         <domain name="updatedBy" precision="50" stdSqlType="VARCHAR"/>
         <domain name="delFlag" stdDomain="boolFlag" stdSqlType="TINYINT"/>
         <domain name="mediumtext" precision="16777216" stdSqlType="VARCHAR"/>
-        <domain name="json-16M" precision="16777216" stdSqlType="VARCHAR"/>
+        <domain name="json-16M" precision="16777216" stdDomain="json" stdSqlType="VARCHAR"/>
         <domain name="wfAction" precision="200" stdSqlType="VARCHAR"/>
     </domains>
 
@@ -830,53 +830,60 @@
                 <column code="BIZ_STATE" comment="业务状态是由业务自由定义" displayName="业务状态" name="bizState" precision="50"
                         propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Biz State"/>
                 <column code="PARENT_ID" displayName="父ID" name="parentId" precision="32" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="parent" i18n-en:displayName="Parent ID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="parent" i18n-en:displayName="Parent ID"
+                        ui:show="X"/>
                 <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="10"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name" ui:show="X"/>
                 <column code="OWNER_ID" displayName="拥有者ID" name="ownerId" precision="50" propId="11"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID" ui:show="X"/>
                 <column code="DEPT_ID" displayName="部门ID" name="deptId" precision="50" propId="12" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Department ID"/>
+                        stdSqlType="VARCHAR" i18n-en:displayName="Department ID" ui:show="X"/>
                 <column code="STRING_FLD1" displayName="字符串字段1" name="stringFld1" precision="4000" propId="13"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Field1"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Field1" ui:show="X"/>
                 <column code="DECIMAL_FLD1" displayName="浮点型字段1" name="decimalFld1" precision="30" propId="14" scale="6"
-                        stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field1"/>
+                        stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field1" ui:show="X"/>
                 <column code="INT_FLD1" displayName="整数型字段1" name="intFld1" propId="15" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Integer Field1"/>
+                        stdSqlType="INTEGER" i18n-en:displayName="Integer Field1" ui:show="X"/>
                 <column code="LONG_FLD1" displayName="长整型字段1" name="longFld1" propId="16" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Long Field1"/>
+                        stdSqlType="BIGINT" i18n-en:displayName="Long Field1" ui:show="X"/>
                 <column code="DATE_FLD1" displayName="日期字段1" name="dateFld1" propId="17" stdDataType="date"
-                        stdSqlType="DATE" i18n-en:displayName="Date Field1"/>
+                        stdSqlType="DATE" i18n-en:displayName="Date Field1" ui:show="X"/>
                 <column code="TIMESTAMP_FLD1" displayName="时间戳字段1" name="timestampFld1" propId="18"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Field1"/>
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Field1"
+                        ui:show="X"/>
                 <column code="FILE_FLD1" displayName="文件字段1" domain="file" name="fileFld1" precision="200" propId="19"
-                        stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="File Field1"/>
+                        stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="File Field1"
+                        ui:show="X"/>
                 <column code="STRING_FLD2" displayName="字符串字段2" name="stringFld2" precision="4000" propId="20"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Field2"/>
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="String Field2" ui:show="X"/>
                 <column code="DECIMAL_FLD2" displayName="浮点型字段2" name="decimalFld2" precision="30" propId="21" scale="6"
-                        stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field2"/>
+                        stdDataType="decimal" stdSqlType="DECIMAL" i18n-en:displayName="Decimal Field2" ui:show="X"/>
                 <column code="INT_FLD2" displayName="整数型字段2" name="intFld2" propId="22" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Integer Field2"/>
+                        stdSqlType="INTEGER" i18n-en:displayName="Integer Field2" ui:show="X"/>
                 <column code="LONG_FLD2" displayName="长整型字段2" name="longFld2" propId="23" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Long Field2"/>
+                        stdSqlType="BIGINT" i18n-en:displayName="Long Field2" ui:show="X"/>
                 <column code="DATE_FLD2" displayName="日期字段2" name="dateFld2" propId="24" stdDataType="date"
-                        stdSqlType="DATE" i18n-en:displayName="Date Field2"/>
+                        stdSqlType="DATE" i18n-en:displayName="Date Field2" ui:show="X"/>
                 <column code="TIMESTAMP_FLD2" displayName="时间戳字段2" name="timestampFld2" propId="25"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Field2"/>
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Field2"
+                        ui:show="X"/>
                 <column code="FILE_FLD2" displayName="文件字段2" domain="file" name="fileFld2" precision="200" propId="26"
-                        stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="File Field2"/>
+                        stdDataType="string" stdDomain="file" stdSqlType="VARCHAR" i18n-en:displayName="File Field2"
+                        ui:show="X"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="27"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
                         precision="50" propId="28" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Created By"/>
+                        i18n-en:displayName="Created By" ui:show="X"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="29" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="29" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"
+                        ui:show="X"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
                         precision="50" propId="30" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Updated By"/>
+                        i18n-en:displayName="Updated By" ui:show="X"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="31" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                        propId="31" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"
+                        ui:show="X"/>
                 <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="32"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
@@ -910,33 +917,36 @@
                 i18n-en:displayName="Page">
             <columns>
                 <column code="SID" displayName="ID" mandatory="true" name="sid" precision="32" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID" ui:show="R"/>
                 <column code="PAGE_NAME" displayName="页面名称" mandatory="true" name="pageName" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Page Name"/>
                 <column code="PAGE_GROUP" displayName="页面分组" mandatory="true" name="pageGroup" precision="100"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Page Group"/>
+                <column code="PAGE_SCHEMA_TYPE" displayName="页面类型" mandatory="true" name="pageSchemaType"
+                        precision="100" propId="4" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Page Schema Type" ext:dict="web/page-schema-type"/>
                 <column code="PAGE_CONTENT" displayName="页面内容" domain="json-16M" mandatory="true" name="pageContent"
-                        precision="16777216" propId="4" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Page Content"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="5" stdDataType="int"
-                        stdSqlType="INTEGER" i18n-en:displayName="Status"/>
-                <column code="OWNER_ID" displayName="拥有者ID" name="ownerId" precision="50" propId="6"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID"/>
-                <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="7"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
+                        precision="16777216" propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        tagSet="content" i18n-en:displayName="Page Content" ui:show="X"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="6" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Status" ext:dict="core/active-status"/>
+                <column code="OWNER_ID" displayName="拥有者ID" name="ownerId" precision="50" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner ID" ui:show="X"/>
+                <column code="OWNER_NAME" displayName="拥有者姓名" name="ownerName" precision="50" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner Name" ui:show="X"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="13"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark" ui:show="S"/>
             </columns>
             <comment>json格式保存的表单定义</comment>

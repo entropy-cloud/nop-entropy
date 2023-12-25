@@ -34,72 +34,6 @@
                 <!--业务状态-->
                 <col id="bizState" sortable="true"/>
 
-                <!--父ID-->
-                <col id="parentId" sortable="true"/>
-
-                <!--拥有者姓名-->
-                <col id="ownerName" sortable="true"/>
-
-                <!--拥有者ID-->
-                <col id="ownerId" sortable="true"/>
-
-                <!--部门ID-->
-                <col id="deptId" sortable="true"/>
-
-                <!--字符串字段1-->
-                <col id="stringFld1" sortable="true"/>
-
-                <!--浮点型字段1-->
-                <col id="decimalFld1" sortable="true"/>
-
-                <!--整数型字段1-->
-                <col id="intFld1" sortable="true"/>
-
-                <!--长整型字段1-->
-                <col id="longFld1" sortable="true"/>
-
-                <!--日期字段1-->
-                <col id="dateFld1" sortable="true"/>
-
-                <!--时间戳字段1-->
-                <col id="timestampFld1" sortable="true"/>
-
-                <!--文件字段1-->
-                <col id="fileFld1" sortable="true"/>
-
-                <!--字符串字段2-->
-                <col id="stringFld2" sortable="true"/>
-
-                <!--浮点型字段2-->
-                <col id="decimalFld2" sortable="true"/>
-
-                <!--整数型字段2-->
-                <col id="intFld2" sortable="true"/>
-
-                <!--长整型字段2-->
-                <col id="longFld2" sortable="true"/>
-
-                <!--日期字段2-->
-                <col id="dateFld2" sortable="true"/>
-
-                <!--时间戳字段2-->
-                <col id="timestampFld2" sortable="true"/>
-
-                <!--文件字段2-->
-                <col id="fileFld2" sortable="true"/>
-
-                <!--创建人-->
-                <col id="createdBy" mandatory="true" sortable="true"/>
-
-                <!--创建时间-->
-                <col id="createTime" mandatory="true" sortable="true"/>
-
-                <!--修改人-->
-                <col id="updatedBy" mandatory="true" sortable="true"/>
-
-                <!--修改时间-->
-                <col id="updateTime" mandatory="true" sortable="true"/>
-
                 <!--备注-->
                 <col id="remark" sortable="true"/>
             </cols>
@@ -113,41 +47,29 @@
     <forms>
         <form id="view" editMode="view" title="查看-动态实体" i18n-en:title="View Dynamic Entity">
             <layout>
- sid[主键] objType[对象类型]
- name[名称] displayName[显示名称]
- sortOrder[排序] nopFlowId[工作流实例ID]
- bizStatus[业务状态码] bizState[业务状态]
- parentId[父ID] ownerName[拥有者姓名]
- ownerId[拥有者ID] deptId[部门ID]
- stringFld1[字符串字段1] decimalFld1[浮点型字段1]
- intFld1[整数型字段1] longFld1[长整型字段1]
- dateFld1[日期字段1] timestampFld1[时间戳字段1]
- fileFld1[文件字段1] stringFld2[字符串字段2]
- decimalFld2[浮点型字段2] intFld2[整数型字段2]
- longFld2[长整型字段2] dateFld2[日期字段2]
- timestampFld2[时间戳字段2] fileFld2[文件字段2]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ sid[主键]
+ objType[对象类型]
+ name[名称]
+ displayName[显示名称]
+ sortOrder[排序]
+ nopFlowId[工作流实例ID]
+ bizStatus[业务状态码]
+ bizState[业务状态]
+ remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-动态实体" i18n-en:title="Add Dynamic Entity" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-动态实体" i18n-en:title="Edit Dynamic Entity">
             <layout>
- sid[主键] objType[对象类型]
- name[名称] displayName[显示名称]
- sortOrder[排序] nopFlowId[工作流实例ID]
- bizStatus[业务状态码] bizState[业务状态]
- parentId[父ID] ownerName[拥有者姓名]
- ownerId[拥有者ID] deptId[部门ID]
- stringFld1[字符串字段1] decimalFld1[浮点型字段1]
- intFld1[整数型字段1] longFld1[长整型字段1]
- dateFld1[日期字段1] timestampFld1[时间戳字段1]
- fileFld1[文件字段1] stringFld2[字符串字段2]
- decimalFld2[浮点型字段2] intFld2[整数型字段2]
- longFld2[长整型字段2] dateFld2[日期字段2]
- timestampFld2[时间戳字段2] fileFld2[文件字段2]
- remark[备注] 
+ sid[主键]
+ objType[对象类型]
+ name[名称]
+ displayName[显示名称]
+ sortOrder[排序]
+ nopFlowId[工作流实例ID]
+ bizStatus[业务状态码]
+ bizState[业务状态]
+ remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

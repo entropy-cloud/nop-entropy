@@ -200,11 +200,15 @@ prop:
       ownerId: 拥有者ID
       ownerName: 拥有者姓名
       pageContent: 页面内容
+      pageContentComponent: null
       pageGroup: 页面分组
       pageName: 页面名称
+      pageSchemaType: 页面类型
+      pageSchemaType_label: 页面类型
       remark: 备注
       sid: ID
       status: 状态
+      status_label: 状态
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

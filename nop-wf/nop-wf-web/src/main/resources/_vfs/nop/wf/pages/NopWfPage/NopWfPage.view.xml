@@ -2,7 +2,33 @@
 <view x:extends="_gen/_NopWfPage.view.xml" x:schema="/nop/schema/xui/xview.xdef" xmlns:x="/nop/schema/xdsl.xdef">
 
     <grids>
-        <grid id="list"/>
+        <grid id="list">
+            <cols>
+                <col id="sid" width="250" />
+
+                <col id="pageSchemaType"/>
+
+                <col id="pageContent" width="180" align="center">
+                    <gen-control>
+                        <button-group>
+                            <buttons j:list="true">
+                                <button label="设计" level="success"/>
+                                <button label="预览" level="dark" actionType="dialog">
+                                    <dialog size="full" title="预览页面">
+                                        <body>
+                                            <service>
+                                                <schemaApi url="/p/NopWfPage__getPageJson?id=$id" />
+                                            </service>
+                                        </body>
+                                    </dialog>
+                                </button>
+                            </buttons>
+                        </button-group>
+                    </gen-control>
+                </col>
+            </cols>
+        </grid>
+
         <grid id="pick-list"/>
     </grids>
 

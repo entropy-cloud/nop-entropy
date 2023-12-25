@@ -154,6 +154,7 @@ CREATE TABLE nop_wf_page(
   SID VARCHAR2(32) NOT NULL ,
   PAGE_NAME VARCHAR2(200) NOT NULL ,
   PAGE_GROUP VARCHAR2(100) NOT NULL ,
+  PAGE_SCHEMA_TYPE VARCHAR2(100) NOT NULL ,
   PAGE_CONTENT CLOB NOT NULL ,
   STATUS INTEGER NOT NULL ,
   OWNER_ID VARCHAR2(50)  ,
@@ -564,6 +565,8 @@ CREATE TABLE nop_wf_instance(
       COMMENT ON COLUMN nop_wf_page.PAGE_NAME IS '页面名称';
                     
       COMMENT ON COLUMN nop_wf_page.PAGE_GROUP IS '页面分组';
+                    
+      COMMENT ON COLUMN nop_wf_page.PAGE_SCHEMA_TYPE IS '页面类型';
                     
       COMMENT ON COLUMN nop_wf_page.PAGE_CONTENT IS '页面内容';
                     

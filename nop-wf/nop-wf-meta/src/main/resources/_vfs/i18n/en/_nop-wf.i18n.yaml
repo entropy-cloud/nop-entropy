@@ -198,8 +198,11 @@ prop:
       sid: SID
       pageName: Page Name
       pageGroup: Page Group
+      pageSchemaType: Page Schema Type
+      pageSchemaType_label: null
       pageContent: Page Content
       status: Status
+      status_label: null
       ownerId: Owner ID
       ownerName: Owner Name
       version: Version
@@ -208,6 +211,7 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      pageContentComponent: null
     NopWfStatusHistory:
       sid: SID
       wfId: Workflow ID

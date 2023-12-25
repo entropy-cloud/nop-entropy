@@ -1,0 +1,9 @@
+label: 页面类型
+locale: zh-CN
+options:
+  - label: 百度AMIS
+    value: AMIS
+  - label: 阿里Formily
+    value: Formily
+  - label: 华为OpenTiny
+    value: OpenTiny

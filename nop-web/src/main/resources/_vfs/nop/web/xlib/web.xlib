@@ -438,7 +438,7 @@
                         name:colModel.id,
                         label: '@i18n:col.'+i18nRoot+"."+colModel.id+(colModel.label ? '|'+colModel.label : ",prop.label."+bizObjName+"."+propMeta?.name+"|"+propMeta?.displayName),
                         sortable: gridModel.sortable != false and colModel.sortable,
-                        width: colModel.width || xpl('thisLib:GetColDefaultWidth',colModel,propMeta),
+                        width: (colModel.width?.$isNumber() ? colModel.width.$parseNumber(): colModel.width) || xpl('thisLib:GetColDefaultWidth',colModel,propMeta),
                         toggled:true,
                         align: colModel.align || xpl('thisLib:GetColDefaultAlign',colModel,propMeta),
                         fixed: colModel.fixed || (colIndex == 0?'left':null),

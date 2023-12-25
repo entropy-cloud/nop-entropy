@@ -32,55 +32,62 @@ public class _NopWfPage extends DynamicOrmEntity{
     public static final String PROP_NAME_pageGroup = "pageGroup";
     public static final int PROP_ID_pageGroup = 3;
     
+    /* 页面类型: PAGE_SCHEMA_TYPE VARCHAR */
+    public static final String PROP_NAME_pageSchemaType = "pageSchemaType";
+    public static final int PROP_ID_pageSchemaType = 4;
+    
     /* 页面内容: PAGE_CONTENT VARCHAR */
     public static final String PROP_NAME_pageContent = "pageContent";
-    public static final int PROP_ID_pageContent = 4;
+    public static final int PROP_ID_pageContent = 5;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 5;
+    public static final int PROP_ID_status = 6;
     
     /* 拥有者ID: OWNER_ID VARCHAR */
     public static final String PROP_NAME_ownerId = "ownerId";
-    public static final int PROP_ID_ownerId = 6;
+    public static final int PROP_ID_ownerId = 7;
     
     /* 拥有者姓名: OWNER_NAME VARCHAR */
     public static final String PROP_NAME_ownerName = "ownerName";
-    public static final int PROP_ID_ownerName = 7;
+    public static final int PROP_ID_ownerName = 8;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 8;
+    public static final int PROP_ID_version = 9;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 9;
+    public static final int PROP_ID_createdBy = 10;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 10;
+    public static final int PROP_ID_createTime = 11;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 11;
+    public static final int PROP_ID_updatedBy = 12;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 12;
+    public static final int PROP_ID_updateTime = 13;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 13;
+    public static final int PROP_ID_remark = 14;
     
 
-    private static int _PROP_ID_BOUND = 14;
+    private static int _PROP_ID_BOUND = 15;
 
+    
+    /* component:  */
+    public static final String PROP_NAME_pageContentComponent = "pageContentComponent";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[14];
+    private static final String[] PROP_ID_TO_NAME = new String[15];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -92,6 +99,9 @@ public class _NopWfPage extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_pageGroup] = PROP_NAME_pageGroup;
           PROP_NAME_TO_ID.put(PROP_NAME_pageGroup, PROP_ID_pageGroup);
+      
+          PROP_ID_TO_NAME[PROP_ID_pageSchemaType] = PROP_NAME_pageSchemaType;
+          PROP_NAME_TO_ID.put(PROP_NAME_pageSchemaType, PROP_ID_pageSchemaType);
       
           PROP_ID_TO_NAME[PROP_ID_pageContent] = PROP_NAME_pageContent;
           PROP_NAME_TO_ID.put(PROP_NAME_pageContent, PROP_ID_pageContent);
@@ -134,6 +144,9 @@ public class _NopWfPage extends DynamicOrmEntity{
     
     /* 页面分组: PAGE_GROUP */
     private java.lang.String _pageGroup;
+    
+    /* 页面类型: PAGE_SCHEMA_TYPE */
+    private java.lang.String _pageSchemaType;
     
     /* 页面内容: PAGE_CONTENT */
     private java.lang.String _pageContent;
@@ -245,6 +258,9 @@ public class _NopWfPage extends DynamicOrmEntity{
             case PROP_ID_pageGroup:
                return getPageGroup();
         
+            case PROP_ID_pageSchemaType:
+               return getPageSchemaType();
+        
             case PROP_ID_pageContent:
                return getPageContent();
         
@@ -313,6 +329,16 @@ public class _NopWfPage extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_pageGroup));
                }
                setPageGroup(typedValue);
+               break;
+            }
+        
+            case PROP_ID_pageSchemaType:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_pageSchemaType));
+               }
+               setPageSchemaType(typedValue);
                break;
             }
         
@@ -446,6 +472,13 @@ public class _NopWfPage extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_pageSchemaType:{
+               onInitProp(propId);
+               this._pageSchemaType = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_pageContent:{
                onInitProp(propId);
                this._pageContent = (java.lang.String)value;
@@ -575,6 +608,25 @@ public class _NopWfPage extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_pageGroup,value)){
             this._pageGroup = value;
             internalClearRefs(PROP_ID_pageGroup);
+            
+        }
+    }
+    
+    /**
+     * 页面类型: PAGE_SCHEMA_TYPE
+     */
+    public java.lang.String getPageSchemaType(){
+         onPropGet(PROP_ID_pageSchemaType);
+         return _pageSchemaType;
+    }
+
+    /**
+     * 页面类型: PAGE_SCHEMA_TYPE
+     */
+    public void setPageSchemaType(java.lang.String value){
+        if(onPropSet(PROP_ID_pageSchemaType,value)){
+            this._pageSchemaType = value;
+            internalClearRefs(PROP_ID_pageSchemaType);
             
         }
     }
@@ -769,5 +821,22 @@ public class _NopWfPage extends DynamicOrmEntity{
         }
     }
     
+   private io.nop.orm.component.JsonOrmComponent _pageContentComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_pageContentComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_pageContentComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_pageContent);
+      
+   }
+
+   public io.nop.orm.component.JsonOrmComponent getPageContentComponent(){
+      if(_pageContentComponent == null){
+          _pageContentComponent = new io.nop.orm.component.JsonOrmComponent();
+          _pageContentComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_pageContentComponent);
+      }
+      return _pageContentComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

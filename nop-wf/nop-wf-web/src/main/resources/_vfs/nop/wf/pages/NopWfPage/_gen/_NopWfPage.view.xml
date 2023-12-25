@@ -19,17 +19,11 @@
                 <!--页面分组-->
                 <col id="pageGroup" mandatory="true" sortable="true"/>
 
-                <!--页面内容-->
-                <col id="pageContent" mandatory="true" sortable="true"/>
+                <!--页面类型-->
+                <col id="pageSchemaType" mandatory="true" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
-
-                <!--拥有者ID-->
-                <col id="ownerId" sortable="true"/>
-
-                <!--拥有者姓名-->
-                <col id="ownerName" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -54,9 +48,8 @@
         <form id="view" editMode="view" title="查看-页面定义" i18n-en:title="View Page">
             <layout>
  sid[ID] pageName[页面名称]
- pageGroup[页面分组] pageContent[页面内容]
- status[状态] ownerId[拥有者ID]
- ownerName[拥有者姓名] createdBy[创建人]
+ pageGroup[页面分组] pageSchemaType[页面类型]
+ status[状态] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
                 remark[备注]
@@ -65,13 +58,10 @@
         <form id="add" editMode="add" title="新增-页面定义" i18n-en:title="Add Page" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-页面定义" i18n-en:title="Edit Page">
             <layout>
- sid[ID]
  pageName[页面名称]
  pageGroup[页面分组]
- pageContent[页面内容]
+ pageSchemaType[页面类型]
  status[状态]
- ownerId[拥有者ID]
- ownerName[拥有者姓名]
  remark[备注]
 </layout>
         </form>
