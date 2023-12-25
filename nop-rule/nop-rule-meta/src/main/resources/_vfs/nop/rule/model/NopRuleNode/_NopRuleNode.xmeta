@@ -47,7 +47,7 @@
             <schema stdDomain="json" domain="json-4k" type="java.lang.String" precision="50"/>
         </prop>
         <prop name="parentId" displayName="父ID" i18n-en:displayName="Parent ID" tagSet="parent" queryable="true"
-              sortable="true" insertable="true" updatable="true" ext:control="tree-parent" ext:relation="parent">
+              sortable="true" insertable="true" updatable="true" ui:control="tree-parent" ext:relation="parent">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="isLeaf" displayName="是否叶子节点" i18n-en:displayName="Is Leaf" tagSet="leaf" mandatory="true"

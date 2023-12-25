@@ -16,6 +16,7 @@ import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.reflect.hook.IPropSetMissingHook;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +54,25 @@ public class JsonOrmComponent extends AbstractOrmComponent
             value = jsonValue = JsonTool.parseBeanFromText(text, Object.class);
         }
         return value;
+    }
+
+    @JsonIgnore
+    public boolean isJsonMap() {
+        return get_jsonValue() instanceof Map;
+    }
+
+    @JsonIgnore
+    public Map<String, Object> get_jsonMap() {
+        return (Map<String, Object>) get_jsonValue();
+    }
+
+    public Map<String, Object> require_jsonMap() {
+        Map<String, Object> map = get_jsonMap();
+        if (map == null) {
+            map = new LinkedHashMap<>();
+            set_jsonValue(map);
+        }
+        return map;
     }
 
     public void set_jsonValue(Object jsonValue) {

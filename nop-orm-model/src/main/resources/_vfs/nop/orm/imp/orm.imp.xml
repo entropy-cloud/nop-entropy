@@ -312,7 +312,7 @@
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ext:control" displayName="控件">
+                        <field name="ui:control" displayName="控件">
                             <schema stdDomain="string"/>
                         </field>
 
@@ -382,7 +382,7 @@
                             <schema stdDomain="boolFlag"/>
                         </field>
 
-                        <field name="ext:control" displayName="控件">
+                        <field name="ui:control" displayName="控件">
                             <schema stdDomain="string"/>
                         </field>
 

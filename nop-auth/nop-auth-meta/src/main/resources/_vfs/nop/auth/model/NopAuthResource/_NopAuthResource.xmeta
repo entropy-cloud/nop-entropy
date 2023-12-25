@@ -47,7 +47,7 @@
             <schema type="java.lang.String" precision="4" dict="auth/resource-type"/>
         </prop>
         <prop name="parentId" displayName="父资源ID" i18n-en:displayName="Parent Resource" tagSet="parent" queryable="true"
-              sortable="true" insertable="true" updatable="true" ui:show="L" ext:control="tree-parent"
+              sortable="true" insertable="true" updatable="true" ui:show="L" ui:control="tree-parent"
               ext:relation="parent">
             <schema type="java.lang.String" precision="100"/>
         </prop>

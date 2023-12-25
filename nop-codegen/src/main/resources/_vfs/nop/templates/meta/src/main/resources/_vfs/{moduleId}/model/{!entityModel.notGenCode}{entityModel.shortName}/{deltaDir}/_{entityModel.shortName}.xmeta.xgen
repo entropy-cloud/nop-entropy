@@ -69,7 +69,7 @@
                   insertable="${xpl('meta-gen:IsColInsertable',col)}" updatable="${xpl('meta-gen:IsColUpdatable',col)}"
                   internal="${xpl('meta-gen:IsColInternal',col)||null}"
                   graphql:jsonComponentProp="${jsonCol? col.name + 'Component' : null}"
-                  ui:show="${col['ui:show']}" ext:control="${col['ext:control'] || buildColControl(col)}"
+                  ui:show="${col['ui:show']}" ui:control="${col['ui:control'] || buildColControl(col)}"
                   biz:codeRule="${col?.tagSet?.contains('code')?entityModel.shortName+'@'+col.name:null}"
                   ext:relation="${col.columnRefs?.[0]?.name}" defaultValue="${col.defaultValue}"
                   x:override="${col.tagSet?.contains('del') ? 'remove':null}"
@@ -88,7 +88,7 @@
                   i18n-en:displayName="${rel['i18n-en:displayName']}" tagSet="${_.join(rel.tagSet,',')}"
                   ext:kind="${rel.toOneRelation?'to-one':'to-many'}" internal="true"
                   queryable="${rel.toOneRelation?true:null}"
-                  ext:control="${rel['ext:control']}"  ui:editGrid="${useGrid ? 'sub-grid-edit':null}" ui:viewGrid="${useGrid ?'sub-grid-view':null}"
+                  ui:control="${rel['ui:control']}"  ui:editGrid="${useGrid ? 'sub-grid-edit':null}" ui:viewGrid="${useGrid ?'sub-grid-view':null}"
                   defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
                   ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}"
                   ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
@@ -122,7 +122,7 @@
             ]]></c:script>
             <prop name="${comp.name}" displayName="${comp.displayName}"
                   i18n-en:displayName="${comp['i18n-en:displayName']}" tagSet="${_.join(comp.tagSet,',')}"
-                  ext:kind="component" internal="true" ext:control="${comp['ext:control']}"
+                  ext:kind="component" internal="true" ui:control="${comp['ui:control']}"
                   insertable="${compCol!=null}" updatable="${compCol != null}"
                   mandatory="${comp.mandatory || null}" lazy="true"
                   published="${comp.tagSet?.contains('pub') ? null :false}">
@@ -137,7 +137,7 @@
             </c:script>
             <prop name="${alias.name}" displayName="${alias.displayName}"
                   i18n-en:displayName="${alias['i18n-en:displayName']}" tagSet="${_.join(alias.tagSet,',')}"
-                  ext:kind="alias" internal="true" ext:control="${alias['ext:control']}"
+                  ext:kind="alias" internal="true" ui:control="${alias['ui:control']}"
                   insertable="${insertable}" updatable="${updatable}"
                   mandatory="${alias.mandatory || null}" lazy="true"
                   published="${alias.tagSet?.contains('not-pub') ? false : null}">
