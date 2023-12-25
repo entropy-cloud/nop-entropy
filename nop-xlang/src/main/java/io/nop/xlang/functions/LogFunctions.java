@@ -78,7 +78,7 @@ public class LogFunctions {
                     messageExpr);
 
         String message = ((Literal) messageExpr).getStringValue();
-        return newLogExpression(logLevel, expr.getLocation(), message, expr.getArguments());
+        return newLogExpression(logLevel, expr.getLocation(), message, expr.getArguments().subList(1,expr.getArguments().size()));
     }
 
     @NoReflection
