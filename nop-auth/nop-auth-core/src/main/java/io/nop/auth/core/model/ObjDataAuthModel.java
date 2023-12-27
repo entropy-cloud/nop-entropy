@@ -10,7 +10,6 @@ package io.nop.auth.core.model;
 import io.nop.api.core.auth.ISecurityContext;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FilterBeanConstants;
-import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.auth.core.AuthCoreConstants;
 import io.nop.auth.core.model._gen._ObjDataAuthModel;
@@ -38,24 +37,19 @@ public class ObjDataAuthModel extends _ObjDataAuthModel {
 
         IUserContext userContext = context.getUserContext();
 
-        int priority = Integer.MAX_VALUE;
+        boolean hasRoleAuth = false;
         for (RoleDataAuthModel roleAuth : this.getRoleAuths()) {
             String roleId = roleAuth.getRoleId();
-            if (!userContext.isUserInRole(roleId)) {
-                continue;
-            }
-
-            if (roleAuth.getCheck() != null && !roleAuth.getCheck().passConditions(scope)) {
-                return false;
-            }
-
-            if (roleAuth.getPriority() > priority)
+            if (userContext.isUserInRole(roleId)) {
+                hasRoleAuth = true;
+                if (roleAuth.getCheck() != null && !roleAuth.getCheck().passConditions(scope)) {
+                    return false;
+                }
                 break;
-
-            priority = roleAuth.getPriority();
+            }
         }
 
-        return priority != Integer.MAX_VALUE;
+        return hasRoleAuth;
     }
 
     public XNode getFilter(String action, ISecurityContext context) {
@@ -71,30 +65,24 @@ public class ObjDataAuthModel extends _ObjDataAuthModel {
 
         boolean hasRoleAuth = false;
 
-        int priority = Integer.MAX_VALUE;
         for (RoleDataAuthModel roleAuth : this.getRoleAuths()) {
+
             String roleId = roleAuth.getRoleId();
-            if (!userContext.isUserInRole(roleId)) {
-                continue;
-            }
+            if (userContext.isUserInRole(roleId)) {
+                hasRoleAuth = true;
 
-            hasRoleAuth = true;
-
-            if (roleAuth.getFilter() != null) {
-                XNode node = roleAuth.getFilter().generateNode(scope);
-                if (node != null) {
-                    if (node.isDummyNode()) {
-                        filter.appendChildren(node.detachChildren());
-                    } else {
-                        filter.appendChild(node);
+                if (roleAuth.getFilter() != null) {
+                    XNode node = roleAuth.getFilter().generateNode(scope);
+                    if (node != null) {
+                        if (node.isDummyNode()) {
+                            filter.appendChildren(node.detachChildren());
+                        } else {
+                            filter.appendChild(node);
+                        }
                     }
                 }
-            }
-
-            if (roleAuth.getPriority() > priority)
                 break;
-
-            priority = roleAuth.getPriority();
+            }
         }
 
         if (!hasRoleAuth)

@@ -143,9 +143,31 @@ public class XDslValidator {
         }
 
         if (defNode.getXdefOrderAttr() != null) {
-            Collections.sort(node.getChildren(), new XNodeAttrComparator(defNode.getXdefOrderAttr()));
+            sortChildren(defNode, node);
         }
     }
+
+    private void sortChildren(IXDefNode defNode, XNode node) {
+        for (XNode child : node.getChildren()) {
+            ValueWithLocation vl = child.attrValueLoc(defNode.getXdefOrderAttr());
+            Object value = vl.getValue();
+            IXDefNode childDef = defNode.getChild(child.getTagName());
+            if (childDef != null) {
+                IXDefAttribute attrDef = childDef.getAttribute(defNode.getXdefOrderAttr());
+                if (attrDef != null) {
+                    if (value == null) {
+                        value = attrDef.getType().getDefaultValue();
+                    } else {
+                        value = attrDef.getType().getStdDataType().convert(value);
+                    }
+                    child.setAttr(vl.getLocation(), defNode.getXdefOrderAttr(), value);
+                }
+            }
+        }
+
+        node.getChildren().sort(new XNodeAttrComparator(defNode.getXdefOrderAttr()));
+    }
+
 
     private boolean hasChild(IXDefNode childDef, XNode node) {
         if (childDef.isUnknownTag())
