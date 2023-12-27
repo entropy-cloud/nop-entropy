@@ -10,17 +10,14 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--属性定义ID-->
-                <col id="propMetaId" mandatory="true" sortable="true"/>
-
-                <!--实体定义ID-->
-                <col id="entityMetaId" mandatory="true" sortable="true"/>
-
                 <!--属性名-->
                 <col id="propName" mandatory="true" sortable="true"/>
 
                 <!--显示名-->
                 <col id="displayName" mandatory="true" sortable="true"/>
+
+                <!--实体定义ID-->
+                <col id="entityMetaId" mandatory="true" sortable="true"/>
 
                 <!--标准SQL数据类型-->
                 <col id="stdSqlType" mandatory="true" sortable="true"/>
@@ -32,13 +29,13 @@
                 <col id="scale" mandatory="true" sortable="true"/>
 
                 <!--显示控制-->
-                <col id="uiShow" mandatory="true" sortable="true"/>
+                <col id="uiShow" sortable="true"/>
 
                 <!--显示控件-->
                 <col id="uiControl" sortable="true"/>
 
                 <!--标准域-->
-                <col id="stdDomain" mandatory="true" sortable="true"/>
+                <col id="stdDomain" sortable="true"/>
 
                 <!--数据字典-->
                 <col id="dictName" sortable="true"/>
@@ -57,6 +54,9 @@
 
                 <!--关联属性显示名-->
                 <col id="refPropDisplayName" sortable="true"/>
+
+                <!--关联属性标签-->
+                <col id="refTagSet" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
@@ -83,14 +83,14 @@
     <forms>
         <form id="view" editMode="view" title="查看-属性元数据" i18n-en:title="View Property Meta">
             <layout>
- propMetaId[属性定义ID] entityMetaId[实体定义ID]
  propName[属性名] displayName[显示名]
- stdSqlType[标准SQL数据类型] length[长度]
- scale[小数位数] uiShow[显示控制]
- uiControl[显示控件] stdDomain[标准域]
- dictName[数据字典] dynFieldMapping[动态字段映射]
- tagSet[标签] refEntityName[关联实体名]
- refPropName[关联属性名] refPropDisplayName[关联属性显示名]
+ entityMetaId[实体定义ID] stdSqlType[标准SQL数据类型]
+ length[长度] scale[小数位数]
+ uiShow[显示控制] uiControl[显示控件]
+ stdDomain[标准域] dictName[数据字典]
+ dynFieldMapping[动态字段映射] tagSet[标签]
+ refEntityName[关联实体名] refPropName[关联属性名]
+ refPropDisplayName[关联属性显示名] refTagSet[关联属性标签]
  status[状态] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
@@ -100,15 +100,16 @@
         <form id="add" editMode="add" title="新增-属性元数据" i18n-en:title="Add Property Meta" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-属性元数据" i18n-en:title="Edit Property Meta">
             <layout>
- entityMetaId[实体定义ID] propName[属性名]
- displayName[显示名] stdSqlType[标准SQL数据类型]
+ propName[属性名] displayName[显示名]
+ entityMetaId[实体定义ID] stdSqlType[标准SQL数据类型]
  length[长度] scale[小数位数]
  uiShow[显示控制] uiControl[显示控件]
  stdDomain[标准域] dictName[数据字典]
  dynFieldMapping[动态字段映射] tagSet[标签]
  refEntityName[关联实体名] refPropName[关联属性名]
- refPropDisplayName[关联属性显示名] status[状态]
- remark[备注] 
+ refPropDisplayName[关联属性显示名] refTagSet[关联属性标签]
+ status[状态] 
+                remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">

@@ -232,6 +232,12 @@ NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xmⅠ
 <import resource="a.beans.xml" />
 ````
 
+## 16. 可以单独接入xdef吗？
+
+可以。引入nop-xlang即可，代码生成器也可以独立于Nop平台使用。Nop平台的模块虽然很多，但是因为整体设计采用了依赖注入、动态加载等方式，
+各个模块的耦合度很低，大部分模块都可以独立使用，并且可以脱离Nop平台与其他框架集成使用。
+
+具体模块依赖关系可以参见[module-dependency.md](../arch/module-dependency.md)
 
 # 部署问题
 

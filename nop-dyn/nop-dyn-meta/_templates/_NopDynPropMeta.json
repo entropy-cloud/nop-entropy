@@ -1,8 +1,8 @@
 {
   "propMetaId": "",
-  "entityMetaId": "",
   "propName": "",
   "displayName": "",
+  "entityMetaId": "",
   "stdSqlType": "",
   "stdSqlType_label": "",
   "length": 0,
@@ -17,6 +17,7 @@
   "refEntityName": "",
   "refPropName": "",
   "refPropDisplayName": "",
+  "refTagSet": "",
   "status": 0,
   "status_label": "",
   "version": 0,

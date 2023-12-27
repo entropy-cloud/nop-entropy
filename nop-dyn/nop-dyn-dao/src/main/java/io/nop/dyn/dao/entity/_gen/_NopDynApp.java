@@ -28,7 +28,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     public static final String PROP_NAME_appName = "appName";
     public static final int PROP_ID_appName = 2;
     
-    /* 显示名: DISPLAY_NAME INTEGER */
+    /* 显示名: DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 3;
     
@@ -108,7 +108,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     private java.lang.String _appName;
     
     /* 显示名: DISPLAY_NAME */
-    private java.lang.Integer _displayName;
+    private java.lang.String _displayName;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -258,9 +258,9 @@ public class _NopDynApp extends DynamicOrmEntity{
             }
         
             case PROP_ID_displayName:{
-               java.lang.Integer typedValue = null;
+               java.lang.String typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
+                   typedValue = ConvertHelper.toString(value,
                        err-> newTypeConversionError(PROP_NAME_displayName));
                }
                setDisplayName(typedValue);
@@ -352,7 +352,7 @@ public class _NopDynApp extends DynamicOrmEntity{
         
             case PROP_ID_displayName:{
                onInitProp(propId);
-               this._displayName = (java.lang.Integer)value;
+               this._displayName = (java.lang.String)value;
                
                break;
             }
@@ -446,7 +446,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public java.lang.Integer getDisplayName(){
+    public java.lang.String getDisplayName(){
          onPropGet(PROP_ID_displayName);
          return _displayName;
     }
@@ -454,7 +454,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public void setDisplayName(java.lang.Integer value){
+    public void setDisplayName(java.lang.String value){
         if(onPropSet(PROP_ID_displayName,value)){
             this._displayName = value;
             internalClearRefs(PROP_ID_displayName);

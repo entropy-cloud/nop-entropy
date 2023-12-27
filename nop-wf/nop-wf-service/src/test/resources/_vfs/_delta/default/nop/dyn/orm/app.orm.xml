@@ -4,7 +4,7 @@
 
     <entities>
 
-        <entity name="dyn.AppDynSalaryAdjustment" displayName="调薪申请" x:prototype="WfDynEntityTemplate">
+        <entity name="dyn.AppDynSalaryAdjustment" displayName="调薪申请" x:prototype="NopDynEntityTemplate">
             <filters>
                 <filter name="objType" value="AppDynSalaryAdjustment"/>
             </filters>

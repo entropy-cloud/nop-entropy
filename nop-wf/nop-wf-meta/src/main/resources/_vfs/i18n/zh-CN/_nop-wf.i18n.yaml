@@ -3,11 +3,9 @@ entity:
     NopWfAction: 工作流动作
     NopWfDefinition: 工作流模型定义
     NopWfDefinitionAuth: 工作流定义权限
-    NopWfDynEntity: 动态实体
     NopWfInstance: 工作流模型定义
     NopWfLog: 工作流日志
     NopWfOutput: 工作流输出变量
-    NopWfPage: 页面定义
     NopWfStatusHistory: 工作流状态变迁历史
     NopWfStepInstance: 工作流步骤实例
     NopWfStepInstanceLink: 工作流步骤关联
@@ -75,46 +73,6 @@ prop:
       wfDefId: 工作流定义ID
       wfDefinition: 工作流定义
       wfDefinition.displayName: 工作流定义
-    NopWfDynEntity:
-      bizState: 业务状态
-      bizStatus: 业务状态码
-      children: 子对象
-      createTime: 创建时间
-      createdBy: 创建人
-      dateFld1: 日期字段1
-      dateFld2: 日期字段2
-      decimalFld1: 浮点型字段1
-      decimalFld2: 浮点型字段2
-      deptId: 部门ID
-      displayName: 显示名称
-      extFields: null
-      fileFld1: 文件字段1
-      fileFld1Component: null
-      fileFld2: 文件字段2
-      fileFld2Component: null
-      intFld1: 整数型字段1
-      intFld2: 整数型字段2
-      longFld1: 长整型字段1
-      longFld2: 长整型字段2
-      name: 名称
-      nopFlowId: 工作流实例ID
-      objType: 对象类型
-      ownerId: 拥有者ID
-      ownerName: 拥有者姓名
-      parent: 父对象
-      parentId: 父ID
-      remark: 备注
-      sid: 主键
-      sortOrder: 排序
-      stringFld1: 字符串字段1
-      stringFld2: 字符串字段2
-      timestampFld1: 时间戳字段1
-      timestampFld2: 时间戳字段2
-      updateTime: 修改时间
-      updatedBy: 修改人
-      version: 数据版本
-      wfInstance: 工作流实例
-      wfInstance.title: 工作流实例
     NopWfInstance:
       appState: 应用状态
       bizKey: 业务唯一键
@@ -194,24 +152,6 @@ prop:
       wfId: 工作流实例ID
       wfInstance: 工作流实例
       wfInstance.title: 工作流实例
-    NopWfPage:
-      createTime: 创建时间
-      createdBy: 创建人
-      ownerId: 拥有者ID
-      ownerName: 拥有者姓名
-      pageContent: 页面内容
-      pageContentComponent: null
-      pageGroup: 页面分组
-      pageName: 页面名称
-      pageSchemaType: 页面类型
-      pageSchemaType_label: 页面类型
-      remark: 备注
-      sid: ID
-      status: 状态
-      status_label: 状态
-      updateTime: 修改时间
-      updatedBy: 修改人
-      version: 数据版本
     NopWfStatusHistory:
       changeTime: 状态变动时间
       createTime: 创建时间

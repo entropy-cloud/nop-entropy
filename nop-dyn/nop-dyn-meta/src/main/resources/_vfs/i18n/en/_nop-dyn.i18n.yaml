@@ -14,6 +14,7 @@ prop:
       appName: App Name
       displayName: Display Name
       status: Status
+      status_label: null
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -99,6 +100,7 @@ prop:
       displayName: Display Name
       baseModuleId: Base Module ID
       status: Status
+      status_label: null
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -135,9 +137,9 @@ prop:
       pageContentComponent: null
     NopDynPropMeta:
       propMetaId: Prop Meta ID
-      entityMetaId: Entity Meta ID
       propName: Property Name
       displayName: Display Name
+      entityMetaId: Entity Meta ID
       stdSqlType: Std Sql Type
       stdSqlType_label: null
       length: Length
@@ -152,6 +154,7 @@ prop:
       refEntityName: Ref Entity Name
       refPropName: Ref Property Name
       refPropDisplayName: Ref Property Display Name
+      refTagSet: Ref Tag Set
       status: Status
       status_label: null
       version: Version

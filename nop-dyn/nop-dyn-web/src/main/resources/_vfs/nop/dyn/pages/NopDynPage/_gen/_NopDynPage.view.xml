@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--页面ID-->
-                <col id="pageId" mandatory="true" sortable="true"/>
-
                 <!--模块ID-->
                 <col id="moduleId" mandatory="true" sortable="true"/>
 
@@ -50,12 +47,12 @@
     <forms>
         <form id="view" editMode="view" title="查看-页面定义" i18n-en:title="View Page Definition">
             <layout>
- pageId[页面ID] moduleId[模块ID]
- pageName[页面名称] pageGroup[页面分组]
- pageSchemaType[页面类型] status[状态]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ moduleId[模块ID] pageName[页面名称]
+ pageGroup[页面分组] pageSchemaType[页面类型]
+ status[状态] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-页面定义" i18n-en:title="Add Page Definition" x:prototype="edit"/>

@@ -10,15 +10,11 @@
 
     <bean id="io.nop.wf.service.entity.NopWfDefinitionAuthBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
-    <bean id="io.nop.wf.service.entity.NopWfDynEntityBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
     <bean id="io.nop.wf.service.entity.NopWfInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfLogBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfOutputBizModel" ioc:type="@bean:id" ioc:default="true"/>
-
-    <bean id="io.nop.wf.service.entity.NopWfPageBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.wf.service.entity.NopWfStatusHistoryBizModel" ioc:type="@bean:id" ioc:default="true"/>
 

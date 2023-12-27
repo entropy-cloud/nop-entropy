@@ -20,6 +20,7 @@ prop:
       relatedModuleList: 关联模块列表
       relatedModuleList_label: 关联模块列表
       status: 状态
+      status_label: 状态
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -109,6 +110,7 @@ prop:
       relatedAppList: 所属应用列表
       relatedAppList_label: 所属应用列表
       status: 状态
+      status_label: 状态
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -148,6 +150,7 @@ prop:
       refEntityName: 关联实体名
       refPropDisplayName: 关联属性显示名
       refPropName: 关联属性名
+      refTagSet: 关联属性标签
       remark: 备注
       scale: 小数位数
       status: 状态

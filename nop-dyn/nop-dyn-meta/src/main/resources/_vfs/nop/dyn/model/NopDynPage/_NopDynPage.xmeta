@@ -21,7 +21,7 @@
 
     <props>
         <prop name="pageId" displayName="页面ID" i18n-en:displayName="Page ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="false" updatable="false" ui:show="R">
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="moduleId" displayName="模块ID" i18n-en:displayName="Module ID" mandatory="true" queryable="true"

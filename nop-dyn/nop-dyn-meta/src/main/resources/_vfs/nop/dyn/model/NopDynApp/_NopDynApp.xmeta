@@ -21,7 +21,7 @@
 
     <props>
         <prop name="appId" displayName="应用ID" i18n-en:displayName="App ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false">
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="appName" displayName="应用名" i18n-en:displayName="App Name" mandatory="true" queryable="true"
@@ -30,11 +30,11 @@
         </prop>
         <prop name="displayName" displayName="显示名" i18n-en:displayName="Display Name" tagSet="disp" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer" precision="200"/>
+            <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" defaultValue="dyn/app-status">
-            <schema type="java.lang.Integer"/>
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="dyn/app-status"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">

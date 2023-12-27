@@ -21,7 +21,8 @@
 
     <props>
         <prop name="entityMetaId" displayName="实体定义ID" i18n-en:displayName="Entity Meta ID" tagSet="seq"
-              mandatory="true" queryable="true" sortable="true" insertable="false" updatable="false" ui:show="R">
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false" internal="true"
+              ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="moduleId" displayName="模块ID" i18n-en:displayName="Module ID" mandatory="true" queryable="true"
@@ -41,7 +42,7 @@
             <schema type="java.lang.Integer" dict="dyn/entity-store-type"/>
         </prop>
         <prop name="metaContent" displayName="元数据内容" i18n-en:displayName="Meta Content" tagSet="content"
-              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true" internal="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true"
               graphql:jsonComponentProp="metaContentComponent" ui:show="X">
             <schema stdDomain="json" domain="json-16M" type="java.lang.String" precision="16777216"/>
         </prop>
@@ -91,7 +92,7 @@
             </schema>
         </prop>
         <prop name="metaContentComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
-              updatable="true" mandatory="true" lazy="true">
+              updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>

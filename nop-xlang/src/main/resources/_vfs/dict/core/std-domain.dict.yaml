@@ -1,54 +1,60 @@
 locale: zh-CN
 options:
   - value: string
-    description: 字符串类型
+    label: 字符串类型
 
   - value: int
-    description: 整数类型
+    label: 整数类型
 
   - value: double
-    description: 双精度浮点数类型
+    label: 双精度浮点数
 
   - value: long
-    description: 长整数类型
+    label: 长整数
 
   - value: float
-    description: 浮点数类型
+    label: 浮点数
 
   - value: number
-    description: Number类型
+    label: Number类型
 
   - value: bytes
+    label: 二进制字节数组
     description: 二进制字节数组类型。作为字符串存储时使用base64编码
 
   - value: decimal
-    description: BigDecimal类型
+    label: BigDecimal类型
 
   - value: any
-    description: 任意对象类型
+    label: 任意对象类型
 
   - value: boolean
-    description: 布尔值类型，缺省为false
+    label: 布尔值类型
 
   - value: char
-    description: 字符类型
+    label: 字符类型
 
   - value: byte
-    description: 字节类型
+    label: 字节类型
 
   - value: date
-    description: 日期类型，格式为yyyy-MM-dd
+    label: 日期类型
+    description: 格式为yyyy-MM-dd
 
   - value: datetime
-    description: 日期时间类型，格式为yyyy-MM-dd HH:mm:ss
+    label: 日期时间类型
+    description: 格式为yyyy-MM-dd HH:mm:ss
 
   - value: timestamp
-    description: 时间戳类型，格式为yyyy-MM-dd HH:mm:ss.zzz
+    label: 时间戳类型
+    description: 格式为yyyy-MM-dd HH:mm:ss.zzz
 
   - value: time
-    description: 时间类型，格式为HH:mm:ss
+    label: 时间类型
+    description: 格式为HH:mm:ss
 
   - value: duration
+    label: 时间间隔
     description: |
       时间区间类型，格式为ISO-8601标准，例如PT8H6M12.345S。
       "20.345 seconds"                 -- "PT20.345S
@@ -57,79 +63,103 @@ options:
       "2 days" (2 * 86400 seconds)     -- "PT48H"
 
   - value: generic-type
+    label: Java泛型类型
     description: Java泛型类型，解析得到IGenericType类型。例如List<String>, Map<String,io.nop.auth.entity.NopAuthUser>等。
       除了Java内置的String/Object/List/Map等类型之外，其他类名都需要使用全类名引用。
 
   - value: class-name
+    label: Java类名
     description: Java类名，由.号分隔，不包含除$之外的特殊字符
 
   - value: java-name
+    label: Java标识
     description: Java Identifier类型，一般为中英文字母和数字、下划线组成，与var-name不同，java-name允许包含字符$。
 
   - value: var-name
+    label: Java变量名
     description: Java变量名，一般为中英文字母和数字、下划线组成，不包含字符.和$
 
   - value: prop-name
+    label: Java属性名
     description: Java属性名，一般为中英文字母和数字、下划线组成，不包含字符.和$
 
   - value: prop-path
+    label: Java复合属性名
     description: Java复合属性名，可以由一个或者多个prop-name构成，通过字符.来分隔
 
   - value: package-name
+    label: Java包名
     description: Java包名，由.号分隔，不包含除$之外的特殊字符。按照Java规范一般应为全小写字符。
 
   - value: conf-name
+    label: 配置变量名
     description: 配置变量名，由英文字母、数字、下划线、字符-和.构成，不包含下划线、$等特殊字符
 
   - value: url
+    label: 网页URL
     description: 网页链接格式，应该满足URI规范要求
 
   - value: v-path
+    label: 虚拟文件路径
     description: 虚拟文件路径。解析时会自动转换为绝对路径，可以由VirtualFileSystem识别。
 
   - value: xpath
+    label: XML路径
     description: NOP平台内部自定义的XML路径定义
 
   - value: csv-set
+    label: 逗号分隔的字符串集合
     description: 逗号分隔的字符串集合，返回Set<String>类型
 
   - value: csv-list
+    label: 逗号分隔的字符串列表
     description: 逗号分隔的字符串列表，返回List<String>类型
 
   - value: json
+    label: JSON格式
     description: JSON格式，通过JSON.parse函数来解析得到相应数据
 
   - value: xml
+    label: XML格式
     description: XML格式，通过XNodeParser解析得到XNode对象
 
   - value: expr
-    description: EL表达式
+    label: EL表达式
 
   - value: s-expr
+    label: 简单表达式
     description: 只允许形式为${expr}的表达式，不支持简单字符串形式，即允许x="${'a'}"这种形式，但是不允许x="a"这种形式
 
   - value: tpl-expr
+    label: 模板表达式
     description: 字符串和${expr}形式混合的模板表达式
 
   - value: xpl
+    label: XPL模板
     description: XPL模板语言，outputMode为none，不允许副作用输出。编译成IEvalAction类型
 
   - value: xpl-predicate
+    label: XPL判断条件
     description: XPL模板语言，outputMode为none。返回值被转型为boolean。编译成IEvalPredicate类型
 
   - value: xpl-text
+    label: 输出文本的XPL片段
     description: XPL模板语言，outputMode为text，允许执行的过程中输出文本。编译成ITextTemplateOutput类型
 
   - value: xpl-node
+    label: 输出XNode的XPL片段
     description: XPL模板语言，outputMode为node，执行的过程中会输出XNode节点。编译成IXNodeGenerator类型
 
   - value: xpl-xml
+    label: 输出XML的XPL片段
     description: XPL模板语言，outputMode为xml，执行的过程中会输出XML格式的文本。编译成ITextTemplateOutput类型
 
   - value: xpl-html
+    label: 输出HTML的XPL片段
     description: XPL模板语言，outputMode为html，执行的过程中会输出HTML格式的文本。编译成ITextTemplateOutput类型
 
   - value: xpl-sql
+    label: 输出SQL的XPL片段
     description: |
       XPL模板语言，outputMode为sql，执行过程中的输出数据被收集为MutableString对象。编译成ISqlGenerator类型
       通过${expr}形式输出的表达式将会被作为param参数保存，而不是作为文本拼接到MutableString中。

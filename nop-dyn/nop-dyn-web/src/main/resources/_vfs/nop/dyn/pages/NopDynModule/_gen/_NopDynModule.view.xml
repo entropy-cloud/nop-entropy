@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--模块ID-->
-                <col id="moduleId" mandatory="true" sortable="true"/>
-
                 <!--模块名-->
                 <col id="moduleName" mandatory="true" sortable="true"/>
 
@@ -44,7 +41,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-模块定义" i18n-en:title="View Module Definition">
             <layout>
- moduleId[模块ID]
  moduleName[模块名]
  displayName[显示名]
  baseModuleId[基础模块ID]
@@ -58,7 +54,6 @@
         <form id="add" editMode="add" title="新增-模块定义" i18n-en:title="Add Module Definition" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-模块定义" i18n-en:title="Edit Module Definition">
             <layout>
- moduleId[模块ID]
  moduleName[模块名]
  displayName[显示名]
  baseModuleId[基础模块ID]

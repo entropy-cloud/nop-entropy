@@ -9,7 +9,8 @@ It is committed to overcoming the dilemma that low-code platform can not get rid
 transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained
 software reuse.
 
-Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码(lowcode)平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
+Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码(lowcode)
+平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
 
 - nop-entropy是Nop平台的后端部分。它采用Java语言实现，不依赖第三方框架，可以和Quarkus或者Spring框架集成在一起使用。
 
@@ -21,7 +22,8 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代�
   。通过增加简单的元数据定义，就可以自动得到对应的解析器、验证器、IDE插件、调试工具等，并自动为DSL领域语言增加模块分解、差量定制、元编程等通用语言特性。在这一点上，它类似于Jetbrains公司的[MPS产品](https://www.jetbrains.com/mps/)
   ，只是它的设计原理和技术实现路径与MPS有着本质性差别。
 
-- nop-entropy采用云原生设计，内置分布式事务和多租户支持，可以单机运行，也可以作为分布式集群运行，可以提供在线的API服务，也可以将针对单个业务对象的在线服务自动包装为针对批处理文件的批处理任务。对于大多数业务应用场景均提供相应的模型支持，只需少量配置即可完成主要功能，大大降低对手工编码的需求。
+-
+nop-entropy采用云原生设计，内置分布式事务和多租户支持，可以单机运行，也可以作为分布式集群运行，可以提供在线的API服务，也可以将针对单个业务对象的在线服务自动包装为针对批处理文件的批处理任务。对于大多数业务应用场景均提供相应的模型支持，只需少量配置即可完成主要功能，大大降低对手工编码的需求。
 
 - nop-entropy在开发期可以作为**支持增量式开发的低代码平台**，自动生成各类代码以及相关文档，在运行期可以作为*
   *面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。
@@ -55,7 +57,8 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 | nop-cli         | 将代码生成器、文件监听等功能封装为命令行工具    | 基本可用 |
 | nop-cluster     | 分布式集群支持                   | 50%  |
 | nop-tcc         | 分布式事务                     | 50%  |
-| nop-workflow    | 工作流引擎                     | 60%  |
+| nop-dyn         | 在线设计表单和数据模型、服务函数          | 10%  |
+| nop-workflow    | 工作流引擎                     | 65%  |
 | nop-task        | 逻辑流编排                     | 30%  |
 | nop-job         | 分布式任务调度                   | 40%  |
 | nop-batch       | 批处理引擎                     | 70%  |
@@ -133,7 +136,9 @@ quarkus.package.type参数是quarkus框架所识别的一个参数，指定它�
 -jar XXX-runner.jar的方式直接运行。
 
 ## PowerShell乱码问题解决
+
 可以将PowerShell的编码设置为UTF8
+
 ````
 $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
 ````
@@ -150,7 +155,8 @@ gradlew buildPlugin
 ```
 
 > 目前使用的idea打包插件不支持高版本gradle。gradlew会自动下载所需的gradle版本，目前使用的是7.5.1
-> 如果想加快gradle下载速度，可以gradle-wrapper.properties中换成 distributionUrl=https://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip
+> 如果想加快gradle下载速度，可以gradle-wrapper.properties中换成
+> distributionUrl=https://mirrors.cloud.tencent.com/gradle/gradle-7.5.1-bin.zip
 
 编译出来的插件存放在build/distributions目录下。参见[插件的安装和使用](docs/dev-guide/ide/idea.md)。
 
@@ -183,9 +189,9 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
 
 > 核心引擎的功能并不依赖于数据库，可以以纯内存的方式运行。所有存储相关的代码都已经剥离到独立的dao模块中，例如nop-auth-dao，nop-sys-dao等。
 
-1. 作为增量式代码生成工具使用：maven打包时可以读取Excel模型文件，应用指定的模板目录，以增量化的方式生成代码。参见[codegen.md](docs/dev-guide/codegen.md)
+1.作为增量式代码生成工具使用：maven打包时可以读取Excel模型文件，应用指定的模板目录，以增量化的方式生成代码。参见[codegen.md](docs/dev-guide/codegen.md)
 
-2. 为已有的XML/JSON/YAML格式的配置文件、领域模型文件提供可逆计算支持：为模型文件增加动态分解、合并、产品化定制机制，对应用层完全透明，对于引擎层只需要编写一个自定义的模型文件加载器。参见[delta-loader.md](docs/dev-guide/delta-loader.md)
+2.为已有的XML/JSON/YAML格式的配置文件、领域模型文件提供可逆计算支持：为模型文件增加动态分解、合并、产品化定制机制，对应用层完全透明，对于引擎层只需要编写一个自定义的模型文件加载器。参见[delta-loader.md](docs/dev-guide/delta-loader.md)
 
 3. 为开发领域特定语言(DSL)提供支持：只需要定义xdef元模型文件即可获得语法提示、链接跳转、断点调试等IDE支持。后续会提供可视化设计器定制支持。参见[idea-plugin.md](docs/user-guide/idea/idea-plugin.md)
 

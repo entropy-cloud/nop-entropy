@@ -21,7 +21,7 @@
 
     <props>
         <prop name="moduleId" displayName="模块ID" i18n-en:displayName="Module ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false">
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="moduleName" displayName="模块名" i18n-en:displayName="Module Name" mandatory="true" queryable="true"
@@ -30,15 +30,15 @@
         </prop>
         <prop name="displayName" displayName="显示名" i18n-en:displayName="Display Name" tagSet="disp" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer" precision="200"/>
+            <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="baseModuleId" displayName="基础模块ID" i18n-en:displayName="Base Module ID" queryable="true"
               sortable="true" insertable="true" updatable="true" ext:relation="baseModule">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" defaultValue="dyn/module-status">
-            <schema type="java.lang.Integer"/>
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="dyn/module-status"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">

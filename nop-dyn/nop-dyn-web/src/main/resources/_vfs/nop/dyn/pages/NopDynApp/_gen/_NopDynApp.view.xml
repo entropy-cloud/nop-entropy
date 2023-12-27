@@ -10,9 +10,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--应用ID-->
-                <col id="appId" mandatory="true" sortable="true"/>
-
                 <!--应用名-->
                 <col id="appName" mandatory="true" sortable="true"/>
 
@@ -41,7 +38,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-应用定义" i18n-en:title="View App Definition">
             <layout>
- appId[应用ID]
  appName[应用名]
  displayName[显示名]
  status[状态]
@@ -54,7 +50,6 @@
         <form id="add" editMode="add" title="新增-应用定义" i18n-en:title="Add App Definition" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-应用定义" i18n-en:title="Edit App Definition">
             <layout>
- appId[应用ID]
  appName[应用名]
  displayName[显示名]
  status[状态]

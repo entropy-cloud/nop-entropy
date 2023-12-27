@@ -1,20 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <orm x:schema="/nop/schema/orm/orm.xdef" x:extends="_app.orm.xml" xmlns:x="/nop/schema/xdsl.xdef"
 >
-
-    <entities>
-        <!--
-            必须将tagSet设置为空，去除继承的use-ext-field标签
-        -->
-        <entity name="WfDynEntityTemplate" x:abstract="true" useWorkflow="true" registerShortName="true"
-                x:prototype="io.nop.wf.dao.entity.NopWfDynEntity" tableView="true" tagSet="">
-            <relations>
-                <to-many name="extFields" refEntityName="io.nop.wf.dao.entity.NopWfDynEntityExt" keyProp="fieldName">
-                    <join>
-                        <on leftProp="id" rightProp="entityId"/>
-                    </join>
-                </to-many>
-            </relations>
-        </entity>
-    </entities>
 </orm>
