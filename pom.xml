@@ -428,5 +428,6 @@
         <module>nop-git</module>
         <module>tests</module>
         <module>nop-oauth</module>
+        <module>nop-dyn</module>
     </modules>
 </project>

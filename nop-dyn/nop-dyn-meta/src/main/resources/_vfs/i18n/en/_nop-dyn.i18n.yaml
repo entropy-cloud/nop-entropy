@@ -1,0 +1,164 @@
+entity:
+  label:
+    NopDynApp: App Definition
+    NopDynAppModule: App Module Mapping
+    NopDynEntity: Dynamic Entity
+    NopDynEntityMeta: Entity Meta
+    NopDynModule: Module Definition
+    NopDynPage: Page Definition
+    NopDynPropMeta: Property Meta
+prop:
+  label:
+    NopDynApp:
+      appId: App ID
+      appName: App Name
+      displayName: Display Name
+      status: Status
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      moduleMappings: null
+      relatedModuleList: Module List
+      relatedModuleIdList: Module List
+      relatedModuleList_label: Module List
+    NopDynAppModule:
+      appId: App ID
+      moduleId: Module ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      app: App
+      app.displayName: App
+      module: Module
+      module.displayName: Module
+    NopDynEntity:
+      sid: SID
+      objType: Object Type
+      name: Name
+      displayName: Display Name
+      sortOrder: Sort Order
+      nopFlowId: Workflow ID
+      bizStatus: Biz Status
+      bizState: Biz State
+      parentId: Parent ID
+      ownerName: Owner Name
+      ownerId: Owner ID
+      deptId: Department ID
+      stringFld1: String Field1
+      decimalFld1: Decimal Field1
+      intFld1: Integer Field1
+      longFld1: Long Field1
+      dateFld1: Date Field1
+      timestampFld1: Timestamp Field1
+      fileFld1: File Field1
+      stringFld2: String Field2
+      decimalFld2: Decimal Field2
+      intFld2: Integer Field2
+      longFld2: Long Field2
+      dateFld2: Date Field2
+      timestampFld2: Timestamp Field2
+      fileFld2: File Field2
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      parent: Parent
+      children: Children
+      extFields: null
+      fileFld1Component: null
+      fileFld2Component: null
+    NopDynEntityMeta:
+      entityMetaId: Entity Meta ID
+      moduleId: Module ID
+      entityName: Entity Name
+      displayName: Display Name
+      storeType: Store Type
+      storeType_label: null
+      metaContent: Meta Content
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      module: Module
+      module.displayName: Module
+      propMetas: null
+      metaContentComponent: null
+    NopDynModule:
+      moduleId: Module ID
+      moduleName: Module Name
+      displayName: Display Name
+      baseModuleId: Base Module ID
+      status: Status
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      baseModule: Base Module
+      baseModule.displayName: Base Module
+      derivedModules: null
+      appMappings: null
+      pages: null
+      relatedAppList: App List
+      relatedAppIdList: App List
+      relatedAppList_label: App List
+    NopDynPage:
+      pageId: Page ID
+      moduleId: Module ID
+      pageName: Page Name
+      pageGroup: Page Group
+      pageSchemaType: Page Schema Type
+      pageSchemaType_label: null
+      pageContent: Page Content
+      status: Status
+      status_label: null
+      ownerId: Owner ID
+      ownerName: Owner Name
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      module: Module
+      module.displayName: Module
+      pageContentComponent: null
+    NopDynPropMeta:
+      propMetaId: Prop Meta ID
+      entityMetaId: Entity Meta ID
+      propName: Property Name
+      displayName: Display Name
+      stdSqlType: Std Sql Type
+      stdSqlType_label: null
+      length: Length
+      scale: Scale
+      uiShow: UI Show
+      uiControl: UI Control
+      stdDomain: Std Domain
+      stdDomain_label: null
+      dictName: Dict Name
+      dynFieldMapping: Dynamic Field Mapping
+      tagSet: Tag Set
+      refEntityName: Ref Entity Name
+      refPropName: Ref Property Name
+      refPropDisplayName: Ref Property Display Name
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      entityMeta: Module
+      entityMeta.entityName: Module

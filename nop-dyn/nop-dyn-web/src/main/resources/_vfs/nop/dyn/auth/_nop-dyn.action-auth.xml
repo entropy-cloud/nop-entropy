@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-orm-nop-dyn" displayName="测试nop-dyn" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-nop-dyn" component="layouts/default/index">
+            <children>
+                <resource id="NopDynApp-main" displayName="应用定义" orderNo="10001" i18n-en:displayName="App Definition"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynApp/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynApp:query" displayName="查询应用定义" orderNo="10002" resourceType="FNPT">
+                            <permissions>NopDynApp:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynApp:mutation" displayName="修改应用定义" orderNo="10003" resourceType="FNPT">
+                            <permissions>NopDynApp:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDynAppModule-main" displayName="应用模块映射" orderNo="10004"
+                          i18n-en:displayName="App Module Mapping" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/dyn/pages/NopDynAppModule/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynAppModule:query" displayName="查询应用模块映射" orderNo="10005"
+                                  resourceType="FNPT">
+                            <permissions>NopDynAppModule:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynAppModule:mutation" displayName="修改应用模块映射" orderNo="10006"
+                                  resourceType="FNPT">
+                            <permissions>NopDynAppModule:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDynEntity-main" displayName="动态实体" orderNo="10007" i18n-en:displayName="Dynamic Entity"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynEntity/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynEntity:query" displayName="查询动态实体" orderNo="10008" resourceType="FNPT">
+                            <permissions>NopDynEntity:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynEntity:mutation" displayName="修改动态实体" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopDynEntity:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDynEntityMeta-main" displayName="实体元数据" orderNo="10010"
+                          i18n-en:displayName="Entity Meta" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/dyn/pages/NopDynEntityMeta/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynEntityMeta:query" displayName="查询实体元数据" orderNo="10011"
+                                  resourceType="FNPT">
+                            <permissions>NopDynEntityMeta:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynEntityMeta:mutation" displayName="修改实体元数据" orderNo="10012"
+                                  resourceType="FNPT">
+                            <permissions>NopDynEntityMeta:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDynModule-main" displayName="模块定义" orderNo="10013"
+                          i18n-en:displayName="Module Definition" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/dyn/pages/NopDynModule/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynModule:query" displayName="查询模块定义" orderNo="10014" resourceType="FNPT">
+                            <permissions>NopDynModule:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynModule:mutation" displayName="修改模块定义" orderNo="10015"
+                                  resourceType="FNPT">
+                            <permissions>NopDynModule:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDynPage-main" displayName="页面定义" orderNo="10016" i18n-en:displayName="Page Definition"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynPage/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynPage:query" displayName="查询页面定义" orderNo="10017" resourceType="FNPT">
+                            <permissions>NopDynPage:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynPage:mutation" displayName="修改页面定义" orderNo="10018" resourceType="FNPT">
+                            <permissions>NopDynPage:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDynPropMeta-main" displayName="属性元数据" orderNo="10019"
+                          i18n-en:displayName="Property Meta" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/dyn/pages/NopDynPropMeta/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynPropMeta:query" displayName="查询属性元数据" orderNo="10020"
+                                  resourceType="FNPT">
+                            <permissions>NopDynPropMeta:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynPropMeta:mutation" displayName="修改属性元数据" orderNo="10021"
+                                  resourceType="FNPT">
+                            <permissions>NopDynPropMeta:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

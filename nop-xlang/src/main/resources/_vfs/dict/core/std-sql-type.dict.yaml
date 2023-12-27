@@ -1,0 +1,35 @@
+label: 标准SQL数据类型
+locale: zh-CN
+options:
+  - label: 布尔型
+    value: BOOLEAN
+  - label: 小整数
+    value: SMALLINT
+  - label: 大整数
+    value: BIGINT
+  - label: 单精度浮点数
+    value: FLOAT
+  - label: 双精度浮点数
+    value: DOUBLE
+  - label: 高精度浮点数
+    value: NUMERIC
+  - label: 日期型
+    value: DATE
+  - label: 时间型
+    value: TIME
+  - label: 日期时间型
+    value: DATETIME
+  - label: 时间戳
+    value: TIMESTAMP
+  - label: 定长字符
+    value: CHAR
+  - label: 变长字符
+    value: VARCHAR
+  - label: 变长二进制
+    value: VARBINARY
+  - label: JSON类型
+    value: JSON
+  - label: GIS类型
+    value: GEOMETRY
+  - label: 其他
+    value: OTHER

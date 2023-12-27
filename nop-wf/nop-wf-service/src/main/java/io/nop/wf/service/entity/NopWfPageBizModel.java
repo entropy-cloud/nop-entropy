@@ -2,6 +2,7 @@
 package io.nop.wf.service.entity;
 
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.crud.CrudBizModel;
@@ -31,5 +32,11 @@ public class NopWfPageBizModel extends CrudBizModel<NopWfPage> {
     public Map<String, Object> getPageJson(@Name("id") String id, IServiceContext context) {
         NopWfPage page = get(id, false, context);
         return page.getPageContentComponent().get_jsonMap();
+    }
+
+    @BizMutation
+    public void savePageJson(@Name("id") String id, @Name("data") Map<String, Object> data, IServiceContext context) {
+        NopWfPage page = get(id, false, context);
+        page.getPageContentComponent().set_jsonValue(data);
     }
 }

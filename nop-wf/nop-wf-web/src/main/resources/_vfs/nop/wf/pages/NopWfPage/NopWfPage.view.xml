@@ -12,7 +12,14 @@
                     <gen-control>
                         <button-group>
                             <buttons j:list="true">
-                                <button label="设计" level="success"/>
+                                <xui-page-editor-button label="设计" level="success">
+                                    <api url="@mutation:NopWfPage__savePageJson?id=$id" >
+                                        <data>
+                                            <data>$data</data>
+                                        </data>
+                                    </api>
+                                    <initApi url="@query:NopWfPage__getPageJson?id=$id" />
+                                </xui-page-editor-button>
                                 <button label="预览" level="dark" actionType="dialog">
                                     <dialog size="full" title="预览页面">
                                         <body>

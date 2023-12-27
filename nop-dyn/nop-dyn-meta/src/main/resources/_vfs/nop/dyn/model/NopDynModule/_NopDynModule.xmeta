@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="模块定义" i18n-en:displayName="Module Definition" xmlns:ui="ui">
+
+    <entityName>io.nop.dyn.dao.entity.NopDynModule</entityName>
+
+    <primaryKey>moduleId</primaryKey>
+
+    <displayProp>displayName</displayProp>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="moduleId" displayName="模块ID" i18n-en:displayName="Module ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="moduleName" displayName="模块名" i18n-en:displayName="Module Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="displayName" displayName="显示名" i18n-en:displayName="Display Name" tagSet="disp" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" precision="200"/>
+        </prop>
+        <prop name="baseModuleId" displayName="基础模块ID" i18n-en:displayName="Base Module ID" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="baseModule">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true" defaultValue="dyn/module-status">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" i18n-en:displayName="Created By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ui:show="R">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" i18n-en:displayName="Create Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ui:show="R">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" i18n-en:displayName="Updated By" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ui:show="R">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" i18n-en:displayName="Update Time" mandatory="true" queryable="true"
+              sortable="true" insertable="false" updatable="false" ui:show="R">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="baseModule" displayName="基础模块" i18n-en:displayName="Base Module" tagSet="pub,ref-pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="baseModuleId"
+              ext:joinRightProp="moduleId" ext:joinRightDisplayProp="displayName" insertable="false" updatable="false"
+              lazy="true">
+            <schema bizObjName="NopDynModule"/>
+        </prop>
+        <prop name="baseModule.displayName" displayName="基础模块" i18n-en:displayName="Base Module" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
+        </prop>
+        <prop name="derivedModules" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId"
+              ext:joinRightProp="baseModuleId" ext:joinRightDisplayProp="displayName" insertable="false"
+              updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynModule"/>
+            </schema>
+        </prop>
+        <prop name="appMappings" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynAppModule"/>
+            </schema>
+        </prop>
+        <prop name="pages" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId"
+              ext:joinRightProp="moduleId" ext:joinRightDisplayProp="pageName" insertable="false" updatable="false"
+              lazy="true">
+            <schema>
+                <item bizObjName="NopDynPage"/>
+            </schema>
+        </prop>
+        <prop name="relatedAppList" displayName="所属应用列表" i18n-en:displayName="App List" ext:kind="to-many"
+              internal="true" lazy="true">
+            <schema>
+                <item bizObjName="NopDynApp"/>
+            </schema>
+        </prop>
+        <prop name="relatedAppIdList" displayName="所属应用列表" i18n-en:displayName="App List" insertable="false"
+              updatable="false" ext:relation="relatedAppList" graphql:labelProp="relatedAppList_label" lazy="true"
+              internal="true">
+            <schema type="List&lt;java.lang.String&gt;"/>
+        </prop>
+        <prop name="relatedAppList_label" displayName="所属应用列表" i18n-en:displayName="App List" lazy="true"
+              internal="true">
+            <schema type="String"/>
+        </prop>
+    </props>
+</meta>
