@@ -7,10 +7,10 @@ import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.dao.api.DaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dyn.dao.entity.NopDynEntity;
 import io.nop.orm.IOrmTemplate;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
-import io.nop.wf.dao.entity.NopWfDynEntity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,9 +91,9 @@ public class TestBeeflowCase extends JunitAutoTestCase {
         forceStackTrace();
         runInSession(() -> {
             // 在/_vfs/_delta/default目录下定制wf模块的app.orm.xml，增加动态实体定义
-            IEntityDao<NopWfDynEntity> dao = DaoProvider.instance().dao("AppDynSalaryAdjustment");
+            IEntityDao<NopDynEntity> dao = DaoProvider.instance().dao("AppDynSalaryAdjustment");
             // 必须通过dao创建，此时实体名才会被强制设置为AppDynSalaryAdjustment
-            NopWfDynEntity entity = dao.newEntity();
+            NopDynEntity entity = dao.newEntity();
             entity.prop_set("name", "abc");
             entity.prop_set("employeeId", 100);
             entity.prop_set("salary1", 30000);

@@ -9,7 +9,7 @@
         <entity name="NopDynEntityTemplate" x:abstract="true" registerShortName="true"
                 x:prototype="io.nop.dyn.dao.entity.NopDynEntity" tableView="true" tagSet="">
             <relations>
-                <to-many name="extFields" refEntityName="io.nop.wf.dao.entity.NopDynEntityExt" keyProp="fieldName">
+                <to-many name="extFields" refEntityName="io.nop.dyn.dao.entity.NopDynEntityExt" keyProp="fieldName">
                     <join>
                         <on leftProp="id" rightProp="entityId"/>
                     </join>

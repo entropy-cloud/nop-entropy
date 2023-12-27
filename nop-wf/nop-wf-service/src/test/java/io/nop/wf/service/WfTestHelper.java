@@ -5,10 +5,10 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.DaoProvider;
+import io.nop.dyn.dao.entity.NopDynEntity;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
-import io.nop.wf.dao.entity.NopWfDynEntity;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +22,7 @@ public class WfTestHelper {
         wf.runAutoTransitions(ctx);
     }
 
-    public static void start(IWorkflow wf, String starterId, NopWfDynEntity entity) {
+    public static void start(IWorkflow wf, String starterId, NopDynEntity entity) {
         DaoProvider.instance().dao(entity.get_entityName()).saveOrUpdateEntity(entity);
 
         IServiceContext ctx = new ServiceContextImpl();
