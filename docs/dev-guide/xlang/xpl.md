@@ -12,31 +12,31 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 * `<c:if>`
   判断语句。
 
-````
+```xml
 <c:if test="${cond}">
   当条件为真时执行。
 </c:if>
-````
+```
 
 * `<c:for>`
   循环语句。
   `index`对应循环下标
 
-````
+```xml
 <c:for items="${list}" var="item" index="index">
 </c:for>
 
 <c:for begin="0" end="2" var="index" index="index">
 </c:for>
-````
+```
 
 * `<c:while>`
   while循环语句。
 
-````
+```xml
 <c:while test="${cond}">
 </c:while>
-````
+```
 
 * `<c:break>`
   跳出循环语句
@@ -47,14 +47,14 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 * `<c:return>`
   从自定义标签返回，可以通过`value`属性指定返回值.
 
-````
+```xml
   <c:return value="${result}" />
-````
+```
 
 * `<c:choose>`
   多重选择语句。
 
-````
+```xml
  <c:choose>
    <when test="${cond}">
       当条件为true时执行
@@ -63,17 +63,17 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
       当其他条件都不满足时执行
    </otherwise>
  </c:choose>
-````
+```
 
 * `<c:throw>`
 
-````
+```xml
    <c:throw errorCode="xxx.yyy.zz" params="${{a:1,b:2}}" />
-````
+```
 
 * `<c:try>`
 
-````
+```xml
 <c:try>
   <body>
   需要执行的代码
@@ -87,7 +87,7 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
   </finally>
 </c:try>
-````
+```
 
 ### 输出
 
@@ -102,31 +102,31 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 * `<c:script>`
   嵌入脚本语言，可以用`lang`属性来指定使用不同的脚本引擎，例如`groovy`等，缺省是`xlang`
 
-````
+```xml
 <c:script lang="groovy">
   代码
 </c:script>
-````
+```
 
 ### 编译期
 
 * `<c:import>`
   导入常量类或者标签库
 
-````
+```xml
 <c:import from="a/b.xlib" />
 
 <c:import class="a.b.c.MyConstants" />
-````
+```
 
 引入标签库的时候缺省名字空间根据标签库文件名推定，例如 `a.xlib => a`, `a!ext.xlib => a`。
 也可以直接指定名字空间，例如
 
-````xml
+```xml
 
 <c:import from="xxx.xlib" as="yyy"/>
 <yyy:MyTag/>
-````
+```
 
 * `<c:include>`
 
@@ -136,7 +136,7 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 * `<macro:gen>`
   宏标签会在编译期被运行。
 
-```
+```xml
   <macro:gen xpl:dump="true" >
     这里的内容先被编译为Expression, 然后在编译期会立刻执行此xpl。
     xpl输出的XNode会再次被编译
@@ -148,16 +148,16 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 * `<c:unit>`
   一个仅起分组作用的虚拟标签。它的直接编译结果为空。
 
-````
+```xml
    <c:unit>
       <div/>
       <input/>
    </c:unit>
 
-   等价于
+   <!-- 等价于 -->
    <div/>
    <input/>
-````
+```
 
 * `<c:log>`
   只有`io.nop.xpl.logger`的对应log级别打开时，才拼接日志消息并打印日志。
@@ -172,25 +172,25 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
 当自定义标签的`conditionTag`设置为`true`时为条件标签
 
-````
-标签定义
-   <WhenAdmin conditionTag="true">
-     <source>
-       <c:script>
-         $userContext.isUserInRole('admin')
-       </c:script>
-     </source>
-   </WhenAdmin>
+```xml
+  <!-- 标签定义 -->
+  <WhenAdmin conditionTag="true">
+    <source>
+      <c:script>
+        $userContext.isUserInRole('admin')
+      </c:script>
+    </source>
+  </WhenAdmin>
 
-作为条件容器调用
+  <!-- 作为条件容器调用 -->
   <biz:WhenAdmin>
     当用户具有admin角色时执行这里的内容
   </biz:WhenAdmin>
-````
+```
 
 条件标签可以直接作为`c:choose`的分支
 
-````
+```xml
   <c:choose>
     <biz:WhenAdmin>
     </biz:WhenAdmin>
@@ -199,29 +199,35 @@ XPL内置的标签提供了判断、循环、导入、宏处理等基本功能�
 
     </c:otherwise>
   </c:choose>
-````
+```
 
 ## 动态属性
 
 * 如果属性值返回`null`, 则该属性在输出时会被自动忽略。
 
-```
+```xml
   <input class="${null}" />
-  实际输出  <input />
+
+  <!-- 实际输出 -->
+  <input />
 ```
 
 * `xpl:attrs`可以指定一个Map, 批量输出一组动态属性。如果属性值为`null`, 一样不输出
 
-```
+```xml
   <input xpl:attrs="{name:'a',class:null}" />
-   实际输出 <input name="a" />
+
+  <!-- 实际输出 -->
+  <input name="a" />
 ```
 
 另外，需要注意，如果节点上已经存在某属性，则`xpl:attrs`指定的属性将会被忽略
 
-```
+```xml
   <input name="x" xpl:attrs="{name:'b'}" />
-实际输出 <input name="x" />
+
+  <!-- 实际输出  -->
+  <input name="x" />
 ```
 
 ## 输出模式
@@ -245,17 +251,17 @@ xpl标签既有返回值，又有输出。输出具有多种模式
 
 引入`thisLib`这个特殊的名字空间的原因在于，外部引用标签库的时候有可能通过`as`来修改最终使用时的名字空间。例如
 
-````
+```xml
 <c:import from="/nop/web/xlib/web.xlib" as="myweb" />
 <myweb:GenPage page="xx" />
-````
+```
 
 ## slot机制
 xpl模板标签的slot机制类似于Vue组件中的slot机制。
 
 ### 1. 在标签库中定义标签时声明slot
 
-````xml
+```xml
 <!-- /test/my-ext.xlib -->
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
@@ -271,7 +277,7 @@ xpl模板标签的slot机制类似于Vue组件中的slot机制。
         </MyTagExt>
     </tags>
 </lib>
-````
+```
 
 * 在标签实现中通过`xpl:slot`属性来引用外部传入的slot实现，通过`xpl:slotArgs`向slot传递参数。具体能够传递哪些参数需要在slot定义时指定
 * `xpl:slot`可以标记在任何标签上，并不是只能标记在`c:unit`标签上。与vue的slot类似，当`xpl:slot`指定的slot不存在时，会继续执行该标签，否则会用slot替换该标签。
@@ -280,13 +286,13 @@ xpl模板标签的slot机制类似于Vue组件中的slot机制。
 
 ### 2. 调用标签时指定slot
 
-````xml
+```xml
 <my-ext:MyTagExt xpl:lib="/test/my-ext.xlib">
   <ext xpl:slotScope="x">
      <x>${x}</x>
   </ext>
 </my-ext:MyTagExt>
-````
+```
 
 * 调用标签时通过`xpl:slotScope`来引入`xpl:slotArgs`传入的参数，此时可以利用javascript的解构语法来给变量重命名。
 * 如果不写`xpl:slotScope`，实际上仍然可以访问到`xpl:slotArgs`传入的参数
@@ -305,7 +311,7 @@ slot就保持XNode节点形式直接传入，而不会被转化为函数。此�
 
 例如biz.xlib中Validator标签
 
-````xml
+```xml
 <Validator ignoreUnknownAttrs="true" macro="true">
     <!--
     runtime标识是运行期存在的变量。这个属性仅当标签是宏标签的时候起作用
@@ -325,13 +331,13 @@ slot就保持XNode节点形式直接传入，而不会被转化为函数。此�
         ]]></c:script>
     </source>
 </Validator>
-````
+```
 * slot的`name=default`和`slotType=node`表示调用时整个标签的body作为XNode类型的节点对象，名称为slot_default
 * Validator标签的`macro=true` 表示它是宏标签。它的source段在编译期会运行，输出的结果是一个表达式对象，然后再对该表达式对象进行编译。
   宏标签相当于是一种内嵌的代码生成器
 
 调用时
-````xml
+```xml
 <biz:Validator xpl:lib="/nop/core/xlib/biz.xlib" fatalSeverity="100"
                obj="${entity}">
 
@@ -340,7 +346,7 @@ slot就保持XNode节点形式直接传入，而不会被转化为函数。此�
         <eq name="flowMode" value="1"/>
     </check>
 </biz:Validator>
-````
+```
 
 这里`<biz:Validator>`内部嵌套的实际是`validator.xdef`元模型所定义的验证专用的DSL
 
@@ -355,7 +361,7 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
    `xpl:disableNs` 忽略指定的名字空间，不把它们看作是xpl标签库中的标签
    `xpl:enableNs` 取消`xpl:ignoreNs`的作用，恢复识别指定名字空间对应的标签库
 
-```
+```xml
   <!-- c:if标签不会被解析，而是作为文本被直接输出 -->
   <c:if test="${x}" xpl:ignoreNs="*">
      <!-- 子节点也不会被解析-->
@@ -371,19 +377,20 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 2. `xpl:ignoreExpr`
    是否识别表达式。如果设置为`true`，则非自定义标签中用到的EL表达式将被作为文本直接输出。
 
-````
+```xml
 <div xpl:ignoreExpr="true">
   ${这个表达式不会被解析}
 </div>
-````
+```
 
 3. `xpl:is`
    可以改变识别的xpl标签名
 
-```
+```xml
 <div xpl:is="my:MyTag">
 </div>
-等价于
+
+<!-- 等价于 -->
 <my:MyTag>
 </my:MyTag>
 ```
@@ -391,7 +398,7 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 4. `xpl:if`
    控制标签是否运行，相当于简化`c:if`调用
 
-```
+```xml
   <div xpl:if="selectors.contains('a')">
   </div>
 
@@ -403,13 +410,13 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 5. `xpl:skipIf`
    如果为`true`, 则跳过本层标签，直接编译标签的`body`。相当于是控制跳过嵌套的层次
 
-```
+```xml
   <my:MyTag xpl:skipIf="true">
      <body/>
   </my:MyTag>
 
-  等价于
-   <body/>
+  <!-- 等价于 -->
+  <body/>
 ```
 
 6. `xpl:allowUnknownTag`
@@ -421,17 +428,17 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 8. `xpl:lib`
    在局部范围内引入标签库。当超出标签范围后，引入的标签库不可见。
 
-````
+```xml
  <my:MyTag xpl:lib="my.xlib" />
 
  <!-- xpl:lib引入的标签库仅对当前节点有效，对这里的节点不可见，因此编译时会报错 -->
  <my:MyTag />
-````
+```
 
 9. `xpl:return`
    执行完标签后将把返回值设置为指定变量
 
-```
+```xml
   <my:MyTag  xpl:return="x">
     此标签的执行结果被保存到变量x。相当于 let x = #[my:MyTag()]
   </my:MyTag>
@@ -440,7 +447,7 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 10. `xpl:invert`
     对于返回`boolean`值的自定义标签，`xpl:invert`表示对返回值取反。
 
-```
+```xml
   <biz:WhenAdmin>
     当具有admin角色的时候执行这里的内容
   </biz:WhenAdmin>
@@ -454,7 +461,7 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 
 任何标签都支持名为`<xpl:decorator>`的装饰子节点, 它可以将嵌套结构变换为线性结构。
 
-```
+```xml
 <div>
  <xpl:decorator>
    <test:MyTag a="1" />
@@ -467,7 +474,7 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
  content
 </div>
 
-等价于
+<!-- 等价于 -->
 <test:MyTag a="1">
   <test:MyTag2>
      <div >
@@ -479,17 +486,17 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
 ```
 
 ## Xpl模板语言的意义
-xpl模板语言是XLang语言家族中的关键性成员，它的设计超越了现在所有的开源模板语言，特别是为元编程补充了大量语法特性。在XScript脚本语言中可以通过 
+xpl模板语言是XLang语言家族中的关键性成员，它的设计超越了现在所有的开源模板语言，特别是为元编程补充了大量语法特性。在XScript脚本语言中可以通过
 
-````javscript
-let result = xpl `<c:if></c:if>` 
-````
+```js
+let result = xpl `<c:if></c:if>`
+```
 
 这种方式嵌入xpl模板语言，而在Xpl模板语言中，也可以用 `<c:script>`来嵌入脚本语言，并且可以通过各种自定义标签嵌入不同语义和形式的DSL语言。
 
 Xpl模板语言可以设置不同的输出模式，当输出模式为xjson时，可以将xml输出自动转化为json对象，因此我们可以用XML格式来编写AMIS页面
 
-````xml
+```xml
 <form name="a">
     <body>
         <crud name="list">
@@ -497,6 +504,6 @@ Xpl模板语言可以设置不同的输出模式，当输出模式为xjson时，
         </crud>
     </body>
 </form>
-````
+```
 
 各种逻辑结构的形式边界在xpl模板语言中可以被很自然的消解，这才是最关键的部分。
