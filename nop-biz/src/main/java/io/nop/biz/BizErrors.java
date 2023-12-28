@@ -190,4 +190,7 @@ public interface BizErrors {
                     ARG_META_PATH);
 
 
+    ErrorCode ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF =
+            define("nop.err.biz.prop-not-many-to-many-ref", "属性[{propName}]不是多对多关联属性",
+                    ARG_BIZ_OBJ_NAME, ARG_PROP_NAME);
 }

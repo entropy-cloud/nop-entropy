@@ -14594,6 +14594,15 @@
     ],
     "methods": [
       {
+        "name": "addManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "addRelations",
         "parameterTypes": [
           "java.lang.Class",
@@ -14992,6 +15001,15 @@
         ]
       },
       {
+        "name": "removeManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "removeRelation",
         "parameterTypes": [
           "java.lang.Class",
@@ -15037,6 +15055,18 @@
           "java.lang.String",
           "java.lang.String",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "requireManyToManyPropMeta",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "requirePropMeta",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -15156,6 +15186,18 @@
       },
       {
         "name": "updateRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Map",
+          "java.util.function.Predicate",
+          "boolean",
+          "java.lang.String",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "updateRelationsEx",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String",
@@ -28523,6 +28565,72 @@
       }
     ],
     "name": "io.nop.dev.service.biz.DevModuleBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dyn.dao.NopDynDaoConstants",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "APP_STATUS_PUBLISHED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "APP_STATUS_UNPUBLISHED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ENTITY_STORE_TYPE_REAL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ENTITY_STORE_TYPE_VIRTUAL"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MODULE_STATUS_PUBLISHED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "MODULE_STATUS_UNPUBLISHED"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PAGE_SCHEMA_TYPE_AMIS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PAGE_SCHEMA_TYPE_FORMILY"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PAGE_SCHEMA_TYPE_OPEN_TINY"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.dyn.dao._NopDynDaoConstants",
     "unsafeAllocated": false
   },
   {

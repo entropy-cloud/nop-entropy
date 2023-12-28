@@ -15,6 +15,8 @@ import java.util.Set;
 public interface IDaoProvider {
     Set<String> getEntityNames();
 
+    String normalizeEntityName(String entityName);
+
     <T extends IDaoEntity> IEntityDao<T> dao(String entityName);
 
     default <T extends IDaoEntity> IEntityDao<T> daoFor(Class<T> entityClass) {

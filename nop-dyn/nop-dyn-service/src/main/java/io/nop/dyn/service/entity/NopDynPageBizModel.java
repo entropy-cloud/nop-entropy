@@ -6,7 +6,6 @@ import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.crud.CrudBizModel;
-
 import io.nop.biz.crud.EntityData;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
@@ -15,8 +14,8 @@ import io.nop.dyn.dao.entity.NopDynPage;
 import java.util.Map;
 
 @BizModel("NopDynPage")
-public class NopDynPageBizModel extends CrudBizModel<NopDynPage>{
-    public NopDynPageBizModel(){
+public class NopDynPageBizModel extends CrudBizModel<NopDynPage> {
+    public NopDynPageBizModel() {
         setEntityName(NopDynPage.class.getName());
     }
 

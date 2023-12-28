@@ -155,8 +155,8 @@
         </entity>
         <entity className="io.nop.dyn.dao.entity.NopDynAppModule" createTimeProp="createTime" createrProp="createdBy"
                 displayName="应用模块映射" name="io.nop.dyn.dao.entity.NopDynAppModule" registerShortName="true"
-                tableName="nop_dyn_app_module" tagSet="many-to-many" updateTimeProp="updateTime" updaterProp="updatedBy"
-                versionProp="version" i18n-en:displayName="App Module Mapping">
+                tableName="nop_dyn_app_module" tagSet="many-to-many,no-web" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" i18n-en:displayName="App Module Mapping">
             <columns>
                 <column code="APP_ID" displayName="应用ID" mandatory="true" name="appId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="App ID"/>

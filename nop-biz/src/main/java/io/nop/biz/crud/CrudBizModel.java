@@ -57,6 +57,7 @@ import io.nop.xlang.filter.BizExprHelper;
 import io.nop.xlang.filter.BizFilterEvaluator;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.impl.ObjKeyModel;
 import io.nop.xlang.xmeta.impl.ObjTreeModel;
 import jakarta.inject.Inject;
@@ -94,6 +95,7 @@ import static io.nop.biz.BizErrors.ARG_ID;
 import static io.nop.biz.BizErrors.ARG_KEY;
 import static io.nop.biz.BizErrors.ARG_OBJ_LABEL;
 import static io.nop.biz.BizErrors.ARG_PARAM_NAME;
+import static io.nop.biz.BizErrors.ARG_PROP_NAME;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_SAVE;
 import static io.nop.biz.BizErrors.ERR_BIZ_EMPTY_DATA_FOR_UPDATE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_ALREADY_EXISTS;
@@ -104,6 +106,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
+import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 
 @Locale("zh-CN")
@@ -993,18 +996,51 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     @Description("@i18n:biz.addManyToMany")
     @BizMutation
-    public void addRelationsForProp(@Name("id") String id, @Name("propName") String propName,
-                                    @Name("relIds") Collection<String> relIds, IServiceContext context) {
+    public void addManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
+                                       @Name("relValues") Collection<String> relValues, IServiceContext context) {
         T entity = get(id, false, context);
+
+        ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
+        tool.addRelations(leftValue, relValues);
     }
 
     @Description("@i18n:biz.addManyToMany")
     @BizMutation
-    public void removeRelationsForProp(@Name("id") String id, @Name("propName") String propName,
-                                       @Name("relIds") Collection<String> relIds, IServiceContext context) {
+    public void removeManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
+                                          @Name("relValues") Collection<String> relValues, IServiceContext context) {
         T entity = get(id, false, context);
-        IObjPropMeta propMeta = requirePropMeta(propName);
+        ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
+        tool.removeRelations(leftValue, relValues);
+    }
 
+    protected ManyToManyPropMeta requireManyToManyPropMeta(String propName) {
+        IObjPropMeta propMeta = requirePropMeta(propName);
+        if (!BizConstants.PROP_KIND_TO_MANY.equals(propMeta.prop_get(BizConstants.EXT_KIND)))
+            throw new NopException(ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_PROP_NAME, propName);
+
+        String joinLeftProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_LEFT_PROP);
+        String joinRightProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_RIGHT_PROP);
+        String joinRefProp = (String) propMeta.prop_get(BizConstants.ORM_MANY_TO_MANY_REF_PROP);
+
+        String relatedEntityName = null;
+        ISchema itemSchema = propMeta.getItemSchema();
+        if (itemSchema != null) {
+            relatedEntityName = itemSchema.getBizObjName();
+        }
+
+        if (StringHelper.isEmpty(joinLeftProp) || StringHelper.isEmpty(joinRightProp)
+                || StringHelper.isEmpty(joinRefProp) || StringHelper.isEmpty(relatedEntityName))
+            throw new NopException(ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF)
+                    .param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_PROP_NAME, propName);
+
+        return new ManyToManyPropMeta(propMeta, relatedEntityName, joinLeftProp, joinRightProp, joinRefProp);
     }
 
     protected IObjPropMeta requirePropMeta(String propName) {
