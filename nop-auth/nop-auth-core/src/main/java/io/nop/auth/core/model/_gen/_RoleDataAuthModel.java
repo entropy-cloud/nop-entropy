@@ -39,7 +39,7 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
      *  权限规则优先级
      * xml name: priority
      * 如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
-     * 如果多个规则具有相同优先级，则它们需要同时被执行
+     * 如果多个规则具有相同优先级，则只执行第一条匹配的过滤规则
      */
     private int _priority  = 100;
     
@@ -111,7 +111,7 @@ public abstract class _RoleDataAuthModel extends io.nop.core.resource.component.
      * 权限规则优先级
      * xml name: priority
      *  如果一个用户存在多个角色，则按照优先级高的权限约束规则执行。
-     * 如果多个规则具有相同优先级，则它们需要同时被执行
+     * 如果多个规则具有相同优先级，则只执行第一条匹配的过滤规则
      */
     
     public int getPriority(){

@@ -333,6 +333,7 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 | endsWith    | 字符串的后缀为指定值   |
 
 ## 简化filter语法
+
 现在后台在REST调用模式下也支持直接简化的filter拼接语法
 
 /r/NopAuthUser__findPage?filter_userStatus=3
@@ -344,3 +345,46 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 例如 `filter_userName__contains`表示按照contains运算符对userName字段进行过滤。对于filterOp为eq(等于条件)
 的情况，可以省略filterOp的部分，例如 filter_userId等价于`filter_userId__eq`
 
+## 新增多对多关联
+
+````
+POST /r/NopAuthUser__addManyToManyRelations
+
+{
+   "id": "当前实体id",
+   "propName": "roleMappings",
+   "relValues" : ["1","2"]
+}
+````
+
+id参数指定当前实体，propName参数指定要操作的多对多关联集合属性的名称，relValues对应于多对多关联表中的关联属性值。
+
+## 更新多对多关联
+
+这个函数与addManyToManyRelations的区别在于，它会自动删除没有在relValues集合中的关联对象。
+
+````
+POST /r/NopAuthUser__updateManyToManyRelations
+
+{
+   "id": "当前实体id",
+   "propName": "roleMappings",
+   "relValues" : ["1","2"]
+}
+````
+
+id参数指定当前实体，propName参数指定要操作的多对多关联集合属性的名称，relValues对应于多对多关联表中的关联属性值。
+
+## 删除多对多关联
+
+````
+POST /r/NopAuthUser__removeManyToManyRelations
+
+{
+   "id": "当前实体id",
+   "propName": "roleMappings",
+   "relValues" : ["1","2"]
+}
+````
+
+id参数指定当前实体，propName参数指定要操作的多对多关联集合属性的名称，relValues对应于多对多关联表中的关联属性值。

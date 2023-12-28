@@ -39900,6 +39900,12 @@
         "parameterTypes": []
       },
       {
+        "name": "normalizeEntityName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "register",
         "parameterTypes": []
       }

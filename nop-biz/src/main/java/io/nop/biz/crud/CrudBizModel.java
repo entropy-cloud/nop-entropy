@@ -994,7 +994,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return ret;
     }
 
-    @Description("@i18n:biz.addManyToMany")
+    @Description("@i18n:biz.addManyToMany|新增多对多关联")
     @BizMutation
     public void addManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
                                        @Name("relValues") Collection<String> relValues, IServiceContext context) {
@@ -1006,7 +1006,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         tool.addRelations(leftValue, relValues);
     }
 
-    @Description("@i18n:biz.addManyToMany")
+    @Description("@i18n:biz.removeManyToMany|删除多对多关联")
     @BizMutation
     public void removeManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
                                           @Name("relValues") Collection<String> relValues, IServiceContext context) {
@@ -1015,6 +1015,17 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
         Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
         tool.removeRelations(leftValue, relValues);
+    }
+
+    @Description("@i18n:biz.updateManyToMany|更新多对多关联")
+    @BizMutation
+    public void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
+                                          @Name("relValues") Collection<String> relValues, IServiceContext context) {
+        T entity = get(id, false, context);
+        ManyToManyPropMeta propMeta = requireManyToManyPropMeta(propName);
+        ManyToManyTool<?> tool = this.manyToMany(propMeta.getRelatedEntityName(), propMeta.getJoinRightProp(), propMeta.getJoinRefProp());
+        Object leftValue = entity.orm_propValueByName(propMeta.getJoinLeftProp());
+        tool.updateRelations(leftValue, relValues);
     }
 
     protected ManyToManyPropMeta requireManyToManyPropMeta(String propName) {
