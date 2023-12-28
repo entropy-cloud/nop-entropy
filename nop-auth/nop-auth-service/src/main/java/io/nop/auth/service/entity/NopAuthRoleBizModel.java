@@ -74,7 +74,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
     @BizMutation
     public void removeRoleUsers(@Name("roleId") String roleId,
                                 @Name("userIds") Collection<String> userIds) {
-        removeRelations(NopAuthUserRole.class,
+        removeRelations(NopAuthUserRole.class.getName(),
                 "roleId", "userId",
                 roleId, userIds);
     }
@@ -87,7 +87,7 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
                 checkAllowAssignRole(roleId, userId, context);
             }
         }
-        addRelations(NopAuthUserRole.class, "roleId", "userId",
+        addRelations(NopAuthUserRole.class.getName(), "roleId", "userId",
                 roleId, userIds);
     }
 
@@ -117,8 +117,8 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
         fixedProps.put("roleId", roleId);
 
         String fixedSiteId = siteId;
-        super.updateRelations(NopAuthRoleResource.class, fixedProps,
-                relation -> relation.getResource().getSiteId().equals(fixedSiteId),
+        super.updateRelationsEx(NopAuthRoleResource.class.getName(), "roleId", fixedProps,
+                (NopAuthRoleResource relation) -> relation.getResource().getSiteId().equals(fixedSiteId),
                 true, "resourceId", resourceIds);
     }
 }

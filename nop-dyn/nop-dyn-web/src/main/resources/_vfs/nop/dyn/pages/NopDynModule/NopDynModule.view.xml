@@ -4,6 +4,16 @@
     <grids>
         <grid id="list"/>
         <grid id="pick-list"/>
+
+        <grid id="simple-list" affixHeader="false">
+            <cols>
+                <!--模块名-->
+                <col id="moduleName"/>
+
+                <!--显示名-->
+                <col id="displayName"/>
+            </cols>
+        </grid>
     </grids>
 
     <forms>
@@ -15,5 +25,47 @@
     <pages>
         <crud name="main"/>
         <picker name="picker"/>
+
+        <crud name="app-modules" grid="simple-list">
+            <table loadDataOnce="true" name="app-modules-grid">
+                <api url="@query:NopDynApp__get/items:relatedModuleList{{@listSelection!}}?id=$appId">
+                </api>
+            </table>
+
+            <listActions>
+                <action id="select-module-button" label="@i18n:dyn.app.selectModule|选择模块">
+                    <dialog page="select-app-modules" size="md" noActions="true">
+                    </dialog>
+                </action>
+
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopDynApp__removeRoleUsers">
+                        <data>
+                            <roleId>$roleId</roleId>
+                            <userIds>$ids</userIds>
+                        </data>
+                    </api>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+            </listActions>
+        </crud>
+
+        <crud name="select-role-users" grid="pick-list" title="@i18n:common.selectUser">
+            <table pickerMode="true" multiple="true" noOperations="true">
+                <api url="@query:NopAuthUser__active_findPage/{@pageSelection}"/>
+            </table>
+
+            <listActions>
+                <action id="batch-add-user-button" label="@i18n:common.submit" level="primary"
+                        batch="true" close="select-role-users" reload="role-users-grid">
+                    <api url="@mutation:NopAuthRole__addRoleUsers">
+                        <data>
+                            <roleId>$roleId</roleId>
+                            <userIds>$ids</userIds>
+                        </data>
+                    </api>
+                </action>
+            </listActions>
+        </crud>
     </pages>
 </view>

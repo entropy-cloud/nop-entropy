@@ -419,6 +419,7 @@
 /nop/dyn/pages/NopDynPropMeta/_gen/_NopDynPropMeta.view.xml
 /nop/dyn/pages/NopDynPropMeta/main.page.yaml
 /nop/dyn/pages/NopDynPropMeta/picker.page.yaml
+/nop/dyn/pages/NopDynPropMeta/ref-entityMeta.page.yaml
 /nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
 /nop/file/beans/_dao.beans.xml

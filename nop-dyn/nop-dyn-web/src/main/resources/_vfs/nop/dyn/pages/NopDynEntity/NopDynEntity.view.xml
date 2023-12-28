@@ -13,7 +13,9 @@
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main">
+        </crud>
+
         <picker name="picker"/>
     </pages>
 </view>

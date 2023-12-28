@@ -1,0 +1,2 @@
+x:gen-extends: |
+  <web:GenPage view="/nop/dyn/pages/NopDynModule/NopDynModule.view.xml" page="app-modules" xpl:lib="/nop/web/xlib/web.xlib" />

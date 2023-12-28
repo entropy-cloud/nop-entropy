@@ -14604,6 +14604,16 @@
         ]
       },
       {
+        "name": "addRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection"
+        ]
+      },
+      {
         "name": "afterEntityChange",
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
@@ -14947,6 +14957,14 @@
         ]
       },
       {
+        "name": "manyToMany",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "orm",
         "parameterTypes": []
       },
@@ -14984,9 +15002,29 @@
         ]
       },
       {
+        "name": "removeRelation",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
         "name": "removeRelations",
         "parameterTypes": [
           "java.lang.Class",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "removeRelations",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.Object",
@@ -15099,6 +15137,28 @@
         "name": "updateRelations",
         "parameterTypes": [
           "java.lang.Class",
+          "java.util.Map",
+          "java.util.function.Predicate",
+          "boolean",
+          "java.lang.String",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "updateRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "updateRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
           "java.util.Map",
           "java.util.function.Predicate",
           "boolean",

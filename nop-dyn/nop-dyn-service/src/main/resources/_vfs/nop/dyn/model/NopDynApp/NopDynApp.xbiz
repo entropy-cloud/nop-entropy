@@ -1,5 +1,40 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynApp.xbiz">
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynApp.xbiz"
+     xmlns:xpl="xpl" xmlns:c="c" xmlns:bo="bo">
 
-    <actions/>
+    <actions>
+        <mutation name="removeModules">
+            <attr name="id"/>
+            <attr name="moduleIds" type="List&lt;String>"/>
+            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+            <source>
+                <source>
+                    <bo:Get id="${id}" xpl:return="entity"/>
+
+                    <c:script><![CDATA[
+                        thisObj.invoke('removeRelations',{ relationEntityName: 'NopDynAppModule',
+                          leftProp: 'appId', rightProp:'moduleId', leftValue: id, rightValues: moduleIds});
+                    ]]></c:script>
+                </source>
+            </source>
+        </mutation>
+
+        <mutation name="addModules">
+            <attr name="id"/>
+            <attr name="moduleIds" type="List&lt;String>"/>
+            <arg name="svcCtx" type="io.nop.core.context.IServiceContext" kind="ServiceContext"/>
+
+            <source>
+                <source>
+                    <bo:Get id="${id}" xpl:return="entity"/>
+
+                    <c:script><![CDATA[
+                        thisObj.invoke('addRelations',{ relationEntityName: 'NopDynAppModule',
+                          leftProp: 'appId', rightProp:'moduleId', leftValue: id, rightValues: moduleIds});
+                    ]]></c:script>
+                </source>
+            </source>
+        </mutation>
+    </actions>
 </biz>

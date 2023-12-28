@@ -991,6 +991,26 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return ret;
     }
 
+    @Description("@i18n:biz.addManyToMany")
+    @BizMutation
+    public void addRelationsForProp(@Name("id") String id, @Name("propName") String propName,
+                                    @Name("relIds") Collection<String> relIds, IServiceContext context) {
+        T entity = get(id, false, context);
+    }
+
+    @Description("@i18n:biz.addManyToMany")
+    @BizMutation
+    public void removeRelationsForProp(@Name("id") String id, @Name("propName") String propName,
+                                       @Name("relIds") Collection<String> relIds, IServiceContext context) {
+        T entity = get(id, false, context);
+        IObjPropMeta propMeta = requirePropMeta(propName);
+
+    }
+
+    protected IObjPropMeta requirePropMeta(String propName) {
+        return getThisObj().requireObjMeta().requireProp(propName);
+    }
+
     @Description("@i18n:biz.copyForNew|复制新建")
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
@@ -1030,85 +1050,55 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return newEntity;
     }
 
-    protected <R extends IOrmEntity> void removeRelation(Class<R> relationClass,
-                                                         String leftProp, String rightProp,
-                                                         Object leftValue, Object rightValue) {
-        IEntityDao<R> dao = daoFor(relationClass);
-
-        R example = dao.newEntity();
-        example.orm_propValueByName(leftProp, leftValue);
-        example.orm_propValueByName(rightProp, rightValue);
-        R rel = dao.findFirstByExample(example);
-        if (rel != null) {
-            dao.deleteEntity(rel);
-        }
+    public <R extends IOrmEntity> ManyToManyTool<R> manyToMany(String relationEntityName, String leftProp, String rightProp) {
+        return new ManyToManyTool<R>(daoProvider(), relationEntityName, leftProp, rightProp);
     }
 
-    protected <R extends IOrmEntity> void removeRelations(Class<R> relationClass,
-                                                          String leftProp, String rightProp,
-                                                          Object leftValue, Collection<?> rightValues) {
-        IEntityDao<R> dao = daoFor(relationClass);
-
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(leftProp, leftValue));
-        query.addFilter(FilterBeans.in(rightProp, rightValues));
-        List<R> relations = dao.findAllByQuery(query);
-        dao.batchDeleteEntities(relations);
+    @BizAction
+    public <R extends IOrmEntity> void removeRelation(@Name("relationEntityName") String relationEntityName,
+                                                      @Name("leftProp") String leftProp,
+                                                      @Name("rightProp") String rightProp,
+                                                      @Name("leftValue") Object leftValue,
+                                                      @Name("rightValue") Object rightValue) {
+        manyToMany(relationEntityName, leftProp, rightProp).removeRelation(leftValue, rightValue);
     }
 
-    protected <R extends IOrmEntity> void addRelations(Class<R> relationClass,
-                                                       String leftProp, String rightProp,
-                                                       Object leftValue, Collection<?> rightValues) {
-        Map<String, Object> fixedProps = new HashMap<>();
-        fixedProps.put(leftProp, leftValue);
-        updateRelations(relationClass, fixedProps, null, false, rightProp, rightValues);
+    @BizAction
+    public <R extends IOrmEntity> void removeRelations(@Name("relationEntityName") String relationEntityName,
+                                                       @Name("leftProp") String leftProp,
+                                                       @Name("rightProp") String rightProp,
+                                                       @Name("leftValue") Object leftValue,
+                                                       @Name("rightValues") Collection<?> rightValues) {
+        manyToMany(relationEntityName, leftProp, rightProp).removeRelations(leftValue, rightValues);
     }
 
-    protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
-                                                          String leftProp, String rightProp,
-                                                          Object leftValue, Collection<?> rightValues) {
-        Map<String, Object> fixedProps = new HashMap<>();
-        fixedProps.put(leftProp, leftValue);
-        updateRelations(relationClass, fixedProps, null, true, rightProp, rightValues);
+    @BizAction
+    public <R extends IOrmEntity> void addRelations(@Name("relationEntityName") String relationEntityName,
+                                                    @Name("leftProp") String leftProp,
+                                                    @Name("rightProp") String rightProp,
+                                                    @Name("leftValue") Object leftValue,
+                                                    @Name("rightValues") Collection<?> rightValues) {
+        manyToMany(relationEntityName, leftProp, rightProp).addRelations(leftValue, rightValues);
     }
 
-    protected <R extends IOrmEntity> void updateRelations(Class<R> relationClass,
-                                                          Map<String, Object> fixedProps,
-                                                          Predicate<R> filter,
-                                                          boolean deleteUnknown,
-                                                          String relProp, Collection<?> relValues) {
-        IEntityDao<R> dao = daoFor(relationClass);
+    @BizAction
+    public <R extends IOrmEntity> void updateRelations(@Name("relationEntityName") String relationEntityName,
+                                                       @Name("leftProp") String leftProp,
+                                                       @Name("rightProp") String rightProp,
+                                                       @Name("leftValue") Object leftValue,
+                                                       @Name("rightValues") Collection<?> rightValues) {
+        manyToMany(relationEntityName, leftProp, rightProp).updateRelations(leftValue, rightValues);
+    }
 
-        if (relValues == null) {
-            relValues = Collections.emptyList();
-        }
-
-        R example = dao.newEntity();
-        for (Map.Entry<String, Object> entry : fixedProps.entrySet()) {
-            example.orm_propValueByName(entry.getKey(), entry.getValue());
-        }
-
-        List<R> relations = dao.findAllByExample(example);
-        relValues = CollectionHelper.toStringList(relValues);
-
-        for (R relation : relations) {
-            if (filter != null && !filter.test(relation))
-                continue;
-
-            String relValue = ConvertHelper.toString(relation.orm_propValueByName(relProp));
-            if (!relValues.remove(relValue)) {
-                if (deleteUnknown)
-                    dao.deleteEntity(relation);
-            }
-        }
-
-        for (Object relValue : relValues) {
-            R relation = dao.newEntity();
-            for (Map.Entry<String, Object> entry : fixedProps.entrySet()) {
-                relation.orm_propValueByName(entry.getKey(), entry.getValue());
-            }
-            relation.orm_propValueByName(relProp, relValue);
-            dao.saveEntity(relation);
-        }
+    @BizAction
+    public <R extends IOrmEntity> void updateRelationsEx(@Name("relationEntityName") String relationEntityName,
+                                                         @Name("leftProp") String leftProp,
+                                                         @Name("fixedProps") Map<String, Object> fixedProps,
+                                                         @Name("filter") Predicate<R> filter,
+                                                         @Name("deleteUnknown") boolean deleteUnknown,
+                                                         @Name("rightProp") String rightProp,
+                                                         @Name("rightValues") Collection<?> relValues) {
+        ManyToManyTool<R> tool = manyToMany(relationEntityName, leftProp, rightProp);
+        tool.updateRelations(fixedProps, filter, deleteUnknown, rightProp, relValues);
     }
 }
