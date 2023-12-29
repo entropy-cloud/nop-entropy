@@ -145,16 +145,7 @@ public class ResourceHelper {
     }
 
     public static boolean isValidModuleName(String moduleName) {
-        int pos = moduleName.indexOf('-');
-        if (pos <= 0)
-            return false;
-        String provider = moduleName.substring(0, pos);
-        if (!StringHelper.isValidSimpleVarName(provider))
-            return false;
-        String subName = moduleName.substring(pos + 1);
-        if (!StringHelper.isValidSimpleVarName(subName))
-            return false;
-        return true;
+        return StringHelper.isValidNopModuleName(moduleName);
     }
 
     public static void checkValidModuleName(String moduleName) {
@@ -163,18 +154,7 @@ public class ResourceHelper {
     }
 
     public static boolean isValidModuleId(String moduleId) {
-        if (moduleId.startsWith("/"))
-            return false;
-        int pos = moduleId.indexOf('/');
-        if (pos < 0)
-            return false;
-        String provider = moduleId.substring(0, pos);
-        if (!StringHelper.isValidSimpleVarName(provider))
-            return false;
-        String moduleName = moduleId.substring(pos + 1);
-        if (!StringHelper.isValidSimpleVarName(moduleName))
-            return false;
-        return true;
+        return StringHelper.isValidNopModuleId(moduleId);
     }
 
     public static void checkValidModuleId(String moduleId) {
@@ -387,6 +367,7 @@ public class ResourceHelper {
             ResourceHelper.writeText(dumpFile, source);
         }
     }
+
     public static boolean isValidRelativeName(String name) {
         if (name.length() <= 0)
             return true;

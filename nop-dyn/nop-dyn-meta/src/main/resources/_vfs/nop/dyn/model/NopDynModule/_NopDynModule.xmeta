@@ -26,7 +26,11 @@
         </prop>
         <prop name="moduleName" displayName="模块名" i18n-en:displayName="Module Name" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
+            <schema stdDomain="nop-module-name" domain="nopModuleName" type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="moduleVersion" displayName="模块版本" i18n-en:displayName="Module Version" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="1">
+            <schema type="java.lang.Integer"/>
         </prop>
         <prop name="displayName" displayName="显示名" i18n-en:displayName="Display Name" tagSet="disp" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
@@ -34,7 +38,15 @@
         </prop>
         <prop name="baseModuleId" displayName="基础模块ID" i18n-en:displayName="Base Module ID" queryable="true"
               sortable="true" insertable="true" updatable="true" ext:relation="baseModule">
-            <schema type="java.lang.String" precision="32"/>
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="basePackageName" displayName="Java包名" i18n-en:displayName="Base Package Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="mavenGroupId" displayName="Maven组名" i18n-en:displayName="Maven Group Id" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -70,9 +82,9 @@
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
         </prop>
-        <prop name="derivedModules" tagSet="pub" ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId"
-              ext:joinRightProp="baseModuleId" ext:joinRightDisplayProp="displayName" insertable="false"
-              updatable="false" lazy="true">
+        <prop name="derivedModules" displayName="派生模块" i18n-en:displayName="Derived Modules" tagSet="pub"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="baseModuleId"
+              ext:joinRightDisplayProp="displayName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynModule"/>
             </schema>
@@ -84,11 +96,18 @@
                 <item bizObjName="NopDynAppModule"/>
             </schema>
         </prop>
-        <prop name="pages" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId"
-              ext:joinRightProp="moduleId" ext:joinRightDisplayProp="pageName" insertable="false" updatable="false"
-              lazy="true">
+        <prop name="pages" displayName="模块页面" i18n-en:displayName="Module Pages" tagSet="pub,cascade-delete"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
+              ext:joinRightDisplayProp="pageName" insertable="false" updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynPage"/>
+            </schema>
+        </prop>
+        <prop name="entityMetas" displayName="模块实体定义" i18n-en:displayName="Entity Metas" tagSet="pub,cascade-delete"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="moduleId" ext:joinRightProp="moduleId"
+              ext:joinRightDisplayProp="entityName" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynEntityMeta"/>
             </schema>
         </prop>
         <prop name="relatedAppList" displayName="所属应用列表" i18n-en:displayName="App List" ext:kind="to-many"

@@ -30050,6 +30050,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_bizObjName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_createTime"
       },
       {
@@ -30100,6 +30105,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_tableName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_ID_tagSet"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_updateTime"
       },
       {
@@ -30111,6 +30126,11 @@
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_ID_version"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_bizObjName"
       },
       {
         "allowUnsafeAccess": false,
@@ -30180,6 +30200,16 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_tableName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_tagSet"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_updateTime"
       },
       {
@@ -30196,6 +30226,10 @@
     "methods": [
       {
         "name": "cloneInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "getBizObjName",
         "parameterTypes": []
       },
       {
@@ -30248,6 +30282,14 @@
       },
       {
         "name": "getStoreType",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTableName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getTagSet",
         "parameterTypes": []
       },
       {
@@ -30317,6 +30359,12 @@
         ]
       },
       {
+        "name": "setBizObjName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "setCreateTime",
         "parameterTypes": [
           "java.sql.Timestamp"
@@ -30380,6 +30428,18 @@
         "name": "setStoreType",
         "parameterTypes": [
           "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "setTableName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setTagSet",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -30453,6 +30513,11 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_ID_moduleVersion"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_ID_status"
       },
       {
@@ -30508,12 +30573,22 @@
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
+        "name": "PROP_NAME_entityMetas"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
         "name": "PROP_NAME_moduleId"
       },
       {
         "allowUnsafeAccess": false,
         "allowWrite": false,
         "name": "PROP_NAME_moduleName"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "PROP_NAME_moduleVersion"
       },
       {
         "allowUnsafeAccess": false,
@@ -30575,11 +30650,19 @@
         "parameterTypes": []
       },
       {
+        "name": "getEntityMetas",
+        "parameterTypes": []
+      },
+      {
         "name": "getModuleId",
         "parameterTypes": []
       },
       {
         "name": "getModuleName",
+        "parameterTypes": []
+      },
+      {
+        "name": "getModuleVersion",
         "parameterTypes": []
       },
       {
@@ -30714,6 +30797,12 @@
         "name": "setModuleName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setModuleVersion",
+        "parameterTypes": [
+          "java.lang.Integer"
         ]
       },
       {
@@ -64220,6 +64309,16 @@
           "io.nop.core.model.validator.ValidatorModel",
           "java.lang.Object",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "runValidatorModelForValue",
+        "parameterTypes": [
+          "io.nop.core.model.validator.ValidatorModel",
+          "java.lang.Object",
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.core.context.IServiceContext",
+          "io.nop.api.core.validate.IValidationErrorCollector"
         ]
       },
       {

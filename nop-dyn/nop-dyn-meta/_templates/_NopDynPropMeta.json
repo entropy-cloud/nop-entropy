@@ -9,8 +9,8 @@
   "scale": 0,
   "uiShow": "",
   "uiControl": "",
-  "stdDomain": "",
-  "stdDomain_label": "",
+  "domainId": "",
+  "domainId_label": "",
   "dictName": "",
   "dynFieldMapping": "",
   "tagSet": "",
@@ -27,5 +27,6 @@
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
   "entityMeta": null,
-  "entityMeta.entityName": ""
+  "entityMeta.entityName": "",
+  "domain": null
 }

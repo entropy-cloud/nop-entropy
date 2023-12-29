@@ -7,8 +7,9 @@
 
         <grid id="simple-list" affixHeader="false">
             <cols>
-                <!--模块名-->
                 <col id="moduleName"/>
+
+                <col id="moduleVersion"/>
 
                 <!--显示名-->
                 <col id="displayName"/>
@@ -18,7 +19,14 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
+        <form id="edit" size="md">
+            <cells>
+                <cell id="moduleName">
+                    <desc>Nop平台的模块ID要求是{vendor}={subName}两级结构，例如app-demo</desc>
+                    <placeholder>例如 app-demo</placeholder>
+                </cell>
+            </cells>
+        </form>
         <form id="add"/>
     </forms>
 

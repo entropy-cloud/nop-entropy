@@ -18,8 +18,6 @@ CREATE TABLE nop_dyn_page(
   PAGE_SCHEMA_TYPE VARCHAR2(100) NOT NULL ,
   PAGE_CONTENT CLOB NOT NULL ,
   STATUS INTEGER NOT NULL ,
-  OWNER_ID VARCHAR2(50)  ,
-  OWNER_NAME VARCHAR2(50)  ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -35,11 +33,11 @@ CREATE TABLE nop_dyn_prop_meta(
   DISPLAY_NAME VARCHAR2(100) NOT NULL ,
   ENTITY_META_ID VARCHAR2(32) NOT NULL ,
   STD_SQL_TYPE VARCHAR2(10) NOT NULL ,
-  LENGTH INTEGER NOT NULL ,
-  SCALE INTEGER NOT NULL ,
+  LENGTH INTEGER  ,
+  SCALE INTEGER  ,
   UI_SHOW VARCHAR2(10)  ,
   UI_CONTROL VARCHAR2(100)  ,
-  STD_DOMAIN VARCHAR2(50)  ,
+  DOMAIN_ID VARCHAR2(32)  ,
   DICT_NAME VARCHAR2(100)  ,
   DYN_FIELD_MAPPING VARCHAR2(100)  ,
   TAG_SET VARCHAR2(200)  ,
@@ -126,11 +124,31 @@ CREATE TABLE nop_dyn_entity_meta(
   constraint PK_nop_dyn_entity_meta primary key (ENTITY_META_ID)
 );
 
+CREATE TABLE nop_dyn_domain(
+  DOMAIN_ID VARCHAR2(32) NOT NULL ,
+  DOMAIN_NAME VARCHAR2(50) NOT NULL ,
+  DISPLAY_NAME VARCHAR2(100) NOT NULL ,
+  STD_DOMAIN_NAME VARCHAR2(50)  ,
+  STD_SQL_TYPE VARCHAR2(10) NOT NULL ,
+  LENGTH INTEGER  ,
+  SCALE INTEGER  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_dyn_domain primary key (DOMAIN_ID)
+);
+
 CREATE TABLE nop_dyn_module(
   MODULE_ID VARCHAR2(32) NOT NULL ,
-  MODULE_NAME VARCHAR2(200) NOT NULL ,
+  MODULE_NAME VARCHAR2(100) NOT NULL ,
+  MODULE_VERSION INTEGER NOT NULL ,
   DISPLAY_NAME VARCHAR2(200) NOT NULL ,
-  BASE_MODULE_ID VARCHAR2(32)  ,
+  BASE_MODULE_ID VARCHAR2(100)  ,
+  BASE_PACKAGE_NAME VARCHAR2(200)  ,
+  MAVEN_GROUP_ID VARCHAR2(200)  ,
   STATUS INTEGER NOT NULL ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -173,10 +191,6 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_page.STATUS IS '状态';
                     
-      COMMENT ON COLUMN nop_dyn_page.OWNER_ID IS '拥有者ID';
-                    
-      COMMENT ON COLUMN nop_dyn_page.OWNER_NAME IS '拥有者姓名';
-                    
       COMMENT ON COLUMN nop_dyn_page.VERSION IS '数据版本';
                     
       COMMENT ON COLUMN nop_dyn_page.CREATED_BY IS '创建人';
@@ -209,7 +223,7 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.UI_CONTROL IS '显示控件';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.STD_DOMAIN IS '标准域';
+      COMMENT ON COLUMN nop_dyn_prop_meta.DOMAIN_ID IS '数据域ID';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.DICT_NAME IS '数据字典';
                     
@@ -359,15 +373,49 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_dyn_domain IS '数据域';
+                
+      COMMENT ON COLUMN nop_dyn_domain.DOMAIN_ID IS '数据域ID';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.DOMAIN_NAME IS '数据域名称';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.STD_DOMAIN_NAME IS '标准域';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.STD_SQL_TYPE IS '标准SQL数据类型';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.LENGTH IS '长度';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.SCALE IS '小数位数';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_domain.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_dyn_module IS '模块定义';
                 
       COMMENT ON COLUMN nop_dyn_module.MODULE_ID IS '模块ID';
                     
       COMMENT ON COLUMN nop_dyn_module.MODULE_NAME IS '模块名';
                     
+      COMMENT ON COLUMN nop_dyn_module.MODULE_VERSION IS '模块版本';
+                    
       COMMENT ON COLUMN nop_dyn_module.DISPLAY_NAME IS '显示名';
                     
       COMMENT ON COLUMN nop_dyn_module.BASE_MODULE_ID IS '基础模块ID';
+                    
+      COMMENT ON COLUMN nop_dyn_module.BASE_PACKAGE_NAME IS 'Java包名';
+                    
+      COMMENT ON COLUMN nop_dyn_module.MAVEN_GROUP_ID IS 'Maven组名';
                     
       COMMENT ON COLUMN nop_dyn_module.STATUS IS '状态';
                     

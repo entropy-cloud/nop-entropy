@@ -5,5 +5,6 @@ drop table  if exists  nop_dyn_prop_meta;
 drop table  if exists  nop_dyn_entity;
 drop table  if exists  nop_dyn_app;
 drop table  if exists  nop_dyn_entity_meta;
+drop table  if exists  nop_dyn_domain;
 drop table  if exists  nop_dyn_module;
 

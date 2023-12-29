@@ -4417,4 +4417,35 @@ public class StringHelper extends ApiStringHelper {
         }
         return -1;
     }
+
+    @Deterministic
+    public static boolean isValidNopModuleId(String moduleId) {
+        if (moduleId.startsWith("/"))
+            return false;
+        int pos = moduleId.indexOf('/');
+        if (pos < 0)
+            return false;
+        String provider = moduleId.substring(0, pos);
+        if (!StringHelper.isValidSimpleVarName(provider))
+            return false;
+        String moduleName = moduleId.substring(pos + 1);
+        if (!StringHelper.isValidSimpleVarName(moduleName))
+            return false;
+        return true;
+    }
+
+    @Deterministic
+    public static boolean isValidNopModuleName(String moduleName) {
+        int pos = moduleName.indexOf('-');
+        if (pos <= 0)
+            return false;
+        String provider = moduleName.substring(0, pos);
+        if (!StringHelper.isValidSimpleVarName(provider))
+            return false;
+        String subName = moduleName.substring(pos + 1);
+        if (!StringHelper.isValidSimpleVarName(subName))
+            return false;
+        return true;
+    }
+
 }

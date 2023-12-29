@@ -239,6 +239,21 @@ NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xmⅠ
 
 具体模块依赖关系可以参见[module-dependency.md](../arch/module-dependency.md)
 
+## 17. 生成的 app.orm.xml 中，对应了这样的属性 ext:dict="obj/LitemallBrand"，这个 ext:dict 在xdef中是找不到的，是否xdef没有定义的属性可以随意添加？
+是的。可以随意添加具有名字空间的扩展属性。根据可逆计算思想，任何数据定义都必然伴随它的delta扩展定义，也就是说我们总是在局部预留了保存扩展信息的机制，
+永远都是 `(data, meta-data)`配对设计，这里的meta-data本质上就是保存扩展信息的一种形式。
+
+ext名字空间一般用于临时添加扩展属性。如果该扩展属性经常被使用，可以专门选定一个特殊的名字空间，然后在xdef模型上指定校验该名字空间，
+这样就会检查扩展属性也必须满足xdef元模型要求。
+
+````
+<schema xdef:check-ns="graphql,ui,biz" ...>
+  <props>
+     <prop  ui:control="xml-name" graphql:connectionProp="prop-name" ...> </prop>
+  </props>
+</schema>
+````
+
 # 部署问题
 
 

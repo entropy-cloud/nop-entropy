@@ -5,5 +5,6 @@ drop table nop_dyn_prop_meta;
 drop table nop_dyn_entity;
 drop table nop_dyn_app;
 drop table nop_dyn_entity_meta;
+drop table nop_dyn_domain;
 drop table nop_dyn_module;
 

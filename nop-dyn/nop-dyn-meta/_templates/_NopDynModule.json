@@ -1,8 +1,11 @@
 {
   "moduleId": "",
   "moduleName": "",
+  "moduleVersion": 0,
   "displayName": "",
   "baseModuleId": "",
+  "basePackageName": "",
+  "mavenGroupId": "",
   "status": 0,
   "status_label": "",
   "version": 0,
@@ -15,6 +18,7 @@
   "derivedModules": null,
   "appMappings": null,
   "pages": null,
+  "entityMetas": null,
   "relatedAppList": null,
   "relatedAppIdList": null,
   "relatedAppList_label": ""

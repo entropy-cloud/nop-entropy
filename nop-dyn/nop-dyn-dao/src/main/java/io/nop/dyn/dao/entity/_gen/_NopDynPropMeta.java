@@ -56,9 +56,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_uiControl = "uiControl";
     public static final int PROP_ID_uiControl = 9;
     
-    /* 标准域: STD_DOMAIN VARCHAR */
-    public static final String PROP_NAME_stdDomain = "stdDomain";
-    public static final int PROP_ID_stdDomain = 10;
+    /* 数据域ID: DOMAIN_ID VARCHAR */
+    public static final String PROP_NAME_domainId = "domainId";
+    public static final int PROP_ID_domainId = 10;
     
     /* 数据字典: DICT_NAME VARCHAR */
     public static final String PROP_NAME_dictName = "dictName";
@@ -123,6 +123,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     /* relation: 所属模块 */
     public static final String PROP_NAME_entityMeta = "entityMeta";
     
+    /* relation: 数据域 */
+    public static final String PROP_NAME_domain = "domain";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_propMetaId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_propMetaId};
@@ -158,8 +161,8 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_uiControl] = PROP_NAME_uiControl;
           PROP_NAME_TO_ID.put(PROP_NAME_uiControl, PROP_ID_uiControl);
       
-          PROP_ID_TO_NAME[PROP_ID_stdDomain] = PROP_NAME_stdDomain;
-          PROP_NAME_TO_ID.put(PROP_NAME_stdDomain, PROP_ID_stdDomain);
+          PROP_ID_TO_NAME[PROP_ID_domainId] = PROP_NAME_domainId;
+          PROP_NAME_TO_ID.put(PROP_NAME_domainId, PROP_ID_domainId);
       
           PROP_ID_TO_NAME[PROP_ID_dictName] = PROP_NAME_dictName;
           PROP_NAME_TO_ID.put(PROP_NAME_dictName, PROP_ID_dictName);
@@ -233,8 +236,8 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     /* 显示控件: UI_CONTROL */
     private java.lang.String _uiControl;
     
-    /* 标准域: STD_DOMAIN */
-    private java.lang.String _stdDomain;
+    /* 数据域ID: DOMAIN_ID */
+    private java.lang.String _domainId;
     
     /* 数据字典: DICT_NAME */
     private java.lang.String _dictName;
@@ -376,8 +379,8 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
             case PROP_ID_uiControl:
                return getUiControl();
         
-            case PROP_ID_stdDomain:
-               return getStdDomain();
+            case PROP_ID_domainId:
+               return getDomainId();
         
             case PROP_ID_dictName:
                return getDictName();
@@ -522,13 +525,13 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_stdDomain:{
+            case PROP_ID_domainId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_stdDomain));
+                       err-> newTypeConversionError(PROP_NAME_domainId));
                }
-               setStdDomain(typedValue);
+               setDomainId(typedValue);
                break;
             }
         
@@ -744,9 +747,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_stdDomain:{
+            case PROP_ID_domainId:{
                onInitProp(propId);
-               this._stdDomain = (java.lang.String)value;
+               this._domainId = (java.lang.String)value;
                
                break;
             }
@@ -1027,20 +1030,20 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 标准域: STD_DOMAIN
+     * 数据域ID: DOMAIN_ID
      */
-    public java.lang.String getStdDomain(){
-         onPropGet(PROP_ID_stdDomain);
-         return _stdDomain;
+    public java.lang.String getDomainId(){
+         onPropGet(PROP_ID_domainId);
+         return _domainId;
     }
 
     /**
-     * 标准域: STD_DOMAIN
+     * 数据域ID: DOMAIN_ID
      */
-    public void setStdDomain(java.lang.String value){
-        if(onPropSet(PROP_ID_stdDomain,value)){
-            this._stdDomain = value;
-            internalClearRefs(PROP_ID_stdDomain);
+    public void setDomainId(java.lang.String value){
+        if(onPropSet(PROP_ID_domainId,value)){
+            this._domainId = value;
+            internalClearRefs(PROP_ID_domainId);
             
         }
     }
@@ -1327,6 +1330,27 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
           internalSetRefEntity(PROP_NAME_entityMeta, refEntity,()->{
              
                     this.setEntityMetaId(refEntity.getEntityMetaId());
+                 
+          });
+       }
+    }
+       
+    /**
+     * 数据域
+     */
+    public io.nop.dyn.dao.entity.NopDynDomain getDomain(){
+       return (io.nop.dyn.dao.entity.NopDynDomain)internalGetRefEntity(PROP_NAME_domain);
+    }
+
+    public void setDomain(io.nop.dyn.dao.entity.NopDynDomain refEntity){
+       if(refEntity == null){
+         
+         this.setDomainId(null);
+         
+       }else{
+          internalSetRefEntity(PROP_NAME_domain, refEntity,()->{
+             
+                    this.setDomainId(refEntity.getDomainId());
                  
           });
        }

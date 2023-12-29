@@ -49,14 +49,6 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="core/active-status"/>
         </prop>
-        <prop name="ownerId" displayName="拥有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="ownerName" displayName="拥有者姓名" i18n-en:displayName="Owner Name" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
