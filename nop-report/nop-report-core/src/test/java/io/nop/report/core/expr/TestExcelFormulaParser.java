@@ -8,6 +8,7 @@ import io.nop.report.core.engine.XptRuntime;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedTable;
+import io.nop.xlang.api.EvalCodeWithAst;
 import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,6 +34,25 @@ public class TestExcelFormulaParser {
         ExcelFormulaParser.parseFormula(null, "IF(A1<> \"2\",1,2)", XLang.newCompileTool());
 
         ExcelFormulaParser.parseFormula(null, "IF(A1<> \"2\",2)", XLang.newCompileTool());
+    }
+
+    @Test
+    public void testOR() {
+
+        EvalCodeWithAst code = ExcelFormulaParser.parseFormula(null, "IF(OR(D12=\"AA\",D12=\"BB\"),AVERAGE(G12),SUM(G12))", XLang.newCompileTool());
+        String expr = code.getExpr().toExprString();
+        System.out.println("expr=" + expr);
+        assertEquals("IF(OR(D12?.value == \"AA\",D12?.value == \"BB\"),AVERAGE(G12),SUM(G12))", expr);
+
+        XptRuntime xptRt = new XptRuntime(XLang.newEvalScope());
+        ExpandedCell cell = new ExpandedCell();
+        xptRt.setCell(cell);
+        ExpandedTable table = new ExpandedTable(1, 2);
+        table.makeRow(0).setFirstCell(cell);
+        cell.setRow(table.makeRow(0));
+
+        String expanded = new ReportFormulaGenerator(xptRt.getEvalScope()).toExprString(code.getExpr());
+        System.out.println(expanded);
     }
 
     @Test

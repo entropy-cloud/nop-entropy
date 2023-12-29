@@ -4,7 +4,6 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.report.core.functions.ReportFunctionProvider;
 import io.nop.xlang.api.EvalCodeWithAst;
@@ -33,7 +32,7 @@ public class ExcelFormulaParser extends AbstractExcelFormulaParser {
         enableFeatures(ExprFeatures.FUNCTION_CALL);
     }
 
-    public static IEvalAction parseFormula(SourceLocation loc, String formula, XLangCompileTool cp) {
+    public static EvalCodeWithAst parseFormula(SourceLocation loc, String formula, XLangCompileTool cp) {
         Expression expr = new ExcelFormulaParser().parseExpr(loc, formula);
 
         XLangOutputMode oldMode = cp.getOutputMode();
@@ -60,7 +59,7 @@ public class ExcelFormulaParser extends AbstractExcelFormulaParser {
     }
 
     @Override
-    protected boolean isStringStart(TextScanner sc){
+    protected boolean isStringStart(TextScanner sc) {
         return sc.cur == '"';
     }
 
