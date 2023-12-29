@@ -75,6 +75,7 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopDynEntityMeta:
+      bizObjName: 对象名
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名
@@ -91,6 +92,8 @@ prop:
       status_label: 状态
       storeType: 存储类型
       storeType_label: 存储类型
+      tableName: 表名
+      tagSet: 标签
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

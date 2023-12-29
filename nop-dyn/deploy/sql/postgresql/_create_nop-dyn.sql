@@ -111,7 +111,10 @@ CREATE TABLE nop_dyn_entity_meta(
   MODULE_ID VARCHAR(32) NOT NULL ,
   ENTITY_NAME VARCHAR(200) NOT NULL ,
   DISPLAY_NAME VARCHAR(100) NOT NULL ,
+  TABLE_NAME VARCHAR(100)  ,
+  BIZ_OBJ_NAME VARCHAR(100)  ,
   STORE_TYPE INT4 NOT NULL ,
+  TAG_SET VARCHAR(200)  ,
   META_CONTENT TEXT  ,
   STATUS INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
@@ -332,7 +335,13 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.DISPLAY_NAME IS '显示名';
                     
+      COMMENT ON COLUMN nop_dyn_entity_meta.TABLE_NAME IS '表名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.BIZ_OBJ_NAME IS '对象名';
+                    
       COMMENT ON COLUMN nop_dyn_entity_meta.STORE_TYPE IS '存储类型';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.TAG_SET IS '标签';
                     
       COMMENT ON COLUMN nop_dyn_entity_meta.META_CONTENT IS '元数据内容';
                     

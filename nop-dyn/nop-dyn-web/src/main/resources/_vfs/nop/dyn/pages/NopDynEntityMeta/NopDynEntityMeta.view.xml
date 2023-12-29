@@ -20,12 +20,12 @@
                             <data>
                                 <entityMetaId>$entityMetaId</entityMetaId>
                                 <entityMeta>
+                                    <entityName>$entityName</entityName>
                                     <displayName>$displayName</displayName>
                                 </entityMeta>
                             </data>
                         </dialog>
                     </action>
-                    <action id="row-update-button"/>
                 </actionGroup>
             </rowActions>
         </crud>

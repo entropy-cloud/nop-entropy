@@ -79,8 +79,11 @@ prop:
       moduleId: Module ID
       entityName: Entity Name
       displayName: Display Name
+      tableName: TableName
+      bizObjName: BizObjName
       storeType: Store Type
       storeType_label: null
+      tagSet: Tag Set
       metaContent: Meta Content
       status: Status
       status_label: null

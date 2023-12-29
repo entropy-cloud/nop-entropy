@@ -15154,6 +15154,15 @@
         ]
       },
       {
+        "name": "updateManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "updateRelations",
         "parameterTypes": [
           "java.lang.Class",
@@ -39883,6 +39892,10 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [
+      {
+        "name": "clearCache",
+        "parameterTypes": []
+      },
       {
         "name": "dao",
         "parameterTypes": [
