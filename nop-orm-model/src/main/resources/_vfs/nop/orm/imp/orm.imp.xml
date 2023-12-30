@@ -505,11 +505,11 @@
                         </field>
 
                         <field name="getter" displayName="读函数">
-                            <schema stdDomain="string" />
+                            <schema stdDomain="xpl" />
                         </field>
 
                         <field name="setter" displayName="写函数">
-                            <schema stdDomain="string" />
+                            <schema stdDomain="xpl" />
                         </field>
 
                         <field name="args" displayName="参数" list="true">
