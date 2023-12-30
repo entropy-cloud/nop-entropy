@@ -3,6 +3,8 @@
 
 alter table nop_dyn_app_module add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_dyn_domain add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_dyn_entity add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_dyn_entity_meta add column NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
@@ -18,6 +20,9 @@ alter table nop_dyn_app add constraint PK_nop_dyn_app primary key (NOP_TENANT_ID
 
 alter table nop_dyn_app_module drop constraint PK_nop_dyn_app_module;
 alter table nop_dyn_app_module add constraint PK_nop_dyn_app_module primary key (NOP_TENANT_ID, APP_ID,MODULE_ID);
+
+alter table nop_dyn_domain drop constraint PK_nop_dyn_domain;
+alter table nop_dyn_domain add constraint PK_nop_dyn_domain primary key (NOP_TENANT_ID, DOMAIN_ID);
 
 alter table nop_dyn_entity drop constraint PK_nop_dyn_entity;
 alter table nop_dyn_entity add constraint PK_nop_dyn_entity primary key (NOP_TENANT_ID, SID);

@@ -517,7 +517,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             ISchema schema = argModel.getSchema();
             if (schema != null && value != null) {
                 if (schema.isSimpleSchema()) {
-                    SimpleSchemaValidator.INSTANCE.validate(schema, null, name, value, IValidationErrorCollector.THROW_ERROR);
+                    SimpleSchemaValidator.INSTANCE.validate(schema, null, name, value, wfRt.getEvalScope(),
+                            wfRt.getSvcCtx(), IValidationErrorCollector.THROW_ERROR);
                 }
                 IGenericType type = schema.getType();
                 if (type != null) {

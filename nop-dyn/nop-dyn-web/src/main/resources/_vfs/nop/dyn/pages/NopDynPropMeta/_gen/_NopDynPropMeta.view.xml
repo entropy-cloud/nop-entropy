@@ -23,10 +23,10 @@
                 <col id="stdSqlType" mandatory="true" sortable="true"/>
 
                 <!--长度-->
-                <col id="length" mandatory="true" sortable="true"/>
+                <col id="length" sortable="true"/>
 
                 <!--小数位数-->
-                <col id="scale" mandatory="true" sortable="true"/>
+                <col id="scale" sortable="true"/>
 
                 <!--显示控制-->
                 <col id="uiShow" sortable="true"/>
@@ -34,8 +34,8 @@
                 <!--显示控件-->
                 <col id="uiControl" sortable="true"/>
 
-                <!--标准域-->
-                <col id="stdDomain" sortable="true"/>
+                <!--数据域ID-->
+                <col id="domainId" sortable="true"/>
 
                 <!--数据字典-->
                 <col id="dictName" sortable="true"/>
@@ -87,7 +87,7 @@
  entityMetaId[实体定义ID] stdSqlType[标准SQL数据类型]
  length[长度] scale[小数位数]
  uiShow[显示控制] uiControl[显示控件]
- stdDomain[标准域] dictName[数据字典]
+ domainId[数据域ID] dictName[数据字典]
  dynFieldMapping[动态字段映射] tagSet[标签]
  refEntityName[关联实体名] refPropName[关联属性名]
  refPropDisplayName[关联属性显示名] refTagSet[关联属性标签]
@@ -104,7 +104,7 @@
  entityMetaId[实体定义ID] stdSqlType[标准SQL数据类型]
  length[长度] scale[小数位数]
  uiShow[显示控制] uiControl[显示控件]
- stdDomain[标准域] dictName[数据字典]
+ domainId[数据域ID] dictName[数据字典]
  dynFieldMapping[动态字段映射] tagSet[标签]
  refEntityName[关联实体名] refPropName[关联属性名]
  refPropDisplayName[关联属性显示名] refTagSet[关联属性标签]

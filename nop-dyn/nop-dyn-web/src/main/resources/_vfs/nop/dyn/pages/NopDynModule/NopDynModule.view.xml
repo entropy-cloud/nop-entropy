@@ -7,8 +7,9 @@
 
         <grid id="simple-list" affixHeader="false">
             <cols>
-                <!--模块名-->
                 <col id="moduleName"/>
+
+                <col id="moduleVersion"/>
 
                 <!--显示名-->
                 <col id="displayName"/>
@@ -18,7 +19,14 @@
 
     <forms>
         <form id="view"/>
-        <form id="edit"/>
+        <form id="edit" size="md">
+            <cells>
+                <cell id="moduleName">
+                    <desc>Nop平台的模块ID要求是{vendor}={subName}两级结构，例如app-demo</desc>
+                    <placeholder>例如 app-demo</placeholder>
+                </cell>
+            </cells>
+        </form>
         <form id="add"/>
     </forms>
 
@@ -34,15 +42,16 @@
 
             <listActions>
                 <action id="select-module-button" label="@i18n:dyn.app.selectModule|选择模块">
-                    <dialog page="select-app-modules" size="md" noActions="true">
+                    <dialog page="select-modules" size="md" noActions="true">
                     </dialog>
                 </action>
 
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopDynApp__removeRoleUsers">
+                    <api url="@mutation:NopDynApp__removeManyToManyRelations">
                         <data>
-                            <roleId>$roleId</roleId>
-                            <userIds>$ids</userIds>
+                            <propName>moduleMappings</propName>
+                            <id>$appId</id>
+                            <relValues>$ids</relValues>
                         </data>
                     </api>
                     <confirmText>@i18n:common.confirmBatchDelete</confirmText>
@@ -50,18 +59,19 @@
             </listActions>
         </crud>
 
-        <crud name="select-role-users" grid="pick-list" title="@i18n:common.selectUser">
+        <crud name="select-modules" grid="pick-list" title="@i18n:dyn.app.selectModule|选择模块">
             <table pickerMode="true" multiple="true" noOperations="true">
-                <api url="@query:NopAuthUser__active_findPage/{@pageSelection}"/>
+                <api url="@query:NopDynModule__active_findPage/{@pageSelection}"/>
             </table>
 
             <listActions>
-                <action id="batch-add-user-button" label="@i18n:common.submit" level="primary"
-                        batch="true" close="select-role-users" reload="role-users-grid">
-                    <api url="@mutation:NopAuthRole__addRoleUsers">
+                <action id="batch-add-module-button" label="@i18n:common.submit" level="primary"
+                        batch="true" close="select-modules" reload="app-modules-grid">
+                    <api url="@mutation:NopDynApp__addManyToManyRelations">
                         <data>
-                            <roleId>$roleId</roleId>
-                            <userIds>$ids</userIds>
+                            <propName>moduleMappings</propName>
+                            <id>$appId</id>
+                            <relValues>$ids</relValues>
                         </data>
                     </api>
                 </action>

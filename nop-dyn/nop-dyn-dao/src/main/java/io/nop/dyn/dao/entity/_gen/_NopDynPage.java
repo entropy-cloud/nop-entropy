@@ -48,14 +48,6 @@ public class _NopDynPage extends DynamicOrmEntity{
     public static final String PROP_NAME_status = "status";
     public static final int PROP_ID_status = 7;
     
-    /* 拥有者ID: OWNER_ID VARCHAR */
-    public static final String PROP_NAME_ownerId = "ownerId";
-    public static final int PROP_ID_ownerId = 8;
-    
-    /* 拥有者姓名: OWNER_NAME VARCHAR */
-    public static final String PROP_NAME_ownerName = "ownerName";
-    public static final int PROP_ID_ownerName = 9;
-    
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
     public static final int PROP_ID_version = 10;
@@ -119,12 +111,6 @@ public class _NopDynPage extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
       
-          PROP_ID_TO_NAME[PROP_ID_ownerId] = PROP_NAME_ownerId;
-          PROP_NAME_TO_ID.put(PROP_NAME_ownerId, PROP_ID_ownerId);
-      
-          PROP_ID_TO_NAME[PROP_ID_ownerName] = PROP_NAME_ownerName;
-          PROP_NAME_TO_ID.put(PROP_NAME_ownerName, PROP_ID_ownerName);
-      
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
       
@@ -166,12 +152,6 @@ public class _NopDynPage extends DynamicOrmEntity{
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
-    
-    /* 拥有者ID: OWNER_ID */
-    private java.lang.String _ownerId;
-    
-    /* 拥有者姓名: OWNER_NAME */
-    private java.lang.String _ownerName;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -283,12 +263,6 @@ public class _NopDynPage extends DynamicOrmEntity{
             case PROP_ID_status:
                return getStatus();
         
-            case PROP_ID_ownerId:
-               return getOwnerId();
-        
-            case PROP_ID_ownerName:
-               return getOwnerName();
-        
             case PROP_ID_version:
                return getVersion();
         
@@ -385,26 +359,6 @@ public class _NopDynPage extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_status));
                }
                setStatus(typedValue);
-               break;
-            }
-        
-            case PROP_ID_ownerId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_ownerId));
-               }
-               setOwnerId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_ownerName:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_ownerName));
-               }
-               setOwnerName(typedValue);
                break;
             }
         
@@ -522,20 +476,6 @@ public class _NopDynPage extends DynamicOrmEntity{
             case PROP_ID_status:{
                onInitProp(propId);
                this._status = (java.lang.Integer)value;
-               
-               break;
-            }
-        
-            case PROP_ID_ownerId:{
-               onInitProp(propId);
-               this._ownerId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_ownerName:{
-               onInitProp(propId);
-               this._ownerName = (java.lang.String)value;
                
                break;
             }
@@ -717,44 +657,6 @@ public class _NopDynPage extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
-            
-        }
-    }
-    
-    /**
-     * 拥有者ID: OWNER_ID
-     */
-    public java.lang.String getOwnerId(){
-         onPropGet(PROP_ID_ownerId);
-         return _ownerId;
-    }
-
-    /**
-     * 拥有者ID: OWNER_ID
-     */
-    public void setOwnerId(java.lang.String value){
-        if(onPropSet(PROP_ID_ownerId,value)){
-            this._ownerId = value;
-            internalClearRefs(PROP_ID_ownerId);
-            
-        }
-    }
-    
-    /**
-     * 拥有者姓名: OWNER_NAME
-     */
-    public java.lang.String getOwnerName(){
-         onPropGet(PROP_ID_ownerName);
-         return _ownerName;
-    }
-
-    /**
-     * 拥有者姓名: OWNER_NAME
-     */
-    public void setOwnerName(java.lang.String value){
-        if(onPropSet(PROP_ID_ownerName,value)){
-            this._ownerName = value;
-            internalClearRefs(PROP_ID_ownerName);
             
         }
     }

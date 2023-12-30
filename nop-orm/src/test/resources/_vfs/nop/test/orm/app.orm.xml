@@ -28,6 +28,18 @@
             <aliases>
                 <alias name="collegeName" propPath="simsCollege.collegeName" type="String"/>
             </aliases>
+
+            <computes>
+                <compute name="collegeNameEx" type="String">
+                    <getter>
+                        return entity.collegeName + 'Ex';
+                    </getter>
+
+                    <setter>
+                        entity.collegeName = value.$removeTail('Ex')
+                    </setter>
+                </compute>
+            </computes>
             <relations>
                 <to-one name="simsCollege" refEntityName="io.nop.app.SimsCollege" refPropName="simsClasses">
                     <join>

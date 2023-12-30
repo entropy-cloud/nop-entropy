@@ -19,8 +19,17 @@
                 <!--显示名-->
                 <col id="displayName" mandatory="true" sortable="true"/>
 
+                <!--表名-->
+                <col id="tableName" sortable="true"/>
+
+                <!--对象名-->
+                <col id="bizObjName" sortable="true"/>
+
                 <!--存储类型-->
                 <col id="storeType" mandatory="true" sortable="true"/>
+
+                <!--标签-->
+                <col id="tagSet" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
@@ -48,11 +57,12 @@
         <form id="view" editMode="view" title="查看-实体元数据" i18n-en:title="View Entity Meta">
             <layout>
  moduleId[模块ID] entityName[实体名]
- displayName[显示名] storeType[存储类型]
- status[状态] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] 
-                remark[备注]
+ displayName[显示名] tableName[表名]
+ bizObjName[对象名] storeType[存储类型]
+ tagSet[标签] status[状态]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-实体元数据" i18n-en:title="Add Entity Meta" x:prototype="edit"/>
@@ -61,7 +71,10 @@
  moduleId[模块ID]
  entityName[实体名]
  displayName[显示名]
+ tableName[表名]
+ bizObjName[对象名]
  storeType[存储类型]
+ tagSet[标签]
  status[状态]
  remark[备注]
 </layout>

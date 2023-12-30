@@ -387,6 +387,7 @@
 /nop/dyn/pages/NopDynApp/NopDynApp.lib.xjs
 /nop/dyn/pages/NopDynApp/NopDynApp.view.xml
 /nop/dyn/pages/NopDynApp/_gen/_NopDynApp.view.xml
+/nop/dyn/pages/NopDynApp/app-modules.page.yaml
 /nop/dyn/pages/NopDynApp/main.page.yaml
 /nop/dyn/pages/NopDynApp/picker.page.yaml
 /nop/dyn/pages/NopDynAppModule/NopDynAppModule.lib.xjs

@@ -7,8 +7,11 @@
  */
 package io.nop.xlang.filter;
 
+import io.nop.api.core.validate.IValidationErrorCollector;
+import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.validator.ModelBasedValidator;
 import io.nop.core.model.validator.ValidatorModel;
@@ -57,6 +60,21 @@ public class BizValidatorHelper {
             checkLibPath = BizFilterConstants.XLIB_BIZ_CHECK_PATH;
         new ModelBasedValidator(model, new BizFilterEvaluator(checkLibPath, context))
                 .validateWithDefaultCollector(obj, model.getFatalSeverity());
+    }
+
+    public static void runValidatorModelForValue(ValidatorModel model, Object value, IEvalScope scope, IServiceContext ctx,
+                                                 IValidationErrorCollector collector) {
+        String checkLibPath = model.getCheckLibPath();
+        if (checkLibPath == null)
+            checkLibPath = BizFilterConstants.XLIB_BIZ_CHECK_PATH;
+
+        ValueWithLocation vl = scope.recordValueLocation(BizFilterConstants.VAR_VALUE);
+        try {
+            scope.setLocalValue(BizFilterConstants.VAR_VALUE, value);
+            new ModelBasedValidator(model, new BizFilterEvaluator(checkLibPath, ctx, scope)).validate(scope, collector);
+        } finally {
+            scope.restoreValueLocation(BizFilterConstants.VAR_VALUE, vl);
+        }
     }
 
     public static IEvalAction toEvalAction(ValidatorModel model) {

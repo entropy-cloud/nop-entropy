@@ -25,13 +25,20 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
     private final String libPath;
     private final IServiceContext context;
 
-    public BizFilterEvaluator(String libPath, IServiceContext context) {
+    private final IEvalScope evalScope;
+
+    public BizFilterEvaluator(String libPath, IServiceContext context, IEvalScope scope) {
         this.libPath = libPath;
         this.context = context;
+        this.evalScope = scope;
     }
 
     public BizFilterEvaluator(IServiceContext context) {
-        this(BizFilterConstants.XLIB_BIZ_CHECK_PATH, context);
+        this(BizFilterConstants.XLIB_BIZ_CHECK_PATH, context, context.getEvalScope());
+    }
+
+    public BizFilterEvaluator(String name, IServiceContext context) {
+        this(name, context, context.getEvalScope());
     }
 
     public boolean testForEntity(ITreeBean filter, Object entity) {
@@ -55,7 +62,6 @@ public class BizFilterEvaluator extends FilterBeanEvaluator {
         // prepareArgs的过程中可能会修改attrs集合，所以需要复制一份
         Map<String, Object> args = filter.getAttrs() == null ? new HashMap<>() : new HashMap<>(filter.getAttrs());
         // biz标签库中的标签
-        IEvalScope evalScope = context.getEvalScope();
         IXplTag tag = XLang.getTag(libPath, libTag);
         args = tag.prepareArgs(evalScope, args);
         Object ret = tag.invokeWithNamedArgs(evalScope, args);

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="应用定义" i18n-en:displayName="App Definition" xmlns:ui="ui">
+      displayName="应用定义" i18n-en:displayName="App Definition" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.dyn.dao.entity.NopDynApp</entityName>
 
@@ -57,7 +57,8 @@
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="moduleMappings" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="appId" ext:joinRightProp="appId" insertable="false" updatable="false" lazy="true">
+              ext:joinLeftProp="appId" ext:joinRightProp="appId" orm:manyToManyRefProp="moduleId" insertable="false"
+              updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopDynAppModule"/>
             </schema>

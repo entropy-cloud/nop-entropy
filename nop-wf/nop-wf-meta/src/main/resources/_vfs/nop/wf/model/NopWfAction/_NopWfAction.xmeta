@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="工作流动作" i18n-en:displayName="Workflow Action" xmlns:ui="ui">
+      displayName="工作流动作" i18n-en:displayName="Workflow Action" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.wf.dao.entity.NopWfAction</entityName>
 

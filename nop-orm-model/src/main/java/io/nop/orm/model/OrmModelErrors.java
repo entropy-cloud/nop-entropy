@@ -48,6 +48,8 @@ public interface OrmModelErrors {
     String ARG_COLLECTION_NAME = "collectionName";
     String ARG_TENANT_ID = "tenantId";
 
+    String ARG_ARG_NAME = "argName";
+
     ErrorCode ERR_ORM_MODEL_DUPLICATE_PROP_ID = define("nop.err.orm.model.duplicate-prop-id",
             "对象模型[{entityName}]的列[{propName}]和[{otherPropName}]的编号都是[{propId}]", ARG_ENTITY_NAME, ARG_PROP_NAME,
             ARG_OTHER_PROP_NAME, ARG_PROP_ID);
@@ -169,4 +171,17 @@ public interface OrmModelErrors {
     ErrorCode ERR_ORM_NO_COL_WITH_TAG =
             define("nop.err.orm.model.no-col-with-tag", "实体[{entityName}]中没有定义具有标签[{tag}]的列",
                     ARG_ENTITY_NAME, ARG_TAG);
+
+    ErrorCode ERR_ORM_COMPUTE_PROP_NO_GETTER =
+            define("nop.err.orm.model.compute-prop-no-getter",
+                    "实体[{entityName}]的计算属性[{propName}]没有定义getter，不支持获取值", ARG_ENTITY_NAME, ARG_PROP_NAME);
+
+    ErrorCode ERR_ORM_COMPUTE_PROP_NO_SETTER =
+            define("nop.err.orm.model.compute-prop-no-setter",
+                    "实体[{entityName}]的计算属性[{propName}]没有定义setter，不支持设置值", ARG_ENTITY_NAME, ARG_PROP_NAME);
+
+    ErrorCode ERR_ORM_UNKNOWN_COMPUTE_PROP_ARG = define("nop.err.orm.unknown-compute-prop-arg",
+            "对象[{entityName}]的计算属性[{propName}]不支持参数[{argName}]", ARG_ENTITY_NAME, ARG_PROP_NAME, ARG_ARG_NAME);
+
+
 }

@@ -337,6 +337,30 @@ public class SimpleStdDomainHandlers {
         }
     }
 
+    public static class NopModuleIdType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_NOP_MODULE_ID;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            return StringHelper.isValidNopModuleId(text);
+        }
+    }
+
+    public static class NopModuleNameType extends CheckStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_NOP_MODULE_NAME;
+        }
+
+        @Override
+        protected boolean isValid(String text) {
+            return StringHelper.isValidNopModuleName(text);
+        }
+    }
+
     public static class FileTypeType extends CheckStdDomainHandler {
         @Override
         public String getName() {

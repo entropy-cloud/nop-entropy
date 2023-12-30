@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="实体元数据" i18n-en:displayName="Entity Meta" xmlns:ui="ui">
+      displayName="实体元数据" i18n-en:displayName="Entity Meta" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.dyn.dao.entity.NopDynEntityMeta</entityName>
 
@@ -37,9 +37,21 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
+        <prop name="tableName" displayName="表名" i18n-en:displayName="TableName" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="bizObjName" displayName="对象名" i18n-en:displayName="BizObjName" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
         <prop name="storeType" displayName="存储类型" i18n-en:displayName="Store Type" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="dyn/entity-store-type"/>
+        </prop>
+        <prop name="tagSet" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="metaContent" displayName="元数据内容" i18n-en:displayName="Meta Content" tagSet="content"
               queryable="true" sortable="true" insertable="true" updatable="true" internal="true"

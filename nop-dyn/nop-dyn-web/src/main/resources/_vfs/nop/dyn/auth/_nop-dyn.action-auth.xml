@@ -17,17 +17,16 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDynAppModule-main" displayName="应用模块映射" orderNo="10004"
-                          i18n-en:displayName="App Module Mapping" icon="ant-design:appstore-twotone" component="AMIS"
-                          resourceType="SUBM" url="/nop/dyn/pages/NopDynAppModule/main.page.yaml">
+                <resource id="NopDynDomain-main" displayName="数据域" orderNo="10004" i18n-en:displayName="Domain"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/nop/dyn/pages/NopDynDomain/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynAppModule:query" displayName="查询应用模块映射" orderNo="10005"
-                                  resourceType="FNPT">
-                            <permissions>NopDynAppModule:query</permissions>
+                        <resource id="FNPT:NopDynDomain:query" displayName="查询数据域" orderNo="10005" resourceType="FNPT">
+                            <permissions>NopDynDomain:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynAppModule:mutation" displayName="修改应用模块映射" orderNo="10006"
+                        <resource id="FNPT:NopDynDomain:mutation" displayName="修改数据域" orderNo="10006"
                                   resourceType="FNPT">
-                            <permissions>NopDynAppModule:mutation</permissions>
+                            <permissions>NopDynDomain:mutation</permissions>
                         </resource>
                     </children>
                 </resource>

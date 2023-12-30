@@ -12,6 +12,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.MathHelper;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.eval.IEvalScope;
+import io.nop.xlang.filter.BizValidatorHelper;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
@@ -34,7 +37,9 @@ import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
 public class SimpleSchemaValidator {
     public static final SimpleSchemaValidator INSTANCE = new SimpleSchemaValidator();
 
-    public void validate(ISchema schema, SourceLocation loc, String propName, Object value, IValidationErrorCollector collector) {
+    public void validate(ISchema schema, SourceLocation loc, String propName, Object value,
+                         IEvalScope scope, IServiceContext ctx,
+                         IValidationErrorCollector collector) {
         if (value == null)
             return;
 
@@ -66,8 +71,11 @@ public class SimpleSchemaValidator {
 
         checkRange(schema, loc, propName, value, collector);
         checkLength(schema, loc, propName, value, collector);
-    }
 
+        if (schema.getValidator() != null) {
+            BizValidatorHelper.runValidatorModelForValue(schema.getValidator(), value, scope, ctx, collector);
+        }
+    }
 
     void checkRange(ISchema schema, SourceLocation loc,
                     String propName, Object value, IValidationErrorCollector collector) {

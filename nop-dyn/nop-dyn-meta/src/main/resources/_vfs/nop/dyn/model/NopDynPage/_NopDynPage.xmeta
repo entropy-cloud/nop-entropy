@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="页面定义" i18n-en:displayName="Page Definition" xmlns:ui="ui">
+      displayName="页面定义" i18n-en:displayName="Page Definition" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.dyn.dao.entity.NopDynPage</entityName>
 
@@ -48,14 +48,6 @@
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="core/active-status"/>
-        </prop>
-        <prop name="ownerId" displayName="拥有者ID" i18n-en:displayName="Owner ID" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
-            <schema type="java.lang.String" precision="50"/>
-        </prop>
-        <prop name="ownerName" displayName="拥有者姓名" i18n-en:displayName="Owner Name" queryable="true" sortable="true"
-              insertable="true" updatable="true" internal="true" ui:show="X">
-            <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">

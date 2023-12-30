@@ -35,7 +35,7 @@
 
 ## 仅使用NopOrm来访问数据库
 
-如果仅需要使用NopOrm平台提供的ORM引擎，可以在nop-spring-core-starer的基础上再引入nop-orm模块
+如果仅需要使用NopOrm平台提供的ORM引擎，可以在nop-spring-core-starter的基础上再引入nop-orm模块
 
 ````xml
 

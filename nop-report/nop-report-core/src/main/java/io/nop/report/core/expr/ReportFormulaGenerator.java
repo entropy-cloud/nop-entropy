@@ -9,6 +9,7 @@ import io.nop.xlang.api.XLang;
 import io.nop.xlang.ast.CustomExpression;
 import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.IfStatement;
+import io.nop.xlang.ast.LogicalExpression;
 import io.nop.xlang.ast.MemberExpression;
 import io.nop.xlang.ast.XLangOperator;
 import io.nop.xlang.ast.print.XLangExpressionPrinter;
@@ -34,7 +35,7 @@ public class ReportFormulaGenerator extends XLangExpressionPrinter {
     private void transformCellSet(CustomExpression expr) {
         IExecutableExpression executable = expr.getExecutable();
         ExpandedCellSet cellSet = (ExpandedCellSet) XLang.execute(executable, scope);
-        if (cellSet.isEmpty()) {
+        if (cellSet == null || cellSet.isEmpty()) {
             print("''");
         } else {
             print(StringHelper.join(cellSet.getCellRanges(), ","));
@@ -63,6 +64,33 @@ public class ReportFormulaGenerator extends XLangExpressionPrinter {
             visit(node.getAlternate());
         }
         print(')');
+    }
+
+    @Override
+    public void visitLogicalExpression(LogicalExpression node) {
+        printLogicalExpr(null, node);
+    }
+
+    void printLogicalExpr(XLangOperator prevOp, LogicalExpression node) {
+        if (node.getOperator() != prevOp) {
+            print(node.getOperator());
+            print('(');
+        }
+        visit(node.getLeft());
+
+        if (node.getRight() != null) {
+            print(',');
+
+            if (node.getRight() instanceof LogicalExpression) {
+                printLogicalExpr(node.getOperator(), (LogicalExpression) node.getRight());
+            } else {
+                visit(node.getRight());
+            }
+        }
+
+        if (node.getOperator() != prevOp) {
+            print(')');
+        }
     }
 
     @Override

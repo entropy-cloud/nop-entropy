@@ -18,6 +18,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmObject;
 import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IComputePropModel;
 import io.nop.orm.model.IEntityComponentModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
@@ -204,6 +205,9 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
                 component.bindToEntity(this, compModel.getColumnPropIdMap());
             }
             return component;
+        } else if (propModel.isComputeModel()) {
+            IComputePropModel computeModel = (IComputePropModel) propModel;
+            return computeModel.getValue(this);
         } else {
             return defaultGetProp(propName);
         }
@@ -220,6 +224,9 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
             throw newError(ERR_ORM_ENTITY_PROP_NOT_ALLOW_SET).param(ARG_PROP_NAME, propName);
         } else if (propModel.isAliasModel()) {
             internalSetAliasValue(propModel.getAliasPropPath(), value);
+        } else if (propModel.isComputeModel()) {
+            IComputePropModel computeModel = (IComputePropModel) propModel;
+            computeModel.setValue(this, value);
         } else {
             defaultSetProp(propName, value);
         }

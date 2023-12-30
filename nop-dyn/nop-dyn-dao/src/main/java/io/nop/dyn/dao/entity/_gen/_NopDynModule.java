@@ -28,59 +28,74 @@ public class _NopDynModule extends DynamicOrmEntity{
     public static final String PROP_NAME_moduleName = "moduleName";
     public static final int PROP_ID_moduleName = 2;
     
+    /* 模块版本: MODULE_VERSION INTEGER */
+    public static final String PROP_NAME_moduleVersion = "moduleVersion";
+    public static final int PROP_ID_moduleVersion = 3;
+    
     /* 显示名: DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 3;
+    public static final int PROP_ID_displayName = 4;
     
     /* 基础模块ID: BASE_MODULE_ID VARCHAR */
     public static final String PROP_NAME_baseModuleId = "baseModuleId";
-    public static final int PROP_ID_baseModuleId = 4;
+    public static final int PROP_ID_baseModuleId = 5;
+    
+    /* Java包名: BASE_PACKAGE_NAME VARCHAR */
+    public static final String PROP_NAME_basePackageName = "basePackageName";
+    public static final int PROP_ID_basePackageName = 6;
+    
+    /* Maven组名: MAVEN_GROUP_ID VARCHAR */
+    public static final String PROP_NAME_mavenGroupId = "mavenGroupId";
+    public static final int PROP_ID_mavenGroupId = 7;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 5;
+    public static final int PROP_ID_status = 8;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 6;
+    public static final int PROP_ID_version = 9;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 7;
+    public static final int PROP_ID_createdBy = 10;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 8;
+    public static final int PROP_ID_createTime = 11;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 9;
+    public static final int PROP_ID_updatedBy = 12;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 10;
+    public static final int PROP_ID_updateTime = 13;
     
 
-    private static int _PROP_ID_BOUND = 11;
+    private static int _PROP_ID_BOUND = 14;
 
     
     /* relation: 基础模块 */
     public static final String PROP_NAME_baseModule = "baseModule";
     
-    /* relation:  */
+    /* relation: 派生模块 */
     public static final String PROP_NAME_derivedModules = "derivedModules";
     
     /* relation:  */
     public static final String PROP_NAME_appMappings = "appMappings";
     
-    /* relation:  */
+    /* relation: 模块页面 */
     public static final String PROP_NAME_pages = "pages";
+    
+    /* relation: 模块实体定义 */
+    public static final String PROP_NAME_entityMetas = "entityMetas";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_moduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_moduleId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[11];
+    private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -90,11 +105,20 @@ public class _NopDynModule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_moduleName] = PROP_NAME_moduleName;
           PROP_NAME_TO_ID.put(PROP_NAME_moduleName, PROP_ID_moduleName);
       
+          PROP_ID_TO_NAME[PROP_ID_moduleVersion] = PROP_NAME_moduleVersion;
+          PROP_NAME_TO_ID.put(PROP_NAME_moduleVersion, PROP_ID_moduleVersion);
+      
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
           PROP_ID_TO_NAME[PROP_ID_baseModuleId] = PROP_NAME_baseModuleId;
           PROP_NAME_TO_ID.put(PROP_NAME_baseModuleId, PROP_ID_baseModuleId);
+      
+          PROP_ID_TO_NAME[PROP_ID_basePackageName] = PROP_NAME_basePackageName;
+          PROP_NAME_TO_ID.put(PROP_NAME_basePackageName, PROP_ID_basePackageName);
+      
+          PROP_ID_TO_NAME[PROP_ID_mavenGroupId] = PROP_NAME_mavenGroupId;
+          PROP_NAME_TO_ID.put(PROP_NAME_mavenGroupId, PROP_ID_mavenGroupId);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -123,11 +147,20 @@ public class _NopDynModule extends DynamicOrmEntity{
     /* 模块名: MODULE_NAME */
     private java.lang.String _moduleName;
     
+    /* 模块版本: MODULE_VERSION */
+    private java.lang.Integer _moduleVersion;
+    
     /* 显示名: DISPLAY_NAME */
     private java.lang.String _displayName;
     
     /* 基础模块ID: BASE_MODULE_ID */
     private java.lang.String _baseModuleId;
+    
+    /* Java包名: BASE_PACKAGE_NAME */
+    private java.lang.String _basePackageName;
+    
+    /* Maven组名: MAVEN_GROUP_ID */
+    private java.lang.String _mavenGroupId;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -224,11 +257,20 @@ public class _NopDynModule extends DynamicOrmEntity{
             case PROP_ID_moduleName:
                return getModuleName();
         
+            case PROP_ID_moduleVersion:
+               return getModuleVersion();
+        
             case PROP_ID_displayName:
                return getDisplayName();
         
             case PROP_ID_baseModuleId:
                return getBaseModuleId();
+        
+            case PROP_ID_basePackageName:
+               return getBasePackageName();
+        
+            case PROP_ID_mavenGroupId:
+               return getMavenGroupId();
         
             case PROP_ID_status:
                return getStatus();
@@ -279,6 +321,16 @@ public class _NopDynModule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_moduleVersion:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_moduleVersion));
+               }
+               setModuleVersion(typedValue);
+               break;
+            }
+        
             case PROP_ID_displayName:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -296,6 +348,26 @@ public class _NopDynModule extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_baseModuleId));
                }
                setBaseModuleId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_basePackageName:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_basePackageName));
+               }
+               setBasePackageName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_mavenGroupId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_mavenGroupId));
+               }
+               setMavenGroupId(typedValue);
                break;
             }
         
@@ -382,6 +454,13 @@ public class _NopDynModule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_moduleVersion:{
+               onInitProp(propId);
+               this._moduleVersion = (java.lang.Integer)value;
+               
+               break;
+            }
+        
             case PROP_ID_displayName:{
                onInitProp(propId);
                this._displayName = (java.lang.String)value;
@@ -392,6 +471,20 @@ public class _NopDynModule extends DynamicOrmEntity{
             case PROP_ID_baseModuleId:{
                onInitProp(propId);
                this._baseModuleId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_basePackageName:{
+               onInitProp(propId);
+               this._basePackageName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_mavenGroupId:{
+               onInitProp(propId);
+               this._mavenGroupId = (java.lang.String)value;
                
                break;
             }
@@ -483,6 +576,25 @@ public class _NopDynModule extends DynamicOrmEntity{
     }
     
     /**
+     * 模块版本: MODULE_VERSION
+     */
+    public java.lang.Integer getModuleVersion(){
+         onPropGet(PROP_ID_moduleVersion);
+         return _moduleVersion;
+    }
+
+    /**
+     * 模块版本: MODULE_VERSION
+     */
+    public void setModuleVersion(java.lang.Integer value){
+        if(onPropSet(PROP_ID_moduleVersion,value)){
+            this._moduleVersion = value;
+            internalClearRefs(PROP_ID_moduleVersion);
+            
+        }
+    }
+    
+    /**
      * 显示名: DISPLAY_NAME
      */
     public java.lang.String getDisplayName(){
@@ -516,6 +628,44 @@ public class _NopDynModule extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_baseModuleId,value)){
             this._baseModuleId = value;
             internalClearRefs(PROP_ID_baseModuleId);
+            
+        }
+    }
+    
+    /**
+     * Java包名: BASE_PACKAGE_NAME
+     */
+    public java.lang.String getBasePackageName(){
+         onPropGet(PROP_ID_basePackageName);
+         return _basePackageName;
+    }
+
+    /**
+     * Java包名: BASE_PACKAGE_NAME
+     */
+    public void setBasePackageName(java.lang.String value){
+        if(onPropSet(PROP_ID_basePackageName,value)){
+            this._basePackageName = value;
+            internalClearRefs(PROP_ID_basePackageName);
+            
+        }
+    }
+    
+    /**
+     * Maven组名: MAVEN_GROUP_ID
+     */
+    public java.lang.String getMavenGroupId(){
+         onPropGet(PROP_ID_mavenGroupId);
+         return _mavenGroupId;
+    }
+
+    /**
+     * Maven组名: MAVEN_GROUP_ID
+     */
+    public void setMavenGroupId(java.lang.String value){
+        if(onPropSet(PROP_ID_mavenGroupId,value)){
+            this._mavenGroupId = value;
+            internalClearRefs(PROP_ID_mavenGroupId);
             
         }
     }
@@ -659,7 +809,7 @@ public class _NopDynModule extends DynamicOrmEntity{
         io.nop.dyn.dao.entity.NopDynModule.PROP_NAME_baseModule, null,io.nop.dyn.dao.entity.NopDynModule.class);
 
     /**
-     * 。 refPropName: baseModule, keyProp: {rel.keyProp}
+     * 派生模块。 refPropName: baseModule, keyProp: {rel.keyProp}
      */
     public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynModule> getDerivedModules(){
        return _derivedModules;
@@ -679,10 +829,20 @@ public class _NopDynModule extends DynamicOrmEntity{
         io.nop.dyn.dao.entity.NopDynPage.PROP_NAME_module, null,io.nop.dyn.dao.entity.NopDynPage.class);
 
     /**
-     * 。 refPropName: module, keyProp: {rel.keyProp}
+     * 模块页面。 refPropName: module, keyProp: {rel.keyProp}
      */
     public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPage> getPages(){
        return _pages;
+    }
+       
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityMeta> _entityMetas = new OrmEntitySet<>(this, PROP_NAME_entityMetas,
+        io.nop.dyn.dao.entity.NopDynEntityMeta.PROP_NAME_module, null,io.nop.dyn.dao.entity.NopDynEntityMeta.class);
+
+    /**
+     * 模块实体定义。 refPropName: module, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityMeta> getEntityMetas(){
+       return _entityMetas;
     }
        
         public List<io.nop.dyn.dao.entity.NopDynApp> getRelatedAppList(){

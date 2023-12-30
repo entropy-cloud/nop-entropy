@@ -2,6 +2,7 @@ entity:
   label:
     NopDynApp: App Definition
     NopDynAppModule: App Module Mapping
+    NopDynDomain: Domain
     NopDynEntity: Dynamic Entity
     NopDynEntityMeta: Entity Meta
     NopDynModule: Module Definition
@@ -36,6 +37,22 @@ prop:
       app.displayName: App
       module: Module
       module.displayName: Module
+    NopDynDomain:
+      domainId: Domain ID
+      domainName: Domain Name
+      displayName: Display Name
+      stdDomainName: Std Domain Name
+      stdDomainName_label: null
+      stdSqlType: Std Sql Type
+      stdSqlType_label: null
+      length: Length
+      scale: Scale
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
     NopDynEntity:
       sid: SID
       objType: Object Type
@@ -79,8 +96,11 @@ prop:
       moduleId: Module ID
       entityName: Entity Name
       displayName: Display Name
+      tableName: TableName
+      bizObjName: BizObjName
       storeType: Store Type
       storeType_label: null
+      tagSet: Tag Set
       metaContent: Meta Content
       status: Status
       status_label: null
@@ -97,8 +117,11 @@ prop:
     NopDynModule:
       moduleId: Module ID
       moduleName: Module Name
+      moduleVersion: Module Version
       displayName: Display Name
       baseModuleId: Base Module ID
+      basePackageName: Base Package Name
+      mavenGroupId: Maven Group Id
       status: Status
       status_label: null
       version: Version
@@ -108,9 +131,10 @@ prop:
       updateTime: Update Time
       baseModule: Base Module
       baseModule.displayName: Base Module
-      derivedModules: null
+      derivedModules: Derived Modules
       appMappings: null
-      pages: null
+      pages: Module Pages
+      entityMetas: Entity Metas
       relatedAppList: App List
       relatedAppIdList: App List
       relatedAppList_label: App List
@@ -124,8 +148,6 @@ prop:
       pageContent: Page Content
       status: Status
       status_label: null
-      ownerId: Owner ID
-      ownerName: Owner Name
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -146,8 +168,8 @@ prop:
       scale: Scale
       uiShow: UI Show
       uiControl: UI Control
-      stdDomain: Std Domain
-      stdDomain_label: null
+      domainId: Domain ID
+      domainId_label: null
       dictName: Dict Name
       dynFieldMapping: Dynamic Field Mapping
       tagSet: Tag Set
@@ -165,3 +187,4 @@ prop:
       remark: Remark
       entityMeta: Module
       entityMeta.entityName: Module
+      domain: Domain

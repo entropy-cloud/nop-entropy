@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="菜单资源" i18n-en:displayName="Menu Resource" xmlns:ui="ui">
+      displayName="菜单资源" i18n-en:displayName="Menu Resource" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.auth.dao.entity.NopAuthResource</entityName>
 
@@ -165,8 +165,8 @@
         </prop>
         <prop name="roleMappings" displayName="角色映射" i18n-en:displayName="Roles"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="resourceId" ext:joinRightProp="resourceId" insertable="true" updatable="true"
-              lazy="true">
+              ext:joinLeftProp="resourceId" ext:joinRightProp="resourceId" orm:manyToManyRefProp="sid" insertable="true"
+              updatable="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRoleResource"/>
             </schema>

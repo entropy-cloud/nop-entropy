@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="规则模型定义" i18n-en:displayName="Rule Definition" xmlns:ui="ui">
+      displayName="规则模型定义" i18n-en:displayName="Rule Definition" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.rule.dao.entity.NopRuleDefinition</entityName>
 

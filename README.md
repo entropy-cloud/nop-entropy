@@ -240,7 +240,7 @@ nop-entropy不依赖于spring或者quarkus框架，也不依赖于特定数据�
 
 #### 开源协议
 
-Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但是中小企业可以在类似Apache2.0协议的条件下使用本项目的代码（可以免费商用，修改代码无需开源，但是要保留源码中的原始版权信息）。为了方便第三方集成，nop-api-support/nop-commons/nop-core这三个包采用Apache
+Nop平台的前端采用MIT协议，后端整体采用AGPL3.0开源协议。但是国内的中小企业可以在类似Apache2.0协议的条件下使用本项目的代码（可以免费商用，修改代码无需开源，但是要保留源码中的原始版权信息）。为了方便第三方集成，nop-api-support/nop-commons/nop-core这三个包采用Apache
 2.0协议。
 
 * 判断是否中小企业的算法如下:

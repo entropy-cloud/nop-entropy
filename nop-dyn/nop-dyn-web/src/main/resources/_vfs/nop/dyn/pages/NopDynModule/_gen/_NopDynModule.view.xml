@@ -13,11 +13,20 @@
                 <!--模块名-->
                 <col id="moduleName" mandatory="true" sortable="true"/>
 
+                <!--模块版本-->
+                <col id="moduleVersion" mandatory="true" sortable="true"/>
+
                 <!--显示名-->
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--基础模块ID-->
                 <col id="baseModuleId" sortable="true"/>
+
+                <!--Java包名-->
+                <col id="basePackageName" sortable="true"/>
+
+                <!--Maven组名-->
+                <col id="mavenGroupId" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" sortable="true"/>
@@ -41,22 +50,23 @@
     <forms>
         <form id="view" editMode="view" title="查看-模块定义" i18n-en:title="View Module Definition">
             <layout>
- moduleName[模块名]
- displayName[显示名]
- baseModuleId[基础模块ID]
- status[状态]
- createdBy[创建人]
- createTime[创建时间]
- updatedBy[修改人]
- updateTime[修改时间]
+ moduleName[模块名] moduleVersion[模块版本]
+ displayName[显示名] baseModuleId[基础模块ID]
+ basePackageName[Java包名] mavenGroupId[Maven组名]
+ status[状态] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-模块定义" i18n-en:title="Add Module Definition" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-模块定义" i18n-en:title="Edit Module Definition">
             <layout>
  moduleName[模块名]
+ moduleVersion[模块版本]
  displayName[显示名]
  baseModuleId[基础模块ID]
+ basePackageName[Java包名]
+ mavenGroupId[Maven组名]
  status[状态]
 </layout>
         </form>

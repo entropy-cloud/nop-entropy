@@ -807,6 +807,6 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitCustomExpression(CustomExpression node) {
-        super.visitCustomExpression(node);
+        print(node.getSource());
     }
 }

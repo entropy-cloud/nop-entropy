@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="属性元数据" i18n-en:displayName="Property Meta" xmlns:ui="ui">
+      displayName="属性元数据" i18n-en:displayName="Property Meta" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.dyn.dao.entity.NopDynPropMeta</entityName>
 
@@ -40,12 +40,12 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="core/std-sql-type"/>
         </prop>
-        <prop name="length" displayName="长度" i18n-en:displayName="Length" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="length" displayName="长度" i18n-en:displayName="Length" queryable="true" sortable="true"
+              insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="scale" displayName="小数位数" i18n-en:displayName="Scale" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true" defaultValue="0">
+        <prop name="scale" displayName="小数位数" i18n-en:displayName="Scale" queryable="true" sortable="true"
+              insertable="true" updatable="true" defaultValue="0">
             <schema type="java.lang.Integer"/>
         </prop>
         <prop name="uiShow" displayName="显示控制" i18n-en:displayName="UI Show" queryable="true" sortable="true"
@@ -56,9 +56,9 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="stdDomain" displayName="标准域" i18n-en:displayName="Std Domain" queryable="true" sortable="true"
-              insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="50" dict="core/std-domain"/>
+        <prop name="domainId" displayName="数据域ID" i18n-en:displayName="Domain ID" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="domain">
+            <schema type="java.lang.String" precision="32" dict="obj/NopDynDomain"/>
         </prop>
         <prop name="dictName" displayName="数据字典" i18n-en:displayName="Dict Name" queryable="true" sortable="true"
               insertable="true" updatable="true">
@@ -125,6 +125,11 @@
         <prop name="entityMeta.entityName" displayName="所属模块" i18n-en:displayName="Module" internal="true"
               queryable="true" sortable="true" lazy="true">
             <schema type="String"/>
+        </prop>
+        <prop name="domain" displayName="数据域" i18n-en:displayName="Domain" tagSet="pub,ref-pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="domainId" ext:joinRightProp="domainId"
+              insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="NopDynDomain"/>
         </prop>
     </props>
 </meta>

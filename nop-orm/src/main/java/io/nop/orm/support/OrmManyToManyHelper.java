@@ -11,6 +11,7 @@ import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.model.IColumnModel;
+import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
 
@@ -54,7 +55,7 @@ public class OrmManyToManyHelper {
             return relatedObjProp.getRefEntityName();
         }
 
-        public IEntityModel getRelatedEntityModel(){
+        public IEntityModel getRelatedEntityModel() {
             return relatedObjProp.getRefEntityModel();
         }
 
@@ -84,14 +85,14 @@ public class OrmManyToManyHelper {
         }
 
         public String getRelatedObjPropName_label() {
-            if(getDispColName() == null)
+            if (getDispColName() == null)
                 return null;
             String name = getRelatedObjPropName();
             return name == null ? null : name + "_label";
         }
 
-        public String getRelatedObjListPropName_label(){
-            if(getDispColName() == null)
+        public String getRelatedObjListPropName_label() {
+            if (getDispColName() == null)
                 return null;
             String name = getRelatedObjListPropName();
             return name == null ? null : name + "_label";
@@ -112,6 +113,39 @@ public class OrmManyToManyHelper {
             return propName == null ? null : propName + "List";
         }
     }
+
+    public static class RefMappingInfo {
+        private final IEntityRelationModel relationModel;
+
+        public RefMappingInfo(IEntityRelationModel relationModel) {
+            this.relationModel = relationModel;
+        }
+
+        public String getManyToManyRefProp() {
+            IEntityJoinConditionModel join = relationModel.getSingleColumnJoin();
+            if (join == null)
+                return null;
+
+            IEntityModel refEntityModel = relationModel.getRefEntityModel();
+            for (IColumnModel col : refEntityModel.getPkColumns()) {
+                if (!col.getName().equals(join.getRightProp()))
+                    return col.getName();
+            }
+            return null;
+        }
+    }
+
+    public static RefMappingInfo getRefMappingInfo(IEntityRelationModel propModel) {
+        if (!propModel.isToManyRelation())
+            return null;
+
+        IEntityModel refEntityModel = propModel.getRefEntityModel();
+        if (!refEntityModel.containsTag(OrmConstants.TAG_MANY_TO_MANY))
+            return null;
+
+        return new RefMappingInfo(propModel);
+    }
+
 
     public static RefPropInfo getRefManyPropInfo(IEntityRelationModel propModel) {
         if (!propModel.isToManyRelation())

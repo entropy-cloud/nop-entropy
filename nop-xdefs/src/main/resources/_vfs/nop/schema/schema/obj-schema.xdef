@@ -12,7 +12,7 @@
         minProperties="int" maxProperties="int" supportExtends="boolean"
         uniqueProp="string" xdef:check-ns="graphql,ui,biz"
 
-        x:schema="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:graphql="graphql" xmlns:biz="biz"
+        x:schema="/nop/schema/xdef.xdef" xmlns:ui="ui" xmlns:graphql="graphql" xmlns:biz="biz" xmlns:orm="orm"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
     <props xdef:body-type="list" xdef:key-attr="name">
@@ -51,7 +51,7 @@
               ui:editGrid="string" ui:viewGrid="string" ui:maskPattern="string"
               xml:mapper="string" graphql:mapper="string" biz:codeRule="string"
               graphql:type="string" graphql:jsonComponentProp="string" graphql:dictValueProp="prop-path"
-              graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set"
+              graphql:joinLeftProps="word-set" graphql:joinRightProps="word-set" orm:manyToManyRefProp="string"
               graphql:connectionProp="prop-name" graphql:findFirst="boolean" graphql:maxFetchSize="int"
         >
             <description xdef:value="string"/>

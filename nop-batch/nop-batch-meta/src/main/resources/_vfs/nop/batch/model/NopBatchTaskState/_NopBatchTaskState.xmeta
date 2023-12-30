@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="批处理任务状态变量" i18n-en:displayName="Batch Task State" tagSet="no-web,kvTable" xmlns:ui="ui">
+      displayName="批处理任务状态变量" i18n-en:displayName="Batch Task State" tagSet="no-web,kvTable" xmlns:ui="ui"
+      xmlns:orm="orm">
 
     <entityName>io.nop.batch.dao.entity.NopBatchTaskState</entityName>
 
