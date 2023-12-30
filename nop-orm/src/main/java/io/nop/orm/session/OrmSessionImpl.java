@@ -36,8 +36,10 @@ import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.loader.IOrmBatchLoadQueueImplementor;
 import io.nop.orm.loader.IQueryExecutor;
 import io.nop.orm.loader.OrmBatchLoadQueueImpl;
+import io.nop.orm.model.IComputePropModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityPropModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.persister.IBatchActionQueue;
 import io.nop.orm.persister.ICollectionPersister;
@@ -1082,7 +1084,13 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public Object internalCompute(IOrmEntity entity, String propName, Map<String, Object> args) {
-        throw newError(ERR_ORM_NOT_SUPPORT_COMPUTE, entity).param(ARG_PROP_NAME, propName);
+        IEntityModel entityModel = entity.orm_entityModel();
+        IEntityPropModel propModel = entityModel.getProp(propName, false);
+        if (!(propModel instanceof IComputePropModel))
+            throw newError(ERR_ORM_NOT_SUPPORT_COMPUTE, entity).param(ARG_PROP_NAME, propName);
+
+        IComputePropModel computeModel = (IComputePropModel) propModel;
+        return computeModel.computeValue(entity, args);
     }
 
     @Override

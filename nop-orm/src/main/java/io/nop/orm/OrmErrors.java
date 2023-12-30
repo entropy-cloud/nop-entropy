@@ -20,6 +20,8 @@ public interface OrmErrors {
     String ARG_ENTITY_ID = "entityId";
     String ARG_PROP_NAME = "propName";
 
+    String ARG_ARG_NAME = "argName";
+
     String ARG_ELM_OWNER = "elmOwner";
 
     String ARG_TAG = "tag";

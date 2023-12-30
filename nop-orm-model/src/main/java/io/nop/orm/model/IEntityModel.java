@@ -154,6 +154,10 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     IEntityPropModel getProp(String propName, boolean ignoreUnknown);
 
+    default IEntityPropModel requireProp(String propName) {
+        return getProp(propName, false);
+    }
+
     Map<String, IEntityPropModel> getAllProps();
 
     /**
