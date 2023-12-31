@@ -429,5 +429,6 @@
         <module>tests</module>
         <module>nop-oauth</module>
         <module>nop-dyn</module>
+        <module>nop-gpt</module>
     </modules>
 </project>
