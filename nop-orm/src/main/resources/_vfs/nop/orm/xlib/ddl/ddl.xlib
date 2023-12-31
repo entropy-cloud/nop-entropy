@@ -61,6 +61,16 @@
                     <c:unit><![CDATA[,
  ]]></c:unit>
                 </c:for>
+                <c:for var="uniqueKey" items="${table.uniqueKeys}">
+                    <c:if test="${uniqueKey.constraint}">
+                        <c:script>
+                            let columns = uniqueKey.columns.map(col => table.getColumn(col).code)
+                        </c:script>
+                        <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
+                        columns.join(',')}),
+ ]]></c:unit>
+                    </c:if>
+                </c:for>
                 <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${
                 table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})
 ]]></c:unit>
