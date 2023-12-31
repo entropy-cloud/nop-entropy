@@ -152,5 +152,11 @@
                 <column name="delFlag" code="DEL_FLAG" stdSqlType="TINYINT" propId="20" mandatory="true"/>
             </columns>
         </entity>
+
+        <entity name="io.nop.app.SimsInstruct">
+            <unique-keys>
+                <unique-key columns="classId,lessonId,teacherId" constraint="UK_SIMS_INSTRUCT" name="simsInstructKey"/>
+            </unique-keys>
+        </entity>
     </entities>
 </orm>
