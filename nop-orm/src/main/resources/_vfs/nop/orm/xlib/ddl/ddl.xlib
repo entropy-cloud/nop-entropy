@@ -61,7 +61,7 @@
                     <c:unit><![CDATA[,
  ]]></c:unit>
                 </c:for>
-                <thisLib:TableUniqueContraints/>
+                <thisLib:TableUniqueConstraints/>
                 <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${
                 table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})
 ]]></c:unit>
@@ -69,7 +69,7 @@
             </source>
         </CreateTable>
 
-        <TableUniqueContaints>
+        <TableUniqueConstraints outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel" implicit="true"/>
             <attr name="dialect" type="io.nop.dao.dialect.IDialect" implicit="true"/>
             <source>
@@ -84,7 +84,7 @@
                     </c:if>
                 </c:for>
             </source>
-        </TableUniqueContaints>
+        </TableUniqueConstraints>
 
         <DropTable outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
