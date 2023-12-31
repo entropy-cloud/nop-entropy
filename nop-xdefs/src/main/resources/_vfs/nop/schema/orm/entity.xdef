@@ -39,9 +39,11 @@
         maxBatchLoadSize="int" checkVersionWhenLazyLoad="!boolean=true"
         labelProp="string" stateProp="var-name"
         entityModeEnabled="!boolean=false" dimensionalType="string"
+        biz:moduleId="string"
         xdef:default-extends="/nop/core/defaults/default.entity.xml"
         xdef:name="OrmEntityModel" xdef:bean-package="io.nop.orm.model"
-        x:schema="/nop/schema/xdef.xdef"
+        x:schema="/nop/schema/xdef.xdef" xdef:check-ns="ui,biz"
+        xmlns:ui="ui" xmlns:biz="biz"
         xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
 >
     <!-- 当实体实际对应数据库视图时，这里为视图的定义SQL语句 -->
@@ -77,6 +79,7 @@
                 primary="!boolean=false" fixedValue="string"
                 lazy="!boolean=false" sqlText="string" defaultValue="string"
                 comment="string" uiHint="string" notGenCode="!boolean=false"
+                ui:show="string" ui:control="string" ui:rootLevel="string"
                 tagSet="tag-set" mandatory="!boolean=false" xdef:name="OrmColumnModel">
         </column>
     </columns>
@@ -96,7 +99,7 @@
         compute的结果不会被自动缓存，每次访问都会重新计算。
         -->
         <compute name="!prop-name" displayName="string" type="generic-type" notGenCode="!boolean=false"
-                 xdef:name="OrmComputePropModel" tagSet="tag-set">
+                 xdef:name="OrmComputePropModel" tagSet="tag-set" ui:control="string">
             <args xdef:body-type="list" xdef:key-attr="name">
                 <arg name="!prop-name" displayName="string" type="!generic-type" xdef:name="OrmComputeArgModel"/>
             </args>
@@ -116,6 +119,7 @@
     <xdef:define xdef:name="OrmReferenceModel" name="!prop-name" displayName="string" persistDriver="string"
                  refEntityName="!class-name" refPropName="prop-name" refDisplayName="string"
                  queryable="!boolean=true" maxBatchLoadSize="int"
+                 ui:control="string"
                  tagSet="tag-set" embedded="!boolean=false" notGenCode="!boolean=false"
                  cascadeDelete="!boolean=false" autoCascadeDelete="!boolean=false" xdef:bean-tag-prop="type"
     >

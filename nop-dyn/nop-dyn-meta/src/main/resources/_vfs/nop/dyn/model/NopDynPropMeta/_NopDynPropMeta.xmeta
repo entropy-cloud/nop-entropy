@@ -24,6 +24,18 @@
               queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
+        <prop name="entityMetaId" displayName="实体定义ID" i18n-en:displayName="Entity Meta ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="entityMeta">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="isPrimary" displayName="是否主键" i18n-en:displayName="Is Primary" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="isMandatory" displayName="是否非空" i18n-en:displayName="Is Mandatory" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
         <prop name="propName" displayName="属性名" i18n-en:displayName="Property Name" tagSet="disp" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
@@ -32,15 +44,11 @@
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="entityMetaId" displayName="实体定义ID" i18n-en:displayName="Entity Meta ID" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="entityMeta">
-            <schema type="java.lang.String" precision="32"/>
-        </prop>
         <prop name="stdSqlType" displayName="标准SQL数据类型" i18n-en:displayName="Std Sql Type" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="core/std-sql-type"/>
         </prop>
-        <prop name="length" displayName="长度" i18n-en:displayName="Length" queryable="true" sortable="true"
+        <prop name="precision" displayName="长度" i18n-en:displayName="PRECISION" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
@@ -60,17 +68,25 @@
               insertable="true" updatable="true" ext:relation="domain">
             <schema type="java.lang.String" precision="32" dict="obj/NopDynDomain"/>
         </prop>
+        <prop name="stdDomainName" displayName="标准域" i18n-en:displayName="Std Domain Name" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50" dict="core/std-domain"/>
+        </prop>
         <prop name="dictName" displayName="数据字典" i18n-en:displayName="Dict Name" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="dynFieldMapping" displayName="动态字段映射" i18n-en:displayName="Dynamic Field Mapping" queryable="true"
+        <prop name="dynPropMapping" displayName="动态字段映射" i18n-en:displayName="Dynamic Property Mapping" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="tagSet" displayName="标签" i18n-en:displayName="Tag Set" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="defaultValue" displayName="缺省值" i18n-en:displayName="Default Value" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="refEntityName" displayName="关联实体名" i18n-en:displayName="Ref Entity Name" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -87,6 +103,10 @@
         <prop name="refTagSet" displayName="关联属性标签" i18n-en:displayName="Ref Tag Set" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="extConfig" displayName="扩展配置" i18n-en:displayName="Ext Config" queryable="true" sortable="true"
+              insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
+            <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -130,6 +150,10 @@
               internal="true" queryable="true" ext:joinLeftProp="domainId" ext:joinRightProp="domainId"
               insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopDynDomain"/>
+        </prop>
+        <prop name="extConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+              updatable="true" lazy="true">
+            <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
     </props>
 </meta>

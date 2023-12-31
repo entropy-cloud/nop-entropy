@@ -285,6 +285,11 @@
                         <field name="domain" displayName="数据域">
                             <schema stdDomain="xml-name"/>
                         </field>
+
+                        <field name="stdDomain" displayName="标准域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+
                         <field name="stdSqlType" displayName="类型" mandatory="true">
                             <schema stdDomain="std-sql-type"/>
                         </field>
@@ -316,7 +321,7 @@
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="ext:rootLevel" displayName="根节点级别">
+                        <field name="ui:rootLevel" displayName="根节点级别">
                             <schema stdDomain="string"/>
                         </field>
 

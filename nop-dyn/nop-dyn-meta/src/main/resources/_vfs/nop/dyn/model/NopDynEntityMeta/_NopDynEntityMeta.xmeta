@@ -41,7 +41,7 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="bizObjName" displayName="对象名" i18n-en:displayName="BizObjName" queryable="true" sortable="true"
+        <prop name="querySpace" displayName="查询空间" i18n-en:displayName="Query Space" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
@@ -53,14 +53,13 @@
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="metaContent" displayName="元数据内容" i18n-en:displayName="Meta Content" tagSet="content"
-              queryable="true" sortable="true" insertable="true" updatable="true" internal="true"
-              graphql:jsonComponentProp="metaContentComponent" ui:show="X">
-            <schema stdDomain="json" domain="json-16M" type="java.lang.String" precision="16777216"/>
-        </prop>
         <prop name="status" displayName="状态" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="core/active-status"/>
+        </prop>
+        <prop name="extConfig" displayName="扩展配置" i18n-en:displayName="Ext Config" queryable="true" sortable="true"
+              insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">
+            <schema stdDomain="json" domain="json-1000" type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="version" displayName="数据版本" i18n-en:displayName="Version" mandatory="true" queryable="true"
               sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
@@ -103,7 +102,7 @@
                 <item bizObjName="NopDynPropMeta"/>
             </schema>
         </prop>
-        <prop name="metaContentComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
+        <prop name="extConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>

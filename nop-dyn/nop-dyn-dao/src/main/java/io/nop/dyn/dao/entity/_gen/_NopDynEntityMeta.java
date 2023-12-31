@@ -40,9 +40,9 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_tableName = "tableName";
     public static final int PROP_ID_tableName = 5;
     
-    /* 对象名: BIZ_OBJ_NAME VARCHAR */
-    public static final String PROP_NAME_bizObjName = "bizObjName";
-    public static final int PROP_ID_bizObjName = 6;
+    /* 查询空间: QUERY_SPACE VARCHAR */
+    public static final String PROP_NAME_querySpace = "querySpace";
+    public static final int PROP_ID_querySpace = 6;
     
     /* 存储类型: STORE_TYPE INTEGER */
     public static final String PROP_NAME_storeType = "storeType";
@@ -52,13 +52,13 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_tagSet = "tagSet";
     public static final int PROP_ID_tagSet = 8;
     
-    /* 元数据内容: META_CONTENT VARCHAR */
-    public static final String PROP_NAME_metaContent = "metaContent";
-    public static final int PROP_ID_metaContent = 9;
-    
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 10;
+    public static final int PROP_ID_status = 9;
+    
+    /* 扩展配置: EXT_CONFIG VARCHAR */
+    public static final String PROP_NAME_extConfig = "extConfig";
+    public static final int PROP_ID_extConfig = 10;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
@@ -95,7 +95,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_propMetas = "propMetas";
     
     /* component:  */
-    public static final String PROP_NAME_metaContentComponent = "metaContentComponent";
+    public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_entityMetaId);
@@ -120,8 +120,8 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_tableName] = PROP_NAME_tableName;
           PROP_NAME_TO_ID.put(PROP_NAME_tableName, PROP_ID_tableName);
       
-          PROP_ID_TO_NAME[PROP_ID_bizObjName] = PROP_NAME_bizObjName;
-          PROP_NAME_TO_ID.put(PROP_NAME_bizObjName, PROP_ID_bizObjName);
+          PROP_ID_TO_NAME[PROP_ID_querySpace] = PROP_NAME_querySpace;
+          PROP_NAME_TO_ID.put(PROP_NAME_querySpace, PROP_ID_querySpace);
       
           PROP_ID_TO_NAME[PROP_ID_storeType] = PROP_NAME_storeType;
           PROP_NAME_TO_ID.put(PROP_NAME_storeType, PROP_ID_storeType);
@@ -129,11 +129,11 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
           PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
       
-          PROP_ID_TO_NAME[PROP_ID_metaContent] = PROP_NAME_metaContent;
-          PROP_NAME_TO_ID.put(PROP_NAME_metaContent, PROP_ID_metaContent);
-      
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
+      
+          PROP_ID_TO_NAME[PROP_ID_extConfig] = PROP_NAME_extConfig;
+          PROP_NAME_TO_ID.put(PROP_NAME_extConfig, PROP_ID_extConfig);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -171,8 +171,8 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /* 表名: TABLE_NAME */
     private java.lang.String _tableName;
     
-    /* 对象名: BIZ_OBJ_NAME */
-    private java.lang.String _bizObjName;
+    /* 查询空间: QUERY_SPACE */
+    private java.lang.String _querySpace;
     
     /* 存储类型: STORE_TYPE */
     private java.lang.Integer _storeType;
@@ -180,11 +180,11 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /* 标签: TAG_SET */
     private java.lang.String _tagSet;
     
-    /* 元数据内容: META_CONTENT */
-    private java.lang.String _metaContent;
-    
     /* 状态: STATUS */
     private java.lang.Integer _status;
+    
+    /* 扩展配置: EXT_CONFIG */
+    private java.lang.String _extConfig;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -290,8 +290,8 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
             case PROP_ID_tableName:
                return getTableName();
         
-            case PROP_ID_bizObjName:
-               return getBizObjName();
+            case PROP_ID_querySpace:
+               return getQuerySpace();
         
             case PROP_ID_storeType:
                return getStoreType();
@@ -299,11 +299,11 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
             case PROP_ID_tagSet:
                return getTagSet();
         
-            case PROP_ID_metaContent:
-               return getMetaContent();
-        
             case PROP_ID_status:
                return getStatus();
+        
+            case PROP_ID_extConfig:
+               return getExtConfig();
         
             case PROP_ID_version:
                return getVersion();
@@ -384,13 +384,13 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_bizObjName:{
+            case PROP_ID_querySpace:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_bizObjName));
+                       err-> newTypeConversionError(PROP_NAME_querySpace));
                }
-               setBizObjName(typedValue);
+               setQuerySpace(typedValue);
                break;
             }
         
@@ -414,16 +414,6 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_metaContent:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_metaContent));
-               }
-               setMetaContent(typedValue);
-               break;
-            }
-        
             case PROP_ID_status:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -431,6 +421,16 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_status));
                }
                setStatus(typedValue);
+               break;
+            }
+        
+            case PROP_ID_extConfig:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_extConfig));
+               }
+               setExtConfig(typedValue);
                break;
             }
         
@@ -538,9 +538,9 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_bizObjName:{
+            case PROP_ID_querySpace:{
                onInitProp(propId);
-               this._bizObjName = (java.lang.String)value;
+               this._querySpace = (java.lang.String)value;
                
                break;
             }
@@ -559,16 +559,16 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_metaContent:{
+            case PROP_ID_status:{
                onInitProp(propId);
-               this._metaContent = (java.lang.String)value;
+               this._status = (java.lang.Integer)value;
                
                break;
             }
         
-            case PROP_ID_status:{
+            case PROP_ID_extConfig:{
                onInitProp(propId);
-               this._status = (java.lang.Integer)value;
+               this._extConfig = (java.lang.String)value;
                
                break;
             }
@@ -717,20 +717,20 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 对象名: BIZ_OBJ_NAME
+     * 查询空间: QUERY_SPACE
      */
-    public java.lang.String getBizObjName(){
-         onPropGet(PROP_ID_bizObjName);
-         return _bizObjName;
+    public java.lang.String getQuerySpace(){
+         onPropGet(PROP_ID_querySpace);
+         return _querySpace;
     }
 
     /**
-     * 对象名: BIZ_OBJ_NAME
+     * 查询空间: QUERY_SPACE
      */
-    public void setBizObjName(java.lang.String value){
-        if(onPropSet(PROP_ID_bizObjName,value)){
-            this._bizObjName = value;
-            internalClearRefs(PROP_ID_bizObjName);
+    public void setQuerySpace(java.lang.String value){
+        if(onPropSet(PROP_ID_querySpace,value)){
+            this._querySpace = value;
+            internalClearRefs(PROP_ID_querySpace);
             
         }
     }
@@ -774,25 +774,6 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 元数据内容: META_CONTENT
-     */
-    public java.lang.String getMetaContent(){
-         onPropGet(PROP_ID_metaContent);
-         return _metaContent;
-    }
-
-    /**
-     * 元数据内容: META_CONTENT
-     */
-    public void setMetaContent(java.lang.String value){
-        if(onPropSet(PROP_ID_metaContent,value)){
-            this._metaContent = value;
-            internalClearRefs(PROP_ID_metaContent);
-            
-        }
-    }
-    
-    /**
      * 状态: STATUS
      */
     public java.lang.Integer getStatus(){
@@ -807,6 +788,25 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
+            
+        }
+    }
+    
+    /**
+     * 扩展配置: EXT_CONFIG
+     */
+    public java.lang.String getExtConfig(){
+         onPropGet(PROP_ID_extConfig);
+         return _extConfig;
+    }
+
+    /**
+     * 扩展配置: EXT_CONFIG
+     */
+    public void setExtConfig(java.lang.String value){
+        if(onPropSet(PROP_ID_extConfig,value)){
+            this._extConfig = value;
+            internalClearRefs(PROP_ID_extConfig);
             
         }
     }
@@ -956,21 +956,21 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
        return _propMetas;
     }
        
-   private io.nop.orm.component.JsonOrmComponent _metaContentComponent;
+   private io.nop.orm.component.JsonOrmComponent _extConfigComponent;
 
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_metaContentComponent = new HashMap<>();
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_extConfigComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_metaContentComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_metaContent);
+         COMPONENT_PROP_ID_MAP_extConfigComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_extConfig);
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getMetaContentComponent(){
-      if(_metaContentComponent == null){
-          _metaContentComponent = new io.nop.orm.component.JsonOrmComponent();
-          _metaContentComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_metaContentComponent);
+   public io.nop.orm.component.JsonOrmComponent getExtConfigComponent(){
+      if(_extConfigComponent == null){
+          _extConfigComponent = new io.nop.orm.component.JsonOrmComponent();
+          _extConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_extConfigComponent);
       }
-      return _metaContentComponent;
+      return _extConfigComponent;
    }
 
 }

@@ -5,6 +5,8 @@ entity:
     NopDynDomain: 数据域
     NopDynEntity: 动态实体
     NopDynEntityMeta: 实体元数据
+    NopDynEntityRelation: 实体关联
+    NopDynEntityRelationMeta: 实体关联元数据
     NopDynModule: 模块定义
     NopDynPage: 页面定义
     NopDynPropMeta: 属性元数据
@@ -43,7 +45,7 @@ prop:
       displayName: 显示名
       domainId: 数据域ID
       domainName: 数据域名称
-      length: 长度
+      precision: 长度
       remark: 备注
       scale: 小数位数
       stdDomainName: 标准域
@@ -92,24 +94,60 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopDynEntityMeta:
-      bizObjName: 对象名
       createTime: 创建时间
       createdBy: 创建人
       displayName: 显示名
       entityMetaId: 实体定义ID
       entityName: 实体名
-      metaContent: 元数据内容
-      metaContentComponent: null
+      extConfig: 扩展配置
+      extConfigComponent: null
       module: 所属模块
       module.displayName: 所属模块
       moduleId: 模块ID
       propMetas: null
+      querySpace: 查询空间
       remark: 备注
       status: 状态
       status_label: 状态
       storeType: 存储类型
       storeType_label: 存储类型
       tableName: 表名
+      tagSet: 标签
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynEntityRelation:
+      createTime: 创建时间
+      createdBy: 创建人
+      entityId1: 实体ID1
+      entityId2: 实体ID2
+      entityName1: 实体名称1
+      entityName2: 实体名称2
+      relationName: 关联名称
+      remark: 备注
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynEntityRelationMeta:
+      createTime: 创建时间
+      createdBy: 创建人
+      entity1DisplayName: 实体1上属性显示名
+      entity1MetaId: 实体1元数据
+      entity1PropName: 实体1上属性名
+      entity2DisplayName: 实体2上属性显示名
+      entity2MetaId: 实体2元数据
+      entity2PropName: 实体2上属性名
+      entityMeta1: 关联实体1元数据
+      entityMeta1.entityName: 关联实体1元数据
+      entityMeta2: 关联实体2元数据
+      entityMeta2.entityName: 关联实体2元数据
+      extConfig: 扩展配置
+      extConfigComponent: null
+      relMetaId: 关联定义ID
+      relationName: 关联名
+      remark: 备注
+      status: 状态
       tagSet: 标签
       updateTime: 修改时间
       updatedBy: 修改人
@@ -160,16 +198,21 @@ prop:
     NopDynPropMeta:
       createTime: 创建时间
       createdBy: 创建人
+      defaultValue: 缺省值
       dictName: 数据字典
       displayName: 显示名
       domain: 数据域
       domainId: 数据域ID
       domainId_label: 数据域ID
-      dynFieldMapping: 动态字段映射
+      dynPropMapping: 动态字段映射
       entityMeta: 所属模块
       entityMeta.entityName: 所属模块
       entityMetaId: 实体定义ID
-      length: 长度
+      extConfig: 扩展配置
+      extConfigComponent: null
+      isMandatory: 是否非空
+      isPrimary: 是否主键
+      precision: 长度
       propMetaId: 属性定义ID
       propName: 属性名
       refEntityName: 关联实体名
@@ -180,6 +223,8 @@ prop:
       scale: 小数位数
       status: 状态
       status_label: 状态
+      stdDomainName: 标准域
+      stdDomainName_label: 标准域
       stdSqlType: 标准SQL数据类型
       stdSqlType_label: 标准SQL数据类型
       tagSet: 标签

@@ -2,6 +2,8 @@
 
 #### 介绍
 
+[可逆计算：下一代软件构造理论](https://zhuanlan.zhihu.com/p/64004026)
+
 **Nop is nOt Programming(非编程)**
 
 Nop Platform 2. 0 is a new generation of low-code platform based on the theory of reversible computation.

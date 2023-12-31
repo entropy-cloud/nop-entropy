@@ -4,13 +4,13 @@
   "entityName": "",
   "displayName": "",
   "tableName": "",
-  "bizObjName": "",
+  "querySpace": "",
   "storeType": 0,
   "storeType_label": "",
   "tagSet": "",
-  "metaContent": "",
   "status": 0,
   "status_label": "",
+  "extConfig": "",
   "version": 0,
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",
@@ -20,5 +20,5 @@
   "module": null,
   "module.displayName": "",
   "propMetas": null,
-  "metaContentComponent": null
+  "extConfigComponent": null
 }

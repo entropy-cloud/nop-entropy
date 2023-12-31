@@ -40,9 +40,9 @@ public class _NopDynDomain extends DynamicOrmEntity{
     public static final String PROP_NAME_stdSqlType = "stdSqlType";
     public static final int PROP_ID_stdSqlType = 5;
     
-    /* 长度: LENGTH INTEGER */
-    public static final String PROP_NAME_length = "length";
-    public static final int PROP_ID_length = 6;
+    /* 长度: PRECISION INTEGER */
+    public static final String PROP_NAME_precision = "precision";
+    public static final int PROP_ID_precision = 6;
     
     /* 小数位数: SCALE INTEGER */
     public static final String PROP_NAME_scale = "scale";
@@ -99,8 +99,8 @@ public class _NopDynDomain extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_stdSqlType] = PROP_NAME_stdSqlType;
           PROP_NAME_TO_ID.put(PROP_NAME_stdSqlType, PROP_ID_stdSqlType);
       
-          PROP_ID_TO_NAME[PROP_ID_length] = PROP_NAME_length;
-          PROP_NAME_TO_ID.put(PROP_NAME_length, PROP_ID_length);
+          PROP_ID_TO_NAME[PROP_ID_precision] = PROP_NAME_precision;
+          PROP_NAME_TO_ID.put(PROP_NAME_precision, PROP_ID_precision);
       
           PROP_ID_TO_NAME[PROP_ID_scale] = PROP_NAME_scale;
           PROP_NAME_TO_ID.put(PROP_NAME_scale, PROP_ID_scale);
@@ -141,8 +141,8 @@ public class _NopDynDomain extends DynamicOrmEntity{
     /* 标准SQL数据类型: STD_SQL_TYPE */
     private java.lang.String _stdSqlType;
     
-    /* 长度: LENGTH */
-    private java.lang.Integer _length;
+    /* 长度: PRECISION */
+    private java.lang.Integer _precision;
     
     /* 小数位数: SCALE */
     private java.lang.Integer _scale;
@@ -251,8 +251,8 @@ public class _NopDynDomain extends DynamicOrmEntity{
             case PROP_ID_stdSqlType:
                return getStdSqlType();
         
-            case PROP_ID_length:
-               return getLength();
+            case PROP_ID_precision:
+               return getPrecision();
         
             case PROP_ID_scale:
                return getScale();
@@ -336,13 +336,13 @@ public class _NopDynDomain extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_length:{
+            case PROP_ID_precision:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_length));
+                       err-> newTypeConversionError(PROP_NAME_precision));
                }
-               setLength(typedValue);
+               setPrecision(typedValue);
                break;
             }
         
@@ -460,9 +460,9 @@ public class _NopDynDomain extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_length:{
+            case PROP_ID_precision:{
                onInitProp(propId);
-               this._length = (java.lang.Integer)value;
+               this._precision = (java.lang.Integer)value;
                
                break;
             }
@@ -618,20 +618,20 @@ public class _NopDynDomain extends DynamicOrmEntity{
     }
     
     /**
-     * 长度: LENGTH
+     * 长度: PRECISION
      */
-    public java.lang.Integer getLength(){
-         onPropGet(PROP_ID_length);
-         return _length;
+    public java.lang.Integer getPrecision(){
+         onPropGet(PROP_ID_precision);
+         return _precision;
     }
 
     /**
-     * 长度: LENGTH
+     * 长度: PRECISION
      */
-    public void setLength(java.lang.Integer value){
-        if(onPropSet(PROP_ID_length,value)){
-            this._length = value;
-            internalClearRefs(PROP_ID_length);
+    public void setPrecision(java.lang.Integer value){
+        if(onPropSet(PROP_ID_precision,value)){
+            this._precision = value;
+            internalClearRefs(PROP_ID_precision);
             
         }
     }

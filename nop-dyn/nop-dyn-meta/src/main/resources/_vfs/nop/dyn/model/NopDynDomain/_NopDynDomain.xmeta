@@ -38,7 +38,7 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10" dict="core/std-sql-type"/>
         </prop>
-        <prop name="length" displayName="长度" i18n-en:displayName="Length" queryable="true" sortable="true"
+        <prop name="precision" displayName="长度" i18n-en:displayName="Precision" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>

@@ -5,6 +5,8 @@ entity:
     NopDynDomain: Domain
     NopDynEntity: Dynamic Entity
     NopDynEntityMeta: Entity Meta
+    NopDynEntityRelation: Entity Relation
+    NopDynEntityRelationMeta: Entity Relation Meta
     NopDynModule: Module Definition
     NopDynPage: Page Definition
     NopDynPropMeta: Property Meta
@@ -45,7 +47,7 @@ prop:
       stdDomainName_label: null
       stdSqlType: Std Sql Type
       stdSqlType_label: null
-      length: Length
+      precision: Precision
       scale: Scale
       version: Version
       createdBy: Created By
@@ -97,13 +99,13 @@ prop:
       entityName: Entity Name
       displayName: Display Name
       tableName: TableName
-      bizObjName: BizObjName
+      querySpace: Query Space
       storeType: Store Type
       storeType_label: null
       tagSet: Tag Set
-      metaContent: Meta Content
       status: Status
       status_label: null
+      extConfig: Ext Config
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -113,7 +115,43 @@ prop:
       module: Module
       module.displayName: Module
       propMetas: null
-      metaContentComponent: null
+      extConfigComponent: null
+    NopDynEntityRelation:
+      sid: SID
+      relationName: Relation Name
+      entityName1: Entity Name1
+      entityId1: Entity Id1
+      entityName2: Entity Name2
+      entityId2: Entity ID2
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+    NopDynEntityRelationMeta:
+      relMetaId: Relation Meta ID
+      entity1MetaId: Entity1 Meta ID
+      entity2MetaId: Entity2 Meta ID
+      relationName: Relation Name
+      entity1PropName: Entity1 Prop Name
+      entity1DisplayName: Entity1 Display Name
+      entity2PropName: Entity2 Prop Name
+      entity2DisplayName: Entity2 Display Name
+      tagSet: Tag Set
+      status: Status
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      entityMeta1: Entity1 Meta
+      entityMeta1.entityName: Entity1 Meta
+      entityMeta2: Entity2 Meta
+      entityMeta2.entityName: Entity2 Meta
+      extConfigComponent: null
     NopDynModule:
       moduleId: Module ID
       moduleName: Module Name
@@ -159,24 +197,30 @@ prop:
       pageContentComponent: null
     NopDynPropMeta:
       propMetaId: Prop Meta ID
+      entityMetaId: Entity Meta ID
+      isPrimary: Is Primary
+      isMandatory: Is Mandatory
       propName: Property Name
       displayName: Display Name
-      entityMetaId: Entity Meta ID
       stdSqlType: Std Sql Type
       stdSqlType_label: null
-      length: Length
+      precision: PRECISION
       scale: Scale
       uiShow: UI Show
       uiControl: UI Control
       domainId: Domain ID
       domainId_label: null
+      stdDomainName: Std Domain Name
+      stdDomainName_label: null
       dictName: Dict Name
-      dynFieldMapping: Dynamic Field Mapping
+      dynPropMapping: Dynamic Property Mapping
       tagSet: Tag Set
+      defaultValue: Default Value
       refEntityName: Ref Entity Name
       refPropName: Ref Property Name
       refPropDisplayName: Ref Property Display Name
       refTagSet: Ref Tag Set
+      extConfig: Ext Config
       status: Status
       status_label: null
       version: Version
@@ -188,3 +232,4 @@ prop:
       entityMeta: Module
       entityMeta.entityName: Module
       domain: Domain
+      extConfigComponent: null

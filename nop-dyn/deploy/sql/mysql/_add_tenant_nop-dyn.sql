@@ -9,6 +9,10 @@ alter table nop_dyn_entity add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT 
 
 alter table nop_dyn_entity_meta add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_dyn_entity_relation add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_dyn_entity_relation_meta add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_dyn_module add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_dyn_page add column NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -29,6 +33,12 @@ alter table nop_dyn_entity add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_dyn_entity_meta drop primary key;
 alter table nop_dyn_entity_meta add primary key (NOP_TENANT_ID, ENTITY_META_ID);
+
+alter table nop_dyn_entity_relation drop primary key;
+alter table nop_dyn_entity_relation add primary key (NOP_TENANT_ID, SID);
+
+alter table nop_dyn_entity_relation_meta drop primary key;
+alter table nop_dyn_entity_relation_meta add primary key (NOP_TENANT_ID, REL_META_ID);
 
 alter table nop_dyn_module drop primary key;
 alter table nop_dyn_module add primary key (NOP_TENANT_ID, MODULE_ID);

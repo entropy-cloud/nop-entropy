@@ -26,7 +26,7 @@
                 <col id="stdSqlType" mandatory="true" sortable="true"/>
 
                 <!--长度-->
-                <col id="length" sortable="true"/>
+                <col id="precision" sortable="true"/>
 
                 <!--小数位数-->
                 <col id="scale" sortable="true"/>
@@ -55,7 +55,7 @@
             <layout>
  domainId[数据域ID] domainName[数据域名称]
  displayName[显示名] stdDomainName[标准域]
- stdSqlType[标准SQL数据类型] length[长度]
+ stdSqlType[标准SQL数据类型] precision[长度]
  scale[小数位数] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
@@ -70,7 +70,7 @@
  displayName[显示名]
  stdDomainName[标准域]
  stdSqlType[标准SQL数据类型]
- length[长度]
+ precision[长度]
  scale[小数位数]
  remark[备注]
 </layout>

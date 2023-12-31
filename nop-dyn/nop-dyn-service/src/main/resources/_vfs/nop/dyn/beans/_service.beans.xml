@@ -14,6 +14,10 @@
 
     <bean id="io.nop.dyn.service.entity.NopDynEntityMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.dyn.service.entity.NopDynEntityRelationBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="io.nop.dyn.service.entity.NopDynEntityRelationMetaBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.dyn.service.entity.NopDynModuleBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.dyn.service.entity.NopDynPageBizModel" ioc:type="@bean:id" ioc:default="true"/>

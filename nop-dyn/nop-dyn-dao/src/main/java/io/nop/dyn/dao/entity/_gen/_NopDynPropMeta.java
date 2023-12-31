@@ -24,100 +24,120 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     public static final String PROP_NAME_propMetaId = "propMetaId";
     public static final int PROP_ID_propMetaId = 1;
     
+    /* 实体定义ID: ENTITY_META_ID VARCHAR */
+    public static final String PROP_NAME_entityMetaId = "entityMetaId";
+    public static final int PROP_ID_entityMetaId = 2;
+    
+    /* 是否主键: IS_PRIMARY BOOLEAN */
+    public static final String PROP_NAME_isPrimary = "isPrimary";
+    public static final int PROP_ID_isPrimary = 3;
+    
+    /* 是否非空: IS_MANDATORY BOOLEAN */
+    public static final String PROP_NAME_isMandatory = "isMandatory";
+    public static final int PROP_ID_isMandatory = 4;
+    
     /* 属性名: PROP_NAME VARCHAR */
     public static final String PROP_NAME_propName = "propName";
-    public static final int PROP_ID_propName = 2;
+    public static final int PROP_ID_propName = 5;
     
     /* 显示名: DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_displayName = "displayName";
-    public static final int PROP_ID_displayName = 3;
-    
-    /* 实体定义ID: ENTITY_META_ID VARCHAR */
-    public static final String PROP_NAME_entityMetaId = "entityMetaId";
-    public static final int PROP_ID_entityMetaId = 4;
+    public static final int PROP_ID_displayName = 6;
     
     /* 标准SQL数据类型: STD_SQL_TYPE VARCHAR */
     public static final String PROP_NAME_stdSqlType = "stdSqlType";
-    public static final int PROP_ID_stdSqlType = 5;
+    public static final int PROP_ID_stdSqlType = 7;
     
-    /* 长度: LENGTH INTEGER */
-    public static final String PROP_NAME_length = "length";
-    public static final int PROP_ID_length = 6;
+    /* 长度: PRECISION INTEGER */
+    public static final String PROP_NAME_precision = "precision";
+    public static final int PROP_ID_precision = 8;
     
     /* 小数位数: SCALE INTEGER */
     public static final String PROP_NAME_scale = "scale";
-    public static final int PROP_ID_scale = 7;
+    public static final int PROP_ID_scale = 9;
     
     /* 显示控制: UI_SHOW VARCHAR */
     public static final String PROP_NAME_uiShow = "uiShow";
-    public static final int PROP_ID_uiShow = 8;
+    public static final int PROP_ID_uiShow = 10;
     
     /* 显示控件: UI_CONTROL VARCHAR */
     public static final String PROP_NAME_uiControl = "uiControl";
-    public static final int PROP_ID_uiControl = 9;
+    public static final int PROP_ID_uiControl = 11;
     
     /* 数据域ID: DOMAIN_ID VARCHAR */
     public static final String PROP_NAME_domainId = "domainId";
-    public static final int PROP_ID_domainId = 10;
+    public static final int PROP_ID_domainId = 12;
+    
+    /* 标准域: STD_DOMAIN_NAME VARCHAR */
+    public static final String PROP_NAME_stdDomainName = "stdDomainName";
+    public static final int PROP_ID_stdDomainName = 13;
     
     /* 数据字典: DICT_NAME VARCHAR */
     public static final String PROP_NAME_dictName = "dictName";
-    public static final int PROP_ID_dictName = 11;
+    public static final int PROP_ID_dictName = 14;
     
-    /* 动态字段映射: DYN_FIELD_MAPPING VARCHAR */
-    public static final String PROP_NAME_dynFieldMapping = "dynFieldMapping";
-    public static final int PROP_ID_dynFieldMapping = 12;
+    /* 动态字段映射: DYN_PROP_MAPPING VARCHAR */
+    public static final String PROP_NAME_dynPropMapping = "dynPropMapping";
+    public static final int PROP_ID_dynPropMapping = 15;
     
     /* 标签: TAG_SET VARCHAR */
     public static final String PROP_NAME_tagSet = "tagSet";
-    public static final int PROP_ID_tagSet = 13;
+    public static final int PROP_ID_tagSet = 16;
+    
+    /* 缺省值: DEFAULT_VALUE VARCHAR */
+    public static final String PROP_NAME_defaultValue = "defaultValue";
+    public static final int PROP_ID_defaultValue = 17;
     
     /* 关联实体名: REF_ENTITY_NAME VARCHAR */
     public static final String PROP_NAME_refEntityName = "refEntityName";
-    public static final int PROP_ID_refEntityName = 14;
+    public static final int PROP_ID_refEntityName = 18;
     
     /* 关联属性名: REF_PROP_NAME VARCHAR */
     public static final String PROP_NAME_refPropName = "refPropName";
-    public static final int PROP_ID_refPropName = 15;
+    public static final int PROP_ID_refPropName = 19;
     
     /* 关联属性显示名: REF_PROP_DISPLAY_NAME VARCHAR */
     public static final String PROP_NAME_refPropDisplayName = "refPropDisplayName";
-    public static final int PROP_ID_refPropDisplayName = 16;
+    public static final int PROP_ID_refPropDisplayName = 20;
     
     /* 关联属性标签: REF_TAG_SET VARCHAR */
     public static final String PROP_NAME_refTagSet = "refTagSet";
-    public static final int PROP_ID_refTagSet = 17;
+    public static final int PROP_ID_refTagSet = 21;
+    
+    /* 扩展配置: EXT_CONFIG VARCHAR */
+    public static final String PROP_NAME_extConfig = "extConfig";
+    public static final int PROP_ID_extConfig = 22;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 18;
+    public static final int PROP_ID_status = 23;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 19;
+    public static final int PROP_ID_version = 24;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 20;
+    public static final int PROP_ID_createdBy = 25;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 21;
+    public static final int PROP_ID_createTime = 26;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 22;
+    public static final int PROP_ID_updatedBy = 27;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 23;
+    public static final int PROP_ID_updateTime = 28;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 24;
+    public static final int PROP_ID_remark = 29;
     
 
-    private static int _PROP_ID_BOUND = 25;
+    private static int _PROP_ID_BOUND = 30;
 
     
     /* relation: 所属模块 */
@@ -126,16 +146,28 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     /* relation: 数据域 */
     public static final String PROP_NAME_domain = "domain";
     
+    /* component:  */
+    public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_propMetaId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_propMetaId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[25];
+    private static final String[] PROP_ID_TO_NAME = new String[30];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
           PROP_ID_TO_NAME[PROP_ID_propMetaId] = PROP_NAME_propMetaId;
           PROP_NAME_TO_ID.put(PROP_NAME_propMetaId, PROP_ID_propMetaId);
+      
+          PROP_ID_TO_NAME[PROP_ID_entityMetaId] = PROP_NAME_entityMetaId;
+          PROP_NAME_TO_ID.put(PROP_NAME_entityMetaId, PROP_ID_entityMetaId);
+      
+          PROP_ID_TO_NAME[PROP_ID_isPrimary] = PROP_NAME_isPrimary;
+          PROP_NAME_TO_ID.put(PROP_NAME_isPrimary, PROP_ID_isPrimary);
+      
+          PROP_ID_TO_NAME[PROP_ID_isMandatory] = PROP_NAME_isMandatory;
+          PROP_NAME_TO_ID.put(PROP_NAME_isMandatory, PROP_ID_isMandatory);
       
           PROP_ID_TO_NAME[PROP_ID_propName] = PROP_NAME_propName;
           PROP_NAME_TO_ID.put(PROP_NAME_propName, PROP_ID_propName);
@@ -143,14 +175,11 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
-          PROP_ID_TO_NAME[PROP_ID_entityMetaId] = PROP_NAME_entityMetaId;
-          PROP_NAME_TO_ID.put(PROP_NAME_entityMetaId, PROP_ID_entityMetaId);
-      
           PROP_ID_TO_NAME[PROP_ID_stdSqlType] = PROP_NAME_stdSqlType;
           PROP_NAME_TO_ID.put(PROP_NAME_stdSqlType, PROP_ID_stdSqlType);
       
-          PROP_ID_TO_NAME[PROP_ID_length] = PROP_NAME_length;
-          PROP_NAME_TO_ID.put(PROP_NAME_length, PROP_ID_length);
+          PROP_ID_TO_NAME[PROP_ID_precision] = PROP_NAME_precision;
+          PROP_NAME_TO_ID.put(PROP_NAME_precision, PROP_ID_precision);
       
           PROP_ID_TO_NAME[PROP_ID_scale] = PROP_NAME_scale;
           PROP_NAME_TO_ID.put(PROP_NAME_scale, PROP_ID_scale);
@@ -164,14 +193,20 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_domainId] = PROP_NAME_domainId;
           PROP_NAME_TO_ID.put(PROP_NAME_domainId, PROP_ID_domainId);
       
+          PROP_ID_TO_NAME[PROP_ID_stdDomainName] = PROP_NAME_stdDomainName;
+          PROP_NAME_TO_ID.put(PROP_NAME_stdDomainName, PROP_ID_stdDomainName);
+      
           PROP_ID_TO_NAME[PROP_ID_dictName] = PROP_NAME_dictName;
           PROP_NAME_TO_ID.put(PROP_NAME_dictName, PROP_ID_dictName);
       
-          PROP_ID_TO_NAME[PROP_ID_dynFieldMapping] = PROP_NAME_dynFieldMapping;
-          PROP_NAME_TO_ID.put(PROP_NAME_dynFieldMapping, PROP_ID_dynFieldMapping);
+          PROP_ID_TO_NAME[PROP_ID_dynPropMapping] = PROP_NAME_dynPropMapping;
+          PROP_NAME_TO_ID.put(PROP_NAME_dynPropMapping, PROP_ID_dynPropMapping);
       
           PROP_ID_TO_NAME[PROP_ID_tagSet] = PROP_NAME_tagSet;
           PROP_NAME_TO_ID.put(PROP_NAME_tagSet, PROP_ID_tagSet);
+      
+          PROP_ID_TO_NAME[PROP_ID_defaultValue] = PROP_NAME_defaultValue;
+          PROP_NAME_TO_ID.put(PROP_NAME_defaultValue, PROP_ID_defaultValue);
       
           PROP_ID_TO_NAME[PROP_ID_refEntityName] = PROP_NAME_refEntityName;
           PROP_NAME_TO_ID.put(PROP_NAME_refEntityName, PROP_ID_refEntityName);
@@ -184,6 +219,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_refTagSet] = PROP_NAME_refTagSet;
           PROP_NAME_TO_ID.put(PROP_NAME_refTagSet, PROP_ID_refTagSet);
+      
+          PROP_ID_TO_NAME[PROP_ID_extConfig] = PROP_NAME_extConfig;
+          PROP_NAME_TO_ID.put(PROP_NAME_extConfig, PROP_ID_extConfig);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -212,20 +250,26 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     /* 属性定义ID: PROP_META_ID */
     private java.lang.String _propMetaId;
     
+    /* 实体定义ID: ENTITY_META_ID */
+    private java.lang.String _entityMetaId;
+    
+    /* 是否主键: IS_PRIMARY */
+    private java.lang.Boolean _isPrimary;
+    
+    /* 是否非空: IS_MANDATORY */
+    private java.lang.Boolean _isMandatory;
+    
     /* 属性名: PROP_NAME */
     private java.lang.String _propName;
     
     /* 显示名: DISPLAY_NAME */
     private java.lang.String _displayName;
     
-    /* 实体定义ID: ENTITY_META_ID */
-    private java.lang.String _entityMetaId;
-    
     /* 标准SQL数据类型: STD_SQL_TYPE */
     private java.lang.String _stdSqlType;
     
-    /* 长度: LENGTH */
-    private java.lang.Integer _length;
+    /* 长度: PRECISION */
+    private java.lang.Integer _precision;
     
     /* 小数位数: SCALE */
     private java.lang.Integer _scale;
@@ -239,14 +283,20 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     /* 数据域ID: DOMAIN_ID */
     private java.lang.String _domainId;
     
+    /* 标准域: STD_DOMAIN_NAME */
+    private java.lang.String _stdDomainName;
+    
     /* 数据字典: DICT_NAME */
     private java.lang.String _dictName;
     
-    /* 动态字段映射: DYN_FIELD_MAPPING */
-    private java.lang.String _dynFieldMapping;
+    /* 动态字段映射: DYN_PROP_MAPPING */
+    private java.lang.String _dynPropMapping;
     
     /* 标签: TAG_SET */
     private java.lang.String _tagSet;
+    
+    /* 缺省值: DEFAULT_VALUE */
+    private java.lang.String _defaultValue;
     
     /* 关联实体名: REF_ENTITY_NAME */
     private java.lang.String _refEntityName;
@@ -259,6 +309,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     
     /* 关联属性标签: REF_TAG_SET */
     private java.lang.String _refTagSet;
+    
+    /* 扩展配置: EXT_CONFIG */
+    private java.lang.String _extConfig;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -355,20 +408,26 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
             case PROP_ID_propMetaId:
                return getPropMetaId();
         
+            case PROP_ID_entityMetaId:
+               return getEntityMetaId();
+        
+            case PROP_ID_isPrimary:
+               return getIsPrimary();
+        
+            case PROP_ID_isMandatory:
+               return getIsMandatory();
+        
             case PROP_ID_propName:
                return getPropName();
         
             case PROP_ID_displayName:
                return getDisplayName();
         
-            case PROP_ID_entityMetaId:
-               return getEntityMetaId();
-        
             case PROP_ID_stdSqlType:
                return getStdSqlType();
         
-            case PROP_ID_length:
-               return getLength();
+            case PROP_ID_precision:
+               return getPrecision();
         
             case PROP_ID_scale:
                return getScale();
@@ -382,14 +441,20 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
             case PROP_ID_domainId:
                return getDomainId();
         
+            case PROP_ID_stdDomainName:
+               return getStdDomainName();
+        
             case PROP_ID_dictName:
                return getDictName();
         
-            case PROP_ID_dynFieldMapping:
-               return getDynFieldMapping();
+            case PROP_ID_dynPropMapping:
+               return getDynPropMapping();
         
             case PROP_ID_tagSet:
                return getTagSet();
+        
+            case PROP_ID_defaultValue:
+               return getDefaultValue();
         
             case PROP_ID_refEntityName:
                return getRefEntityName();
@@ -402,6 +467,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
         
             case PROP_ID_refTagSet:
                return getRefTagSet();
+        
+            case PROP_ID_extConfig:
+               return getExtConfig();
         
             case PROP_ID_status:
                return getStatus();
@@ -445,6 +513,36 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_entityMetaId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_entityMetaId));
+               }
+               setEntityMetaId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_isPrimary:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_isPrimary));
+               }
+               setIsPrimary(typedValue);
+               break;
+            }
+        
+            case PROP_ID_isMandatory:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_isMandatory));
+               }
+               setIsMandatory(typedValue);
+               break;
+            }
+        
             case PROP_ID_propName:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -465,16 +563,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_entityMetaId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_entityMetaId));
-               }
-               setEntityMetaId(typedValue);
-               break;
-            }
-        
             case PROP_ID_stdSqlType:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -485,13 +573,13 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_length:{
+            case PROP_ID_precision:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_length));
+                       err-> newTypeConversionError(PROP_NAME_precision));
                }
-               setLength(typedValue);
+               setPrecision(typedValue);
                break;
             }
         
@@ -535,6 +623,16 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_stdDomainName:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_stdDomainName));
+               }
+               setStdDomainName(typedValue);
+               break;
+            }
+        
             case PROP_ID_dictName:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -545,13 +643,13 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dynFieldMapping:{
+            case PROP_ID_dynPropMapping:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_dynFieldMapping));
+                       err-> newTypeConversionError(PROP_NAME_dynPropMapping));
                }
-               setDynFieldMapping(typedValue);
+               setDynPropMapping(typedValue);
                break;
             }
         
@@ -562,6 +660,16 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_tagSet));
                }
                setTagSet(typedValue);
+               break;
+            }
+        
+            case PROP_ID_defaultValue:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_defaultValue));
+               }
+               setDefaultValue(typedValue);
                break;
             }
         
@@ -602,6 +710,16 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_refTagSet));
                }
                setRefTagSet(typedValue);
+               break;
+            }
+        
+            case PROP_ID_extConfig:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_extConfig));
+               }
+               setExtConfig(typedValue);
                break;
             }
         
@@ -691,6 +809,27 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_entityMetaId:{
+               onInitProp(propId);
+               this._entityMetaId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_isPrimary:{
+               onInitProp(propId);
+               this._isPrimary = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_isMandatory:{
+               onInitProp(propId);
+               this._isMandatory = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
             case PROP_ID_propName:{
                onInitProp(propId);
                this._propName = (java.lang.String)value;
@@ -705,13 +844,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_entityMetaId:{
-               onInitProp(propId);
-               this._entityMetaId = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_stdSqlType:{
                onInitProp(propId);
                this._stdSqlType = (java.lang.String)value;
@@ -719,9 +851,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_length:{
+            case PROP_ID_precision:{
                onInitProp(propId);
-               this._length = (java.lang.Integer)value;
+               this._precision = (java.lang.Integer)value;
                
                break;
             }
@@ -754,6 +886,13 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_stdDomainName:{
+               onInitProp(propId);
+               this._stdDomainName = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_dictName:{
                onInitProp(propId);
                this._dictName = (java.lang.String)value;
@@ -761,9 +900,9 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dynFieldMapping:{
+            case PROP_ID_dynPropMapping:{
                onInitProp(propId);
-               this._dynFieldMapping = (java.lang.String)value;
+               this._dynPropMapping = (java.lang.String)value;
                
                break;
             }
@@ -771,6 +910,13 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
             case PROP_ID_tagSet:{
                onInitProp(propId);
                this._tagSet = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_defaultValue:{
+               onInitProp(propId);
+               this._defaultValue = (java.lang.String)value;
                
                break;
             }
@@ -799,6 +945,13 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
             case PROP_ID_refTagSet:{
                onInitProp(propId);
                this._refTagSet = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_extConfig:{
+               onInitProp(propId);
+               this._extConfig = (java.lang.String)value;
                
                break;
             }
@@ -878,6 +1031,63 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
     
     /**
+     * 实体定义ID: ENTITY_META_ID
+     */
+    public java.lang.String getEntityMetaId(){
+         onPropGet(PROP_ID_entityMetaId);
+         return _entityMetaId;
+    }
+
+    /**
+     * 实体定义ID: ENTITY_META_ID
+     */
+    public void setEntityMetaId(java.lang.String value){
+        if(onPropSet(PROP_ID_entityMetaId,value)){
+            this._entityMetaId = value;
+            internalClearRefs(PROP_ID_entityMetaId);
+            
+        }
+    }
+    
+    /**
+     * 是否主键: IS_PRIMARY
+     */
+    public java.lang.Boolean getIsPrimary(){
+         onPropGet(PROP_ID_isPrimary);
+         return _isPrimary;
+    }
+
+    /**
+     * 是否主键: IS_PRIMARY
+     */
+    public void setIsPrimary(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_isPrimary,value)){
+            this._isPrimary = value;
+            internalClearRefs(PROP_ID_isPrimary);
+            
+        }
+    }
+    
+    /**
+     * 是否非空: IS_MANDATORY
+     */
+    public java.lang.Boolean getIsMandatory(){
+         onPropGet(PROP_ID_isMandatory);
+         return _isMandatory;
+    }
+
+    /**
+     * 是否非空: IS_MANDATORY
+     */
+    public void setIsMandatory(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_isMandatory,value)){
+            this._isMandatory = value;
+            internalClearRefs(PROP_ID_isMandatory);
+            
+        }
+    }
+    
+    /**
      * 属性名: PROP_NAME
      */
     public java.lang.String getPropName(){
@@ -916,25 +1126,6 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 实体定义ID: ENTITY_META_ID
-     */
-    public java.lang.String getEntityMetaId(){
-         onPropGet(PROP_ID_entityMetaId);
-         return _entityMetaId;
-    }
-
-    /**
-     * 实体定义ID: ENTITY_META_ID
-     */
-    public void setEntityMetaId(java.lang.String value){
-        if(onPropSet(PROP_ID_entityMetaId,value)){
-            this._entityMetaId = value;
-            internalClearRefs(PROP_ID_entityMetaId);
-            
-        }
-    }
-    
-    /**
      * 标准SQL数据类型: STD_SQL_TYPE
      */
     public java.lang.String getStdSqlType(){
@@ -954,20 +1145,20 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 长度: LENGTH
+     * 长度: PRECISION
      */
-    public java.lang.Integer getLength(){
-         onPropGet(PROP_ID_length);
-         return _length;
+    public java.lang.Integer getPrecision(){
+         onPropGet(PROP_ID_precision);
+         return _precision;
     }
 
     /**
-     * 长度: LENGTH
+     * 长度: PRECISION
      */
-    public void setLength(java.lang.Integer value){
-        if(onPropSet(PROP_ID_length,value)){
-            this._length = value;
-            internalClearRefs(PROP_ID_length);
+    public void setPrecision(java.lang.Integer value){
+        if(onPropSet(PROP_ID_precision,value)){
+            this._precision = value;
+            internalClearRefs(PROP_ID_precision);
             
         }
     }
@@ -1049,6 +1240,25 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
     
     /**
+     * 标准域: STD_DOMAIN_NAME
+     */
+    public java.lang.String getStdDomainName(){
+         onPropGet(PROP_ID_stdDomainName);
+         return _stdDomainName;
+    }
+
+    /**
+     * 标准域: STD_DOMAIN_NAME
+     */
+    public void setStdDomainName(java.lang.String value){
+        if(onPropSet(PROP_ID_stdDomainName,value)){
+            this._stdDomainName = value;
+            internalClearRefs(PROP_ID_stdDomainName);
+            
+        }
+    }
+    
+    /**
      * 数据字典: DICT_NAME
      */
     public java.lang.String getDictName(){
@@ -1068,20 +1278,20 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
     }
     
     /**
-     * 动态字段映射: DYN_FIELD_MAPPING
+     * 动态字段映射: DYN_PROP_MAPPING
      */
-    public java.lang.String getDynFieldMapping(){
-         onPropGet(PROP_ID_dynFieldMapping);
-         return _dynFieldMapping;
+    public java.lang.String getDynPropMapping(){
+         onPropGet(PROP_ID_dynPropMapping);
+         return _dynPropMapping;
     }
 
     /**
-     * 动态字段映射: DYN_FIELD_MAPPING
+     * 动态字段映射: DYN_PROP_MAPPING
      */
-    public void setDynFieldMapping(java.lang.String value){
-        if(onPropSet(PROP_ID_dynFieldMapping,value)){
-            this._dynFieldMapping = value;
-            internalClearRefs(PROP_ID_dynFieldMapping);
+    public void setDynPropMapping(java.lang.String value){
+        if(onPropSet(PROP_ID_dynPropMapping,value)){
+            this._dynPropMapping = value;
+            internalClearRefs(PROP_ID_dynPropMapping);
             
         }
     }
@@ -1101,6 +1311,25 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_tagSet,value)){
             this._tagSet = value;
             internalClearRefs(PROP_ID_tagSet);
+            
+        }
+    }
+    
+    /**
+     * 缺省值: DEFAULT_VALUE
+     */
+    public java.lang.String getDefaultValue(){
+         onPropGet(PROP_ID_defaultValue);
+         return _defaultValue;
+    }
+
+    /**
+     * 缺省值: DEFAULT_VALUE
+     */
+    public void setDefaultValue(java.lang.String value){
+        if(onPropSet(PROP_ID_defaultValue,value)){
+            this._defaultValue = value;
+            internalClearRefs(PROP_ID_defaultValue);
             
         }
     }
@@ -1177,6 +1406,25 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_refTagSet,value)){
             this._refTagSet = value;
             internalClearRefs(PROP_ID_refTagSet);
+            
+        }
+    }
+    
+    /**
+     * 扩展配置: EXT_CONFIG
+     */
+    public java.lang.String getExtConfig(){
+         onPropGet(PROP_ID_extConfig);
+         return _extConfig;
+    }
+
+    /**
+     * 扩展配置: EXT_CONFIG
+     */
+    public void setExtConfig(java.lang.String value){
+        if(onPropSet(PROP_ID_extConfig,value)){
+            this._extConfig = value;
+            internalClearRefs(PROP_ID_extConfig);
             
         }
     }
@@ -1356,5 +1604,22 @@ public class _NopDynPropMeta extends DynamicOrmEntity{
        }
     }
        
+   private io.nop.orm.component.JsonOrmComponent _extConfigComponent;
+
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_extConfigComponent = new HashMap<>();
+   static{
+      
+         COMPONENT_PROP_ID_MAP_extConfigComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_extConfig);
+      
+   }
+
+   public io.nop.orm.component.JsonOrmComponent getExtConfigComponent(){
+      if(_extConfigComponent == null){
+          _extConfigComponent = new io.nop.orm.component.JsonOrmComponent();
+          _extConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_extConfigComponent);
+      }
+      return _extConfigComponent;
+   }
+
 }
 // resume CPD analysis - CPD-ON

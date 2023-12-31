@@ -33,6 +33,8 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     String getDbCatalog();
 
+    String getDisplayName();
+
     default String getSimpleClassName() {
         return StringHelper.simpleClassName(getClassName());
     }

@@ -29,22 +29,27 @@ CREATE TABLE nop_dyn_page(
 
 CREATE TABLE nop_dyn_prop_meta(
   PROP_META_ID VARCHAR(32) NOT NULL ,
+  ENTITY_META_ID VARCHAR(32) NOT NULL ,
+  IS_PRIMARY BOOLEAN NOT NULL ,
+  IS_MANDATORY BOOLEAN NOT NULL ,
   PROP_NAME VARCHAR(50) NOT NULL ,
   DISPLAY_NAME VARCHAR(100) NOT NULL ,
-  ENTITY_META_ID VARCHAR(32) NOT NULL ,
   STD_SQL_TYPE VARCHAR(10) NOT NULL ,
-  LENGTH INT4  ,
+  PRECISION INT4  ,
   SCALE INT4  ,
   UI_SHOW VARCHAR(10)  ,
   UI_CONTROL VARCHAR(100)  ,
   DOMAIN_ID VARCHAR(32)  ,
+  STD_DOMAIN_NAME VARCHAR(50)  ,
   DICT_NAME VARCHAR(100)  ,
-  DYN_FIELD_MAPPING VARCHAR(100)  ,
+  DYN_PROP_MAPPING VARCHAR(100)  ,
   TAG_SET VARCHAR(200)  ,
+  DEFAULT_VALUE VARCHAR(100)  ,
   REF_ENTITY_NAME VARCHAR(200)  ,
   REF_PROP_NAME VARCHAR(100)  ,
   REF_PROP_DISPLAY_NAME VARCHAR(100)  ,
   REF_TAG_SET VARCHAR(200)  ,
+  EXT_CONFIG VARCHAR(1000)  ,
   STATUS INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -53,6 +58,27 @@ CREATE TABLE nop_dyn_prop_meta(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
   constraint PK_nop_dyn_prop_meta primary key (PROP_META_ID)
+);
+
+CREATE TABLE nop_dyn_entity_relation_meta(
+  REL_META_ID VARCHAR(32) NOT NULL ,
+  ENTITY1_META_ID VARCHAR(32) NOT NULL ,
+  ENTITY2_META_ID VARCHAR(32) NOT NULL ,
+  RELATION_NAME VARCHAR(100) NOT NULL ,
+  ENTITY1_PROP_NAME VARCHAR(100) NOT NULL ,
+  ENTITY1_DISPLAY_NAME VARCHAR(100) NOT NULL ,
+  ENTITY2_PROP_NAME VARCHAR(100)  ,
+  ENTITY2_DISPLAY_NAME VARCHAR(100)  ,
+  TAG_SET VARCHAR(200)  ,
+  STATUS INT4 NOT NULL ,
+  EXT_CONFIG VARCHAR(1000)  ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_dyn_entity_relation_meta primary key (REL_META_ID)
 );
 
 CREATE TABLE nop_dyn_entity(
@@ -91,6 +117,22 @@ CREATE TABLE nop_dyn_entity(
   constraint PK_nop_dyn_entity primary key (SID)
 );
 
+CREATE TABLE nop_dyn_entity_relation(
+  SID VARCHAR(32) NOT NULL ,
+  RELATION_NAME VARCHAR(50) NOT NULL ,
+  ENTITY_NAME1 VARCHAR(100) NOT NULL ,
+  ENTITY_ID1 VARCHAR(50) NOT NULL ,
+  ENTITY_NAME2 VARCHAR(100) NOT NULL ,
+  ENTITY_ID2 VARCHAR(50) NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_dyn_entity_relation primary key (SID)
+);
+
 CREATE TABLE nop_dyn_app(
   APP_ID VARCHAR(32) NOT NULL ,
   APP_NAME VARCHAR(200) NOT NULL ,
@@ -104,33 +146,13 @@ CREATE TABLE nop_dyn_app(
   constraint PK_nop_dyn_app primary key (APP_ID)
 );
 
-CREATE TABLE nop_dyn_entity_meta(
-  ENTITY_META_ID VARCHAR(32) NOT NULL ,
-  MODULE_ID VARCHAR(32) NOT NULL ,
-  ENTITY_NAME VARCHAR(200) NOT NULL ,
-  DISPLAY_NAME VARCHAR(100) NOT NULL ,
-  TABLE_NAME VARCHAR(100)  ,
-  BIZ_OBJ_NAME VARCHAR(100)  ,
-  STORE_TYPE INT4 NOT NULL ,
-  TAG_SET VARCHAR(200)  ,
-  META_CONTENT TEXT  ,
-  STATUS INT4 NOT NULL ,
-  VERSION INT4 NOT NULL ,
-  CREATED_BY VARCHAR(50) NOT NULL ,
-  CREATE_TIME TIMESTAMP NOT NULL ,
-  UPDATED_BY VARCHAR(50) NOT NULL ,
-  UPDATE_TIME TIMESTAMP NOT NULL ,
-  REMARK VARCHAR(200)  ,
-  constraint PK_nop_dyn_entity_meta primary key (ENTITY_META_ID)
-);
-
 CREATE TABLE nop_dyn_domain(
   DOMAIN_ID VARCHAR(32) NOT NULL ,
   DOMAIN_NAME VARCHAR(50) NOT NULL ,
   DISPLAY_NAME VARCHAR(100) NOT NULL ,
   STD_DOMAIN_NAME VARCHAR(50)  ,
   STD_SQL_TYPE VARCHAR(10) NOT NULL ,
-  LENGTH INT4  ,
+  PRECISION INT4  ,
   SCALE INT4  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
@@ -139,6 +161,26 @@ CREATE TABLE nop_dyn_domain(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
   constraint PK_nop_dyn_domain primary key (DOMAIN_ID)
+);
+
+CREATE TABLE nop_dyn_entity_meta(
+  ENTITY_META_ID VARCHAR(32) NOT NULL ,
+  MODULE_ID VARCHAR(32) NOT NULL ,
+  ENTITY_NAME VARCHAR(200) NOT NULL ,
+  DISPLAY_NAME VARCHAR(100) NOT NULL ,
+  TABLE_NAME VARCHAR(100)  ,
+  QUERY_SPACE VARCHAR(100)  ,
+  STORE_TYPE INT4 NOT NULL ,
+  TAG_SET VARCHAR(200)  ,
+  STATUS INT4 NOT NULL ,
+  EXT_CONFIG VARCHAR(1000)  ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_dyn_entity_meta primary key (ENTITY_META_ID)
 );
 
 CREATE TABLE nop_dyn_module(
@@ -207,15 +249,19 @@ CREATE TABLE nop_dyn_module(
                 
       COMMENT ON COLUMN nop_dyn_prop_meta.PROP_META_ID IS '属性定义ID';
                     
+      COMMENT ON COLUMN nop_dyn_prop_meta.ENTITY_META_ID IS '实体定义ID';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.IS_PRIMARY IS '是否主键';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.IS_MANDATORY IS '是否非空';
+                    
       COMMENT ON COLUMN nop_dyn_prop_meta.PROP_NAME IS '属性名';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.DISPLAY_NAME IS '显示名';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.ENTITY_META_ID IS '实体定义ID';
-                    
       COMMENT ON COLUMN nop_dyn_prop_meta.STD_SQL_TYPE IS '标准SQL数据类型';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.LENGTH IS '长度';
+      COMMENT ON COLUMN nop_dyn_prop_meta.PRECISION IS '长度';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.SCALE IS '小数位数';
                     
@@ -225,11 +271,15 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.DOMAIN_ID IS '数据域ID';
                     
+      COMMENT ON COLUMN nop_dyn_prop_meta.STD_DOMAIN_NAME IS '标准域';
+                    
       COMMENT ON COLUMN nop_dyn_prop_meta.DICT_NAME IS '数据字典';
                     
-      COMMENT ON COLUMN nop_dyn_prop_meta.DYN_FIELD_MAPPING IS '动态字段映射';
+      COMMENT ON COLUMN nop_dyn_prop_meta.DYN_PROP_MAPPING IS '动态字段映射';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.TAG_SET IS '标签';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.DEFAULT_VALUE IS '缺省值';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.REF_ENTITY_NAME IS '关联实体名';
                     
@@ -238,6 +288,8 @@ CREATE TABLE nop_dyn_module(
       COMMENT ON COLUMN nop_dyn_prop_meta.REF_PROP_DISPLAY_NAME IS '关联属性显示名';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.REF_TAG_SET IS '关联属性标签';
+                    
+      COMMENT ON COLUMN nop_dyn_prop_meta.EXT_CONFIG IS '扩展配置';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.STATUS IS '状态';
                     
@@ -252,6 +304,42 @@ CREATE TABLE nop_dyn_module(
       COMMENT ON COLUMN nop_dyn_prop_meta.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_dyn_prop_meta.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_dyn_entity_relation_meta IS '实体关联元数据';
+                
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.REL_META_ID IS '关联定义ID';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY1_META_ID IS '实体1元数据';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY2_META_ID IS '实体2元数据';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.RELATION_NAME IS '关联名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY1_PROP_NAME IS '实体1上属性名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY1_DISPLAY_NAME IS '实体1上属性显示名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY2_PROP_NAME IS '实体2上属性名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.ENTITY2_DISPLAY_NAME IS '实体2上属性显示名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.TAG_SET IS '标签';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation_meta.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_dyn_entity IS '动态实体';
                 
@@ -319,6 +407,32 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_entity.REMARK IS '备注';
                     
+      COMMENT ON TABLE nop_dyn_entity_relation IS '实体关联';
+                
+      COMMENT ON COLUMN nop_dyn_entity_relation.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.RELATION_NAME IS '关联名称';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.ENTITY_NAME1 IS '实体名称1';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.ENTITY_ID1 IS '实体ID1';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.ENTITY_NAME2 IS '实体名称2';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.ENTITY_ID2 IS '实体ID2';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_relation.REMARK IS '备注';
+                    
       COMMENT ON TABLE nop_dyn_app IS '应用定义';
                 
       COMMENT ON COLUMN nop_dyn_app.APP_ID IS '应用ID';
@@ -339,40 +453,6 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_app.UPDATE_TIME IS '修改时间';
                     
-      COMMENT ON TABLE nop_dyn_entity_meta IS '实体元数据';
-                
-      COMMENT ON COLUMN nop_dyn_entity_meta.ENTITY_META_ID IS '实体定义ID';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.MODULE_ID IS '模块ID';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.ENTITY_NAME IS '实体名';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.DISPLAY_NAME IS '显示名';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.TABLE_NAME IS '表名';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.BIZ_OBJ_NAME IS '对象名';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.STORE_TYPE IS '存储类型';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.TAG_SET IS '标签';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.META_CONTENT IS '元数据内容';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.STATUS IS '状态';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.VERSION IS '数据版本';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.CREATED_BY IS '创建人';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.CREATE_TIME IS '创建时间';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.UPDATED_BY IS '修改人';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.UPDATE_TIME IS '修改时间';
-                    
-      COMMENT ON COLUMN nop_dyn_entity_meta.REMARK IS '备注';
-                    
       COMMENT ON TABLE nop_dyn_domain IS '数据域';
                 
       COMMENT ON COLUMN nop_dyn_domain.DOMAIN_ID IS '数据域ID';
@@ -385,7 +465,7 @@ CREATE TABLE nop_dyn_module(
                     
       COMMENT ON COLUMN nop_dyn_domain.STD_SQL_TYPE IS '标准SQL数据类型';
                     
-      COMMENT ON COLUMN nop_dyn_domain.LENGTH IS '长度';
+      COMMENT ON COLUMN nop_dyn_domain.PRECISION IS '长度';
                     
       COMMENT ON COLUMN nop_dyn_domain.SCALE IS '小数位数';
                     
@@ -400,6 +480,40 @@ CREATE TABLE nop_dyn_module(
       COMMENT ON COLUMN nop_dyn_domain.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_dyn_domain.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_dyn_entity_meta IS '实体元数据';
+                
+      COMMENT ON COLUMN nop_dyn_entity_meta.ENTITY_META_ID IS '实体定义ID';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.MODULE_ID IS '模块ID';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.ENTITY_NAME IS '实体名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.TABLE_NAME IS '表名';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.QUERY_SPACE IS '查询空间';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.STORE_TYPE IS '存储类型';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.TAG_SET IS '标签';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.EXT_CONFIG IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_entity_meta.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_dyn_module IS '模块定义';
                 
