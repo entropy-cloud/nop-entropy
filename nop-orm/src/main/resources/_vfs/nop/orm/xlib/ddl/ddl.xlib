@@ -61,22 +61,30 @@
                     <c:unit><![CDATA[,
  ]]></c:unit>
                 </c:for>
-                <c:for var="uniqueKey" items="${table.uniqueKeys}">
-                    <c:if test="${uniqueKey.constraint}">
-                        <c:script>
-                            let columns = uniqueKey.columns.map(col => table.getColumn(col).code)
-                        </c:script>
-                        <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
-                        columns.join(',')}),
- ]]></c:unit>
-                    </c:if>
-                </c:for>
+                <thisLib:TableUniqueContraints/>
                 <c:unit><![CDATA[ constraint PK_${table.tableName} primary key (${
                 table.compositePk ? _.pluck(table.idProp.columns,'code').join(',') : table.idProp.code})
 ]]></c:unit>
                 <c:unit>)</c:unit>
             </source>
         </CreateTable>
+
+        <TableUniqueContaints>
+            <attr name="table" type="io.nop.orm.model.IEntityModel" implicit="true"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect" implicit="true"/>
+            <source>
+                <c:for var="uniqueKey" items="${table.uniqueKeys}">
+                    <c:if test="${uniqueKey.constraint}">
+                        <c:script>
+                            let columns = uniqueKey.columnModels.map(col => col.code)
+                        </c:script>
+                        <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
+                        columns.join(',')}),
+ ]]></c:unit>
+                    </c:if>
+                </c:for>
+            </source>
+        </TableUniqueContaints>
 
         <DropTable outputMode="text">
             <attr name="table" type="io.nop.orm.model.IEntityModel"/>
