@@ -58,11 +58,15 @@ public class TemplateFileGenerator {
 
     protected IResourceContentCache contentCache;
 
-    protected IResourceLoader resourceLoader = VirtualFileSystem.instance();
+    private IResourceLoader tplResourceLoader = VirtualFileSystem.instance();
+
+    private IResourceLoader targetResourceLoader = VirtualFileSystem.instance();
 
     protected IResourceDependencyManager dependencyManager;
 
     private boolean forceOverride;
+
+    private boolean checkOverrideHead = true;
 
     private Map<String, Boolean> tplForceOverrides = new ConcurrentHashMap<>();
 
@@ -94,6 +98,11 @@ public class TemplateFileGenerator {
         return this;
     }
 
+    public TemplateFileGenerator checkOverrideHead(boolean checkOverrideHead) {
+        this.checkOverrideHead = checkOverrideHead;
+        return this;
+    }
+
     public TemplateFileGenerator withDependencyManager() {
         return this.withDependencyManager(ResourceComponentManager.instance());
     }
@@ -116,13 +125,22 @@ public class TemplateFileGenerator {
         return withContentCache(ResourceContentCache.instance());
     }
 
-    public TemplateFileGenerator resourceLoader(IResourceLoader loader) {
-        this.resourceLoader = loader;
+    public TemplateFileGenerator tplResourceLoader(IResourceLoader loader) {
+        this.tplResourceLoader = loader;
         return this;
     }
 
-    public IResourceLoader getResourceLoader() {
-        return resourceLoader;
+    public TemplateFileGenerator targetResourceLoader(IResourceLoader loader) {
+        this.targetResourceLoader = loader;
+        return this;
+    }
+
+    public IResourceLoader getTplResourceLoader() {
+        return tplResourceLoader;
+    }
+
+    public IResourceLoader getTargetResourceLoader() {
+        return targetResourceLoader;
     }
 
     public String getTargetRootPath() {
@@ -167,15 +185,15 @@ public class TemplateFileGenerator {
     }
 
     public IResource getTplResource(String path) {
-        return resourceLoader.getResource(StringHelper.appendPath(tplRootPath, path));
+        return tplResourceLoader.getResource(StringHelper.appendPath(tplRootPath, path));
     }
 
     public Collection<? extends IResource> getResourceChildren(IResource resource) {
-        return resourceLoader.getChildren(resource.getStdPath());
+        return tplResourceLoader.getChildren(resource.getStdPath());
     }
 
     public IResource getTargetResource(String path) {
-        return resourceLoader.getResource(StringHelper.appendPath(targetRootPath, path));
+        return targetResourceLoader.getResource(StringHelper.appendPath(targetRootPath, path));
     }
 
     void processDirOrFile(TemplateGenPath genPath, IResource resource, INestedLoop loop, IEvalScope scope) {
@@ -304,13 +322,13 @@ public class TemplateFileGenerator {
             } else {
                 if (text.length() <= 0 && removeEmpty) {
                     LOG.info("nop.tpl.remove-empty-resource:targetFile={}", targetFile);
-                    targetFile.delete();
+                    deleteTargetResource(resource);
                 } else {
                     if (isNotChange(targetFile, text)) {
                         LOG.info("nop.tpl.skip-write-resource-since-text-not-change:tplFile={},targetFile={},len={}",
                                 resource, targetFile, text.length());
                     } else {
-                        ResourceHelper.writeText(targetFile, text, null);
+                        targetFile.writeText(text, null);
                     }
                 }
             }
@@ -326,9 +344,13 @@ public class TemplateFileGenerator {
             }
             if (targetFile.length() <= 0 && removeEmpty) {
                 LOG.info("nop.tpl.remove-empty-resource:targetFile={}", targetFile);
-                targetFile.delete();
+                deleteTargetResource(targetFile);
             }
         }
+    }
+
+    protected void deleteTargetResource(IResource resource) {
+        resource.delete();
     }
 
     protected String normalizeText(String text, IResource resource) {
@@ -369,7 +391,7 @@ public class TemplateFileGenerator {
         return text;
     }
 
-    private boolean maybeXml(String text) {
+    protected boolean maybeXml(String text) {
         boolean empty = true;
         for (int i = 0, n = text.length(); i < n; i++) {
             char c = text.charAt(i);
@@ -447,7 +469,7 @@ public class TemplateFileGenerator {
         if (targetPath.indexOf(XGEN_FILE_DIR) >= 0 || targetPath.startsWith("_gen/"))
             return true;
 
-        if (textFile) {
+        if (checkOverrideHead && textFile) {
             String targetText = readTextHeader(targetFile);
             if (targetText.isEmpty())
                 return true;
@@ -470,7 +492,7 @@ public class TemplateFileGenerator {
         return false;
     }
 
-    String readTextHeader(IResource resource) {
+    protected String readTextHeader(IResource resource) {
         if (contentCache != null) {
             String text = contentCache.getCachedText(resource, true);
             return StringHelper.head(text, 200);

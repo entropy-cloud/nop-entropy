@@ -12,11 +12,13 @@ import io.nop.api.core.util.ProcessResult;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.model.tree.TreeVisitors;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.ByteArrayResource;
 import io.nop.core.resource.impl.InMemoryDirResource;
+import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.core.resource.impl.UnknownResource;
 import io.nop.core.resource.zip.IZipInput;
 import io.nop.core.resource.zip.ZipOptions;
@@ -24,8 +26,10 @@ import io.nop.core.resource.zip.ZipOptions;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_IN_MEMORY_STORE_NOT_ALLOW_SAVE;
@@ -33,8 +37,22 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_IN_MEMORY_STORE_NOT_ALLOW_SAVE
 public class InMemoryResourceStore implements IResourceStore {
     private final ResourceTreeNode root = new ResourceTreeNode("", new InMemoryDirResource("/"));
 
+    private boolean useTextResourceAsUnknown = false;
+
+    public boolean isUseTextResourceAsUnknown() {
+        return useTextResourceAsUnknown;
+    }
+
+    public void setUseTextResourceAsUnknown(boolean useTextResourceAsUnknown) {
+        this.useTextResourceAsUnknown = useTextResourceAsUnknown;
+    }
+
     public void addResource(IResource resource) {
         root.addNode(resource.getPath(), resource);
+    }
+
+    public boolean removeResource(IResource resource) {
+        return root.removeNode(resource.getPath());
     }
 
     public boolean addResourceIfAbsent(IResource resource) {
@@ -85,9 +103,16 @@ public class InMemoryResourceStore implements IResourceStore {
         if (node == null) {
             if (returnNullIfNotExists)
                 return null;
-            return new UnknownResource(path);
+            return getNotExistsResource(path);
         }
         return node.getResource();
+    }
+
+    protected IResource getNotExistsResource(String path) {
+        if (useTextResourceAsUnknown) {
+            return new InMemoryTextResource(path, null).withResourceStore(this);
+        }
+        return new UnknownResource(path);
     }
 
     @Override
@@ -125,5 +150,18 @@ public class InMemoryResourceStore implements IResourceStore {
         // ResourceTreeNode node = root.mkdirs(path);
         // node.addChild(resource.getName(), resource);
         // return retPath;
+    }
+
+    public void saveToResourceStore(IResourceStore resourceStore) {
+        saveToResourceStore(resourceStore, null);
+    }
+    public void saveToResourceStore(IResourceStore resourceStore, Predicate<IResource> filter) {
+        Predicate<ResourceTreeNode> nodeFilter = filter == null ? null : node -> filter.test(node.getResource());
+
+        Iterator<ResourceTreeNode> it = TreeVisitors.depthFirstIterator(root, false, nodeFilter);
+        while (it.hasNext()) {
+            IResource resource = it.next().getResource();
+            resourceStore.saveResource(resource.getPath(), resource, null, null);
+        }
     }
 }

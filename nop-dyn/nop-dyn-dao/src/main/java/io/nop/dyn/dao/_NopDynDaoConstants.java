@@ -48,4 +48,24 @@ public interface _NopDynDaoConstants {
      */
     int ENTITY_STORE_TYPE_REAL = 10;
                     
+    /**
+     * 函数类型: 查询 
+     */
+    String FUNCTION_TYPE_QUERY = "query";
+                    
+    /**
+     * 函数类型: 修改 
+     */
+    String FUNCTION_TYPE_MUTATION = "mutation";
+                    
+    /**
+     * 函数类型: 订阅 
+     */
+    String FUNCTION_TYPE_SUBSCRIPTION = "subscription";
+                    
+    /**
+     * 函数类型: 加载器 
+     */
+    String FUNCTION_TYPE_LOADER = "loader";
+                    
 }

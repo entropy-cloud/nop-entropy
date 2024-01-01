@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.List;
 
 import static io.nop.core.CoreConfigs.CFG_RESOURCE_VFS_CONFIG_FILE;
+import static io.nop.core.CoreConfigs.CFG_VFS_DELTA_RESOURCE_STORE_BUILDER_CLASS;
 
 @GlobalInstance
 public class VfsConfigLoader {
@@ -68,8 +69,13 @@ public class VfsConfigLoader {
             config = (VfsConfig) ResourceHelper.readJson(resource, VfsConfig.class);
         }
         List<String> layerIds = ConvertHelper.toCsvList(CoreConfigs.CFG_VFS_DELTA_LAYER_IDS.get(), NopException::new);
-        if(layerIds != null && !layerIds.isEmpty()){
+        if (layerIds != null && !layerIds.isEmpty()) {
             config.setDeltaLayerIds(layerIds);
+        }
+
+        String builderClass = CFG_VFS_DELTA_RESOURCE_STORE_BUILDER_CLASS.get();
+        if (!StringHelper.isEmpty(builderClass)) {
+            config.setStoreBuilderClass(builderClass);
         }
         return config;
     }

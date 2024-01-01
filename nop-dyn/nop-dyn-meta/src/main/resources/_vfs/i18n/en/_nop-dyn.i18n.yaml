@@ -115,6 +115,7 @@ prop:
       module: Module
       module.displayName: Module
       propMetas: null
+      functionMetas: Function Metas
       extConfigComponent: null
     NopDynEntityRelation:
       sid: SID

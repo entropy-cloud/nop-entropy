@@ -81,6 +81,26 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   constraint PK_nop_dyn_entity_relation_meta primary key (REL_META_ID)
 );
 
+CREATE TABLE nop_dyn_function_meta(
+  FUNC_META_ID VARCHAR(32) NOT NULL    COMMENT '函数定义ID',
+  ENTITY_META_ID VARCHAR(32) NOT NULL    COMMENT '实体定义ID',
+  NAME VARCHAR(50) NOT NULL    COMMENT '函数名',
+  DISPLAY_NAME VARCHAR(100) NOT NULL    COMMENT '显示名',
+  FUNCTION_TYPE VARCHAR(10) NOT NULL    COMMENT '函数类型',
+  ARGS_META VARCHAR(4000) NOT NULL    COMMENT '参数定义',
+  RETURN_TYPE VARCHAR(100) NULL    COMMENT '返回类型',
+  TAG_SET VARCHAR(200) NULL    COMMENT '标签',
+  SOURCE VARCHAR(4000) NULL    COMMENT '源码',
+  STATUS INTEGER NOT NULL    COMMENT '状态',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
+  REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint PK_nop_dyn_function_meta primary key (FUNC_META_ID)
+);
+
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   OBJ_TYPE VARCHAR(100) NOT NULL    COMMENT '对象类型',
@@ -208,6 +228,8 @@ CREATE TABLE nop_dyn_module(
    ALTER TABLE nop_dyn_prop_meta COMMENT '属性元数据';
                 
    ALTER TABLE nop_dyn_entity_relation_meta COMMENT '实体关联元数据';
+                
+   ALTER TABLE nop_dyn_function_meta COMMENT '实体函数定义';
                 
    ALTER TABLE nop_dyn_entity COMMENT '动态实体';
                 

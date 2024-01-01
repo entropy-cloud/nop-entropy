@@ -81,6 +81,26 @@ CREATE TABLE nop_dyn_entity_relation_meta(
   constraint PK_nop_dyn_entity_relation_meta primary key (REL_META_ID)
 );
 
+CREATE TABLE nop_dyn_function_meta(
+  FUNC_META_ID VARCHAR(32) NOT NULL ,
+  ENTITY_META_ID VARCHAR(32) NOT NULL ,
+  NAME VARCHAR(50) NOT NULL ,
+  DISPLAY_NAME VARCHAR(100) NOT NULL ,
+  FUNCTION_TYPE VARCHAR(10) NOT NULL ,
+  ARGS_META VARCHAR(4000) NOT NULL ,
+  RETURN_TYPE VARCHAR(100)  ,
+  TAG_SET VARCHAR(200)  ,
+  SOURCE VARCHAR(4000)  ,
+  STATUS INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR(200)  ,
+  constraint PK_nop_dyn_function_meta primary key (FUNC_META_ID)
+);
+
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR(32) NOT NULL ,
   OBJ_TYPE VARCHAR(100) NOT NULL ,
@@ -340,6 +360,40 @@ CREATE TABLE nop_dyn_module(
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_dyn_entity_relation_meta.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_dyn_function_meta IS '实体函数定义';
+                
+      COMMENT ON COLUMN nop_dyn_function_meta.FUNC_META_ID IS '函数定义ID';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.ENTITY_META_ID IS '实体定义ID';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.NAME IS '函数名';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.DISPLAY_NAME IS '显示名';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.FUNCTION_TYPE IS '函数类型';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.ARGS_META IS '参数定义';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.RETURN_TYPE IS '返回类型';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.TAG_SET IS '标签';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.SOURCE IS '源码';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.STATUS IS '状态';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_dyn_function_meta.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_dyn_entity IS '动态实体';
                 

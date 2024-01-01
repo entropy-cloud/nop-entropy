@@ -32,4 +32,6 @@ public interface IBizObjectManager {
      * @return 根据返回值以及IServiceRuntime中error/responseHeaders等信息构建
      */
     ApiResponse<?> buildResponse(String locale, Object result, IServiceContext rt);
+
+    void clearCache();
 }

@@ -33,6 +33,16 @@ public class VfsConfig implements Serializable {
 
     private boolean useTenantStore;
 
+    private String storeBuilderClass = DeltaResourceStoreBuilder.class.getName();
+
+    public String getStoreBuilderClass() {
+        return storeBuilderClass;
+    }
+
+    public void setStoreBuilderClass(String storeBuilderClass) {
+        this.storeBuilderClass = storeBuilderClass;
+    }
+
     public Map<String, String> getPathMappings() {
         return pathMappings;
     }

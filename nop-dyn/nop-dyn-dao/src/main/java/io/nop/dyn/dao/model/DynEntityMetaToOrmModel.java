@@ -48,11 +48,6 @@ public class DynEntityMetaToOrmModel {
         this.dynEntityModel = ((IOrmEntityDao<?>) DaoProvider.instance().daoFor(NopDynEntity.class)).getEntityModel();
     }
 
-    public static void batchLoad(NopDynModule module) {
-        IEntityDao<NopDynModule> dao = DaoProvider.instance().daoFor(NopDynModule.class);
-        dao.batchLoadProps(Collections.singletonList(module), Collections.singletonList("entityMetas.propMetas.domain"));
-    }
-
     public OrmModel transformModule(NopDynModule module) {
         OrmModel model = new OrmModel();
         model.setDomains(toOrmDomains(getDomains(module)));

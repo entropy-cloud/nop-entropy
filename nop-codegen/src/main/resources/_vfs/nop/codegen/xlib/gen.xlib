@@ -102,6 +102,7 @@
                 <arg name="builder" implicit="true"/>
                 <arg name="ormModel" implicit="true" />
                 <arg name="appName" implicit="true" />
+                <arg name="moduleId" implicit="true" />
             </slot>
 
             <source>
@@ -144,7 +145,7 @@
                         builder.defineLoopVar("dialect","ormModel",model=> model["ext:dialect"].$toCsvSet());
                         builder.defineLoopVar("dict","ormModel", model=> model.dicts);
                     ]]></c:script>
-                    <c:unit xpl:slot="default" xpl:slotArgs="{builder,ormModel,appName}" />
+                    <c:unit xpl:slot="default" xpl:slotArgs="{builder,ormModel,appName,moduleId}" />
                 </thisLib:DefineLoop>
             </source>
         </DefineLoopForOrm>

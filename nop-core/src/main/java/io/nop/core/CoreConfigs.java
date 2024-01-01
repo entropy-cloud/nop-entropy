@@ -106,6 +106,10 @@ public interface CoreConfigs {
     IConfigReference<String> CFG_VFS_DELTA_LAYER_IDS = varRef(s_loc, "nop.core.vfs.delta-layer-ids",
             String.class, null);
 
+    @Description("指定Delta差量文件系统的StoreBuilder对象，需要实现IDeltaResourceStoreBuilder接口")
+    IConfigReference<String> CFG_VFS_DELTA_RESOURCE_STORE_BUILDER_CLASS = varRef(s_loc,
+            "nop.core.vfs.delta-resource-store-builder-class", String.class, null);
+
     @Description("是否自动扫描classpath下/_store目录，在内存中构造虚拟文件系统")
     IConfigReference<Boolean> CFG_RESOURCE_STORE_ENABLE_CLASSPATH_SCAN = varRef(s_loc,
             "nop.core.resource.store.enable-classpath-scan", Boolean.class, true);

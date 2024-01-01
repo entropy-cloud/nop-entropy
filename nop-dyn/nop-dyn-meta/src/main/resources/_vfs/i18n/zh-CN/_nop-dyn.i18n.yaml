@@ -101,6 +101,7 @@ prop:
       entityName: 实体名
       extConfig: 扩展配置
       extConfigComponent: null
+      functionMetas: 函数定义
       module: 所属模块
       module.displayName: 所属模块
       moduleId: 模块ID

@@ -102,6 +102,13 @@
                 <item bizObjName="NopDynPropMeta"/>
             </schema>
         </prop>
+        <prop name="functionMetas" displayName="函数定义" i18n-en:displayName="Function Metas" tagSet="pub,cascade-delete"
+              ext:kind="to-many" internal="true" ext:joinLeftProp="entityMetaId" ext:joinRightProp="entityMetaId"
+              ext:joinRightDisplayProp="name" insertable="false" updatable="false" lazy="true">
+            <schema>
+                <item bizObjName="NopDynFunctionMeta"/>
+            </schema>
+        </prop>
         <prop name="extConfigComponent" tagSet="json,pub" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

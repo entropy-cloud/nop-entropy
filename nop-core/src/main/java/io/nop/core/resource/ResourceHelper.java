@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.IByteArrayView;
 import io.nop.api.core.exceptions.NopException;
@@ -62,6 +63,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import static io.nop.commons.CommonConfigs.CFG_IO_DEFAULT_BUF_SIZE;
+import static io.nop.core.CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS;
 import static io.nop.core.CoreErrors.ARG_MODULE_ID;
 import static io.nop.core.CoreErrors.ARG_MODULE_NAME;
 import static io.nop.core.CoreErrors.ARG_NAMESPACE;
@@ -474,9 +476,9 @@ public class ResourceHelper {
         return toReader(resource, encoding, false);
     }
 
-    public static Reader toReader(IResource resource, String encoding, boolean supportZip) {
-        return toReader(resource, encoding, supportZip, false);
-    }
+//    public static Reader toReader(IResource resource, String encoding, boolean supportZip) {
+//        return toReader(resource, encoding, supportZip, false);
+//    }
 
     public static IZipTool getZipTool() {
         return s_zipTool;
@@ -519,19 +521,16 @@ public class ResourceHelper {
         unzipToDir(resource, (IFile) getSibling(resource, StringHelper.removeFileExt(resource.getName())), null);
     }
 
-    public static Reader toReader(IResource resource, String encoding, boolean supportZip, boolean disableBuffer) {
+    public static Reader toReader(IResource resource, String encoding, boolean supportZip) {
         if (encoding == null)
             encoding = ResourceConstants.ENCODING_UTF8;
-        InputStream is = resource.getInputStream();
+        InputStream is = null;
         try {
             if (supportZip && isZipFile(resource)) {
                 is = new GZIPInputStream(is, CFG_IO_DEFAULT_BUF_SIZE.get());
                 return new InputStreamReader(is, encoding);
             } else {
-                Reader rd = new InputStreamReader(is, encoding);
-                if (disableBuffer)
-                    return rd;
-                return new FastBufferedReader(rd);
+                return resource.getReader(encoding);
             }
         } catch (Exception e) {
             IoHelper.safeClose(is);
@@ -588,7 +587,7 @@ public class ResourceHelper {
     public static String readTextHeader(IResource resource, String encoding, int maxChars) {
         LOG.trace("resource.readTextHeader:resource={},encoding={},maxChars={}", resource, encoding, maxChars);
 
-        Reader rd = toReader(resource, encoding, true, true);
+        Reader rd = toReader(resource, encoding, true);
         char[] buf = new char[maxChars];
         try {
             int n = rd.read(buf);
@@ -1001,5 +1000,19 @@ public class ResourceHelper {
             fullPath = StringHelper.absolutePath(basePath, path);
         }
         return VirtualFileSystem.instance().getResource(fullPath);
+    }
+
+    public static File getOverrideVFsDir() {
+        String path = CFG_RESOURCE_DIR_OVERRIDE_VFS.get();
+        if (StringHelper.isEmpty(path) || ApiConstants.CONFIG_VALUE_NONE.equals(path))
+            return null;
+
+        File dir;
+        if (path.startsWith("./")) {
+            dir = new File(FileHelper.currentDir(), path).getAbsoluteFile();
+        } else {
+            dir = new File(path).getAbsoluteFile();
+        }
+        return dir;
     }
 }

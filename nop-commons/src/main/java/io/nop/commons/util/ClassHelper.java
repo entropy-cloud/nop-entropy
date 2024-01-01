@@ -29,15 +29,36 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLDecoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import static io.nop.api.core.ApiErrors.ARG_CLASS_NAME;
 import static io.nop.api.core.ApiErrors.ARG_EXPECTED_TYPE;
-import static io.nop.commons.CommonErrors.*;
+import static io.nop.commons.CommonErrors.ARG_CLASS;
+import static io.nop.commons.CommonErrors.ERR_LOAD_CLASS_NOT_EXPECTED_TYPE;
+import static io.nop.commons.CommonErrors.ERR_REFLECT_NEW_INSTANCE_FAIL;
 
 
 @NoReflection
@@ -236,6 +257,17 @@ public class ClassHelper {
             throw NopException.adapt(e);
         }
 
+    }
+
+    public static Object safeNewInstance(String className) {
+        try {
+            Class<?> clazz = safeLoadClass(className);
+            return clazz.newInstance();
+        } catch (InstantiationException e) {
+            throw new NopException(ERR_REFLECT_NEW_INSTANCE_FAIL, e).param(ARG_CLASS, className);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
     }
 
     public static Object newInstance(Class<?> clazz) {

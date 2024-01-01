@@ -10,6 +10,7 @@ package io.nop.core.resource.store;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.progress.IStepProgressListener;
 import io.nop.commons.lang.IRefreshable;
+import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IFile;
@@ -19,8 +20,8 @@ import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.IVirtualFileSystem;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,11 +36,10 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_UNKNOWN_NAMESPACE;
 public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshable {
     private Map<String, IResourceNamespaceHandler> namespaceHandlers = new ConcurrentHashMap<>();
 
-    private DeltaResourceStore deltaResourceStore;
+    private IDeltaResourceStore deltaResourceStore;
     private List<ZipFile> zipFiles;
 
     public DefaultVirtualFileSystem() {
-        VfsConfig config = VfsConfigLoader.loadDefault();
         registerNamespaceHandler(new SuperNamespaceHandler());
         registerNamespaceHandler(new RawNamespaceHandler());
         registerNamespaceHandler(DumpNamespaceHandler.INSTANCE);
@@ -49,9 +49,7 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
         registerNamespaceHandler(ModuleNamespaceHandler.INSTANCE);
         registerNamespaceHandler(DynamicNamespaceHandler.INSTANCE);
 
-        DeltaResourceStoreBuilder builder = new DeltaResourceStoreBuilder();
-        this.deltaResourceStore = builder.build(config);
-        this.zipFiles = builder.getZipFiles();
+        this.buildResourceStore();
     }
 
     @Override
@@ -59,16 +57,21 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
         IoHelper.safeCloseAll(zipFiles);
         zipFiles = null;
 
+        this.buildResourceStore();
+    }
+
+    protected void buildResourceStore() {
         VfsConfig config = VfsConfigLoader.loadDefault();
-        DeltaResourceStoreBuilder builder = new DeltaResourceStoreBuilder();
+        IDeltaResourceStoreBuilder builder = (IDeltaResourceStoreBuilder) ClassHelper.safeNewInstance(config.getStoreBuilderClass());
         this.deltaResourceStore = builder.build(config);
         this.zipFiles = builder.getZipFiles();
     }
 
     @Override
     public void destroy() {
-        deltaResourceStore = new DeltaResourceStore();
+        DeltaResourceStore deltaResourceStore = new DeltaResourceStore();
         deltaResourceStore.setStore(new InMemoryResourceStore());
+        this.deltaResourceStore = deltaResourceStore;
 
         IoHelper.safeCloseAll(zipFiles);
         zipFiles = null;
@@ -103,10 +106,6 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
             path = ResourceHelper.removeNamespace(path, getNamespace());
             return deltaResourceStore.getRawResource(path);
         }
-    }
-
-    public void setTenantResourceStoreSupplier(ITenantResourceStoreSupplier supplier) {
-        this.deltaResourceStore.setTenantStoreSupplier(supplier);
     }
 
     @Override

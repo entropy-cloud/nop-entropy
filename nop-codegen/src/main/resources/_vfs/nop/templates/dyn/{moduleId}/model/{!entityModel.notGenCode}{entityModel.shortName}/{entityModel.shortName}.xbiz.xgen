@@ -1,0 +1,4 @@
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" graphql:base="crud"
+    x:extends="_${entityModel.shortName}.xbiz">
+    <actions/>
+</biz>

@@ -94,6 +94,9 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /* relation:  */
     public static final String PROP_NAME_propMetas = "propMetas";
     
+    /* relation: 函数定义 */
+    public static final String PROP_NAME_functionMetas = "functionMetas";
+    
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
     
@@ -954,6 +957,16 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
      */
     public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPropMeta> getPropMetas(){
        return _propMetas;
+    }
+       
+    private final OrmEntitySet<io.nop.dyn.dao.entity.NopDynFunctionMeta> _functionMetas = new OrmEntitySet<>(this, PROP_NAME_functionMetas,
+        io.nop.dyn.dao.entity.NopDynFunctionMeta.PROP_NAME_entityMeta, null,io.nop.dyn.dao.entity.NopDynFunctionMeta.class);
+
+    /**
+     * 函数定义。 refPropName: entityMeta, keyProp: {rel.keyProp}
+     */
+    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynFunctionMeta> getFunctionMetas(){
+       return _functionMetas;
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;
