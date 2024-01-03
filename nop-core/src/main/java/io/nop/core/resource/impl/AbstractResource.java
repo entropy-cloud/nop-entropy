@@ -196,6 +196,11 @@ public abstract class AbstractResource implements IResource {
             }
         }
 
+        if(resource instanceof InMemoryTextResource){
+            resource.writeText(readText(),null);
+            return;
+        }
+
         OutputStream os = null;
         try {
             os = resource.getOutputStream();

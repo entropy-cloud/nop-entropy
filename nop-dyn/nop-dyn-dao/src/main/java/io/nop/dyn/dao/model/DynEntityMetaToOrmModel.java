@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -54,6 +55,7 @@ public class DynEntityMetaToOrmModel {
         if (module.getBasePackageName() != null) {
             model.prop_set(OrmModelConstants.EXT_BASE_PACKAGE_NAME, module.getBasePackageName());
         }
+        model.prop_set(OrmModelConstants.EXT_APP_NAME, module.getModuleName());
 
         if (module.getMavenGroupId() != null) {
             model.prop_set(OrmModelConstants.EXT_MAVEN_GROUP_ID, module.getMavenGroupId());
@@ -232,7 +234,10 @@ public class DynEntityMetaToOrmModel {
     }
 
     List<NopDynDomain> getDomains(NopDynModule module) {
-        return module.getEntityMetas().stream().flatMap(entityMeta -> entityMeta.getPropMetas().stream()).map(NopDynPropMeta::getDomain).distinct().sorted(NopDynDomain::compareTo).collect(Collectors.toList());
+        return module.getEntityMetas().stream().flatMap(entityMeta -> entityMeta.getPropMetas().stream())
+                .map(NopDynPropMeta::getDomain)
+                .filter(Objects::nonNull)
+                .distinct().sorted(NopDynDomain::compareTo).collect(Collectors.toList());
     }
 
     protected OrmDomainModel toOrmDomain(NopDynDomain domain) {

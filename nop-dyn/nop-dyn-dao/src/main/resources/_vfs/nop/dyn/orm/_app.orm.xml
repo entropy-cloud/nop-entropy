@@ -547,8 +547,8 @@
         </entity>
         <entity className="io.nop.dyn.dao.entity.NopDynDomain" createTimeProp="createTime" createrProp="createdBy"
                 displayName="数据域" name="io.nop.dyn.dao.entity.NopDynDomain" registerShortName="true"
-                tableName="nop_dyn_domain" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Domain">
+                tableName="nop_dyn_domain" tagSet="dict" updateTimeProp="updateTime" updaterProp="updatedBy"
+                versionProp="version" i18n-en:displayName="Domain">
             <columns>
                 <column code="DOMAIN_ID" displayName="数据域ID" mandatory="true" name="domainId" precision="32"
                         primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"

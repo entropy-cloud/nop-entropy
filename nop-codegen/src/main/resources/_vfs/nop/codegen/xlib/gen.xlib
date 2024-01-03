@@ -115,6 +115,9 @@
                         let pkgName = ormModel['ext:basePackageName'];
                         let entityPkgName = ormModel['ext:entityPackageName'];
                         if(!pkgName){
+                            if(!entityPkgName)
+                               entityPkgName = "app.dyn.entity";
+
                             if(entityPkgName.endsWith('.dao.entity')){
                                 pkgName = entityPkgName.$removeTail('.dao.entity');
                             }else if(entityPkgName.endsWith('.entity')){

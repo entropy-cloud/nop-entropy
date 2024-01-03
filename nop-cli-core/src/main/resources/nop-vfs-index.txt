@@ -8,6 +8,7 @@
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
+/dict/core/std-sql-type.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
 /i18n/en/nop-core.i18n.yaml
 /meta/test/NopAuthUser.xmeta
@@ -181,6 +182,11 @@
 /nop/templates/ast/src/main/java/{ast.packagePath}/{astNode.name}.java.xgen
 /nop/templates/backend/@init.xrun
 /nop/templates/backend/a-imp.xrun
+/nop/templates/dyn-web/@init.xrun
+/nop/templates/dyn/@init.xrun
+/nop/templates/dyn/{moduleId}/_module
+/nop/templates/dyn/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xbiz.xgen
+/nop/templates/dyn/{moduleId}/model/{!entityModel.notGenCode}{entityModel.shortName}/{entityModel.shortName}.xmeta.xgen
 /nop/templates/i18n/@init.xrun
 /nop/templates/i18n/_templates/_{metaInfo.objName}.json.xgen
 /nop/templates/i18n/src/main/resources/_vfs/i18n/{defaultLocale}/_{moduleName}.i18n.yaml.xgen

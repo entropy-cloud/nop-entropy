@@ -31,7 +31,21 @@
     </forms>
 
     <pages>
-        <crud name="main"/>
+        <crud name="main">
+            <listActions>
+                <action id="publish-button" label="发布" batch="true">
+                    <messages>
+                        <success>发布成功</success>
+                    </messages>
+                    <api url="@mutation:NopDynModule__publish" >
+                        <data>
+                            <ids>$ids</ids>
+                        </data>
+                    </api>
+                </action>
+            </listActions>
+        </crud>
+
         <picker name="picker"/>
 
         <crud name="app-modules" grid="simple-list">

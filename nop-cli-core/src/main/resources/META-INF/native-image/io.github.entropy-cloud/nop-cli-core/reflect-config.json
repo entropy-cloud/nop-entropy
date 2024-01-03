@@ -367,6 +367,259 @@
     "allDeclaredMethods": true,
     "allPublicConstructors": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CHARSET_ISO_8859_1"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CHARSET_UTF8"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ENCODING_UTF8"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "FUTURE_DATE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "INVALID_DATE"
+      }
+    ],
+    "methods": [
+      {
+        "name": "appendQuery",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "decodeURL",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "decodeURL",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "encodeStringMap",
+        "parameterTypes": [
+          "java.util.Map",
+          "char",
+          "char"
+        ]
+      },
+      {
+        "name": "encodeURL",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "encodeURL",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "indexOfInRange",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "isAllDigit",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isAllZero",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isAsciiLetter",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isBlank",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isDigit",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": [
+          "java.lang.CharSequence"
+        ]
+      },
+      {
+        "name": "isEmptyObject",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "isNotBlank",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isNotEmpty",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isSpace",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "join",
+        "parameterTypes": [
+          "java.lang.Iterable",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "join",
+        "parameterTypes": [
+          "java.lang.Iterable",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "onlyChars",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean",
+          "boolean",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseSlotScope",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseStringMap",
+        "parameterTypes": [
+          "java.lang.String",
+          "char",
+          "char"
+        ]
+      },
+      {
+        "name": "renderTemplate",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "renderTemplate",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "renderTemplate2",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.function.BiFunction"
+        ]
+      },
+      {
+        "name": "renderTemplateForScope",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "split",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "strip",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "stripedSplit",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "stripedSplit",
+        "parameterTypes": [
+          "java.lang.String",
+          "char",
+          "boolean"
+        ]
+      }
+    ],
+    "name": "io.nop.api.core.util.ApiStringHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [],
     "name": "io.nop.api.core.util.IComponentModel",
@@ -503,6 +756,13 @@
         "name": "loadTpl",
         "parameterTypes": [
           "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "newCodeGenerator",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
         ]
       },
       {
@@ -959,6 +1219,201 @@
     "fields": [],
     "methods": [
       {
+        "name": "expandList",
+        "parameterTypes": [
+          "java.util.Collection",
+          "int"
+        ]
+      },
+      {
+        "name": "pop",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "push",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "push",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object",
+          "[Ljava.lang.Object;"
+        ]
+      },
+      {
+        "name": "reduceRight",
+        "parameterTypes": [
+          "java.util.List",
+          "java.util.function.BiFunction",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "reverse",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "shift",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "slice",
+        "parameterTypes": [
+          "java.util.List",
+          "int",
+          "java.lang.Integer"
+        ]
+      },
+      {
+        "name": "splice",
+        "parameterTypes": [
+          "java.util.List",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "splice",
+        "parameterTypes": [
+          "java.util.List",
+          "int",
+          "int",
+          "[Ljava.lang.Object;"
+        ]
+      },
+      {
+        "name": "unshift",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "unshift",
+        "parameterTypes": [
+          "java.util.List",
+          "java.lang.Object",
+          "[Ljava.lang.Object;"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.collections.ListFunctions",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "concat",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "concat",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.Object",
+          "[Ljava.lang.Object;"
+        ]
+      },
+      {
+        "name": "every",
+        "parameterTypes": [
+          "java.lang.Iterable",
+          "java.util.function.Predicate"
+        ]
+      },
+      {
+        "name": "filter",
+        "parameterTypes": [
+          "java.lang.Iterable",
+          "java.util.function.Predicate"
+        ]
+      },
+      {
+        "name": "flatMap",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "hasNext",
+        "parameterTypes": [
+          "java.util.Collection",
+          "int"
+        ]
+      },
+      {
+        "name": "includes",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "join",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "map",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "reduce",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.util.function.BiFunction",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "some",
+        "parameterTypes": [
+          "java.util.Collection",
+          "java.util.function.Predicate"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.collections.SetFunctions",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "getTagSet",
         "parameterTypes": []
       }
@@ -1239,12 +1694,53 @@
         ]
       },
       {
+        "name": "currentDate",
+        "parameterTypes": []
+      },
+      {
+        "name": "currentDateTime",
+        "parameterTypes": []
+      },
+      {
         "name": "currentLocalDate",
         "parameterTypes": []
       },
       {
         "name": "currentTimeMillis",
         "parameterTypes": []
+      },
+      {
+        "name": "dateDiff",
+        "parameterTypes": [
+          "java.time.LocalDate",
+          "java.time.LocalDate"
+        ]
+      },
+      {
+        "name": "dateMillis",
+        "parameterTypes": [
+          "int",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "dateTimeToMillis",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      },
+      {
+        "name": "dateTimeToTimestamp",
+        "parameterTypes": [
+          "java.time.LocalDateTime"
+        ]
+      },
+      {
+        "name": "dateToMillis",
+        "parameterTypes": [
+          "java.time.LocalDate"
+        ]
       },
       {
         "name": "diffDays",
@@ -1287,6 +1783,27 @@
       {
         "name": "formatDate",
         "parameterTypes": [
+          "java.time.LocalDate",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "formatDate",
+        "parameterTypes": [
+          "java.util.Date",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "formatDateTime",
+        "parameterTypes": [
+          "java.time.LocalDateTime",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "formatJavaDate",
+        "parameterTypes": [
           "java.util.Date",
           "java.lang.String"
         ]
@@ -1313,6 +1830,13 @@
         ]
       },
       {
+        "name": "formatTime",
+        "parameterTypes": [
+          "java.time.LocalTime",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "formatTimestamp",
         "parameterTypes": [
           "java.sql.Timestamp",
@@ -1332,7 +1856,20 @@
         ]
       },
       {
+        "name": "getDayStartTs",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
         "name": "getDayStartWithTimeZone",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
+        "name": "getDayStartWithTimeZoneTs",
         "parameterTypes": [
           "java.util.TimeZone",
           "long"
@@ -1345,13 +1882,31 @@
         ]
       },
       {
+        "name": "getHourStartTs",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
         "name": "getMinuteStart",
         "parameterTypes": [
           "long"
         ]
       },
       {
+        "name": "getMinuteStartTs",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
         "name": "getMonthEnd",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getMonthEndTs",
         "parameterTypes": [
           "long"
         ]
@@ -1364,7 +1919,20 @@
         ]
       },
       {
+        "name": "getMonthEndWithTimeZoneTs",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
         "name": "getMonthStart",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getMonthStartTs",
         "parameterTypes": [
           "long"
         ]
@@ -1377,7 +1945,20 @@
         ]
       },
       {
+        "name": "getMonthStartWithTimeZoneTs",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
         "name": "getQuarterEnd",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getQuarterEndTs",
         "parameterTypes": [
           "long"
         ]
@@ -1390,7 +1971,20 @@
         ]
       },
       {
+        "name": "getQuarterEndWithTimeZoneTs",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
         "name": "getQuarterStart",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getQuarterStartTs",
         "parameterTypes": [
           "long"
         ]
@@ -1403,7 +1997,20 @@
         ]
       },
       {
+        "name": "getQuarterStartWithTimeZoneTs",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
         "name": "getWeekEnd",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getWeekEndTs",
         "parameterTypes": [
           "long"
         ]
@@ -1416,7 +2023,20 @@
         ]
       },
       {
+        "name": "getWeekEndWithTimeZoneTs",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
         "name": "getWeekStart",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getWeekStartTs",
         "parameterTypes": [
           "long"
         ]
@@ -1429,7 +2049,20 @@
         ]
       },
       {
+        "name": "getWeekStartWithTimeZoneTs",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
         "name": "getYearEnd",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "getYearEndTs",
         "parameterTypes": [
           "long"
         ]
@@ -1442,13 +2075,33 @@
         ]
       },
       {
+        "name": "getYearEndWithTimeZoneTs",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
         "name": "getYearStart",
         "parameterTypes": [
           "long"
         ]
       },
       {
+        "name": "getYearStartTs",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
         "name": "getYearStartWithTimeZone",
+        "parameterTypes": [
+          "java.util.TimeZone",
+          "long"
+        ]
+      },
+      {
+        "name": "getYearStartWithTimeZoneTs",
         "parameterTypes": [
           "java.util.TimeZone",
           "long"
@@ -1500,6 +2153,18 @@
         ]
       },
       {
+        "name": "millisToDate",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
+        "name": "millisToDateTime",
+        "parameterTypes": [
+          "java.lang.Long"
+        ]
+      },
+      {
         "name": "millisToLocalDate",
         "parameterTypes": [
           "java.lang.Long"
@@ -1512,8 +2177,27 @@
         ]
       },
       {
+        "name": "monthDiff",
+        "parameterTypes": [
+          "java.time.LocalDate",
+          "java.time.LocalDate"
+        ]
+      },
+      {
         "name": "now",
         "parameterTypes": []
+      },
+      {
+        "name": "parseDataTime",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseDate",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "parseDuration",
@@ -1561,6 +2245,13 @@
         ]
       },
       {
+        "name": "yearDiff",
+        "parameterTypes": [
+          "java.time.LocalDate",
+          "java.time.LocalDate"
+        ]
+      },
+      {
         "name": "zone",
         "parameterTypes": [
           "int",
@@ -1569,6 +2260,1895 @@
       }
     ],
     "name": "io.nop.commons.util.DateHelper",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "CHARSET_1252"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "DIGITS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EMPTY_BYTES"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EMPTY_STRING"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "EMPTY_STRINGS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ENV_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "ENV_ESCAPE_STRS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "HTML_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "HTML_ESCAPE_STRS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INVALID_FILE_NAME_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INVALID_FILE_NAME_CHARS_STR"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INVALID_FILE_NAME_REPLS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INVALID_FILE_PATH_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "INVALID_FILE_PATH_CHARS_STR"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JAVA_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JAVA_ESCAPE_STRS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JSON_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "JSON_ESCAPE_STRS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LINE_PATTERN"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOWER_CASE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "REGEX_BR"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "REGEX_P"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "REGEX_TAG"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SPECIAL_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SQL_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SQL_ESCAPE_CHARS_SLASH"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SQL_ESCAPE_STRS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "SQL_ESCAPE_STRS_SLASH"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "UPPER_CASE"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_ATTR_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_ATTR_ESCAPE_STRS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_ESCAPE_STRS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_VALUE_ESCAPE_CHARS"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "XML_VALUE_ESCAPE_STRS"
+      }
+    ],
+    "methods": [
+      {
+        "name": "_containsControlAscii",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "_escapeControlAscii",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "_indexOf",
+        "parameterTypes": [
+          "[C",
+          "char"
+        ]
+      },
+      {
+        "name": "_isValidXmlNamePart",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean",
+          "boolean"
+        ]
+      },
+      {
+        "name": "_searchNotDigit",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "_toString",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "_unescapeXml",
+        "parameterTypes": [
+          "char",
+          "char",
+          "char",
+          "char"
+        ]
+      },
+      {
+        "name": "absolutePath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "appendPath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "arrayAwareToString",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "asRawText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "beanPropName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "bytesToHex",
+        "parameterTypes": [
+          "[B"
+        ]
+      },
+      {
+        "name": "bytesToHex",
+        "parameterTypes": [
+          "[B",
+          "boolean"
+        ]
+      },
+      {
+        "name": "camelCase",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "camelCase",
+        "parameterTypes": [
+          "java.lang.String",
+          "char",
+          "boolean"
+        ]
+      },
+      {
+        "name": "camelCaseToHyphen",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "camelCaseToUnderscore",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "capitalize",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "chompStartChars",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "classNameToPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "colCodeToPropName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "commaDelimitedListToSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "commaDelimitedListToStringArray",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "configVarToEnv",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "containsAnyChar",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "containsDigits",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "containsLowerCase",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "containsSpecialChar",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "containsUpperCase",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "containsWhitespace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "countChar",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "countContains",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "decapitalize",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "decodeBase64",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "decodeDupEscape",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "decodeHexByte",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int"
+        ]
+      },
+      {
+        "name": "decodeHexNibble",
+        "parameterTypes": [
+          "char"
+        ]
+      },
+      {
+        "name": "decodeProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "delete",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "deleteAny",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "delimitedListToStringArray",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "delimitedListToStringArray",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "dropZero",
+        "parameterTypes": [
+          "double"
+        ]
+      },
+      {
+        "name": "emptyAsNull",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "encodeBase64",
+        "parameterTypes": [
+          "[B"
+        ]
+      },
+      {
+        "name": "encodeBase64Url",
+        "parameterTypes": [
+          "[B"
+        ]
+      },
+      {
+        "name": "encodeDupEscape",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "encodeProp",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "encodeQuery",
+        "parameterTypes": [
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "encodeQuery",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "encodeUriPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "endWith",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "char"
+        ]
+      },
+      {
+        "name": "endsWithIgnoreCase",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "envToConfigVar",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escape",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "[C",
+          "[Ljava.lang.String;"
+        ]
+      },
+      {
+        "name": "escapeCRLF",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeCharTo",
+        "parameterTypes": [
+          "char",
+          "[C",
+          "[Ljava.lang.String;",
+          "java.lang.Appendable"
+        ]
+      },
+      {
+        "name": "escapeHtml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeJava",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeJavadoc",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeJson",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeJsonCharTo",
+        "parameterTypes": [
+          "char",
+          "java.lang.Appendable"
+        ]
+      },
+      {
+        "name": "escapeJsonTo",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "java.lang.Appendable"
+        ]
+      },
+      {
+        "name": "escapeSql",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "escapeTo",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "[C",
+          "[Ljava.lang.String;",
+          "java.lang.Appendable"
+        ]
+      },
+      {
+        "name": "escapeUnicode",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeXmlAttr",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeXmlAttrTo",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "java.lang.Appendable"
+        ]
+      },
+      {
+        "name": "escapeXmlTo",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "java.lang.Appendable"
+        ]
+      },
+      {
+        "name": "escapeXmlValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "escapeXmlValueTo",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "java.lang.Appendable"
+        ]
+      },
+      {
+        "name": "escapeYaml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "fileExt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "fileFullName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "fileNameNoExt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "filePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "fileSizeString",
+        "parameterTypes": [
+          "long"
+        ]
+      },
+      {
+        "name": "fileType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "firstPart",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "forEachTemplateVar",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "forEachTemplateVar",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.function.Consumer"
+        ]
+      },
+      {
+        "name": "formatDate",
+        "parameterTypes": [
+          "java.util.Date",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "formatDegree",
+        "parameterTypes": [
+          "java.lang.Number"
+        ]
+      },
+      {
+        "name": "formatLocalDate",
+        "parameterTypes": [
+          "java.time.LocalDate",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "formatLocalDateTime",
+        "parameterTypes": [
+          "java.time.LocalDateTime",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "formatNumber",
+        "parameterTypes": [
+          "java.lang.Number"
+        ]
+      },
+      {
+        "name": "formatNumber",
+        "parameterTypes": [
+          "java.lang.Number",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "fullClassName",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "generateUUID",
+        "parameterTypes": []
+      },
+      {
+        "name": "generateUUID",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "getNamespace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getXmlProlog",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasClass",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasLength",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hasNamespace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "head",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "hexToBytes",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "hmacSha256",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "i18n",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "indexOfAnyChar",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "indexOfIgnoreCase",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "intToHex",
+        "parameterTypes": [
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "internList",
+        "parameterTypes": [
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "isAbsolutePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isAllAsciiLetter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isAllChar",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "isAsciiVarPart",
+        "parameterTypes": [
+          "char"
+        ]
+      },
+      {
+        "name": "isAsciiVarStart",
+        "parameterTypes": [
+          "char"
+        ]
+      },
+      {
+        "name": "isCanonicalFilePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isEmptyObject",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "isGraphQLNamePart",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isGraphQLNameStart",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isHexChar",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isInt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isInt",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "isJavaDefaultImportType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isJavaIdentifierPart",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isJavaIdentifierStart",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isJavaKeyword",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isJavaScriptKeyword",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isNo",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "isNonNegativeInt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isNumber",
+        "parameterTypes": [
+          "java.lang.CharSequence"
+        ]
+      },
+      {
+        "name": "isQuotedString",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isSafeAsciiToken",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isSecretVar",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isSpaceInLine",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isValidClassName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidConfigVar",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidFileName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidFilePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidFileType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidFormat",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidHtmlAttrName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidJavaVarName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidNopModuleId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidNopModuleName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidPropName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidPropPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidSimpleVarName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidVPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidXmlName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isValidXmlName",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean",
+          "boolean"
+        ]
+      },
+      {
+        "name": "isValidXmlNamespaceName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isWhitespace",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isXLangKeyword",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "isXmlNamePart",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isXmlNameStart",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "isYes",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "joinArray",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "lastPart",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "lastPart",
+        "parameterTypes": [
+          "java.lang.String",
+          "char",
+          "boolean"
+        ]
+      },
+      {
+        "name": "leftPad",
+        "parameterTypes": [
+          "java.lang.String",
+          "int",
+          "char"
+        ]
+      },
+      {
+        "name": "limitLen",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int"
+        ]
+      },
+      {
+        "name": "limitLen",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "limitUtf8Len",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int"
+        ]
+      },
+      {
+        "name": "limitUtfLen",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "longToHex",
+        "parameterTypes": [
+          "long",
+          "int"
+        ]
+      },
+      {
+        "name": "lowerCase",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "maskPattern",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "maskSecretVar",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "matchPath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "matchSimplePattern",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "matchSimplePatternSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "matchSimplePatterns",
+        "parameterTypes": [
+          "java.lang.String",
+          "[Ljava.lang.String;"
+        ]
+      },
+      {
+        "name": "matchWildcard",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "java.lang.CharSequence"
+        ]
+      },
+      {
+        "name": "maybeXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "md5Hash",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "mergeCsvSet",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "methodAdd",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "methodGet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "methodGet",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "methodMake",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "methodSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "nextName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "nextPart",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "normalizeCRLF",
+        "parameterTypes": [
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "normalizeClassName",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "normalizeComment",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "normalizeConfigVar",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "normalizePath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "onlyContainsWhitespace",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "packageName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseCsvList",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseCsvSet",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseDegree",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseFileSizeString",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseGenericComponentType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseInt",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "parseNumber",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseQuery",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseSimpleQuery",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseSize",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "pathEndsWith",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "pathStartsWith",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "quote",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "quoteDupEscapeString",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "quoteIfNecessary",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "randomDigits",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "randomString",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "randomString",
+        "parameterTypes": [
+          "int",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "randomString",
+        "parameterTypes": [
+          "int",
+          "java.lang.String",
+          "io.nop.commons.util.random.IRandom"
+        ]
+      },
+      {
+        "name": "relativizePath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeEnd",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeFileExt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeFileType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeHead",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeHtmlTag",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeLastPart",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "removeStart",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "removeTail",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "repeat",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "replace",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "replaceChars",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "replaceFileExt",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "replaceFileType",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "rightPad",
+        "parameterTypes": [
+          "java.lang.String",
+          "int",
+          "char"
+        ]
+      },
+      {
+        "name": "safeFileName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "safeToString",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "sha256Hash",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "sha512Hash",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "shortText",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "int",
+          "int"
+        ]
+      },
+      {
+        "name": "simpleClassName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "simplifyJavaType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "simplifyJavaType",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "simplifyStdJavaType",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "skip",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "splitDupEscaped",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "splitToArray",
+        "parameterTypes": [
+          "java.lang.String",
+          "char"
+        ]
+      },
+      {
+        "name": "splitToLines",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "startWith",
+        "parameterTypes": [
+          "java.lang.CharSequence",
+          "char"
+        ]
+      },
+      {
+        "name": "startsWithAt",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "startsWithIgnoreCase",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "startsWithNamespace",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "startsWithPackage",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "startsWithPath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "tail",
+        "parameterTypes": [
+          "java.lang.String",
+          "int"
+        ]
+      },
+      {
+        "name": "toAbsolutePath",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "toCharset",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "toString",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "toStringArray",
+        "parameterTypes": [
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "tokenizeToStringArray",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "tokenizeToStringArray",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean",
+          "boolean"
+        ]
+      },
+      {
+        "name": "trimLeft",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "unescapeJava",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "unescapeJson",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "unescapeXml",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "unquote",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "unquoteDupEscapeString",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "upperCase",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "utf8Bytes",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "utf8Length",
+        "parameterTypes": [
+          "java.lang.CharSequence"
+        ]
+      },
+      {
+        "name": "wrap",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "wrapExpr",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "xmlNameToPropName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "xmlNameToVarName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "xmlValueNeedEscape",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.commons.util.StringHelper",
     "unsafeAllocated": false
   },
   {
@@ -4691,6 +7271,10 @@
         ]
       },
       {
+        "name": "getOverrideVFsDir",
+        "parameterTypes": []
+      },
+      {
         "name": "getParentPath",
         "parameterTypes": [
           "java.lang.String"
@@ -5770,6 +8354,18 @@
         ]
       },
       {
+        "name": "checkOverrideHead",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "deleteTargetResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
         "name": "executeWithLoop",
         "parameterTypes": [
           "java.lang.String",
@@ -5804,6 +8400,10 @@
         ]
       },
       {
+        "name": "getTargetResourceLoader",
+        "parameterTypes": []
+      },
+      {
         "name": "getTargetRootPath",
         "parameterTypes": []
       },
@@ -5812,6 +8412,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getTplResourceLoader",
+        "parameterTypes": []
       },
       {
         "name": "getTplRootPath",
@@ -5825,6 +8429,14 @@
           "java.lang.String",
           "boolean"
         ]
+      },
+      {
+        "name": "isAutoFormat",
+        "parameterTypes": []
+      },
+      {
+        "name": "isCheckOverrideHead",
+        "parameterTypes": []
       },
       {
         "name": "isForceOverride",
@@ -5853,6 +8465,12 @@
         "name": "isTplFile",
         "parameterTypes": [
           "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "maybeXml",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -5935,6 +8553,18 @@
         "name": "shouldKeepEmptyTargetFile",
         "parameterTypes": [
           "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "targetResourceLoader",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceLoader"
+        ]
+      },
+      {
+        "name": "tplResourceLoader",
+        "parameterTypes": [
+          "io.nop.core.resource.IResourceLoader"
         ]
       },
       {
@@ -9722,6 +12352,10 @@
         "parameterTypes": []
       },
       {
+        "name": "getDisplayName",
+        "parameterTypes": []
+      },
+      {
         "name": "getEagerLoadProps",
         "parameterTypes": []
       },
@@ -10695,9 +13329,29 @@
         "parameterTypes": []
       },
       {
+        "name": "getRefSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIgnoreDepends",
+        "parameterTypes": []
+      },
+      {
         "name": "setCollectionName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIgnoreDepends",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRefSet",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmRefSetModel"
         ]
       }
     ],
@@ -12905,6 +15559,12 @@
         ]
       },
       {
+        "name": "getRefMappingInfo",
+        "parameterTypes": [
+          "io.nop.orm.model.IEntityRelationModel"
+        ]
+      },
+      {
         "name": "getRefOnePropInfo",
         "parameterTypes": [
           "io.nop.orm.model.IEntityRelationModel"
@@ -13666,7 +16326,21 @@
     "fields": [],
     "methods": [
       {
+        "name": "AND",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
         "name": "IF",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
+        "name": "OR",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
           "io.nop.xlang.ast.CallExpression"
@@ -16531,6 +19205,31 @@
       }
     ],
     "name": "java.lang.Iterable",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "equals",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "hashCode",
+        "parameterTypes": []
+      },
+      {
+        "name": "toString",
+        "parameterTypes": []
+      }
+    ],
+    "name": "java.lang.Object",
     "unsafeAllocated": false
   },
   {

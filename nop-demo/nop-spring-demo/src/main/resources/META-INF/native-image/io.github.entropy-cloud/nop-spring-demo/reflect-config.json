@@ -14858,9 +14858,28 @@
     ],
     "methods": [
       {
+        "name": "addManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "addRelations",
         "parameterTypes": [
           "java.lang.Class",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "addRelations",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.Object",
@@ -15251,6 +15270,14 @@
         ]
       },
       {
+        "name": "manyToMany",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "orm",
         "parameterTypes": []
       },
@@ -15278,9 +15305,28 @@
         ]
       },
       {
+        "name": "removeManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "removeRelation",
         "parameterTypes": [
           "java.lang.Class",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "removeRelation",
+        "parameterTypes": [
+          "java.lang.String",
           "java.lang.String",
           "java.lang.String",
           "java.lang.Object",
@@ -15298,11 +15344,33 @@
         ]
       },
       {
+        "name": "removeRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection"
+        ]
+      },
+      {
         "name": "requireEntity",
         "parameterTypes": [
           "java.lang.String",
           "java.lang.String",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "requireManyToManyPropMeta",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "requirePropMeta",
+        "parameterTypes": [
+          "java.lang.String"
         ]
       },
       {
@@ -15390,6 +15458,15 @@
         ]
       },
       {
+        "name": "updateManyToManyRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.Collection",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "updateRelations",
         "parameterTypes": [
           "java.lang.Class",
@@ -15403,6 +15480,28 @@
         "name": "updateRelations",
         "parameterTypes": [
           "java.lang.Class",
+          "java.util.Map",
+          "java.util.function.Predicate",
+          "boolean",
+          "java.lang.String",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "updateRelations",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.String",
+          "java.lang.Object",
+          "java.util.Collection"
+        ]
+      },
+      {
+        "name": "updateRelationsEx",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
           "java.util.Map",
           "java.util.function.Predicate",
           "boolean",
@@ -17935,6 +18034,12 @@
       {
         "name": "getSimpleClassName",
         "parameterTypes": []
+      },
+      {
+        "name": "guessFromValue",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
       },
       {
         "name": "isAbstractType",
@@ -24885,6 +24990,13 @@
         ]
       },
       {
+        "name": "dumpResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "filePostfixFilter",
         "parameterTypes": [
           "java.lang.String"
@@ -24948,6 +25060,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getOverrideVFsDir",
+        "parameterTypes": []
       },
       {
         "name": "getParentPath",
@@ -25676,6 +25792,19 @@
       {
         "name": "loadPrecompiledObject",
         "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseComponentModel",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "parseComponentModel",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
           "java.lang.String"
         ]
       },
@@ -35040,6 +35169,10 @@
     "fields": [],
     "methods": [
       {
+        "name": "clearCache",
+        "parameterTypes": []
+      },
+      {
         "name": "dao",
         "parameterTypes": [
           "java.lang.String"
@@ -35054,6 +35187,12 @@
       {
         "name": "getEntityNames",
         "parameterTypes": []
+      },
+      {
+        "name": "normalizeEntityName",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
       },
       {
         "name": "register",
@@ -36045,6 +36184,10 @@
       },
       {
         "name": "getDeleteVersionProp",
+        "parameterTypes": []
+      },
+      {
+        "name": "getDisplayName",
         "parameterTypes": []
       },
       {
@@ -37195,9 +37338,29 @@
         "parameterTypes": []
       },
       {
+        "name": "getRefSet",
+        "parameterTypes": []
+      },
+      {
+        "name": "isIgnoreDepends",
+        "parameterTypes": []
+      },
+      {
         "name": "setCollectionName",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "setIgnoreDepends",
+        "parameterTypes": [
+          "boolean"
+        ]
+      },
+      {
+        "name": "setRefSet",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmRefSetModel"
         ]
       }
     ],
@@ -44921,6 +45084,10 @@
         "parameterTypes": []
       },
       {
+        "name": "afterPropertiesSet",
+        "parameterTypes": []
+      },
+      {
         "name": "clearCache",
         "parameterTypes": []
       },
@@ -44977,6 +45144,12 @@
         "name": "setOrmTemplate",
         "parameterTypes": [
           "io.nop.orm.IOrmTemplate"
+        ]
+      },
+      {
+        "name": "setSnowflakeWorkerId",
+        "parameterTypes": [
+          "long"
         ]
       },
       {
@@ -45227,6 +45400,137 @@
       }
     ],
     "name": "io.nop.web.biz.SystemJsProviderBizModel",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadDynamicCss",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.DynamicCssLoader",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": false,
+        "name": "LOG"
+      }
+    ],
+    "methods": [
+      {
+        "name": "destroy",
+        "parameterTypes": []
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadDynamicJs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "loadText",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "setSystemJsTransformer",
+        "parameterTypes": [
+          "io.nop.commons.functional.IAsyncFunctionService"
+        ]
+      },
+      {
+        "name": "systemJsEmptyFile",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.web.page.DynamicJsLoader",
+    "unsafeAllocated": false
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "cssLoader"
+      },
+      {
+        "allowUnsafeAccess": false,
+        "allowWrite": true,
+        "name": "jsLoader"
+      }
+    ],
+    "methods": [
+      {
+        "name": "getJs",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getJsSource",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "init",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadAllXcss",
+        "parameterTypes": []
+      },
+      {
+        "name": "loadAllXjs",
+        "parameterTypes": []
+      },
+      {
+        "name": "saveJsSource",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.DynamicWebFileProvider",
     "unsafeAllocated": false
   },
   {
@@ -45555,6 +45859,12 @@
         ]
       },
       {
+        "name": "checkXjsFile",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "escapeGraphQL",
         "parameterTypes": [
           "java.lang.String"
@@ -45700,7 +46010,21 @@
     "fields": [],
     "methods": [
       {
+        "name": "AND",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
         "name": "IF",
+        "parameterTypes": [
+          "io.nop.core.lang.eval.IEvalScope",
+          "io.nop.xlang.ast.CallExpression"
+        ]
+      },
+      {
+        "name": "OR",
         "parameterTypes": [
           "io.nop.core.lang.eval.IEvalScope",
           "io.nop.xlang.ast.CallExpression"
@@ -46447,6 +46771,12 @@
         "name": "loadXMeta",
         "parameterTypes": [
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "parseXMetaFromResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
         ]
       },
       {

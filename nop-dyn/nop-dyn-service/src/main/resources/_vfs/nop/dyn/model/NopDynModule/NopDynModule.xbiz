@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynModule.xbiz">
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynModule.xbiz"
+    xmlns:c="c" xmlns:xpl="xpl" xmlns:bo="bo">
 
     <actions>
         <query name="active_findPage" x:prototype="findPage">
@@ -14,5 +15,23 @@
                 </bo:DoFindPage>
             </source>
         </query>
+
+        <mutation name="publish" displayName="发布">
+            <arg name="ids" type="Set&lt;String>"/>
+            <arg name="svcCtx" kind="ServiceContext" />
+
+            <source>
+                <c:script>
+                    import io.nop.dyn.dao.NopDynDaoConstants;
+                    const codeGen = inject('nopDynCodeGen');
+                    const entityList = thisObj.invoke("batchGet",{ids},null, svcCtx);
+
+                    entityList.forEach(entity=>{
+                        codeGen.generateForModule(entity, true);
+                        entity.status = NopDynDaoConstants.APP_STATUS_PUBLISHED;
+                    })
+                </c:script>
+            </source>
+        </mutation>
     </actions>
 </biz>
