@@ -8,11 +8,10 @@
                 <c:script>
                     let index = 1;
                 </c:script>
-                <c:for var="resource" items="${metaResources}">
+                <c:for var="metaInfo" items="${metaInfos}">
                     <c:script><![CDATA[
-                        import io.nop.xlang.xmeta.SchemaLoader;
-                        const objName = resource.path.$fileNameNoExt();
-                        const objMeta = SchemaLoader.loadXMeta(resource.path);
+                        const objName = metaInfo.objName;
+                        const objMeta = metaInfo.objMeta;
                     ]]></c:script>
                     <c:if test="${objMeta['ext:model'] == 'orm'}">
                         <resource id="${objName}-main" displayName="${objMeta.displayName}" orderNo="${10000+(index++)}"

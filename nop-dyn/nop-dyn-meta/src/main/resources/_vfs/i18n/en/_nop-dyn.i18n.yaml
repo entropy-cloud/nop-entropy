@@ -7,6 +7,7 @@ entity:
     NopDynEntityMeta: Entity Meta
     NopDynEntityRelation: Entity Relation
     NopDynEntityRelationMeta: Entity Relation Meta
+    NopDynFunctionMeta: Function Meta
     NopDynModule: Module Definition
     NopDynPage: Page Definition
     NopDynPropMeta: Property Meta
@@ -153,6 +154,30 @@ prop:
       entityMeta2: Entity2 Meta
       entityMeta2.entityName: Entity2 Meta
       extConfigComponent: null
+    NopDynFunctionMeta:
+      funcMetaId: Function Meta ID
+      entityMetaId: Entity Meta ID
+      name: Name
+      displayName: Display Name
+      functionType: Function Type
+      functionType_label: null
+      argsMeta: ARGS_META
+      argsMeta_label: null
+      returnType: Return Type
+      tagSet: Tag Set
+      source: Source
+      status: Status
+      status_label: null
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      entityMeta: Module
+      entityMeta.entityName: Module
+      argsMetaComponent: null
+      sourceComponent: null
     NopDynModule:
       moduleId: Module ID
       moduleName: Module Name

@@ -186,21 +186,25 @@ public class XCodeGenerator extends TemplateFileGenerator {
     }
 
     public XCodeGenerator withTplDir(String tplRootPath) {
-        XCodeGenerator gen = new XCodeGenerator(this.getLoader(), tplRootPath, getTargetRootPath());
+        return newCodeGenerator(tplRootPath, getTargetRootPath());
+    }
+
+    protected XCodeGenerator newCodeGenerator(String tplRootPath, String targetRootPath) {
+        XCodeGenerator gen = new XCodeGenerator(this.getLoader(), tplRootPath, targetRootPath);
         gen.withContentCache(this.contentCache);
         gen.withDependencyManager(dependencyManager);
         gen.forceOverride(this.isForceOverride());
+        gen.targetResourceLoader(this.getTargetResourceLoader());
+        gen.tplResourceLoader(getTplResourceLoader());
+        gen.checkOverrideHead(this.isCheckOverrideHead());
+        gen.autoFormat(isAutoFormat());
         return gen;
     }
 
     public XCodeGenerator withTargetDir(String targetRootPath) {
         targetRootPath = StringHelper.absolutePath(StringHelper.appendPath(this.getTargetRootPath(), "/"),
                 targetRootPath);
-        XCodeGenerator gen = new XCodeGenerator(this.getLoader(), getTplRootPath(), targetRootPath);
-        gen.withContentCache(this.contentCache);
-        gen.withDependencyManager(dependencyManager);
-        gen.forceOverride(this.isForceOverride());
-        return gen;
+        return newCodeGenerator(getTplRootPath(), targetRootPath);
     }
 
     private boolean runInit(IEvalScope scope) {

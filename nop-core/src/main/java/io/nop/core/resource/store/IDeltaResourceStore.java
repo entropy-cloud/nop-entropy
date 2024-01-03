@@ -14,4 +14,8 @@ public interface IDeltaResourceStore extends IResourceStore {
     IResource getSuperResource(String path, boolean returnNullIfNotExists);
 
     IResource getRawResource(String path);
+
+    void updateInMemoryLayer(IResourceStore resourceStore);
+
+    IResourceStore getInMemoryLayer();
 }

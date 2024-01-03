@@ -39,6 +39,8 @@ public class InMemoryResourceStore implements IResourceStore {
 
     private boolean useTextResourceAsUnknown = false;
 
+    private boolean supportSave = false;
+
     public boolean isUseTextResourceAsUnknown() {
         return useTextResourceAsUnknown;
     }
@@ -135,7 +137,7 @@ public class InMemoryResourceStore implements IResourceStore {
 
     @Override
     public boolean supportSave(String path) {
-        return false;
+        return supportSave;
     }
 
     @Override
@@ -155,6 +157,7 @@ public class InMemoryResourceStore implements IResourceStore {
     public void saveToResourceStore(IResourceStore resourceStore) {
         saveToResourceStore(resourceStore, null);
     }
+
     public void saveToResourceStore(IResourceStore resourceStore, Predicate<IResource> filter) {
         Predicate<ResourceTreeNode> nodeFilter = filter == null ? null : node -> filter.test(node.getResource());
 
@@ -163,5 +166,9 @@ public class InMemoryResourceStore implements IResourceStore {
             IResource resource = it.next().getResource();
             resourceStore.saveResource(resource.getPath(), resource, null, null);
         }
+    }
+
+    public void merge(InMemoryResourceStore store) {
+        this.root.merge(store.root);
     }
 }

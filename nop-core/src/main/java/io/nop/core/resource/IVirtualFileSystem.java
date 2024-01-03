@@ -10,8 +10,8 @@ package io.nop.core.resource;
 import io.nop.commons.lang.IDestroyable;
 import io.nop.commons.lang.IRefreshable;
 import io.nop.core.resource.impl.VirtualFile;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.Set;
 
 /**
@@ -34,7 +34,15 @@ public interface IVirtualFileSystem extends IResourceStore, IDestroyable, IRefre
      */
     Set<String> getClassPathResources();
 
-    default void refresh(boolean refreshDepends){
+    default void updateInMemoryLayer(IResourceStore layer) {
+
+    }
+
+    default IResourceStore getInMemoryLayer() {
+        return null;
+    }
+
+    default void refresh(boolean refreshDepends) {
 
     }
 }

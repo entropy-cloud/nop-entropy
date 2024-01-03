@@ -103,6 +103,14 @@ public class TemplateFileGenerator {
         return this;
     }
 
+    public boolean isCheckOverrideHead(){
+        return checkOverrideHead;
+    }
+
+    public boolean isAutoFormat(){
+        return autoFormat;
+    }
+
     public TemplateFileGenerator withDependencyManager() {
         return this.withDependencyManager(ResourceComponentManager.instance());
     }
@@ -322,7 +330,7 @@ public class TemplateFileGenerator {
             } else {
                 if (text.length() <= 0 && removeEmpty) {
                     LOG.info("nop.tpl.remove-empty-resource:targetFile={}", targetFile);
-                    deleteTargetResource(resource);
+                    deleteTargetResource(targetFile);
                 } else {
                     if (isNotChange(targetFile, text)) {
                         LOG.info("nop.tpl.skip-write-resource-since-text-not-change:tplFile={},targetFile={},len={}",
@@ -466,7 +474,7 @@ public class TemplateFileGenerator {
             return true;
         }
 
-        if (targetPath.indexOf(XGEN_FILE_DIR) >= 0 || targetPath.startsWith("_gen/"))
+        if (targetPath.contains(XGEN_FILE_DIR) || targetPath.startsWith("_gen/"))
             return true;
 
         if (checkOverrideHead && textFile) {
@@ -474,13 +482,13 @@ public class TemplateFileGenerator {
             if (targetText.isEmpty())
                 return true;
 
-            if (targetText.indexOf(XGEN_MARK_FORCE_OVERRIDE) >= 0)
+            if (targetText.contains(XGEN_MARK_FORCE_OVERRIDE))
                 return true;
 
             // 模板本身可以指定需要强制覆盖
             boolean tplOverride = tplForceOverrides.computeIfAbsent(tplFile.getPath(), p -> {
                 String srcText = readTextHeader(tplFile);
-                if (srcText.indexOf(XGEN_MARK_TPL_FORCE_OVERRIDE) >= 0)
+                if (srcText.contains(XGEN_MARK_TPL_FORCE_OVERRIDE))
                     return true;
                 return false;
             });

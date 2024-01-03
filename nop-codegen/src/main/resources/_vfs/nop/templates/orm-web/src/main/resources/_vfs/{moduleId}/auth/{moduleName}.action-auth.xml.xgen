@@ -2,10 +2,5 @@
 
 <auth x:extends="_${moduleName}.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
     <site id="main">
-        <resource id="test-orm-${moduleName}" >
-            <children>
-
-            </children>
-        </resource>
     </site>
 </auth>

@@ -459,6 +459,32 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return (IComponentModel) cache.require(resourcePath).model;
     }
 
+    @Override
+    public IComponentModel parseComponentModel(IResource resource) {
+        ComponentModelConfig config = requireModelConfigByModelPath(resource.getPath());
+        Pair<String, IResourceObjectLoader<? extends IComponentModel>> pair =
+                resolveModelLoader(resource.getPath(), config.getModelType());
+        if (pair == null)
+            throw new IllegalArgumentException("nop.err.unsupported-resource-file:" + resource.getPath());
+        return pair.getRight().parseFromResource(resource);
+    }
+
+    @Override
+    public IComponentModel parseComponentModel(IResource resource, String transform) {
+        ComponentModelConfig config = requireModelConfigByModelPath(resource.getPath());
+        Pair<String, IResourceObjectLoader<? extends IComponentModel>> pair =
+                resolveModelLoader(resource.getPath(), config.getModelType());
+        if (pair == null)
+            throw new IllegalArgumentException("nop.err.unsupported-resource-file:" + resource.getPath());
+
+        IComponentModel model = pair.getRight().parseFromResource(resource);
+
+        IComponentTransformer transformer = getTransformer(config.getModelType(), transform);
+        if (transformer == null)
+            return model;
+        return transformer.transform(model);
+    }
+
     static class ComponentCacheEntry implements IObjectChangeDetectable {
         Object model;
         Map<String, IComponentModel> transformed = new ConcurrentHashMap<>();

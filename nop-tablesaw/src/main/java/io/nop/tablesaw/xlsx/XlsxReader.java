@@ -54,8 +54,6 @@ public class XlsxReader implements DataReader<XlsxReadOptions> {
 
     private static final XlsxReader INSTANCE = new XlsxReader();
 
-    static final ExcelCell EMPTY_CELL = new ExcelCell();
-
     public static void register() {
         register(Table.defaultReaderRegistry);
     }

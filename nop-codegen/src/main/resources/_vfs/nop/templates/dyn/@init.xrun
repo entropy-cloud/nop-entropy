@@ -1,26 +1,2 @@
 <gen:DefineLoopForOrm xpl:lib="/nop/codegen/xlib/gen.xlib">
-    <c:script><![CDATA[
-        import io.nop.core.resource.VirtualFileSystem;
-        import io.nop.xlang.xmeta.SchemaLoader;
-
-        let metaResources = VirtualFileSystem.instance().getAllResources("/"+moduleId+"/model",".xmeta");
-        metaResources = metaResources.filter(r=>!r.name.startsWith('_') and !SchemaLoader.loadXMeta(r.path).containsTag('no-web'));
-
-        assign("metaResources",metaResources);
-
-        builder.defineGlobalVar("metaResource",metaResources);
-        builder.defineGlobalVar("moduleName",moduleId.replace('/','-'));
-        builder.defineLoopVar("metaInfo", "metaResource",
-            resource => {
-               const objMeta = SchemaLoader.loadXMeta(resource.path)
-               return {
-                forEntity: objMeta['ext:model'] != 'api',
-                forApi: objMeta['ext:model'] == 'api',
-                baseObjName: resource.path.$fileNameNoExt().$firstPart('_'),
-                objName: resource.path.$fileNameNoExt(),
-                objMeta: objMeta
-               }
-        });
-        builder.defineGlobalVar("moduleId",moduleId);
-    ]]></c:script>
 </gen:DefineLoopForOrm>

@@ -85,40 +85,54 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDynModule-main" displayName="模块定义" orderNo="10019"
+                <resource id="NopDynFunctionMeta-main" displayName="实体函数定义" orderNo="10019"
+                          i18n-en:displayName="Function Meta" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/dyn/pages/NopDynFunctionMeta/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopDynFunctionMeta:query" displayName="查询实体函数定义" orderNo="10020"
+                                  resourceType="FNPT">
+                            <permissions>NopDynFunctionMeta:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopDynFunctionMeta:mutation" displayName="修改实体函数定义" orderNo="10021"
+                                  resourceType="FNPT">
+                            <permissions>NopDynFunctionMeta:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopDynModule-main" displayName="模块定义" orderNo="10022"
                           i18n-en:displayName="Module Definition" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/dyn/pages/NopDynModule/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynModule:query" displayName="查询模块定义" orderNo="10020" resourceType="FNPT">
+                        <resource id="FNPT:NopDynModule:query" displayName="查询模块定义" orderNo="10023" resourceType="FNPT">
                             <permissions>NopDynModule:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynModule:mutation" displayName="修改模块定义" orderNo="10021"
+                        <resource id="FNPT:NopDynModule:mutation" displayName="修改模块定义" orderNo="10024"
                                   resourceType="FNPT">
                             <permissions>NopDynModule:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDynPage-main" displayName="页面定义" orderNo="10022" i18n-en:displayName="Page Definition"
+                <resource id="NopDynPage-main" displayName="页面定义" orderNo="10025" i18n-en:displayName="Page Definition"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/dyn/pages/NopDynPage/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynPage:query" displayName="查询页面定义" orderNo="10023" resourceType="FNPT">
+                        <resource id="FNPT:NopDynPage:query" displayName="查询页面定义" orderNo="10026" resourceType="FNPT">
                             <permissions>NopDynPage:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynPage:mutation" displayName="修改页面定义" orderNo="10024" resourceType="FNPT">
+                        <resource id="FNPT:NopDynPage:mutation" displayName="修改页面定义" orderNo="10027" resourceType="FNPT">
                             <permissions>NopDynPage:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopDynPropMeta-main" displayName="属性元数据" orderNo="10025"
+                <resource id="NopDynPropMeta-main" displayName="属性元数据" orderNo="10028"
                           i18n-en:displayName="Property Meta" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/dyn/pages/NopDynPropMeta/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopDynPropMeta:query" displayName="查询属性元数据" orderNo="10026"
+                        <resource id="FNPT:NopDynPropMeta:query" displayName="查询属性元数据" orderNo="10029"
                                   resourceType="FNPT">
                             <permissions>NopDynPropMeta:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopDynPropMeta:mutation" displayName="修改属性元数据" orderNo="10027"
+                        <resource id="FNPT:NopDynPropMeta:mutation" displayName="修改属性元数据" orderNo="10030"
                                   resourceType="FNPT">
                             <permissions>NopDynPropMeta:mutation</permissions>
                         </resource>

@@ -430,5 +430,6 @@
         <module>nop-oauth</module>
         <module>nop-dyn</module>
         <module>nop-gpt</module>
+        <module>nop-tablesaw</module>
     </modules>
 </project>

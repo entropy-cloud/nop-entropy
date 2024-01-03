@@ -165,6 +165,7 @@ CREATE TABLE nop_auth_role(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_AUTH_ROLE_NAME unique (ROLE_NAME),
   constraint PK_nop_auth_role primary key (ROLE_ID)
 );
 
@@ -258,6 +259,7 @@ CREATE TABLE nop_auth_user(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_AUTH_USER_NAME unique (USER_NAME),
   constraint PK_nop_auth_user primary key (USER_ID)
 );
 

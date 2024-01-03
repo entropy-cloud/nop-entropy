@@ -169,7 +169,17 @@ public class RegisterModelDiscovery {
                 if ("xdsl-loader".equals(type)) {
                     String schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
                     config.setXdefPath(schemaPath);
-                    config.loader(fileType, path -> new DslModelParser(schemaPath).parseFromVirtualPath(path));
+                    config.loader(fileType, new IResourceObjectLoader<IComponentModel>() {
+                        @Override
+                        public IComponentModel loadObjectFromPath(String path) {
+                            return new DslModelParser(schemaPath).parseFromVirtualPath(path);
+                        }
+
+                        @Override
+                        public IComponentModel parseFromResource(IResource resource) {
+                            return new DslModelParser(schemaPath).parseFromResource(resource);
+                        }
+                    });
                 } else if ("xlsx-loader".equals(type)) {
                     String impPath = (String) BeanTool.getProperty(loader, "impPath");
                     if (DslModelHelper.supportExcelModelLoader()) {
@@ -201,7 +211,17 @@ public class RegisterModelDiscovery {
         String beanName = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderBean");
         if (!StringHelper.isEmpty(beanName)) {
             LOG.info("nop.use-default-loader-bean:beanName={}", beanName);
-            return path -> ((IResourceObjectLoader) BeanContainer.instance().getBean(beanName)).loadObjectFromPath(path);
+            return new IResourceObjectLoader() {
+                @Override
+                public Object loadObjectFromPath(String path) {
+                    return ((IResourceObjectLoader) BeanContainer.instance().getBean(beanName)).loadObjectFromPath(path);
+                }
+
+                @Override
+                public Object parseFromResource(IResource resource) {
+                    return ((IResourceObjectLoader) BeanContainer.instance().getBean(beanName)).parseFromResource(resource);
+                }
+            };
         }
         String className = (String) BeanTool.getProperty(resolveHandler, "defaultLoaderClass");
         if (StringHelper.isEmpty(className))
@@ -223,11 +243,35 @@ public class RegisterModelDiscovery {
     IResourceObjectLoader newLoader(String className) {
         IClassModel classModel = ReflectionManager.instance().loadClassModel(className);
         if (IResourceObjectLoader.class.isAssignableFrom(classModel.getRawClass())) {
-            return path -> ((IResourceObjectLoader) classModel.newInstance()).loadObjectFromPath(path);
+            return new IResourceObjectLoader() {
+                @Override
+                public Object loadObjectFromPath(String path) {
+                    return ((IResourceObjectLoader) classModel.newInstance()).loadObjectFromPath(path);
+                }
+
+                @Override
+                public Object parseFromResource(IResource resource) {
+                    return ((IResourceObjectLoader) classModel.newInstance()).parseFromResource(resource);
+                }
+            };
         }
 
         IFunctionModel fn = classModel.getMethod("parseFromVirtualPath", 1);
         Guard.notNull(fn, className + ".parseFromVirtualPath not exists");
-        return path -> fn.call1(classModel.newInstance(), path, DisabledEvalScope.INSTANCE);
+
+        IFunctionModel parseFn = classModel.getMethod("parseFromResource", 1);
+        return new IResourceObjectLoader() {
+            @Override
+            public Object loadObjectFromPath(String path) {
+                return fn.call1(classModel.newInstance(), path, DisabledEvalScope.INSTANCE);
+            }
+
+            @Override
+            public Object parseFromResource(IResource resource) {
+                if (parseFn != null)
+                    return parseFn.call1(classModel.newInstance(), resource, DisabledEvalScope.INSTANCE);
+                return loadObjectFromPath(resource.getPath());
+            }
+        };
     }
 }

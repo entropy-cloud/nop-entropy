@@ -165,6 +165,7 @@ CREATE TABLE nop_auth_role(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
+  constraint UK_NOP_AUTH_ROLE_NAME unique (ROLE_NAME),
   constraint PK_nop_auth_role primary key (ROLE_ID)
 );
 
@@ -258,6 +259,7 @@ CREATE TABLE nop_auth_user(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
+  constraint UK_NOP_AUTH_USER_NAME unique (USER_NAME),
   constraint PK_nop_auth_user primary key (USER_ID)
 );
 

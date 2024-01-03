@@ -45,6 +45,29 @@ public class ResourceTreeNode implements ITreeChildrenStructure {
             Guard.checkArgument(StringHelper.isValidFileName(name), "resourceName is not valid file name", name);
     }
 
+    public boolean isLeaf() {
+        return children == null || children.isEmpty();
+    }
+
+    public void merge(ResourceTreeNode node) {
+        if (children == null) {
+            children = new TreeMap<>();
+        }
+
+        if (node.children != null) {
+            node.children.forEach((childName, child) -> {
+                ResourceTreeNode c = children.putIfAbsent(childName, child);
+                if (c != null) {
+                    if (c.isLeaf() || child.isLeaf()) {
+                        children.put(childName, child);
+                    } else {
+                        c.merge(child);
+                    }
+                }
+            });
+        }
+    }
+
     public String getPath() {
         return resource.getPath();
     }

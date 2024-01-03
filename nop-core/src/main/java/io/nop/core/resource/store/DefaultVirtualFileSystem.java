@@ -53,7 +53,17 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
     }
 
     @Override
-    public void refresh(boolean refreshDepends) {
+    public void updateInMemoryLayer(IResourceStore layer) {
+        this.deltaResourceStore.updateInMemoryLayer(layer);
+    }
+
+    @Override
+    public IResourceStore getInMemoryLayer() {
+        return deltaResourceStore.getInMemoryLayer();
+    }
+
+    @Override
+    public synchronized void refresh(boolean refreshDepends) {
         IoHelper.safeCloseAll(zipFiles);
         zipFiles = null;
 

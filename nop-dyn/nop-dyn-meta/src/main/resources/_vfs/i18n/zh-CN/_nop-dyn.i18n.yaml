@@ -7,6 +7,7 @@ entity:
     NopDynEntityMeta: 实体元数据
     NopDynEntityRelation: 实体关联
     NopDynEntityRelationMeta: 实体关联元数据
+    NopDynFunctionMeta: 实体函数定义
     NopDynModule: 模块定义
     NopDynPage: 页面定义
     NopDynPropMeta: 属性元数据
@@ -149,6 +150,30 @@ prop:
       relationName: 关联名
       remark: 备注
       status: 状态
+      tagSet: 标签
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopDynFunctionMeta:
+      argsMeta: 参数定义
+      argsMetaComponent: null
+      argsMeta_label: 参数定义
+      createTime: 创建时间
+      createdBy: 创建人
+      displayName: 显示名
+      entityMeta: 所属模块
+      entityMeta.entityName: 所属模块
+      entityMetaId: 实体定义ID
+      funcMetaId: 函数定义ID
+      functionType: 函数类型
+      functionType_label: 函数类型
+      name: 函数名
+      remark: 备注
+      returnType: 返回类型
+      source: 源码
+      sourceComponent: null
+      status: 状态
+      status_label: 状态
       tagSet: 标签
       updateTime: 修改时间
       updatedBy: 修改人

@@ -57,6 +57,8 @@ public class DeltaResourceStore implements IDeltaResourceStore {
      */
     private boolean useTenantStore;
 
+    private boolean useInMemoryLayer;
+
     private Set<String> classPathFiles;
 
     public IResourceStore getStore() {
@@ -81,6 +83,26 @@ public class DeltaResourceStore implements IDeltaResourceStore {
 
     public void setTenantStoreSupplier(ITenantResourceStoreSupplier tenantStoreSupplier) {
         this.tenantStoreSupplier = tenantStoreSupplier;
+    }
+
+    @Override
+    public void updateInMemoryLayer(IResourceStore store) {
+        Guard.notNull(store, "inMemoryLayer");
+
+        if (this.useInMemoryLayer) {
+            OverrideResourceStore overrideStore = (OverrideResourceStore) this.store;
+            this.store = new OverrideResourceStore(store, overrideStore.getSecondStore());
+        } else {
+            this.useInMemoryLayer = true;
+            this.store = new OverrideResourceStore(store, this.store);
+        }
+    }
+
+    @Override
+    public IResourceStore getInMemoryLayer() {
+        if (this.useInMemoryLayer)
+            return ((OverrideResourceStore) store).getFirstStore();
+        return null;
     }
 
     @Override

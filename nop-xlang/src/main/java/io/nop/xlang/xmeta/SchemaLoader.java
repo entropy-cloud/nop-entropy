@@ -9,6 +9,7 @@ package io.nop.xlang.xmeta;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.xdef.IXDefNode;
@@ -25,13 +26,16 @@ public class SchemaLoader {
                 XLangConstants.MODEL_TYPE_XMETA);
         return meta;
     }
-
     public static IXDefinition loadXDefinition(String path) {
-        if(StringHelper.isEmpty(path))
+        if (StringHelper.isEmpty(path))
             return null;
         IXDefinition xdef = (IXDefinition) ResourceComponentManager.instance().loadComponentModel(path,
                 XLangConstants.MODEL_TYPE_XDEF);
         return xdef;
+    }
+
+    public static IObjMeta parseXMetaFromResource(IResource resource) {
+        return (IObjMeta) ResourceComponentManager.instance().parseComponentModel(resource, XLangConstants.MODEL_TYPE_XMETA);
     }
 
     public static void validateNode(XNode node, IXDefNode defNode, boolean checkRootName) {
