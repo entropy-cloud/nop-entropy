@@ -41,7 +41,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
     }
 
     @PostMapping(FileConstants.PATH_UPLOAD)
-    public CompletionStage<ResponseEntity<Object>> upload(MultipartFile file, HttpServletRequest request) {
+    public CompletionStage<ResponseEntity<Object>> upload(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         String locale = ContextProvider.currentLocale();
         CompletionStage<ApiResponse<?>> res;
         try {
