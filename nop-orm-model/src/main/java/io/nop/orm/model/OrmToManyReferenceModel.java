@@ -16,6 +16,22 @@ public class OrmToManyReferenceModel extends _OrmToManyReferenceModel {
 
     }
 
+    public boolean isIgnoreDepends(){
+        return false;
+    }
+
+    public void setIgnoreDepends(boolean ignoreDepends){
+
+    }
+
+    public OrmRefSetModel getRefSet(){
+        return null;
+    }
+
+    public void setRefSet(OrmRefSetModel model){
+
+    }
+
     @Override
     public OrmDataTypeKind getKind() {
         return OrmDataTypeKind.TO_MANY_RELATION;
