@@ -120,7 +120,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             String hostId = CFG_HOST_ID.get();
             if (StringHelper.isEmpty(hostId))
                 hostId = NetHelper.findLocalIp();
-            workerId = HashHelper.murmur3_32(hostId) % 1024;
+            workerId = Math.abs(HashHelper.murmur3_32(hostId) % 1024);
         }
         this.snowflakeGenerator = new SnowflakeSequenceGeneator(workerId);
     }
