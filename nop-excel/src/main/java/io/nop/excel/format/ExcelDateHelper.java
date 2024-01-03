@@ -17,8 +17,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==================================================================== */
 
+import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.LocaleHelper;
+import io.nop.commons.util.StringHelper;
 
+import java.time.LocalDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
@@ -347,6 +350,19 @@ public class ExcelDateHelper {
         return calendar;
     }
 
+    public static LocalDateTime excelDateToLocalDateTime(double date) {
+        Calendar cal = getJavaCalendar(date);
+        if (cal == null)
+            return null;
+        return DateHelper.millisToDateTime(cal.getTimeInMillis());
+    }
+
+    public static double localDateTimeToExcelDate(LocalDateTime date) {
+        Calendar cal = LocaleHelper.getLocaleCalendar();
+        cal.setTimeInMillis(DateHelper.dateTimeToMillis(date));
+        return internalGetExcelDate(cal, false);
+    }
+
     // variables for performance optimization:
     // avoid re-checking DataUtil.isADateFormat(int, String) if a given format
     // string represents a date format if the same string is passed multiple
@@ -360,7 +376,7 @@ public class ExcelDateHelper {
     private static ThreadLocal<String> lastFormatString = new ThreadLocal<String>();
     private static ThreadLocal<Boolean> lastCachedResult = new ThreadLocal<Boolean>();
 
-    public static void clear(){
+    public static void clear() {
         lastFormatString.remove();
         lastFormatIndex.remove();
         lastCachedResult.remove();
@@ -375,7 +391,15 @@ public class ExcelDateHelper {
     private static void cache(String formatString, int formatIndex, boolean cached) {
         lastFormatIndex.set(formatIndex);
         lastFormatString.set(formatString);
-        lastCachedResult.set(Boolean.valueOf(cached));
+        lastCachedResult.set(cached);
+    }
+
+    public static boolean isADateFormat(String formatString) {
+        if (StringHelper.isEmpty(formatString))
+            return false;
+
+        int formatIndex = BuiltinFormats.getBuiltinFormat(formatString);
+        return isADateFormat(formatIndex, formatString);
     }
 
     /**
@@ -619,7 +643,7 @@ public class ExcelDateHelper {
         int minutes = parseInt(minStr, "minute", MINUTES_PER_HOUR);
         int seconds = parseInt(secStr, "second", SECONDS_PER_MINUTE);
 
-        double totalSeconds = (double)seconds + (minutes + (hours) * 60) * 60;
+        double totalSeconds = (double) seconds + (minutes + (hours) * 60) * 60;
         return totalSeconds / (SECONDS_PER_DAY);
     }
 

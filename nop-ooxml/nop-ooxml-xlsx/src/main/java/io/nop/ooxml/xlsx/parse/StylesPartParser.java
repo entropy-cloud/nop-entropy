@@ -103,7 +103,7 @@ public class StylesPartParser {
         }
         Object val = node.childAttr("sz", "val");
         if (val != null) {
-            ret.setFontSize(ConvertHelper.toShort(val));
+            ret.setFontSize(ConvertHelper.toFloat(val).shortValue());
         }
 
         Object charset = node.childAttr("charset", "val");
@@ -114,7 +114,8 @@ public class StylesPartParser {
         Object family = node.childAttr("family", "val");
         if (family != null) {
             ExcelFontFamily fontFamily = ExcelFontFamily.fromCode(ConvertHelper.toInt(family));
-            ret.setFontFamily(fontFamily.getText());
+            if (fontFamily != null)
+                ret.setFontFamily(fontFamily.getText());
         }
 
         String vertAlign = (String) node.childAttr("vertAlign", "val");

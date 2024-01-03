@@ -56,6 +56,7 @@ public class XlsxObjectLoader implements IResourceObjectLoader<Object> {
         return parser.parseFromWorkbook(wk);
     }
 
+    @Override
     public Object parseFromResource(IResource resource) {
         ImportModel importModel = getImportModel();
         ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);

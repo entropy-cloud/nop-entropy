@@ -75,7 +75,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
      * xml name: type
      * 
      */
-    private io.nop.excel.model.constants.ExcelCellType _type ;
+    private io.nop.commons.type.StdDataType _type ;
     
     /**
      *  
@@ -242,12 +242,12 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
      *  
      */
     
-    public io.nop.excel.model.constants.ExcelCellType getType(){
+    public io.nop.commons.type.StdDataType getType(){
       return _type;
     }
 
     
-    public void setType(io.nop.excel.model.constants.ExcelCellType value){
+    public void setType(io.nop.commons.type.StdDataType value){
         checkAllowChange();
         
         this._type = value;

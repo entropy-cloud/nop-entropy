@@ -44,6 +44,7 @@ import static io.nop.config.ConfigErrors.ARG_DEFINE_TYPE;
 import static io.nop.config.ConfigErrors.ARG_VALUE_TYPE;
 import static io.nop.config.ConfigErrors.ERR_CONFIG_VALUE_TYPE_NOT_SAME_AS_DEFINED;
 
+@SuppressWarnings({"unchecked", "rawtypes", "CastCanBeRemovedNarrowingVariableType"})
 public class DefaultConfigProvider implements IConfigProvider {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultConfigProvider.class);
 
